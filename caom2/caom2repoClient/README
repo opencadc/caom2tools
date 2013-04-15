@@ -1,0 +1,7 @@
+
+This is a simple client for interacting with the CAOM-2.0 repository at CADC. It can
+get, put, update, and delete observations from the repository.
+
+Note: The CAOM-2.0.xsd file found here is a copy of the definitive one, which is located in the
+caom2 (java) library. If there is a discrepancy the file here is likely out of date. This file
+is not currently used but validation may be added at some point.
