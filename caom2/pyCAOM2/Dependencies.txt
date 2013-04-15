@@ -1,0 +1,6 @@
+Files required for the pyCAOM2 project
+====================================================
+
+Name in build.xml    Versioned Name          Project URL
+-----------------    --------------------    -----------
+
