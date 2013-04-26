@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 """Client script to access the CAOM-2 Observation Repository"""
 
-# -*- coding: latin-1 -*-                                                                                                                                  
 #***********************************************************************                                                                                   
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************                                                                                   
 #*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************                                                                                   
