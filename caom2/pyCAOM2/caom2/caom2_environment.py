@@ -1,4 +1,5 @@
-# -*- coding: latin-1 -*-
+#!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 #*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
