@@ -1,6 +1,7 @@
+#
+# -*- coding: utf-8 -*-
 """Client script to access the CAOM-2 repository Observations."""
 
-# -*- coding: latin-1 -*-                                                                                                                                  
 #***********************************************************************                                                                                   
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************                                                                                   
 #*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************                                                                                   
