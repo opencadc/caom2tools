@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -68,15 +68,19 @@
 #***********************************************************************
 #
 
-"""Defines the caom2.Environment class, populates the caom2_environment values"""
+"""
+Defines the caom2.Environment class, populates the caom2_environment values
+"""
 
 import util.caom2_util as util
+
 
 class Environment(object):
     """A CAOM2 Environment Object.
 
-    This object contains the various values that can be set in the environment table entry.
-    Normally each Observation object will have an associate Environment Object."""
+    This object contains the various values that can be set in the environment
+    table entry. Normally each Observation object will have an associate
+    Environment Object."""
 
     def __init__(self):
         """
@@ -99,7 +103,7 @@ class Environment(object):
     @property
     def seeing(self):
         """atmospheric seeing (FWHM) in arcsec.
-        
+
         units: arcseconds
         """
         return self._seeing
@@ -107,7 +111,7 @@ class Environment(object):
     @seeing.setter
     def seeing(self, value):
         util.typeCheck(value, float, 'seeing')
-        util.valueCheck(value, 0, 360*3600.0, 'seeing')
+        util.valueCheck(value, 0, 360 * 3600.0, 'seeing')
         self._seeing = value
 
     @property
@@ -141,11 +145,12 @@ class Environment(object):
 
     @property
     def tau(self):
-        """The tau at zennith at the time of observation. 
+        """The tau at zennith at the time of observation.
 
         units:  fraction
 
-        This tau can be used, in combination with the elevation, to determine the actual tau."""
+        This tau can be used, in combination with the elevation,
+        to determine the actual tau."""
         return self._tau
 
     @tau.setter
@@ -156,10 +161,11 @@ class Environment(object):
 
     @property
     def wavelength_tau(self):
-        """Wavelength at which tau was measured (normally 225GHz converted to wavelength).
+        """Wavelength at which tau was measured
+        (normally 225GHz converted to wavelength).
 
         units: meters
-        
+
         """
         return self._wavelength_tau
 
@@ -185,7 +191,8 @@ class Environment(object):
 
     @property
     def photometric(self):
-        """A boolean flag (True/False) indicating if the observational conditions were photometric."""
+        """A boolean flag (True/False) indicating if
+        the observational conditions were photometric."""
         return self._photometric
 
     @photometric.setter

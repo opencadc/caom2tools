@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -78,10 +78,9 @@ from caom2_provenance import Provenance
 from caom2_enums import CalibrationLevel
 from caom2_enums import DataProductType
 from util.caom2_util import TypedOrderedDict
-from util.caom2_util import typeCheck
-from util.caom2_util import valueCheck
 from datetime import datetime
 from caom2.util import caom2_util as util
+
 
 class Plane(AbstractCaom2Entity):
     """ Plane class """
@@ -106,7 +105,6 @@ class Plane(AbstractCaom2Entity):
             artifacts = TypedOrderedDict((Artifact),)
         self._artifacts = artifacts
 
-
         self.meta_release = None
         self.data_release = None
         self.data_product_type = None
@@ -122,8 +120,8 @@ class Plane(AbstractCaom2Entity):
         self._polarization = None
 
         self._print_attributes = ['product_id', 'meta_release', 'data_release',
-                                  'data_product_type', 'calibration_level', 'provenance',
-                                  'metrics', 
+                                  'data_product_type', 'calibration_level',
+                                  'provenance', 'metrics',
                                   #'position', 'time', 'energy','polarization'
                                   'artifacts']
 
@@ -157,7 +155,7 @@ class Plane(AbstractCaom2Entity):
     @property
     def artifacts(self):
         """A TypeList of artifacts that are part of this plane.
-        
+
         individual artifacts are constructed and then added to the plane.
 
         eg. Plane.artifacts.add(Artifact('ad:CFHT/1234567p')), see the
@@ -166,8 +164,8 @@ class Plane(AbstractCaom2Entity):
         return self._artifacts
 
     @artifacts.setter
-    def artifacts(self,value):
-        util.typeCheck(value,TypedOrderedDict,'artifacts', override=False)
+    def artifacts(self, value):
+        util.typeCheck(value, TypedOrderedDict, 'artifacts', override=False)
         self._artifacts = value
 
     @property
@@ -189,9 +187,9 @@ class Plane(AbstractCaom2Entity):
     @meta_release.setter
     def meta_release(self, value):
         util.typeCheck(value, datetime, 'meta_release')
-        util.valueCheck(value, 
-                        datetime(1800,1,1,0,0,0), 
-                        datetime(2050,1,1,0,0,0), 
+        util.valueCheck(value,
+                        datetime(1800, 1, 1, 0, 0, 0),
+                        datetime(2050, 1, 1, 0, 0, 0),
                         'meta_release')
         self._meta_release = value
 
@@ -213,9 +211,9 @@ class Plane(AbstractCaom2Entity):
     @data_release.setter
     def data_release(self, value):
         util.typeCheck(value, datetime, 'data_release')
-        util.valueCheck(value, 
-                        datetime(1800,1,1,0,0,0), 
-                        datetime(2050,1,1,0,0,0), 
+        util.valueCheck(value,
+                        datetime(1800, 1, 1, 0, 0, 0),
+                        datetime(2050, 1, 1, 0, 0, 0),
                         'data_release')
         self._data_release = value
 
@@ -247,7 +245,7 @@ class Plane(AbstractCaom2Entity):
 
         Must be one of CalibrationLevel.names()
 
-	"""
+    """
         return self._calibration_level
 
     @calibration_level.setter
@@ -289,9 +287,9 @@ class Plane(AbstractCaom2Entity):
     @property
     def position(self):
         """A caom2 Position object that is developed from
-        the agregation of the Chunks that are children of 
-        the Plane. 
-        
+        the agregation of the Chunks that are children of
+        the Plane.
+
         agregation happens during ingest and is not part
         of the python module at this time.
         """
@@ -300,9 +298,9 @@ class Plane(AbstractCaom2Entity):
     @property
     def energy(self):
         """A caom2 Energy object that is developed from
-        the agregation of the Chunks that are children of 
-        the Plane. 
-        
+        the agregation of the Chunks that are children of
+        the Plane.
+
         agregation happens during ingest and is not part
         of the python module at this time.
         """
@@ -312,9 +310,9 @@ class Plane(AbstractCaom2Entity):
     @property
     def time(self):
         """A caom2 Time object that is developed from
-        the agregation of the Chunks that are children of 
-        the Plane. 
-        
+        the agregation of the Chunks that are children of
+        the Plane.
+
         agregation happens during ingest and is not part
         of the python module at this time.
         """
@@ -324,9 +322,9 @@ class Plane(AbstractCaom2Entity):
     @property
     def polarization(self):
         """A caom2 Polarization object that is developed from
-        the agregation of the Chunks that are children of 
-        the Plane. 
-        
+        the agregation of the Chunks that are children of
+        the Plane.
+
         agregation happens during ingest and is not part
         of the python module at this time.
         """
@@ -335,13 +333,18 @@ class Plane(AbstractCaom2Entity):
     # Compute derived fields
 
     def compute_position(self):
-        raise NotImplementedError("Agregation of position has not been implemenetd in this module")
+        raise NotImplementedError(
+            "Agregation of position has not been implemenetd in this module")
 
     def compute_energy(self):
-        raise NotImplementedError("Agregation of energy has not been implemenetd in this module")
+        raise NotImplementedError(
+            "Agregation of energy has not been implemenetd in this module")
 
     def compute_time(self):
-        raise NotImplementedError("Agregation of time has not been implemenetd in this module")
+        raise NotImplementedError(
+            "Agregation of time has not been implemenetd in this module")
 
     def compute_polarization(self):
-        raise NotImplementedError("Agregation of polarization has not been implemenetd in this module")
+        raise NotImplementedError(
+            "Agregation of polarization " +
+            "has not been implemenetd in this module")

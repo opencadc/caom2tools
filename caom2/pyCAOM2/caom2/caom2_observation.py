@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -81,7 +81,6 @@ from caom2_telescope import Telescope
 from caom2_observation_uri import ObservationURI
 from caom2_enums import ObservationIntentType
 from util.caom2_util import TypedOrderedDict
-from util.caom2_util import validate_path_component
 from util import caom2_util as util
 from datetime import datetime
 
@@ -102,7 +101,7 @@ class Observation(AbstractCaom2Entity):
     data.
 
     Observation -> Target
-                -> Plane(s) 
+                -> Plane(s)
                 -> Instrument
                 -> Telescope
                 -> Proposal
@@ -116,7 +115,7 @@ class Observation(AbstractCaom2Entity):
 
     The actual 'chunks' of observational data are reference by Chunk
     objects.  Information about the Spatial/Frequency/Time aspects of
-    an Observation are expressed at the Chunk level.                 
+    an Observation are expressed at the Chunk level.
 
     The Chunk contains refernces to caom2 objects that fully describe
     the circumstances of that chunk of observation.  Often a 'Chunk'
@@ -128,12 +127,12 @@ class Observation(AbstractCaom2Entity):
           -> TemporalWCS
           -> SpectralWCS
           -> PolarizationWCS
-          -> (Observable) 
+          -> (Observable)
     """
 
-    def __init__(self, 
-                 collection, 
-                 observation_id, 
+    def __init__(self,
+                 collection,
+                 observation_id,
                  algorithm,
                  sequence_number=None,
                  intent=None,
@@ -159,7 +158,7 @@ class Observation(AbstractCaom2Entity):
                     a telescope observation this is always 'exposure'
         """
         super(Observation, self).__init__()
-        
+
         self.collection = collection
         self.observation_id = observation_id
         self.algorithm = algorithm
@@ -181,20 +180,19 @@ class Observation(AbstractCaom2Entity):
         self.planes = planes
 
         ## hold the list of attributes we should pprint
-        self._print_attributes = ['collection','observation_id',
-                                  'algorithm','sequence_number', 
-                                  'intent', 'obs_type', 'proposal', 
-                                  'telescope','instrument', 'target', 
+        self._print_attributes = ['collection', 'observation_id',
+                                  'algorithm', 'sequence_number',
+                                  'intent', 'obs_type', 'proposal',
+                                  'telescope', 'instrument', 'target',
                                   'environment', 'meta_release',
                                   'planes']
-
 
     # Properties
     @property
     def collection(self):
         """The name of the collection of observations, normally a telescope
         name.
-        
+
         type: str
         """
         return self._collection
@@ -247,7 +245,7 @@ class Observation(AbstractCaom2Entity):
 
     @planes.setter
     def planes(self, value):
-        util.typeCheck(value, TypedOrderedDict,'planes')
+        util.typeCheck(value, TypedOrderedDict, 'planes')
         self._planes = value
 
     @property
@@ -268,9 +266,9 @@ class Observation(AbstractCaom2Entity):
     @property
     def intent(self):
         """The original intent of having this data.
-        
+
         type: ObservationIntentType
-        
+
         see ObservationIntentType.names() for allowed values
 
         """
@@ -375,7 +373,7 @@ class Observation(AbstractCaom2Entity):
     def environment(self):
         """Reference to an Environment object associated with this
         observation.
-        
+
         can be None
         type: caom2.Environment
         """
@@ -383,7 +381,7 @@ class Observation(AbstractCaom2Entity):
 
     @environment.setter
     def environment(self, value):
-        util.typeCheck(value, Environment,'environment')
+        util.typeCheck(value, Environment, 'environment')
         self._environment = value
 
     @property
