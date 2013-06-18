@@ -70,7 +70,7 @@
 
 """ Defines TestCaom2Enums class """
 
-from caom2.caom2_enums import EnergyBand, CalibrationLevel
+from caom2.caom2_enums import EnergyBand, CalibrationLevel, ProductType
 import os
 import sys
 import unittest
@@ -148,6 +148,17 @@ class TestCaom2Enums(unittest.TestCase):
         # test that we cannot change an enum value
         self.assertRaises(TypeError, EnergyBand.RADIO.value, "InvalidValue")
         self.assertRaises(TypeError, EnergyBand.RADIO.name, "InvalidName")
+
+    def testProductType(self):
+        # test that we can get each enum value
+        self.assertEqual(ProductType.AUXILIARY.value, "auxiliary")
+        self.assertEqual(ProductType.CALIBRATION.value, "calibration")
+        self.assertEqual(ProductType.INFO.value, "info")
+        self.assertEqual(ProductType.PREVIEW.value, "preview")
+        self.assertEqual(ProductType.SCIENCE.value, "science")
+        self.assertEqual(ProductType.CATALOG.value, "catalog")
+        self.assertEqual(ProductType.NOISE.value, "noise")
+        self.assertEqual(ProductType.WEIGHT.value, "weight")
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestCaom2Enums)
 unittest.TextTestRunner(verbosity=2).run(suite)
