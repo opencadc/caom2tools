@@ -73,10 +73,10 @@ Defines the Axis class
 """
 
 import caom2.util.caom2_util as util
-#from caom2.caom2_object import Caom2Object
+from caom2.caom2_object import Caom2Object
 
 
-class Axis(object):
+class Axis(Caom2Object):
     """the Axis class holds the definition of the axis type and units"""
 
     def __init__(self, ctype, cunit):

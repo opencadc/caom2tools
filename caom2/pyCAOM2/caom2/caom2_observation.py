@@ -179,14 +179,6 @@ class Observation(AbstractCaom2Entity):
             planes = TypedOrderedDict((Plane),)
         self.planes = planes
 
-        ## hold the list of attributes we should pprint
-        self._print_attributes = ['collection', 'observation_id',
-                                  'algorithm', 'sequence_number',
-                                  'intent', 'obs_type', 'proposal',
-                                  'telescope', 'instrument', 'target',
-                                  'environment', 'meta_release',
-                                  'planes']
-
     # Properties
     @property
     def collection(self):

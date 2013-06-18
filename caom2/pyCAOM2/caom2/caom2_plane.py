@@ -103,14 +103,14 @@ class Plane(AbstractCaom2Entity):
         self.product_id = product_id
         if artifacts is None:
             artifacts = TypedOrderedDict((Artifact),)
-        self._artifacts = artifacts
+        self.artifacts = artifacts
 
-        self.meta_release = None
-        self.data_release = None
-        self.data_product_type = None
-        self.calibration_level = None
-        self.provenance = None
-        self.metrics = None
+        self.meta_release = meta_release
+        self.data_release = data_release
+        self.data_product_type = data_product_type
+        self.calibration_level = calibration_level
+        self.provenance = provenance
+        self.metrics = metrics
 
         # computed fields
         # agregated from the Chunks during ingestion
@@ -118,12 +118,6 @@ class Plane(AbstractCaom2Entity):
         self._energy = None
         self._time = None
         self._polarization = None
-
-        self._print_attributes = ['product_id', 'meta_release', 'data_release',
-                                  'data_product_type', 'calibration_level',
-                                  'provenance', 'metrics',
-                                  #'position', 'time', 'energy','polarization'
-                                  'artifacts']
 
     def _key(self):
         return (self.product_id)

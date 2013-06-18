@@ -70,16 +70,17 @@
 
 """defines the caom2.Target class"""
 
+from caom2_object import Caom2Object
 from util.caom2_util import TypedList
 from caom2_enums import TargetType
 import util.caom2_util as util
 
 
-class Target(object):
+class Target(Caom2Object):
     """ Target """
 
     def __init__(self, name,
-                 type=None,
+                 target_type=None,
                  standard=None,
                  redshift=None,
                  keywords=None):
@@ -92,7 +93,7 @@ class Target(object):
         """
 
         self.name = name
-        self.target_type = type
+        self.target_type = target_type
         self.standard = standard
         self.redshift = redshift
         if keywords is None:

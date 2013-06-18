@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -74,11 +74,12 @@ from caom2_coord_range1d import CoordRange1D
 from caom2.caom2_object import Caom2Object
 from caom2.util import caom2_util as util
 
+
 class CoordBounds1D(Caom2Object):
     """Contains the bounds for a 1D axis, a list of ranges
 
     """
-    
+
     def __init__(self, samples=None):
 
         if samples is None:
@@ -87,11 +88,11 @@ class CoordBounds1D(Caom2Object):
 
     @property
     def samples(self):
-        """A list of CoordRange1D objects that define the 
-        boundary of a 1D axis.  
+        """A list of CoordRange1D objects that define the
+        boundary of a 1D axis.
 
         see also caom2.util.TypedList and caom2.wcs.CoordRange1D
-        
+
         eg.
         samples.add(CoordRange1D(RefCoord(pix,val),RefCoord(pix,val)))
 
@@ -100,9 +101,8 @@ class CoordBounds1D(Caom2Object):
 
     @samples.setter
     def samples(self, value):
-        util.typeCheck(value, 
-                       util.TypedList, 
-                       'samples', 
+        util.typeCheck(value,
+                       util.TypedList,
+                       'samples',
                        override=False)
         self._samples = value
-    

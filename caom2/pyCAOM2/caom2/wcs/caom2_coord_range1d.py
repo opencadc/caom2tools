@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -68,7 +68,7 @@
 #***********************************************************************
 #
 
-"""defines CoordRange1D class 
+"""defines CoordRange1D class
 
 """
 
@@ -76,8 +76,9 @@ from caom2_ref_coord import RefCoord
 from caom2.caom2_object import Caom2Object
 from caom2.util import caom2_util as util
 
+
 class CoordRange1D(Caom2Object):
-    """a CoordRange1D object contains the start and end of 
+    """a CoordRange1D object contains the start and end of
      a range of values, expressed in both pixel and WCS units.
 
      """
@@ -97,14 +98,14 @@ class CoordRange1D(Caom2Object):
         return self._start
 
     @start.setter
-    def start(self,value):
+    def start(self, value):
         util.typeCheck(value, RefCoord, "start", override=False)
         self._start = value
 
     @property
     def end(self):
         """The pixel and world coordinate of the end of a range.
-        
+
         eg. RefCoord(pix,val)
         type: RefCoord
 
@@ -115,4 +116,3 @@ class CoordRange1D(Caom2Object):
     def end(self, value):
         util.typeCheck(value, RefCoord, "end", override=False)
         self._end = value
-

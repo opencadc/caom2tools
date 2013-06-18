@@ -72,10 +72,11 @@
 Defines the caom2.Environment class, populates the caom2_environment values
 """
 
+from caom2_object import Caom2Object
 import util.caom2_util as util
 
 
-class Environment(object):
+class Environment(Caom2Object):
     """A CAOM2 Environment Object.
 
     This object contains the various values that can be set in the environment
@@ -95,9 +96,6 @@ class Environment(object):
         self._wavelength_tau = None
         self._ambient_temp = None
         self._photometric = None
-        self._print_attributes = ['seeing', 'photometric',
-                                  'tau', 'wavelength_tau', 'elevation',
-                                  'ambient_temp', 'humidity']
 
     # Properties
     @property
@@ -116,7 +114,7 @@ class Environment(object):
 
     @property
     def humidity(self):
-        """Relative humidity, expressed as a fraction between 0 and 1.
+        """Relative humidity, expressed as a fraction between 0 and 200.
 
         units: fraction
         """
@@ -124,9 +122,9 @@ class Environment(object):
 
     @humidity.setter
     def humidity(self, value):
-        # set the humidity to value, which  must be +ve fraction less than 1
+        # set the humidity to value, which  must be +ve fraction less than 200
         util.typeCheck(value, float, 'humidity')
-        util.valueCheck(value, 0, 1, 'humidity')
+        util.valueCheck(value, 0, 200, 'humidity')
         self._humidity = value
 
     @property

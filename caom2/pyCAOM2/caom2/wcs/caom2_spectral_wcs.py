@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -75,6 +75,7 @@ from caom2_coord_axis1d import CoordAxis1D
 from caom2.util import caom2_util as util
 from caom2.caom2_object import Caom2Object
 
+
 class SpectralWCS(Caom2Object):
     """A transformation that maps pixel coordinates to spectral ones.
 
@@ -87,8 +88,8 @@ class SpectralWCS(Caom2Object):
 
     """
 
-    def __init__(self, 
-                 axis, 
+    def __init__(self,
+                 axis,
                  specsys,
                  ssysobs=None,
                  ssyssrc=None,
@@ -126,7 +127,7 @@ class SpectralWCS(Caom2Object):
     def axis(self):
         """A 1D coordinate axis object that contains the pix/wcs
         transformation values.
-        
+
         eg.  CoordAxis1D(Axis('wave','flux'),...)
 
         """
@@ -139,11 +140,11 @@ class SpectralWCS(Caom2Object):
 
     @property
     def specsys(self):
-        """describes the reference frame in use for the spectral-axis coor-
-        dinate(s).
+        """describes the reference frame in use for the spectral-axis
+        coordinate(s).
 
         eg. BARYCENT
-        
+
         type: str
         """
         return self._specsys
@@ -157,10 +158,10 @@ class SpectralWCS(Caom2Object):
     def ssysobs(self):
         """describes the spectral reference frame that is constant over the
         range of the non-spectral world coordinates
-        
+
         For example, for a large image the the wavelength at the edges
         is different from the centres.  This refernce frame is one where they
-        are not different.  
+        are not different.
 
         Nominally 'TOPOCENT'
 
@@ -189,7 +190,7 @@ class SpectralWCS(Caom2Object):
 
     @property
     def restfrq(self):
-        """The frequency of the spectal feature being observed. 
+        """The frequency of the spectal feature being observed.
 
         unit: Hz
         type: float
@@ -203,9 +204,10 @@ class SpectralWCS(Caom2Object):
 
     @property
     def restwav(self):
-        """The wavelength of spectral feature being observed, not the wavelength observed
-        but the wavelength of the feature when at rest.. 
-        
+        """The wavelength of spectral feature being observed,
+        not the wavelength observed but the wavelength of the
+        feature when at rest..
+
         unit: m
         type: float
         """
@@ -222,7 +224,7 @@ class SpectralWCS(Caom2Object):
         standard of rest in the direction of the celestial reference
         coordinate.
 
-        eg. 26000 m/s  
+        eg. 26000 m/s
 
 
         unit: m/s
@@ -265,7 +267,7 @@ class SpectralWCS(Caom2Object):
     @property
     def bandpass_name(self):
         """string the represent the bandpass of the observation.
-        
+
         eg. r'
         type: str
         """

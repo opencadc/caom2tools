@@ -70,12 +70,12 @@
 
 """ defines the time class"""
 
-
+from caom2_object import Caom2Object
 from types.caom2_interval import Interval
 import util.caom2_util as util
 
 
-class Time(object):
+class Time(Caom2Object):
     """ Time """
 
     def __init__(self,

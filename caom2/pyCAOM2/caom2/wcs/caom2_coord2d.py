@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -74,6 +74,7 @@ from caom2_ref_coord import RefCoord
 from caom2.util import caom2_util as util
 from caom2.caom2_object import Caom2Object
 
+
 class Coord2D(Caom2Object):
     """Represents the reference point.
 
@@ -86,7 +87,7 @@ class Coord2D(Caom2Object):
 
     @property
     def coord1(self):
-        """A coordinate axis1 coordinate/pix pair, crpix1,crval1.
+        """A coordinate axis1 coordinate/pix pair, crpix1, crval1.
 
         eg.  RefCoord(crpix1, crval1)
         """
@@ -97,7 +98,6 @@ class Coord2D(Caom2Object):
         util.typeCheck(value, RefCoord, 'coord1', override=False)
         self._coord1 = value
 
-
     @property
     def coord2(self):
         """The axis2 coordinate reference pair (ei. crpix2/crval2.
@@ -106,7 +106,6 @@ class Coord2D(Caom2Object):
         """
         return self._coord2
 
-    
     @coord2.setter
     def coord2(self, value):
         util.typeCheck(value, RefCoord, 'coord2', override=False)

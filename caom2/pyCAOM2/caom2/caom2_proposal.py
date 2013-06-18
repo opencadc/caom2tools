@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -70,14 +70,16 @@
 
 """defines the Proposal class"""
 
+from caom2_object import Caom2Object
 from util.caom2_util import TypedList
 import util.caom2_util as util
 
-class Proposal(object):
+
+class Proposal(Caom2Object):
     """ Proposal """
 
-    def __init__(self, 
-                 proposal_id, 
+    def __init__(self,
+                 proposal_id,
                  pi_name=None,
                  project=None,
                  title=None):
@@ -116,7 +118,7 @@ class Proposal(object):
 
         keywords are stored as a string of words and do not need to be
         key/valye pairs.
-        
+
         eg. Proposal.keywords.add('galaxies')
 
         type: TypedList((str),)
@@ -133,7 +135,7 @@ class Proposal(object):
         """The name (First Last) of the Principle Investigator of the
         Proposal.
 
-        type: str 
+        type: str
         """
         return self._pi_name
 

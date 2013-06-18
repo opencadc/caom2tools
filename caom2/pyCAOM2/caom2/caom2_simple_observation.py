@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -73,8 +73,8 @@
 
 from caom2_algorithm import Algorithm
 from caom2_observation import Observation
-from util.caom2_util import ClassProperty
 import util.caom2_util as util
+
 
 class SimpleObservation(Observation):
     """A convenience class for biuld Observations where
@@ -97,23 +97,52 @@ class SimpleObservation(Observation):
 
     _ALGORITHM = Algorithm("exposure")
 
-    def __init__(self, collection, observation_id):
-        """ 
+    def __init__(self,
+                 collection,
+                 observation_id,
+                 algorithm=None,
+                 sequence_number=None,
+                 intent=None,
+                 obs_type=None,
+                 proposal=None,
+                 telescope=None,
+                 instrument=None,
+                 target=None,
+                 meta_release=None,
+                 planes=None,
+                 environment=None
+                 ):
+        """
         collection - A name that describes a collection of data,
-        nominally the name of a telescope 
+        nominally the name of a telescope
 
         observation_id - A UNIQUE identifier with in that collection
         """
-        super(SimpleObservation, self).__init__(collection, observation_id,
-                                            SimpleObservation._ALGORITHM)
-
-    
+        if (algorithm == None):
+            algorithm = SimpleObservation._ALGORITHM
+        if (algorithm != SimpleObservation._ALGORITHM):
+            raise ValueError(
+                "E{0} (required for SimpleObservation)".format(algorithm))
+        super(SimpleObservation, self).__init__(collection,
+                                                observation_id,
+                                                algorithm,
+                                                sequence_number,
+                                                intent,
+                                                obs_type,
+                                                proposal,
+                                                telescope,
+                                                instrument,
+                                                target,
+                                                meta_release,
+                                                planes,
+                                                environment
+                                                )
 
     @property
     def algorithm(self):
         """The algorithm that built the observation, for SimpleObservation
         this is always 'exposure'"""
-        
+
         return super(SimpleObservation, self).algorithm
 
     @algorithm.setter
@@ -122,8 +151,7 @@ class SimpleObservation(Observation):
         if isinstance(value, str):
             value = Algorithm(value)
         util.typeCheck(value, Algorithm, 'algorithm', override=False)
-        util.valueCheck(value, None, None, 
-                        'algorithm', 
+        util.valueCheck(value, None, None,
+                        'algorithm',
                         override=self._ALGORITHM)
         self._algorithm = value
-

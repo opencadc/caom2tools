@@ -85,12 +85,12 @@ class CoordAxis1D(Caom2Object):
 
     """
 
-    def __init__(self, axis, error=None,
-                 _range=None, bounds=None, function=None):
+    def __init__(self, axis, error=None, range=None,
+                 bounds=None, function=None):
 
         self.axis = axis
         self.error = error
-        self.range = _range
+        self.range = range
         self.bounds = bounds
         self.function = function
 
