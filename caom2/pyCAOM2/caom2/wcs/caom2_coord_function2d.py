@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -76,6 +76,7 @@ from caom2_dimension2d import Dimension2D
 from caom2_coord2d import Coord2D
 from caom2.caom2_object import Caom2Object
 from caom2.util import caom2_util as util
+
 
 class CoordFunction2D(Caom2Object):
     """Describes the parameters needed for the standard CD matrix.
@@ -101,13 +102,12 @@ class CoordFunction2D(Caom2Object):
 
         """
         return self._dimension
-    
-    @dimension.setter
-    def dimension(self,value):
-        util.typeCheck(value, Dimension2D, 'dimension', override=False)
-        self._dimension=value
 
-    
+    @dimension.setter
+    def dimension(self, value):
+        util.typeCheck(value, Dimension2D, 'dimension', override=False)
+        self._dimension = value
+
     @property
     def ref_coord(self):
         """A Coord2D object that holds the reference pixel location
@@ -135,11 +135,9 @@ class CoordFunction2D(Caom2Object):
         return self._cd11
 
     @cd11.setter
-    def cd11(self,value):
+    def cd11(self, value):
         util.typeCheck(value, float, 'cd11', override=False)
-        self._cd11=value
-
-
+        self._cd11 = value
 
     @property
     def cd12(self):
@@ -153,11 +151,9 @@ class CoordFunction2D(Caom2Object):
         return self._cd12
 
     @cd12.setter
-    def cd12(self,value):
+    def cd12(self, value):
         util.typeCheck(value, float, 'cd12', override=False)
         self._cd12 = value
-
-
 
     @property
     def cd21(self):
@@ -171,7 +167,7 @@ class CoordFunction2D(Caom2Object):
         return self._cd21
 
     @cd21.setter
-    def cd21(self,value):
+    def cd21(self, value):
         util.typeCheck(value, float, 'cd21', override=False)
         self._cd21 = value
 
@@ -187,8 +183,6 @@ class CoordFunction2D(Caom2Object):
         return self._cd22
 
     @cd22.setter
-    def cd22(self,value):
+    def cd22(self, value):
         util.typeCheck(value, float, 'cd22', override=False)
         self._cd22 = value
-
-

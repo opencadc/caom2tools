@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -70,15 +70,18 @@
 
 """contains the definition of the caom2.Instrument object"""
 
+from caom2_object import Caom2Object
 from util.caom2_util import TypedList
 import util.caom2_util as util
 
-class Instrument(object):
+
+class Instrument(Caom2Object):
     """The telescopic instrument that recorded a given observation.
 
     Each observation should have an associated instrument.
 
-    eg:  inst = caom2.Observation('CFHT','1234569p','exposure').Instrument("MEGAPRIME")
+    eg:
+    inst=caom2.Observation('CFHT','123456p','exposure').Instrument("MEGAPRIME")
 
     Each instrument can have list of keywords.
     eg.
@@ -92,16 +95,15 @@ class Instrument(object):
         Arguments:
         name - name of the instrument
         """
-        util.typeCheck(name,str,'name',override='none')
+        util.typeCheck(name, str, 'name', override='none')
         self._name = name
         self._keywords = TypedList((str),)
-        self._print_attributes = ['name','keywords']
 
     # Properties
     @property
     def name(self):
         """The name of the instrument.
-        
+
         type: str
         """
         return self._name
@@ -111,10 +113,11 @@ class Instrument(object):
         """A list of strings that are keywords associated with the instrument.
 
         eg.  keywords.append(("ccd=off","hot","shutter broken"))
-        
-        Keywords are stored as text in the database and are searched as text, 
-        so in the above example you can search for ccd=off but that is just matching the
-        text 'ccd=off' and you can not do 'ccd!=on' to find that key/value pair. 
+
+        Keywords are stored as text in the database and are searched as text,
+        so in the above example you can search for ccd=off but that is just
+        matching the text 'ccd=off' and you can not do 'ccd!=on' to find that
+        key/value pair.
 
         Also, the list is concated together and inserted into the
         model as a single text field, so keywords like 'shutter

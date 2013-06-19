@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -81,6 +81,7 @@ from wcs.caom2_polarization_wcs import PolarizationWCS
 from wcs.caom2_temporal_wcs import TemporalWCS
 import util.caom2_util as util
 
+
 class Chunk(AbstractCaom2Entity):
     """A caom2.Chunk object.  A chunk is a peice of file part.
 
@@ -93,7 +94,7 @@ class Chunk(AbstractCaom2Entity):
     include. For example, if a single data array contains different
     observable quantities then one can define a chunk (perhaps
     representing different slices through a stored array) with each
-    slice having a different product type. 
+    slice having a different product type.
 
     Chunks can also be used to define arbitrary tiles in a large data
     array; this is useful if there is no WCS solution to describe the
@@ -104,18 +105,18 @@ class Chunk(AbstractCaom2Entity):
 
     def __init__(self, product_type=None,
                        naxis=None,
-		       position_axis_1=None,
-		       position_axis_2=None,
-		       position=None,
-		       energy_axis=None,
-		       energy=None,
-		       time_axis=None,
-		       time=None,
-		       polarization_axis=None,
-		       polarization=None,
-		       observable_axis=None,
-		       observable=None,
-		       ):
+                       position_axis_1=None,
+                       position_axis_2=None,
+                       position=None,
+                       energy_axis=None,
+                       energy=None,
+                       time_axis=None,
+                       time=None,
+                       polarization_axis=None,
+                       polarization=None,
+                       observable_axis=None,
+                       observable=None,
+                       ):
 
         super(Chunk, self).__init__()
         self.product_type = product_type
@@ -139,7 +140,7 @@ class Chunk(AbstractCaom2Entity):
         eg.  Chunk.product_type = ProductType('SCIENCE')
 
         Allowed values:
-        """+str(ProductType.names())+"""
+        """ + str(ProductType.names()) + """
 
         """
 
@@ -174,7 +175,7 @@ class Chunk(AbstractCaom2Entity):
         """The first spatial axis (nominally NAXIS1).
 
         This is the spatial axis whose WCS is connected to CRPIX1, CD1_1, CD2_1
-        
+
         eg: position_axis_1 = 1
         type: int
 
@@ -184,7 +185,7 @@ class Chunk(AbstractCaom2Entity):
     @position_axis_1.setter
     def position_axis_1(self, value):
         util.typeCheck(value, int, 'position_axis_1')
-        util.valueCheck(value, 0, self.naxis, 'position_axis_1')
+#         util.valueCheck(value, 0, self.naxis, 'position_axis_1')
         self._position_axis_1 = value
 
     @property
@@ -192,9 +193,9 @@ class Chunk(AbstractCaom2Entity):
         """The second spatial axis (nominally NAXIS2).
 
         This is the spatial axis whose WCS is connected to CRPIX2,
-        CD2_2, CD1_2 
+        CD2_2, CD1_2
 
-        eg: position_axis_2 = 2 
+        eg: position_axis_2 = 2
         type: int
 
         """
@@ -203,7 +204,7 @@ class Chunk(AbstractCaom2Entity):
     @position_axis_2.setter
     def position_axis_2(self, value):
         util.typeCheck(value, int, 'position_axis_2')
-        util.valueCheck(value, 0, self.naxis, 'position_axis_2')
+#         util.valueCheck(value, 0, self.naxis, 'position_axis_2')
         self._position_axis_2 = value
 
     @property
@@ -223,7 +224,7 @@ class Chunk(AbstractCaom2Entity):
     @energy_axis.setter
     def energy_axis(self, value):
         util.typeCheck(value, int, 'energy_axis')
-        util.valueCheck(value, 0, self.naxis, 'energy_axis')
+#         util.valueCheck(value, 0, self.naxis, 'energy_axis')
         self._energy_axis = value
 
     @property
@@ -231,7 +232,7 @@ class Chunk(AbstractCaom2Entity):
         """The axis in the data chunk that is in the time direction.
 
         Can and should be None if no time sampling axis exist.
-        
+
         eg. time_axis = None
         type: int
 
@@ -241,25 +242,25 @@ class Chunk(AbstractCaom2Entity):
     @time_axis.setter
     def time_axis(self, value):
         util.typeCheck(value, int, 'polarization_axis')
-        util.valueCheck(value, 0, self._naxis, 'polarization_axis')
+#         util.valueCheck(value, 0, self._naxis, 'polarization_axis')
         self._time_axis = value
 
     @property
     def polarization_axis(self):
         """The axis in the data chunk that is in the polarization direction.
 
-        Likely None... 
+        Likely None...
 
         eg. polarization_axis = None
         type: int
-        
+
         """
         return self._polarization_axis
 
     @polarization_axis.setter
     def polarization_axis(self, value):
         util.typeCheck(value, int, 'polarization_axis')
-        util.valueCheck(value, 0, self._naxis, 'polariztion_axis')
+#         util.valueCheck(value, 0, self._naxis, 'polariztion_axis')
         self._polarization_axis = value
 
     @property
@@ -274,13 +275,13 @@ class Chunk(AbstractCaom2Entity):
     @observable_axis.setter
     def observable_axis(self, value):
         util.typeCheck(value, int, 'obserable_axis')
-        util.valueCheck(value, 0, 1E10, 'observable_axis')
+#         util.valueCheck(value, 0, 1E10, 'observable_axis')
         self._observable_axis = value
 
     @property
     def observable(self):
-        """An obserable that is contained in the chunk. 
-        
+        """An obserable that is contained in the chunk.
+
         Observables are quantities that are recorded directly??
 
         """
@@ -288,7 +289,7 @@ class Chunk(AbstractCaom2Entity):
 
     @observable.setter
     def observable(self, value):
-        util.typeCheck(value,ObservableAxis,'observable_axis')
+        util.typeCheck(value, ObservableAxis, 'observable_axis')
         self._observable = value
 
     @property
@@ -299,13 +300,13 @@ class Chunk(AbstractCaom2Entity):
         values and the world coordinate.
 
         type: SpatialWCS.
-        
+
         """
         return self._position
 
     @position.setter
     def position(self, value):
-        util.typeCheck(value,SpatialWCS,'position')
+        util.typeCheck(value, SpatialWCS, 'position')
         self._position = value
 
     @property
@@ -317,7 +318,7 @@ class Chunk(AbstractCaom2Entity):
         in dimension.
 
         type: SpectralWCS
-        
+
         """
         return self._energy
 
@@ -332,9 +333,9 @@ class Chunk(AbstractCaom2Entity):
 
         Even if time_axis is None you should define the TimeWCS
         to convey when you observation was taken.
-        
+
         type: TemporalWCS
-        
+
         """
         return self._time
 
@@ -348,7 +349,7 @@ class Chunk(AbstractCaom2Entity):
         """The PolarizationWCS of the observation.
 
         ususally None
-        
+
         type: PolarizationWCS
 
         """

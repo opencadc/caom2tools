@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -80,8 +80,8 @@ from caom2.caom2_object import Caom2Object
 from caom2.util import caom2_util as util
 
 
-class CoordAxis2D(object):
-    """This object hold the metadata need to transform a 2D pixel 
+class CoordAxis2D(Caom2Object):
+    """This object hold the metadata need to transform a 2D pixel
     array (say an image) into a World position, say RA/DEC
 
     """
@@ -99,10 +99,10 @@ class CoordAxis2D(object):
         self.bounds = bounds
         self.function = function
 
-
     @property
     def axis1(self):
-        """An axis object that desciribes the first dimension of this 2d system.
+        """An axis object that desciribes the first dimension
+        of this 2d system.
 
         eg. axis1=Axis("RA","deg")
 
@@ -113,8 +113,6 @@ class CoordAxis2D(object):
     def axis1(self, value):
         util.typeCheck(value, Axis, "axis1", override=False)
         self._axis1 = value
-
-
 
     @property
     def axis2(self):
@@ -127,7 +125,7 @@ class CoordAxis2D(object):
         return self._axis2
 
     @axis2.setter
-    def axis2(self,value):
+    def axis2(self, value):
         util.typeCheck(value, Axis, "axis2", override=False)
         self._axis2 = value
 
@@ -164,7 +162,7 @@ class CoordAxis2D(object):
     @property
     def range(self):
         """Coordinate range defined by this CoordAxis2d object.
-        
+
         type: CoordRange2D
         """
         return self._range
@@ -190,7 +188,8 @@ class CoordAxis2D(object):
 
     @property
     def function(self):
-        """A function object that describes the relation between pixels and wcs.
+        """A function object that describes the relation
+        between pixels and wcs.
 
         ag.  CoordFunction2D (see the help for that puppy)
         type: CoordFunction2D

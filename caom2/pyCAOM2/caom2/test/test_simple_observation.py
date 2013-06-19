@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -73,12 +73,14 @@
 
 from caom2.caom2_simple_observation import SimpleObservation
 from caom2.caom2_algorithm import Algorithm
+from caom2.caom2_plane import Plane
 from caom2.caom2_proposal import Proposal
 from caom2.caom2_telescope import Telescope
 from caom2.caom2_instrument import Instrument
 from caom2.caom2_target import Target
 from caom2.caom2_environment import Environment
 from caom2.caom2_enums import ObservationIntentType
+from caom2.util.caom2_util import TypedOrderedDict
 import os
 import sys
 import unittest
@@ -154,6 +156,72 @@ class TestSimpleObservation(unittest.TestCase):
         obs.meta_release = date_now
         self.assertEqual(date_now,
                          obs.meta_release, "Metadata release")
+
+    # Test the complete constructor
+    def testCompleteInit(self):
+        collection = str("CFHT")
+        observationID = str("543210")
+        algorithm = SimpleObservation._ALGORITHM
+        sequence_number = int(3)
+        intent = ObservationIntentType.SCIENCE
+        obs_type = str("foo")
+        proposal = Proposal("123")
+        telescope = Telescope("TEL")
+        instrument = Instrument("INST")
+        target = Target("LMC")
+        meta_release = datetime.now()
+        planes = TypedOrderedDict((Plane),)
+        environment = Environment()
+
+        obs = SimpleObservation(collection,
+                                observationID,
+                                algorithm,
+                                sequence_number,
+                                intent,
+                                obs_type,
+                                proposal,
+                                telescope,
+                                instrument,
+                                target,
+                                meta_release,
+                                planes,
+                                environment)
+
+        self.assertIsNotNone(obs.collection, "Collection")
+        self.assertEqual(collection, obs.collection, "Collection")
+
+        self.assertIsNotNone(obs.observation_id, "Observation ID")
+        self.assertEqual(observationID, obs.observation_id, "Observation ID")
+
+        self.assertIsNotNone(obs.algorithm, "Algorithm")
+        self.assertEqual(algorithm, obs.algorithm, "Algorithm")
+
+        self.assertIsNotNone(obs.intent, "Observation intent")
+        self.assertEqual(intent, obs.intent, "Observation intent")
+
+        self.assertIsNotNone(obs.obs_type, "obs type")
+        self.assertEqual(obs_type, obs.obs_type, "obs type")
+
+        self.assertIsNotNone(obs.proposal, "Proposal")
+        self.assertEqual(proposal, obs.proposal, "Proposal")
+
+        self.assertIsNotNone(obs.telescope, "Telescope")
+        self.assertEqual(telescope, obs.telescope, "Telescope")
+
+        self.assertIsNotNone(obs.instrument, "Instrument")
+        self.assertEqual(instrument, obs.instrument, "Instrument")
+
+        self.assertIsNotNone(obs.target, "Target")
+        self.assertEqual(target, obs.target, "Target")
+
+        self.assertIsNotNone(obs.meta_release, "Metadata release")
+        self.assertEqual(meta_release, obs.meta_release, "Metadata release")
+
+        self.assertIsNotNone(obs.planes, "Planes")
+        self.assertEqual(planes, obs.planes, "Planes")
+
+        self.assertIsNotNone(obs.environment, "Environment")
+        self.assertEqual(environment, obs.environment, "Environment")
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestSimpleObservation)
 unittest.TextTestRunner(verbosity=2).run(suite)

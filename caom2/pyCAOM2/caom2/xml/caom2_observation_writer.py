@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -115,8 +115,9 @@ class ObservationWriter(object):
             obs.set(self.XSI + "type", "caom2:CompositeObservation")
 
         self._addAttribute("id", str(observation._id), obs)
-        self._addAttribute("lastModified",
-                          date2ivoa(observation._last_modified), obs)
+        if (observation._last_modified != None):
+            self._addAttribute("lastModified",
+                               date2ivoa(observation._last_modified), obs)
 
         self._addElement("collection", observation.collection, obs)
         self._addElement("observationID", observation.observation_id, obs)
@@ -207,8 +208,8 @@ class ObservationWriter(object):
         self._addElement("wavelengthTau", environment.wavelength_tau, element)
         self._addElement("ambientTemp", environment.ambient_temp, element)
         if (environment.photometric != None):
-            self._addElement("photometric", str(environment.photometric).lower(),
-                        element)
+            self._addElement("photometric",
+                             str(environment.photometric).lower(), element)
 
     def _addMembersElement(self, members, parent):
         if (members == None or
@@ -229,7 +230,8 @@ class ObservationWriter(object):
         for plane in planes.itervalues():
             planeElement = self._getCaom2Element("plane", element)
             self._addAttribute("id", str(plane._id), planeElement)
-            self._addAttribute("lastModified",
+            if (plane._last_modified != None):
+                self._addAttribute("lastModified",
                               date2ivoa(plane._last_modified), planeElement)
             self._addElement("productID", plane.product_id, planeElement)
             self._addDatetimeElement("metaRelease", plane.meta_release,
@@ -294,7 +296,8 @@ class ObservationWriter(object):
         for artifact in artifacts.itervalues():
             artifactElement = self._getCaom2Element("artifact", element)
             self._addAttribute("id", str(artifact._id), artifactElement)
-            self._addAttribute("lastModified",
+            if (artifact._last_modified != None):
+                self._addAttribute("lastModified",
                               date2ivoa(artifact._last_modified),
                               artifactElement)
             self._addElement("uri", artifact.uri, artifactElement)
@@ -318,9 +321,10 @@ class ObservationWriter(object):
         for part in parts.itervalues():
             partElement = self._getCaom2Element("part", element)
             self._addAttribute("id", str(part._id), partElement)
-            self._addAttribute("lastModified",
-                              date2ivoa(part._last_modified),
-                              partElement)
+            if (part._last_modified != None):
+                self._addAttribute("lastModified",
+                                   date2ivoa(part._last_modified),
+                                   partElement)
             self._addElement("name", part.name, partElement)
             if (part.product_type != None):
                 self._addElement("productType",
@@ -335,9 +339,10 @@ class ObservationWriter(object):
         for chunk in chunks:
             chunkElement = self._getCaom2Element("chunk", element)
             self._addAttribute("id", str(chunk._id), chunkElement)
-            self._addAttribute("lastModified",
-                              date2ivoa(chunk._last_modified),
-                              chunkElement)
+            if (chunk._last_modified != None):
+                self._addAttribute("lastModified",
+                                   date2ivoa(chunk._last_modified),
+                                   chunkElement)
             if (chunk.product_type != None):
                 self._addElement("productType",
                     ProductType.get(str(chunk.product_type)).value,

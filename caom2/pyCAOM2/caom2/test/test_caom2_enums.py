@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -70,7 +70,7 @@
 
 """ Defines TestCaom2Enums class """
 
-from caom2.caom2_enums import EnergyBand, CalibrationLevel
+from caom2.caom2_enums import EnergyBand, CalibrationLevel, ProductType
 import os
 import sys
 import unittest
@@ -148,6 +148,17 @@ class TestCaom2Enums(unittest.TestCase):
         # test that we cannot change an enum value
         self.assertRaises(TypeError, EnergyBand.RADIO.value, "InvalidValue")
         self.assertRaises(TypeError, EnergyBand.RADIO.name, "InvalidName")
+
+    def testProductType(self):
+        # test that we can get each enum value
+        self.assertEqual(ProductType.AUXILIARY.value, "auxiliary")
+        self.assertEqual(ProductType.CALIBRATION.value, "calibration")
+        self.assertEqual(ProductType.INFO.value, "info")
+        self.assertEqual(ProductType.PREVIEW.value, "preview")
+        self.assertEqual(ProductType.SCIENCE.value, "science")
+        self.assertEqual(ProductType.CATALOG.value, "catalog")
+        self.assertEqual(ProductType.NOISE.value, "noise")
+        self.assertEqual(ProductType.WEIGHT.value, "weight")
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestCaom2Enums)
 unittest.TextTestRunner(verbosity=2).run(suite)

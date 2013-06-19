@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -79,21 +79,22 @@ from util.caom2_util import TypedOrderedDict
 from urlparse import urlparse
 import util.caom2_util as util
 
+
 class Artifact(AbstractCaom2Entity):
-    """Contains the meta data assocaited with a file. 
+    """Contains the meta data assocaited with a file.
 
     - location of the file (uri)
     - the http content-type
     - size of the file (content-lenght)
 
-    As well as a pointer (parts) to content of the file. 
+    As well as a pointer (parts) to content of the file.
 
     eg:  Artificat('ad:CFHT/1234567o')
-    where 'ad:CFHT/1234567o' is a uri that refernce the file... 
+    where 'ad:CFHT/1234567o' is a uri that refernce the file...
 
     """
 
-    def __init__(self, 
+    def __init__(self,
                  uri,
                  content_type=None,
                  content_length=None,
@@ -105,9 +106,8 @@ class Artifact(AbstractCaom2Entity):
         Initialize a Artifact instance.
 
         Arguments: uri of the artifact.  eg:
-           vos://cadc.nrc.ca!vospace/APASS/apass_north/proc/100605/n100605.0384.new.fz
+           vos://cadc.nrc.ca!vospace/APASS/apass_north/proc/100605/n100605.fz
            ad:CFHT/123456p
-        
         """
         super(Artifact, self).__init__()
         self.uri = uri
@@ -135,14 +135,14 @@ class Artifact(AbstractCaom2Entity):
 
     @property
     def key(self):
-        """Dictionary key for artifact is its URI 
+        """Dictionary key for artifact is its URI
 
         """
         return self._uri
 
     @content_type.setter
     def content_type(self, value):
-        util.typeCheck(value, str, "content_type" ) 
+        util.typeCheck(value, str, "content_type")
         self._content_type = value
 
     @property
@@ -157,7 +157,7 @@ class Artifact(AbstractCaom2Entity):
 
     @content_length.setter
     def content_length(self, value):
-        util.typeCheck(value, long, "content_length") 
+        util.typeCheck(value, long, "content_length")
         util.valueCheck(value, 0, 1E10, "content_length")
         self._content_length = value
 
@@ -168,9 +168,9 @@ class Artifact(AbstractCaom2Entity):
         should be a well formed uri thatenables the archive system to
         find the file.
 
-        eg.: 
+        eg.:
            ad:CFHT/1234567p
-           vos://cadc.nrc.ca!vospace/APASS/apass_north/proc/100605/n100605.0384.new.fz
+           vos://cadc.nrc.ca!vospace/APASS/apass_north/proc/100605/n100605.fz
 
         """
         return self._uri
@@ -181,11 +181,10 @@ class Artifact(AbstractCaom2Entity):
         uri = urlparse(value).geturl()
         util.valueCheck(value, None, None, 'uri', override=uri)
         self._uri = uri
-        
 
     @property
     def product_type(self):
-        """The product type associated with the Artifact. 
+        """The product type associated with the Artifact.
 
         type:  caom2.ProductType
         restricted to caom2.ProductType.names()
@@ -193,7 +192,7 @@ class Artifact(AbstractCaom2Entity):
         eg.  Artifcat.product_type = caom2.ProductType('SCIENCE')
 
         """
-        
+
         if self._product_type == None:
             return self._compute_product_type()
         return self._product_type
@@ -232,7 +231,7 @@ class Artifact(AbstractCaom2Entity):
 
     @alternative.setter
     def alternative(self, value):
-        if not isinstance(value,bool):
+        if not isinstance(value, bool):
             raise TypeError(
                 "alternative must be boolean. received: {0}".format(value))
         self._alternative = value
@@ -261,8 +260,8 @@ class Artifact(AbstractCaom2Entity):
 
     @parts.setter
     def parts(self, value):
-        util.typeCheck(value, 
-                        TypedOrderedDict, 
-                        'parts', 
+        util.typeCheck(value,
+                        TypedOrderedDict,
+                        'parts',
                         override=False)
         self._parts = value

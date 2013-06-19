@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -77,6 +77,7 @@ from urlparse import SplitResult
 from caom2_object import Caom2Object
 import util.caom2_util as util
 
+
 class PlaneURI(Caom2Object):
     """ Plane URI """
 
@@ -96,7 +97,6 @@ class PlaneURI(Caom2Object):
 
         self.uri = uri
 
-
     def _key(self):
         return (self.uri)
 
@@ -112,7 +112,8 @@ class PlaneURI(Caom2Object):
         observation_uri : the uri of the observation
         product_id : ID of the product
         """
-        util.typeCheck(observation_uri, ObservationURI, "observation_uri", override=False)
+        util.typeCheck(observation_uri, ObservationURI, "observation_uri",
+                       override=False)
         util.typeCheck(product_id, str, "observation_uri", override=False)
         validate_path_component(cls, "product_id", product_id)
 
@@ -141,14 +142,14 @@ class PlaneURI(Caom2Object):
         (collection, observation_id, product_id) = tmp.path.split("/")
 
         if product_id is None:
-            raise ValueError("Faield to get product ID from uri: {}".format(value))
+            raise ValueError("Faield to get product ID from uri: {}"
+                             .format(value))
 
         self._product_id = product_id
         self._observation_uri = \
             ObservationURI.get_observation_uri(collection,
                                                observation_id)
         self._uri = value
-        
 
     @property
     def product_id(self):
@@ -157,7 +158,6 @@ class PlaneURI(Caom2Object):
 
     @property
     def observation_uri(self):
-        """The uri that can be used to find the caom2 observation object that this plane belongs to"""
+        """The uri that can be used to find the caom2 observation object that
+        this plane belongs to"""
         return self._observation_uri
-
-

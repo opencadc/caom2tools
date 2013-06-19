@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -70,17 +70,18 @@
 
 """defines the caom2.Target class"""
 
+from caom2_object import Caom2Object
 from util.caom2_util import TypedList
 from caom2_enums import TargetType
 import util.caom2_util as util
 
 
-class Target(object):
+class Target(Caom2Object):
     """ Target """
 
-    def __init__(self, name, 
-                 type=None, 
-                 standard=None, 
+    def __init__(self, name,
+                 target_type=None,
+                 standard=None,
                  redshift=None,
                  keywords=None):
         """
@@ -92,7 +93,7 @@ class Target(object):
         """
 
         self.name = name
-        self.type = type
+        self.target_type = target_type
         self.standard = standard
         self.redshift = redshift
         if keywords is None:
@@ -113,16 +114,15 @@ class Target(object):
 
     @name.setter
     def name(self, value):
-    	util.typeCheck(value, str, "name", override=False)
-	self._name = value
-	
+        util.typeCheck(value, str, "name", override=False)
+        self._name = value
 
     @property
     def target_type(self):
         """A keyword describing the type of target.
 
         must be from the list
-        """+",".join(TargetType.names())+"""
+        """ + ",".join(TargetType.names()) + """
         type: TargetType
 
         """
@@ -141,7 +141,7 @@ class Target(object):
 
         eg. keywords.add('galaxy')
         type: TypedList
-        
+
         """
         return self._keywords
 
@@ -152,7 +152,7 @@ class Target(object):
 
     @property
     def standard(self):
-        """Is this a standrad field?  
+        """Is this a standrad field?
 
         eg True
         type: bool

@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -68,7 +68,8 @@
 #***********************************************************************
 #
 
-"""Defines the caom2.Part class which describes the caom2_Observation_Plane_Artifact_Part object."""
+"""Defines the caom2.Part class which describes
+the caom2_Observation_Plane_Artifact_Part object."""
 
 
 from caom2_entity import AbstractCaom2Entity
@@ -76,11 +77,14 @@ from caom2_chunk import Chunk
 from caom2_enums import ProductType
 import util.caom2_util as util
 
+
 class Part(AbstractCaom2Entity):
-    """A qualitative subsection of an artifact.  eg: a extension of a FITS file.
+    """A qualitative subsection of an artifact.
+       eg: a extension of a FITS file.
 
 
-    This object should contain the product_tpye attribute and the list of chunks.
+       This object should contain the product_tpye attribute
+       and the list of chunks.
     """
 
     def __init__(self, name, product_type=None,
@@ -88,15 +92,15 @@ class Part(AbstractCaom2Entity):
         super(Part, self).__init__()
         self.name = name
         self.product_type = product_type
-	if chunks is None:
+        if chunks is None:
             chunks = util.TypedList((Chunk),)
         self.chunks = chunks
-        
+
     def _key(self):
         return (self.name)
 
     def __eq__(self, y):
-        if isinstance(y, Part) :
+        if isinstance(y, Part):
             return self._key() == y._key()
         return False
 
@@ -107,8 +111,8 @@ class Part(AbstractCaom2Entity):
     def product_type(self):
         """The type of data product referred to by this part.
 
-        Must be one of the allowed data product types: 
-        """+str(ProductType.names())
+        Must be one of the allowed data product types:
+        str(ProductType.names())"""
         return self._product_type
 
     @product_type.setter
@@ -119,7 +123,7 @@ class Part(AbstractCaom2Entity):
     @property
     def name(self):
         """The name of this part, normally the FITS extension.
-        
+
         This values is also used as the key to find the part in the
         Artifact.parts dictionary"""
         return self._name
@@ -127,7 +131,7 @@ class Part(AbstractCaom2Entity):
     @name.setter
     def name(self, value):
         util.typeCheck(value, str, 'name', override=False)
-	self._name = value
+        self._name = value
 
     @property
     def key(self):
