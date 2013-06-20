@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -73,6 +73,7 @@
 
 from caom2.caom2_target import Target
 from caom2.caom2_enums import TargetType
+from caom2.util.caom2_util import TypedList
 import os
 import sys
 import unittest
@@ -87,8 +88,8 @@ class TestTarget(unittest.TestCase):
 
         target = Target("myTarget")
         self.assertEqual("myTarget", target.name, "target name")
-        target.type = TargetType.FIELD
-        self.assertEqual(TargetType.FIELD, target.type, "target type")
+        target.target_type = TargetType.FIELD
+        self.assertEqual(TargetType.FIELD, target.target_type, "target type")
         self.assertEqual(0, len(target.keywords), "Default number of keywords")
         target.keywords.append("optical")
         self.assertEqual(1, len(target.keywords), "Number of keywords")
@@ -99,6 +100,15 @@ class TestTarget(unittest.TestCase):
         self.assertIsNone(target.standard, "Default standard")
         target.standard = True
         self.assertTrue(target.standard, "Standard")
+
+        target = Target("myOtherTarget", TargetType.OBJECT, False, 1.2,
+                        TypedList((str), "radio"))
+        self.assertEquals("myOtherTarget", target.name, "target name")
+        self.assertEquals(TargetType.OBJECT, target.target_type, "target type")
+        self.assertFalse(target.standard, "Standard")
+        self.assertEquals(1.2, target.redshift, "Redshift")
+        self.assertEquals(1, len(target.keywords), "Keywords")
+        self.assertEquals("radio", target.keywords[0], "Keywords")
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestTarget)
 unittest.TextTestRunner(verbosity=2).run(suite)

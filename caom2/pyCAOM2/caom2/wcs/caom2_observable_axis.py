@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -75,6 +75,7 @@
 from caom2_slice import Slice
 from caom2.util import caom2_util as util
 from caom2.caom2_object import Caom2Object
+
 
 class ObservableAxis(Caom2Object):
     """The slice through the data structure that provides the thing being
@@ -112,32 +113,31 @@ class ObservableAxis(Caom2Object):
     dependent=Slice(Axis('wave','nm'),bin=1)
     independent=Slice(Axis('flux','Jy'),bin=2)
     Chunk.observable_axis=ObservableAxis(dependent, independent)
-    
+
 
     """
     def __init__(self, dependent, independent=None):
-
 
         self.dependent = dependent
         self.independent = independent
 
     @property
     def dependent(self):
-        """The dependent (y) variable slice. 
+        """The dependent (y) variable slice.
 
         A slice provides the bin and the type/unit of the observable axis
         """
-        
+
         return self._dependent
 
     @dependent.setter
-    def dependent(self,value):
+    def dependent(self, value):
         util.typeCheck(value, Slice, 'dependent', override=False)
-        self._dependent=value
+        self._dependent = value
 
     @property
     def independent(self):
-        """The dependent (y) variable slice. 
+        """The dependent (y) variable slice.
 
         A slice that provides the pixel value and the type/unit for
         conversion

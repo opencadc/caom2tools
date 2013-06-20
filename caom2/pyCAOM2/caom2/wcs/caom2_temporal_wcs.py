@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -75,14 +75,15 @@ from caom2_coord_axis1d import CoordAxis1D
 from caom2.caom2_object import Caom2Object
 from caom2.util import caom2_util as util
 
+
 class TemporalWCS(Caom2Object):
     """Describes the Time variation within the data.
 
     In the case of a single exposure, define the center of the first
-    pixel (0.5) as the MJD of the exposure and size of the pixel 
+    pixel (0.5) as the MJD of the exposure and size of the pixel
     as the exposure time."""
 
-    def __init__(self, 
+    def __init__(self,
                  axis,
                  timesys=None,
                  trefpos=None,
@@ -97,7 +98,7 @@ class TemporalWCS(Caom2Object):
         self.mjdref = mjdref
         self.exposure = exposure
         self.resolution = resolution
-        
+
     @property
     def axis(self):
         """A CoordAxis1D object that describes the TemporalWCS transform.
@@ -113,8 +114,8 @@ class TemporalWCS(Caom2Object):
     @property
     def timesys(self):
         """The time scale that you are using, almost alwasy UTC.
-        
-        eg.  timesys = "UTC" 
+
+        eg.  timesys = "UTC"
         type: str
         """
         return self._timesys
@@ -144,11 +145,11 @@ class TemporalWCS(Caom2Object):
     def mjdref(self):
         """The Modified Julian Date of the at the reference location of the
         location of the TimeWCS (aka. pixel 0.5).  Nominally this the start
-        of the exposure.  
+        of the exposure.
 
         Why 0.5? FITS: the middle of the first pixel
         is defined as pixel value 1.0  so, the start of that pixel
-        is location 0.5 
+        is location 0.5
 
         eg. mjdref = 567643.1234
         unit: d
@@ -178,7 +179,7 @@ class TemporalWCS(Caom2Object):
     @exposure.setter
     def exposure(self, value):
         util.typeCheck(value, float, "exposure")
-        util.valueCheck(value, 0, 30*24*3600.0, "exposure")
+        util.valueCheck(value, 0, 30 * 24 * 3600.0, "exposure")
         self._exposure = value
 
     @property
@@ -186,9 +187,9 @@ class TemporalWCS(Caom2Object):
         """the resolution of the time sampling available.
 
         Normally this is going to be the same as the exposure above,
-        but a stack of exposures taken over many months has a very 
+        but a stack of exposures taken over many months has a very
         large value for resolution while the exposure value is just
-        the sum of the individual exposure times. 
+        the sum of the individual exposure times.
 
 
         eg. resolution = 100.0s
@@ -200,5 +201,5 @@ class TemporalWCS(Caom2Object):
     @resolution.setter
     def resolution(self, value):
         util.typeCheck(value, float, 'resolution')
-        util.valueCheck(value, 0, 100*365*24*3600.0, "resolution")
+        util.valueCheck(value, 0, 100 * 365 * 24 * 3600.0, "resolution")
         self._resolution = value

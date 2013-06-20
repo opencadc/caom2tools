@@ -9,7 +9,7 @@
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
 #  All rights reserved                  Tous droits réservés
-#                                       
+#
 #  NRC disclaims any warranties,        Le CNRC dénie toute garantie
 #  expressed, implied, or               énoncée, implicite ou légale,
 #  statutory, of any kind with          de quelque nature que ce
@@ -32,10 +32,10 @@
 #  software without specific prior      de ce logiciel sans autorisation
 #  written permission.                  préalable et particulière
 #                                       par écrit.
-#                                       
+#
 #  This file is part of the             Ce fichier fait partie du projet
 #  OpenCADC project.                    OpenCADC.
-#                                       
+#
 #  OpenCADC is free software:           OpenCADC est un logiciel libre ;
 #  you can redistribute it and/or       vous pouvez le redistribuer ou le
 #  modify it under the terms of         modifier suivant les termes de
@@ -45,7 +45,7 @@
 #  either version 3 of the              : soit la version 3 de cette
 #  License, or (at your option)         licence, soit (à votre gré)
 #  any later version.                   toute version ultérieure.
-#                                       
+#
 #  OpenCADC is distributed in the       OpenCADC est distribué
 #  hope that it will be useful,         dans l’espoir qu’il vous
 #  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
@@ -55,7 +55,7 @@
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
 #  General Public License for           Générale Publique GNU Affero
 #  more details.                        pour plus de détails.
-#                                       
+#
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
@@ -77,21 +77,21 @@ from caom2_coord_axis2d import CoordAxis2D
 from caom2.util import caom2_util as util
 from caom2.caom2_object import Caom2Object
 
+
 class SpatialWCS(Caom2Object):
     """this object contains the WCS information needed to convert an
     astronomical spatial location (ie. RA/DEC) into a pixel location
-    in the image.  
+    in the image.
 
     During ingestion a variety of extra information is  created.
 
     """
 
-    def __init__(self, 
+    def __init__(self,
                  axis,
                  coordsys=None,
                  equinox=None,
                  resolution=None):
-
 
         self.axis = axis
         self.coordsys = coordsys
@@ -100,7 +100,8 @@ class SpatialWCS(Caom2Object):
 
     @property
     def axis(self):
-        """A CoordAxis2D object that contains the actual WCS values (crpix etc.)
+        """A CoordAxis2D object that contains
+        the actual WCS values (crpix etc.)
 
         type: CoordAxis2D
 
@@ -108,7 +109,7 @@ class SpatialWCS(Caom2Object):
         return self._axis
 
     @axis.setter
-    def axis(self,value):
+    def axis(self, value):
         util.typeCheck(value, CoordAxis2D, 'axis', override=False)
         self._axis = value
 
@@ -117,7 +118,7 @@ class SpatialWCS(Caom2Object):
         """The Coordinate system of the transformation, likely ICRS or FK5.
 
         eg.  SpatialWCS.coordsys="ICRS"
-        
+
         type: str
 
         """
@@ -130,7 +131,7 @@ class SpatialWCS(Caom2Object):
 
     @property
     def equinox(self):
-        """The Equinox of the coordinate system.  
+        """The Equinox of the coordinate system.
 
         You might think J2000, but must be expressed as a float, so in years
 
@@ -159,5 +160,5 @@ class SpatialWCS(Caom2Object):
     @resolution.setter
     def resolution(self, value):
         util.typeCheck(value, float, 'resolution')
-        util.valueCheck(value, 0, 360*3600.0, 'resolution')
+        util.valueCheck(value, 0, 360 * 3600.0, 'resolution')
         self._resolution = value
