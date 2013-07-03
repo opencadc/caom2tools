@@ -113,8 +113,9 @@ class CAOM2RepoClient:
         parser.add_argument('-r', '--remove', required=False, dest='delete_action',
                             nargs=1, metavar="<observationURI>",
                             help="Remove observation <observationURI> (in the form caom:<collection>/<observationID>) from the repository")
-#        parser.add_argument('observationURI', metavar='<observationURI>', nargs=1, help="A CAOM-2.0 Observation URI of the form caom:<collection>/<observationID>")
-#        parser.add_argument('filename', metavar='<filename>', nargs=1, help="CAOM-2.0 XML document (required for get, put, update)")
+        parser.epilog = 'Environment:\n' \
+            + 'CADC_ROOT: location of lib/python-2.7/site-packages [REQUIRED]\n' \
+            + 'CAOM2_REPO_HOST : force a specific server for caom2 repository [OPTIONAL]\n'
 
         arguments = parser.parse_args(sys.argv[1:])
 
@@ -151,13 +152,14 @@ class CAOM2RepoClient:
             logging.info("PUT ACTION")
             self.put(arguments.create_action[0], arguments.create_action[1])
         elif arguments.update_action:
-            logging.info("POST ACTION")
+            logging.info("UPDATE ACTION")
             self.update(arguments.update_action[0], arguments.update_action[1])
         elif arguments.delete_action:
-            logging.info("DELETE ACTION")
+            logging.info("REMOVE ACTION")
             self.remove(arguments.delete_action[0])
         else:
             parser.print_help()
+            print 
 
 
     #
@@ -168,7 +170,7 @@ class CAOM2RepoClient:
     #                      Observation.
     #
     def get(self, observationURI, filename):
-        logging.info("GETting " + observationURI)
+        logging.info("GET " + observationURI)
         observationResponse = self.send_request("GET", observationURI, {}, '')
 
         status = observationResponse.status
@@ -194,7 +196,7 @@ class CAOM2RepoClient:
     #                      Observation.
     #
     def put(self, observationURI, filename):
-        logging.debug("PUTting " + filename)
+        logging.debug("PUT " + filename)
         xmlfile = None
 
         try:
@@ -238,7 +240,7 @@ class CAOM2RepoClient:
     # @param    filename        - The full path to the XML File of the Observation.
     #
     def update(self, observationURI, filename):
-        logging.debug("POSTing " + observationURI + " with filename " + filename)
+        logging.debug("POST " + observationURI + " with filename " + filename)
         xmlfile = None
 
         try:
@@ -276,7 +278,7 @@ class CAOM2RepoClient:
     # @param    observationURI - The URI of the Observation to delete.
     #
     def remove(self, observationURI):
-        logging.debug("DELETing " + observationURI)
+        logging.debug("DELETE " + observationURI)
         response = self.send_request("DELETE", observationURI, {}, '')
         status = response.status
 
