@@ -136,4 +136,6 @@
 
     <target name="build" depends="compile"/>
 
+    <target name="distribute" depends="build_distribution"/>
+
 </project>

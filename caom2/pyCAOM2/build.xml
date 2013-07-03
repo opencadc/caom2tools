@@ -90,7 +90,7 @@
     <import file="extras.xml" optional="true" />
     
     <!-- project-specific properties -->
-    <property name="project"    value="caom2" />
+    <property name="project"    value="pyCAOM2" />
 
 
     <!-- Where and how to identify installed versions of python -->
@@ -145,5 +145,7 @@
     </target>
 
     <target name="build" depends="compile" />
+
+    <target name="distribute" depends="build_distribution"/>
 
 </project>
