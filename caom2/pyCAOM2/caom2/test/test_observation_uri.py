@@ -106,5 +106,7 @@ class TestObservationURI(unittest.TestCase):
             exception = True
         self.assertTrue(exception, "Missing exception")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestObservationURI)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

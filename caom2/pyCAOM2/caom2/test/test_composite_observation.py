@@ -259,5 +259,7 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertEqual(algorithm2, obs.algorithm, "Algorithm")
 
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCompositeObservation)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

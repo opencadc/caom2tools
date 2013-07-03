@@ -147,5 +147,7 @@ class TestCoordAxis2D(unittest.TestCase):
         axis_2d.function = function
         self.assertEqual(axis_2d.function, function)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordAxis2D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

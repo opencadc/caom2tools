@@ -109,5 +109,7 @@ class TestSpatialWCS(unittest.TestCase):
         position.resolution = float(2.0)
         self.assertEqual(position.resolution, float(2.0))
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSpatialWCS)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

@@ -97,5 +97,7 @@ class TestCoordBounds1D(unittest.TestCase):
         with self.assertRaises(TypeError):
             bounds.samples = [str("s")]
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordBounds1D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

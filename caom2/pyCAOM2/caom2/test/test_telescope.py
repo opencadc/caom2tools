@@ -100,5 +100,7 @@ class TestTelescope(unittest.TestCase):
         telescope.geo_location_z = 12.12
         self.assertEqual(12.12, telescope.geo_location_z, "Geo location z")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestTelescope)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

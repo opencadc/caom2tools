@@ -99,5 +99,7 @@ class TestCoordCircle2D(unittest.TestCase):
         self.assertEqual(circle.center, center)
         self.assertEqual(circle.radius, radius)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordCircle2D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

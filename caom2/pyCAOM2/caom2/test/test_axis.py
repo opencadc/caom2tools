@@ -91,5 +91,7 @@ class TestAxis(unittest.TestCase):
         self.assertEqual(axis.ctype, "ctype")
         self.assertEqual(axis.cunit, "cunit")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestAxis)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

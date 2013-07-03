@@ -93,5 +93,7 @@ class TestPolarizaton(unittest.TestCase):
         self.assertEqual('123', energy.bandpass_name, "Polarization dimension")
 
         #TODO add test for state
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPolarizaton)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

@@ -375,7 +375,13 @@ class Caom2TestInstances(object):
         return time
 
     def get_polarization_wcs(self):
-        return PolarizationWCS(self.get_coord_axis_1d())
+        axis = Axis('STOKES')
+        axis_1d = CoordAxis1D(axis)
+        #IQUV
+        axis_1d.function = CoordFunction1D(4L, 1.0, RefCoord(1.0, 1.0))
+        pol = PolarizationWCS(axis_1d)
+        
+        return pol
 
     def get_slice(self):
         return Slice(Axis("sliceCtype", "sliceCunit"), 1L)

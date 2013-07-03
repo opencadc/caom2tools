@@ -139,5 +139,7 @@ class TestProvenance(unittest.TestCase):
                           "second keyword value")
         #provenance.keywords.append("URI") #TODO
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestProvenance)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

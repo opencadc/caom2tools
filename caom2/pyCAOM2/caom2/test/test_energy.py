@@ -111,5 +111,7 @@ class TestEnergy(unittest.TestCase):
         #TODO replace with EnergyTransistion
         #energy.transition = "BLAH"
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestEnergy)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

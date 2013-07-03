@@ -89,10 +89,10 @@ class TestPolarizationWCS(unittest.TestCase):
         self.assertRaises(TypeError, PolarizationWCS, None)
         self.assertRaises(TypeError, PolarizationWCS, int(1))
 
-        axis = Axis("ctype", "cunit")
+        axis = Axis('STOKES')
         axis_1d = CoordAxis1D(axis)
         polarization = PolarizationWCS(axis_1d)
         self.assertEqual(polarization.axis, axis_1d)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPolarizationWCS)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+    unittest.main()

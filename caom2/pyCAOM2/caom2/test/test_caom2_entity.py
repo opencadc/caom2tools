@@ -103,3 +103,7 @@ class TestCaom2IdGenerator(unittest.TestCase):
         print part._id, part._last_modified
         plane = Plane("prodid")
         print plane._id, plane._last_modified
+
+if __name__ == '__main__':
+    unittest.main()
+

@@ -110,5 +110,7 @@ class TestTarget(unittest.TestCase):
         self.assertEquals(1, len(target.keywords), "Keywords")
         self.assertEquals("radio", target.keywords[0], "Keywords")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestTarget)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

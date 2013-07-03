@@ -96,5 +96,7 @@ class TestCoordPolygon2D(unittest.TestCase):
         with self.assertRaises(TypeError):
             polygon.vertices = [str("s")]
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordPolygon2D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

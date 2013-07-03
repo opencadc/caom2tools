@@ -101,3 +101,7 @@ class TestTime(unittest.TestCase):
         self.assertEqual(12.34, time.sample_size, "Sample size")
         time.exposure = 55.55
         self.assertEqual(55.55, time.exposure, "Exposure")
+
+if __name__ == '__main__':
+    unittest.main()
+

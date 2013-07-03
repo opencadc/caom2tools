@@ -103,5 +103,7 @@ class TestPosition(unittest.TestCase):
         position.time_dependent = True
         self.assertTrue(position.time_dependent, "Time dependent")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPosition)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

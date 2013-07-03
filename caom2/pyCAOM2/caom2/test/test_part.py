@@ -116,5 +116,7 @@ class TestPart(unittest.TestCase):
 #        self.assertTrue(len(part.chunks) == 2)
 
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPart)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

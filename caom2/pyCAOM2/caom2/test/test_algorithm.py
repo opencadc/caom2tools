@@ -86,5 +86,7 @@ class TestAlgorithm(unittest.TestCase):
         algorithm = Algorithm("myAlgorithm")
         self.assertEqual("myAlgorithm", algorithm.name, "Algorithm name")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestAlgorithm)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

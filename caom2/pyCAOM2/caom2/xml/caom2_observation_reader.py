@@ -478,7 +478,7 @@ class ObservationReader(object):
             return None
         else:
             return Axis(self._getChildText("ctype", el, ns, True),
-                        self._getChildText("cunit", el, ns, True))
+                        self._getChildText("cunit", el, ns, False))
 
     def _getSlice(self, elTag, parent, ns, required):
         """Build a Slice object from an XML representation of a Slice element.
@@ -1005,7 +1005,7 @@ class ObservationReader(object):
             return None
         else:
             return PolarizationWCS(
-                self._getCoordAxis1D("axis", el, ns, True))
+                self._getCoordAxis1D("axis", el, ns, False))
 
     def _addChunks(self, chunks, parent, ns):
         """Build Chunk objects from an XML representation of Chunk elements

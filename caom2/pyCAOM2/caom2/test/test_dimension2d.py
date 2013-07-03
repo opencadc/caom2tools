@@ -93,5 +93,7 @@ class TestDimension2D(unittest.TestCase):
         self.assertEqual(dimension.naxis1, long(1))
         self.assertEqual(dimension.naxis2, long(2))
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestDimension2D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

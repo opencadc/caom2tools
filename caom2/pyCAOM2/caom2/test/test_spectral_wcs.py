@@ -142,5 +142,7 @@ class TestSpectralWCS(unittest.TestCase):
         energy.resolvingPower = float(6.0)
         self.assertEqual(energy.resolvingPower, float(6.0))
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSpectralWCS)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

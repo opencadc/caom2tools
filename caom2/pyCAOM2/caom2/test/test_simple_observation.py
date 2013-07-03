@@ -223,5 +223,7 @@ class TestSimpleObservation(unittest.TestCase):
         self.assertIsNotNone(obs.environment, "Environment")
         self.assertEqual(environment, obs.environment, "Environment")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSimpleObservation)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

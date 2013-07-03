@@ -522,7 +522,9 @@ def comparePolarizationWCS(self, expected, actual):
 
 
 def compareAxis(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertIsNotNone(actual.ctype)
     self.assertIsNotNone(actual.cunit)
@@ -531,14 +533,18 @@ def compareAxis(self, expected, actual):
 
 
 def compareCoord2D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     compareRefCoord(self, expected.coord1, actual.coord1)
     compareRefCoord(self, expected.coord2, actual.coord2)
 
 
 def compareCoordAxis1D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     compareCoordError(self, expected.error, actual.error)
     compareCoordRange1D(self, expected.range, actual.range)
@@ -547,7 +553,9 @@ def compareCoordAxis1D(self, expected, actual):
 
 
 def compareCoordAxis2D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertIsNotNone(actual.axis1)
     self.assertIsNotNone(actual.axis2)
@@ -561,7 +569,9 @@ def compareCoordAxis2D(self, expected, actual):
 
 
 def compareCoordBounds1D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertIsNotNone(expected.samples)
     self.assertIsNotNone(actual.samples)
@@ -571,7 +581,9 @@ def compareCoordBounds1D(self, expected, actual):
 
 
 def compareCoordBounds2D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     if (isinstance(expected, CoordCircle2D) and
         isinstance(actual, CoordCircle2D)):
@@ -584,7 +596,9 @@ def compareCoordBounds2D(self, expected, actual):
 
 
 def compareCoordCircle2D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertIsNotNone(actual.center)
     self.assertIsNotNone(actual.radius)
@@ -593,16 +607,23 @@ def compareCoordCircle2D(self, expected, actual):
 
 
 def compareCoordError(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
+        
     self.assertIsNotNone(actual)
-    self.assertIsNotNone(actual.syser)
-    self.assertIsNotNone(actual.rnder)
-    self.assertEqual(expected.syser, actual.syser)
-    self.assertEqual(expected.rnder, actual.rnder)
-
+    if (expected.syser):
+        self.assertIsNotNone(actual.syser)
+        self.assertEqual(expected.syser, actual.syser)
+    if (expected.rnder):
+        self.assertIsNotNone(actual.rnder)
+        self.assertEqual(expected.rnder, actual.rnder)
+        
 
 def compareCoordFunction1D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertEqual(expected.naxis, actual.naxis)
     self.assertEqual(expected.delta, actual.delta)
@@ -610,7 +631,9 @@ def compareCoordFunction1D(self, expected, actual):
 
 
 def compareCoordFunction2D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertIsNotNone(actual.dimension)
     self.assertIsNotNone(actual.ref_coord)
@@ -627,7 +650,9 @@ def compareCoordFunction2D(self, expected, actual):
 
 
 def compareCoordPolygon2D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertIsNotNone(expected.vertices)
     self.assertIsNotNone(actual.vertices)
@@ -638,14 +663,18 @@ def compareCoordPolygon2D(self, expected, actual):
 
 
 def compareCoordRange1D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     compareRefCoord(self, expected.start, actual.start)
     compareRefCoord(self, expected.end, actual.end)
 
 
 def compareCoordRange2D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertIsNotNone(actual.start)
     self.assertIsNotNone(actual.end)
@@ -654,27 +683,33 @@ def compareCoordRange2D(self, expected, actual):
 
 
 def compareDimension2D(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertEqual(expected.naxis1, actual.naxis1)
     self.assertEqual(expected.naxis2, actual.naxis2)
 
 
 def compareRefCoord(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertEqual(expected.pix, actual.pix)
     self.assertEqual(expected.val, actual.val)
 
 
 def compareSlice(self, expected, actual):
-    self.assertIsNotNone(expected)
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
     self.assertIsNotNone(actual)
     self.assertIsNotNone(actual.bin)
     self.assertIsNotNone(actual.axis)
     self.assertEqual(expected.bin, actual.bin)
     compareAxis(self, expected.axis, actual.axis)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(
-        TestObservationReaderWriter)
-unittest.TextTestRunner(verbosity=1).run(suite)
+if __name__ == '__main__':
+    unittest.main()
+

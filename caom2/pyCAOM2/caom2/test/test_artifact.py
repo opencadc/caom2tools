@@ -137,5 +137,7 @@ class TestArtifact(unittest.TestCase):
             exception = True
         self.assertTrue(exception, "Missing exception")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestArtifact)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

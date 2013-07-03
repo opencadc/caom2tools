@@ -90,5 +90,7 @@ class TestPlane(unittest.TestCase):
         self.assertEqual(1, len(instrument.keywords), "Number of keywords")
         self.assertEqual("optical", instrument.keywords[0], "Keyword")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPlane)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

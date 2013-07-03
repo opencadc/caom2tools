@@ -104,5 +104,7 @@ class TestEnergyTransition(unittest.TestCase):
         else:
             raise AttributeError("at least one attribute was changed")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestEnergyTransition)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

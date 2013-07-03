@@ -97,5 +97,7 @@ class TestCoordRange1D(unittest.TestCase):
         self.assertEqual(coordRange.start, start)
         self.assertEqual(coordRange.end, end)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordRange1D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

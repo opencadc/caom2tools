@@ -112,5 +112,7 @@ class TestTemporalWCS(unittest.TestCase):
         time.mjdref = float(3.0)
         self.assertEqual(time.mjdref, float(3.0))
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestTemporalWCS)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

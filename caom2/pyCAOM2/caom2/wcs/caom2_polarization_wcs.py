@@ -85,6 +85,7 @@ class PolarizationWCS(Caom2Object):
         """Set up a CoordAxis1D object to represent the Polariation.
 
         """
+        
         self.axis = axis
 
     @property
@@ -100,4 +101,6 @@ class PolarizationWCS(Caom2Object):
     @axis.setter
     def axis(self, value):
         util.typeCheck(value, CoordAxis1D, 'axis', override=False)
+        if value.axis.ctype != 'STOKES':
+            raise ValueError('CTYPE must be STOKES')
         self._axis = value

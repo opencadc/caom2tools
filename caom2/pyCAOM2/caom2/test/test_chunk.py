@@ -172,7 +172,7 @@ class TestChunk(unittest.TestCase):
         chunk.time = time
         self.assertEqual(time, chunk.time)
 
-        polarization = PolarizationWCS(axis_1d)
+        polarization = PolarizationWCS(CoordAxis1D(Axis('STOKES')))
         chunk.polarization = polarization
         self.assertEqual(polarization, chunk.polarization)
 
@@ -267,5 +267,7 @@ class TestChunk(unittest.TestCase):
 #        chunk2.time = TemporalWCS()
 #        chunk2.polarization = PolarizationWCS()
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestChunk)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

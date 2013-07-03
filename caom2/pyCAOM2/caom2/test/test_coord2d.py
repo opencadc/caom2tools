@@ -97,5 +97,7 @@ class TestCoord2D(unittest.TestCase):
         self.assertEqual(coord_2d.coord1, coord1)
         self.assertEqual(coord_2d.coord2, coord2)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoord2D)
-unittest.TextTestRunner(verbosity=0).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

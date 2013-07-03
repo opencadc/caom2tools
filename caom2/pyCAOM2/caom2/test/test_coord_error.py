@@ -95,5 +95,7 @@ class TestCoordError(unittest.TestCase):
         self.assertEqual(error.syser, float(1))
         self.assertEqual(error.rnder, float(2))
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordError)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

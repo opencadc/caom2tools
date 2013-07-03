@@ -106,5 +106,7 @@ class TestMetrics(unittest.TestCase):
         metrics.mag_limit = 20.08
         self.assertEquals(20.08, metrics.mag_limit, "Mag limit")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestMetrics)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

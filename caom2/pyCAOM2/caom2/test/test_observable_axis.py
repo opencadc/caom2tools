@@ -97,5 +97,7 @@ class TestObservableAxis(unittest.TestCase):
         observable.independent = independent
         self.assertEqual(observable.independent, independent)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestObservableAxis)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

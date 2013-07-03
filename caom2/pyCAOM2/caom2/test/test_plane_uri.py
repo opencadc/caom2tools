@@ -132,5 +132,7 @@ class TestPlaneURI(unittest.TestCase):
             exception = True
         self.assertTrue(exception, "Missing exception")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPlaneURI)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

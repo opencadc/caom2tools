@@ -108,5 +108,7 @@ class TestCoordFunction1D(unittest.TestCase):
         self.assertEqual(function.delta, delta)
         self.assertEqual(function.ref_coord, ref_coord)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordFunction1D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

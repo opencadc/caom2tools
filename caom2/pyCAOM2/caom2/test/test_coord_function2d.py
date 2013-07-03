@@ -116,5 +116,7 @@ class TestCoordFunction2D(unittest.TestCase):
         self.assertEqual(function.cd21, cd21)
         self.assertEqual(function.cd22, cd22)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordFunction2D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

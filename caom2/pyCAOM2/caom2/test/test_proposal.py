@@ -100,5 +100,7 @@ class TestProposal(unittest.TestCase):
         proposal.title = "Something Interesting"
         self.assertEqual("Something Interesting", proposal.title, "Title")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestProposal)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

@@ -122,5 +122,7 @@ class TestCoordAxis1D(unittest.TestCase):
         axis_1d.function = function
         self.assertEqual(axis_1d.function, function)
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCoordAxis1D)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

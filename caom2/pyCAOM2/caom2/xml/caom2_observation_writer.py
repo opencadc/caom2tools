@@ -438,7 +438,8 @@ class ObservationWriter(object):
 
         element = self._getCaom2Element(name, parent)
         self._addElement("ctype", axis.ctype, element)
-        self._addElement("cunit", axis.cunit, element)
+        if (axis.cunit):
+            self._addElement("cunit", axis.cunit, element)
 
     def _addCoord2DElement(self, name, coord, parent):
         """ Builds a representation of a Coord2D and adds it to the

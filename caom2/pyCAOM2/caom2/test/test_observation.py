@@ -182,5 +182,7 @@ class TestObservation(unittest.TestCase):
                            environment=obs.environment)
 
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestObservation)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

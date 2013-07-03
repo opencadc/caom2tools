@@ -108,5 +108,7 @@ class TestEnvironment(unittest.TestCase):
         environment.photometric = True
         self.assertTrue(environment.photometric, "Photometric")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestEnvironment)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

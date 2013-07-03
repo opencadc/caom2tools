@@ -95,5 +95,7 @@ class TestRefCoord(unittest.TestCase):
         self.assertEqual(ref_coord.pix, float(1))
         self.assertEqual(ref_coord.val, float(2))
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestRefCoord)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

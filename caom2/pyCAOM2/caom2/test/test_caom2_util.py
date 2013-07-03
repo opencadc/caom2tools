@@ -308,5 +308,7 @@ class TestCaomUtil(unittest.TestCase):
             myDict1.add(testPlaneURI)
 
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCaomUtil)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

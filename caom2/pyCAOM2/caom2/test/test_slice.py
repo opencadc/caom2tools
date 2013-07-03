@@ -97,5 +97,7 @@ class TestSlice(unittest.TestCase):
         self.assertEqual(mySlice.axis, axis)
         self.assertEqual(mySlice.bin, long(1))
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSlice)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

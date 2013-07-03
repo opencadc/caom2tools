@@ -79,7 +79,7 @@ from caom2.caom2_object import Caom2Object
 class Axis(Caom2Object):
     """the Axis class holds the definition of the axis type and units"""
 
-    def __init__(self, ctype, cunit):
+    def __init__(self, ctype, cunit=None):
 
         self.ctype = ctype
         self.cunit = cunit

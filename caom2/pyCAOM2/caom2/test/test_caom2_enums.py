@@ -160,5 +160,7 @@ class TestCaom2Enums(unittest.TestCase):
         self.assertEqual(ProductType.NOISE.value, "noise")
         self.assertEqual(ProductType.WEIGHT.value, "weight")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestCaom2Enums)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+

@@ -189,5 +189,7 @@ class TestPlane(unittest.TestCase):
         self.assertTrue(exception, "compute_polarization implemented"
                                     " - Testing needed")
 
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPlane)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+    unittest.main()
+
