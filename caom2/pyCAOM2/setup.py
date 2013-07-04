@@ -42,19 +42,20 @@
 # Use "distribute"
 from setuptools import setup, find_packages
 import sys
+from datetime import date
 
 if sys.version_info[0] > 2:
     print 'The caom2 package is only compatible with Python version 2.n'
     sys.exit(-1)
 
-setup(name="caom2",
-      version='trunk',
-      description='This is Summary.',
+setup(name='pyCAOM2',
+      version='0.9.0',
+      description='CAOM-2.0 library',
       url='This is a Home-page.',
-      author='This is for author.',
-      author_email='This is for author email.',
+      author='Canadian Astronomy Data Centre',
+      author_email='cadc@nrc.ca',
       license='GPLv3',
-      long_description='This is for description.',
+      long_description='Python library for the CAOM-2.0 data model',
       packages=find_packages(),
       package_data={'caom2':['CAOM-2.0.xsd'], 'caom2.test.data':['*.xml'] },
       include_package_data=True,

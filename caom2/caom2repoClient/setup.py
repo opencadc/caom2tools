@@ -46,7 +46,7 @@ if sys.version_info[0] > 2:
     sys.exit(-1)
 
 setup(name="caom2repoClient",
-      version='trunk',
+      version='0.9.0',
       description='Client application to the CAOM2 Repository',
       long_description='The caom2repo client allows the caller to get/put/update/delete CAOM2 Observations in a central repository.',
       url='http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo',
