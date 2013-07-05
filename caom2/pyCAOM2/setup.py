@@ -49,7 +49,7 @@ if sys.version_info[0] > 2:
     sys.exit(-1)
 
 setup(name='pyCAOM2',
-      version='0.9.0',
+      version='0.5',
       description='CAOM-2.0 library',
       url='This is a Home-page.',
       author='Canadian Astronomy Data Centre',
