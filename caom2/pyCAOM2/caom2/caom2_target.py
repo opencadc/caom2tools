@@ -178,4 +178,5 @@ class Target(Caom2Object):
     @redshift.setter
     def redshift(self, value):
         util.typeCheck(value, float, 'redshift')
+        util.valueCheck(value, -0.5, 1200, 'redshift')
         self._redshift = value
