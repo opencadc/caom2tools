@@ -78,13 +78,9 @@
     <import file="${env.CADC_PREFIX}/etc/local.targets.xml" optional="true" />
 
     <!-- default properties and targets -->
+    <!-- TODO: these are inetrnal CADC files, for now external users can use setup-py directly -->
     <property file="${env.A}/compilers/setup.ant.python.properties" />
     <import file="${env.A}/compilers/setup.ant.python.targets.xml"/>
-    
-    <!-- TODO: merge ant-python support into opencadc.properties/targets
-    <property file="${env.CADC_PREFIX}/etc/opencadc.properties" />
-    <import file="${env.CADC_PREFIX}/etc/opencadc.targets.xml"/>
-    -->
     
     <!-- developer convenience: place for extra targets and properties -->
     <import file="extras.xml" optional="true" />
