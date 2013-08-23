@@ -277,9 +277,12 @@ class CAOM2RepoClient:
                               % observationURI)
                 sys.exit(errno.ENOENT)
             elif status >= 400:
+                msg = ''
+                for hmsg in response.msg.headers:
+                    msg = msg + hmsg
                 logging.error('Unable to update Observation from file ' + filename\
                               + '\nServer Returned: ' + httplib.responses[status] + ' ('\
-                              + str(status) + ')\n')
+                              + str(status) + ')\n' + msg + response.read())
                 sys.exit(errno.ENOEXEC)
             else:
                 logging.info('Successfully updated Observation\n')
