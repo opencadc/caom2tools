@@ -84,6 +84,7 @@ import base64
 import os
 import errno
 import logging
+import time
 
 class CAOM2RepoClient:
 
@@ -113,6 +114,9 @@ class CAOM2RepoClient:
         parser.add_argument('-r', '--remove', required=False, dest='delete_action',
                             nargs=1, metavar="<observationURI>",
                             help="Remove observation <observationURI> (in the form caom:<collection>/<observationID>) from the repository")
+        parser.add_argument('--retry', required=False, nargs='?', const=3,
+                            metavar=("<number of retries>"),
+                            help="Retry the command on transient errors. Default is 3 retries unless a value is specified")
         parser.epilog = 'Environment:\n' \
             + 'CADC_ROOT: location of lib/python-2.7/site-packages [REQUIRED]\n' \
             + 'CAOM2_REPO_HOST : force a specific server for caom2 repository [OPTIONAL]\n'
@@ -137,11 +141,15 @@ class CAOM2RepoClient:
             # Otherwise, read from the EGG file.
             registryClientPropertiesDir = None
 
+        # Doing retries?
+        self.retries = None
+        if arguments.retry:
+            self.retries = int(arguments.retry)
 
         self.SERVICE_PROTOCOL = 'https'
         self.REGISTRY = RegistryProperties(registryClientPropertiesDir)
         self.SERVICE_URL = self.REGISTRY.get_service_url(self.CAOM2_SERVICE_URI,
-                                                         self.SERVICE_PROTOCOL)
+                                                        self.SERVICE_PROTOCOL)
 
         logging.info("Found Service URL: '%s'" % self.SERVICE_URL)
 
@@ -171,21 +179,25 @@ class CAOM2RepoClient:
     #
     def get(self, observationURI, filename):
         logging.info("GET " + observationURI)
-        observationResponse = self.send_request("GET", observationURI, {}, '')
+        
+        response = self.send_request("GET", observationURI, {}, '')
 
-        status = observationResponse.status
+        status = response.status
+        
+        if status == 503 and self.retries:
+            status = self.retry("GET", observationURI, {}, '')
 
         if status == 404:
             logging.error('No such Observation found with URI \'%s\'.\n' % observationURI)
             sys.exit(errno.ENOENT)
-        elif status > 404:
+        elif status >= 400:
             logging.error('Unable to retrieve Observation with URI \'%s\'.\n' % observationURI)
             logging.error('Server Returned: ' + httplib.responses[status] + ' ('\
-                          + str(status) + ')\n' + observationResponse.read())
+                          + str(status) + ')\n' + response.read())
             sys.exit(errno.ENOEXEC)
         else:
             f = open(filename, 'w')
-            f.write(observationResponse.read())
+            f.write(response.read())
             f.close()
             logging.info("Successfully saved Observation at '%s'" % filename)
     #
@@ -206,11 +218,16 @@ class CAOM2RepoClient:
                                          {'Content-Type': 'text/xml'},
                                          xmlfile.read())
             status = response.status
+            
+            if status == 503 and self.retries:
+                status = self.retry("PUT", observationURI,
+                                    {'Content-Type': 'text/xml'},
+                                    xmlfile.read())
 
             if status == 404:
                 logging.error('No such collection found for URI \'%s\'' % observationURI)
                 sys.exit(errno.ENOENT)
-            elif status >= 300:
+            elif status >= 400:
                 msg = ''
                 for hmsg in response.msg.headers:
                     msg = msg + hmsg
@@ -221,10 +238,6 @@ class CAOM2RepoClient:
             else:
                 logging.info('Successfully created Observation\n')
 
-        #except ObservationParsingException, err:
-        #    logging.error('\nAborting due to error!\nUnable to parse an Observation from '\
-        #                  + filename + '\n' + str(err) + '\n')
-        #    sys.exit(errno.EIO)
         except IOError as ioerr:
             logging.error('\nAborting due to error!\nUnable to read file '\
                          + filename + '\n' + str(ioerr) + '\n')
@@ -249,22 +262,27 @@ class CAOM2RepoClient:
                                          {'Content-Type': 'text/xml'},
                                          xmlfile.read())
             status = response.status
+            
+            if status == 503 and self.retries:
+                status = self.retry("POST", observationURI,
+                                    {'Content-Type': 'text/xml'},
+                                    xmlfile.read())
 
             if status == 404:
-                logging.error('Observation with URI \'%s\' does not exist.\n' % observationURI)
+                logging.error('Observation with URI \'%s\' does not exist.\n'
+                              % observationURI)
                 sys.exit(errno.ENOENT)
-            elif status >= 300:
+            elif status >= 400:
+                msg = ''
+                for hmsg in response.msg.headers:
+                    msg = msg + hmsg
                 logging.error('Unable to update Observation from file ' + filename\
                               + '\nServer Returned: ' + httplib.responses[status] + ' ('\
-                              + str(status) + ')\n')
+                              + str(status) + ')\n' + msg + response.read())
                 sys.exit(errno.ENOEXEC)
             else:
                 logging.info('Successfully updated Observation\n')
 
-        #except ObservationParsingException, err:
-        #    logging.error('Aborting due to error!\nUnable to parse an Observation from '\
-        #                  + filename + '\n' + str(err) + '\n')
-        #    sys.exit(errno.EIO)
         except IOError as ioerr:
             logging.error('Aborting due to error!\nUnable to read file '\
                           + filename + '\n' + str(ioerr) + '\n')
@@ -281,11 +299,14 @@ class CAOM2RepoClient:
         logging.debug("DELETE " + observationURI)
         response = self.send_request("DELETE", observationURI, {}, '')
         status = response.status
+        
+        if status == 503 and self.retries:
+            status = self.retry("DELETE", observationURI, {}, '')
 
         if status == 404:
             logging.error('No such Observation found with URI \'%s\'.\n' % observationURI)
             sys.exit(errno.ENOENT)
-        elif status >= 300:
+        elif status >= 400:
             logging.error('Unable to remove Observation with URI \'' + observationURI \
                   + '\'.\n\n' + httplib.responses[status] + ' (' + str(status) \
                   + ')\n' + response.read())
@@ -347,8 +368,34 @@ class CAOM2RepoClient:
 
             conn.request(method, serviceURLResult.path + '/auth/' + path, payload, headers)
             logging.debug('Making request to ' + self.SERVICE_URL + '/auth/'
-                          + path)
+                        + path)
+            
             return conn.getresponse()
         else:
             logging.error("Unknown protocol '%s'" % self.SERVICE_PROTOCOL)
 
+    #
+    # Retry a HTTP(S) request.
+    #
+    # @param    method      - The HTTP Method to use (String).
+    # @param    path        - The path of the URL (After the host).  Should begin
+    #                         with a slash ('/') (String).
+    # @param    headers     - Any custom headers.  This is a dictionary.
+    # @param    payload     - The payload to send for a write operation (String).
+    #
+    # @return      The httplib.HTTPResponse object.
+    #
+    def retry(self, method, observationURI, headers, payload):
+        num_retries = int(0);
+        sleep_time = int(1)
+        status = 503
+        while status == 503:
+            num_retries += 1
+            if num_retries > self.retries:
+                break
+            sleep_time = sleep_time * 2
+            logging.info('Sleeping ' + str(sleep_time) + ', retry ' + str(num_retries))
+            time.sleep(sleep_time)
+            response = self.send_request(method, observationURI, headers, payload)
+            status = response.status
+        return status
