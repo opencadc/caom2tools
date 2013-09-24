@@ -238,10 +238,6 @@ class CAOM2RepoClient:
             else:
                 logging.info('Successfully created Observation\n')
 
-        #except ObservationParsingException, err:
-        #    logging.error('\nAborting due to error!\nUnable to parse an Observation from '\
-        #                  + filename + '\n' + str(err) + '\n')
-        #    sys.exit(errno.EIO)
         except IOError as ioerr:
             logging.error('\nAborting due to error!\nUnable to read file '\
                          + filename + '\n' + str(ioerr) + '\n')
@@ -277,17 +273,16 @@ class CAOM2RepoClient:
                               % observationURI)
                 sys.exit(errno.ENOENT)
             elif status >= 400:
+                msg = ''
+                for hmsg in response.msg.headers:
+                    msg = msg + hmsg
                 logging.error('Unable to update Observation from file ' + filename\
                               + '\nServer Returned: ' + httplib.responses[status] + ' ('\
-                              + str(status) + ')\n')
+                              + str(status) + ')\n' + msg + response.read())
                 sys.exit(errno.ENOEXEC)
             else:
                 logging.info('Successfully updated Observation\n')
 
-        #except ObservationParsingException, err:
-        #    logging.error('Aborting due to error!\nUnable to parse an Observation from '\
-        #                  + filename + '\n' + str(err) + '\n')
-        #    sys.exit(errno.EIO)
         except IOError as ioerr:
             logging.error('Aborting due to error!\nUnable to read file '\
                           + filename + '\n' + str(ioerr) + '\n')
