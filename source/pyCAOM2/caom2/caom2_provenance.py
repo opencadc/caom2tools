@@ -74,6 +74,7 @@ from caom2_object import Caom2Object
 from caom2_plane_uri import PlaneURI
 from util.caom2_util import TypedList
 from util.caom2_util import TypedSet
+from util.caom2_util import typeCheck
 from datetime import datetime
 from urlparse import urlsplit
 
@@ -81,7 +82,13 @@ from urlparse import urlsplit
 class Provenance(Caom2Object):
     """ Provenance """
 
-    def __init__(self, name):
+    def __init__(self, name,
+                 version=None,
+                 project=None,
+                 producer=None,
+                 run_id=None,
+                 reference=None,
+                 last_executed=None):
         """
         Initializes a Provenance instance
 
@@ -93,12 +100,12 @@ class Provenance(Caom2Object):
         assert isinstance(name, str), "name is not a str: {0}".format(name)
         self._name = name
 
-        self._version = None
-        self._project = None
-        self._producer = None
-        self._run_id = None
-        self._reference = None
-        self._last_executed = None
+        self.version = version
+        self.project = project
+        self.producer = producer
+        self.run_id = run_id
+        self.reference = reference
+        self.last_executed = last_executed
 
         self._keywords = TypedList((str),)
         self._inputs = TypedSet((PlaneURI),)
@@ -117,9 +124,7 @@ class Provenance(Caom2Object):
 
     @version.setter
     def version(self, value):
-        if value is not None:
-            assert isinstance(value, str), (
-                    "version is not a str: {0}".format(value))
+        typeCheck(value, str, 'version')
         self._version = value
 
     @property
@@ -129,9 +134,7 @@ class Provenance(Caom2Object):
 
     @project.setter
     def project(self, value):
-        if value is not None:
-            assert isinstance(value, str), (
-                    "project is not a str: {0}".format(value))
+        typeCheck(value, str, 'project')
         self._project = value
 
     @property
@@ -141,9 +144,7 @@ class Provenance(Caom2Object):
 
     @producer.setter
     def producer(self, value):
-        if value is not None:
-            assert isinstance(value, str), (
-                    "producer is not a str: {0}".format(value))
+        typeCheck(value, str, 'producer')
         self._producer = value
 
     @property
@@ -153,9 +154,7 @@ class Provenance(Caom2Object):
 
     @run_id.setter
     def run_id(self, value):
-        if value is not None:
-            assert isinstance(value, str), (
-                    "Run ID is not a str: {0}".format(value))
+        typeCheck(value, str, 'run_id')
         self._run_id = value
 
     @property
@@ -165,9 +164,8 @@ class Provenance(Caom2Object):
 
     @reference.setter
     def reference(self, value):
+        typeCheck(value, str, 'version')
         if value is not None:
-            assert isinstance(value, str), (
-                    "reference is not a URI: {0}".format(value))
             tmp = urlsplit(value)
             assert tmp.geturl() == value, "Invalid URI: " + value
         self._reference = value
@@ -179,9 +177,7 @@ class Provenance(Caom2Object):
 
     @last_executed.setter
     def last_executed(self, value):
-        if value is not None:
-            assert isinstance(value, datetime), (
-                    "sample size is not a datetime: {0}".format(value))
+        typeCheck(value, datetime, 'last_executed')
         self._last_executed = value
 
     @property

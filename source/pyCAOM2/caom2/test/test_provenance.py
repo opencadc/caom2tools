@@ -139,7 +139,30 @@ class TestProvenance(unittest.TestCase):
                           "second keyword value")
         #provenance.keywords.append("URI") #TODO
 
+        # test the full constructor
+        provenance = Provenance("MyOtherProvenance",
+                                "Version2.0",
+                                "JCMT",
+                                "Mutt Lang",
+                                "b32",
+                                "caom:JCMT/33/00",
+                                now_date)
+
+        self.assertIsNotNone(provenance.name)
+        self.assertIsNotNone(provenance.version)
+        self.assertIsNotNone(provenance.project)
+        self.assertIsNotNone(provenance.producer)
+        self.assertIsNotNone(provenance.run_id)
+        self.assertIsNotNone(provenance.reference)
+        self.assertIsNotNone(provenance.last_executed)
+
+        self.assertEquals("MyOtherProvenance", provenance.name, "name")
+        self.assertEquals("Version2.0", provenance.version, "version")
+        self.assertEquals("JCMT", provenance.project, "project")
+        self.assertEquals("Mutt Lang", provenance.producer, "producer")
+        self.assertEquals("b32", provenance.run_id, "run_id")
+        self.assertEquals("caom:JCMT/33/00", provenance.reference, "reference")
+        self.assertEquals(now_date, provenance.last_executed, "last_executed")
 
 if __name__ == '__main__':
     unittest.main()
-
