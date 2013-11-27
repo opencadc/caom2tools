@@ -80,8 +80,10 @@ from caom2.caom2_telescope import Telescope
 from caom2.caom2_instrument import Instrument
 from caom2.caom2_target import Target
 from caom2.caom2_environment import Environment
+from caom2.caom2_target_position import TargetPosition
 from caom2.caom2_enums import ObservationIntentType
 from caom2.util.caom2_util import TypedOrderedDict
+from caom2.types.caom2_point import Point
 import os
 import sys
 import unittest
@@ -179,6 +181,12 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertEqual(environment,
                          obs.environment, "Environment")
 
+        self.assertIsNone(obs.target_position, "Default target position")
+        target_position = TargetPosition(Point(1.0, 2.0))
+        obs.target_position = target_position
+        self.assertEqual(target_position,
+                         obs.target_position, "TargetPosition")
+
         self.assertIsNone(obs.meta_release, "Default metadata release")
         date_now = datetime.now()
         obs.meta_release = date_now
@@ -200,6 +208,7 @@ class TestCompositeObservation(unittest.TestCase):
         meta_release = datetime.now()
         planes = TypedOrderedDict((Plane),)
         environment = Environment()
+        target_position = TargetPosition(Point(1.0, 2.0))
 
         obs = CompositeObservation(collection,
                                    observationID,
@@ -213,7 +222,8 @@ class TestCompositeObservation(unittest.TestCase):
                                    target,
                                    meta_release,
                                    planes,
-                                   environment)
+                                   environment,
+                                   target_position)
 
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
@@ -251,6 +261,10 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertIsNotNone(obs.environment, "Environment")
         self.assertEqual(environment, obs.environment, "Environment")
 
+        self.assertIsNotNone(obs.target_position, "TargetPosition")
+        self.assertEqual(target_position, obs.target_position,
+                         "TargetPosition")
+
         # Try changing the algorithm
         algorithm2 = str("new algo")
         obs.algorithm = algorithm2
@@ -258,8 +272,5 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertNotEqual(algorithm, obs.algorithm, "Algorithm")
         self.assertEqual(algorithm2, obs.algorithm, "Algorithm")
 
-
-
 if __name__ == '__main__':
     unittest.main()
-

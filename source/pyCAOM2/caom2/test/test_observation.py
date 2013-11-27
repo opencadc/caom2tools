@@ -79,6 +79,8 @@ from caom2.caom2_target import Target
 from caom2.caom2_environment import Environment
 from caom2.caom2_plane import Plane
 from caom2.caom2_enums import ObservationIntentType
+from caom2.caom2_target_position import TargetPosition
+from caom2.types.caom2_point import Point
 import os
 import sys
 import unittest
@@ -136,6 +138,12 @@ class TestObservation(unittest.TestCase):
         self.assertEqual(target,
                          obs.target, "Target")
 
+        self.assertIsNone(obs.target_position, "Default target position")
+        target_position = TargetPosition(Point(1.0, 2.0))
+        obs.target_position = target_position
+        self.assertEqual(target_position,
+                         obs.target_position, "TargetPosition")
+
         self.assertIsNone(obs.environment, "Default environment")
         environment = Environment()
         obs.environment = environment
@@ -179,10 +187,9 @@ class TestObservation(unittest.TestCase):
                            instrument=obs.instrument,
                            target=obs.target,
                            meta_release=obs.meta_release,
-                           environment=obs.environment)
-
+                           environment=obs.environment,
+                           target_position=obs.target_position)
 
 
 if __name__ == '__main__':
     unittest.main()
-

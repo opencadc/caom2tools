@@ -100,17 +100,20 @@ class TestTarget(unittest.TestCase):
         self.assertIsNone(target.standard, "Default standard")
         target.standard = True
         self.assertTrue(target.standard, "Standard")
+        self.assertIsNone(target.moving, "Default moving")
+        target.moving = True
+        self.assertTrue(target.moving, "Moving")
 
         target = Target("myOtherTarget", TargetType.OBJECT, False, 1.2,
-                        TypedList((str), "radio"))
+                        TypedList((str), "radio"), False)
         self.assertEquals("myOtherTarget", target.name, "target name")
         self.assertEquals(TargetType.OBJECT, target.target_type, "target type")
         self.assertFalse(target.standard, "Standard")
         self.assertEquals(1.2, target.redshift, "Redshift")
         self.assertEquals(1, len(target.keywords), "Keywords")
         self.assertEquals("radio", target.keywords[0], "Keywords")
+        self.assertFalse(target.moving, "Moving")
 
 
 if __name__ == '__main__':
     unittest.main()
-

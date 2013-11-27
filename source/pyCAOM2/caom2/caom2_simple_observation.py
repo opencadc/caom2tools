@@ -110,7 +110,8 @@ class SimpleObservation(Observation):
                  target=None,
                  meta_release=None,
                  planes=None,
-                 environment=None
+                 environment=None,
+                 target_position=None
                  ):
         """
         collection - A name that describes a collection of data,
@@ -135,7 +136,8 @@ class SimpleObservation(Observation):
                                                 target,
                                                 meta_release,
                                                 planes,
-                                                environment
+                                                environment,
+                                                target_position
                                                 )
 
     @property

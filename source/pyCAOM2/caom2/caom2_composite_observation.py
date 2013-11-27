@@ -98,7 +98,8 @@ class CompositeObservation(Observation):
                  target=None,
                  meta_release=None,
                  planes=None,
-                 environment=None
+                 environment=None,
+                 target_position=None
                  ):
         if (algorithm == SimpleObservation._ALGORITHM):
             raise ValueError(
@@ -115,7 +116,8 @@ class CompositeObservation(Observation):
                                                    target,
                                                    meta_release,
                                                    planes,
-                                                   environment
+                                                   environment,
+                                                   target_position
                                                    )
         self._members = TypedSet((ObservationURI),)
 

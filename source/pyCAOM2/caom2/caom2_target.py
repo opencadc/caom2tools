@@ -83,7 +83,8 @@ class Target(Caom2Object):
                  target_type=None,
                  standard=None,
                  redshift=None,
-                 keywords=None):
+                 keywords=None,
+                 moving=None):
         """
         Initializes a Target instance
 
@@ -99,6 +100,7 @@ class Target(Caom2Object):
         if keywords is None:
             keywords = TypedList((str),)
         self.keywords = keywords
+        self.moving = moving
 
     # Properties
 
@@ -180,3 +182,18 @@ class Target(Caom2Object):
         util.typeCheck(value, float, 'redshift')
         util.valueCheck(value, -0.5, 1200, 'redshift')
         self._redshift = value
+
+    @property
+    def moving(self):
+        """Is this a moving target?
+
+        eg True
+        type: bool
+
+        """
+        return self._moving
+
+    @moving.setter
+    def moving(self, value):
+        util.typeCheck(value, bool, 'moving')
+        self._moving = value

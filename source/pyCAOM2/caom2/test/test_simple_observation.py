@@ -70,7 +70,6 @@
 
 """ Defines TestSimpleObservation class """
 
-
 from caom2.caom2_simple_observation import SimpleObservation
 from caom2.caom2_algorithm import Algorithm
 from caom2.caom2_plane import Plane
@@ -79,7 +78,9 @@ from caom2.caom2_telescope import Telescope
 from caom2.caom2_instrument import Instrument
 from caom2.caom2_target import Target
 from caom2.caom2_environment import Environment
+from caom2.caom2_target_position import TargetPosition
 from caom2.caom2_enums import ObservationIntentType
+from caom2.types.caom2_point import Point
 from caom2.util.caom2_util import TypedOrderedDict
 import os
 import sys
@@ -150,6 +151,12 @@ class TestSimpleObservation(unittest.TestCase):
         obs.environment = environment
         self.assertEqual(environment,
                          obs.environment, "Environment")
+
+        self.assertIsNone(obs.target_position, "Default target position")
+        target_position = TargetPosition(Point(1.0, 2.0))
+        obs.target_position = target_position
+        self.assertEqual(target_position,
+                         obs.target_position, "TargetPosition")
 
         self.assertIsNone(obs.meta_release, "Default metadata release")
         date_now = datetime.now()

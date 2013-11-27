@@ -70,8 +70,37 @@
 
 """ defines Point class """
 
+import caom2.util.caom2_util as util
+from caom2.caom2_object import Caom2Object
 
-class Point(object):
 
-    def __init__(self):
-        pass
+class Point(Caom2Object):
+
+    def __init__(self, cval1, cval2):
+
+        self.cval1 = cval1
+        self.cval2 = cval2
+
+    @property
+    def cval1(self):
+        """
+        type: float
+        """
+        return self._cval1
+
+    @cval1.setter
+    def cval1(self, value):
+        util.typeCheck(value, float, 'cval1', override=False)
+        self._cval1 = value
+
+    @property
+    def cval2(self):
+        """
+        type: float
+        """
+        return self._cval2
+
+    @cval2.setter
+    def cval2(self, value):
+        util.typeCheck(value, float, 'cval2', override=False)
+        self._cval2 = value

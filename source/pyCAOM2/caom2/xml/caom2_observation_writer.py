@@ -131,6 +131,7 @@ class ObservationWriter(object):
 
         self._addProposalElement(observation.proposal, obs)
         self._addTargetElement(observation.target, obs)
+        self._addTargetPositionElement(observation.target_position, obs)
         self._addTelescopeElement(observation.telescope, obs)
         self._addInstrumentElement(observation.instrument, obs)
         self._addEnvironmentElement(observation.environment, obs)
@@ -175,7 +176,17 @@ class ObservationWriter(object):
         if (target.standard != None):
             self._addElement("standard", str(target.standard).lower(), element)
         self._addElement("redshift", target.redshift, element)
+        if (target.moving != None):
+            self._addElement("moving", str(target.moving).lower(), element)
         self._addListElement("keywords", target.keywords, element)
+
+    def _addTargetPositionElement(self, target_position, parent):
+        if (target_position == None):
+            return
+
+        element = self._getCaom2Element("targetPosition", parent)
+        self._addPointElement("coordinates", target_position.coordinates,
+                              element)
 
     def _addTelescopeElement(self, telescope, parent):
         if (telescope == None):
@@ -427,6 +438,18 @@ class ObservationWriter(object):
 
         element = self._getCaom2Element("polarization", parent)
         self._addCoordAxis1DElement("axis", polarization.axis, element)
+
+#/*+ CAOM2 Types #-*/
+
+    def _addPointElement(self, name, point, parent):
+        """ Builds a representation of a Point and adds it to the
+            parent element. """
+        if (point == None):
+            return
+
+        element = self._getCaom2Element(name, parent)
+        self._addElement("cval1", point.cval1, element)
+        self._addElement("cval2", point.cval2, element)
 
 #/*+ WCS Types #-*/
 

@@ -21,8 +21,15 @@
     <caom2:type>object</caom2:type>
     <caom2:standard>false</caom2:standard>
     <caom2:redshift>1.5</caom2:redshift>
+    <caom2:moving>false</caom2:moving>
     <caom2:keywords>keyword1 keyword2</caom2:keywords>
   </caom2:target>
+  <caom2:targetPosition>
+    <caom2:coordinates>
+      <caom2:cval1>1.0</caom2:cval1>
+      <caom2:cval2>2.0</caom2:cval2>
+    </caom2:coordinates>
+  </caom2:targetPosition>
   <caom2:telescope>
     <caom2:name>telescopeName</caom2:name>
     <caom2:geoLocationX>1.0</caom2:geoLocationX>

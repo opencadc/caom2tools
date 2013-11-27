@@ -69,3 +69,5 @@
 #
 
 """ defines __init__ """
+
+from caom2_point import Point

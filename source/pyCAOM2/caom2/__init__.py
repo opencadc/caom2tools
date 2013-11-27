@@ -93,5 +93,6 @@ from caom2_proposal import Proposal
 from caom2_provenance import Provenance
 from caom2_simple_observation import SimpleObservation
 from caom2_target import Target
+from caom2_target_position import TargetPosition
 from caom2_telescope import Telescope
 from caom2_time import Time

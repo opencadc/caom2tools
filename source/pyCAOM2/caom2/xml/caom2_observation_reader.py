@@ -94,6 +94,7 @@ from .. caom2_proposal import Proposal
 from .. caom2_provenance import Provenance
 from .. caom2_simple_observation import SimpleObservation
 from .. caom2_target import Target
+from .. caom2_target_position import TargetPosition
 from .. caom2_telescope import Telescope
 from .. util.caom2_util import str2ivoa
 from .. wcs.caom2_axis import Axis
@@ -116,6 +117,7 @@ from .. wcs.caom2_slice import Slice
 from .. wcs.caom2_spatial_wcs import SpatialWCS
 from .. wcs.caom2_spectral_wcs import SpectralWCS
 from .. wcs.caom2_temporal_wcs import TemporalWCS
+from .. types.caom2_point import Point
 
 
 class ObservationReader(object):
@@ -269,10 +271,32 @@ class ObservationReader(object):
                 self._getChildText("standard", el, ns, False))
             target.redshift = (
                 self._getChildTextAsFloat("redshift", el, ns, False))
+            target.moving = ("true" ==
+                self._getChildText("moving", el, ns, False))
             keywords = self._getChildText("keywords", el, ns, False)
             if (keywords is not None):
                 target.keywords.list = keywords.split()
             return target
+
+    def _getTargetPosition(self, elTag, parent, ns, required):
+        """Build a TargetPosition object from an XML representation
+
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the Target element
+        ns : namespace of the document
+        required : indicates whether the element is required
+        return : a TargetPosition object or
+                 None if the document does not contain a TargetPosition element
+        raise : ObservationParsingException
+        """
+        el = self._getChildElement(elTag, parent, ns, required)
+        if (el is None):
+            return None
+        else:
+            target_position = TargetPosition(self._getPoint("coordinates",
+                                                            el, ns, True))
+            return target_position
 
     def _getTelescope(self, elTag, parent, ns, required):
         """Build a Telescope object from an XML representation
@@ -460,6 +484,26 @@ class ObservationReader(object):
             metrics.mag_limit = \
                 self._getChildTextAsFloat("magLimit", el, ns, False)
             return metrics
+
+    def _getPoint(self, elTag, parent, ns, required):
+        """Build an Point object from an XML representation
+        of an Point element.
+
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the Point element
+        ns : namespace of the document
+        required : indicate whether the element is required
+        return : an Point object or
+                 None if the document does not contain an Point element
+        raise : ObservationParsingException
+        """
+        el = self._getChildElement(elTag, parent, ns, required)
+        if (el is None):
+            return None
+        else:
+            return Point(self._getChildTextAsFloat("cval1", el, ns, True),
+                         self._getChildTextAsFloat("cval2", el, ns, True))
 
     def _getAxis(self, elTag, parent, ns, required):
         """Build an Axis object from an XML representation of an Axis element.
@@ -1224,6 +1268,8 @@ class ObservationReader(object):
             self._getProposal("proposal", root, ns, False)
         observation.target = \
             self._getTarget("target", root, ns, False)
+        observation.target_position = \
+            self._getTargetPosition("targetPosition", root, ns, False)
         observation.telescope = \
             self._getTelescope("telescope", root, ns, False)
         observation.instrument = \

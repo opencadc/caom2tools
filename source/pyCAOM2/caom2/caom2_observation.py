@@ -77,6 +77,7 @@ from caom2_instrument import Instrument
 from caom2_plane import Plane
 from caom2_proposal import Proposal
 from caom2_target import Target
+from caom2_target_position import TargetPosition
 from caom2_telescope import Telescope
 from caom2_observation_uri import ObservationURI
 from caom2_enums import ObservationIntentType
@@ -106,6 +107,7 @@ class Observation(AbstractCaom2Entity):
                 -> Telescope
                 -> Proposal
                 -> Environment
+                -> TargetPosition
 
     Plane -> Artifact(s)
 
@@ -143,7 +145,8 @@ class Observation(AbstractCaom2Entity):
                  target=None,
                  meta_release=None,
                  planes=None,
-                 environment=None
+                 environment=None,
+                 target_position=None
                  ):
         """
         Initializes an Observation instance
@@ -174,6 +177,7 @@ class Observation(AbstractCaom2Entity):
         self.instrument = instrument
         self.target = target
         self.environment = environment
+        self.target_position = target_position
         self.meta_release = meta_release
         if planes is None:
             planes = TypedOrderedDict((Plane),)
@@ -375,6 +379,21 @@ class Observation(AbstractCaom2Entity):
     def environment(self, value):
         util.typeCheck(value, Environment, 'environment')
         self._environment = value
+
+    @property
+    def target_position(self):
+        """Reference to a TargetPosition object associated
+        with this observation.
+
+        can be None
+        type: caom2.TargetPosition
+        """
+        return self._target_position
+
+    @target_position.setter
+    def target_position(self, value):
+        util.typeCheck(value, TargetPosition, 'target_position')
+        self._target_position = value
 
     @property
     def meta_release(self):
