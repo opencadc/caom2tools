@@ -84,9 +84,6 @@ class TestPosition(unittest.TestCase):
     def testAll(self):
         position = Position()
 
-        self.assertIsNone(position.location, "Default location")
-        #position.location = 123
-        #self.assertEqual(123, position.location, "Location")
         self.assertIsNone(position.bounds, "Default bounds")
         #position.bounds = 123
         #self.assertEqual(123, position.bounds, "Bounds")
@@ -106,4 +103,3 @@ class TestPosition(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

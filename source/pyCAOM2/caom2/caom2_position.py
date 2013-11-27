@@ -72,7 +72,6 @@
 
 from types.caom2_box import Box
 from types.caom2_circle import Circle
-from types.caom2_location import Location
 from types.caom2_polygon import Polygon
 from wcs.caom2_dimension2d import Dimension2D
 from caom2_object import Caom2Object
@@ -81,20 +80,18 @@ from caom2_object import Caom2Object
 class Position(Caom2Object):
     """ Position """
 
-    def __init__(self, location=None,
-                 bounds=None,
+    def __init__(self, bounds=None,
                  dimension=None,
                  resolution=None,
                  sample_size=None,
                  time_dependent=None
                  ):
         """
-        Initialize a Time instance.
+        Initialize a Position instance.
 
         Arguments:
         None
         """
-        self.location = location
         self.bounds = bounds
         self.dimension = dimension
         self.resolution = resolution
@@ -104,18 +101,6 @@ class Position(Caom2Object):
     # Properties
 
     @property
-    def location(self):
-        """ Location """
-        return self._location
-
-    @location.setter
-    def location(self, value):
-        if value is not None:
-            assert isinstance(value, Location), (
-                    "location is not a Location: {0}".format(value))
-        self._location = value
-
-    @property
     def bounds(self):
         """ Bounds """
         return self._bounds
@@ -123,7 +108,7 @@ class Position(Caom2Object):
     @bounds.setter
     def bounds(self, value):
         if value is not None:
-            assert isinstance(value, (Box, Circle, Location, Polygon)), (
+            assert isinstance(value, (Box, Circle, Polygon)), (
                     "bounds is not a Shape: {0}".format(value))
         self._bounds = value
 
