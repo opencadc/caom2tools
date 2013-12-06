@@ -294,8 +294,11 @@ class ObservationReader(object):
         if (el is None):
             return None
         else:
-            target_position = TargetPosition(self._getPoint("coordinates",
-                                                            el, ns, True))
+            target_position = TargetPosition(
+                self._getPoint("coordinates", el, ns, True),
+                self._getChildText("coordsys", el, ns, True))
+            target_position.equinox = (
+                self._getChildTextAsFloat("equinox", el, ns, False))
             return target_position
 
     def _getTelescope(self, elTag, parent, ns, required):

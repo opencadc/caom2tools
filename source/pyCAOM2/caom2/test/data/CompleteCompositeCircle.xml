@@ -25,6 +25,8 @@
     <caom2:keywords>keyword1 keyword2</caom2:keywords>
   </caom2:target>
   <caom2:targetPosition>
+    <caom2:coordsys>coordsys</caom2:coordsys>
+    <caom2:equinox>3.0</caom2:equinox>
     <caom2:coordinates>
       <caom2:cval1>1.0</caom2:cval1>
       <caom2:cval2>2.0</caom2:cval2>

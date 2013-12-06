@@ -182,7 +182,7 @@ class TestCompositeObservation(unittest.TestCase):
                          obs.environment, "Environment")
 
         self.assertIsNone(obs.target_position, "Default target position")
-        target_position = TargetPosition(Point(1.0, 2.0))
+        target_position = TargetPosition(Point(1.0, 2.0), "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
@@ -208,7 +208,7 @@ class TestCompositeObservation(unittest.TestCase):
         meta_release = datetime.now()
         planes = TypedOrderedDict((Plane),)
         environment = Environment()
-        target_position = TargetPosition(Point(1.0, 2.0))
+        target_position = TargetPosition(Point(1.0, 2.0), "coordsys")
 
         obs = CompositeObservation(collection,
                                    observationID,

@@ -139,7 +139,7 @@ class TestObservation(unittest.TestCase):
                          obs.target, "Target")
 
         self.assertIsNone(obs.target_position, "Default target position")
-        target_position = TargetPosition(Point(1.0, 2.0))
+        target_position = TargetPosition(Point(1.0, 2.0), "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")

@@ -78,14 +78,18 @@ import caom2.util.caom2_util as util
 class TargetPosition(Caom2Object):
     """ TargetPosition """
 
-    def __init__(self, coordinates):
+    def __init__(self, coordinates, coordsys, equinox=None):
         """
         Initialize a TargetPosition instance.
 
         Arguments:
         coordinates : target position as a Point.
+        coordsys: target coordsys
+        equinox: target equinox
         """
         self.coordinates = coordinates
+        self.coordsys = coordsys
+        self.equinox = equinox
 
     # Properties
 
@@ -98,3 +102,23 @@ class TargetPosition(Caom2Object):
     def coordinates(self, value):
         util.typeCheck(value, Point, "coordinates")
         self._coordinates = value
+
+    @property
+    def coordsys(self):
+        """ Coordsys """
+        return self._coordsys
+
+    @coordsys.setter
+    def coordsys(self, value):
+        util.typeCheck(value, str, "coordsys")
+        self._coordsys = value
+
+    @property
+    def equinox(self):
+        """ Equinox """
+        return self._equinox
+
+    @equinox.setter
+    def equinox(self, value):
+        util.typeCheck(value, float, "equinox")
+        self._equinox = value

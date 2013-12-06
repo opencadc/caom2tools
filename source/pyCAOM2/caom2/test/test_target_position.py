@@ -87,13 +87,24 @@ class TestTargetPosition(unittest.TestCase):
 
         self.assertRaises(TypeError, TargetPosition, "string")
         point = Point(1.0, 2.0)
-        target_position = TargetPosition(point)
+        target_position = TargetPosition(point, "coordsys")
         self.assertIsNotNone(target_position.coordinates,
                              "target position coordinates")
         self.assertEqual(point.cval1, target_position.coordinates.cval1,
                          "coordinates cval1")
         self.assertEqual(point.cval2, target_position.coordinates.cval2,
                          "coordinates cval2")
+        self.assertIsNotNone(target_position.coordsys,
+                             "target position coordsys")
+        self.assertEqual("coordsys", target_position.coordsys, "coordsys")
+        self.assertIsNone(target_position.equinox,
+                             "target position equinox")
+
+        target_position = TargetPosition(point, "coordsys", 1.0)
+        self.assertIsNotNone(target_position.equinox,
+                             "target position equinox")
+        self.assertEqual(1.0, target_position.equinox,
+                         "equinox")
 
 if __name__ == '__main__':
     unittest.main()

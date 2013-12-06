@@ -268,6 +268,18 @@ def compareTarget(self, expected, actual):
         self.assertEquals(expected.keywords[i], actual.keywords[i])
 
 
+def compareTargetPosition(self, expected, actual):
+    if (expected == None and actual == None):
+        return
+    self.assertIsNotNone(expected)
+    self.assertIsNotNone(actual)
+    self.assertNotNone(actual.coordinates)
+    self.assertNotNone(actual.coordsys)
+    self.comparePoint(expected.coordinates, actual.coordinates)
+    self.assertEqual(expected.coordsys, actual.coordsys)
+    self.assertEqual(expected.equinox, actual.equinox)
+
+
 def compareTelescope(self, expected, actual):
     if (expected == None and actual == None):
         return
@@ -610,7 +622,7 @@ def compareCoordError(self, expected, actual):
     if (expected == None):
         self.assertIsNone(actual)
         return
-        
+
     self.assertIsNotNone(actual)
     if (expected.syser):
         self.assertIsNotNone(actual.syser)
@@ -618,7 +630,7 @@ def compareCoordError(self, expected, actual):
     if (expected.rnder):
         self.assertIsNotNone(actual.rnder)
         self.assertEqual(expected.rnder, actual.rnder)
-        
+
 
 def compareCoordFunction1D(self, expected, actual):
     if (expected == None):
@@ -710,6 +722,17 @@ def compareSlice(self, expected, actual):
     self.assertEqual(expected.bin, actual.bin)
     compareAxis(self, expected.axis, actual.axis)
 
+
+def comparePoint(self, expected, actual):
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
+    self.assertIsNotNone(actual)
+    self.assertIsNotNone(actual.cval1)
+    self.assertIsNotNone(actual.cval2)
+    self.assertEqual(expected.cval1, actual.cval1)
+    self.assertEqual(expected.cval2, actual.cval2)
+
+
 if __name__ == '__main__':
     unittest.main()
-

@@ -185,6 +185,9 @@ class ObservationWriter(object):
             return
 
         element = self._getCaom2Element("targetPosition", parent)
+        self._addElement("coordsys", target_position.coordsys, element)
+        if (target_position.equinox != None):
+            self._addElement("equinox", target_position.equinox, element)
         self._addPointElement("coordinates", target_position.coordinates,
                               element)
 

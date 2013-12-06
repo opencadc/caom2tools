@@ -86,6 +86,7 @@ from caom2.caom2_artifact import Artifact
 from caom2.caom2_proposal import Proposal
 from caom2.caom2_algorithm import Algorithm
 from caom2.caom2_target import Target
+from caom2.caom2_target_position import TargetPosition
 from caom2.caom2_telescope import Telescope
 from caom2.caom2_instrument import Instrument
 from caom2.caom2_environment import Environment
@@ -93,6 +94,7 @@ from caom2.caom2_provenance import Provenance
 from caom2.caom2_metrics import Metrics
 from caom2.caom2_observation_uri import ObservationURI
 from caom2.caom2_plane_uri import PlaneURI
+from caom2.types.caom2_point import Point
 from caom2.wcs.caom2_observable_axis import ObservableAxis
 from caom2.wcs.caom2_spatial_wcs import SpatialWCS
 from caom2.wcs.caom2_spectral_wcs import SpectralWCS
@@ -171,6 +173,7 @@ class Caom2TestInstances(object):
             observation.meta_release = Caom2TestInstances._ivoa_date
             observation.proposal = self.get_proposal()
             observation.target = self.get_target()
+            observation.target_position = self.get_target_position()
             observation.telescope = self.get_telescope()
             observation.instrument = self.get_instrument()
             observation.environment = self.get_environment()
@@ -190,6 +193,7 @@ class Caom2TestInstances(object):
             observation.meta_release = Caom2TestInstances._ivoa_date
             observation.proposal = self.get_proposal()
             observation.target = self.get_target()
+            observation.target_position = self.get_target_position()
             observation.telescope = self.get_telescope()
             observation.instrument = self.get_instrument()
             observation.environment = self.get_environment()
@@ -216,6 +220,11 @@ class Caom2TestInstances(object):
         target.redshift = 1.5
         target.keywords.extend(Caom2TestInstances._keywords)
         return target
+
+    def get_target_position(self):
+        point = Point(1.0, 2.0)
+        target_position = TargetPosition(point, "coordsys")
+        target_position.equinox = 3.0
 
     def get_telescope(self):
         telescope = Telescope("telescopeName")
