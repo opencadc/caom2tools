@@ -72,37 +72,37 @@
 
 """
 
-from caom2_coord2d import Coord2D
+from caom2_value_coord2d import ValueCoord2D
 from caom2.caom2_object import Caom2Object
 from caom2.util import caom2_util as util
 
 
 class CoordPolygon2D(Caom2Object):
-    """A object to contain a TypeList Coord2D vertices that are a
-    polygon.  The vertices are given as Coord2D objects, which are
-    pix/value pairs.
+    """A object to contain a TypeList ValueCoord2D vertices that are a
+    polygon.  The vertices are given as ValueCoord2D objects, which are
+    coordinate pairs.
 
-    eg. vertices.add(Coord2D(RefCoord(pix1,val1),RefCoord(pix2,val2)))
+    eg. vertices.add(ValueCoord2D(coord1,coord2))
 
     """
 
     def __init__(self, vertices=None):
         if vertices is None:
-            vertices = util.TypedList((Coord2D),)
+            vertices = util.TypedList((ValueCoord2D),)
         self.vertices = vertices
 
     @property
     def vertices(self):
-        """A TypedList of Coord2D objects that layout the vertices of a
+        """A TypedList of ValueCoord2D objects that layout the vertices of a
         polygon.
 
         A vertices can be added using the 'add' method..
-        eg: vertices.add(Coord2D())
+        eg: vertices.add(ValueCoord2D())
 
-        see the caom2.wcs.Coord2D help for details on making a
+        see the caom2.wcs.ValueCoord2D help for details on making a
         coordinate pair.
 
-        type: TypedList((Coord2D),)
+        type: TypedList((ValueCoord2D),)
 
         """
         return self._vertices

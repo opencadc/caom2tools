@@ -72,6 +72,7 @@
 
 from caom2.wcs.caom2_axis import Axis
 from caom2.wcs.caom2_coord2d import Coord2D
+from caom2.wcs.caom2_value_coord2d import ValueCoord2D
 from caom2.wcs.caom2_dimension2d import Dimension2D
 from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
 from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
@@ -124,8 +125,7 @@ class TestCoordAxis2D(unittest.TestCase):
         axis_2d.range = coordRange
         self.assertEqual(axis_2d.range, coordRange)
 
-        center = Coord2D(RefCoord(float(1.0), float(2.0)),
-                         RefCoord(float(3.0), float(4.0)))
+        center = ValueCoord2D(float(1.0), float(2.0))
         radius = float(1.5)
         circle = CoordCircle2D(center, radius)
         axis_2d.bounds = circle

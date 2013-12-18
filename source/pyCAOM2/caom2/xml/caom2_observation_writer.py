@@ -477,6 +477,16 @@ class ObservationWriter(object):
         self._addRefCoordElement("coord1", coord.coord1, element)
         self._addRefCoordElement("coord2", coord.coord2, element)
 
+    def _addValueCoord2DElement(self, name, coord, parent):
+        """ Builds a representation of a ValueCoord2D and adds it to the
+            parent element. """
+        if(coord == None):
+            return
+
+        element = self._getCaom2Element(name, parent)
+        self._addElement("coord1", coord.coord1, element)
+        self._addElement("coord2", coord.coord2, element)
+
     def _addCoordAxis1DElement(self, name, axis, parent):
         """ Builds a representation of a CoordAxis1D and adds it to the
             parent element. """
@@ -538,7 +548,7 @@ class ObservationWriter(object):
             return
 
         element = self._getCaom2Element(name, parent)
-        self._addCoord2DElement("center", circle.center, element)
+        self._addValueCoord2DElement("center", circle.center, element)
         self._addElement("radius", circle.radius, element)
 
     def _addCoordErrorElement(self, name, error, parent):
@@ -586,7 +596,7 @@ class ObservationWriter(object):
         if (len(polygon.vertices) > 0):
             verticesElement = self._getCaom2Element("vertices", element)
             for vertex in polygon.vertices:
-                self._addCoord2DElement("vertex", vertex, verticesElement)
+                self._addValueCoord2DElement("vertex", vertex, verticesElement)
 
     def _addCoordRange1DElement(self, name, _range, parent):
         """ Builds a representation of a CoordRange1D and adds it to the

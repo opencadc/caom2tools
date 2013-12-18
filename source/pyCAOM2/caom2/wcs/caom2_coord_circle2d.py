@@ -70,7 +70,7 @@
 
 """ defines the CoordCircle2D class"""
 
-from caom2_coord2d import Coord2D
+from caom2_value_coord2d import ValueCoord2D
 from caom2.caom2_object import Caom2Object
 from caom2.util import caom2_util as util
 
@@ -92,14 +92,14 @@ class CoordCircle2D(Caom2Object):
     def center(self):
         """The pixel/world coordinate location of the centre.
 
-        eg Coord2D(RefCoord(cprix1,crval1), RefCoord(crpix2, crval2))
-        type: Coord2D
+        eg ValueCoord2D(coord1, coord2)
+        type: ValueCoord2D
         """
         return self._center
 
     @center.setter
     def center(self, value):
-        util.typeCheck(value, Coord2D, 'centre', override=False)
+        util.typeCheck(value, ValueCoord2D, 'center', override=False)
         self._center = value
 
     @property

@@ -99,6 +99,7 @@ from .. caom2_telescope import Telescope
 from .. util.caom2_util import str2ivoa
 from .. wcs.caom2_axis import Axis
 from .. wcs.caom2_coord2d import Coord2D
+from .. wcs.caom2_value_coord2d import ValueCoord2D
 from .. wcs.caom2_coord_axis1d import CoordAxis1D
 from .. wcs.caom2_coord_axis2d import CoordAxis2D
 from .. wcs.caom2_coord_bounds1d import CoordBounds1D
@@ -632,6 +633,27 @@ class ObservationReader(object):
                 self._getRefCoord("coord1", el, ns, True),
                 self._getRefCoord("coord2", el, ns, True))
 
+    def _getValueCoord2D(self, elTag, parent, ns, required):
+        """Build a ValueCoord2D object from an XML representation of a
+        value coord element.
+
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the coord element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a ValueCoord2D object or
+                 None if the document does not contain a coord element
+        raise : ObservationParsingException
+        """
+        el = self._getChildElement(elTag, parent, ns, required)
+        if (el is None):
+            return None
+        else:
+            return ValueCoord2D(
+                self._getChildTextAsFloat("coord1", el, ns, True),
+                self._getChildTextAsFloat("coord2", el, ns, True))
+
     def _getCoordRange2D(self, elTag, parent, ns, required):
         """Build a CoordRange2D object from an XML representation of a range
         element.
@@ -671,7 +693,7 @@ class ObservationReader(object):
             return None
         else:
             return CoordCircle2D(
-                self._getCoord2D("center", el, ns, True),
+                self._getValueCoord2D("center", el, ns, True),
                 self._getChildTextAsFloat("radius", el, ns, True))
 
     def _getCoordPolygon2D(self, elTag, parent, ns, required):
@@ -701,9 +723,11 @@ class ObservationReader(object):
             else:
                 polygon = CoordPolygon2D()
                 for childVertexEl in childrenVertices:
-                    polygon.vertices.append(Coord2D(
-                        self._getRefCoord("coord1", childVertexEl, ns, True),
-                        self._getRefCoord("coord2", childVertexEl, ns, True)))
+                    polygon.vertices.append(ValueCoord2D(
+                        self._getChildTextAsFloat(
+                                    "coord1", childVertexEl, ns, True),
+                        self._getChildTextAsFloat(
+                                    "coord2", childVertexEl, ns, True)))
                 return polygon
 
     def _getCoordBounds2D(self, elTag, parent, ns, required):

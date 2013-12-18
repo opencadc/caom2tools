@@ -111,6 +111,7 @@ from caom2.wcs.caom2_ref_coord import RefCoord
 from caom2.wcs.caom2_coord_error import CoordError
 from caom2.wcs.caom2_coord_function1d import CoordFunction1D
 from caom2.wcs.caom2_coord2d import Coord2D
+from caom2.wcs.caom2_value_coord2d import ValueCoord2D
 from caom2.wcs.caom2_coord_range2d import CoordRange2D
 from caom2.wcs.caom2_dimension2d import Dimension2D
 from caom2.wcs.caom2_coord_function2d import CoordFunction2D
@@ -389,7 +390,6 @@ class Caom2TestInstances(object):
         #IQUV
         axis_1d.function = CoordFunction1D(4L, 1.0, RefCoord(1.0, 1.0))
         pol = PolarizationWCS(axis_1d)
-        
         return pol
 
     def get_slice(self):
@@ -426,15 +426,12 @@ class Caom2TestInstances(object):
             coord_axis_2d.function = (CoordFunction2D(dimension, ref_coord,
                                       11.0, 12.0, 13.0, 14.0))
             if self.bounds_is_circle:
-                center = Coord2D(RefCoord(15.0, 15.5), RefCoord(16.0, 16.5))
+                center = ValueCoord2D(15.0, 16.0)
                 coord_axis_2d.bounds = CoordCircle2D(center, 17.0)
             else:
                 polygon = CoordPolygon2D()
-                polygon.vertices.append(Coord2D(RefCoord(15.0, 15.5),
-                                                RefCoord(16.0, 16.5)))
-                polygon.vertices.append(Coord2D(RefCoord(17.0, 17.5),
-                                                RefCoord(18.0, 18.5)))
-                polygon.vertices.append(Coord2D(RefCoord(19.0, 19.5),
-                                                RefCoord(20.0, 20.5)))
+                polygon.vertices.append(ValueCoord2D(15.0, 16.0))
+                polygon.vertices.append(ValueCoord2D(17.0, 18.0))
+                polygon.vertices.append(ValueCoord2D(19.0, 20.0))
                 coord_axis_2d.bounds = polygon
         return coord_axis_2d

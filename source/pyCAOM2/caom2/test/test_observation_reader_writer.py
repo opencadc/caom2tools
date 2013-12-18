@@ -553,6 +553,15 @@ def compareCoord2D(self, expected, actual):
     compareRefCoord(self, expected.coord2, actual.coord2)
 
 
+def compareValueCoord2D(self, expected, actual):
+    if (expected == None):
+        self.assertIsNone(actual)
+        return
+    self.assertIsNotNone(actual)
+    self.assertEqual(expected.coord1, actual.coord1)
+    self.assertEqual(expected.coord2, actual.coord2)
+
+
 def compareCoordAxis1D(self, expected, actual):
     if (expected == None):
         self.assertIsNone(actual)
@@ -614,7 +623,7 @@ def compareCoordCircle2D(self, expected, actual):
     self.assertIsNotNone(actual)
     self.assertIsNotNone(actual.center)
     self.assertIsNotNone(actual.radius)
-    compareCoord2D(self, expected.center, actual.center)
+    compareValueCoord2D(self, expected.center, actual.center)
     self.assertEqual(expected.radius, actual.radius)
 
 
@@ -671,7 +680,7 @@ def compareCoordPolygon2D(self, expected, actual):
     self.assertEqual(len(expected.vertices), len(actual.vertices))
     for expected_coord_2d, actual_coord_2d in zip(expected.vertices,
                                                   actual.vertices):
-        compareCoord2D(self, expected_coord_2d, actual_coord_2d)
+        compareValueCoord2D(self, expected_coord_2d, actual_coord_2d)
 
 
 def compareCoordRange1D(self, expected, actual):

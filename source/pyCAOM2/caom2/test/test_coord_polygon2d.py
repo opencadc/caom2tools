@@ -71,8 +71,7 @@
 """ Defines TestCoordPolygon2D class """
 
 from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
-from caom2.wcs.caom2_coord2d import Coord2D
-from caom2.wcs.caom2_ref_coord import RefCoord
+from caom2.wcs.caom2_value_coord2d import ValueCoord2D
 import os.path
 import sys
 import unittest
@@ -85,13 +84,12 @@ class TestCoordPolygon2D(unittest.TestCase):
 
     def testInit(self):
 
-        coord_2d = Coord2D(RefCoord(float(1.0), float(2.0)),
-                           RefCoord(float(3.0), float(4.0)))
+        value_coord2d = ValueCoord2D(float(1.0), float(2.0))
 
         polygon = CoordPolygon2D()
-        polygon.vertices.append(coord_2d)
-        self.assertTrue(polygon.vertices.count(coord_2d) == 1)
-        self.assertEqual(polygon.vertices.pop(), coord_2d)
+        polygon.vertices.append(value_coord2d)
+        self.assertTrue(polygon.vertices.count(value_coord2d) == 1)
+        self.assertEqual(polygon.vertices.pop(), value_coord2d)
 
         with self.assertRaises(TypeError):
             polygon.vertices = [str("s")]
@@ -99,4 +97,3 @@ class TestCoordPolygon2D(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
