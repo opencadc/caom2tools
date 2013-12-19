@@ -71,8 +71,7 @@
 """ Defines TestCoordCircle2D class """
 
 from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-from caom2.wcs.caom2_coord2d import Coord2D
-from caom2.wcs.caom2_ref_coord import RefCoord
+from caom2.wcs.caom2_value_coord2d import ValueCoord2D
 import os.path
 import sys
 import unittest
@@ -85,8 +84,7 @@ class TestCoordCircle2D(unittest.TestCase):
 
     def testInit(self):
 
-        center = Coord2D(RefCoord(float(1.0), float(2.0)),
-                         RefCoord(float(3.0), float(4.0)))
+        center = ValueCoord2D(float(1.0), float(2.0))
         radius = float(1.5)
 
         self.assertRaises(TypeError, CoordCircle2D, None, None)
@@ -102,4 +100,3 @@ class TestCoordCircle2D(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

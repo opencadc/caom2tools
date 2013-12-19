@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,46 +68,40 @@
 #***********************************************************************
 #
 
-"""defines the CoordPolygon2D class
+""" Defines TestCoordBounds2D class """
 
-"""
+from caom2.wcs.caom2_coord_bounds2d import CoordBounds2D
+from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
+from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
+from caom2.wcs.caom2_value_coord2d import ValueCoord2D
+import os.path
+import sys
+import unittest
 
-from caom2_value_coord2d import ValueCoord2D
-from caom2.caom2_object import Caom2Object
-from caom2.util import caom2_util as util
+# put build at the start of the search path
+sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
-class CoordPolygon2D(Caom2Object):
-    """A object to contain a TypeList ValueCoord2D vertices that are a
-    polygon.  The vertices are given as ValueCoord2D objects, which are
-    coordinate pairs.
+class TestCoordBounds2D(unittest.TestCase):
 
-    eg. vertices.add(ValueCoord2D(coord1,coord2))
+    def testInit(self):
 
-    """
+        self.assertRaises(TypeError, CoordBounds2D, None)
+        self.assertRaises(TypeError, CoordBounds2D, float(1.0))
 
-    def __init__(self, vertices=None):
-        if vertices is None:
-            vertices = util.TypedList((ValueCoord2D),)
-        self.vertices = vertices
+        center = ValueCoord2D(float(1.0), float(2.0))
+        radius = float(1.5)
+        circle = CoordCircle2D(center, radius)
 
-    @property
-    def vertices(self):
-        """A TypedList of ValueCoord2D objects that layout the vertices of a
-        polygon.
+        polygon = CoordPolygon2D()
+        polygon.vertices.append(ValueCoord2D(float(1.0), float(2.0)))
 
-        A vertices can be added using the 'add' method..
-        eg: vertices.add(ValueCoord2D())
+        bounds = CoordBounds2D(circle)
+        self.assertEqual(bounds.bounds, circle)
 
-        see the caom2.wcs.ValueCoord2D help for details on making a
-        coordinate pair.
+        bounds = CoordBounds2D(polygon)
+        self.assertEqual(bounds.bounds, polygon)
 
-        type: TypedList((ValueCoord2D),)
 
-        """
-        return self._vertices
-
-    @vertices.setter
-    def vertices(self, value):
-        util.typeCheck(value, util.TypedList, 'vertices', override=False)
-        self._vertices = value
+if __name__ == '__main__':
+    unittest.main()

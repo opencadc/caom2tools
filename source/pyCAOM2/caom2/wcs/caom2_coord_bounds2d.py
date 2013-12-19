@@ -68,46 +68,36 @@
 #***********************************************************************
 #
 
-"""defines the CoordPolygon2D class
+""" defines the CoordBounds2D class"""
 
-"""
-
-from caom2_value_coord2d import ValueCoord2D
+from caom2_coord_circle2d import CoordCircle2D
+from caom2_coord_polygon2d import CoordPolygon2D
 from caom2.caom2_object import Caom2Object
-from caom2.util import caom2_util as util
 
 
-class CoordPolygon2D(Caom2Object):
-    """A object to contain a TypeList ValueCoord2D vertices that are a
-    polygon.  The vertices are given as ValueCoord2D objects, which are
-    coordinate pairs.
-
-    eg. vertices.add(ValueCoord2D(coord1,coord2))
+class CoordBounds2D(Caom2Object):
+    """Contains the bounds for a 2D axis
 
     """
 
-    def __init__(self, vertices=None):
-        if vertices is None:
-            vertices = util.TypedList((ValueCoord2D),)
-        self.vertices = vertices
+    def __init__(self, bounds):
+        if (isinstance(bounds, CoordCircle2D) or
+            isinstance(bounds, CoordPolygon2D)):
+            self.bounds = bounds
+        else:
+            raise TypeError(
+                "Expected CoordCircle2D or CoordPolygon2D, received {}"
+                .format(type(bounds)))
 
     @property
-    def vertices(self):
-        """A TypedList of ValueCoord2D objects that layout the vertices of a
-        polygon.
+    def bounds(self):
+        """The bounds expressed as a circle or polygon.
 
-        A vertices can be added using the 'add' method..
-        eg: vertices.add(ValueCoord2D())
-
-        see the caom2.wcs.ValueCoord2D help for details on making a
-        coordinate pair.
-
-        type: TypedList((ValueCoord2D),)
-
+        eg CoordBounds2D(CoordCircle2D())
+        type: CoordCircle2D or CoordPolygon2D
         """
-        return self._vertices
+        return self._bounds
 
-    @vertices.setter
-    def vertices(self, value):
-        util.typeCheck(value, util.TypedList, 'vertices', override=False)
-        self._vertices = value
+    @bounds.setter
+    def bounds(self, value):
+        self._bounds = value

@@ -68,46 +68,35 @@
 #***********************************************************************
 #
 
-"""defines the CoordPolygon2D class
+"""definition of value 2D coord object"""
 
-"""
-
-from caom2_value_coord2d import ValueCoord2D
-from caom2.caom2_object import Caom2Object
 from caom2.util import caom2_util as util
+from caom2.caom2_object import Caom2Object
 
 
-class CoordPolygon2D(Caom2Object):
-    """A object to contain a TypeList ValueCoord2D vertices that are a
-    polygon.  The vertices are given as ValueCoord2D objects, which are
-    coordinate pairs.
+class ValueCoord2D(Caom2Object):
+    """Represents the reference point."""
 
-    eg. vertices.add(ValueCoord2D(coord1,coord2))
-
-    """
-
-    def __init__(self, vertices=None):
-        if vertices is None:
-            vertices = util.TypedList((ValueCoord2D),)
-        self.vertices = vertices
+    def __init__(self, coord1, coord2):
+        self.coord1 = coord1
+        self.coord2 = coord2
 
     @property
-    def vertices(self):
-        """A TypedList of ValueCoord2D objects that layout the vertices of a
-        polygon.
+    def coord1(self):
+        """Coordinate 1"""
+        return self._coord1
 
-        A vertices can be added using the 'add' method..
-        eg: vertices.add(ValueCoord2D())
+    @coord1.setter
+    def coord1(self, value):
+        util.typeCheck(value, float, 'coord1', override=False)
+        self._coord1 = value
 
-        see the caom2.wcs.ValueCoord2D help for details on making a
-        coordinate pair.
+    @property
+    def coord2(self):
+        """Coordinate 2"""
+        return self._coord2
 
-        type: TypedList((ValueCoord2D),)
-
-        """
-        return self._vertices
-
-    @vertices.setter
-    def vertices(self, value):
-        util.typeCheck(value, util.TypedList, 'vertices', override=False)
-        self._vertices = value
+    @coord2.setter
+    def coord2(self, value):
+        util.typeCheck(value, float, 'coord2', override=False)
+        self._coord2 = value

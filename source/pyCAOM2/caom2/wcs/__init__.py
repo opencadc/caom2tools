@@ -73,9 +73,11 @@
 
 from caom2_axis import Axis
 from caom2_coord2d import Coord2D
+from caom2_value_coord2d import ValueCoord2D
 from caom2_coord_axis1d import CoordAxis1D
 from caom2_coord_axis2d import CoordAxis2D
 from caom2_coord_bounds1d import CoordBounds1D
+from caom2_coord_bounds2d import CoordBounds2D
 from caom2_coord_circle2d import CoordCircle2D
 from caom2_coord_error import CoordError
 from caom2_coord_function1d import CoordFunction1D
@@ -84,6 +86,7 @@ from caom2_coord_polygon2d import CoordPolygon2D
 from caom2_coord_range1d import CoordRange1D
 from caom2_coord_range2d import CoordRange2D
 from caom2_dimension2d import Dimension2D
+
 from caom2_observable_axis import ObservableAxis
 from caom2_polarization_wcs import PolarizationWCS
 from caom2_ref_coord import RefCoord
