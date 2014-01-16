@@ -1019,9 +1019,9 @@ class ObservationReader(object):
                 self._getChildTextAsFloat("zsource", el, ns, False)
             energy.velang = \
                 self._getChildTextAsFloat("velang", el, ns, False)
-            energy.bandpassName = \
+            energy.bandpass_name = \
                 self._getChildText("bandpassName", el, ns, False)
-            energy.resolvingPower = \
+            energy.resolving_power = \
                 self._getChildTextAsFloat("resolvingPower", el, ns, False)
             energy.transition = \
                 self._getTransition("transition", el, ns, False)
