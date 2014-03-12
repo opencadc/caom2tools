@@ -107,9 +107,9 @@ class TestSpectralWCS(unittest.TestCase):
             energy.velosys = int(1)
             energy.zsource = int(1)
             energy.velang = int(1)
-            energy.bandpassName = int(1)
+            energy.bandpass_name = int(1)
             energy.transition = int(1)
-            energy.resolvingPower = int(1)
+            energy.resolving_power = int(1)
 
         energy.ssysobs = "ssysobs"
         self.assertEqual(energy.ssysobs, "ssysobs")
@@ -132,15 +132,15 @@ class TestSpectralWCS(unittest.TestCase):
         energy.velang = float(5.0)
         self.assertEqual(energy.velang, float(5.0))
 
-        energy.bandpassName = "bandpassName"
-        self.assertEqual(energy.bandpassName, "bandpassName")
+        energy.bandpass_name = "bandpass_name"
+        self.assertEqual(energy.bandpass_name, "bandpass_name")
 
         transition = EnergyTransition("species", "transition")
         energy.transition = transition
         self.assertEqual(energy.transition, transition)
 
-        energy.resolvingPower = float(6.0)
-        self.assertEqual(energy.resolvingPower, float(6.0))
+        energy.resolving_power = float(6.0)
+        self.assertEqual(energy.resolving_power, float(6.0))
 
 
 if __name__ == '__main__':
