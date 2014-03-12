@@ -111,6 +111,13 @@ class TestSpectralWCS(unittest.TestCase):
             energy.transition = int(1)
             energy.resolving_power = int(1)
 
+        with self.assertRaises(ValueError):
+            energy.zsource = float(-1)
+            energy.zsource = float(1201)
+            energy.resolving_power = float(-1)
+            energy.resolving_power = float(1.1e8)
+
+
         energy.ssysobs = "ssysobs"
         self.assertEqual(energy.ssysobs, "ssysobs")
 
