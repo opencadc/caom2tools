@@ -305,5 +305,5 @@ class SpectralWCS(Caom2Object):
     @resolving_power.setter
     def resolving_power(self, value):
         util.typeCheck(value, float, 'resolving_power')
-        util.valueCheck(value, 0, 1E7, 'resolving_power')
+        util.valueCheck(value, 0, 1E8, 'resolving_power')
         self._resolving_power = value
