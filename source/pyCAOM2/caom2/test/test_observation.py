@@ -80,6 +80,8 @@ from caom2.caom2_environment import Environment
 from caom2.caom2_plane import Plane
 from caom2.caom2_enums import ObservationIntentType
 from caom2.caom2_target_position import TargetPosition
+from caom2.caom2_requirements import Requirements
+from caom2.caom2_enums import Status
 from caom2.types.caom2_point import Point
 import os
 import sys
@@ -123,26 +125,29 @@ class TestObservation(unittest.TestCase):
         self.assertIsNone(obs.telescope, "Default telescope")
         telescope = Telescope("GSAGN")
         obs.telescope = telescope
-        self.assertEqual(telescope,
-                         obs.telescope, "Telescope")
+        self.assertEqual(telescope, obs.telescope, "Telescope")
 
         self.assertIsNone(obs.instrument, "Default instrument")
         instrument = Instrument("NIRI")
         obs.instrument = instrument
-        self.assertEqual(instrument,
-                         obs.instrument, "Instrument")
+        self.assertEqual(instrument, obs.instrument, "Instrument")
 
         self.assertIsNone(obs.target, "Default target")
         target = Target("TGT")
         obs.target = target
-        self.assertEqual(target,
-                         obs.target, "Target")
+        self.assertEqual(target, obs.target, "Target")
 
         self.assertIsNone(obs.target_position, "Default target position")
         target_position = TargetPosition(Point(1.0, 2.0), "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
+
+        self.assertIsNone(obs.requirements, "Default requirements")
+        requirements = Requirements(Status.FAIL)
+        obs.requirements = requirements
+        self.assertEqual(requirements,
+                         obs.requirements, "Requirements")
 
         self.assertIsNone(obs.environment, "Default environment")
         environment = Environment()

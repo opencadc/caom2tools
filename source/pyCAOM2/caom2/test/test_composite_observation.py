@@ -81,7 +81,9 @@ from caom2.caom2_instrument import Instrument
 from caom2.caom2_target import Target
 from caom2.caom2_environment import Environment
 from caom2.caom2_target_position import TargetPosition
+from caom2.caom2_requirements import Requirements
 from caom2.caom2_enums import ObservationIntentType
+from caom2.caom2_enums import Status
 from caom2.util.caom2_util import TypedOrderedDict
 from caom2.types.caom2_point import Point
 import os
@@ -186,6 +188,11 @@ class TestCompositeObservation(unittest.TestCase):
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
+
+        self.assertIsNone(obs.requirements, "Default requirements")
+        requirements = Requirements(Status.FAIL)
+        obs.requirements = requirements
+        self.assertEquals(requirements, obs.requirements, "requirements")
 
         self.assertIsNone(obs.meta_release, "Default metadata release")
         date_now = datetime.now()

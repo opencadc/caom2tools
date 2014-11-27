@@ -135,3 +135,9 @@ SegmentType = Enum('SegmentType',
 TargetType = Enum('TargetType',
                   FIELD="field",
                   OBJECT="object")
+
+Quality = Enum('Quality',
+               JUNK="junk")
+
+Status = Enum('Status',
+              FAIL="fail")

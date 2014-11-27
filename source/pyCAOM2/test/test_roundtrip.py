@@ -86,6 +86,8 @@ sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 class TestRoundTrip(unittest.TestCase):
 
+    CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
+    CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
     TEST_FILE_SOURCE_DIR = '../caom2/test/data'
     XML_FILE_SOURCE_DIR = '/tmp/caom2-round-trip-test'
     XML_FILE_DEST_DIR = '/tmp/caom2-round-trip-test/pyCAOM2'
@@ -113,6 +115,22 @@ class TestRoundTrip(unittest.TestCase):
         return [f for f in os.listdir(TestRoundTrip.XML_FILE_SOURCE_DIR)\
                 if f.endswith('.xml')]
 
+    def do_test(self, reader, writer, filename):
+        sourceFilePath = (TestRoundTrip.XML_FILE_SOURCE_DIR +
+                          '/' + filename)
+        print "test file: " + sourceFilePath
+        sourceXMLfp = open(sourceFilePath, 'r')
+        observation = reader.read(sourceFilePath)
+        sourceXMLfp.close()
+        destFilePath = TestRoundTrip.XML_FILE_DEST_DIR + '/' + filename
+        destXMLfp = open(destFilePath, 'w')
+        writer.write(observation, destXMLfp)
+        destXMLfp.close()
+        self.assertTrue(filecmp.cmp(sourceFilePath, destFilePath),
+                        'files are different, ' + \
+                        'file from Java was: ' + sourceFilePath + ' ' \
+                        'file from Python was: ' + destFilePath)
+
     # This test reads each file in XML_FILE_SOURCE_DIR, creates the CAOM2
     # objects and writes a file in XML_FILE_DEST_DIR based on the CAOM2
     # objects. The two XML files are then compared to ensure that they
@@ -134,22 +152,14 @@ class TestRoundTrip(unittest.TestCase):
                     raise
 
             reader = ObservationReader(True)
-            writer = ObservationWriter(True, False)
+            writer20 = ObservationWriter(True, False, "caom2", TestRoundTrip.CAOM20_NAMESPACE)
+            writer21 = ObservationWriter(True, False, "caom2")
             for filename in files:
-                sourceFilePath = (TestRoundTrip.XML_FILE_SOURCE_DIR +
-                                  '/' + filename)
-                print "test file: " + sourceFilePath
-                sourceXMLfp = open(sourceFilePath, 'r')
-                observation = reader.read(sourceFilePath)
-                sourceXMLfp.close()
-                destFilePath = TestRoundTrip.XML_FILE_DEST_DIR + '/' + filename
-                destXMLfp = open(destFilePath, 'w')
-                writer.write(observation, destXMLfp)
-                destXMLfp.close()
-                self.assertTrue(filecmp.cmp(sourceFilePath, destFilePath),
-                                'files are different, ' +\
-                                'file from Java was: ' + sourceFilePath + ' '\
-                                'file from Python was: ' + destFilePath)
+                if filename.endswith("CAOM-2.1.xml"):
+                    self.do_test(reader, writer21, filename)
+                else:
+                    self.do_test(reader, writer20, filename)
+
         #finally:
         #    self.cleanup()
         except Exception as e:

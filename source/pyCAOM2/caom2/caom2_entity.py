@@ -72,33 +72,41 @@
 
 import random
 import time
+import uuid
+import struct
 from datetime import datetime
 from caom2_object import Caom2Object
+from caom2.util.caom2_util import long2uuid
 
 
 class AbstractCaom2Entity(Caom2Object):
     """Class that defines the persistence unique ID and last mod date """
 
-    def __init__(self):
-        self._id = AbstractCaom2Entity._gen_id()
+    def __init__(self, fulluuid=False):
+        self._id = AbstractCaom2Entity._gen_id(fulluuid)
         self._last_modified = AbstractCaom2Entity._gen_last_modified()
 
     @classmethod
-    def _gen_id(cls):
-        """Generate random signed 8 bytes IDs.
+    def _gen_id(cls, fulluuid=False):
+        """Generate a 128 but UUID by default. For backwards compatibility
+        allow creation of a 64 bit UUID using a rand number for the
+        lower 64 bits. First two bytes of the random number are generated
+        with the random and the last 6 bytes from the current time
+        in microseconds.
 
-        return: id
-           First two bytes are generated with the random and the
-           last 6 bytes from the current time in microseconds.
+        return: UUID
         """
 
-        vmrandom = random.randint(-int(0x7fff), int(0x7fff)) << 8 * 6
-        randtime = int(round(time.time() * 1000000))
-        randtime = randtime & 0xffffffffffff
-        rand = vmrandom | randtime
-        if rand & 0x8000000000000000:
-            rand = 0x1000000000000000 + rand
-        return rand
+        if fulluuid:
+            return uuid.uuid4()
+        else:
+            vmrandom = random.randint(-int(0x7fff), int(0x7fff)) << 8 * 6
+            randtime = int(round(time.time() * 1000000))
+            randtime = randtime & 0xffffffffffff
+            rand = vmrandom | randtime
+            if rand & 0x8000000000000000:
+                rand = 0x1000000000000000 + rand
+            return long2uuid(rand)
 
     @classmethod
     def _gen_last_modified(cls):

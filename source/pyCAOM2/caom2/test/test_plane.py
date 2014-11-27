@@ -75,8 +75,10 @@ from caom2.caom2_plane import Plane
 from caom2.caom2_artifact import Artifact
 from caom2.caom2_provenance import Provenance
 from caom2.caom2_metrics import Metrics
+from caom2.caom2_data_quality import DataQuality
 from caom2.caom2_enums import DataProductType
 from caom2.caom2_enums import CalibrationLevel
+from caom2.caom2_enums import Quality
 import os
 import sys
 import unittest
@@ -110,6 +112,12 @@ class TestPlane(unittest.TestCase):
         plane.calibration_level = CalibrationLevel.CALIBRATED
         self.assertEqual(CalibrationLevel.CALIBRATED,
                          plane.calibration_level, "CalibrationLevel")
+        self.assertIsNone(plane.quality,
+                          "Default quality")
+        quality = DataQuality(Quality.JUNK)
+        plane.quality = quality
+        self.assertEqual(quality,
+                         plane.quality, "Quality")
         self.assertIsNone(plane.provenance, "Default provenance")
         provenance = Provenance("myProv")
         plane.provenance = provenance

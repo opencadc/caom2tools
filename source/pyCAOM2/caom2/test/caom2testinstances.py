@@ -74,6 +74,8 @@ from caom2.caom2_enums import CalibrationLevel
 from caom2.caom2_enums import DataProductType
 from caom2.caom2_enums import ObservationIntentType
 from caom2.caom2_enums import ProductType
+from caom2.caom2_enums import Quality
+from caom2.caom2_enums import Status
 from caom2.caom2_enums import TargetType
 from caom2.util.caom2_util import TypedList, TypedSet
 from caom2.caom2_energy_transition import EnergyTransition
@@ -87,11 +89,13 @@ from caom2.caom2_proposal import Proposal
 from caom2.caom2_algorithm import Algorithm
 from caom2.caom2_target import Target
 from caom2.caom2_target_position import TargetPosition
+from caom2.caom2_requirements import Requirements
 from caom2.caom2_telescope import Telescope
 from caom2.caom2_instrument import Instrument
 from caom2.caom2_environment import Environment
 from caom2.caom2_provenance import Provenance
 from caom2.caom2_metrics import Metrics
+from caom2.caom2_data_quality import DataQuality
 from caom2.caom2_observation_uri import ObservationURI
 from caom2.caom2_plane_uri import PlaneURI
 from caom2.types.caom2_point import Point
@@ -135,9 +139,10 @@ class Caom2TestInstances(object):
     _ivoa_date = datetime(2012, 07, 11, 13, 26, 37, 0)
 
     def __init__(self):
-        self._depth = 5
-        self._complete = True
-        self._bounds_is_circle = True
+        self.depth = 5
+        self.complete = True
+        self.bounds_is_circle = True
+        self.caom_version = 20
 
     @property
     def depth(self):
@@ -163,6 +168,14 @@ class Caom2TestInstances(object):
     def bounds_is_circle(self, v):
         self._bounds_is_circle = v
 
+    @property
+    def caom_version(self):
+        return self._caom_version
+
+    @caom_version.setter
+    def caom_version(self, v):
+        self._caom_version = v
+
     def get_simple_observation(self):
         observation = SimpleObservation(Caom2TestInstances._collection,
                                         Caom2TestInstances._observation_id)
@@ -175,6 +188,8 @@ class Caom2TestInstances(object):
             observation.proposal = self.get_proposal()
             observation.target = self.get_target()
             observation.target_position = self.get_target_position()
+            if self.caom_version == 21:
+                observation.requirements = self.get_requirements()
             observation.telescope = self.get_telescope()
             observation.instrument = self.get_instrument()
             observation.environment = self.get_environment()
@@ -195,6 +210,8 @@ class Caom2TestInstances(object):
             observation.proposal = self.get_proposal()
             observation.target = self.get_target()
             observation.target_position = self.get_target_position()
+            if self.caom_version == 21:
+                observation.requirements = self.get_requirements()
             observation.telescope = self.get_telescope()
             observation.instrument = self.get_instrument()
             observation.environment = self.get_environment()
@@ -226,6 +243,10 @@ class Caom2TestInstances(object):
         point = Point(1.0, 2.0)
         target_position = TargetPosition(point, "coordsys")
         target_position.equinox = 3.0
+        return target_position
+
+    def get_requirements(self):
+        return Requirements(Status.FAIL)
 
     def get_telescope(self):
         telescope = Telescope("telescopeName")
@@ -238,6 +259,7 @@ class Caom2TestInstances(object):
     def get_instrument(self):
         instrument = Instrument("instrumentName")
         instrument.keywords.extend(Caom2TestInstances._keywords)
+        return instrument
 
     def get_environment(self):
         env = Environment()
@@ -265,6 +287,8 @@ class Caom2TestInstances(object):
             plane.calibration_level = CalibrationLevel.PRODUCT
             plane.provenance = self.get_provenance()
             plane.metrics = self.get_metrics()
+            if self.caom_version == 21:
+                plane.quality = self.get_quality()
 
         if self.depth > 2:
             for k, v in self.get_artifacts().iteritems():
@@ -296,6 +320,9 @@ class Caom2TestInstances(object):
         metrics.flux_density_limit = float(4.0)
         metrics.mag_limit = float(5.0)
         return metrics
+
+    def get_quality(self):
+        return DataQuality(Quality.JUNK)
 
     def get_artifacts(self):
         artifacts = collections.OrderedDict()

@@ -87,8 +87,7 @@ class Part(AbstractCaom2Entity):
        and the list of chunks.
     """
 
-    def __init__(self, name, product_type=None,
-                 chunks=None):
+    def __init__(self, name, product_type=None, chunks=None):
         super(Part, self).__init__()
         self.name = name
         self.product_type = product_type
@@ -97,7 +96,7 @@ class Part(AbstractCaom2Entity):
         self.chunks = chunks
 
     def _key(self):
-        return (self.name)
+        return self.name
 
     def __eq__(self, y):
         if isinstance(y, Part):

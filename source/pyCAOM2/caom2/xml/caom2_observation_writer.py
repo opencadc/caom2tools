@@ -82,42 +82,75 @@ from .. caom2_enums import CalibrationLevel
 from .. caom2_enums import DataProductType
 from .. caom2_enums import ObservationIntentType
 from .. caom2_enums import ProductType
+from .. caom2_enums import Quality
+from .. caom2_enums import Status
 from .. caom2_enums import TargetType
 from .. util.caom2_util import date2ivoa
+from .. util.caom2_util import uuid2long
 
 
 class ObservationWriter(object):
     """ ObservationWriter """
 
-    CAOM2_NAMESPACE = "vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0"
-    CAOM2 = "{%s}" % CAOM2_NAMESPACE
+    CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
+    CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
+    CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
+    CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
+    CAOM20 = "{%s}" % CAOM20_NAMESPACE
+    CAOM21 = "{%s}" % CAOM21_NAMESPACE
+
     XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
     XSI = "{%s}" % XSI_NAMESPACE
-    NSMAP = {"caom2": CAOM2_NAMESPACE, "xsi": XSI_NAMESPACE}
 
-    def __init__(self, validate=False, write_empty_collections=False):
+    def __init__(self, validate=False, write_empty_collections=False,
+                 namespace_prefix="caom2", namespace=None):
+        """
+        Arguments:
+        validate : If True enable schema validation, False otherwise
+        write_empty_collections : if True write empty elements for empty collections
+        namespace_prefix : a CAOM-2.x namespace prefix
+        namespace : a valid CAOM-2.x target namespace
+        """
         self._validate = validate
         self._write_empty_collections = write_empty_collections
 
-        schema_path = pkg_resources.resource_filename(
-            ObservationReader.CAOM2_PKG, ObservationReader.SCHEMA_FILE)
-        xmlschema_doc = etree.parse(schema_path)
-        self._xmlschema = etree.XMLSchema(xmlschema_doc)
+        if namespace_prefix is None or not namespace_prefix:
+            raise RuntimeError('null or empty namespace_prefix not allowed')
+
+        if namespace is None or namespace == ObservationWriter.CAOM21_NAMESPACE:
+            self._output_version = 21
+            self._caom2_namespace = ObservationWriter.CAOM21
+            self._namespace = ObservationWriter.CAOM21_NAMESPACE
+        elif namespace == ObservationWriter.CAOM20_NAMESPACE:
+            self._output_version = 20
+            self._caom2_namespace = ObservationWriter.CAOM20
+            self._namespace = ObservationWriter.CAOM20_NAMESPACE
+        else:
+            raise RuntimeError('invalid namespace {}'.format(namespace))
+
+        if self._validate:
+            if self._output_version == 20:
+                schema_file = ObservationReader.CAOM20_SCHEMA_FILE
+            else:
+                schema_file = ObservationReader.CAOM21_SCHEMA_FILE
+            schema_path = pkg_resources.resource_filename(
+                ObservationReader.CAOM2_PKG, schema_file)
+            xmlschema_doc = etree.parse(schema_path)
+            self._xmlschema = etree.XMLSchema(xmlschema_doc)
+
+        self._nsmap = {namespace_prefix: self._namespace, "xsi": ObservationWriter.XSI_NAMESPACE}
 
     def write(self, observation, out):
         assert isinstance(observation, Observation), (
             "observation is not an Observation")
 
-        obs = etree.Element(self.CAOM2 + "Observation", nsmap=self.NSMAP)
+        obs = etree.Element(self._caom2_namespace + "Observation", nsmap=self._nsmap)
         if isinstance(observation, SimpleObservation):
             obs.set(self.XSI + "type", "caom2:SimpleObservation")
         else:
             obs.set(self.XSI + "type", "caom2:CompositeObservation")
 
-        self._addAttribute("id", str(observation._id), obs)
-        if (observation._last_modified != None):
-            self._addAttribute("lastModified",
-                               date2ivoa(observation._last_modified), obs)
+        self._addEnityAttributes(observation, obs)
 
         self._addElement("collection", observation.collection, obs)
         self._addElement("observationID", observation.observation_id, obs)
@@ -125,13 +158,14 @@ class ObservationWriter(object):
         self._addElement("sequenceNumber", observation.sequence_number, obs)
         self._addAlgorithmElement(observation.algorithm, obs)
         self._addElement("type", observation.obs_type, obs)
-        if (observation.intent != None):
-            self._addElement("intent",
-                ObservationIntentType.get(str(observation.intent)).value, obs)
+        if observation.intent is not None:
+            self._addElement(
+                "intent", ObservationIntentType.get(str(observation.intent)).value, obs)
 
         self._addProposalElement(observation.proposal, obs)
         self._addTargetElement(observation.target, obs)
         self._addTargetPositionElement(observation.target_position, obs)
+        self._addRequirementsElement(observation.requirements, obs)
         self._addTelescopeElement(observation.telescope, obs)
         self._addInstrumentElement(observation.instrument, obs)
         self._addEnvironmentElement(observation.environment, obs)
@@ -140,21 +174,32 @@ class ObservationWriter(object):
         if isinstance(observation, CompositeObservation):
             self._addMembersElement(observation.members, obs)
 
-        if (self._validate):
-            self._xmlschema.validate(obs)
+        if self._validate and self._xmlschema:
+            self._xmlschema.assertValid(obs)
 
         out.write(etree.tostring(obs, xml_declaration=True, encoding='UTF-8',
                                  pretty_print=True))
 
+    def _addEnityAttributes(self, entity, element):
+        if self._output_version == 20:
+            uid = uuid2long(entity._id)
+            self._addAttribute("id", str(uid), element)
+        else:
+            self._addAttribute("id", str(entity._id), element)
+
+        if entity._last_modified is not None:
+            self._addAttribute(
+                "lastModified", date2ivoa(entity._last_modified), element)
+
     def _addAlgorithmElement(self, algorithm, parent):
-        if (algorithm is None):
+        if algorithm is None:
             return
 
         element = self._getCaom2Element("algorithm", parent)
         self._addElement("name", algorithm.name, element)
 
     def _addProposalElement(self, proposal, parent):
-        if (proposal == None):
+        if proposal is None:
             return
 
         element = self._getCaom2Element("proposal", parent)
@@ -165,34 +210,44 @@ class ObservationWriter(object):
         self._addListElement("keywords", proposal.keywords, element)
 
     def _addTargetElement(self, target, parent):
-        if (target == None):
+        if target is None:
             return
 
         element = self._getCaom2Element("target", parent)
         self._addElement("name", target.name, element)
-        if (target.target_type != None):
-            self._addElement("type",
-                TargetType.get(str(target.target_type)).value, element)
-        if (target.standard != None):
+        if target.target_type is not None:
+            self._addElement(
+                "type", TargetType.get(str(target.target_type)).value, element)
+        if target.standard is not None:
             self._addElement("standard", str(target.standard).lower(), element)
         self._addElement("redshift", target.redshift, element)
-        if (target.moving != None):
+        if target.moving is not None:
             self._addElement("moving", str(target.moving).lower(), element)
         self._addListElement("keywords", target.keywords, element)
 
     def _addTargetPositionElement(self, target_position, parent):
-        if (target_position == None):
+        if target_position is None:
             return
 
         element = self._getCaom2Element("targetPosition", parent)
         self._addElement("coordsys", target_position.coordsys, element)
-        if (target_position.equinox != None):
+        if target_position.equinox is not None:
             self._addElement("equinox", target_position.equinox, element)
         self._addPointElement("coordinates", target_position.coordinates,
                               element)
 
+    def _addRequirementsElement(self, requirements, parent):
+        if self._output_version < 21:
+            return # Requirements added in CAOM-2.1
+        if requirements is None:
+            return
+
+        element = self._getCaom2Element("requirements", parent)
+        self._addElement(
+            "flag", Status.get(str(requirements.flag)).value, element)
+
     def _addTelescopeElement(self, telescope, parent):
-        if (telescope == None):
+        if telescope is None:
             return
 
         element = self._getCaom2Element("telescope", parent)
@@ -203,7 +258,7 @@ class ObservationWriter(object):
         self._addListElement("keywords", telescope.keywords, element)
 
     def _addInstrumentElement(self, instrument, parent):
-        if (instrument == None):
+        if instrument is None:
             return
 
         element = self._getCaom2Element("instrument", parent)
@@ -211,7 +266,7 @@ class ObservationWriter(object):
         self._addListElement("keywords", instrument.keywords, element)
 
     def _addEnvironmentElement(self, environment, parent):
-        if (environment == None):
+        if environment is None:
             return
 
         element = self._getCaom2Element("environment", parent)
@@ -221,13 +276,13 @@ class ObservationWriter(object):
         self._addElement("tau", environment.tau, element)
         self._addElement("wavelengthTau", environment.wavelength_tau, element)
         self._addElement("ambientTemp", environment.ambient_temp, element)
-        if (environment.photometric != None):
+        if environment.photometric is not None:
             self._addElement("photometric",
                              str(environment.photometric).lower(), element)
 
     def _addMembersElement(self, members, parent):
-        if (members == None or
-            (len(members) == 0 and not self._write_empty_collections)):
+        if members is None or \
+                (len(members) == 0 and not self._write_empty_collections):
             return
 
         element = self._getCaom2Element("members", parent)
@@ -236,36 +291,34 @@ class ObservationWriter(object):
             memberElement.text = member.uri
 
     def _addPlanesElement(self, planes, parent):
-        if (planes == None or
-            (len(planes) == 0 and not self._write_empty_collections)):
+        if planes is None or \
+                (len(planes) == 0 and not self._write_empty_collections):
             return
 
         element = self._getCaom2Element("planes", parent)
         for plane in planes.itervalues():
             planeElement = self._getCaom2Element("plane", element)
-            self._addAttribute("id", str(plane._id), planeElement)
-            if (plane._last_modified != None):
-                self._addAttribute("lastModified",
-                              date2ivoa(plane._last_modified), planeElement)
+            self._addEnityAttributes(plane, planeElement)
             self._addElement("productID", plane.product_id, planeElement)
             self._addDatetimeElement("metaRelease", plane.meta_release,
                                     planeElement)
             self._addDatetimeElement("dataRelease", plane.data_release,
                                     planeElement)
-            if (plane.data_product_type != None):
+            if plane.data_product_type is not None:
                 self._addElement("dataProductType",
                     DataProductType.get(str(plane.data_product_type)).value,
                     planeElement)
-            if (plane.calibration_level != None):
+            if plane.calibration_level is not None:
                 self._addElement("calibrationLevel",
                     CalibrationLevel(str(plane.calibration_level)).value,
                     planeElement)
             self._addProvenanceElement(plane.provenance, planeElement)
             self._addMetricsElement(plane.metrics, planeElement)
+            self._addQualityElement(plane.quality, planeElement)
             self._addArtifactsElement(plane.artifacts, planeElement)
 
     def _addProvenanceElement(self, provenance, parent):
-        if (provenance == None):
+        if provenance is None:
             return
 
         element = self._getCaom2Element("provenance", parent)
@@ -281,7 +334,7 @@ class ObservationWriter(object):
         self._addInputsElement("inputs", provenance.inputs, element)
 
     def _addMetricsElement(self, metrics, parent):
-        if (metrics == None):
+        if metrics is None:
             return
 
         element = self._getCaom2Element("metrics", parent)
@@ -294,8 +347,18 @@ class ObservationWriter(object):
                         element)
         self._addElement("magLimit", metrics.mag_limit, element)
 
+    def _addQualityElement(self, quality, parent):
+        if self._output_version < 21:
+            return # Requirements added in CAOM-2.1
+        if quality is None:
+            return
+
+        element = self._getCaom2Element("quality", parent)
+        self._addElement(
+            "flag", Quality.get(str(quality.flag)).value, element)
+
     def _addTransitionElement(self, transition, parent):
-        if (transition == None):
+        if transition is None:
             return
 
         element = self._getCaom2Element("transition", parent)
@@ -303,23 +366,19 @@ class ObservationWriter(object):
         self._addElement("transition", transition.transition, element)
 
     def _addArtifactsElement(self, artifacts, parent):
-        if (artifacts == None):
+        if artifacts is None:
             return
 
         element = self._getCaom2Element("artifacts", parent)
         for artifact in artifacts.itervalues():
             artifactElement = self._getCaom2Element("artifact", element)
-            self._addAttribute("id", str(artifact._id), artifactElement)
-            if (artifact._last_modified != None):
-                self._addAttribute("lastModified",
-                              date2ivoa(artifact._last_modified),
-                              artifactElement)
+            self._addEnityAttributes(artifact, artifactElement)
             self._addElement("uri", artifact.uri, artifactElement)
             self._addElement("contentType", artifact.content_type,
                             artifactElement)
             self._addElement("contentLength", artifact.content_length,
                             artifactElement)
-            if (artifact.product_type != None):
+            if artifact.product_type is not None:
                 self._addElement("productType",
                     ProductType.get(str(artifact.product_type)).value,
                     artifactElement)
@@ -328,36 +387,28 @@ class ObservationWriter(object):
             self._addPartsElement(artifact.parts, artifactElement)
 
     def _addPartsElement(self, parts, parent):
-        if (parts == None):
+        if parts is None:
             return
 
         element = self._getCaom2Element("parts", parent)
         for part in parts.itervalues():
             partElement = self._getCaom2Element("part", element)
-            self._addAttribute("id", str(part._id), partElement)
-            if (part._last_modified != None):
-                self._addAttribute("lastModified",
-                                   date2ivoa(part._last_modified),
-                                   partElement)
+            self._addEnityAttributes(part, partElement)
             self._addElement("name", part.name, partElement)
-            if (part.product_type != None):
+            if part.product_type is not None:
                 self._addElement("productType",
                     ProductType.get(str(part.product_type)).value, partElement)
             self._addChunksElement(part.chunks, partElement)
 
     def _addChunksElement(self, chunks, parent):
-        if (chunks == None):
+        if chunks is None:
             return
 
         element = self._getCaom2Element("chunks", parent)
         for chunk in chunks:
             chunkElement = self._getCaom2Element("chunk", element)
-            self._addAttribute("id", str(chunk._id), chunkElement)
-            if (chunk._last_modified != None):
-                self._addAttribute("lastModified",
-                                   date2ivoa(chunk._last_modified),
-                                   chunkElement)
-            if (chunk.product_type != None):
+            self._addEnityAttributes(chunk, chunkElement)
+            if chunk.product_type is not None:
                 self._addElement("productType",
                     ProductType.get(str(chunk.product_type)).value,
                     chunkElement)
@@ -380,7 +431,7 @@ class ObservationWriter(object):
             self._addPolarizationWCSElement(chunk.polarization, chunkElement)
 
     def _addObservableAxisElement(self, observable, parent):
-        if (observable == None):
+        if observable is None:
             return
 
         element = self._getCaom2Element("observable", parent)
@@ -390,7 +441,7 @@ class ObservationWriter(object):
     def _addSpatialWCSElement(self, position, parent):
         """ Builds a representation of a SpatialWCS and adds it to the
             parent element. """
-        if (position == None):
+        if position is None:
             return
 
         element = self._getCaom2Element("position", parent)
@@ -402,7 +453,7 @@ class ObservationWriter(object):
     def _addSpectralWCSElement(self, energy, parent):
         """ Builds a representation of a SpectralWCS and adds it to the
             parent element."""
-        if (energy == None):
+        if energy is None:
             return
 
         element = self._getCaom2Element("energy", parent)
@@ -422,7 +473,7 @@ class ObservationWriter(object):
     def _addTemporalWCSElement(self, time, parent):
         """ Builds a representation of a TemporalWCS and adds it to the
             parent element. """
-        if (time == None):
+        if time is None:
             return
 
         element = self._getCaom2Element("time", parent)
@@ -436,7 +487,7 @@ class ObservationWriter(object):
     def _addPolarizationWCSElement(self, polarization, parent):
         """ Builds a representation of a PolarizationWCS and adds it to the
             parent element. """
-        if (polarization == None):
+        if polarization is None:
             return
 
         element = self._getCaom2Element("polarization", parent)
@@ -447,7 +498,7 @@ class ObservationWriter(object):
     def _addPointElement(self, name, point, parent):
         """ Builds a representation of a Point and adds it to the
             parent element. """
-        if (point == None):
+        if point is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -459,18 +510,18 @@ class ObservationWriter(object):
     def _addAxisElement(self, name, axis, parent):
         """ Builds a representation of a Axis and adds it to the
             parent element. """
-        if (axis == None):
+        if axis is None:
             return
 
         element = self._getCaom2Element(name, parent)
         self._addElement("ctype", axis.ctype, element)
-        if (axis.cunit):
+        if axis.cunit:
             self._addElement("cunit", axis.cunit, element)
 
     def _addCoord2DElement(self, name, coord, parent):
         """ Builds a representation of a Coord2D and adds it to the
             parent element. """
-        if(coord == None):
+        if coord is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -480,7 +531,7 @@ class ObservationWriter(object):
     def _addValueCoord2DElement(self, name, coord, parent):
         """ Builds a representation of a ValueCoord2D and adds it to the
             parent element. """
-        if(coord == None):
+        if coord is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -490,7 +541,7 @@ class ObservationWriter(object):
     def _addCoordAxis1DElement(self, name, axis, parent):
         """ Builds a representation of a CoordAxis1D and adds it to the
             parent element. """
-        if (axis == None):
+        if axis is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -503,7 +554,7 @@ class ObservationWriter(object):
     def _addCoordAxis2DElement(self, name, axis, parent):
         """ Builds a representation of a CoordAxis2D and adds it to the
             parent element. """
-        if (axis == None):
+        if axis is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -518,7 +569,7 @@ class ObservationWriter(object):
     def _addCoordBounds1DElement(self, name, bounds, parent):
         """ Builds a representation of a CoordBounds1D and adds it to the
             parent element. """
-        if (bounds == None):
+        if bounds is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -527,7 +578,7 @@ class ObservationWriter(object):
     def _addCoordBounds2DElement(self, name, bounds, parent):
         """Builds a representation of a CoordBounds2D and adds it to the
             parent element. """
-        if (bounds == None):
+        if bounds is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -544,7 +595,7 @@ class ObservationWriter(object):
     def _addCoordCircle2DElement(self, name, circle, parent):
         """ Builds a representation of a CoordCircle2D and adds it to the
             parent element. """
-        if (circle == None):
+        if circle is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -554,7 +605,7 @@ class ObservationWriter(object):
     def _addCoordErrorElement(self, name, error, parent):
         """ Builds a representation of a CoordError and adds it to the
             parent element. """
-        if (error == None):
+        if error is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -564,7 +615,7 @@ class ObservationWriter(object):
     def _addCoordFunction1DElement(self, name, function, parent):
         """ Builds a representation of a CoordFunction1D and adds it to the
             parent element. """
-        if (function == None):
+        if function is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -575,7 +626,7 @@ class ObservationWriter(object):
     def _addCoordFunction2DElement(self, name, function, parent):
         """ Builds a representation of a CoordFunction2D and adds it to the
             parent element. """
-        if (function == None):
+        if function is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -589,7 +640,7 @@ class ObservationWriter(object):
     def _addCoordPolygon2DElement(self, name, polygon, parent):
         """ Builds a representation of a CoordPolygon2D and adds it to the
             parent element. """
-        if (polygon == None):
+        if polygon is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -601,7 +652,7 @@ class ObservationWriter(object):
     def _addCoordRange1DElement(self, name, _range, parent):
         """ Builds a representation of a CoordRange1D and adds it to the
             parent element. """
-        if (_range == None):
+        if _range is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -611,7 +662,7 @@ class ObservationWriter(object):
     def _addCoordRange2DElement(self, name, _range, parent):
         """ Builds a representation of a CoordRange2D and adds it to the
             parent element. """
-        if (_range == None):
+        if _range is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -621,7 +672,7 @@ class ObservationWriter(object):
     def _addDimension2DElement(self, name, dimension, parent):
         """ Builds a representation of a Dimension2D and adds it to the
             parent element. """
-        if (dimension == None):
+        if dimension is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -631,7 +682,7 @@ class ObservationWriter(object):
     def _addRefCoordElement(self, name, refCoord, parent):
         """ Builds a representation of a RefCoord and adds it to the
             parent element. """
-        if (refCoord == None):
+        if refCoord is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -641,7 +692,7 @@ class ObservationWriter(object):
     def _addSliceElement(self, name, _slice, parent):
         """ Builds a representation of a Slice and adds it to the
             parent element. """
-        if (_slice == None):
+        if _slice is None:
             return
 
         element = self._getCaom2Element(name, parent)
@@ -649,44 +700,44 @@ class ObservationWriter(object):
         self._addElement("bin", _slice.bin, element)
 
     def _addAttribute(self, name, value, element):
-        element.set(self.CAOM2 + name, value)
+        element.set(self._caom2_namespace + name, value)
 
     def _addElement(self, name, text, parent):
-        if (text == None):
+        if text is None:
             return
         element = self._getCaom2Element(name, parent)
-        if (isinstance(text, str)):
+        if isinstance(text, str):
             element.text = text
         else:
             element.text = str(text)
 
     def _addDatetimeElement(self, name, value, parent):
-        if (value == None):
+        if value is None:
             return
         element = self._getCaom2Element(name, parent)
         element.text = date2ivoa(value)
 
     def _addListElement(self, name, collection, parent):
-        if (collection == None or
-            (len(collection) == 0 and not self._write_empty_collections)):
+        if collection is None or \
+                (len(collection) == 0 and not self._write_empty_collections):
             return
         element = self._getCaom2Element(name, parent)
         element.text = ' '.join(collection)
 
     def _addCoordRange1DListElement(self, name, values, parent):
-        if (values == None):
+        if values is None:
             return
         element = self._getCaom2Element(name, parent)
         for v in values:
             self._addCoordRange1DElement("range", v, element)
 
     def _addInputsElement(self, name, collection, parent):
-        if (collection == None or
-            (len(collection) == 0 and not self._write_empty_collections)):
+        if collection is None or \
+            (len(collection) == 0 and not self._write_empty_collections):
             return
         element = self._getCaom2Element(name, parent)
         for plane_uri in collection:
             self._addElement("planeURI", plane_uri.uri, element)
 
     def _getCaom2Element(self, tag, parent):
-        return etree.SubElement(parent, self.CAOM2 + tag)
+        return etree.SubElement(parent, self._caom2_namespace + tag)

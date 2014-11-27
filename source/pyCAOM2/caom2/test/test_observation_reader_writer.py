@@ -79,6 +79,7 @@ from caom2.xml.caom2_observation_reader import ObservationReader
 from caom2testinstances import Caom2TestInstances
 import os
 import sys
+import StringIO
 import unittest
 
 # put build at the start of the search path
@@ -87,109 +88,164 @@ sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 class TestObservationReaderWriter(unittest.TestCase):
 
+    CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
+    CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
+
+    def test_invalid_long_id(self):
+        print "Test Invalid long id "
+        observation = minimal_simple(1, False, 20)
+        writer = ObservationWriter(
+            False, False, "caom2", TestObservationReaderWriter.CAOM20_NAMESPACE)
+        output = StringIO.StringIO()
+        writer.write(observation, output)
+        xml = output.getvalue()
+        output.close()
+        xml = xml.replace("caom2:id=\"", "caom2:id=\"x")
+        f = open('/tmp/test.xml', 'w')
+        f.write(xml)
+        f.close()
+        reader = ObservationReader(False)
+        try:
+            reader.read('/tmp/test.xml')
+            self.fail("invalid long id should throw ValueError")
+        except ValueError:
+            pass
+
+    def test_invalid_uuid(self):
+        print "Test Invalid UUID id"
+        observation = minimal_simple(1, False, 21)
+        writer = ObservationWriter(False, False)  # default writer is 2.1
+        output = StringIO.StringIO()
+        writer.write(observation, output)
+        xml = output.getvalue()
+        output.close()
+        xml = xml.replace("0000", "xxxx", 1)
+        f = open('/tmp/test.xml', 'w')
+        f.write(xml)
+        f.close()
+        reader = ObservationReader(False)
+        try:
+            reader.read('/tmp/test.xml')
+            self.fail("invalid uuid id should throw ValueError")
+        except ValueError:
+            pass
+
     def test_minimal_simple(self):
 
-        for i in range(1, 6):
-            print "Test Minimal Simple ", i
-            # CoordBounds2D as CoordCircle2D
-            observation = minimal_simple(i, True)
-            # write empty elements
-            test_observation(self, observation, True, True)
-            # do not write empty elements
-            test_observation(self, observation, True, False)
-            # CoordBounds2D as CoordPolygon2D
-            observation = minimal_simple(i, False)
-            # write empty elements
-            test_observation(self, observation, True, True)
-            # do not write empty elements
-            test_observation(self, observation, True, False)
+        for version in (20, 21):
+            for i in range(1, 6):
+                print "Test Minimal Simple {} version {}".format(i, version)
+                # CoordBounds2D as CoordCircle2D
+                observation = minimal_simple(i, True, version)
+                # write empty elements
+                test_observation(self, observation, True, True, version)
+                # do not write empty elements
+                test_observation(self, observation, True, False, version)
+                # CoordBounds2D as CoordPolygon2D
+                observation = minimal_simple(i, False, version)
+                # write empty elements
+                test_observation(self, observation, True, True, version)
+                # do not write empty elements
+                test_observation(self, observation, True, False, version)
 
     def test_complete_simple(self):
 
-        for i in range(1, 6):
-            print "Test Complete Simple ", i
-            # CoordBounds2D as CoordCircle2D
-            observation = complete_simple(i, True)
-            # write empty elements
-            test_observation(self, observation, True, True)
-            # do not write empty elements
-            test_observation(self, observation, True, False)
-            # CoordBounds2D as CoordPolygon2D
-            observation = complete_simple(i, False)
-            # write empty elements
-            test_observation(self, observation, True, True)
-            # do not write empty elements
-            test_observation(self, observation, True, False)
+        for version in (20, 21):
+            for i in range(1, 6):
+                print "Test Complete Simple {} version {}".format(i, version)
+                # CoordBounds2D as CoordCircle2D
+                observation = complete_simple(i, True, version)
+                # write empty elements
+                test_observation(self, observation, True, True, version)
+                # do not write empty elements
+                test_observation(self, observation, True, False, version)
+                # CoordBounds2D as CoordPolygon2D
+                observation = complete_simple(i, False, version)
+                # write empty elements
+                test_observation(self, observation, True, True, version)
+                # do not write empty elements
+                test_observation(self, observation, True, False, version)
 
     def test_minimal_composite(self):
 
-        for i in range(1, 6):
-            print "Test Minimal Composite ", i
-            # CoordBounds2D as CoordCircle2D
-            observation = minimal_composite(i, True)
-            # write empty elements
-            test_observation(self, observation, True, True)
-            # do not write empty elements
-            test_observation(self, observation, True, False)
-            # CoordBounds2D as CoordPolygon2D
-            observation = minimal_composite(i, False)
-            # write empty elements
-            test_observation(self, observation, True, True)
-            # do not write empty elements
-            test_observation(self, observation, True, False)
+        for version in (20, 21):
+            for i in range(1, 6):
+                print "Test Minimal Composite {} version {}".format(i, version)
+                # CoordBounds2D as CoordCircle2D
+                observation = minimal_composite(i, True, version)
+                # write empty elements
+                test_observation(self, observation, True, True, version)
+                # do not write empty elements
+                test_observation(self, observation, True, False, version)
+                # CoordBounds2D as CoordPolygon2D
+                observation = minimal_composite(i, False, version)
+                # write empty elements
+                test_observation(self, observation, True, True, version)
+                # do not write empty elements
+                test_observation(self, observation, True, False, version)
 
     def test_complete_composite(self):
 
-        for i in range(1, 6):
-            print "Test Complete Composite ", i
-            # CoordBounds2D as CoordCircle2D
-            observation = complete_composite(i, True)
-            # write empty elements
-            test_observation(self, observation, True, True)
-            # do not write empty elements
-            test_observation(self, observation, True, False)
-            # CoordBounds2D as CoordPolygon2D
-            observation = complete_composite(i, False)
-            # write empty elements
-            test_observation(self, observation, True, True)
-            # do not write empty elements
-            test_observation(self, observation, True, False)
+        for version in (20, 21):
+            for i in range(1, 6):
+                print "Test Complete Composite {} version {}".format(i, version)
+                # CoordBounds2D as CoordCircle2D
+                observation = complete_composite(i, True, version)
+                # write empty elements
+                test_observation(self, observation, True, True, version)
+                # do not write empty elements
+                test_observation(self, observation, True, False, version)
+                # CoordBounds2D as CoordPolygon2D
+                observation = complete_composite(i, False, version)
+                # write empty elements
+                test_observation(self, observation, True, True, version)
+                # do not write empty elements
+                test_observation(self, observation, True, False, version)
 
 
-def minimal_simple(depth, bounds_is_circle):
+def minimal_simple(depth, bounds_is_circle, version):
     instances = Caom2TestInstances()
     instances.complete = False
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
+    instances.caom_version = version
     return instances.get_simple_observation()
 
 
-def complete_simple(depth, bounds_is_circle):
+def complete_simple(depth, bounds_is_circle, version):
     instances = Caom2TestInstances()
     instances.complete = True
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
+    instances.caom_version = version
     return instances.get_simple_observation()
 
 
-def minimal_composite(depth, bounds_is_circle):
+def minimal_composite(depth, bounds_is_circle, version):
     instances = Caom2TestInstances()
     instances.complete = False
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
+    instances.caom_version = version
     return instances.get_composite_observation()
 
 
-def complete_composite(depth, bounds_is_circle):
+def complete_composite(depth, bounds_is_circle, version):
     instances = Caom2TestInstances()
     instances.complete = True
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
+    instances.caom_version = version
     return instances.get_composite_observation()
 
 
-def test_observation(self, observation, validate, write_empty_collections):
-    writer = ObservationWriter(validate, write_empty_collections)
+def test_observation(self, observation, validate, write_empty_collections, caom_version=21):
+    if caom_version == 20:
+        writer = ObservationWriter(
+            validate, write_empty_collections, "caom2",
+            TestObservationReaderWriter.CAOM20_NAMESPACE)
+    else:
+        writer = ObservationWriter(validate, write_empty_collections)
     xmlfile = open('/tmp/test.xml', 'w')
     writer.write(observation, xmlfile)
     xmlfile.close()
@@ -234,6 +290,7 @@ def compareObservations(self, expected, actual):
     compareTarget(self, expected.target, actual.target)
     compareTelescope(self, expected.telescope, actual.telescope)
     compareInstrument(self, expected.instrument, actual.instrument)
+    compareRequirements(self, expected.requirements, actual.requirements)
 
     comparePlanes(self, expected.planes, actual.planes)
 
@@ -243,7 +300,7 @@ def compareObservations(self, expected, actual):
 
 
 def compareProposal(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -257,7 +314,7 @@ def compareProposal(self, expected, actual):
 
 
 def compareTarget(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -269,7 +326,7 @@ def compareTarget(self, expected, actual):
 
 
 def compareTargetPosition(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -281,7 +338,7 @@ def compareTargetPosition(self, expected, actual):
 
 
 def compareTelescope(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -294,7 +351,7 @@ def compareTelescope(self, expected, actual):
 
 
 def compareInstrument(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -304,7 +361,7 @@ def compareInstrument(self, expected, actual):
 
 
 def compareMembers(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -314,7 +371,7 @@ def compareMembers(self, expected, actual):
 
 
 def compareObservationURI(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -322,9 +379,15 @@ def compareObservationURI(self, expected, actual):
     self.assertEquals(expected.collection, actual.collection)
     self.assertEquals(expected.observation_id, actual.observation_id)
 
+def compareRequirements(self, expected, actual):
+    if expected is None and actual is None:
+        return
+    self.assertIsNotNone(expected)
+    self.assertIsNotNone(actual)
+    self.assertEquals(expected.flag, actual.flag)
 
 def comparePlanes(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -358,7 +421,7 @@ def comparePlanes(self, expected, actual):
 
 
 def compareProvenance(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -372,7 +435,7 @@ def compareProvenance(self, expected, actual):
 
 
 def compareInputs(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -382,7 +445,7 @@ def compareInputs(self, expected, actual):
 
 
 def compareArtifacts(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -413,7 +476,7 @@ def compareArtifacts(self, expected, actual):
 
 
 def compareParts(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -437,7 +500,7 @@ def compareParts(self, expected, actual):
 
 
 def compareChunks(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -475,7 +538,7 @@ def compareChunks(self, expected, actual):
 
 
 def compareObservableAxis(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -484,7 +547,7 @@ def compareObservableAxis(self, expected, actual):
 
 
 def compareSpatialWCS(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -495,7 +558,7 @@ def compareSpatialWCS(self, expected, actual):
 
 
 def compareSpectralWCS(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -513,7 +576,7 @@ def compareSpectralWCS(self, expected, actual):
 
 
 def compareTemporalWCS(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -526,7 +589,7 @@ def compareTemporalWCS(self, expected, actual):
 
 
 def comparePolarizationWCS(self, expected, actual):
-    if (expected == None and actual == None):
+    if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
@@ -534,7 +597,7 @@ def comparePolarizationWCS(self, expected, actual):
 
 
 def compareAxis(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -545,7 +608,7 @@ def compareAxis(self, expected, actual):
 
 
 def compareCoord2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -554,7 +617,7 @@ def compareCoord2D(self, expected, actual):
 
 
 def compareValueCoord2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -563,7 +626,7 @@ def compareValueCoord2D(self, expected, actual):
 
 
 def compareCoordAxis1D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -574,7 +637,7 @@ def compareCoordAxis1D(self, expected, actual):
 
 
 def compareCoordAxis2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -590,7 +653,7 @@ def compareCoordAxis2D(self, expected, actual):
 
 
 def compareCoordBounds1D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -602,7 +665,7 @@ def compareCoordBounds1D(self, expected, actual):
 
 
 def compareCoordBounds2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -617,7 +680,7 @@ def compareCoordBounds2D(self, expected, actual):
 
 
 def compareCoordCircle2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -628,21 +691,21 @@ def compareCoordCircle2D(self, expected, actual):
 
 
 def compareCoordError(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
 
     self.assertIsNotNone(actual)
-    if (expected.syser):
+    if expected.syser:
         self.assertIsNotNone(actual.syser)
         self.assertEqual(expected.syser, actual.syser)
-    if (expected.rnder):
+    if expected.rnder:
         self.assertIsNotNone(actual.rnder)
         self.assertEqual(expected.rnder, actual.rnder)
 
 
 def compareCoordFunction1D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -652,7 +715,7 @@ def compareCoordFunction1D(self, expected, actual):
 
 
 def compareCoordFunction2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -671,7 +734,7 @@ def compareCoordFunction2D(self, expected, actual):
 
 
 def compareCoordPolygon2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -684,7 +747,7 @@ def compareCoordPolygon2D(self, expected, actual):
 
 
 def compareCoordRange1D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -693,7 +756,7 @@ def compareCoordRange1D(self, expected, actual):
 
 
 def compareCoordRange2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -704,7 +767,7 @@ def compareCoordRange2D(self, expected, actual):
 
 
 def compareDimension2D(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -713,7 +776,7 @@ def compareDimension2D(self, expected, actual):
 
 
 def compareRefCoord(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -722,7 +785,7 @@ def compareRefCoord(self, expected, actual):
 
 
 def compareSlice(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
@@ -733,7 +796,7 @@ def compareSlice(self, expected, actual):
 
 
 def comparePoint(self, expected, actual):
-    if (expected == None):
+    if expected is None:
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)

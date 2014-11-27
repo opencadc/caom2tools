@@ -68,34 +68,27 @@
 #***********************************************************************
 #
 
-""" defines the EnergyTransition class"""
-
-from caom2_object import Caom2Object
-import util.caom2_util as util
+""" Defines TestRequirements class """
 
 
-class EnergyTransition(Caom2Object):
-    """ EnergyTransition """
+from caom2.caom2_requirements import Requirements
+from caom2.caom2_enums import Status
+import os
+import sys
+import unittest
 
-    def __init__(self, species, transition):
-        """
-        Construct an EnergyTransition instance
+# put build at the start of the search path
+sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
-        Arguments:
-        species
-        transition
-        """
-        util.typeCheck(species, str, "species", override=False)
-        util.typeCheck(transition, str, "transition", override=False)
-        self._species = species
-        self._transition = transition
 
-    @property
-    def species(self):
-        """ Species """
-        return self._species
+class TestRequirements(unittest.TestCase):
 
-    @property
-    def transition(self):
-        """ Transition """
-        return self._transition
+    def testAll(self):
+
+        self.assertRaises(TypeError, Requirements, "string")
+        requirements = Requirements(Status.FAIL)
+        self.assertEqual(Status.FAIL, requirements.flag,
+                         "Requirements flag")
+
+if __name__ == '__main__':
+    unittest.main()

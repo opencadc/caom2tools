@@ -68,34 +68,31 @@
 #***********************************************************************
 #
 
-""" defines the EnergyTransition class"""
+""" defines the Requirements class"""
 
 from caom2_object import Caom2Object
-import util.caom2_util as util
+from caom2_enums import Status
+import caom2.util.caom2_util as util
 
 
-class EnergyTransition(Caom2Object):
-    """ EnergyTransition """
+class Requirements(Caom2Object):
+    """ Requirements """
 
-    def __init__(self, species, transition):
+    def __init__(self, flag):
         """
-        Construct an EnergyTransition instance
+        Construct an Requirements instance
 
         Arguments:
-        species
-        transition
+        flag
         """
-        util.typeCheck(species, str, "species", override=False)
-        util.typeCheck(transition, str, "transition", override=False)
-        self._species = species
-        self._transition = transition
+        self.flag = flag
 
     @property
-    def species(self):
-        """ Species """
-        return self._species
+    def flag(self):
+        """ flag """
+        return self._flag
 
-    @property
-    def transition(self):
-        """ Transition """
-        return self._transition
+    @flag.setter
+    def flag(self, value):
+        util.typeCheck(value, Status, "flag")
+        self._flag = value

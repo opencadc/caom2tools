@@ -70,12 +70,15 @@
 
 """definition of the  caom2.Observation object."""
 
+from datetime import datetime
+
 from caom2_entity import AbstractCaom2Entity
 from caom2_algorithm import Algorithm
 from caom2_environment import Environment
 from caom2_instrument import Instrument
 from caom2_plane import Plane
 from caom2_proposal import Proposal
+from caom2.caom2_requirements import Requirements
 from caom2_target import Target
 from caom2_target_position import TargetPosition
 from caom2_telescope import Telescope
@@ -83,7 +86,6 @@ from caom2_observation_uri import ObservationURI
 from caom2_enums import ObservationIntentType
 from util.caom2_util import TypedOrderedDict
 from util import caom2_util as util
-from datetime import datetime
 
 
 class Observation(AbstractCaom2Entity):
@@ -146,7 +148,8 @@ class Observation(AbstractCaom2Entity):
                  meta_release=None,
                  planes=None,
                  environment=None,
-                 target_position=None
+                 target_position=None,
+                 requirements=None
                  ):
         """
         Initializes an Observation instance
@@ -178,6 +181,7 @@ class Observation(AbstractCaom2Entity):
         self.target = target
         self.environment = environment
         self.target_position = target_position
+        self.requirements = requirements
         self.meta_release = meta_release
         if planes is None:
             planes = TypedOrderedDict((Plane),)
@@ -394,6 +398,21 @@ class Observation(AbstractCaom2Entity):
     def target_position(self, value):
         util.typeCheck(value, TargetPosition, 'target_position')
         self._target_position = value
+
+    @property
+    def requirements(self):
+        """Reference to a Requirements object associated
+        with this observation.
+
+        can be None
+        type: caom2.Requirements
+        """
+        return self._requirements
+
+    @requirements.setter
+    def requirements(self, value):
+        util.typeCheck(value, Requirements, 'requirements')
+        self._requirements = value
 
     @property
     def meta_release(self):

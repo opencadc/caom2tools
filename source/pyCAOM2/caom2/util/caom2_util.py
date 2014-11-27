@@ -80,7 +80,8 @@ engineer get the correct meta data more quickly.
 import collections
 from datetime import datetime
 import sys
-
+import struct
+import uuid
 
 class TypedList(collections.MutableSequence):
     """
@@ -305,7 +306,7 @@ def date2ivoa(d):
     to the IVOA date format yyyy-MM-dd'T'HH:mm:ss.SSS
     """
 
-    if (d == None):
+    if d is None:
         return None
     return d.strftime(IVOA_DATE_FORMAT)[:23]
 
@@ -313,7 +314,7 @@ def date2ivoa(d):
 def str2ivoa(s):
     """Takes a IVOA date formatted string and returns a datetime"""
 
-    if (s == None):
+    if s is None:
         return None
     return datetime.strptime(s, IVOA_DATE_FORMAT)
 
@@ -324,6 +325,30 @@ def attr2str(s):
 
 def repr2str(s):
     pass
+
+
+def uuid2long(uid):
+    """
+    UUID is 128 bits (32 bytes). Unpack the 32 bytes into two
+    16 byte longs. For CAOM-2.0 compatibility only the least significant
+    16 bytes in the UUID should have a value.
+
+    return the UUID least significant bytes as a long.
+    """
+    longs = struct.unpack('ll', str(uid.bytes))
+    if longs[0] != 0:
+        raise ValueError("lossy conversion from UUID to long: {}".format(uid))
+    return longs[1]
+
+
+def long2uuid(l):
+    """
+    Takes a long and creates a UUID using the 16 byte long
+    as the least significant bytes in the 32 byte UUID.
+    """
+    if l.bit_length() > 63:
+        raise ValueError("expected 64 bit long {}".format(l))
+    return uuid.UUID(bytes='\x00'*8 + str(struct.pack("l", l)))
 
 
 def typeCheck(value, value_type, variable, override=None):

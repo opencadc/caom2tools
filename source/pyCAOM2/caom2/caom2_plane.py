@@ -75,6 +75,7 @@ from caom2_entity import AbstractCaom2Entity
 from caom2_artifact import Artifact
 from caom2_metrics import Metrics
 from caom2_provenance import Provenance
+from caom2_data_quality import DataQuality
 from caom2_enums import CalibrationLevel
 from caom2_enums import DataProductType
 from util.caom2_util import TypedOrderedDict
@@ -92,7 +93,8 @@ class Plane(AbstractCaom2Entity):
                  data_product_type=None,
                  calibration_level=None,
                  provenance=None,
-                 metrics=None):
+                 metrics=None,
+                 quality=None):
         """
         Initialize a Plane instance
 
@@ -111,9 +113,10 @@ class Plane(AbstractCaom2Entity):
         self.calibration_level = calibration_level
         self.provenance = provenance
         self.metrics = metrics
+        self.quality = quality
 
         # computed fields
-        # agregated from the Chunks during ingestion
+        # aggregated from the Chunks during ingestion
         self._position = None
         self._energy = None
         self._time = None
@@ -230,8 +233,8 @@ class Plane(AbstractCaom2Entity):
 
     @property
     def calibration_level(self):
-        """a string that represents the level of calibrattion (aka processing)
-        the data contained in this plane have reecieved.  The string
+        """a string that represents the level of calibration (aka processing)
+        the data contained in this plane have received.  The string
         is converted to an integer during storage.
 
         eg. Plane.calibration_level = "RAW_STANDARD"
@@ -272,6 +275,19 @@ class Plane(AbstractCaom2Entity):
     def metrics(self, value):
         util.typeCheck(value, Metrics, 'metrics')
         self._metrics = value
+
+    @property
+    def quality(self):
+        """reference to an object that describes the quality of the data of this plane.
+
+        eg. Plane.data_quality = caom2.DataQuality()
+        """
+        return self._quality
+
+    @quality.setter
+    def quality(self, value):
+        util.typeCheck(value, DataQuality, 'quality')
+        self._quality = value
 
     #@property
     #def observable(self):

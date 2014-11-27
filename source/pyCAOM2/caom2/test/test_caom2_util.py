@@ -74,6 +74,8 @@ from caom2.util.caom2_util import TypedList
 from caom2.util.caom2_util import TypedOrderedDict
 from caom2.util.caom2_util import TypedSet
 from caom2.util.caom2_util import validate_path_component
+from caom2.util.caom2_util import uuid2long
+from caom2.util.caom2_util import long2uuid
 from caom2.caom2_artifact import Artifact
 from caom2.caom2_energy import Energy
 from caom2.caom2_part import Part
@@ -82,6 +84,7 @@ from caom2.caom2_plane_uri import PlaneURI
 
 import os
 import sys
+import uuid
 import unittest
 
 # put build at the start of the search path
@@ -307,7 +310,37 @@ class TestCaomUtil(unittest.TestCase):
         with self.assertRaises(AttributeError):
             myDict1.add(testPlaneURI)
 
+    def testuuid2long(self):
+        # > 64 bit uuid
+        u = uuid.UUID('3d26e30b-10cc-4301-8193-f2e0c6b63302')
+        try:
+            uuid2long(u)
+            self.fail("> 64 uuid should raise ValueError")
+        except ValueError:
+            pass
 
+        u = uuid.UUID('00000000-0000-0000-0100-000000000000')
+        l = uuid2long(u)
+        self.assertEqual(1L, l)
+
+        u = uuid.UUID('00000000-0000-0000-4e61-bc0000000000')
+        l = uuid2long(u)
+        self.assertEqual(12345678L, l)
+
+    def testlong2uuid(self):
+        # > 64 bit long
+        l = 123456781234567812345678L
+        try:
+            long2uuid(l)
+            self.fail("> 64 bit long should raise ValueError")
+        except ValueError:
+            pass
+
+        l = -7872009327910205706
+        # expected = uuid.UUID(l)
+        uid = long2uuid(l)
+        # self.assertEqual(expected, uid)
+        self.assertEqual('00000000-0000-0000-f6c6-59553901c192', str(uid))
 
 if __name__ == '__main__':
     unittest.main()
