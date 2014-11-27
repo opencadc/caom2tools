@@ -77,6 +77,7 @@ from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
 from caom2.xml.caom2_observation_writer import ObservationWriter
 from caom2.xml.caom2_observation_reader import ObservationReader
 from caom2testinstances import Caom2TestInstances
+import caom2.xml.caom2_xml_constants
 import os
 import sys
 import StringIO
@@ -88,14 +89,11 @@ sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 class TestObservationReaderWriter(unittest.TestCase):
 
-    CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
-    CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
-
     def test_invalid_long_id(self):
         print "Test Invalid long id "
         observation = minimal_simple(1, False, 20)
         writer = ObservationWriter(
-            False, False, "caom2", TestObservationReaderWriter.CAOM20_NAMESPACE)
+            False, False, "caom2", caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
         output = StringIO.StringIO()
         writer.write(observation, output)
         xml = output.getvalue()
@@ -202,6 +200,15 @@ class TestObservationReaderWriter(unittest.TestCase):
                 # do not write empty elements
                 test_observation(self, observation, True, False, version)
 
+    def test_versions(self):
+        observation = complete_composite(6, True, 20)
+        test_observation(self, observation, True, True, 20)
+        test_observation(self, observation, True, True, 21)
+
+        observation = complete_composite(6, True, 21)
+        test_observation(self, observation, True, True, 21)
+        test_observation(self, observation, True, True, 20)
+
 
 def minimal_simple(depth, bounds_is_circle, version):
     instances = Caom2TestInstances()
@@ -239,11 +246,11 @@ def complete_composite(depth, bounds_is_circle, version):
     return instances.get_composite_observation()
 
 
-def test_observation(self, observation, validate, write_empty_collections, caom_version=21):
-    if caom_version == 20:
+def test_observation(self, observation, validate, write_empty_collections, version):
+    if version == 20:
         writer = ObservationWriter(
             validate, write_empty_collections, "caom2",
-            TestObservationReaderWriter.CAOM20_NAMESPACE)
+            caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
     else:
         writer = ObservationWriter(validate, write_empty_collections)
     xmlfile = open('/tmp/test.xml', 'w')
@@ -251,10 +258,10 @@ def test_observation(self, observation, validate, write_empty_collections, caom_
     xmlfile.close()
     reader = ObservationReader(True)
     returned = reader.read('/tmp/test.xml')
-    compareObservations(self, observation, returned)
+    compareObservations(self, observation, returned, version)
 
 
-def compareObservations(self, expected, actual):
+def compareObservations(self, expected, actual, version):
 
     assert ((isinstance(expected, SimpleObservation) and
             isinstance(actual, SimpleObservation)) or
@@ -288,11 +295,14 @@ def compareObservations(self, expected, actual):
     self.assertEqual(expected.meta_release, actual.meta_release)
     compareProposal(self, expected.proposal, actual.proposal)
     compareTarget(self, expected.target, actual.target)
+    compareTargetPosition(self, expected.target_position, actual.target_position)
     compareTelescope(self, expected.telescope, actual.telescope)
     compareInstrument(self, expected.instrument, actual.instrument)
-    compareRequirements(self, expected.requirements, actual.requirements)
+    compareEnvironment(self, expected.environment, actual.environment)
+    if version == 21:
+        compareRequirements(self, expected.requirements, actual.requirements)
 
-    comparePlanes(self, expected.planes, actual.planes)
+    comparePlanes(self, expected.planes, actual.planes, version)
 
     if (isinstance(expected, CompositeObservation) and
         isinstance(actual, CompositeObservation)):
@@ -330,9 +340,9 @@ def compareTargetPosition(self, expected, actual):
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
-    self.assertNotNone(actual.coordinates)
-    self.assertNotNone(actual.coordsys)
-    self.comparePoint(expected.coordinates, actual.coordinates)
+    self.assertIsNotNone(actual.coordinates)
+    self.assertIsNotNone(actual.coordsys)
+    comparePoint(self, expected.coordinates, actual.coordinates)
     self.assertEqual(expected.coordsys, actual.coordsys)
     self.assertEqual(expected.equinox, actual.equinox)
 
@@ -360,6 +370,20 @@ def compareInstrument(self, expected, actual):
         self.assertEquals(expected.keywords[i], actual.keywords[i])
 
 
+def compareEnvironment(self, expected, actual):
+    if expected is None and actual is None:
+        return
+    self.assertIsNotNone(expected)
+    self.assertIsNotNone(actual)
+    self.assertEqual(expected.seeing, actual.seeing)
+    self.assertEqual(expected.humidity, actual.humidity)
+    self.assertEqual(expected.elevation, actual.elevation)
+    self.assertEqual(expected.tau, actual.tau)
+    self.assertEqual(expected.wavelength_tau, actual.wavelength_tau)
+    self.assertEqual(expected.ambient_temp, actual.ambient_temp)
+    self.assertEqual(expected.photometric, actual.photometric)
+
+
 def compareMembers(self, expected, actual):
     if expected is None and actual is None:
         return
@@ -379,6 +403,7 @@ def compareObservationURI(self, expected, actual):
     self.assertEquals(expected.collection, actual.collection)
     self.assertEquals(expected.observation_id, actual.observation_id)
 
+
 def compareRequirements(self, expected, actual):
     if expected is None and actual is None:
         return
@@ -386,7 +411,8 @@ def compareRequirements(self, expected, actual):
     self.assertIsNotNone(actual)
     self.assertEquals(expected.flag, actual.flag)
 
-def comparePlanes(self, expected, actual):
+
+def comparePlanes(self, expected, actual, version):
     if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
@@ -416,6 +442,10 @@ def comparePlanes(self, expected, actual):
                          actual_plane.calibration_level)
         compareProvenance(self, expected_plane.provenance,
                           actual_plane.provenance)
+        compareMetrics(self, expected_plane.metrics, actual_plane.metrics)
+        if version == 21:
+            compareQuality(self, expected_plane.quality, actual_plane.quality)
+
         compareArtifacts(self, expected_plane.artifacts,
                          actual_plane.artifacts)
 
@@ -432,6 +462,26 @@ def compareProvenance(self, expected, actual):
     self.assertEqual(expected.reference, actual.reference)
     self.assertEqual(expected.last_executed, actual.last_executed)
     compareInputs(self, expected.inputs, actual.inputs)
+
+
+def compareMetrics(self, expected, actual):
+    if expected is None and actual is None:
+        return
+    self.assertIsNotNone(expected)
+    self.assertIsNotNone(actual)
+    self.assertEqual(expected.source_number_density, actual.source_number_density)
+    self.assertEqual(expected.background, actual.background)
+    self.assertEqual(expected.background_std_dev, actual.background_std_dev)
+    self.assertEqual(expected.flux_density_limit, actual.flux_density_limit)
+    self.assertEqual(expected.mag_limit, actual.mag_limit)
+
+
+def compareQuality(self, expected, actual):
+    if expected is None and actual is None:
+        return
+    self.assertIsNotNone(expected)
+    self.assertIsNotNone(actual)
+    self.assertEqual(expected.flag, actual.flag)
 
 
 def compareInputs(self, expected, actual):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,52 +68,16 @@
 #***********************************************************************
 #
 
-"""defines the AbstractCaom2Entity class"""
+CAOM2_PKG = 'caom2'
 
-import random
-import time
-import uuid
-from datetime import datetime
-from caom2_object import Caom2Object
-from caom2.util.caom2_util import long2uuid
+CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
+CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
 
+CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
+CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
 
-class AbstractCaom2Entity(Caom2Object):
-    """Class that defines the persistence unique ID and last mod date """
+CAOM20 = "{%s}" % CAOM20_NAMESPACE
+CAOM21 = "{%s}" % CAOM21_NAMESPACE
 
-    def __init__(self, fulluuid=False):
-        self._id = AbstractCaom2Entity._gen_id(fulluuid)
-        self._last_modified = AbstractCaom2Entity._gen_last_modified()
-
-    @classmethod
-    def _gen_id(cls, fulluuid=False):
-        """Generate a 128 but UUID by default. For backwards compatibility
-        allow creation of a 64 bit UUID using a rand number for the
-        lower 64 bits. First two bytes of the random number are generated
-        with the random and the last 6 bytes from the current time
-        in microseconds.
-
-        return: UUID
-        """
-
-        if fulluuid:
-            return uuid.uuid4()
-        else:
-            vmrandom = random.randint(-int(0x7fff), int(0x7fff)) << 8 * 6
-            randtime = int(round(time.time() * 1000000))
-            randtime = randtime & 0xffffffffffff
-            rand = vmrandom | randtime
-            if rand & 0x8000000000000000:
-                rand = 0x1000000000000000 + rand
-            return long2uuid(rand)
-
-    @classmethod
-    def _gen_last_modified(cls):
-        """Generate a datetime with 3 digit microsecond precision.
-
-        return: datatime
-            IVOA date format to millisecond precision.
-        """
-        now = datetime.now()
-        return datetime(now.year, now.month, now.day, now.hour, now.minute, \
-                        now.second, long(str(now.microsecond)[:-3] + '000'))
+XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
+XSI = "{%s}" % XSI_NAMESPACE

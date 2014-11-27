@@ -74,6 +74,7 @@
 import pkg_resources
 import uuid
 from lxml import etree
+import caom2_xml_constants
 from .. caom2_algorithm import Algorithm
 from .. caom2_artifact import Artifact
 from .. caom2_chunk import Chunk
@@ -131,12 +132,6 @@ from .. types.caom2_point import Point
 class ObservationReader(object):
     """ObservationReader """
 
-    CAOM2_PKG = 'caom2'
-    CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
-    CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
-    CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
-    CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
-
     def __init__(self, valididate=False):
         """Constructor. XML Schema validation may be disabled, in which case
         the client is likely to fail in horrible ways if it received invalid
@@ -149,22 +144,22 @@ class ObservationReader(object):
 
         if self._validate:
             caom20_schema_path = pkg_resources.resource_filename(
-                ObservationReader.CAOM2_PKG, ObservationReader.CAOM20_SCHEMA_FILE)
+                caom2_xml_constants.CAOM2_PKG, caom2_xml_constants.CAOM20_SCHEMA_FILE)
 
             parser = etree.XMLParser(remove_blank_text=True)
             xsd = etree.parse(caom20_schema_path, parser)
 
             caom21_schema = etree.Element(
                 '{http://www.w3.org/2001/XMLSchema}import',
-                namespace=ObservationReader.CAOM21_NAMESPACE,
-                schemaLocation=ObservationReader.CAOM21_SCHEMA_FILE)
+                namespace=caom2_xml_constants.CAOM21_NAMESPACE,
+                schemaLocation=caom2_xml_constants.CAOM21_SCHEMA_FILE)
             xsd.getroot().insert(1, caom21_schema)
 
             self._xmlschema = etree.XMLSchema(xsd)
 
     def _set_entity_attributes(self, element, ns, caom2_entity):
         expect_uuid = True
-        if ObservationReader.CAOM20_NAMESPACE == ns:
+        if caom2_xml_constants.CAOM20_NAMESPACE == ns:
             expect_uuid = False
 
         element_id = element.get("{" + ns + "}id")

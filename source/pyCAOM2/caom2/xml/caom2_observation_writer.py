@@ -72,7 +72,7 @@
 
 from lxml import etree
 import pkg_resources
-from caom2_observation_reader import ObservationReader
+import caom2_xml_constants
 from .. caom2_observation import Observation
 from .. caom2_composite_observation import CompositeObservation
 from .. caom2_simple_observation import SimpleObservation
@@ -92,16 +92,6 @@ from .. util.caom2_util import uuid2long
 class ObservationWriter(object):
     """ ObservationWriter """
 
-    CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
-    CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
-    CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
-    CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
-    CAOM20 = "{%s}" % CAOM20_NAMESPACE
-    CAOM21 = "{%s}" % CAOM21_NAMESPACE
-
-    XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
-    XSI = "{%s}" % XSI_NAMESPACE
-
     def __init__(self, validate=False, write_empty_collections=False,
                  namespace_prefix="caom2", namespace=None):
         """
@@ -117,28 +107,28 @@ class ObservationWriter(object):
         if namespace_prefix is None or not namespace_prefix:
             raise RuntimeError('null or empty namespace_prefix not allowed')
 
-        if namespace is None or namespace == ObservationWriter.CAOM21_NAMESPACE:
+        if namespace is None or namespace == caom2_xml_constants.CAOM21_NAMESPACE:
             self._output_version = 21
-            self._caom2_namespace = ObservationWriter.CAOM21
-            self._namespace = ObservationWriter.CAOM21_NAMESPACE
-        elif namespace == ObservationWriter.CAOM20_NAMESPACE:
+            self._caom2_namespace = caom2_xml_constants.CAOM21
+            self._namespace = caom2_xml_constants.CAOM21_NAMESPACE
+        elif namespace == caom2_xml_constants.CAOM20_NAMESPACE:
             self._output_version = 20
-            self._caom2_namespace = ObservationWriter.CAOM20
-            self._namespace = ObservationWriter.CAOM20_NAMESPACE
+            self._caom2_namespace = caom2_xml_constants.CAOM20
+            self._namespace = caom2_xml_constants.CAOM20_NAMESPACE
         else:
             raise RuntimeError('invalid namespace {}'.format(namespace))
 
         if self._validate:
             if self._output_version == 20:
-                schema_file = ObservationReader.CAOM20_SCHEMA_FILE
+                schema_file = caom2_xml_constants.CAOM20_SCHEMA_FILE
             else:
-                schema_file = ObservationReader.CAOM21_SCHEMA_FILE
+                schema_file = caom2_xml_constants.CAOM21_SCHEMA_FILE
             schema_path = pkg_resources.resource_filename(
-                ObservationReader.CAOM2_PKG, schema_file)
+                caom2_xml_constants.CAOM2_PKG, schema_file)
             xmlschema_doc = etree.parse(schema_path)
             self._xmlschema = etree.XMLSchema(xmlschema_doc)
 
-        self._nsmap = {namespace_prefix: self._namespace, "xsi": ObservationWriter.XSI_NAMESPACE}
+        self._nsmap = {namespace_prefix: self._namespace, "xsi": caom2_xml_constants.XSI_NAMESPACE}
 
     def write(self, observation, out):
         assert isinstance(observation, Observation), (
@@ -146,9 +136,9 @@ class ObservationWriter(object):
 
         obs = etree.Element(self._caom2_namespace + "Observation", nsmap=self._nsmap)
         if isinstance(observation, SimpleObservation):
-            obs.set(self.XSI + "type", "caom2:SimpleObservation")
+            obs.set(caom2_xml_constants.XSI + "type", "caom2:SimpleObservation")
         else:
-            obs.set(self.XSI + "type", "caom2:CompositeObservation")
+            obs.set(caom2_xml_constants.XSI + "type", "caom2:CompositeObservation")
 
         self._addEnityAttributes(observation, obs)
 
@@ -238,7 +228,7 @@ class ObservationWriter(object):
 
     def _addRequirementsElement(self, requirements, parent):
         if self._output_version < 21:
-            return # Requirements added in CAOM-2.1
+            return  # Requirements added in CAOM-2.1
         if requirements is None:
             return
 
@@ -349,7 +339,7 @@ class ObservationWriter(object):
 
     def _addQualityElement(self, quality, parent):
         if self._output_version < 21:
-            return # Requirements added in CAOM-2.1
+            return  # Requirements added in CAOM-2.1
         if quality is None:
             return
 

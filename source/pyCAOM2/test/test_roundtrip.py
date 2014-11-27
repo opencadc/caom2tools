@@ -72,6 +72,7 @@
 
 from caom2.xml.caom2_observation_reader import ObservationReader
 from caom2.xml.caom2_observation_writer import ObservationWriter
+import caom2.xml.caom2_xml_constants
 import filecmp
 import errno
 import glob
@@ -86,8 +87,6 @@ sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 class TestRoundTrip(unittest.TestCase):
 
-    CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
-    CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
     TEST_FILE_SOURCE_DIR = '../caom2/test/data'
     XML_FILE_SOURCE_DIR = '/tmp/caom2-round-trip-test'
     XML_FILE_DEST_DIR = '/tmp/caom2-round-trip-test/pyCAOM2'
@@ -152,7 +151,8 @@ class TestRoundTrip(unittest.TestCase):
                     raise
 
             reader = ObservationReader(True)
-            writer20 = ObservationWriter(True, False, "caom2", TestRoundTrip.CAOM20_NAMESPACE)
+            writer20 = ObservationWriter(
+                True, False, "caom2", caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
             writer21 = ObservationWriter(True, False, "caom2")
             for filename in files:
                 if filename.endswith("CAOM-2.1.xml"):
