@@ -1,0 +1,2 @@
+include caom2/*.xsd
+include caom2/test/data/*.xml
