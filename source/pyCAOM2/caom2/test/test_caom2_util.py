@@ -319,11 +319,11 @@ class TestCaomUtil(unittest.TestCase):
         except ValueError:
             pass
 
-        u = uuid.UUID('00000000-0000-0000-0100-000000000000')
+        u = uuid.UUID('00000000-0000-0000-0000-000000000001')
         l = uuid2long(u)
         self.assertEqual(1L, l)
 
-        u = uuid.UUID('00000000-0000-0000-4e61-bc0000000000')
+        u = uuid.UUID('00000000-0000-0000-0000-000000bc614e')
         l = uuid2long(u)
         self.assertEqual(12345678L, l)
 
@@ -336,11 +336,9 @@ class TestCaomUtil(unittest.TestCase):
         except ValueError:
             pass
 
-        l = -7872009327910205706
-        # expected = uuid.UUID(l)
+        l = 3296038095975885829
         uid = long2uuid(l)
-        # self.assertEqual(expected, uid)
-        self.assertEqual('00000000-0000-0000-f6c6-59553901c192', str(uid))
+        self.assertEqual('00000000-0000-0000-2dbd-e12f64cc2c05', str(uid))
 
 if __name__ == '__main__':
     unittest.main()
