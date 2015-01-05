@@ -335,7 +335,7 @@ def uuid2long(uid):
 
     return the UUID least significant bytes as a long.
     """
-    longs = struct.unpack('ll', str(uid.bytes))
+    longs = struct.unpack('>qq', str(uid.bytes))
     if longs[0] != 0:
         raise ValueError("lossy conversion from UUID to long: {}".format(uid))
     return longs[1]
@@ -348,7 +348,7 @@ def long2uuid(l):
     """
     if l.bit_length() > 63:
         raise ValueError("expected 64 bit long {}".format(l))
-    return uuid.UUID(bytes='\x00'*8 + str(struct.pack("l", l)))
+    return uuid.UUID(bytes='\x00'*8 + str(struct.pack(">q", l)))
 
 
 def typeCheck(value, value_type, variable, override=None):
