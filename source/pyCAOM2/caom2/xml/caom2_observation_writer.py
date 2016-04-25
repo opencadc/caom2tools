@@ -85,6 +85,7 @@ from .. caom2_enums import ProductType
 from .. caom2_enums import Quality
 from .. caom2_enums import Status
 from .. caom2_enums import TargetType
+from .. caom2_enums import ReleaseType
 from .. util.caom2_util import date2ivoa
 from .. util.caom2_util import uuid2long
 
@@ -107,7 +108,11 @@ class ObservationWriter(object):
         if namespace_prefix is None or not namespace_prefix:
             raise RuntimeError('null or empty namespace_prefix not allowed')
 
-        if namespace is None or namespace == caom2_xml_constants.CAOM21_NAMESPACE:
+        if namespace is None or namespace == caom2_xml_constants.CAOM22_NAMESPACE:
+            self._output_version = 22
+            self._caom2_namespace = caom2_xml_constants.CAOM22
+            self._namespace = caom2_xml_constants.CAOM22_NAMESPACE
+        elif namespace == caom2_xml_constants.CAOM21_NAMESPACE:
             self._output_version = 21
             self._caom2_namespace = caom2_xml_constants.CAOM21
             self._namespace = caom2_xml_constants.CAOM21_NAMESPACE
@@ -121,8 +126,10 @@ class ObservationWriter(object):
         if self._validate:
             if self._output_version == 20:
                 schema_file = caom2_xml_constants.CAOM20_SCHEMA_FILE
-            else:
+            elif self._output_version == 21:
                 schema_file = caom2_xml_constants.CAOM21_SCHEMA_FILE
+            else:
+                schema_file = caom2_xml_constants.CAOM22_SCHEMA_FILE
             schema_path = pkg_resources.resource_filename(
                 caom2_xml_constants.CAOM2_PKG, schema_file)
             xmlschema_doc = etree.parse(schema_path)
@@ -364,16 +371,13 @@ class ObservationWriter(object):
             artifactElement = self._getCaom2Element("artifact", element)
             self._addEnityAttributes(artifact, artifactElement)
             self._addElement("uri", artifact.uri, artifactElement)
-            self._addElement("contentType", artifact.content_type,
-                            artifactElement)
-            self._addElement("contentLength", artifact.content_length,
-                            artifactElement)
-            if artifact.product_type is not None:
-                self._addElement("productType",
-                    ProductType.get(str(artifact.product_type)).value,
-                    artifactElement)
-            self._addElement("alternative", str(artifact.alternative).lower(),
-                            artifactElement)
+            if self._output_version > 21:
+                self._addElement("productType", ProductType.get(str(artifact.product_type)).value, artifactElement)
+                self._addElement("releaseType", ReleaseType.get(str(artifact.release_type)).value, artifactElement)
+            self._addElement("contentType", artifact.content_type, artifactElement)
+            self._addElement("contentLength", artifact.content_length, artifactElement)
+            if self._output_version < 22:
+                self._addElement("productType", ProductType.get(str(artifact.product_type)).value, artifactElement)
             self._addPartsElement(artifact.parts, artifactElement)
 
     def _addPartsElement(self, parts, parent):
@@ -388,37 +392,32 @@ class ObservationWriter(object):
             if part.product_type is not None:
                 self._addElement("productType",
                     ProductType.get(str(part.product_type)).value, partElement)
-            self._addChunksElement(part.chunks, partElement)
+            self._addChunkElement(part.chunk, partElement)
 
-    def _addChunksElement(self, chunks, parent):
-        if chunks is None:
+    def _addChunkElement(self, chunk, parent):
+        if chunk is None:
             return
 
-        element = self._getCaom2Element("chunks", parent)
-        for chunk in chunks:
-            chunkElement = self._getCaom2Element("chunk", element)
-            self._addEnityAttributes(chunk, chunkElement)
-            if chunk.product_type is not None:
-                self._addElement("productType",
-                    ProductType.get(str(chunk.product_type)).value,
-                    chunkElement)
-            self._addElement("naxis", chunk.naxis, chunkElement)
-            self._addElement("observableAxis", chunk.observable_axis,
-                            chunkElement)
-            self._addElement("positionAxis1", chunk.position_axis_1,
-                            chunkElement)
-            self._addElement("positionAxis2", chunk.position_axis_2,
-                            chunkElement)
-            self._addElement("energyAxis", chunk.energy_axis, chunkElement)
-            self._addElement("timeAxis", chunk.time_axis, chunkElement)
-            self._addElement("polarizationAxis", chunk.polarization_axis,
-                            chunkElement)
+        chunk_parent = parent
+        if self._output_version < 22:
+            chunks = self._getCaom2Element("chunks", parent)
+            chunk_parent = chunks
 
-            self._addObservableAxisElement(chunk.observable, chunkElement)
-            self._addSpatialWCSElement(chunk.position, chunkElement)
-            self._addSpectralWCSElement(chunk.energy, chunkElement)
-            self._addTemporalWCSElement(chunk.time, chunkElement)
-            self._addPolarizationWCSElement(chunk.polarization, chunkElement)
+        element = self._getCaom2Element("chunk", chunk_parent)
+        self._addEnityAttributes(chunk, element)
+        self._addElement("naxis", chunk.naxis, element)
+        self._addElement("observableAxis", chunk.observable_axis, element)
+        self._addElement("positionAxis1", chunk.position_axis_1, element)
+        self._addElement("positionAxis2", chunk.position_axis_2, element)
+        self._addElement("energyAxis", chunk.energy_axis, element)
+        self._addElement("timeAxis", chunk.time_axis, element)
+        self._addElement("polarizationAxis", chunk.polarization_axis, element)
+
+        self._addObservableAxisElement(chunk.observable, element)
+        self._addSpatialWCSElement(chunk.position, element)
+        self._addSpectralWCSElement(chunk.energy, element)
+        self._addTemporalWCSElement(chunk.time, element)
+        self._addPolarizationWCSElement(chunk.polarization, element)
 
     def _addObservableAxisElement(self, observable, parent):
         if observable is None:

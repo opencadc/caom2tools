@@ -70,14 +70,9 @@
 
 """ Defines TestValueCoord2d class """
 
-
-from caom2.wcs.caom2_value_coord2d import ValueCoord2D
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_value_coord2d import ValueCoord2D
 
 
 class TestValueCoord2d(unittest.TestCase):

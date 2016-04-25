@@ -70,14 +70,10 @@
 
 """ Defines TestCoordCircle2D class """
 
-from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-from caom2.wcs.caom2_value_coord2d import ValueCoord2D
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
+from caom2.wcs.caom2_value_coord2d import ValueCoord2D
 
 
 class TestCoordCircle2D(unittest.TestCase):

@@ -70,15 +70,11 @@
 
 """ Defines TestCoordBounds1D class """
 
+import unittest
+
 from caom2.wcs.caom2_coord_bounds1d import CoordBounds1D
 from caom2.wcs.caom2_coord_range1d import CoordRange1D
 from caom2.wcs.caom2_ref_coord import RefCoord
-import os.path
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestCoordBounds1D(unittest.TestCase):

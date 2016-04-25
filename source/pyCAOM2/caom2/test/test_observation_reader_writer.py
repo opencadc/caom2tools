@@ -70,21 +70,18 @@
 
 """ Defines TestObservationReaderWriter class """
 
-from caom2.caom2_simple_observation import SimpleObservation
-from caom2.caom2_composite_observation import CompositeObservation
-from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
-from caom2.xml.caom2_observation_writer import ObservationWriter
-from caom2.xml.caom2_observation_reader import ObservationReader
-from caom2testinstances import Caom2TestInstances
-import caom2.xml.caom2_xml_constants
-import os
-import sys
 import StringIO
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.xml.caom2_xml_constants import CAOM20_NAMESPACE
+from caom2.xml.caom2_xml_constants import CAOM21_NAMESPACE
+from caom2.caom2_composite_observation import CompositeObservation
+from caom2.caom2_simple_observation import SimpleObservation
+from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
+from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
+from caom2.xml.caom2_observation_reader import ObservationReader
+from caom2.xml.caom2_observation_writer import ObservationWriter
+from caom2testinstances import Caom2TestInstances
 
 
 class TestObservationReaderWriter(unittest.TestCase):
@@ -93,7 +90,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         print "Test Invalid long id "
         observation = minimal_simple(1, False, 20)
         writer = ObservationWriter(
-            False, False, "caom2", caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
+            False, False, "caom2", CAOM20_NAMESPACE)
         output = StringIO.StringIO()
         writer.write(observation, output)
         xml = output.getvalue()
@@ -148,7 +145,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_complete_simple(self):
 
-        for version in (20, 21):
+        for version in (20, 21, 22):
             for i in range(1, 6):
                 print "Test Complete Simple {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
@@ -166,7 +163,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_minimal_composite(self):
 
-        for version in (20, 21):
+        for version in (20, 21, 22):
             for i in range(1, 6):
                 print "Test Minimal Composite {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
@@ -184,7 +181,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_complete_composite(self):
 
-        for version in (20, 21):
+        for version in (20, 21, 22):
             for i in range(1, 6):
                 print "Test Complete Composite {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
@@ -204,10 +201,17 @@ class TestObservationReaderWriter(unittest.TestCase):
         observation = complete_composite(6, True, 20)
         test_observation(self, observation, True, True, 20)
         test_observation(self, observation, True, True, 21)
+        test_observation(self, observation, True, True, 22)
 
         observation = complete_composite(6, True, 21)
-        test_observation(self, observation, True, True, 21)
         test_observation(self, observation, True, True, 20)
+        test_observation(self, observation, True, True, 21)
+        test_observation(self, observation, True, True, 22)
+
+        observation = complete_composite(6, True, 22)
+        test_observation(self, observation, True, True, 20)
+        test_observation(self, observation, True, True, 21)
+        test_observation(self, observation, True, True, 22)
 
 
 def minimal_simple(depth, bounds_is_circle, version):
@@ -249,8 +253,10 @@ def complete_composite(depth, bounds_is_circle, version):
 def test_observation(self, observation, validate, write_empty_collections, version):
     if version == 20:
         writer = ObservationWriter(
-            validate, write_empty_collections, "caom2",
-            caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
+            validate, write_empty_collections, "caom2", CAOM20_NAMESPACE)
+    elif version == 21:
+        writer = ObservationWriter(
+            validate, write_empty_collections, "caom2", CAOM21_NAMESPACE)
     else:
         writer = ObservationWriter(validate, write_empty_collections)
     xmlfile = open('/tmp/test.xml', 'w')
@@ -446,8 +452,7 @@ def comparePlanes(self, expected, actual, version):
         if version == 21:
             compareQuality(self, expected_plane.quality, actual_plane.quality)
 
-        compareArtifacts(self, expected_plane.artifacts,
-                         actual_plane.artifacts)
+        compareArtifacts(self, expected_plane.artifacts, actual_plane.artifacts, version)
 
 
 def compareProvenance(self, expected, actual):
@@ -494,7 +499,7 @@ def compareInputs(self, expected, actual):
         self.assertEqual(expected_plane_uri, actual_plane_uri)
 
 
-def compareArtifacts(self, expected, actual):
+def compareArtifacts(self, expected, actual, version):
     if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
@@ -511,21 +516,17 @@ def compareArtifacts(self, expected, actual):
         self.assertEqual(expected_artifact._id, actual_artifact._id)
         self.assertIsNotNone(expected_artifact._last_modified)
         self.assertIsNotNone(actual_artifact._last_modified)
-        self.assertEqual(expected_artifact._last_modified,
-                         actual_artifact._last_modified)
+        self.assertEqual(expected_artifact._last_modified, actual_artifact._last_modified)
         self.assertEqual(expected_artifact.uri, actual_artifact.uri)
-        self.assertEqual(expected_artifact.content_type,
-                         actual_artifact.content_type)
-        self.assertEqual(expected_artifact.content_length,
-                         actual_artifact.content_length)
-        self.assertEqual(expected_artifact.product_type,
-                         actual_artifact.product_type)
-        self.assertEqual(expected_artifact.alternative,
-                         actual_artifact.alternative)
-        compareParts(self, expected_artifact.parts, actual_artifact.parts)
+        self.assertEqual(expected_artifact.content_type, actual_artifact.content_type)
+        self.assertEqual(expected_artifact.content_length, actual_artifact.content_length)
+        self.assertEqual(expected_artifact.product_type, actual_artifact.product_type)
+        if version > 21:
+            self.assertEqual(expected_artifact.release_type, actual_artifact.release_type)
+        compareParts(self, expected_artifact.parts, actual_artifact.parts, version)
 
 
-def compareParts(self, expected, actual):
+def compareParts(self, expected, actual, version):
     if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
@@ -546,45 +547,32 @@ def compareParts(self, expected, actual):
                          actual_part._last_modified)
         self.assertEqual(expected_part.name, actual_part.name)
         self.assertEqual(expected_part.product_type, actual_part.product_type)
-        compareChunks(self, expected_part.chunks, actual_part.chunks)
+        compareChunk(self, expected_part.chunk, actual_part.chunk)
 
 
-def compareChunks(self, expected, actual):
+def compareChunk(self, expected, actual):
     if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
-    self.assertEqual(len(expected), len(actual))
-    for expected_chunk, actual_chunk in zip(expected, actual):
-        self.assertIsNotNone(expected_chunk)
-        self.assertIsNotNone(actual_chunk)
-        self.assertIsNotNone(expected_chunk._id)
-        self.assertIsNotNone(actual_chunk._id)
-        self.assertEqual(expected_chunk._id, actual_chunk._id)
-        self.assertIsNotNone(expected_chunk._last_modified)
-        self.assertIsNotNone(actual_chunk._last_modified)
-        self.assertEqual(expected_chunk._last_modified,
-                         actual_chunk._last_modified)
-        self.assertEqual(expected_chunk.product_type,
-                         actual_chunk.product_type)
-        self.assertEqual(expected_chunk.naxis, actual_chunk.naxis)
-        self.assertEqual(expected_chunk.observable_axis,
-                         actual_chunk.observable_axis)
-        self.assertEqual(expected_chunk.position_axis_1,
-                         actual_chunk.position_axis_1)
-        self.assertEqual(expected_chunk.position_axis_2,
-                         actual_chunk.position_axis_2)
-        self.assertEqual(expected_chunk.energy_axis, actual_chunk.energy_axis)
-        self.assertEqual(expected_chunk.time_axis, actual_chunk.time_axis)
-        self.assertEqual(expected_chunk.polarization_axis,
-                         actual_chunk.polarization_axis)
-        compareObservableAxis(self, expected_chunk.observable,
-                              actual_chunk.observable)
-        compareSpatialWCS(self, expected_chunk.position, actual_chunk.position)
-        compareSpectralWCS(self, expected_chunk.energy, actual_chunk.energy)
-        compareTemporalWCS(self, expected_chunk.time, actual_chunk.time)
-        comparePolarizationWCS(self, expected_chunk.polarization,
-                               actual_chunk.polarization)
+    self.assertIsNotNone(expected._id)
+    self.assertIsNotNone(actual._id)
+    self.assertEqual(expected._id, actual._id)
+    self.assertIsNotNone(expected._last_modified)
+    self.assertIsNotNone(actual._last_modified)
+    self.assertEqual(expected._last_modified, actual._last_modified)
+    self.assertEqual(expected.naxis, actual.naxis)
+    self.assertEqual(expected.observable_axis, actual.observable_axis)
+    self.assertEqual(expected.position_axis_1, actual.position_axis_1)
+    self.assertEqual(expected.position_axis_2, actual.position_axis_2)
+    self.assertEqual(expected.energy_axis, actual.energy_axis)
+    self.assertEqual(expected.time_axis, actual.time_axis)
+    self.assertEqual(expected.polarization_axis, actual.polarization_axis)
+    compareObservableAxis(self, expected.observable, actual.observable)
+    compareSpatialWCS(self, expected.position, actual.position)
+    compareSpectralWCS(self, expected.energy, actual.energy)
+    compareTemporalWCS(self, expected.time, actual.time)
+    comparePolarizationWCS(self, expected.polarization, actual.polarization)
 
 
 def compareObservableAxis(self, expected, actual):

@@ -70,14 +70,9 @@
 
 """ Defines TestProposal class """
 
-
-from caom2.caom2_proposal import Proposal
-import os
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_proposal import Proposal
 
 
 class TestProposal(unittest.TestCase):

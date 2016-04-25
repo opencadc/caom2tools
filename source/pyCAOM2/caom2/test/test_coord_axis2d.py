@@ -70,23 +70,19 @@
 
 """ Defines TestCoordAxis2D class """
 
-from caom2.wcs.caom2_axis import Axis
-from caom2.wcs.caom2_coord2d import Coord2D
-from caom2.wcs.caom2_value_coord2d import ValueCoord2D
-from caom2.wcs.caom2_dimension2d import Dimension2D
-from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
-from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
-from caom2.wcs.caom2_coord_error import CoordError
-from caom2.wcs.caom2_coord_function2d import CoordFunction2D
-from caom2.wcs.caom2_coord_range2d import CoordRange2D
-from caom2.wcs.caom2_ref_coord import RefCoord
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_axis import Axis
+from caom2.wcs.caom2_coord2d import Coord2D
+from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
+from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
+from caom2.wcs.caom2_coord_error import CoordError
+from caom2.wcs.caom2_coord_function2d import CoordFunction2D
+from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
+from caom2.wcs.caom2_coord_range2d import CoordRange2D
+from caom2.wcs.caom2_dimension2d import Dimension2D
+from caom2.wcs.caom2_ref_coord import RefCoord
+from caom2.wcs.caom2_value_coord2d import ValueCoord2D
 
 
 class TestCoordAxis2D(unittest.TestCase):

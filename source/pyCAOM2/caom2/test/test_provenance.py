@@ -70,17 +70,11 @@
 
 """ Defines TestProvenance class """
 
-
-from caom2.caom2_provenance import Provenance
-from caom2.caom2_plane_uri import PlaneURI
-import os
-import sys
 import unittest
 from datetime import datetime
 
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_plane_uri import PlaneURI
+from caom2.caom2_provenance import Provenance
 
 
 class TestProvenance(unittest.TestCase):

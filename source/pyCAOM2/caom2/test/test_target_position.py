@@ -70,15 +70,10 @@
 
 """ Defines TestTargetPosition class """
 
+import unittest
 
 from caom2.caom2_target_position import TargetPosition
 from caom2.types.caom2_point import Point
-import os
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestTargetPosition(unittest.TestCase):

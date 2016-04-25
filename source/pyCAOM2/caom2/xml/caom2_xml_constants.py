@@ -72,12 +72,15 @@ CAOM2_PKG = 'caom2'
 
 CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
 CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
+CAOM22_SCHEMA_FILE = 'CAOM-2.2.xsd'
 
 CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
 CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
+CAOM22_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.2'
 
 CAOM20 = "{%s}" % CAOM20_NAMESPACE
 CAOM21 = "{%s}" % CAOM21_NAMESPACE
+CAOM22 = "{%s}" % CAOM22_NAMESPACE
 
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 XSI = "{%s}" % XSI_NAMESPACE

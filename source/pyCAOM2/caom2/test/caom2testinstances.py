@@ -70,6 +70,15 @@
 
 """ Defines Caom2TestInstances class """
 
+import collections
+from datetime import datetime
+
+from caom2.caom2_algorithm import Algorithm
+from caom2.caom2_artifact import Artifact
+from caom2.caom2_chunk import Chunk
+from caom2.caom2_composite_observation import CompositeObservation
+from caom2.caom2_data_quality import DataQuality
+from caom2.caom2_energy_transition import EnergyTransition
 from caom2.caom2_enums import CalibrationLevel
 from caom2.caom2_enums import DataProductType
 from caom2.caom2_enums import ObservationIntentType
@@ -77,57 +86,44 @@ from caom2.caom2_enums import ProductType
 from caom2.caom2_enums import Quality
 from caom2.caom2_enums import Status
 from caom2.caom2_enums import TargetType
-from caom2.util.caom2_util import TypedList, TypedSet
-from caom2.caom2_energy_transition import EnergyTransition
-from caom2.caom2_simple_observation import SimpleObservation
-from caom2.caom2_composite_observation import CompositeObservation
-from caom2.caom2_plane import Plane
+from caom2.caom2_enums import ReleaseType
+from caom2.caom2_environment import Environment
+from caom2.caom2_instrument import Instrument
+from caom2.caom2_metrics import Metrics
+from caom2.caom2_observation_uri import ObservationURI
 from caom2.caom2_part import Part
-from caom2.caom2_chunk import Chunk
-from caom2.caom2_artifact import Artifact
+from caom2.caom2_plane import Plane
+from caom2.caom2_plane_uri import PlaneURI
 from caom2.caom2_proposal import Proposal
-from caom2.caom2_algorithm import Algorithm
+from caom2.caom2_provenance import Provenance
+from caom2.caom2_requirements import Requirements
+from caom2.caom2_simple_observation import SimpleObservation
 from caom2.caom2_target import Target
 from caom2.caom2_target_position import TargetPosition
-from caom2.caom2_requirements import Requirements
 from caom2.caom2_telescope import Telescope
-from caom2.caom2_instrument import Instrument
-from caom2.caom2_environment import Environment
-from caom2.caom2_provenance import Provenance
-from caom2.caom2_metrics import Metrics
-from caom2.caom2_data_quality import DataQuality
-from caom2.caom2_observation_uri import ObservationURI
-from caom2.caom2_plane_uri import PlaneURI
 from caom2.types.caom2_point import Point
+from caom2.util.caom2_util import TypedList, TypedSet
+from caom2.wcs.caom2_axis import Axis
+from caom2.wcs.caom2_coord2d import Coord2D
+from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
+from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
+from caom2.wcs.caom2_coord_bounds1d import CoordBounds1D
+from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
+from caom2.wcs.caom2_coord_error import CoordError
+from caom2.wcs.caom2_coord_function1d import CoordFunction1D
+from caom2.wcs.caom2_coord_function2d import CoordFunction2D
+from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
+from caom2.wcs.caom2_coord_range1d import CoordRange1D
+from caom2.wcs.caom2_coord_range2d import CoordRange2D
+from caom2.wcs.caom2_dimension2d import Dimension2D
 from caom2.wcs.caom2_observable_axis import ObservableAxis
+from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
+from caom2.wcs.caom2_ref_coord import RefCoord
+from caom2.wcs.caom2_slice import Slice
 from caom2.wcs.caom2_spatial_wcs import SpatialWCS
 from caom2.wcs.caom2_spectral_wcs import SpectralWCS
 from caom2.wcs.caom2_temporal_wcs import TemporalWCS
-from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
-from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
-from caom2.wcs.caom2_axis import Axis
-from caom2.wcs.caom2_slice import Slice
-from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
-from caom2.wcs.caom2_coord_bounds1d import CoordBounds1D
-from caom2.wcs.caom2_coord_range1d import CoordRange1D
-from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
-from caom2.wcs.caom2_ref_coord import RefCoord
-from caom2.wcs.caom2_coord_error import CoordError
-from caom2.wcs.caom2_coord_function1d import CoordFunction1D
-from caom2.wcs.caom2_coord2d import Coord2D
 from caom2.wcs.caom2_value_coord2d import ValueCoord2D
-from caom2.wcs.caom2_coord_range2d import CoordRange2D
-from caom2.wcs.caom2_dimension2d import Dimension2D
-from caom2.wcs.caom2_coord_function2d import CoordFunction2D
-from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-import os
-import sys
-import collections
-from datetime import datetime
-
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class Caom2TestInstances(object):
@@ -326,12 +322,10 @@ class Caom2TestInstances(object):
 
     def get_artifacts(self):
         artifacts = collections.OrderedDict()
-        artifact = Artifact("ad:foo/bar1")
+        artifact = Artifact("ad:foo/bar1", ProductType.SCIENCE, ReleaseType.META)
         if self.complete:
             artifact.content_type = "application/fits"
             artifact.content_length = 12345L
-            artifact.product_type = ProductType.SCIENCE
-            artifact.alternative = False
         if self.depth > 3:
             for k, v in self.get_parts().iteritems():
                 artifact.parts[k] = v
@@ -344,16 +338,13 @@ class Caom2TestInstances(object):
         if self.complete:
             part.product_type = ProductType.SCIENCE
         if self.depth > 4:
-            for chunk in self.get_chunks():
-                part.chunks.append(chunk)
+            part.chunk = self.get_chunk()
         parts["x"] = part
         return parts
 
-    def get_chunks(self):
-        chunks = TypedList(Chunk,)
+    def get_chunk(self):
         chunk = Chunk()
         if self.complete:
-            chunk.product_type = ProductType.SCIENCE
             chunk.naxis = 5
             chunk.observable_axis = 1
             chunk.position_axis_1 = 1
@@ -366,8 +357,7 @@ class Caom2TestInstances(object):
             chunk.energy = self.get_spectral_wcs()
             chunk.time = self.get_temporal_wcs()
             chunk.polarization = self.get_polarization_wcs()
-        chunks.append(chunk)
-        return chunks
+        return chunk
 
     def get_observable_axis(self):
         observable = ObservableAxis(self.get_slice())

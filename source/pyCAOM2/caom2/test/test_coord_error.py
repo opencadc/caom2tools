@@ -70,14 +70,9 @@
 
 """ Defines TestCoordError class """
 
-
-from caom2.wcs.caom2_coord_error import CoordError
-import os
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_coord_error import CoordError
 
 
 class TestCoordError(unittest.TestCase):

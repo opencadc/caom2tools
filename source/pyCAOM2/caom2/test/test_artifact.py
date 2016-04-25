@@ -70,25 +70,31 @@
 
 """ Defines TestArtifact class """
 
-from caom2.caom2_artifact import Artifact
-from caom2.caom2_part import Part
-from caom2.caom2_enums import ProductType
-import os
-import sys
 import unittest
 from urlparse import urlparse
 
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_artifact import Artifact
+from caom2.caom2_enums import ProductType, ReleaseType
+from caom2.caom2_part import Part
 
 
 class TestArtifact(unittest.TestCase):
 
-    def testAll(self):
-        artifact = Artifact("caom:GEMINI/12345")
+    def test_all(self):
+        with self.assertRaises(TypeError):
+            artifact = Artifact("caom:GEMINI/12345")
+        with self.assertRaises(TypeError):
+            artifact = Artifact("caom:GEMINI/12345", ReleaseType('META'), ProductType('THUMBNAIL'))
+        with self.assertRaises(TypeError):
+            artifact = Artifact("caom:GEMINI/12345", ProductType('THUMBNAIL'), None)
+        with self.assertRaises(TypeError):
+            artifact = Artifact("caom:GEMINI/12345", None, ReleaseType('META'))
+
+        artifact = Artifact("caom:GEMINI/12345", ProductType('THUMBNAIL'), ReleaseType('META'))
         urlparse("caom:GEMINI/12345")
         self.assertEqual("caom:GEMINI/12345", artifact.uri, "Artifact URI")
+        self.assertEqual(ProductType('THUMBNAIL'), artifact.product_type, "Artifact ProductType")
+        self.assertEqual(ReleaseType('META'), artifact.release_type, "Artifact ReleaseType")
 
         self.assertIsNone(artifact.content_type, "Default content type")
         artifact.content_type = "FITS"
@@ -96,13 +102,8 @@ class TestArtifact(unittest.TestCase):
         self.assertIsNone(artifact.content_length, "Default content length")
         artifact.content_length = 23L
         self.assertEquals(23L, artifact.content_length, "Content length")
-        self.assertIsNone(artifact.product_type, "Default product type")
         artifact.product_type = ProductType.PREVIEW
-        self.assertEquals(ProductType.PREVIEW, artifact.product_type,
-                          "Product type")
-        self.assertFalse(artifact.alternative, "Default alternative")
-        artifact.alternative = True
-        self.assertTrue(artifact.alternative, "Alternative")
+        self.assertEquals(ProductType.PREVIEW, artifact.product_type, "Product type")
         self.assertEquals(0, len(artifact.parts), "Default parts")
         part1 = Part("1")
         artifact.parts["1"] = part1
@@ -131,7 +132,7 @@ class TestArtifact(unittest.TestCase):
         #incorrect URI
         exception = False
         try:
-            artifact = Artifact("caom://#observation://? something#//")
+            artifact = Artifact("caom://#observation://? something#//", ReleaseType('META'), ProductType('THUMBNAIL'))
             print artifact.uri
         except ValueError:
             exception = True

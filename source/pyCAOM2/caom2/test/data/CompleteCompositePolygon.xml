@@ -81,12 +81,10 @@
           <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>12345</caom2:contentLength>
           <caom2:productType>science</caom2:productType>
-          <caom2:alternative>false</caom2:alternative>
           <caom2:parts>
             <caom2:part caom2:id="198937910998836559" caom2:lastModified="2012-07-16T15:22:27.956">
               <caom2:name>x</caom2:name>
               <caom2:productType>science</caom2:productType>
-              <caom2:chunks/>
             </caom2:part>
           </caom2:parts>
         </caom2:artifact>

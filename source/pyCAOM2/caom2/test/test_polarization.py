@@ -70,15 +70,10 @@
 
 """ Defines TestPolarizaton class """
 
+import unittest
 
 from caom2.caom2_energy import Energy
 from caom2.caom2_polarization import Polarization
-import os
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestPolarizaton(unittest.TestCase):

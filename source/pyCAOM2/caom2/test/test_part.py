@@ -70,16 +70,11 @@
 
 """ Defines TestPart class """
 
-
-from caom2.caom2_part import Part
-from caom2.caom2_chunk import Chunk
-from caom2.caom2_enums import ProductType
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_chunk import Chunk
+from caom2.caom2_enums import ProductType
+from caom2.caom2_part import Part
 
 
 class TestPart(unittest.TestCase):
@@ -91,31 +86,16 @@ class TestPart(unittest.TestCase):
         part = Part("partName")
         self.assertEquals("partName", part.name, "Part name")
         self.assertIsNone(part.product_type)
-        self.assertTrue(len(part.chunks) == 0)
+        self.assertIsNone(part.chunk)
 
         part.product_type = ProductType.SCIENCE
         self.assertEqual(ProductType.SCIENCE, part.product_type)
 
         chunk = Chunk()
         chunk.naxis = 5
-        part.chunks.append(chunk)
-        self.assertTrue(len(part.chunks) == 1)
-        self.assertEqual(chunk, part.chunks.pop())
-
-#        # the set prevents adding the same object multiple times ...
-#        chunk_alias = chunk
-#        part.chunks.add(chunk_alias)
-#        part.chunks.add(chunk_alias)
-#        part.chunks.add(chunk_alias)
-#        self.assertTrue(len(part.chunks) == 1)
-#
-#        # ... but everything else is not a duplicate
-#        chunk = Chunk()
-#        chunk.naxis = 33
-#        part.chunks.add(chunk)
-#        self.assertTrue(len(part.chunks) == 2)
-
-
+        part.chunk = chunk
+        self.assertIsNotNone(part.chunk)
+        self.assertEqual(chunk, part.chunk)
 
 if __name__ == '__main__':
     unittest.main()

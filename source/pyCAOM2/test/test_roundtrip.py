@@ -70,19 +70,16 @@
 
 """ Defines TestRoundTrip class """
 
-from caom2.xml.caom2_observation_reader import ObservationReader
-from caom2.xml.caom2_observation_writer import ObservationWriter
-import caom2.xml.caom2_xml_constants
-import filecmp
 import errno
+import filecmp
 import glob
 import os
 import shutil
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+import caom2.xml.caom2_xml_constants
+from caom2.xml.caom2_observation_reader import ObservationReader
+from caom2.xml.caom2_observation_writer import ObservationWriter
 
 
 class TestRoundTrip(unittest.TestCase):
@@ -126,8 +123,8 @@ class TestRoundTrip(unittest.TestCase):
         writer.write(observation, destXMLfp)
         destXMLfp.close()
         self.assertTrue(filecmp.cmp(sourceFilePath, destFilePath),
-                        'files are different, ' + \
-                        'file from Java was: ' + sourceFilePath + ' ' \
+                        'files are different, ' +
+                        'file from Java was: ' + sourceFilePath + ' '
                         'file from Python was: ' + destFilePath)
 
     # This test reads each file in XML_FILE_SOURCE_DIR, creates the CAOM2
@@ -151,11 +148,13 @@ class TestRoundTrip(unittest.TestCase):
                     raise
 
             reader = ObservationReader(True)
-            writer20 = ObservationWriter(
-                True, False, "caom2", caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
-            writer21 = ObservationWriter(True, False, "caom2")
+            writer20 = ObservationWriter(True, False, "caom2", caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
+            writer21 = ObservationWriter(True, False, "caom2", caom2.xml.caom2_xml_constants.CAOM21_NAMESPACE)
+            writer22 = ObservationWriter(True, False, "caom2")
             for filename in files:
-                if filename.endswith("CAOM-2.1.xml"):
+                if filename.endswith("CAOM-2.2.xml"):
+                    self.do_test(reader, writer22, filename)
+                elif filename.endswith("CAOM-2.1.xml"):
                     self.do_test(reader, writer21, filename)
                 else:
                     self.do_test(reader, writer20, filename)

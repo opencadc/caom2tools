@@ -70,23 +70,18 @@
 
 """ Defines TestChunk class """
 
-from caom2.caom2_enums import ProductType
+import unittest
+
 from caom2.caom2_chunk import Chunk
 from caom2.wcs.caom2_axis import Axis
 from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
 from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
-from caom2.wcs.caom2_slice import Slice
 from caom2.wcs.caom2_observable_axis import ObservableAxis
+from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
+from caom2.wcs.caom2_slice import Slice
 from caom2.wcs.caom2_spatial_wcs import SpatialWCS
 from caom2.wcs.caom2_spectral_wcs import SpectralWCS
 from caom2.wcs.caom2_temporal_wcs import TemporalWCS
-from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
-import os.path
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestChunk(unittest.TestCase):
@@ -94,7 +89,6 @@ class TestChunk(unittest.TestCase):
     def testInit(self):
 
         chunk = Chunk()
-        self.assertIsNone(chunk.product_type)
         self.assertIsNone(chunk.naxis)
         #self.assertIsNone(chunk.observable_axis)
         self.assertIsNone(chunk.position_axis_1)
@@ -112,7 +106,6 @@ class TestChunk(unittest.TestCase):
 
         chunk = Chunk()
         with self.assertRaises(TypeError):
-            chunk.product_type = float(1.0)
             chunk.naxis = float(1.0)
             #chunk.observable_axis = float(1.0)
             chunk.position_axis_1 = float(1.0)
@@ -125,9 +118,6 @@ class TestChunk(unittest.TestCase):
             chunk.energy = float(1.0)
             chunk.time = float(1.0)
             chunk.polarization = float(1.0)
-
-        chunk.product_type = ProductType.SCIENCE
-        self.assertEqual(ProductType.SCIENCE, chunk.product_type)
 
         chunk.naxis = int(5)
         self.assertEqual(int(5), chunk.naxis)
