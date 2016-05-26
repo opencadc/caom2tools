@@ -70,15 +70,10 @@
 
 """ Defines TestDataQuality class """
 
+import unittest
 
 from caom2.caom2_data_quality import DataQuality
 from caom2.caom2_enums import Quality
-import os
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestDataQuality(unittest.TestCase):

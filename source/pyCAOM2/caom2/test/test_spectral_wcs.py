@@ -70,17 +70,12 @@
 
 """ Defines TestSpectralWCS class """
 
+import unittest
 
-from caom2.wcs.caom2_spectral_wcs import SpectralWCS
 from caom2.caom2_energy_transition import EnergyTransition
 from caom2.wcs.caom2_axis import Axis
 from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
-import os.path
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_spectral_wcs import SpectralWCS
 
 
 class TestSpectralWCS(unittest.TestCase):

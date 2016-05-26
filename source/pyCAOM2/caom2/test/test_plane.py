@@ -70,22 +70,17 @@
 
 """ Defines TestPlane class """
 
-
-from caom2.caom2_plane import Plane
-from caom2.caom2_artifact import Artifact
-from caom2.caom2_provenance import Provenance
-from caom2.caom2_metrics import Metrics
-from caom2.caom2_data_quality import DataQuality
-from caom2.caom2_enums import DataProductType
-from caom2.caom2_enums import CalibrationLevel
-from caom2.caom2_enums import Quality
-import os
-import sys
 import unittest
 from datetime import datetime
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_artifact import Artifact
+from caom2.caom2_data_quality import DataQuality
+from caom2.caom2_enums import CalibrationLevel
+from caom2.caom2_enums import DataProductType
+from caom2.caom2_enums import Quality
+from caom2.caom2_metrics import Metrics
+from caom2.caom2_plane import Plane
+from caom2.caom2_provenance import Provenance
 
 
 class TestPlane(unittest.TestCase):

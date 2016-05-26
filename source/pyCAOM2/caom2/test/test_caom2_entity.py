@@ -70,20 +70,15 @@
 
 """ Defines TestCaom2IdGenerator class """
 
-from caom2.caom2_entity import AbstractCaom2Entity
+import unittest
+
+from caom2.caom2_algorithm import Algorithm
 from caom2.caom2_artifact import Artifact
 from caom2.caom2_chunk import Chunk
-from caom2.caom2_algorithm import Algorithm
+from caom2.caom2_entity import AbstractCaom2Entity
 from caom2.caom2_observation import Observation
 from caom2.caom2_part import Part
 from caom2.caom2_plane import Plane
-import os.path
-import sys
-import unittest
-
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestCaom2IdGenerator(unittest.TestCase):

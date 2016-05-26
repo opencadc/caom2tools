@@ -70,27 +70,23 @@
 
 """ Defines TestSimpleObservation class """
 
-from caom2.caom2_simple_observation import SimpleObservation
-from caom2.caom2_algorithm import Algorithm
-from caom2.caom2_plane import Plane
-from caom2.caom2_proposal import Proposal
-from caom2.caom2_telescope import Telescope
-from caom2.caom2_instrument import Instrument
-from caom2.caom2_target import Target
-from caom2.caom2_environment import Environment
-from caom2.caom2_target_position import TargetPosition
-from caom2.caom2_requirements import Requirements
-from caom2.caom2_enums import ObservationIntentType
-from caom2.caom2_enums import Status
-from caom2.types.caom2_point import Point
-from caom2.util.caom2_util import TypedOrderedDict
-import os
-import sys
 import unittest
 from datetime import datetime
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_algorithm import Algorithm
+from caom2.caom2_enums import ObservationIntentType
+from caom2.caom2_enums import Status
+from caom2.caom2_environment import Environment
+from caom2.caom2_instrument import Instrument
+from caom2.caom2_plane import Plane
+from caom2.caom2_proposal import Proposal
+from caom2.caom2_requirements import Requirements
+from caom2.caom2_simple_observation import SimpleObservation
+from caom2.caom2_target import Target
+from caom2.caom2_target_position import TargetPosition
+from caom2.caom2_telescope import Telescope
+from caom2.types.caom2_point import Point
+from caom2.util.caom2_util import TypedOrderedDict
 
 
 class TestSimpleObservation(unittest.TestCase):

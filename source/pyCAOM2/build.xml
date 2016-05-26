@@ -103,13 +103,14 @@
                         propertyname="python.executable"
                         target="test_executable"/>
     </target>
-    <target name="test_executable" depends="compile">
-        <echo message="test ${build}/lib/${python.executable}/site-packages using ${python.executable}"/>
+    <target name="test_executable">
+        <echo message="test ${env.PWD} using ${python.executable}"/>
         <echo message="CADC_ROOT = ${env.CADC_ROOT}" />
         <apply executable="${python.executable}"
             dir="caom2/test"
             failonerror="true">
             <env key="CADC_ROOT" value="${build}"/>
+            <env key="PYTHONPATH" value="${env.PWD}:${env.PYTHONPATH}"/>
             <fileset dir="caom2/test" includes="test*.py"/>
         </apply>
     </target>
@@ -120,12 +121,14 @@
                         propertyname="python.executable"
                         target="int-test_executable"/>
     </target>
-    <target name="int-test_executable" depends="compile">
+    <target name="int-test_executable" depends="build">
         <echo message="test ${build}/lib/${python.executable}/site-packages using ${python.executable}"/>
+        <echo message="CADC_ROOT = ${env.CADC_ROOT}" />
         <apply executable="${python.executable}"
             dir="test"
             failonerror="true">
             <env key="CADC_ROOT" value="${build}"/>
+            <env key="PYTHONPATH" value="${env.PWD}:${env.PYTHONPATH}"/>
             <fileset dir="test" includes="test*.py"/>
         </apply>
     </target>

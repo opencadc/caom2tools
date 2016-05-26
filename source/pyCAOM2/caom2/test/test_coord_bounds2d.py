@@ -70,16 +70,12 @@
 
 """ Defines TestCoordBounds2D class """
 
+import unittest
+
 from caom2.wcs.caom2_coord_bounds2d import CoordBounds2D
 from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
 from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
 from caom2.wcs.caom2_value_coord2d import ValueCoord2D
-import os.path
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestCoordBounds2D(unittest.TestCase):

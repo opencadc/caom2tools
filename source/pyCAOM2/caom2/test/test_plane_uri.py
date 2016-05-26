@@ -70,15 +70,10 @@
 
 """ Defines TestPlaneURI class """
 
+import unittest
 
 from caom2.caom2_observation_uri import ObservationURI
 from caom2.caom2_plane_uri import PlaneURI
-import os
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestPlaneURI(unittest.TestCase):

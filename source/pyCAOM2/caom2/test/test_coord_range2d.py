@@ -70,15 +70,11 @@
 
 """ Defines TestCoordRange2D class """
 
-from caom2.wcs.caom2_coord_range2d import CoordRange2D
-from caom2.wcs.caom2_coord2d import Coord2D
-from caom2.wcs.caom2_ref_coord import RefCoord
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_coord2d import Coord2D
+from caom2.wcs.caom2_coord_range2d import CoordRange2D
+from caom2.wcs.caom2_ref_coord import RefCoord
 
 
 class TestCoordRange2D(unittest.TestCase):

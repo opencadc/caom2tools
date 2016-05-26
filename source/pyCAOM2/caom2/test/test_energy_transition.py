@@ -70,13 +70,9 @@
 
 """ Defines TestEnergyTransition class """
 
-from caom2.caom2_energy_transition import EnergyTransition
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_energy_transition import EnergyTransition
 
 
 class TestEnergyTransition(unittest.TestCase):

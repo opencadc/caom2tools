@@ -70,14 +70,9 @@
 
 """ Defines TestTelescope class """
 
-
-from caom2.caom2_telescope import Telescope
-import os
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_telescope import Telescope
 
 
 class TestTelescope(unittest.TestCase):
@@ -85,17 +80,20 @@ class TestTelescope(unittest.TestCase):
     def testAll(self):
         telescope = Telescope("myTelescope")
         self.assertEqual("myTelescope", telescope.name, "telescope name")
-        self.assertEqual(0, len(telescope.keywords),
-                         "Default number of keywords")
-        telescope.keywords.append("optical")
+        self.assertEqual(0, len(telescope.keywords), "Default number of keywords")
+
+        telescope.keywords.add("optical")
         self.assertEqual(1, len(telescope.keywords), "Number of keywords")
-        self.assertEqual("optical", telescope.keywords[0], "Keyword")
+        self.assertTrue("optical" in telescope.keywords, "Keyword not found")
+
         self.assertIsNone(telescope.geo_location_x, "Default geo location x")
         telescope.geo_location_x = 123.321
         self.assertEqual(123.321, telescope.geo_location_x, "Geo location x")
+
         self.assertIsNone(telescope.geo_location_y, "Default geo location y")
         telescope.geo_location_y = 333.33
         self.assertEqual(333.33, telescope.geo_location_y, "Geo location y")
+
         self.assertIsNone(telescope.geo_location_z, "Default geo location z")
         telescope.geo_location_z = 12.12
         self.assertEqual(12.12, telescope.geo_location_z, "Geo location z")

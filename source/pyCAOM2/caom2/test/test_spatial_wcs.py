@@ -70,16 +70,11 @@
 
 """ Defines TestSpatialWCS class """
 
-
-from caom2.wcs.caom2_spatial_wcs import SpatialWCS
-from caom2.wcs.caom2_axis import Axis
-from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_axis import Axis
+from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
+from caom2.wcs.caom2_spatial_wcs import SpatialWCS
 
 
 class TestSpatialWCS(unittest.TestCase):

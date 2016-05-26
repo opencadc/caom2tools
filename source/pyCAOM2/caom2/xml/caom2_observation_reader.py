@@ -70,24 +70,25 @@
 
 """ Defines ObservationReader class """
 
+import uuid
 
 import pkg_resources
-import uuid
 from lxml import etree
+
 import caom2_xml_constants
 from .. caom2_algorithm import Algorithm
 from .. caom2_artifact import Artifact
 from .. caom2_chunk import Chunk
-from .. caom2_enums import DataProductType
-from .. caom2_enums import CalibrationLevel
-from .. caom2_enums import ProductType
-from .. caom2_enums import Quality
-from .. caom2_enums import ObservationIntentType
-from .. caom2_enums import Status
-from .. caom2_enums import TargetType
 from .. caom2_composite_observation import CompositeObservation
 from .. caom2_data_quality import DataQuality
 from .. caom2_energy_transition import EnergyTransition
+from .. caom2_enums import CalibrationLevel
+from .. caom2_enums import DataProductType
+from .. caom2_enums import ObservationIntentType
+from .. caom2_enums import ProductType
+from .. caom2_enums import Quality
+from .. caom2_enums import Status
+from .. caom2_enums import TargetType
 from .. caom2_environment import Environment
 from .. caom2_exceptions import ObservationParsingException
 from .. caom2_instrument import Instrument
@@ -103,11 +104,11 @@ from .. caom2_simple_observation import SimpleObservation
 from .. caom2_target import Target
 from .. caom2_target_position import TargetPosition
 from .. caom2_telescope import Telescope
-from .. util.caom2_util import str2ivoa
+from .. types.caom2_point import Point
 from .. util.caom2_util import long2uuid
+from .. util.caom2_util import str2ivoa
 from .. wcs.caom2_axis import Axis
 from .. wcs.caom2_coord2d import Coord2D
-from .. wcs.caom2_value_coord2d import ValueCoord2D
 from .. wcs.caom2_coord_axis1d import CoordAxis1D
 from .. wcs.caom2_coord_axis2d import CoordAxis2D
 from .. wcs.caom2_coord_bounds1d import CoordBounds1D
@@ -126,7 +127,7 @@ from .. wcs.caom2_slice import Slice
 from .. wcs.caom2_spatial_wcs import SpatialWCS
 from .. wcs.caom2_spectral_wcs import SpectralWCS
 from .. wcs.caom2_temporal_wcs import TemporalWCS
-from .. types.caom2_point import Point
+from .. wcs.caom2_value_coord2d import ValueCoord2D
 
 
 class ObservationReader(object):
@@ -278,7 +279,8 @@ class ObservationReader(object):
             proposal.title = self._getChildText("title", el, ns, False)
             keywords = self._getChildText("keywords", el, ns, False)
             if keywords is not None:
-                proposal.keywords.list = keywords.split()
+                for keyword in keywords.split():
+                    proposal.keywords.add(keyword)
             return proposal
 
     def _getTarget(self, elTag, parent, ns, required):
@@ -309,7 +311,8 @@ class ObservationReader(object):
                 self._getChildText("moving", el, ns, False))
             keywords = self._getChildText("keywords", el, ns, False)
             if keywords is not None:
-                target.keywords.list = keywords.split()
+                for keyword in keywords.split():
+                    target.keywords.add(keyword)
             return target
 
     def _getTargetPosition(self, elTag, parent, ns, required):
@@ -380,7 +383,8 @@ class ObservationReader(object):
                 self._getChildTextAsFloat("geoLocationZ", el, ns, False))
             keywords = self._getChildText("keywords", el, ns, False)
             if keywords is not None:
-                telescope.keywords.list = keywords.split()
+                for keyword in keywords.split():
+                    telescope.keywords.add(keyword)
             return telescope
 
     def _getInstrument(self, elTag, parent, ns, required):
@@ -402,7 +406,8 @@ class ObservationReader(object):
             instrument = Instrument(self._getChildText("name", el, ns, True))
             keywords = self._getChildText("keywords", el, ns, False)
             if keywords is not None:
-                instrument.keywords.list = keywords.split()
+                for keyword in keywords.split():
+                    instrument.keywords.add(keyword)
             return instrument
 
     def _getEnvironment(self, elTag, parent, ns, required):
@@ -508,7 +513,8 @@ class ObservationReader(object):
                 self._getChildText("lastExecuted", el, ns, False))
             keywords = self._getChildText("keywords", el, ns, False)
             if keywords is not None:
-                prov.keywords.list = keywords.split()
+                for keyword in keywords.split():
+                    prov.keywords.add(keyword)
             self._addInputs(prov.inputs, el, ns)
             return prov
 

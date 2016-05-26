@@ -70,21 +70,17 @@
 
 """ Defines TestObservationReaderWriter class """
 
-from caom2.caom2_simple_observation import SimpleObservation
-from caom2.caom2_composite_observation import CompositeObservation
-from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
-from caom2.xml.caom2_observation_writer import ObservationWriter
-from caom2.xml.caom2_observation_reader import ObservationReader
-from caom2testinstances import Caom2TestInstances
-import caom2.xml.caom2_xml_constants
-import os
-import sys
 import StringIO
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+import caom2.xml.caom2_xml_constants
+from caom2.caom2_composite_observation import CompositeObservation
+from caom2.caom2_simple_observation import SimpleObservation
+from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
+from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
+from caom2.xml.caom2_observation_reader import ObservationReader
+from caom2.xml.caom2_observation_writer import ObservationWriter
+from caom2testinstances import Caom2TestInstances
 
 
 class TestObservationReaderWriter(unittest.TestCase):
@@ -319,8 +315,8 @@ def compareProposal(self, expected, actual):
     self.assertEqual(expected.project, actual.project)
     self.assertEqual(expected.title, actual.title)
     self.assertEqual(len(expected.keywords), len(actual.keywords))
-    for i in range(len(expected.keywords)):
-        self.assertEquals(expected.keywords[i], actual.keywords[i])
+    for keyword in expected.keywords:
+        self.assertTrue(keyword in actual.keywords)
 
 
 def compareTarget(self, expected, actual):
@@ -331,8 +327,9 @@ def compareTarget(self, expected, actual):
     self.assertEqual(expected.name, actual.name)
     self.assertEqual(expected.target_type, actual.target_type)
     self.assertEqual(expected.redshift, actual.redshift)
-    for i in range(len(expected.keywords)):
-        self.assertEquals(expected.keywords[i], actual.keywords[i])
+    for keyword in expected.keywords:
+        self.assertTrue(keyword in actual.keywords)
+
 
 
 def compareTargetPosition(self, expected, actual):
@@ -356,8 +353,9 @@ def compareTelescope(self, expected, actual):
     self.assertEqual(expected.geo_location_x, actual.geo_location_x)
     self.assertEqual(expected.geo_location_y, actual.geo_location_y)
     self.assertEqual(expected.geo_location_z, actual.geo_location_z)
-    for i in range(len(expected.keywords)):
-        self.assertEquals(expected.keywords[i], actual.keywords[i])
+    for keyword in expected.keywords:
+        self.assertTrue(keyword in actual.keywords)
+
 
 
 def compareInstrument(self, expected, actual):
@@ -366,8 +364,8 @@ def compareInstrument(self, expected, actual):
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
     self.assertEqual(expected.name, actual.name)
-    for i in range(len(expected.keywords)):
-        self.assertEquals(expected.keywords[i], actual.keywords[i])
+    for keyword in expected.keywords:
+        self.assertTrue(keyword in actual.keywords)
 
 
 def compareEnvironment(self, expected, actual):

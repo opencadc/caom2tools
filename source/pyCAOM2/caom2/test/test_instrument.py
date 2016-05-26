@@ -70,13 +70,9 @@
 
 """ Defines TestPlane class """
 
-from caom2.caom2_instrument import Instrument
-import os
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_instrument import Instrument
 
 
 class TestPlane(unittest.TestCase):
@@ -84,11 +80,15 @@ class TestPlane(unittest.TestCase):
     def testAll(self):
         instrument = Instrument("myInstrument")
         self.assertEqual("myInstrument", instrument.name, "Instrument name")
-        self.assertEqual(0, len(instrument.keywords),
-                         "Default number of keywords")
-        instrument.keywords.append("optical")
+        self.assertEqual(0, len(instrument.keywords), "Default number of keywords")
+
+        instrument.keywords.add("optical")
         self.assertEqual(1, len(instrument.keywords), "Number of keywords")
-        self.assertEqual("optical", instrument.keywords[0], "Keyword")
+        self.assertTrue("optical" in instrument.keywords, "Keyword not found")
+
+        instrument.keywords.add("radio")
+        self.assertEqual(2, len(instrument.keywords), "Number of keywords")
+        self.assertTrue("radio" in instrument.keywords, "Keyword not found")
 
 
 if __name__ == '__main__':

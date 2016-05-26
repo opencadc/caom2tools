@@ -70,13 +70,13 @@
 
 """defines the Provenance class"""
 
-from caom2_object import Caom2Object
-from caom2_plane_uri import PlaneURI
-from util.caom2_util import TypedList
-from util.caom2_util import TypedSet
-from util.caom2_util import typeCheck
 from datetime import datetime
 from urlparse import urlsplit
+
+from caom2_object import Caom2Object
+from caom2_plane_uri import PlaneURI
+from util.caom2_util import TypedSet
+from util.caom2_util import typeCheck
 
 
 class Provenance(Caom2Object):
@@ -107,7 +107,7 @@ class Provenance(Caom2Object):
         self.reference = reference
         self.last_executed = last_executed
 
-        self._keywords = TypedList((str),)
+        self._keywords = set()
         self._inputs = TypedSet((PlaneURI),)
 
     # Properties
@@ -182,7 +182,7 @@ class Provenance(Caom2Object):
 
     @property
     def keywords(self):
-        """ List of keywords as str"""
+        """ Set of keywords as str"""
         return self._keywords
 
     @property

@@ -70,14 +70,9 @@
 
 """ Defines TestCaom2Enums class """
 
-from caom2.caom2_enums import EnergyBand, CalibrationLevel, ProductType
-import os
-import sys
 import unittest
 
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_enums import EnergyBand, CalibrationLevel, ProductType
 
 
 class TestCaom2Enums(unittest.TestCase):

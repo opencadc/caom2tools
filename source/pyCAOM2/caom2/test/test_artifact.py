@@ -70,17 +70,12 @@
 
 """ Defines TestArtifact class """
 
-from caom2.caom2_artifact import Artifact
-from caom2.caom2_part import Part
-from caom2.caom2_enums import ProductType
-import os
-import sys
 import unittest
 from urlparse import urlparse
 
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_artifact import Artifact
+from caom2.caom2_enums import ProductType
+from caom2.caom2_part import Part
 
 
 class TestArtifact(unittest.TestCase):

@@ -70,25 +70,20 @@
 
 """ Defines TestCaomUtil class """
 
-from caom2.util.caom2_util import TypedList
-from caom2.util.caom2_util import TypedOrderedDict
-from caom2.util.caom2_util import TypedSet
-from caom2.util.caom2_util import validate_path_component
-from caom2.util.caom2_util import uuid2long
-from caom2.util.caom2_util import long2uuid
+import unittest
+import uuid
+
 from caom2.caom2_artifact import Artifact
 from caom2.caom2_energy import Energy
 from caom2.caom2_part import Part
 from caom2.caom2_plane import Plane
 from caom2.caom2_plane_uri import PlaneURI
-
-import os
-import sys
-import uuid
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.util.caom2_util import TypedList
+from caom2.util.caom2_util import TypedOrderedDict
+from caom2.util.caom2_util import TypedSet
+from caom2.util.caom2_util import long2uuid
+from caom2.util.caom2_util import uuid2long
+from caom2.util.caom2_util import validate_path_component
 
 
 class TestCaomUtil(unittest.TestCase):

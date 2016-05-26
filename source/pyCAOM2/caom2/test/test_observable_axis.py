@@ -70,15 +70,11 @@
 
 """ Defines TestObservableAxis class """
 
+import unittest
+
 from caom2.wcs.caom2_axis import Axis
 from caom2.wcs.caom2_observable_axis import ObservableAxis
 from caom2.wcs.caom2_slice import Slice
-import os.path
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestObservableAxis(unittest.TestCase):

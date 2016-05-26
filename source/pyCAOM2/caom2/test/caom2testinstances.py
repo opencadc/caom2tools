@@ -70,6 +70,15 @@
 
 """ Defines Caom2TestInstances class """
 
+import collections
+from datetime import datetime
+
+from caom2.caom2_algorithm import Algorithm
+from caom2.caom2_artifact import Artifact
+from caom2.caom2_chunk import Chunk
+from caom2.caom2_composite_observation import CompositeObservation
+from caom2.caom2_data_quality import DataQuality
+from caom2.caom2_energy_transition import EnergyTransition
 from caom2.caom2_enums import CalibrationLevel
 from caom2.caom2_enums import DataProductType
 from caom2.caom2_enums import ObservationIntentType
@@ -77,57 +86,43 @@ from caom2.caom2_enums import ProductType
 from caom2.caom2_enums import Quality
 from caom2.caom2_enums import Status
 from caom2.caom2_enums import TargetType
-from caom2.util.caom2_util import TypedList, TypedSet
-from caom2.caom2_energy_transition import EnergyTransition
-from caom2.caom2_simple_observation import SimpleObservation
-from caom2.caom2_composite_observation import CompositeObservation
-from caom2.caom2_plane import Plane
+from caom2.caom2_environment import Environment
+from caom2.caom2_instrument import Instrument
+from caom2.caom2_metrics import Metrics
+from caom2.caom2_observation_uri import ObservationURI
 from caom2.caom2_part import Part
-from caom2.caom2_chunk import Chunk
-from caom2.caom2_artifact import Artifact
+from caom2.caom2_plane import Plane
+from caom2.caom2_plane_uri import PlaneURI
 from caom2.caom2_proposal import Proposal
-from caom2.caom2_algorithm import Algorithm
+from caom2.caom2_provenance import Provenance
+from caom2.caom2_requirements import Requirements
+from caom2.caom2_simple_observation import SimpleObservation
 from caom2.caom2_target import Target
 from caom2.caom2_target_position import TargetPosition
-from caom2.caom2_requirements import Requirements
 from caom2.caom2_telescope import Telescope
-from caom2.caom2_instrument import Instrument
-from caom2.caom2_environment import Environment
-from caom2.caom2_provenance import Provenance
-from caom2.caom2_metrics import Metrics
-from caom2.caom2_data_quality import DataQuality
-from caom2.caom2_observation_uri import ObservationURI
-from caom2.caom2_plane_uri import PlaneURI
 from caom2.types.caom2_point import Point
+from caom2.util.caom2_util import TypedList, TypedSet
+from caom2.wcs.caom2_axis import Axis
+from caom2.wcs.caom2_coord2d import Coord2D
+from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
+from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
+from caom2.wcs.caom2_coord_bounds1d import CoordBounds1D
+from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
+from caom2.wcs.caom2_coord_error import CoordError
+from caom2.wcs.caom2_coord_function1d import CoordFunction1D
+from caom2.wcs.caom2_coord_function2d import CoordFunction2D
+from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
+from caom2.wcs.caom2_coord_range1d import CoordRange1D
+from caom2.wcs.caom2_coord_range2d import CoordRange2D
+from caom2.wcs.caom2_dimension2d import Dimension2D
 from caom2.wcs.caom2_observable_axis import ObservableAxis
+from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
+from caom2.wcs.caom2_ref_coord import RefCoord
+from caom2.wcs.caom2_slice import Slice
 from caom2.wcs.caom2_spatial_wcs import SpatialWCS
 from caom2.wcs.caom2_spectral_wcs import SpectralWCS
 from caom2.wcs.caom2_temporal_wcs import TemporalWCS
-from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
-from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
-from caom2.wcs.caom2_axis import Axis
-from caom2.wcs.caom2_slice import Slice
-from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
-from caom2.wcs.caom2_coord_bounds1d import CoordBounds1D
-from caom2.wcs.caom2_coord_range1d import CoordRange1D
-from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
-from caom2.wcs.caom2_ref_coord import RefCoord
-from caom2.wcs.caom2_coord_error import CoordError
-from caom2.wcs.caom2_coord_function1d import CoordFunction1D
-from caom2.wcs.caom2_coord2d import Coord2D
 from caom2.wcs.caom2_value_coord2d import ValueCoord2D
-from caom2.wcs.caom2_coord_range2d import CoordRange2D
-from caom2.wcs.caom2_dimension2d import Dimension2D
-from caom2.wcs.caom2_coord_function2d import CoordFunction2D
-from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-import os
-import sys
-import collections
-from datetime import datetime
-
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class Caom2TestInstances(object):
@@ -135,7 +130,7 @@ class Caom2TestInstances(object):
     _collection = "collection"
     _observation_id = "observationID"
     _product_id = "productId"
-    _keywords = TypedList(str, "keyword1", "keyword2")
+    _keywords = {"keyword1", "keyword2"}
     _ivoa_date = datetime(2012, 07, 11, 13, 26, 37, 0)
 
     def __init__(self):
@@ -228,7 +223,7 @@ class Caom2TestInstances(object):
         proposal.pi_name = "proposalPi"
         proposal.project = "proposalProject"
         proposal.title = "proposalTitle"
-        proposal.keywords.extend(Caom2TestInstances._keywords)
+        proposal.keywords.update(Caom2TestInstances._keywords)
         return proposal
 
     def get_target(self):
@@ -236,7 +231,7 @@ class Caom2TestInstances(object):
         target.target_type = TargetType.OBJECT
         target.standard = False
         target.redshift = 1.5
-        target.keywords.extend(Caom2TestInstances._keywords)
+        target.keywords.update(Caom2TestInstances._keywords)
         return target
 
     def get_target_position(self):
@@ -253,12 +248,12 @@ class Caom2TestInstances(object):
         telescope.geo_location_x = 1.0
         telescope.geo_location_y = 2.0
         telescope.geo_location_z = 3.0
-        telescope.keywords.extend(Caom2TestInstances._keywords)
+        telescope.keywords.update(Caom2TestInstances._keywords)
         return telescope
 
     def get_instrument(self):
         instrument = Instrument("instrumentName")
-        instrument.keywords.extend(Caom2TestInstances._keywords)
+        instrument.keywords.update(Caom2TestInstances._keywords)
         return instrument
 
     def get_environment(self):
@@ -304,7 +299,7 @@ class Caom2TestInstances(object):
         provenance.run_id = "run_id"
         provenance.reference = "http://foo/bar"
         provenance.last_executed = Caom2TestInstances._ivoa_date
-        provenance.keywords.extend(Caom2TestInstances._keywords)
+        provenance.keywords.update(Caom2TestInstances._keywords)
         provenance.inputs.update(self.get_inputs())
         return provenance
 
