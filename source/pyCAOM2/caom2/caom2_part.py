@@ -83,15 +83,17 @@ class Part(AbstractCaom2Entity):
        eg: a extension of a FITS file.
 
 
-       This object should contain the product_type attribute
-       and a chunk.
+       This object should contain the product_tpye attribute
+       and the list of chunks.
     """
 
-    def __init__(self, name, product_type=None, chunk=None):
+    def __init__(self, name, product_type=None, chunks=None):
         super(Part, self).__init__()
         self.name = name
         self.product_type = product_type
-        self.chunk = chunk
+        if chunks is None:
+            chunks = util.TypedList((Chunk),)
+        self.chunks = chunks
 
     def _key(self):
         return self.name
@@ -136,11 +138,11 @@ class Part(AbstractCaom2Entity):
         return self._name
 
     @property
-    def chunk(self):
-        """A chunk that this part contains"""
-        return self._chunk
+    def chunks(self):
+        """A list of chunks that this part contains"""
+        return self._chunks
 
-    @chunk.setter
-    def chunk(self, value):
-        util.typeCheck(value, Chunk, 'chunk')
-        self._chunk = value
+    @chunks.setter
+    def chunks(self, value):
+        util.typeCheck(value, util.TypedList, 'chunks', override=False)
+        self._chunks = value

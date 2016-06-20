@@ -1158,7 +1158,7 @@ class ObservationReader(object):
             return PolarizationWCS(
                 self._getCoordAxis1D("axis", el, ns, False))
 
-    def _getChunk(self, elTag, parent, ns, required):
+    def _addChunks(self, chunks, parent, ns):
         """Build Chunk objects from an XML representation of Chunk elements
         and add them to the set of Chunks.
 
@@ -1168,32 +1168,48 @@ class ObservationReader(object):
         ns : namespace of the document
         raise : ObservationParsingException
         """
-        chunkParent = parent
-        # pre 2.2 a part could have multiple chunks inside a "chunks" element
-        if caom2_xml_constants.CAOM20_NAMESPACE == ns or caom2_xml_constants.CAOM21_NAMESPACE == ns:
-            element = self._getChildElement("chunks", parent, ns, required)
-            if element is None:
-                return None
-            chunkParent = element
-        el = self._getChildElement(elTag, chunkParent, ns, required)
+        el = self._getChildElement("chunks", parent, ns, False)
         if el is None:
             return None
         else:
-            chunk = Chunk()
-            chunk.naxis = self._getChildTextAsInt("naxis", el, ns, False)
-            chunk.observable_axis = self._getChildTextAsInt("observableAxis", el, ns, False)
-            chunk.position_axis_1 = self._getChildTextAsInt("positionAxis1", el, ns, False)
-            chunk.position_axis_2 = self._getChildTextAsInt("positionAxis2", el, ns, False)
-            chunk.energy_axis = self._getChildTextAsInt("energyAxis", el, ns, False)
-            chunk.time_axis = self._getChildTextAsInt("timeAxis", el, ns, False)
-            chunk.polarization_axis = self._getChildTextAsInt("polarizationAxis", el, ns, False)
-            chunk.observable = self._getObservableAxis("observable", el, ns, False)
-            chunk.position = self._getSpatialWCS("position", el, ns, False)
-            chunk.energy = self._getSpectralWCS("energy", el, ns, False)
-            chunk.time = self._getTemporalWCS("time", el, ns, False)
-            chunk.polarization = self._getPolarizationWCS("polarization", el, ns, False)
-            self._set_entity_attributes(el, ns, chunk)
-            return chunk
+            for chunkEl in el.iterchildren("{" + ns + "}chunk"):
+                tempChunk = Chunk()
+                productType = \
+                    self._getChildText("productType", chunkEl, ns, False)
+                if productType:
+                    tempChunk.product_type = \
+                        ProductType.getByValue(productType)
+                tempChunk.naxis = \
+                    self._getChildTextAsInt("naxis", chunkEl, ns, False)
+                tempChunk.observable_axis = \
+                    self._getChildTextAsInt("observableAxis", chunkEl, ns,
+                                            False)
+                tempChunk.position_axis_1 = \
+                    self._getChildTextAsInt("positionAxis1", chunkEl, ns,
+                                            False)
+                tempChunk.position_axis_2 = \
+                    self._getChildTextAsInt("positionAxis2", chunkEl, ns,
+                                            False)
+                tempChunk.energy_axis = \
+                    self._getChildTextAsInt("energyAxis", chunkEl, ns, False)
+                tempChunk.time_axis = \
+                    self._getChildTextAsInt("timeAxis", chunkEl, ns, False)
+                tempChunk.polarization_axis = \
+                    self._getChildTextAsInt("polarizationAxis", chunkEl, ns,
+                                            False)
+                tempChunk.observable = \
+                    self._getObservableAxis("observable", chunkEl, ns, False)
+                tempChunk.position = \
+                    self._getSpatialWCS("position", chunkEl, ns, False)
+                tempChunk.energy = \
+                    self._getSpectralWCS("energy", chunkEl, ns, False)
+                tempChunk.time = \
+                    self._getTemporalWCS("time", chunkEl, ns, False)
+                tempChunk.polarization = \
+                    self._getPolarizationWCS("polarization", chunkEl, ns,
+                                             False)
+                self._set_entity_attributes(chunkEl, ns, tempChunk)
+                chunks.append(tempChunk)
 
     def _addParts(self, parts, parent, ns):
         """Build Part objects from an XML representation of Part elements and
@@ -1217,7 +1233,7 @@ class ObservationReader(object):
                 if productType:
                     tempPart.product_type = \
                         ProductType.getByValue(productType)
-                tempPart.chunk = self._getChunk("chunk", partEl, ns, False)
+                self._addChunks(tempPart.chunks, partEl, ns)
                 self._set_entity_attributes(partEl, ns, tempPart)
                 parts[tempPart.name] = tempPart
 

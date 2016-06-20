@@ -547,32 +547,45 @@ def compareParts(self, expected, actual, version):
                          actual_part._last_modified)
         self.assertEqual(expected_part.name, actual_part.name)
         self.assertEqual(expected_part.product_type, actual_part.product_type)
-        compareChunk(self, expected_part.chunk, actual_part.chunk)
+        compareChunks(self, expected_part.chunks, actual_part.chunks)
 
 
-def compareChunk(self, expected, actual):
+def compareChunks(self, expected, actual):
     if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
-    self.assertIsNotNone(expected._id)
-    self.assertIsNotNone(actual._id)
-    self.assertEqual(expected._id, actual._id)
-    self.assertIsNotNone(expected._last_modified)
-    self.assertIsNotNone(actual._last_modified)
-    self.assertEqual(expected._last_modified, actual._last_modified)
-    self.assertEqual(expected.naxis, actual.naxis)
-    self.assertEqual(expected.observable_axis, actual.observable_axis)
-    self.assertEqual(expected.position_axis_1, actual.position_axis_1)
-    self.assertEqual(expected.position_axis_2, actual.position_axis_2)
-    self.assertEqual(expected.energy_axis, actual.energy_axis)
-    self.assertEqual(expected.time_axis, actual.time_axis)
-    self.assertEqual(expected.polarization_axis, actual.polarization_axis)
-    compareObservableAxis(self, expected.observable, actual.observable)
-    compareSpatialWCS(self, expected.position, actual.position)
-    compareSpectralWCS(self, expected.energy, actual.energy)
-    compareTemporalWCS(self, expected.time, actual.time)
-    comparePolarizationWCS(self, expected.polarization, actual.polarization)
+    self.assertEqual(len(expected), len(actual))
+    for expected_chunk, actual_chunk in zip(expected, actual):
+        self.assertIsNotNone(expected_chunk)
+        self.assertIsNotNone(actual_chunk)
+        self.assertIsNotNone(expected_chunk._id)
+        self.assertIsNotNone(actual_chunk._id)
+        self.assertEqual(expected_chunk._id, actual_chunk._id)
+        self.assertIsNotNone(expected_chunk._last_modified)
+        self.assertIsNotNone(actual_chunk._last_modified)
+        self.assertEqual(expected_chunk._last_modified,
+                         actual_chunk._last_modified)
+        self.assertEqual(expected_chunk.product_type,
+                         actual_chunk.product_type)
+        self.assertEqual(expected_chunk.naxis, actual_chunk.naxis)
+        self.assertEqual(expected_chunk.observable_axis,
+                         actual_chunk.observable_axis)
+        self.assertEqual(expected_chunk.position_axis_1,
+                         actual_chunk.position_axis_1)
+        self.assertEqual(expected_chunk.position_axis_2,
+                         actual_chunk.position_axis_2)
+        self.assertEqual(expected_chunk.energy_axis, actual_chunk.energy_axis)
+        self.assertEqual(expected_chunk.time_axis, actual_chunk.time_axis)
+        self.assertEqual(expected_chunk.polarization_axis,
+                         actual_chunk.polarization_axis)
+        compareObservableAxis(self, expected_chunk.observable,
+                              actual_chunk.observable)
+        compareSpatialWCS(self, expected_chunk.position, actual_chunk.position)
+        compareSpectralWCS(self, expected_chunk.energy, actual_chunk.energy)
+        compareTemporalWCS(self, expected_chunk.time, actual_chunk.time)
+        comparePolarizationWCS(self, expected_chunk.polarization,
+                               actual_chunk.polarization)
 
 
 def compareObservableAxis(self, expected, actual):

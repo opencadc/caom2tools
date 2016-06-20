@@ -338,13 +338,16 @@ class Caom2TestInstances(object):
         if self.complete:
             part.product_type = ProductType.SCIENCE
         if self.depth > 4:
-            part.chunk = self.get_chunk()
+            for chunk in self.get_chunks():
+                part.chunks.append(chunk)
         parts["x"] = part
         return parts
 
-    def get_chunk(self):
+    def get_chunks(self):
+        chunks = TypedList(Chunk,)
         chunk = Chunk()
         if self.complete:
+            chunk.product_type = ProductType.SCIENCE
             chunk.naxis = 5
             chunk.observable_axis = 1
             chunk.position_axis_1 = 1
@@ -357,7 +360,8 @@ class Caom2TestInstances(object):
             chunk.energy = self.get_spectral_wcs()
             chunk.time = self.get_temporal_wcs()
             chunk.polarization = self.get_polarization_wcs()
-        return chunk
+        chunks.append(chunk)
+        return chunks
 
     def get_observable_axis(self):
         observable = ObservableAxis(self.get_slice())

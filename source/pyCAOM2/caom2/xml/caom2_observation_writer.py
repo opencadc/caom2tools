@@ -392,32 +392,37 @@ class ObservationWriter(object):
             if part.product_type is not None:
                 self._addElement("productType",
                     ProductType.get(str(part.product_type)).value, partElement)
-            self._addChunkElement(part.chunk, partElement)
+            self._addChunksElement(part.chunks, partElement)
 
-    def _addChunkElement(self, chunk, parent):
-        if chunk is None:
+    def _addChunksElement(self, chunks, parent):
+        if chunks is None:
             return
 
-        chunk_parent = parent
-        if self._output_version < 22:
-            chunks = self._getCaom2Element("chunks", parent)
-            chunk_parent = chunks
+        element = self._getCaom2Element("chunks", parent)
+        for chunk in chunks:
+            chunkElement = self._getCaom2Element("chunk", element)
+            self._addEnityAttributes(chunk, chunkElement)
+            if chunk.product_type is not None:
+                self._addElement("productType",
+                    ProductType.get(str(chunk.product_type)).value,
+                    chunkElement)
+            self._addElement("naxis", chunk.naxis, chunkElement)
+            self._addElement("observableAxis", chunk.observable_axis,
+                            chunkElement)
+            self._addElement("positionAxis1", chunk.position_axis_1,
+                            chunkElement)
+            self._addElement("positionAxis2", chunk.position_axis_2,
+                            chunkElement)
+            self._addElement("energyAxis", chunk.energy_axis, chunkElement)
+            self._addElement("timeAxis", chunk.time_axis, chunkElement)
+            self._addElement("polarizationAxis", chunk.polarization_axis,
+                            chunkElement)
 
-        element = self._getCaom2Element("chunk", chunk_parent)
-        self._addEnityAttributes(chunk, element)
-        self._addElement("naxis", chunk.naxis, element)
-        self._addElement("observableAxis", chunk.observable_axis, element)
-        self._addElement("positionAxis1", chunk.position_axis_1, element)
-        self._addElement("positionAxis2", chunk.position_axis_2, element)
-        self._addElement("energyAxis", chunk.energy_axis, element)
-        self._addElement("timeAxis", chunk.time_axis, element)
-        self._addElement("polarizationAxis", chunk.polarization_axis, element)
-
-        self._addObservableAxisElement(chunk.observable, element)
-        self._addSpatialWCSElement(chunk.position, element)
-        self._addSpectralWCSElement(chunk.energy, element)
-        self._addTemporalWCSElement(chunk.time, element)
-        self._addPolarizationWCSElement(chunk.polarization, element)
+            self._addObservableAxisElement(chunk.observable, chunkElement)
+            self._addSpatialWCSElement(chunk.position, chunkElement)
+            self._addSpectralWCSElement(chunk.energy, chunkElement)
+            self._addTemporalWCSElement(chunk.time, chunkElement)
+            self._addPolarizationWCSElement(chunk.polarization, chunkElement)
 
     def _addObservableAxisElement(self, observable, parent):
         if observable is None:

@@ -103,7 +103,8 @@ class Chunk(AbstractCaom2Entity):
 
     """
 
-    def __init__(self, naxis=None,
+    def __init__(self, product_type=None,
+                       naxis=None,
                        position_axis_1=None,
                        position_axis_2=None,
                        position=None,
@@ -118,6 +119,7 @@ class Chunk(AbstractCaom2Entity):
                        ):
 
         super(Chunk, self).__init__()
+        self.product_type = product_type
         self.naxis = naxis
         self.position_axis_1 = position_axis_1
         self.position_axis_2 = position_axis_2
@@ -130,6 +132,27 @@ class Chunk(AbstractCaom2Entity):
         self.energy = energy
         self.time = time
         self.polarization = polarization
+
+    @property
+    def product_type(self):
+        """A word that describes the content of the chunk.
+
+        eg.  Chunk.product_type = ProductType('SCIENCE')
+
+        Allowed values:
+        """ + str(ProductType.names()) + """
+
+        """
+
+        return self._product_type
+
+    @product_type.setter
+    def product_type(self, value):
+        if isinstance(value, str) and value in ProductType.names():
+            ## be helpful
+            value = ProductType('value')
+        util.typeCheck(value, ProductType, 'product_type')
+        self._product_type = value
 
     @property
     def naxis(self):
