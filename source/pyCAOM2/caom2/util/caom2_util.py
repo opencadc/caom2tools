@@ -353,9 +353,6 @@ def long2uuid(l):
 
 def typeCheck(value, value_type, variable, override=None):
     """Check value is of type value_type, or is override"""
-    print "value: {0}".format(value)
-    print "value: {0}".format(value_type)
-    print "variable: {0}".format(variable)
 
     sys.tracebacklimit = None
     if not isinstance(value, value_type) and value is not override:
