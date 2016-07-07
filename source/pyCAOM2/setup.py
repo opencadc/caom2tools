@@ -56,11 +56,10 @@ setup(name='pyCAOM2',
       author_email='cadc@nrc.ca',
       license='GPLv3',
       long_description='Python library for the CAOM-2.1 data model',
-      packages=find_packages(),
-      package_data={'caom2':['CAOM-2.0.xsd','CAOM-2.1.xsd'], 'caom2.test.data':['*.xml'] },
+      packages=find_packages(exclude=['*test*']),
+      package_data={'caom2': ['CAOM-2.0.xsd', 'CAOM-2.1.xsd']},
       include_package_data=True,
       requires=['distribute', 'etree'],
       provides=['caom2'],
       zip_safe=False
 )
-

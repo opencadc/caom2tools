@@ -76,7 +76,7 @@ from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
 from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
 from caom2.xml.caom2_observation_writer import ObservationWriter
 from caom2.xml.caom2_observation_reader import ObservationReader
-from caom2testinstances import Caom2TestInstances
+from test_caom2instances import Caom2TestInstances
 import caom2.xml.caom2_xml_constants
 import os
 import sys
