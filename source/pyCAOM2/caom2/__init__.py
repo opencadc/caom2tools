@@ -70,29 +70,30 @@
 
 """ Deines __init__ """
 
-from caom2_algorithm import Algorithm
-from caom2_artifact import Artifact
-from caom2_chunk import Chunk
-from caom2_composite_observation import CompositeObservation
-from caom2_energy import Energy
-from caom2_energy_transition import EnergyTransition
-from caom2_entity import AbstractCaom2Entity
-from caom2_environment import Environment
-from caom2_exceptions import ObservationParsingException
-from caom2_instrument import Instrument
-from caom2_metrics import Metrics
-from caom2_object import Caom2Object
-from caom2_observation import Observation
-from caom2_observation_uri import ObservationURI
-from caom2_part import Part
-from caom2_plane import Plane
-from caom2_plane_uri import PlaneURI
-from caom2_polarization import Polarization
-from caom2_position import Position
-from caom2_proposal import Proposal
-from caom2_provenance import Provenance
-from caom2_simple_observation import SimpleObservation
-from caom2_target import Target
-from caom2_target_position import TargetPosition
-from caom2_telescope import Telescope
-from caom2_time import Time
+# from caom2_algorithm import Algorithm
+# from caom2_artifact import Artifact
+# from caom2_chunk import Chunk
+# from caom2_composite_observation import CompositeObservation
+# from caom2_energy import Energy
+# from caom2_energy_transition import EnergyTransition
+# from caom2_entity import AbstractCaom2Entity
+# from caom2_environment import Environment
+# from caom2_enums import ProductType, ReleaseType
+# from caom2_exceptions import ObservationParsingException
+# from caom2_instrument import Instrument
+# from caom2_metrics import Metrics
+# from caom2_object import Caom2Object
+# from caom2_observation import Observation
+# from caom2_observation_uri import ObservationURI
+# from caom2_part import Part
+# from caom2_plane import Plane
+# from caom2_plane_uri import PlaneURI
+# from caom2_polarization import Polarization
+# from caom2_position import Position
+# from caom2_proposal import Proposal
+# from caom2_provenance import Provenance
+# from caom2_simple_observation import SimpleObservation
+# from caom2_target import Target
+# from caom2_target_position import TargetPosition
+# from caom2_telescope import Telescope
+# from caom2_time import Time

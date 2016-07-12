@@ -344,17 +344,17 @@ class Plane(AbstractCaom2Entity):
 
     def compute_position(self):
         raise NotImplementedError(
-            "Agregation of position has not been implemenetd in this module")
+            "Aggregation of position has not been implemented in this module")
 
     def compute_energy(self):
         raise NotImplementedError(
-            "Agregation of energy has not been implemenetd in this module")
+            "Aggregation of energy has not been implemented in this module")
 
     def compute_time(self):
         raise NotImplementedError(
-            "Agregation of time has not been implemenetd in this module")
+            "Aggregation of time has not been implemented in this module")
 
     def compute_polarization(self):
         raise NotImplementedError(
-            "Agregation of polarization " +
-            "has not been implemenetd in this module")
+            "Aggregation of polarization " +
+            "has not been implemented in this module")

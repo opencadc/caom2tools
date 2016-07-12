@@ -89,6 +89,10 @@ from .. caom2_enums import ProductType
 from .. caom2_enums import Quality
 from .. caom2_enums import Status
 from .. caom2_enums import TargetType
+from .. caom2_enums import ReleaseType
+from .. caom2_composite_observation import CompositeObservation
+from .. caom2_data_quality import DataQuality
+from .. caom2_energy_transition import EnergyTransition
 from .. caom2_environment import Environment
 from .. caom2_exceptions import ObservationParsingException
 from .. caom2_instrument import Instrument
@@ -155,6 +159,12 @@ class ObservationReader(object):
                 namespace=caom2_xml_constants.CAOM21_NAMESPACE,
                 schemaLocation=caom2_xml_constants.CAOM21_SCHEMA_FILE)
             xsd.getroot().insert(1, caom21_schema)
+
+            caom22_schema = etree.Element(
+                '{http://www.w3.org/2001/XMLSchema}import',
+                namespace=caom2_xml_constants.CAOM22_NAMESPACE,
+                schemaLocation=caom2_xml_constants.CAOM22_SCHEMA_FILE)
+            xsd.getroot().insert(2, caom22_schema)
 
             self._xmlschema = etree.XMLSchema(xsd)
 
@@ -797,7 +807,7 @@ class ObservationReader(object):
                 verticeEl.iterchildren(tag=("{" + ns + "}vertex")))
             if len(childrenVertices) < 3:
                 error = ("CoordPolygon2D must have a minimum of 3 vertices, "
-                    "found " + len(childrenVertices))
+                         "found " + len(childrenVertices))
                 raise ObservationParsingException(error)
             else:
                 polygon = CoordPolygon2D()
@@ -1251,20 +1261,26 @@ class ObservationReader(object):
             return None
         else:
             for artifactEl in el.iterchildren("{" + ns + "}artifact"):
-                tempArtifact = \
-                    Artifact(self._getChildText("uri", artifactEl, ns, True))
-                tempArtifact.content_type = \
-                    self._getChildText("contentType", artifactEl, ns, False)
-                tempArtifact.content_length = \
-                    self._getChildTextAsLong("contentLength", artifactEl, ns,
-                                             False)
-                productType = \
-                    self._getChildText("productType", artifactEl, ns, False)
-                if productType:
-                    tempArtifact.product_type = \
-                        ProductType.getByValue(productType)
-                tempArtifact.alternative = "true" == (
-                    self._getChildText("alternative", artifactEl, ns, False))
+                uri = self._getChildText("uri", artifactEl, ns, True)
+
+                product_type = self._getChildText("productType", artifactEl, ns, False)
+                if product_type is None:
+                    product_type = ProductType.SCIENCE
+                    print "Using default Artifact.productType value {0}".format(str(ProductType.SCIENCE))
+                else:
+                    product_type = ProductType.getByValue(product_type)
+
+                release_type = self._getChildText("releaseType", artifactEl, ns, False)
+                if release_type is None:
+                    release_type = ReleaseType.DATA
+                    print "Using default Artifact.releaseType value {0}".format(str(ReleaseType.DATA))
+                else:
+                    release_type = ReleaseType.getByValue(release_type)
+
+                tempArtifact = Artifact(uri, product_type, release_type)
+                tempArtifact.content_type = self._getChildText("contentType", artifactEl, ns, False)
+                tempArtifact.content_length = (
+                    self._getChildTextAsLong("contentLength", artifactEl, ns, False))
                 self._addParts(tempArtifact.parts, artifactEl, ns)
                 self._set_entity_attributes(artifactEl, ns, tempArtifact)
                 artifacts[tempArtifact.uri] = tempArtifact

@@ -49,17 +49,17 @@ if sys.version_info[0] > 2:
     sys.exit(-1)
 
 setup(name='pyCAOM2',
-      version='0.6.2',
-      description='CAOM-2.1 library',
+      version='2.2.1',
+      description='CAOM-2.2 library',
       url='This is a Home-page.',
       author='Canadian Astronomy Data Centre',
       author_email='cadc@nrc.ca',
       license='GPLv3',
-      long_description='Python library for the CAOM-2.1 data model',
+      long_description='Python library for the CAOM-2.2 data model',
       packages=find_packages(),
-      package_data={'caom2':['CAOM-2.0.xsd','CAOM-2.1.xsd'], 'caom2.test.data':['*.xml'] },
+      package_data={'caom2':['CAOM-2.0.xsd', 'CAOM-2.1.xsd', 'CAOM-2.2.xsd'], 'caom2.test.data':['*.xml'] },
       include_package_data=True,
-      requires=['distribute', 'etree'],
+      requires=['distribute', 'lxml'],
       provides=['caom2'],
       zip_safe=False
 )

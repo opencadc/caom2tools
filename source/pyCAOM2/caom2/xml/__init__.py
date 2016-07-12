@@ -69,3 +69,9 @@
 #
 
 """ Defines __init__ """
+
+# from caom2_observation_reader import ObservationReader
+# from caom2_observation_writer import ObservationWriter
+# from caom2_xml_constants import CAOM20_NAMESPACE
+# from caom2_xml_constants import CAOM21_NAMESPACE
+# from caom2_xml_constants import CAOM22_NAMESPACE

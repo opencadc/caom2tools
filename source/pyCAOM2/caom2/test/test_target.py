@@ -74,6 +74,7 @@ import unittest
 
 from caom2.caom2_enums import TargetType
 from caom2.caom2_target import Target
+from caom2.util.caom2_util import TypedList
 
 
 class TestTarget(unittest.TestCase):

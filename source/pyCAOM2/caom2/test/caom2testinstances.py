@@ -86,6 +86,7 @@ from caom2.caom2_enums import ProductType
 from caom2.caom2_enums import Quality
 from caom2.caom2_enums import Status
 from caom2.caom2_enums import TargetType
+from caom2.caom2_enums import ReleaseType
 from caom2.caom2_environment import Environment
 from caom2.caom2_instrument import Instrument
 from caom2.caom2_metrics import Metrics
@@ -321,12 +322,10 @@ class Caom2TestInstances(object):
 
     def get_artifacts(self):
         artifacts = collections.OrderedDict()
-        artifact = Artifact("ad:foo/bar1")
+        artifact = Artifact("ad:foo/bar1", ProductType.SCIENCE, ReleaseType.META)
         if self.complete:
             artifact.content_type = "application/fits"
             artifact.content_length = 12345L
-            artifact.product_type = ProductType.SCIENCE
-            artifact.alternative = False
         if self.depth > 3:
             for k, v in self.get_parts().iteritems():
                 artifact.parts[k] = v

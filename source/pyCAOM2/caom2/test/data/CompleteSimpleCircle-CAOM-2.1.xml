@@ -87,7 +87,6 @@
           <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>12345</caom2:contentLength>
           <caom2:productType>science</caom2:productType>
-          <caom2:alternative>false</caom2:alternative>
           <caom2:parts>
             <caom2:part caom2:id="084e54f8-7624-4490-a769-82ed22e3a238" caom2:lastModified="2012-07-16T15:22:28.037">
               <caom2:name>x</caom2:name>

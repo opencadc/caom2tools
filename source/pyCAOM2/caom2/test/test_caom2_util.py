@@ -75,6 +75,7 @@ import uuid
 
 from caom2.caom2_artifact import Artifact
 from caom2.caom2_energy import Energy
+from caom2.caom2_enums import ProductType, ReleaseType
 from caom2.caom2_part import Part
 from caom2.caom2_plane import Plane
 from caom2.caom2_plane_uri import PlaneURI
@@ -222,7 +223,7 @@ class TestCaomUtil(unittest.TestCase):
 
         # test validation and constructor with an empty dictionary
         testPlane10 = Plane('key10')
-        testArtifact66 = Artifact('caom:CFHT/55/66')
+        testArtifact66 = Artifact('caom:CFHT/55/66', ProductType.SCIENCE, ReleaseType.DATA)
         testPart10 = Part("10")
         testPlaneURI = PlaneURI('caom:CFHT/55/66')
         myDictPlane = TypedOrderedDict((Plane),)

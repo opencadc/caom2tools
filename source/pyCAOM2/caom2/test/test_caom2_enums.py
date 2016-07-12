@@ -151,7 +151,7 @@ class TestCaom2Enums(unittest.TestCase):
         self.assertEqual(ProductType.INFO.value, "info")
         self.assertEqual(ProductType.PREVIEW.value, "preview")
         self.assertEqual(ProductType.SCIENCE.value, "science")
-        self.assertEqual(ProductType.CATALOG.value, "catalog")
+        self.assertEqual(ProductType.THUMBNAIL.value, "thumbnail")
         self.assertEqual(ProductType.NOISE.value, "noise")
         self.assertEqual(ProductType.WEIGHT.value, "weight")
 

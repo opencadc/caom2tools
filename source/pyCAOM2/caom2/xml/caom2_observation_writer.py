@@ -85,6 +85,7 @@ from .. caom2_enums import ProductType
 from .. caom2_enums import Quality
 from .. caom2_enums import Status
 from .. caom2_enums import TargetType
+from .. caom2_enums import ReleaseType
 from .. util.caom2_util import date2ivoa
 from .. util.caom2_util import uuid2long
 
@@ -107,7 +108,11 @@ class ObservationWriter(object):
         if namespace_prefix is None or not namespace_prefix:
             raise RuntimeError('null or empty namespace_prefix not allowed')
 
-        if namespace is None or namespace == caom2_xml_constants.CAOM21_NAMESPACE:
+        if namespace is None or namespace == caom2_xml_constants.CAOM22_NAMESPACE:
+            self._output_version = 22
+            self._caom2_namespace = caom2_xml_constants.CAOM22
+            self._namespace = caom2_xml_constants.CAOM22_NAMESPACE
+        elif namespace == caom2_xml_constants.CAOM21_NAMESPACE:
             self._output_version = 21
             self._caom2_namespace = caom2_xml_constants.CAOM21
             self._namespace = caom2_xml_constants.CAOM21_NAMESPACE
@@ -121,8 +126,10 @@ class ObservationWriter(object):
         if self._validate:
             if self._output_version == 20:
                 schema_file = caom2_xml_constants.CAOM20_SCHEMA_FILE
-            else:
+            elif self._output_version == 21:
                 schema_file = caom2_xml_constants.CAOM21_SCHEMA_FILE
+            else:
+                schema_file = caom2_xml_constants.CAOM22_SCHEMA_FILE
             schema_path = pkg_resources.resource_filename(
                 caom2_xml_constants.CAOM2_PKG, schema_file)
             xmlschema_doc = etree.parse(schema_path)
@@ -364,16 +371,13 @@ class ObservationWriter(object):
             artifactElement = self._getCaom2Element("artifact", element)
             self._addEnityAttributes(artifact, artifactElement)
             self._addElement("uri", artifact.uri, artifactElement)
-            self._addElement("contentType", artifact.content_type,
-                            artifactElement)
-            self._addElement("contentLength", artifact.content_length,
-                            artifactElement)
-            if artifact.product_type is not None:
-                self._addElement("productType",
-                    ProductType.get(str(artifact.product_type)).value,
-                    artifactElement)
-            self._addElement("alternative", str(artifact.alternative).lower(),
-                            artifactElement)
+            if self._output_version > 21:
+                self._addElement("productType", ProductType.get(str(artifact.product_type)).value, artifactElement)
+                self._addElement("releaseType", ReleaseType.get(str(artifact.release_type)).value, artifactElement)
+            self._addElement("contentType", artifact.content_type, artifactElement)
+            self._addElement("contentLength", artifact.content_length, artifactElement)
+            if self._output_version < 22:
+                self._addElement("productType", ProductType.get(str(artifact.product_type)).value, artifactElement)
             self._addPartsElement(artifact.parts, artifactElement)
 
     def _addPartsElement(self, parts, parent):
