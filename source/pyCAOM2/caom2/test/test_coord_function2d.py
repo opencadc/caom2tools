@@ -70,16 +70,12 @@
 
 """ Defines TestCoordFunction2D class """
 
+import unittest
+
+from caom2.wcs.caom2_coord2d import Coord2D
 from caom2.wcs.caom2_coord_function2d import CoordFunction2D
 from caom2.wcs.caom2_dimension2d import Dimension2D
 from caom2.wcs.caom2_ref_coord import RefCoord
-from caom2.wcs.caom2_coord2d import Coord2D
-import os.path
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestCoordFunction2D(unittest.TestCase):

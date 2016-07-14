@@ -70,22 +70,18 @@
 
 """ Defines TestPlane class """
 
-
-from caom2.caom2_plane import Plane
-from caom2.caom2_artifact import Artifact
-from caom2.caom2_provenance import Provenance
-from caom2.caom2_metrics import Metrics
-from caom2.caom2_data_quality import DataQuality
-from caom2.caom2_enums import DataProductType
-from caom2.caom2_enums import CalibrationLevel
-from caom2.caom2_enums import Quality
-import os
-import sys
 import unittest
 from datetime import datetime
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_artifact import Artifact
+from caom2.caom2_data_quality import DataQuality
+from caom2.caom2_enums import CalibrationLevel
+from caom2.caom2_enums import DataProductType
+from caom2.caom2_enums import Quality
+from caom2.caom2_metrics import Metrics
+from caom2.caom2_plane import Plane
+from caom2.caom2_provenance import Provenance
+from caom2.caom2_enums import ProductType, ReleaseType
 
 
 class TestPlane(unittest.TestCase):
@@ -132,19 +128,19 @@ class TestPlane(unittest.TestCase):
         self.assertIsNone(plane.time, "Default time")
         self.assertIsNone(plane.polarization, "Default polarization")
 
-        artifact1 = Artifact("caom:GEMINI/222/333")
+        artifact1 = Artifact("caom:GEMINI/222/333", ProductType.SCIENCE, ReleaseType.DATA)
         plane.artifacts["caom:GEMINI/222/333"] = artifact1
         self.assertEquals(1, len(plane.artifacts), "Artifacts")
         self.assertTrue("caom:GEMINI/222/333" in plane.artifacts.keys())
 
-        artifact2 = Artifact("caom:CFHT/55/66")
+        artifact2 = Artifact("caom:CFHT/55/66", ProductType.SCIENCE, ReleaseType.DATA)
         plane.artifacts["caom:CFHT/55/66"] = artifact2
         self.assertEquals(2, len(plane.artifacts), "Artifacts")
         self.assertTrue("caom:GEMINI/222/333" in plane.artifacts.keys())
         self.assertTrue("caom:CFHT/55/66" in plane.artifacts.keys())
 
         #try to append a duplicate artifact
-        artifact3 = Artifact("caom:GEMINI/222/333")
+        artifact3 = Artifact("caom:GEMINI/222/333", ProductType.SCIENCE, ReleaseType.DATA)
         plane.artifacts["caom:GEMINI/222/333"] = artifact3
         self.assertEquals(2, len(plane.artifacts), "Artifacts")
         self.assertTrue("caom:GEMINI/222/333" in plane.artifacts.keys())

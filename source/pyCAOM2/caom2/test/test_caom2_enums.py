@@ -70,14 +70,9 @@
 
 """ Defines TestCaom2Enums class """
 
-from caom2.caom2_enums import EnergyBand, CalibrationLevel, ProductType
-import os
-import sys
 import unittest
 
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_enums import EnergyBand, CalibrationLevel, ProductType
 
 
 class TestCaom2Enums(unittest.TestCase):
@@ -156,7 +151,7 @@ class TestCaom2Enums(unittest.TestCase):
         self.assertEqual(ProductType.INFO.value, "info")
         self.assertEqual(ProductType.PREVIEW.value, "preview")
         self.assertEqual(ProductType.SCIENCE.value, "science")
-        self.assertEqual(ProductType.CATALOG.value, "catalog")
+        self.assertEqual(ProductType.THUMBNAIL.value, "thumbnail")
         self.assertEqual(ProductType.NOISE.value, "noise")
         self.assertEqual(ProductType.WEIGHT.value, "weight")
 

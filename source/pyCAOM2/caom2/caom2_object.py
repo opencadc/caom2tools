@@ -71,8 +71,6 @@
 """defines the Caom2Object class"""
 
 import inspect
-#import types
-#import sys
 
 
 class Caom2Object(object):

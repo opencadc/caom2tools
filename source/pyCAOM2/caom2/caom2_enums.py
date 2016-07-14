@@ -118,14 +118,19 @@ PolarizationState = Enum('PolarizationState',
                          YY="YY")
 
 ProductType = Enum('ProductType',
-                   AUXILIARY="auxiliary",
-                   CALIBRATION="calibration",
-                   INFO="info",
-                   PREVIEW="preview",
                    SCIENCE="science",
-                   CATALOG="catalog",
+                   CALIBRATION="calibration",
+                   PREVIEW="preview",
+                   INFO="info",
                    NOISE="noise",
-                   WEIGHT="weight")
+                   WEIGHT="weight",
+                   AUXILIARY="auxiliary",
+                   THUMBNAIL="thumbnail",
+                   )
+
+ReleaseType = Enum('ReleaseType',
+                   DATA="data",
+                   META="meta")
 
 SegmentType = Enum('SegmentType',
                     CLOSE=0,

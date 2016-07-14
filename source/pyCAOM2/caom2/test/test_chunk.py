@@ -70,23 +70,19 @@
 
 """ Defines TestChunk class """
 
-from caom2.caom2_enums import ProductType
+import unittest
+
 from caom2.caom2_chunk import Chunk
 from caom2.wcs.caom2_axis import Axis
 from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
 from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
-from caom2.wcs.caom2_slice import Slice
+from caom2.caom2_enums import ProductType
 from caom2.wcs.caom2_observable_axis import ObservableAxis
+from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
+from caom2.wcs.caom2_slice import Slice
 from caom2.wcs.caom2_spatial_wcs import SpatialWCS
 from caom2.wcs.caom2_spectral_wcs import SpectralWCS
 from caom2.wcs.caom2_temporal_wcs import TemporalWCS
-from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
-import os.path
-import sys
-import unittest
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestChunk(unittest.TestCase):

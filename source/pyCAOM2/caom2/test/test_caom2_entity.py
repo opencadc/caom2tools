@@ -70,20 +70,16 @@
 
 """ Defines TestCaom2IdGenerator class """
 
-from caom2.caom2_entity import AbstractCaom2Entity
+import unittest
+
+from caom2.caom2_algorithm import Algorithm
 from caom2.caom2_artifact import Artifact
 from caom2.caom2_chunk import Chunk
-from caom2.caom2_algorithm import Algorithm
+from caom2.caom2_entity import AbstractCaom2Entity
+from caom2.caom2_enums import ProductType, ReleaseType
 from caom2.caom2_observation import Observation
 from caom2.caom2_part import Part
 from caom2.caom2_plane import Plane
-import os.path
-import sys
-import unittest
-
-
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
 
 
 class TestCaom2IdGenerator(unittest.TestCase):
@@ -92,7 +88,7 @@ class TestCaom2IdGenerator(unittest.TestCase):
         #Not much for now. Just to make sure that all the clients work
         entity = AbstractCaom2Entity()
         print entity._id, entity._last_modified
-        artifact = Artifact("caom2:/blah/blah")
+        artifact = Artifact("caom2:/blah/blah", ProductType.SCIENCE, ReleaseType.DATA)
         print artifact._id, artifact._last_modified
         chunk = Chunk()
         print chunk._id, chunk._last_modified

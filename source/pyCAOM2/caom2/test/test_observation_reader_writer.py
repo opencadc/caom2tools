@@ -70,21 +70,18 @@
 
 """ Defines TestObservationReaderWriter class """
 
-from caom2.caom2_simple_observation import SimpleObservation
-from caom2.caom2_composite_observation import CompositeObservation
-from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
-from caom2.xml.caom2_observation_writer import ObservationWriter
-from caom2.xml.caom2_observation_reader import ObservationReader
-from caom2testinstances import Caom2TestInstances
-import caom2.xml.caom2_xml_constants
-import os
-import sys
 import StringIO
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.xml.caom2_xml_constants import CAOM20_NAMESPACE
+from caom2.xml.caom2_xml_constants import CAOM21_NAMESPACE
+from caom2.caom2_composite_observation import CompositeObservation
+from caom2.caom2_simple_observation import SimpleObservation
+from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
+from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
+from caom2.xml.caom2_observation_reader import ObservationReader
+from caom2.xml.caom2_observation_writer import ObservationWriter
+from caom2testinstances import Caom2TestInstances
 
 
 class TestObservationReaderWriter(unittest.TestCase):
@@ -93,7 +90,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         print "Test Invalid long id "
         observation = minimal_simple(1, False, 20)
         writer = ObservationWriter(
-            False, False, "caom2", caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
+            False, False, "caom2", CAOM20_NAMESPACE)
         output = StringIO.StringIO()
         writer.write(observation, output)
         xml = output.getvalue()
@@ -148,7 +145,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_complete_simple(self):
 
-        for version in (20, 21):
+        for version in (20, 21, 22):
             for i in range(1, 6):
                 print "Test Complete Simple {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
@@ -166,7 +163,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_minimal_composite(self):
 
-        for version in (20, 21):
+        for version in (20, 21, 22):
             for i in range(1, 6):
                 print "Test Minimal Composite {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
@@ -184,7 +181,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_complete_composite(self):
 
-        for version in (20, 21):
+        for version in (20, 21, 22):
             for i in range(1, 6):
                 print "Test Complete Composite {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
@@ -204,10 +201,17 @@ class TestObservationReaderWriter(unittest.TestCase):
         observation = complete_composite(6, True, 20)
         test_observation(self, observation, True, True, 20)
         test_observation(self, observation, True, True, 21)
+        test_observation(self, observation, True, True, 22)
 
         observation = complete_composite(6, True, 21)
-        test_observation(self, observation, True, True, 21)
         test_observation(self, observation, True, True, 20)
+        test_observation(self, observation, True, True, 21)
+        test_observation(self, observation, True, True, 22)
+
+        observation = complete_composite(6, True, 22)
+        test_observation(self, observation, True, True, 20)
+        test_observation(self, observation, True, True, 21)
+        test_observation(self, observation, True, True, 22)
 
 
 def minimal_simple(depth, bounds_is_circle, version):
@@ -249,8 +253,10 @@ def complete_composite(depth, bounds_is_circle, version):
 def test_observation(self, observation, validate, write_empty_collections, version):
     if version == 20:
         writer = ObservationWriter(
-            validate, write_empty_collections, "caom2",
-            caom2.xml.caom2_xml_constants.CAOM20_NAMESPACE)
+            validate, write_empty_collections, "caom2", CAOM20_NAMESPACE)
+    elif version == 21:
+        writer = ObservationWriter(
+            validate, write_empty_collections, "caom2", CAOM21_NAMESPACE)
     else:
         writer = ObservationWriter(validate, write_empty_collections)
     xmlfile = open('/tmp/test.xml', 'w')
@@ -446,8 +452,7 @@ def comparePlanes(self, expected, actual, version):
         if version == 21:
             compareQuality(self, expected_plane.quality, actual_plane.quality)
 
-        compareArtifacts(self, expected_plane.artifacts,
-                         actual_plane.artifacts)
+        compareArtifacts(self, expected_plane.artifacts, actual_plane.artifacts, version)
 
 
 def compareProvenance(self, expected, actual):
@@ -494,7 +499,7 @@ def compareInputs(self, expected, actual):
         self.assertEqual(expected_plane_uri, actual_plane_uri)
 
 
-def compareArtifacts(self, expected, actual):
+def compareArtifacts(self, expected, actual, version):
     if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)
@@ -511,21 +516,17 @@ def compareArtifacts(self, expected, actual):
         self.assertEqual(expected_artifact._id, actual_artifact._id)
         self.assertIsNotNone(expected_artifact._last_modified)
         self.assertIsNotNone(actual_artifact._last_modified)
-        self.assertEqual(expected_artifact._last_modified,
-                         actual_artifact._last_modified)
+        self.assertEqual(expected_artifact._last_modified, actual_artifact._last_modified)
         self.assertEqual(expected_artifact.uri, actual_artifact.uri)
-        self.assertEqual(expected_artifact.content_type,
-                         actual_artifact.content_type)
-        self.assertEqual(expected_artifact.content_length,
-                         actual_artifact.content_length)
-        self.assertEqual(expected_artifact.product_type,
-                         actual_artifact.product_type)
-        self.assertEqual(expected_artifact.alternative,
-                         actual_artifact.alternative)
-        compareParts(self, expected_artifact.parts, actual_artifact.parts)
+        self.assertEqual(expected_artifact.content_type, actual_artifact.content_type)
+        self.assertEqual(expected_artifact.content_length, actual_artifact.content_length)
+        self.assertEqual(expected_artifact.product_type, actual_artifact.product_type)
+        if version > 21:
+            self.assertEqual(expected_artifact.release_type, actual_artifact.release_type)
+        compareParts(self, expected_artifact.parts, actual_artifact.parts, version)
 
 
-def compareParts(self, expected, actual):
+def compareParts(self, expected, actual, version):
     if expected is None and actual is None:
         return
     self.assertIsNotNone(expected)

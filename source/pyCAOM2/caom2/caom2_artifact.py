@@ -72,12 +72,13 @@
 
 """
 
+from urlparse import urlparse
+
+import util.caom2_util as util
 from caom2_entity import AbstractCaom2Entity
-from caom2_enums import ProductType
+from caom2_enums import ProductType, ReleaseType
 from caom2_part import Part
 from util.caom2_util import TypedOrderedDict
-from urlparse import urlparse
-import util.caom2_util as util
 
 
 class Artifact(AbstractCaom2Entity):
@@ -96,10 +97,10 @@ class Artifact(AbstractCaom2Entity):
 
     def __init__(self,
                  uri,
+                 product_type,
+                 release_type,
                  content_type=None,
                  content_length=None,
-                 product_type=None,
-                 alternative=False,
                  parts=None
                  ):
         """
@@ -111,10 +112,10 @@ class Artifact(AbstractCaom2Entity):
         """
         super(Artifact, self).__init__()
         self.uri = uri
+        self.product_type = product_type
+        self.release_type = release_type
         self.content_type = content_type
         self.content_length = content_length
-        self.product_type = product_type
-        self.alternative = alternative
         if parts is None:
             parts = TypedOrderedDict((Part),)
         self.parts = parts
@@ -126,40 +127,10 @@ class Artifact(AbstractCaom2Entity):
         return hash(self._key())
 
     @property
-    def content_type(self):
-        """content-type (http header style) of the content represented by this
-        artifact.
-
-        """
-        return self._content_type
-
-    @property
     def key(self):
         """Dictionary key for artifact is its URI
-
         """
         return self._uri
-
-    @content_type.setter
-    def content_type(self, value):
-        util.typeCheck(value, str, "content_type")
-        self._content_type = value
-
-    @property
-    def content_length(self):
-        """size of the artifact.
-
-        Unit: byte
-        type: int
-
-        """
-        return self._content_length
-
-    @content_length.setter
-    def content_length(self, value):
-        util.typeCheck(value, long, "content_length")
-        util.valueCheck(value, 0, 1E10, "content_length")
-        self._content_length = value
 
     @property
     def uri(self):
@@ -189,52 +160,59 @@ class Artifact(AbstractCaom2Entity):
         type:  caom2.ProductType
         restricted to caom2.ProductType.names()
 
-        eg.  Artifcat.product_type = caom2.ProductType('SCIENCE')
-
+        eg.  Artifact.product_type = caom2.ProductType('SCIENCE')
         """
-
-        if self._product_type == None:
-            return self._compute_product_type()
         return self._product_type
-
-    def _compute_product_type(self):
-        """Loop over the parts and if they all have the same product_type then
-        return that, else None
-
-        """
-        common = None
-        for part in self.parts.itervalues():
-            if common is None:
-                common = part.product_type
-            else:
-                if common != part.product_type:
-                    common = None
-                    break
-
-        return common
 
     @product_type.setter
     def product_type(self, value):
-        if value is not None:
-            assert isinstance(value, ProductType), (
-                    "product type is not a ProductType: {0}".format(value))
+        util.typeCheck(value, ProductType, "product_type", False)
         self._product_type = value
 
     @property
-    def alternative(self):
-        """This artifact is an alternative representation.
+    def release_type(self):
+        """The release type associated with the Artifact.
 
-        type: bool  (True/False)
+        type:   caom2.ReleaseType
+        restricted to caom2.ReleaseType.names()
+
+        eg. Artifact.release = caom2.ReleaseType('META')
+        """
+        return self._release_type
+
+    @release_type.setter
+    def release_type(self, value):
+        util.typeCheck(value, ReleaseType, "release_type", False)
+        self._release_type = value
+
+    @property
+    def content_type(self):
+        """content-type (http header style) of the content represented by this
+        artifact.
 
         """
-        return self._alternative
+        return self._content_type
 
-    @alternative.setter
-    def alternative(self, value):
-        if not isinstance(value, bool):
-            raise TypeError(
-                "alternative must be boolean. received: {0}".format(value))
-        self._alternative = value
+    @content_type.setter
+    def content_type(self, value):
+        util.typeCheck(value, str, "content_type")
+        self._content_type = value
+
+    @property
+    def content_length(self):
+        """size of the artifact.
+
+        Unit: byte
+        type: int
+
+        """
+        return self._content_length
+
+    @content_length.setter
+    def content_length(self, value):
+        util.typeCheck(value, long, "content_length")
+        util.valueCheck(value, 0, 1E10, "content_length")
+        self._content_length = value
 
     @property
     def parts(self):

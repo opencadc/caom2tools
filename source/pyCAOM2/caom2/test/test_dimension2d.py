@@ -70,13 +70,9 @@
 
 """ Defines TestDimension2D class """
 
-from caom2.wcs.caom2_dimension2d import Dimension2D
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_dimension2d import Dimension2D
 
 
 class TestDimension2D(unittest.TestCase):

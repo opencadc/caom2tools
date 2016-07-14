@@ -70,16 +70,11 @@
 
 """ Defines TestTemporalWCS class """
 
-
-from caom2.wcs.caom2_temporal_wcs import TemporalWCS
-from caom2.wcs.caom2_axis import Axis
-from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.wcs.caom2_axis import Axis
+from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
+from caom2.wcs.caom2_temporal_wcs import TemporalWCS
 
 
 class TestTemporalWCS(unittest.TestCase):

@@ -70,13 +70,9 @@
 
 """ Defines TestMetrics class """
 
-from caom2.caom2_metrics import Metrics
-import os
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.caom2_metrics import Metrics
 
 
 class TestMetrics(unittest.TestCase):

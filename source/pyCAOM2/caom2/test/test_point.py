@@ -69,13 +69,9 @@
 #
 
 """ Defines TestPoint class """
-from caom2.types.caom2_point import Point
-import os.path
-import sys
 import unittest
 
-# put build at the start of the search path
-sys.path.insert(0, os.path.abspath('../../lib.local/lib'))
+from caom2.types.caom2_point import Point
 
 
 class TestPoint(unittest.TestCase):
