@@ -1,10 +1,8 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-"""Client script to access the CAOM-2 Observation Repository"""
-
-#***********************************************************************                                                                                   
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************                                                                                   
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************                                                                                   
+#***********************************************************************
+#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #                                                                                                                                                          
 #  (c) 2010.                            (c) 2010.                                                                                                          
 #  Government of Canada                 Gouvernement du Canada                                                                                             
@@ -69,9 +67,12 @@
 #
 #***********************************************************************
 #
-__author__ = 'jenkinsd'
 
 import caom2repoClient
+
+__author__ = 'jenkinsd'
+
+"""Client script to access the CAOM-2 Observation Repository"""
 
 if __name__ == '__main__':
     client = caom2repoClient.CAOM2RepoClient()

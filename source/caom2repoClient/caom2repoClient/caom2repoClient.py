@@ -1,10 +1,7 @@
-#
-# -*- coding: utf-8 -*-
-"""Client script to access the CAOM-2 repository Observations."""
-
-#***********************************************************************                                                                                   
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************                                                                                   
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************                                                                                   
+## -*- coding: utf-8 -*-
+#***********************************************************************
+#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #                                                                                                                                                          
 #  (c) 2010.                            (c) 2010.                                                                                                          
 #  Government of Canada                 Gouvernement du Canada                                                                                             
@@ -70,23 +67,24 @@
 #***********************************************************************
 #
 
+import base64
+import errno
+import httplib
+import logging
+import netrc
+import os
+import sys
+import time
+from argparse import ArgumentParser
+from httplib import HTTPSConnection, HTTPConnection
+from urlparse import urlparse
+
 __author__ = 'jenkinsd'
 
-from util.caom2_properties import RegistryProperties
-#from caom2.caom2_exceptions import ObservationParsingException
-from urlparse import urlparse
-from httplib import HTTPSConnection, HTTPConnection
-from argparse import ArgumentParser
-import httplib
-import netrc
-import sys
-import base64
-import os
-import errno
-import logging
-import time
 
 class CAOM2RepoClient:
+
+    """Client script to access the CAOM-2 repository Observations."""
 
     CAOM2REPO_REGISTRY_PROP_DIR_VAR = "CADC_ROOT"
 
@@ -129,29 +127,18 @@ class CAOM2RepoClient:
         if arguments.debug:
             logging.basicConfig(level=logging.DEBUG)
 
-        # CAOM-2 Repository registry lookup.
-        self.CAOM2_SERVICE_URI = 'ivo://cadc.nrc.ca/caom2repo'
-        if CAOM2RepoClient.CAOM2REPO_REGISTRY_PROP_DIR_VAR in os.environ \
-           and os.path.isfile(os.environ[CAOM2RepoClient.CAOM2REPO_REGISTRY_PROP_DIR_VAR]
-                              + '/config/' + RegistryProperties.FILE_NAME):
-            registryClientPropertiesDir= \
-                os.environ[CAOM2RepoClient.CAOM2REPO_REGISTRY_PROP_DIR_VAR] \
-                + '/config'
-        else:
-            # Otherwise, read from the EGG file.
-            registryClientPropertiesDir = None
-
         # Doing retries?
         self.retries = None
         if arguments.retry:
             self.retries = int(arguments.retry)
 
         self.SERVICE_PROTOCOL = 'https'
-        self.REGISTRY = RegistryProperties(registryClientPropertiesDir)
-        self.SERVICE_URL = self.REGISTRY.get_service_url(self.CAOM2_SERVICE_URI,
-                                                        self.SERVICE_PROTOCOL)
-
-        logging.info("Found Service URL: '%s'" % self.SERVICE_URL)
+        self.SERVICE_URL = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo'
+        repoHost = os.getenv('CAOM2_REPO_HOST')
+        if repoHost is not None:
+            url = urlparse(self.SERVICE_URL)
+            self.SERVICE_URL = url.scheme + '://' + repoHost + url.path
+        logging.info("Service URL: '%s'" % self.SERVICE_URL)
 
         if arguments.get_action:
             logging.info("GET ACTION")
@@ -167,7 +154,7 @@ class CAOM2RepoClient:
             self.remove(arguments.delete_action[0])
         else:
             parser.print_help()
-            print 
+            print
 
 
     #
@@ -192,7 +179,7 @@ class CAOM2RepoClient:
             sys.exit(errno.ENOENT)
         elif status >= 400:
             logging.error('Unable to retrieve Observation with URI \'%s\'.\n' % observationURI)
-            logging.error('Server Returned: ' + httplib.responses[status] + ' ('\
+            logging.error('Server Returned: ' + httplib.responses[status] + ' ('
                           + str(status) + ')\n' + response.read())
             sys.exit(errno.ENOEXEC)
         else:
@@ -214,15 +201,11 @@ class CAOM2RepoClient:
         try:
 
             xmlfile = open(filename)
-            response = self.send_request("PUT", observationURI,
-                                         {'Content-Type': 'text/xml'},
-                                         xmlfile.read())
+            response = self.send_request("PUT", observationURI, {'Content-Type': 'text/xml'}, xmlfile.read())
             status = response.status
             
             if status == 503 and self.retries:
-                status = self.retry("PUT", observationURI,
-                                    {'Content-Type': 'text/xml'},
-                                    xmlfile.read())
+                status = self.retry("PUT", observationURI, {'Content-Type': 'text/xml'}, xmlfile.read())
 
             if status == 404:
                 logging.error('No such collection found for URI \'%s\'' % observationURI)
@@ -231,16 +214,16 @@ class CAOM2RepoClient:
                 msg = ''
                 for hmsg in response.msg.headers:
                     msg = msg + hmsg
-                logging.error('Unable to create Observation from file ' + filename \
-                             + '\nServer Returned: ' + httplib.responses[status] + ' (' \
-                             + str(status) + ')\n' + msg + response.read())
+                logging.error('Unable to create Observation from file ' + filename
+                              + '\nServer Returned: ' + httplib.responses[status] + ' ('
+                              + str(status) + ')\n' + msg + response.read())
                 sys.exit(errno.ENOEXEC)
             else:
                 logging.info('Successfully created Observation\n')
 
         except IOError as ioerr:
-            logging.error('\nAborting due to error!\nUnable to read file '\
-                         + filename + '\n' + str(ioerr) + '\n')
+            logging.error('\nAborting due to error!\nUnable to read file '
+                          + filename + '\n' + str(ioerr) + '\n')
             sys.exit(errno.EIO)
         finally:
             if not xmlfile is None:
@@ -258,34 +241,28 @@ class CAOM2RepoClient:
 
         try:
             xmlfile = open(filename)
-            response = self.send_request("POST", observationURI,
-                                         {'Content-Type': 'text/xml'},
-                                         xmlfile.read())
+            response = self.send_request("POST", observationURI, {'Content-Type': 'text/xml'}, xmlfile.read())
             status = response.status
             
             if status == 503 and self.retries:
-                status = self.retry("POST", observationURI,
-                                    {'Content-Type': 'text/xml'},
-                                    xmlfile.read())
+                status = self.retry("POST", observationURI, {'Content-Type': 'text/xml'}, xmlfile.read())
 
             if status == 404:
-                logging.error('Observation with URI \'%s\' does not exist.\n'
-                              % observationURI)
+                logging.error('Observation with URI \'%s\' does not exist.\n' % observationURI)
                 sys.exit(errno.ENOENT)
             elif status >= 400:
                 msg = ''
                 for hmsg in response.msg.headers:
                     msg = msg + hmsg
-                logging.error('Unable to update Observation from file ' + filename\
-                              + '\nServer Returned: ' + httplib.responses[status] + ' ('\
+                logging.error('Unable to update Observation from file ' + filename
+                              + '\nServer Returned: ' + httplib.responses[status] + ' ('
                               + str(status) + ')\n' + msg + response.read())
                 sys.exit(errno.ENOEXEC)
             else:
                 logging.info('Successfully updated Observation\n')
 
         except IOError as ioerr:
-            logging.error('Aborting due to error!\nUnable to read file '\
-                          + filename + '\n' + str(ioerr) + '\n')
+            logging.error('Aborting due to error!\nUnable to read file ' + filename + '\n' + str(ioerr) + '\n')
             sys.exit(errno.EIO)
         finally:
             if not xmlfile is None:
@@ -307,9 +284,9 @@ class CAOM2RepoClient:
             logging.error('No such Observation found with URI \'%s\'.\n' % observationURI)
             sys.exit(errno.ENOENT)
         elif status >= 400:
-            logging.error('Unable to remove Observation with URI \'' + observationURI \
-                  + '\'.\n\n' + httplib.responses[status] + ' (' + str(status) \
-                  + ')\n' + response.read())
+            logging.error('Unable to remove Observation with URI \'' + observationURI
+                          + '\'.\n\n' + httplib.responses[status] + ' (' + str(status)
+                          + ')\n' + response.read())
             sys.exit(errno.ENOEXEC)
         else:
             logging.info('Successfully removed Observation %s' % observationURI + '\n')
@@ -333,18 +310,14 @@ class CAOM2RepoClient:
 
         if self.SERVICE_PROTOCOL == 'https':
             try:
-                with open(os.path.join(os.environ['HOME'], '.ssl/cadcproxy.pem')) \
-                                                                            as certfile:
-                    conn = HTTPSConnection(serviceURLResult.hostname, 443,
-                                           None, certfile.name)
-                    conn.request(method, serviceURLResult.path + '/pub/' + path,
-                                 payload, headers)
-                    logging.debug("Making request to " + self.SERVICE_URL
-                                  + '/pub/' + path)
+                with open(os.path.join(os.environ['HOME'], '.ssl/cadcproxy.pem')) as certfile:
+                    logging.info('certfile {}'.format(certfile))
+                    conn = HTTPSConnection(serviceURLResult.hostname, 443, None, certfile.name)
+                    conn.request(method, serviceURLResult.path + '/pub/' + path, payload, headers)
+                    logging.debug("Making request to " + self.SERVICE_URL + '/pub/' + path)
                     return conn.getresponse()
             except IOError as e:
-                logging.error('No usable credentials to connect to '
-                              + self.SERVICE_URL + '/' + path + '\n')
+                logging.error('No usable credentials to connect to ' + self.SERVICE_URL + '/' + path + '\n')
                 logging.error(str(e) + "\n")
                 sys.exit(errno.EACCES)
         elif self.SERVICE_PROTOCOL == 'http':
@@ -367,8 +340,7 @@ class CAOM2RepoClient:
                 headers.update({'Authorization': 'Basic %s' % base64string})
 
             conn.request(method, serviceURLResult.path + '/auth/' + path, payload, headers)
-            logging.debug('Making request to ' + self.SERVICE_URL + '/auth/'
-                        + path)
+            logging.debug('Making request to ' + self.SERVICE_URL + '/auth/' + path)
             
             return conn.getresponse()
         else:

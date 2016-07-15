@@ -32,7 +32,7 @@
 #-*/
 
 PYTHON=$(/usr/bin/which python)
-TEST_SUBJECT="../../caom2repo.py -v"
+TEST_SUBJECT="../../scripts/caom2repo.py -v"
 VERSION_OUTPUT_1=$(${TEST_SUBJECT} --version 2>&1)
 
 if [[ ! $VERSION_OUTPUT_1 = 'caom2repo.py 1.0' ]]
@@ -42,7 +42,7 @@ then
   exit -1
 fi
 
-HELP_OUTPUT_1=$(${TEST_SUBJECT} 2>&1 | head -3 | tail -1)
+HELP_OUTPUT_1=$(${TEST_SUBJECT} 2>&1 | head -2 | tail -1)
 
 if [[ ! $HELP_OUTPUT_1 = 'usage: caom2repo.py [-h] [--version] [-v] [-d]' ]]
 then
