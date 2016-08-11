@@ -70,9 +70,8 @@
 
 """Definition of the caom2.telescope class"""
 
-from caom2_object import Caom2Object
-from util.caom2_util import TypedList
 import util.caom2_util  as util
+from caom2_object import Caom2Object
 
 
 class Telescope(Caom2Object):
@@ -98,7 +97,7 @@ class Telescope(Caom2Object):
         self.geo_location_y = geo_location_y
         self.geo_location_z = geo_location_z
         if keywords is None:
-            keywords = TypedList((str),)
+            keywords = set()
         self.keywords = keywords
 
     # Properties
@@ -120,17 +119,17 @@ class Telescope(Caom2Object):
 
     @property
     def keywords(self):
-        """A type list that contains keywords assocaited with this telescope
+        """A set that contains keywords associated with this telescope
 
         eg.  keywords.add('big')
-        type: TypedList
+        type: set
 
         """
         return self._keywords
 
     @keywords.setter
     def keywords(self, value):
-        util.typeCheck(value, TypedList, 'keywords', override=False)
+        util.typeCheck(value, set, 'keywords', override=False)
         self._keywords = value
 
     @property

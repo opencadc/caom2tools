@@ -120,18 +120,15 @@ class TestProvenance(unittest.TestCase):
         now_date = datetime.now()
         provenance.last_executed = now_date
         self.assertEquals(now_date, provenance.last_executed, "Last executed")
+
         self.assertEquals(0, len(provenance.keywords), "0 default keywords")
-        provenance.keywords.append("keyword1")
+        provenance.keywords.add("keyword1")
         self.assertEquals(1, len(provenance.keywords), "1 keyword")
-        self.assertEquals("keyword1", provenance.keywords[0],
-                          "first keyword value")
-        provenance.keywords.append("keyword2")
-        self.assertEquals(2, len(provenance.keywords), "2 keywords")
-        self.assertEquals("keyword1", provenance.keywords[0],
-                          "first keyword value")
-        self.assertEquals("keyword2", provenance.keywords[1],
-                          "second keyword value")
-        #provenance.keywords.append("URI") #TODO
+        self.assertTrue("keyword1" in provenance.keywords, "Keyword not found")
+
+        provenance.keywords.add("keyword2")
+        self.assertEquals(2, len(provenance.keywords), "2 keyword")
+        self.assertTrue("keyword2" in provenance.keywords, "Keyword not found")
 
         # test the full constructor
         provenance = Provenance("MyOtherProvenance",

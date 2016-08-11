@@ -121,8 +121,9 @@
                         propertyname="python.executable"
                         target="int-test_executable"/>
     </target>
-    <target name="int-test_executable">
+    <target name="int-test_executable" depends="build">
         <echo message="test ${build}/lib/${python.executable}/site-packages using ${python.executable}"/>
+        <echo message="CADC_ROOT = ${env.CADC_ROOT}" />
         <apply executable="${python.executable}"
             dir="test"
             failonerror="true">

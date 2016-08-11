@@ -83,6 +83,7 @@ import sys
 import struct
 import uuid
 
+
 class TypedList(collections.MutableSequence):
     """
     Class that implements a typed list in Python. Supported types

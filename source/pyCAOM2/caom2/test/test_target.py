@@ -83,30 +83,34 @@ class TestTarget(unittest.TestCase):
 
         target = Target("myTarget")
         self.assertEqual("myTarget", target.name, "target name")
+
         target.target_type = TargetType.FIELD
         self.assertEqual(TargetType.FIELD, target.target_type, "target type")
+
         self.assertEqual(0, len(target.keywords), "Default number of keywords")
-        target.keywords.append("optical")
+        target.keywords.add("optical")
         self.assertEqual(1, len(target.keywords), "Number of keywords")
-        self.assertEqual("optical", target.keywords[0], "Keyword")
+        self.assertTrue("optical" in target.keywords, "Keyword not found")
+
         self.assertIsNone(target.redshift, "Default redshift")
         target.redshift = 123.321
         self.assertEqual(123.321, target.redshift, "Redshift")
+
         self.assertIsNone(target.standard, "Default standard")
         target.standard = True
         self.assertTrue(target.standard, "Standard")
+
         self.assertIsNone(target.moving, "Default moving")
         target.moving = True
         self.assertTrue(target.moving, "Moving")
 
-        target = Target("myOtherTarget", TargetType.OBJECT, False, 1.2,
-                        TypedList((str), "radio"), False)
+        target = Target("myOtherTarget", TargetType.OBJECT, False, 1.2, {"radio"}, False)
         self.assertEquals("myOtherTarget", target.name, "target name")
         self.assertEquals(TargetType.OBJECT, target.target_type, "target type")
         self.assertFalse(target.standard, "Standard")
         self.assertEquals(1.2, target.redshift, "Redshift")
         self.assertEquals(1, len(target.keywords), "Keywords")
-        self.assertEquals("radio", target.keywords[0], "Keywords")
+        self.assertTrue("radio" in target.keywords, "Keywords")
         self.assertFalse(target.moving, "Moving")
 
 

@@ -131,7 +131,7 @@ class Caom2TestInstances(object):
     _collection = "collection"
     _observation_id = "observationID"
     _product_id = "productId"
-    _keywords = TypedList(str, "keyword1", "keyword2")
+    _keywords = {"keyword1", "keyword2"}
     _ivoa_date = datetime(2012, 07, 11, 13, 26, 37, 0)
 
     def __init__(self):
@@ -224,7 +224,7 @@ class Caom2TestInstances(object):
         proposal.pi_name = "proposalPi"
         proposal.project = "proposalProject"
         proposal.title = "proposalTitle"
-        proposal.keywords.extend(Caom2TestInstances._keywords)
+        proposal.keywords.update(Caom2TestInstances._keywords)
         return proposal
 
     def get_target(self):
@@ -232,7 +232,7 @@ class Caom2TestInstances(object):
         target.target_type = TargetType.OBJECT
         target.standard = False
         target.redshift = 1.5
-        target.keywords.extend(Caom2TestInstances._keywords)
+        target.keywords.update(Caom2TestInstances._keywords)
         return target
 
     def get_target_position(self):
@@ -249,12 +249,12 @@ class Caom2TestInstances(object):
         telescope.geo_location_x = 1.0
         telescope.geo_location_y = 2.0
         telescope.geo_location_z = 3.0
-        telescope.keywords.extend(Caom2TestInstances._keywords)
+        telescope.keywords.update(Caom2TestInstances._keywords)
         return telescope
 
     def get_instrument(self):
         instrument = Instrument("instrumentName")
-        instrument.keywords.extend(Caom2TestInstances._keywords)
+        instrument.keywords.update(Caom2TestInstances._keywords)
         return instrument
 
     def get_environment(self):
@@ -300,7 +300,7 @@ class Caom2TestInstances(object):
         provenance.run_id = "run_id"
         provenance.reference = "http://foo/bar"
         provenance.last_executed = Caom2TestInstances._ivoa_date
-        provenance.keywords.extend(Caom2TestInstances._keywords)
+        provenance.keywords.update(Caom2TestInstances._keywords)
         provenance.inputs.update(self.get_inputs())
         return provenance
 

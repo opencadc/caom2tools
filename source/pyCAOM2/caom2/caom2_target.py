@@ -70,10 +70,9 @@
 
 """defines the caom2.Target class"""
 
-from caom2_object import Caom2Object
-from util.caom2_util import TypedList
-from caom2_enums import TargetType
 import util.caom2_util as util
+from caom2_enums import TargetType
+from caom2_object import Caom2Object
 
 
 class Target(Caom2Object):
@@ -98,7 +97,7 @@ class Target(Caom2Object):
         self.standard = standard
         self.redshift = redshift
         if keywords is None:
-            keywords = TypedList((str),)
+            keywords = set()
         self.keywords = keywords
         self.moving = moving
 
@@ -139,22 +138,22 @@ class Target(Caom2Object):
 
     @property
     def keywords(self):
-        """A TypeList of keywords associated with this target.
+        """A set of keywords associated with this target.
 
         eg. keywords.add('galaxy')
-        type: TypedList
+        type: set
 
         """
         return self._keywords
 
     @keywords.setter
     def keywords(self, value):
-        util.typeCheck(value, TypedList, 'keywords', override=False)
+        util.typeCheck(value, set, 'keywords', override=False)
         self._keywords = value
 
     @property
     def standard(self):
-        """Is this a standrad field?
+        """Is this a standard field?
 
         eg True
         type: bool

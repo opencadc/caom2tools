@@ -70,9 +70,8 @@
 
 """contains the definition of the caom2.Instrument object"""
 
-from caom2_object import Caom2Object
-from util.caom2_util import TypedList
 import util.caom2_util as util
+from caom2_object import Caom2Object
 
 
 class Instrument(Caom2Object):
@@ -97,7 +96,7 @@ class Instrument(Caom2Object):
         """
         util.typeCheck(name, str, 'name', override='none')
         self._name = name
-        self._keywords = TypedList((str),)
+        self._keywords = set()
 
     # Properties
     @property
@@ -110,7 +109,7 @@ class Instrument(Caom2Object):
 
     @property
     def keywords(self):
-        """A list of strings that are keywords associated with the instrument.
+        """A set of strings that are keywords associated with the instrument.
 
         eg.  keywords.append(("ccd=off","hot","shutter broken"))
 

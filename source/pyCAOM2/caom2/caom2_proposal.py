@@ -95,7 +95,7 @@ class Proposal(Caom2Object):
         self.project = project
         self.title = title
 
-        self.keywords = TypedList((str),)
+        self.keywords = set()
 
     # Properties
 
@@ -114,20 +114,20 @@ class Proposal(Caom2Object):
 
     @property
     def keywords(self):
-        """A list of keywords connected to this proposal.
+        """A Set of keywords connected to this proposal.
 
         keywords are stored as a string of words and do not need to be
-        key/valye pairs.
+        key/value pairs.
 
         eg. Proposal.keywords.add('galaxies')
 
-        type: TypedList((str),)
+        type: set
         """
         return self._keywords
 
     @keywords.setter
     def keywords(self, value):
-        util.typeCheck(value, TypedList, 'keywords', override=False)
+        util.typeCheck(value, set, 'keywords', override=False)
         self._keywords = value
 
     @property

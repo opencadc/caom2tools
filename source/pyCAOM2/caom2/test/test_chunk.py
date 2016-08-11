@@ -73,6 +73,7 @@
 import unittest
 
 from caom2.caom2_chunk import Chunk
+from caom2.caom2_enums import ProductType
 from caom2.wcs.caom2_axis import Axis
 from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
 from caom2.wcs.caom2_coord_axis2d import CoordAxis2D

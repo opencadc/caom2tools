@@ -80,11 +80,10 @@ class TestProposal(unittest.TestCase):
     def testAll(self):
         proposal = Proposal("myProposal")
         self.assertEqual("myProposal", proposal.proposal_id, "Proposal ID")
-        self.assertEqual(0, len(proposal.keywords),
-                         "Default number of keywords")
-        proposal.keywords.append("optical")
+        self.assertEqual(0, len(proposal.keywords), "Default number of keywords")
+        proposal.keywords.add("optical")
         self.assertEqual(1, len(proposal.keywords), "Number of keywords")
-        self.assertEqual("optical", proposal.keywords[0], "Keyword")
+        self.assertTrue("optical" in proposal.keywords, "Keyword not found")
         self.assertIsNone(proposal.pi_name, "Default PI")
         proposal.pi_name = "John Doe"
         self.assertEqual("John Doe", proposal.pi_name, "PI")

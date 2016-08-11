@@ -80,11 +80,15 @@ class TestPlane(unittest.TestCase):
     def testAll(self):
         instrument = Instrument("myInstrument")
         self.assertEqual("myInstrument", instrument.name, "Instrument name")
-        self.assertEqual(0, len(instrument.keywords),
-                         "Default number of keywords")
-        instrument.keywords.append("optical")
+        self.assertEqual(0, len(instrument.keywords), "Default number of keywords")
+
+        instrument.keywords.add("optical")
         self.assertEqual(1, len(instrument.keywords), "Number of keywords")
-        self.assertEqual("optical", instrument.keywords[0], "Keyword")
+        self.assertTrue("optical" in instrument.keywords, "Keyword not found")
+
+        instrument.keywords.add("radio")
+        self.assertEqual(2, len(instrument.keywords), "Number of keywords")
+        self.assertTrue("radio" in instrument.keywords, "Keyword not found")
 
 
 if __name__ == '__main__':
