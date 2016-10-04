@@ -3,11 +3,10 @@ python:
   - "2.7"
 
 #before_install:
+- sudo apt-get -qq update
 
 # command to install dependencies
 install:
-  - pip install .
-  - pip install -r requirements.txt
 
 # command to run tests
-script: for mod in caom2visitor; do cd $mod; py.test --cov=$mod || break -1; cd ..; done
+script: for mod in caom2visitor; do cd $mod; virtualenv venv; source venv/bin/activate; pip install .; pip install -r requirements; py.test --cov=$mod || break -1; deactivate; cd ..; done
