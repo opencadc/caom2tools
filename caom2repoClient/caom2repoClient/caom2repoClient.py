@@ -86,7 +86,15 @@ class CAOM2RepoClient:
 
     """Client script to access the CAOM-2 repository Observations."""
 
-    CAOM2REPO_REGISTRY_PROP_DIR_VAR = "CADC_ROOT"
+    def __init__(self):
+        self.retries = None
+        self.SERVICE_PROTOCOL = 'https'
+        self.SERVICE_URL = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo'
+        repoHost = os.getenv('CAOM2_REPO_HOST')
+        if repoHost is not None:
+            url = urlparse(self.SERVICE_URL)
+            self.SERVICE_URL = url.scheme + '://' + repoHost + url.path
+        logging.info("Service URL: '%s'" % self.SERVICE_URL)
 
     #
     # Main function for execution.  This function will delegate to proper functions.
@@ -128,17 +136,9 @@ class CAOM2RepoClient:
             logging.basicConfig(level=logging.DEBUG)
 
         # Doing retries?
-        self.retries = None
         if arguments.retry:
             self.retries = int(arguments.retry)
 
-        self.SERVICE_PROTOCOL = 'https'
-        self.SERVICE_URL = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo'
-        repoHost = os.getenv('CAOM2_REPO_HOST')
-        if repoHost is not None:
-            url = urlparse(self.SERVICE_URL)
-            self.SERVICE_URL = url.scheme + '://' + repoHost + url.path
-        logging.info("Service URL: '%s'" % self.SERVICE_URL)
 
         if arguments.get_action:
             logging.info("GET ACTION")
@@ -313,8 +313,8 @@ class CAOM2RepoClient:
                 with open(os.path.join(os.environ['HOME'], '.ssl/cadcproxy.pem')) as certfile:
                     logging.info('certfile {}'.format(certfile))
                     conn = HTTPSConnection(serviceURLResult.hostname, 443, None, certfile.name)
-                    conn.request(method, serviceURLResult.path + '/pub/' + path, payload, headers)
-                    logging.debug("Making request to " + self.SERVICE_URL + '/pub/' + path)
+                    conn.request(method, serviceURLResult.path + '/pub' + path, payload, headers)
+                    logging.debug("Making request to " + self.SERVICE_URL + '/pub' + path)
                     return conn.getresponse()
             except IOError as e:
                 logging.error('No usable credentials to connect to ' + self.SERVICE_URL + '/' + path + '\n')
@@ -370,4 +370,4 @@ class CAOM2RepoClient:
             time.sleep(sleep_time)
             response = self.send_request(method, observationURI, headers, payload)
             status = response.status
-        return status
+        return response
