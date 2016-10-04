@@ -9,4 +9,4 @@ python:
 install:
 
 # command to run tests
-script: for mod in caom2visitor; do cd $mod; virtualenv venv; source venv/bin/activate; pip install .; pip install -r requirements; py.test --cov=$mod || break -1; deactivate; cd ..; done
+script: for mod in caom2visitor; do cd $mod; virtualenv venv; source venv/bin/activate; pip install -r dev_requirements.txt; py.test --cov=$mod || break -1; deactivate; cd ..; done
