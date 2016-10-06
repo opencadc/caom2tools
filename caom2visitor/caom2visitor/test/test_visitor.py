@@ -216,7 +216,7 @@ class TestCAOM2Visitor(unittest.TestCase):
         self.assertEquals(expect_observations, visitor._get_observations())
         self.assertEquals(end_date, visitor.current_start)
         repo.send_request.assert_called_once_with('GET', 
-            'ivo://cadc.nrc.ca/caom2repo/cfht', 
+            '/cfht',
             {"Content-type": "application/x-www-form-urlencoded"}, 
             'MAXREC=10000')
         
@@ -229,7 +229,7 @@ class TestCAOM2Visitor(unittest.TestCase):
                 start=datetime.strptime('2000-11-11', '%Y-%m-%d'))
         visitor._get_observations()
         repo.send_request.assert_called_once_with('GET', 
-            'ivo://cadc.nrc.ca/caom2repo/cfht', 
+            '/cfht',
             {"Content-type": "application/x-www-form-urlencoded"}, 
             'START=2000-11-11T00%3A00%3A00.000000&MAXREC=100')
         del os.environ['CAOM2_VISITOR_BATCH_SIZE']
@@ -240,7 +240,7 @@ class TestCAOM2Visitor(unittest.TestCase):
                 end=datetime.strptime('2000-11-11', '%Y-%m-%d'))
         visitor._get_observations()
         repo.send_request.assert_called_once_with('GET', 
-            'ivo://cadc.nrc.ca/caom2repo/cfht', 
+            '/cfht',
             {"Content-type": "application/x-www-form-urlencoded"}, 
             'END=2000-11-11T00%3A00%3A00.000000&MAXREC=10000')
         
@@ -251,7 +251,7 @@ class TestCAOM2Visitor(unittest.TestCase):
                 end=datetime.strptime('2000-11-12', '%Y-%m-%d'))
         visitor._get_observations()
         repo.send_request.assert_called_once_with('GET', 
-            'ivo://cadc.nrc.ca/caom2repo/cfht', 
+            '/cfht',
             {"Content-type": "application/x-www-form-urlencoded"}, 
             'START=2000-11-11T00%3A00%3A00.000000&' +\
             'END=2000-11-12T00%3A00%3A00.000000&MAXREC=10000')
@@ -290,11 +290,11 @@ class TestCAOM2Visitor(unittest.TestCase):
         self.assertEquals(expect_observations, visitor._get_observations())
         self.assertEquals(end_date, visitor.current_start)
         repo.send_request.assert_called_once_with('GET', 
-            'ivo://cadc.nrc.ca/caom2repo/cfht', 
+            '/cfht',
             {"Content-type": "application/x-www-form-urlencoded"}, 
             'MAXREC=10000')
         repo.retry.assert_called_once_with('GET', 
-            'ivo://cadc.nrc.ca/caom2repo/cfht', 
+            '/cfht',
             {"Content-type": "application/x-www-form-urlencoded"}, 
             'MAXREC=10000')
                 

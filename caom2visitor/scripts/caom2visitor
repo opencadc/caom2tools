@@ -135,6 +135,13 @@ Minimum plugin file format:
     """
     
     args = parser.parse_args()
+
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
     
     plugin = args.plugin
     if not os.path.isfile(args.plugin):

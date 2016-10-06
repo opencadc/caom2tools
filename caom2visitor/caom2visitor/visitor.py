@@ -149,18 +149,18 @@ class CAOM2Visitor:
             params['START'] = self.current_start.strftime(DATE_FORMAT)
         if self.end:
             params['END'] = self.end.strftime(DATE_FORMAT)
-        response = self._repo_client.send_request("GET", self.collection_uri, 
+        response = self._repo_client.send_request("GET", "/{}".format(self.collection),
             {"Content-type": "application/x-www-form-urlencoded"}, 
             urllib.urlencode(params))
         
         if response.status == 503 and self.retries:
-            response = self._repo_client.retry("GET", self.collection_uri, 
+            response = self._repo_client.retry("GET", "/{}".format(self.collection),
                         {"Content-type": "application/x-www-form-urlencoded"}, 
                         urllib.urlencode(params))
 
         if response.status == 404:
-            logging.error('Cannot find the CAOM2 collection at %s. \n' % 
-                          self.collection_uri)
+            logging.error('Cannot find the %s collection at %s. \n' %
+                          (self.collection, self._repo_client.SERVICE_URL))
             raise IOError(errno.ENOENT)
         elif response.status >= 400:
             logging.error(
