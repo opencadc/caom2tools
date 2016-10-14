@@ -150,7 +150,7 @@ class TestCAOM2Visitor(unittest.TestCase):
         
         self.assertEquals(obs, visitor._get_observation('700000o'))
         conn.request.assert_called_once_with(
-            'GET', '/caom2repo/pub/caom2repo/cfht/700000o', '',
+            'GET', '/caom2repo/pub/cfht/700000o', '',
             {})
         
         # signal some problems
@@ -199,7 +199,7 @@ class TestCAOM2Visitor(unittest.TestCase):
         response = MagicMock()
         response.status = 200
         last_datetime = '2000-10-10T12:30:00.333'
-        response.read.return_value = '700000o\t2000-10-10T12:20:11.123\n700001o\t' +\
+        response.read.return_value = '700000o,2000-10-10T12:20:11.123\n700001o,' +\
             last_datetime
         repo = mock_repo.return_value
         repo.send_request.return_value = response
@@ -319,7 +319,7 @@ class TestCAOM2Visitor(unittest.TestCase):
         visitor._persist_observation('700000o', obs)
         
         conn.request.assert_called_once_with(
-            'POST', '/caom2repo/pub/caom2repo/cfht/700000o', obsxml,
+            'POST', '/caom2repo/pub/cfht/700000o', obsxml,
             {'Content-Type': 'text/xml'})
         
         conn.reset_mock()
@@ -356,10 +356,10 @@ class TestCAOM2Visitor(unittest.TestCase):
                 THIS_DIR, 'passplugin.py'), 'cfht', retries=2)
         visitor._persist_observation('700000o', obs) 
         conn.request.assert_called_with(
-            'POST', '/caom2repo/pub/caom2repo/cfht/700000o', obsxml,
+            'POST', '/caom2repo/pub/cfht/700000o', obsxml,
             {'Content-Type': 'text/xml'})
         
-          
+
     @patch('test_visitor.CAOM2Visitor._get_observation', MagicMock(), create = True)
     @patch('test_visitor.CAOM2Visitor._persist_observation', MagicMock(), create = True)
     @patch('test_visitor.CAOM2Visitor._get_observations')
@@ -370,13 +370,13 @@ class TestCAOM2Visitor(unittest.TestCase):
                 THIS_DIR, 'passplugin.py'), 'cfht')
         visitor.plugin = MagicMock()
         self.assertEquals(4, visitor.process())
-        
+
         mock_obs.side_effect = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
         visitor = CAOM2Visitor(os.path.join(
                 THIS_DIR, 'passplugin.py'), 'cfht')
         visitor.plugin = MagicMock()
         self.assertEquals(6, visitor.process())
-        
+
 
 def run():
     suite1 = unittest.TestLoader().loadTestsFromTestCase(TestCAOM2Visitor)

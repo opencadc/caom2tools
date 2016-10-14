@@ -129,6 +129,7 @@ class CAOM2Visitor:
         while len(observations) > 0:
             for observationID in observations:
                 observation = self._get_observation(observationID)
+                logging.info("Process observation: " + observation.observation_id)
                 self.plugin.update(observation)
                 self._persist_observation(observationID, observation)
                 count = count + 1
@@ -174,7 +175,7 @@ class CAOM2Visitor:
             data = response.read()
             last_datetime = None
             for line in data.splitlines():
-                (obs, last_datetime) = line.split('\t')
+                (obs, last_datetime) = line.split(',')
                 observations.append(obs)
         if last_datetime is not None:
             self.current_start = datetime.strptime(last_datetime, DATE_FORMAT)
@@ -205,10 +206,11 @@ class CAOM2Visitor:
             
     
     def _get_observation(self, observationID):
-        logging.info("GET " + observationID)
-        uri = self.collection_uri + '/' + observationID
+        logging.debug("GET " + observationID)
+        uri = '/' + self.collection + '/' + observationID
         response = self._repo_client.send_request("GET", uri, {}, '')
-        
+
+        logging.debug("GET status: " + str(response.status))
         if response.status == 503 and self.retries:
             response = self._repo_client.retry("GET", uri, {}, '')
 
@@ -223,16 +225,20 @@ class CAOM2Visitor:
             raise IOError(errno.ENOEXEC)
         else:
             obs_reader = ObservationReader()
-            return obs_reader.read(StringIO(response.read()))       
+            content = response.read()
+            if len(content) == 0:
+                response.close()
+                raise Exception("Got empty response for uri: " + uri)
+            return obs_reader.read(StringIO(content))
         
     def _persist_observation(self, observationID, observation):
-        uri = self.collection_uri + '/' + observationID
+        uri = '/' + self.collection + '/' + observationID
         ibuffer = StringIO()
         ObservationWriter().write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         response = self._repo_client.send_request(
             "POST", uri, {'Content-Type': 'text/xml'}, obs_xml)
-        
+
         if response.status == 503 and self.retries:
             response = self._repo_client.retry(
             "POST", uri, {'Content-Type': 'text/xml'}, obs_xml)
@@ -250,7 +256,7 @@ class CAOM2Visitor:
                           + str(response.status) + ')\n' + msg + response.read())
             raise IOError(errno.ENOEXEC)
         else:
-            logging.info('Successfully updated Observation\n')
+            logging.debug('Successfully updated Observation\n')
 
 
     

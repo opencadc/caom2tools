@@ -311,7 +311,7 @@ class CAOM2RepoClient:
         if self.SERVICE_PROTOCOL == 'https':
             try:
                 with open(os.path.join(os.environ['HOME'], '.ssl/cadcproxy.pem')) as certfile:
-                    logging.info('certfile {}'.format(certfile))
+                    logging.debug('certfile {}'.format(certfile))
                     conn = HTTPSConnection(serviceURLResult.hostname, 443, None, certfile.name)
                     conn.request(method, serviceURLResult.path + '/pub' + path, payload, headers)
                     logging.debug("Making request to " + self.SERVICE_URL + '/pub' + path)
