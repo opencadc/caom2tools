@@ -1,5 +1,6 @@
 import sys
 import os
+from caom2visitor import __version__
 
 if sys.version_info[0] > 2:
     print "The  is only compatible with Python version 2.n"
@@ -27,15 +28,15 @@ except:
 execfile('caom2visitor/__version__.py')
 
 setup(name="caom2visitor",
-      version=version,
+      version=__version__.version,
       url="https://github.com/opencadc/caom2tools/caom2visitor",
       description="Tool to update the records in a CAOM2 data collection.",
       author="Adrian Damian",
       maintainer="CADC",
       maintainer_email="cadc@nrc-cnrc.gc.ca",
-      long_description="""A tool that visits observations in a data collection. 
-                          It loads every visited observation and calls a user 
-                          provided python method to update it before 
+      long_description="""A tool that visits observations in a data collection.
+                          It loads every visited observation and calls a user
+                          provided python method to update it before
                           persisting it back in the collection.""",
       license="AGPLv3",
       packages=find_packages(exclude=['']),
