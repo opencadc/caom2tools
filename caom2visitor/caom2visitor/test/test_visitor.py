@@ -127,7 +127,7 @@ class TestCAOM2Visitor(unittest.TestCase):
    
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('caom2repoClient.caom2repoClient.time.sleep', MagicMock(), create=True)
-    @patch('__main__.open', MagicMock(), create=True)
+    @patch('caom2repoClient.caom2repoClient.open', MagicMock(), create=True)
     @patch('caom2repoClient.caom2repoClient.HTTPSConnection')
     def test_get_observation(self, mock_conn):
                 
@@ -189,7 +189,7 @@ class TestCAOM2Visitor(unittest.TestCase):
 
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('caom2repoClient.caom2repoClient.time.sleep', MagicMock(), create=True)
-    @patch('__main__.open', MagicMock(), create=True)
+    @patch('caom2repoClient.caom2repoClient.open', MagicMock(), create=True)
     @patch('caom2visitor.visitor.CAOM2RepoClient')
     def test_get_observations(self, mock_repo):
         # This is almost similar to the previous test except that it gets
@@ -301,7 +301,7 @@ class TestCAOM2Visitor(unittest.TestCase):
     
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('caom2repoClient.caom2repoClient.time.sleep', MagicMock(), create=True)
-    @patch('__main__.open', MagicMock(), create=True)
+    @patch('caom2repoClient.caom2repoClient.open', MagicMock(), create=True)
     @patch('caom2repoClient.caom2repoClient.HTTPSConnection')
     def test_persist_observation(self, mock_conn):
         obs = SimpleObservation('cfht', '7000000o')
