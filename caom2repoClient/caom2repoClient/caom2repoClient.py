@@ -96,6 +96,12 @@ class CAOM2RepoClient:
             self.SERVICE_URL = url.scheme + '://' + repoHost + url.path
         logging.info("Service URL: '%s'" % self.SERVICE_URL)
 
+    def set_server(self, server):
+        """ Sets the host server for the CAOM2 repo service"""
+        if server is not None:
+            url = urlparse(self.SERVICE_URL)
+            self.SERVICE_URL = url.scheme + '://' + server + url.path
+
     #
     # Main function for execution.  This function will delegate to proper functions.
     #
@@ -123,6 +129,8 @@ class CAOM2RepoClient:
         parser.add_argument('--retry', required=False, nargs='?', const=3,
                             metavar=("<number of retries>"),
                             help="Retry the command on transient errors. Default is 3 retries unless a value is specified")
+        parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
+                            help="Host server for the CAOM2 repo service")
         parser.epilog = 'Environment:\n' \
             + 'CADC_ROOT: location of lib/python-2.7/site-packages [REQUIRED]\n' \
             + 'CAOM2_REPO_HOST : force a specific server for caom2 repository [OPTIONAL]\n'
@@ -139,6 +147,7 @@ class CAOM2RepoClient:
         if arguments.retry:
             self.retries = int(arguments.retry)
 
+        set_server(args.server)
 
         if arguments.get_action:
             logging.info("GET ACTION")

@@ -90,7 +90,7 @@ class CAOM2Visitor:
 
     """Class to visit the observation of a collection in CAOM2."""
 
-    def __init__(self, plugin, collection, start=None, end=None, retries=0):
+    def __init__(self, plugin, collection, start=None, end=None, retries=0, server=None):
         if not os.path.isfile(plugin):
             raise Exception('Cannot find plugin file ' + plugin)
         self.collection = collection
@@ -106,15 +106,13 @@ class CAOM2Visitor:
             self.retries = int(retries)
         else:
             self.retries = 0
-        if os.getenv('CAOM2_VISITOR_BATCH_SIZE') is not None:
-            self.batch_size = int(os.getenv('CAOM2_VISITOR_BATCH_SIZE'))
-        else:
-            self.batch_size = BATCH_SIZE
 
         self.collection_uri = SERVICE_URI + '/' +\
             self.collection
         # repo client to use
         self._repo_client = CAOM2RepoClient()
+        if server is not None:
+            self._repo_client.set_server(server)
         self._repo_client.retries = self.retries
         
     
@@ -133,7 +131,7 @@ class CAOM2Visitor:
                 self.plugin.update(observation)
                 self._persist_observation(observationID, observation)
                 count = count + 1
-            if len(observations) == self.batch_size:
+            if len(observations) == BATCH_SIZE:
                 observations = self._get_observations()
             else:
                 # the last batch was smaller so it must have been the last
@@ -145,7 +143,7 @@ class CAOM2Visitor:
         Returns a list of datasets from the collection
         """
         observations = []
-        params = {'MAXREC':self.batch_size}
+        params = {'MAXREC':BATCH_SIZE}
         if self.current_start:
             params['START'] = self.current_start.strftime(DATE_FORMAT)
         if self.end:
@@ -227,6 +225,7 @@ class CAOM2Visitor:
             obs_reader = ObservationReader()
             content = response.read()
             if len(content) == 0:
+                logging.error(response.status)
                 response.close()
                 raise Exception("Got empty response for uri: " + uri)
             return obs_reader.read(StringIO(content))

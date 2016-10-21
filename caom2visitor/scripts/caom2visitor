@@ -78,10 +78,10 @@ from caom2visitor import CAOM2Visitor
 from caom2visitor.commonparser import CommonParser
 
 description =\
-    """
+"""
     Visitor over a data collection in CAOM2 observation repository. The
-    code provided in the plugin is for updating each visited observation.    
-    """
+    code provided in the plugin is for updating each visited observation.
+"""
 
 
 def parse_date(s):
@@ -114,25 +114,28 @@ def run():
     parser.add_argument('--retries', metavar='<number of retries>',
                         type=int,
                         help='number of tries with transient server errors');
+    parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
+                      help="URL of the CAOM2 repo server")
+
     parser.add_argument('collection', metavar='<datacollection>', type=str,
                 help='data collection in CAOM2 repo')
     parser.epilog =\
-    """
+"""
 Environment:
        CAOM2_VISITOR_BATCH_SIZE: the size of a get batch
-       
+
 Minimum plugin file format:
-----   
+----
    from caom2.caom2_observation import Observation
 
    class ObservationUpdater:
-    
+
     def update(self, observation):
         assert isinstance(observation, Observation), (
             'observation {} is not an Observation'.format(observation))
         # custom code to update the observation
----- 
-    """
+----
+"""
     
     args = parser.parse_args()
 
@@ -156,7 +159,7 @@ Minimum plugin file format:
     logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
            format(plugin, start, end, collection, retries))
     client = CAOM2Visitor(plugin=plugin, start=start, end=end, 
-                          collection=collection, retries=retries)
+                          collection=collection, retries=retries, server=args.server)
     client.process()
     logging.debug("debug")
     

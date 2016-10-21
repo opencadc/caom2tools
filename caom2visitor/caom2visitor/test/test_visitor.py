@@ -76,6 +76,7 @@ from mock import Mock, patch, MagicMock
 from StringIO import StringIO
 from datetime import datetime
 
+import caom2visitor
 from caom2visitor import CAOM2Visitor
 from caom2visitor.visitor import DATE_FORMAT
 from caom2.caom2_simple_observation import SimpleObservation
@@ -219,21 +220,7 @@ class TestCAOM2Visitor(unittest.TestCase):
             '/cfht',
             {"Content-type": "application/x-www-form-urlencoded"}, 
             'MAXREC=10000')
-        
-        # check the generated urls for different parameters
-        repo.reset_mock()
-        #set the size of a batch
-        os.environ['CAOM2_VISITOR_BATCH_SIZE'] = '100'
-        visitor = CAOM2Visitor(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', 
-                start=datetime.strptime('2000-11-11', '%Y-%m-%d'))
-        visitor._get_observations()
-        repo.send_request.assert_called_once_with('GET', 
-            '/cfht',
-            {"Content-type": "application/x-www-form-urlencoded"}, 
-            'START=2000-11-11T00%3A00%3A00.000000&MAXREC=100')
-        del os.environ['CAOM2_VISITOR_BATCH_SIZE']
-        
+
         repo.reset_mock()
         visitor = CAOM2Visitor(os.path.join(
                 THIS_DIR, 'passplugin.py'), 'cfht', 
@@ -364,7 +351,7 @@ class TestCAOM2Visitor(unittest.TestCase):
     @patch('test_visitor.CAOM2Visitor._persist_observation', MagicMock(), create = True)
     @patch('test_visitor.CAOM2Visitor._get_observations')
     def test_process(self, mock_obs):
-        os.environ['CAOM2_VISITOR_BATCH_SIZE'] = '3' # size of the batch is 3
+        caom2visitor.visitor.BATCH_SIZE = 3 # size of the batch is 3
         mock_obs.side_effect = [['a', 'b', 'c'], ['d'], []]
         visitor = CAOM2Visitor(os.path.join(
                 THIS_DIR, 'passplugin.py'), 'cfht')

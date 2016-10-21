@@ -102,7 +102,7 @@ class TestCAOM2Visitor(unittest.TestCase):
         # this is how to call the run function
         getattr(py_mod, 'run')()
         mock_visitor.assert_called_with(
-            plugin=plugin_file, start=None, end=None, collection='ad', retries=None)
+            plugin=plugin_file, start=None, end=None, collection='ad', retries=None, server=None)
         
         
         # test with start time argument        
@@ -112,7 +112,7 @@ class TestCAOM2Visitor(unittest.TestCase):
         getattr(py_mod, 'run')()
         mock_visitor.assert_called_with(
             plugin=plugin_file, start=datetime.strptime(start_date, '%Y-%m-%d'), 
-            end=None, collection='ad', retries=None)
+            end=None, collection='ad', retries=None, server=None)
         
         
         # test with end time argument        
@@ -122,7 +122,7 @@ class TestCAOM2Visitor(unittest.TestCase):
         getattr(py_mod, 'run')()
         mock_visitor.assert_called_with(
             plugin=plugin_file, end=datetime.strptime(end_date, '%Y-%m-%d'), 
-            start=None, collection='ad', retries=None)
+            start=None, collection='ad', retries=None, server=None)
         
         
         # test with start and end time arguments      
@@ -133,18 +133,18 @@ class TestCAOM2Visitor(unittest.TestCase):
         mock_visitor.assert_called_with(
             plugin=plugin_file, end=datetime.strptime(end_date, '%Y-%m-%d'), 
             start=datetime.strptime(start_date, '%Y-%m-%d'), collection='ad', 
-            retries=None)
+            retries=None, server=None)
         
 
         # test with retries
         mock_visitor.reset_mock()
         sys.argv = ['caom2visitor', '--plugin', plugin_file, '--end', end_date, 
-                    '--start', start_date, '--retries' , '7', 'ad']
+                    '--start', start_date, '--retries' , '7', '--server', 'www.test.net', 'ad']
         getattr(py_mod, 'run')()
         mock_visitor.assert_called_with(
             plugin=plugin_file, end=datetime.strptime(end_date, '%Y-%m-%d'), 
             start=datetime.strptime(start_date, '%Y-%m-%d'), collection='ad', 
-            retries=7)
+            retries=7, server='www.test.net')
         
         
         # test the help option 
@@ -156,24 +156,24 @@ class TestCAOM2Visitor(unittest.TestCase):
             
             
         expected_out=\
-"""usage: caom2visitor [-h] [--certfile CERTFILE] [--token TOKEN] [--version]
-                    [-d] [-v] [-w] --plugin <pluginClassFile>
+"""usage: caom2visitor [-h] [--cert <CertFile>] [--token <TokenString>]
+                    [--version] [-d] [-v] [-w] --plugin <pluginClassFile>
                     [--start <datetime start point>]
                     [--end <datetime end point>]
-                    [--retries <number of retries>]
+                    [--retries <number of retries>] [-s <CAOM2 service URL>]
                     <datacollection>
 
     Visitor over a data collection in CAOM2 observation repository. The
-    code provided in the plugin is for updating each visited observation.    
-    
+    code provided in the plugin is for updating each visited observation.
 
 positional arguments:
   <datacollection>      data collection in CAOM2 repo
 
 optional arguments:
   -h, --help            show this help message and exit
-  --certfile CERTFILE   location of your CADC security certificate file
-  --token TOKEN         token string (alternative to certfile)
+  --cert <CertFile>     location of your CADC security certificate file
+  --token <TokenString>
+                        token string (alternative to certfile)
   --version             show program's version number and exit
   -d, --debug           Print debug level log messages
   -v, --verbose         Print verbose level log messages
@@ -186,22 +186,23 @@ optional arguments:
                         earliest dataset to visit (UTC %Y-%m-%d format)
   --retries <number of retries>
                         number of tries with transient server errors
+  -s <CAOM2 service URL>, --server <CAOM2 service URL>
+                        URL of the CAOM2 repo server
 
 Environment:
        CAOM2_VISITOR_BATCH_SIZE: the size of a get batch
-       
+
 Minimum plugin file format:
-----   
+----
    from caom2.caom2_observation import Observation
 
    class ObservationUpdater:
-    
+
     def update(self, observation):
         assert isinstance(observation, Observation), (
             'observation {} is not an Observation'.format(observation))
         # custom code to update the observation
----- 
-    
+----
 """
         self.assertEquals(expected_out, mock_print.getvalue())
         

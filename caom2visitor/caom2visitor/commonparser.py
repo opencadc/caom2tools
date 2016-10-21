@@ -19,11 +19,11 @@ class CommonParser(ArgumentParser):
         self.log_level = logging.ERROR
 
         # now add on the common parameters
-        self.add_argument("--certfile",
+        self.add_argument("--cert", metavar=('<CertFile>'),
                         help="location of your CADC security certificate file",
                         default=os.path.join(os.getenv("HOME", "."),
                                              ".ssl/cadcproxy.pem"))
-        self.add_argument("--token",
+        self.add_argument("--token", metavar=('<TokenString>'),
                         help="token string (alternative to certfile)",
                         default=None)
         self.add_argument('--version', action='version', version='%(prog)s ' +\
