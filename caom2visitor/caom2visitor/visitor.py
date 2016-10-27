@@ -110,10 +110,9 @@ class CAOM2Visitor:
         self.collection_uri = SERVICE_URI + '/' +\
             self.collection
         # repo client to use
-        self._repo_client = CAOM2RepoClient()
-        if server is not None:
-            self._repo_client.set_server(server)
+        self._repo_client = CAOM2RepoClient(server)
         self._repo_client.retries = self.retries
+        logging.info('Service URL: {}'.format(self._repo_client.SERVICE_URL))
         
     
     def process(self):
@@ -209,7 +208,7 @@ class CAOM2Visitor:
         response = self._repo_client.send_request("GET", uri, {}, '')
 
         logging.debug("GET status: " + str(response.status))
-        if response.status == 503 and self.retries:
+        if response.status == 503 and (self.retries > 0):
             response = self._repo_client.retry("GET", uri, {}, '')
 
         if response.status == 404:
@@ -238,7 +237,7 @@ class CAOM2Visitor:
         response = self._repo_client.send_request(
             "POST", uri, {'Content-Type': 'text/xml'}, obs_xml)
 
-        if response.status == 503 and self.retries:
+        if response.status == 503 and (self.retries > 0):
             response = self._repo_client.retry(
             "POST", uri, {'Content-Type': 'text/xml'}, obs_xml)
 

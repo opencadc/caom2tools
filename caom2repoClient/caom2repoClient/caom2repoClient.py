@@ -86,15 +86,15 @@ class CAOM2RepoClient:
 
     """Client script to access the CAOM-2 repository Observations."""
 
-    def __init__(self):
+    def __init__(self, server=None):
         self.retries = None
         self.SERVICE_PROTOCOL = 'https'
         self.SERVICE_URL = 'https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo'
         repoHost = os.getenv('CAOM2_REPO_HOST')
         if repoHost is not None:
-            url = urlparse(self.SERVICE_URL)
-            self.SERVICE_URL = url.scheme + '://' + repoHost + url.path
-        logging.info("Service URL: '%s'" % self.SERVICE_URL)
+            self.set_server(repoHost)
+        if server is not None:
+            self.set_server(server)
 
     def set_server(self, server):
         """ Sets the host server for the CAOM2 repo service"""
@@ -148,6 +148,7 @@ class CAOM2RepoClient:
             self.retries = int(arguments.retry)
 
         set_server(args.server)
+        logging.info("Service URL: '%s'" % self.SERVICE_URL)
 
         if arguments.get_action:
             logging.info("GET ACTION")
@@ -180,7 +181,7 @@ class CAOM2RepoClient:
 
         status = response.status
         
-        if status == 503 and self.retries:
+        if status == 503 and (self.retries > 0):
             status = self.retry("GET", observationURI, {}, '')
 
         if status == 404:
@@ -213,7 +214,7 @@ class CAOM2RepoClient:
             response = self.send_request("PUT", observationURI, {'Content-Type': 'text/xml'}, xmlfile.read())
             status = response.status
             
-            if status == 503 and self.retries:
+            if status == 503 and (self.retries > 0):
                 status = self.retry("PUT", observationURI, {'Content-Type': 'text/xml'}, xmlfile.read())
 
             if status == 404:
@@ -253,7 +254,7 @@ class CAOM2RepoClient:
             response = self.send_request("POST", observationURI, {'Content-Type': 'text/xml'}, xmlfile.read())
             status = response.status
             
-            if status == 503 and self.retries:
+            if status == 503 and (self.retries > 0):
                 status = self.retry("POST", observationURI, {'Content-Type': 'text/xml'}, xmlfile.read())
 
             if status == 404:
@@ -286,7 +287,7 @@ class CAOM2RepoClient:
         response = self.send_request("DELETE", observationURI, {}, '')
         status = response.status
         
-        if status == 503 and self.retries:
+        if status == 503 and (self.retries > 0):
             status = self.retry("DELETE", observationURI, {}, '')
 
         if status == 404:

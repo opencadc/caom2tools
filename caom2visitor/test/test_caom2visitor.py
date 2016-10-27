@@ -189,9 +189,6 @@ optional arguments:
   -s <CAOM2 service URL>, --server <CAOM2 service URL>
                         URL of the CAOM2 repo server
 
-Environment:
-       CAOM2_VISITOR_BATCH_SIZE: the size of a get batch
-
 Minimum plugin file format:
 ----
    from caom2.caom2_observation import Observation

@@ -121,9 +121,6 @@ def run():
                 help='data collection in CAOM2 repo')
     parser.epilog =\
 """
-Environment:
-       CAOM2_VISITOR_BATCH_SIZE: the size of a get batch
-
 Minimum plugin file format:
 ----
    from caom2.caom2_observation import Observation
