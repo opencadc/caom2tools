@@ -1,0 +1,425 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#***********************************************************************
+#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+#
+#  (c) 2010.                            (c) 2010.
+#  Government of Canada                 Gouvernement du Canada
+#  National Research Council            Conseil national de recherches
+#  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
+#  All rights reserved                  Tous droits réservés
+#
+#  NRC disclaims any warranties,        Le CNRC dénie toute garantie
+#  expressed, implied, or               énoncée, implicite ou légale,
+#  statutory, of any kind with          de quelque nature que ce
+#  respect to the software,             soit, concernant le logiciel,
+#  including without limitation         y compris sans restriction
+#  any warranty of merchantability      toute garantie de valeur
+#  or fitness for a particular          marchande ou de pertinence
+#  purpose. NRC shall not be            pour un usage particulier.
+#  liable in any event for any          Le CNRC ne pourra en aucun cas
+#  damages, whether direct or           être tenu responsable de tout
+#  indirect, special or general,        dommage, direct ou indirect,
+#  consequential or incidental,         particulier ou général,
+#  arising from the use of the          accessoire ou fortuit, résultant
+#  software.  Neither the name          de l'utilisation du logiciel. Ni
+#  of the National Research             le nom du Conseil National de
+#  Council of Canada nor the            Recherches du Canada ni les noms
+#  names of its contributors may        de ses  participants ne peuvent
+#  be used to endorse or promote        être utilisés pour approuver ou
+#  products derived from this           promouvoir les produits dérivés
+#  software without specific prior      de ce logiciel sans autorisation
+#  written permission.                  préalable et particulière
+#                                       par écrit.
+#
+#  This file is part of the             Ce fichier fait partie du projet
+#  OpenCADC project.                    OpenCADC.
+#
+#  OpenCADC is free software:           OpenCADC est un logiciel libre ;
+#  you can redistribute it and/or       vous pouvez le redistribuer ou le
+#  modify it under the terms of         modifier suivant les termes de
+#  the GNU Affero General Public        la “GNU Affero General Public
+#  License as published by the          License” telle que publiée
+#  Free Software Foundation,            par la Free Software Foundation
+#  either version 3 of the              : soit la version 3 de cette
+#  License, or (at your option)         licence, soit (à votre gré)
+#  any later version.                   toute version ultérieure.
+#
+#  OpenCADC is distributed in the       OpenCADC est distribué
+#  hope that it will be useful,         dans l’espoir qu’il vous
+#  but WITHOUT ANY WARRANTY;            sera utile, mais SANS AUCUNE
+#  without even the implied             GARANTIE : sans même la garantie
+#  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
+#  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
+#  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
+#  General Public License for           Générale Publique GNU Affero
+#  more details.                        pour plus de détails.
+#
+#  You should have received             Vous devriez avoir reçu une
+#  a copy of the GNU Affero             copie de la Licence Générale
+#  General Public License along         Publique GNU Affero avec
+#  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
+#  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+#                                       <http://www.gnu.org/licenses/>.
+#
+#  $Revision: 4 $
+#
+#***********************************************************************
+#
+
+""" Defines TestChunk class """
+
+import unittest
+
+from caom2.artifact import ProductType
+from caom2.chunk import Chunk
+from caom2.chunk import ObservableAxis
+from caom2.chunk import PolarizationWCS
+from caom2.chunk import SpatialWCS
+from caom2.chunk import SpectralWCS
+from caom2.chunk import TemporalWCS
+from caom2.plane import EnergyTransition
+from caom2.wcs import Axis
+from caom2.wcs import CoordAxis1D
+from caom2.wcs import CoordAxis2D
+from caom2.wcs import Slice
+
+
+class TestChunk(unittest.TestCase):
+
+    def test_init(self):
+
+        chunk = Chunk()
+        self.assertIsNone(chunk.product_type)
+        self.assertIsNone(chunk.naxis)
+        #self.assertIsNone(chunk.observable_axis)
+        self.assertIsNone(chunk.position_axis_1)
+        self.assertIsNone(chunk.position_axis_2)
+        self.assertIsNone(chunk.energy_axis)
+        self.assertIsNone(chunk.time_axis)
+        self.assertIsNone(chunk.polarization_axis)
+        self.assertIsNone(chunk.observable)
+        self.assertIsNone(chunk.position)
+        self.assertIsNone(chunk.energy)
+        self.assertIsNone(chunk.time)
+        self.assertIsNone(chunk.polarization)
+
+    def test_attributes(self):
+
+        chunk = Chunk()
+        with self.assertRaises(TypeError):
+            chunk.product_type = float(1.0)
+            chunk.naxis = float(1.0)
+            #chunk.observable_axis = float(1.0)
+            chunk.position_axis_1 = float(1.0)
+            chunk.position_axis_2 = float(1.0)
+            chunk.energy_axis = float(1.0)
+            chunk.time_axis = float(1.0)
+            chunk.polarization_axis = float(1.0)
+            chunk.observable = float(1.0)
+            chunk.position = float(1.0)
+            chunk.energy = float(1.0)
+            chunk.time = float(1.0)
+            chunk.polarization = float(1.0)
+
+        chunk.product_type = ProductType.SCIENCE
+        self.assertEqual(ProductType.SCIENCE, chunk.product_type)
+
+        chunk.naxis = int(5)
+        self.assertEqual(int(5), chunk.naxis)
+
+        #chunk.observable_axis = int(2)
+        #self.assertEqual(int(2), chunk.observable_axis)
+
+        chunk.position_axis_1 = int(1)
+        self.assertEqual(int(1), chunk.position_axis_1)
+
+        chunk.position_axis_2 = int(2)
+        self.assertEqual(int(2), chunk.position_axis_2)
+
+        chunk.energy_axis = int(3)
+        self.assertEqual(int(3), chunk.energy_axis)
+
+        chunk.time_axis = int(4)
+        self.assertEqual(int(4), chunk.time_axis)
+
+        chunk.polarization_axis = int(5)
+        self.assertEqual(int(5), chunk.polarization_axis)
+
+        axis = Axis("ctype", "cunit")
+        dependent = Slice(axis, long(1))
+        observable = ObservableAxis(dependent)
+        chunk.observable = observable
+        self.assertEqual(observable, chunk.observable)
+
+        axis1 = Axis("ctype1", "cunit1")
+        axis2 = Axis("ctype2", "cunit2")
+        axis_2d = CoordAxis2D(axis1, axis2)
+        position = SpatialWCS(axis_2d)
+        chunk.position = position
+        self.assertEqual(position, chunk.position)
+
+        axis_1d = CoordAxis1D(axis)
+        energy = SpectralWCS(axis_1d, "specsys")
+        chunk.energy = energy
+        self.assertEqual(energy, chunk.energy)
+
+        time = TemporalWCS(axis_1d)
+        chunk.time = time
+        self.assertEqual(time, chunk.time)
+
+        polarization = PolarizationWCS(CoordAxis1D(Axis('STOKES')))
+        chunk.polarization = polarization
+        self.assertEqual(polarization, chunk.polarization)
+
+#    def test_compare_to(self):
+#        # test for chunk1 == chunk2
+#        chunk1 = Chunk()
+#        chunk1.naxis = 1
+#        chunk1.observableAxis = 2
+#        chunk1.positionAxis1 = 3
+#        chunk1.positionAxis2 = 4
+#        chunk1.energyAxis = 5
+#        chunk1.timeAxis = 6
+#        chunk1.polarizationAxis = 7
+#        chunk1.observable = ObservableAxis()
+#        chunk1.position = SpatialWCS()
+#        chunk1.energy = SpectralWCS()
+#        chunk1.time = TemporalWCS()
+#        chunk1.polarization = PolarizationWCS()
+
+#        chunk2 = Chunk()
+#        chunk2.naxis = 1
+#        chunk2.observableAxis = 2
+#        chunk2.positionAxis1 = 3
+#        chunk2.positionAxis2 = 4
+#        chunk2.energyAxis = 5
+#        chunk2.timeAxis = 6
+#        chunk2.polarizationAxis = 7
+#        chunk2.observable = ObservableAxis()
+#        chunk2.position = SpatialWCS()
+#        chunk2.energy = SpectralWCS()
+#        chunk2.time = TemporalWCS()
+#        chunk2.polarization = PolarizationWCS()
+
+        # test for chunk1 < chunk2
+#        chunk1 = Chunk()
+#        chunk1.naxis = 1
+#        chunk1.observableAxis = 2
+#        chunk1.positionAxis1 = 3
+#        chunk1.positionAxis2 = 4
+#        chunk1.energyAxis = 5
+#        chunk1.timeAxis = 6
+#        chunk1.polarizationAxis = 7
+#        chunk1.observable = ObservableAxis()
+#        chunk1.position = SpatialWCS()
+#        chunk1.energy = SpectralWCS()
+#        chunk1.time = TemporalWCS()
+#        chunk1.polarization = PolarizationWCS()
+
+#        chunk2 = Chunk()
+#        chunk2.naxis = 2
+#        chunk2.observableAxis = 2
+#        chunk2.positionAxis1 = 3
+#        chunk2.positionAxis2 = 4
+#        chunk2.energyAxis = 5
+#        chunk2.timeAxis = 6
+#        chunk2.polarizationAxis = 7
+#        chunk2.observable = ObservableAxis()
+#        chunk2.position = SpatialWCS()
+#        chunk2.energy = SpectralWCS()
+#        chunk2.time = TemporalWCS()
+#        chunk2.polarization = PolarizationWCS()
+#
+#        self.assertEqual(chunk1.compareTo(chunk2), -1,
+#                         "compareTo equal failed")
+#
+        # test for chunk1 > chunk2
+#        chunk1 = Chunk()
+#        chunk1.naxis = 2
+#        chunk1.observableAxis = 2
+#        chunk1.positionAxis1 = 3
+#        chunk1.positionAxis2 = 4
+#        chunk1.energyAxis = 5
+#        chunk1.timeAxis = 6
+#        chunk1.polarizationAxis = 7
+#        chunk1.observable = ObservableAxis()
+#        chunk1.position = SpatialWCS()
+#        chunk1.energy = SpectralWCS()
+#        chunk1.time = TemporalWCS()
+#        chunk1.polarization = PolarizationWCS()
+#
+#        chunk2 = Chunk()
+#        chunk2.naxis = 1
+#        chunk2.observableAxis = 2
+#        chunk2.positionAxis1 = 3
+#        chunk2.positionAxis2 = 4
+#        chunk2.energyAxis = 5
+#        chunk2.timeAxis = 6
+#        chunk2.polarizationAxis = 7
+#        chunk2.observable = ObservableAxis()
+#        chunk2.position = SpatialWCS()
+#        chunk2.energy = SpectralWCS()
+#        chunk2.time = TemporalWCS()
+#        chunk2.polarization = PolarizationWCS()
+
+
+class TestObservableAxis(unittest.TestCase):
+
+    def test_init(self):
+
+        self.assertRaises(TypeError, ObservableAxis, None)
+        self.assertRaises(TypeError, ObservableAxis, int(1))
+
+        dependent = Slice(Axis("ctype1", "cunit1"), long(1))
+        independent = Slice(Axis("ctype2", "cunit2"), long(2))
+
+        observable = ObservableAxis(dependent)
+        self.assertEqual(observable.dependent, dependent)
+
+        observable.independent = independent
+        self.assertEqual(observable.independent, independent)
+
+
+class TestSpatialWCS(unittest.TestCase):
+
+    def test_init(self):
+
+        self.assertRaises(TypeError, SpatialWCS, None)
+        self.assertRaises(TypeError, SpatialWCS, int(1))
+
+        axis1 = Axis("ctype1", "cunit1")
+        axis2 = Axis("ctype2", "cunit2")
+        axis_2d = CoordAxis2D(axis1, axis2)
+        position = SpatialWCS(axis_2d)
+        self.assertEqual(position.axis, axis_2d)
+        with self.assertRaises(TypeError):
+            position.coordsys = float(1.0)
+            position.bounds = str("s")
+            position.function = str("s")
+
+        position.coordsys = "coordsys"
+        self.assertEqual(position.coordsys, "coordsys")
+
+        self.assertRaises(ValueError, position.equinox, float(1.0))
+        position.equinox = float(2000.0)
+        self.assertEqual(position.equinox, float(2000.0))
+
+        position.resolution = float(2.0)
+        self.assertEqual(position.resolution, float(2.0))
+
+
+class TestSpectralWCS(unittest.TestCase):
+
+    def test_init(self):
+
+        axis = Axis("ctype", "cunit")
+        axis_1d = CoordAxis1D(axis)
+
+        self.assertRaises(TypeError, SpectralWCS, None, None)
+        self.assertRaises(TypeError, SpectralWCS, None, str("s"))
+        self.assertRaises(TypeError, SpectralWCS, axis_1d, None)
+        self.assertRaises(TypeError, SpectralWCS, int(1), str("s"))
+        self.assertRaises(TypeError, SpectralWCS, axis_1d, int(1))
+
+        energy = SpectralWCS(axis_1d, "specsys")
+        self.assertEqual(energy.axis, axis_1d)
+        self.assertEqual(energy.specsys, "specsys")
+        with self.assertRaises(TypeError):
+            energy.ssysobs = int(1)
+            energy.ssyssrc = int(1)
+            energy.restfrq = int(1)
+            energy.restwav = int(1)
+            energy.velosys = int(1)
+            energy.zsource = int(1)
+            energy.velang = int(1)
+            energy.bandpass_name = int(1)
+            energy.transition = int(1)
+            energy.resolving_power = int(1)
+
+        with self.assertRaises(ValueError):
+            energy.zsource = float(-1)
+            energy.zsource = float(1201)
+            energy.resolving_power = float(-1)
+            energy.resolving_power = float(1.1e8)
+
+
+        energy.ssysobs = "ssysobs"
+        self.assertEqual(energy.ssysobs, "ssysobs")
+
+        energy.ssyssrc = "ssyssrc"
+        self.assertEqual(energy.ssyssrc, "ssyssrc")
+
+        energy.restfrq = float(1.0)
+        self.assertEqual(energy.restfrq, float(1.0))
+
+        energy.restwav = float(2.0)
+        self.assertEqual(energy.restwav, float(2.0))
+
+        energy.velosys = float(3.0)
+        self.assertEqual(energy.velosys, float(3.0))
+
+        energy.zsource = float(4.0)
+        self.assertEqual(energy.zsource, float(4.0))
+
+        energy.velang = float(5.0)
+        self.assertEqual(energy.velang, float(5.0))
+
+        energy.bandpass_name = "bandpass_name"
+        self.assertEqual(energy.bandpass_name, "bandpass_name")
+
+        transition = EnergyTransition("species", "transition")
+        energy.transition = transition
+        self.assertEqual(energy.transition, transition)
+
+        energy.resolving_power = float(6.0)
+        self.assertEqual(energy.resolving_power, float(6.0))
+
+
+class TestTemporalWCS(unittest.TestCase):
+
+    def test_init(self):
+
+        self.assertRaises(TypeError, TemporalWCS, None)
+        self.assertRaises(TypeError, TemporalWCS, int(1))
+
+        axis = Axis("ctype", "cunit")
+        axis_1d = CoordAxis1D(axis)
+        time = TemporalWCS(axis_1d)
+        self.assertEqual(time.axis, axis_1d)
+        with self.assertRaises(TypeError):
+            time.exposure = str("s")
+            time.resolution = str("s")
+
+        time.exposure = float(1.0)
+        self.assertEqual(time.exposure, float(1.0))
+
+        time.resolution = float(2.0)
+        self.assertEqual(time.resolution, float(2.0))
+
+        time.timesys = str("timesys")
+        self.assertEqual(time.timesys, "timesys")
+
+        time.trefpos = str("trefpos")
+        self.assertEqual(time.trefpos, "trefpos")
+
+        time.mjdref = float(3.0)
+        self.assertEqual(time.mjdref, float(3.0))
+
+
+class TestPolarizationWCS(unittest.TestCase):
+
+    def test_init(self):
+
+        self.assertRaises(TypeError, PolarizationWCS, None)
+        self.assertRaises(TypeError, PolarizationWCS, int(1))
+
+        axis = Axis('STOKES')
+        axis_1d = CoordAxis1D(axis)
+        polarization = PolarizationWCS(axis_1d)
+        self.assertEqual(polarization.axis, axis_1d)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,102 +68,39 @@
 #***********************************************************************
 #
 
-""" Deines __init__ """
+import unittest
 
-#
-from caom_object import CaomObject
-from caom_object import AbstractCaomEntity
+from caom2.data_type import Point
+from caom2.data_type import SegmentType
 
-# Util classes
-from util import Util
-from util import TypedList
-from util import TypedSet
-from util import TypedOrderedDict
-from util import ClassProperty
-from util import Validator
 
-# WCS data types
-from wcs import Axis
-from wcs import Coord2D
-from wcs import CoordAxis1D
-from wcs import CoordAxis2D
-from wcs import CoordBounds1D
-from wcs import CoordBounds2D
-from wcs import CoordCircle2D
-from wcs import CoordError
-from wcs import CoordFunction1D
-from wcs import CoordFunction2D
-from wcs import CoordPolygon2D
-from wcs import CoordRange1D
-from wcs import CoordRange2D
-from wcs import Dimension2D
-from wcs import RefCoord
-from wcs import Slice
-from wcs import ValueCoord2D
-from wcs import EnergyTransition
+class TestEnums(unittest.TestCase):
 
-# Discovery data types
-from data_type import Box
-from data_type import Circle
-from data_type import Interval
-from data_type import Point
-from data_type import Polygon
-from data_type import Vertex
+    def test_all(self):
+        # test for invalid value
+        self.assertEqual(SegmentType.get(999), None)
+        self.assertRaises(AttributeError, SegmentType.get, None)
+        self.assertRaises(AttributeError, SegmentType.get, "foo")
 
-# Chunk level classes
-from chunk import Chunk
-from chunk import ObservableAxis
-from chunk import SpatialWCS
-from chunk import SpectralWCS
-from chunk import TemporalWCS
-from chunk import PolarizationWCS
+        self.assertEqual(SegmentType.CLOSE.value, 0)
+        self.assertEqual(SegmentType.LINE.value, 1)
+        self.assertEqual(SegmentType.MOVE.value, 2)
 
-# Part level classes
-from part import Part
 
-# Artifact level classes
-from artifact import Artifact
+class TestPoint(unittest.TestCase):
 
-# Plane level classes
-from plane import Plane
-from plane import PlaneURI
-from plane import DataQuality
-from plane import Metrics
-from plane import Provenance
-from plane import Position
-from plane import Energy
-from plane import EnergyTransition
-from plane import Polarization
-from plane import Time
+    def test_all(self):
 
-# Observation level classes
-from observation import Observation
-from observation import ObservationURI
-from observation import SimpleObservation
-from observation import CompositeObservation
-from observation import Algorithm
-from observation import Environment
-from observation import Proposal
-from observation import Requirements
-from observation import Target
-from observation import TargetPosition
-from observation import Telescope
+        self.assertRaises(TypeError, Point, None, None)
+        self.assertRaises(TypeError, Point, None, 1.0)
+        self.assertRaises(TypeError, Point, 1.0, None)
+        self.assertRaises(TypeError, Point, "string", int(1))
+        self.assertRaises(TypeError, Point, int(1), "string")
 
-# enums
-from artifact import ProductType
-from artifact import ReleaseType
-from plane import CalibrationLevel
-from plane import DataProductType
-from plane import EnergyBand
-from plane import PolarizationState
-from plane import Quality
-from observation import ObservationIntentType
-from observation import Status
-from observation import TargetType
+        point = Point(1.0, 2.0)
+        self.assertEqual(point.cval1, 1.0)
+        self.assertEqual(point.cval2, 2.0)
 
-# observation reader and writer
-from xml_reader_writer import ObservationReader
-from xml_reader_writer import ObservationWriter
-from xml_reader_writer import CAOM20_NAMESPACE
-from xml_reader_writer import CAOM21_NAMESPACE
-from xml_reader_writer import CAOM22_NAMESPACE
+
+if __name__ == '__main__':
+    unittest.main()

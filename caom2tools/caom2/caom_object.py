@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,102 +68,89 @@
 #***********************************************************************
 #
 
-""" Deines __init__ """
+import inspect
+import random
+import time
+import uuid
+from datetime import datetime
 
-#
-from caom_object import CaomObject
-from caom_object import AbstractCaomEntity
-
-# Util classes
 from util import Util
-from util import TypedList
-from util import TypedSet
-from util import TypedOrderedDict
-from util import ClassProperty
-from util import Validator
 
-# WCS data types
-from wcs import Axis
-from wcs import Coord2D
-from wcs import CoordAxis1D
-from wcs import CoordAxis2D
-from wcs import CoordBounds1D
-from wcs import CoordBounds2D
-from wcs import CoordCircle2D
-from wcs import CoordError
-from wcs import CoordFunction1D
-from wcs import CoordFunction2D
-from wcs import CoordPolygon2D
-from wcs import CoordRange1D
-from wcs import CoordRange2D
-from wcs import Dimension2D
-from wcs import RefCoord
-from wcs import Slice
-from wcs import ValueCoord2D
-from wcs import EnergyTransition
 
-# Discovery data types
-from data_type import Box
-from data_type import Circle
-from data_type import Interval
-from data_type import Point
-from data_type import Polygon
-from data_type import Vertex
+class CaomObject(object):
+    """
+    setup all objects with the same generic equality, str and repr methods
+    """
 
-# Chunk level classes
-from chunk import Chunk
-from chunk import ObservableAxis
-from chunk import SpatialWCS
-from chunk import SpectralWCS
-from chunk import TemporalWCS
-from chunk import PolarizationWCS
+    def __init__(self):
+        pass
 
-# Part level classes
-from part import Part
+    def __str__(self):
+        args = inspect.getargspec(self.__init__).args[1:]
+        clsName = self.__class__.__name__
+        return "\n".join(
+            ["{}.{} : {}".format(clsName,
+                                 arg,
+                                 getattr(self, arg, None))
+                                 for arg in args])
 
-# Artifact level classes
-from artifact import Artifact
+    def __eq__(self, other):
+        if type(other) == type(self):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
 
-# Plane level classes
-from plane import Plane
-from plane import PlaneURI
-from plane import DataQuality
-from plane import Metrics
-from plane import Provenance
-from plane import Position
-from plane import Energy
-from plane import EnergyTransition
-from plane import Polarization
-from plane import Time
+    def __repr__(self):
+        args = inspect.getargspec(self.__init__).args[1:]
+        clsName = ""
+        if self.__class__.__module__ != '__main__':
+            clsName += self.__class__.__module__ + "."
+        clsName += self.__class__.__name__
+        pading = " " * (len(clsName) + 1)
+        return clsName + "(" + (
+            ",\n" + pading).join(
+            ["%s=%r" % (arg, getattr(self, arg, None)
+                        ) for arg in args
+            ]
+            ) + ")"
 
-# Observation level classes
-from observation import Observation
-from observation import ObservationURI
-from observation import SimpleObservation
-from observation import CompositeObservation
-from observation import Algorithm
-from observation import Environment
-from observation import Proposal
-from observation import Requirements
-from observation import Target
-from observation import TargetPosition
-from observation import Telescope
 
-# enums
-from artifact import ProductType
-from artifact import ReleaseType
-from plane import CalibrationLevel
-from plane import DataProductType
-from plane import EnergyBand
-from plane import PolarizationState
-from plane import Quality
-from observation import ObservationIntentType
-from observation import Status
-from observation import TargetType
+class AbstractCaomEntity(CaomObject):
+    """Class that defines the persistence unique ID and last mod date """
 
-# observation reader and writer
-from xml_reader_writer import ObservationReader
-from xml_reader_writer import ObservationWriter
-from xml_reader_writer import CAOM20_NAMESPACE
-from xml_reader_writer import CAOM21_NAMESPACE
-from xml_reader_writer import CAOM22_NAMESPACE
+    def __init__(self, fulluuid=False):
+        self._id = AbstractCaomEntity._gen_id(fulluuid)
+        self._last_modified = AbstractCaomEntity._gen_last_modified()
+
+    @classmethod
+    def _gen_id(cls, fulluuid=False):
+        """Generate a 128 but UUID by default. For backwards compatibility
+        allow creation of a 64 bit UUID using a rand number for the
+        lower 64 bits. First two bytes of the random number are generated
+        with the random and the last 6 bytes from the current time
+        in microseconds.
+
+        return: UUID
+        """
+
+        if fulluuid:
+            return uuid.uuid4()
+        else:
+            vmrandom = random.randint(-int(0x7fff), int(0x7fff)) << 8 * 6
+            randtime = int(round(time.time() * 1000000))
+            randtime = randtime & 0xffffffffffff
+            rand = vmrandom | randtime
+            if rand & 0x8000000000000000:
+                rand = 0x1000000000000000 + rand
+            return Util.long2uuid(rand)
+
+    @classmethod
+    def _gen_last_modified(cls):
+        """Generate a datetime with 3 digit microsecond precision.
+
+        return: datatime
+            IVOA date format to millisecond precision.
+        """
+        now = datetime.now()
+        return datetime(now.year, now.month, now.day, now.hour, now.minute, \
+                        now.second, long(str(now.microsecond)[:-3] + '000'))

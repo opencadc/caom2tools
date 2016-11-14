@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,102 +68,82 @@
 #***********************************************************************
 #
 
-""" Deines __init__ """
+"""Defines the caom2.Part class which describes
+the caom2_Observation_Plane_Artifact_Part object."""
 
-#
-from caom_object import CaomObject
+
 from caom_object import AbstractCaomEntity
-
-# Util classes
-from util import Util
-from util import TypedList
-from util import TypedSet
-from util import TypedOrderedDict
-from util import ClassProperty
-from util import Validator
-
-# WCS data types
-from wcs import Axis
-from wcs import Coord2D
-from wcs import CoordAxis1D
-from wcs import CoordAxis2D
-from wcs import CoordBounds1D
-from wcs import CoordBounds2D
-from wcs import CoordCircle2D
-from wcs import CoordError
-from wcs import CoordFunction1D
-from wcs import CoordFunction2D
-from wcs import CoordPolygon2D
-from wcs import CoordRange1D
-from wcs import CoordRange2D
-from wcs import Dimension2D
-from wcs import RefCoord
-from wcs import Slice
-from wcs import ValueCoord2D
-from wcs import EnergyTransition
-
-# Discovery data types
-from data_type import Box
-from data_type import Circle
-from data_type import Interval
-from data_type import Point
-from data_type import Polygon
-from data_type import Vertex
-
-# Chunk level classes
 from chunk import Chunk
-from chunk import ObservableAxis
-from chunk import SpatialWCS
-from chunk import SpectralWCS
-from chunk import TemporalWCS
-from chunk import PolarizationWCS
-
-# Part level classes
-from part import Part
-
-# Artifact level classes
-from artifact import Artifact
-
-# Plane level classes
-from plane import Plane
-from plane import PlaneURI
-from plane import DataQuality
-from plane import Metrics
-from plane import Provenance
-from plane import Position
-from plane import Energy
-from plane import EnergyTransition
-from plane import Polarization
-from plane import Time
-
-# Observation level classes
-from observation import Observation
-from observation import ObservationURI
-from observation import SimpleObservation
-from observation import CompositeObservation
-from observation import Algorithm
-from observation import Environment
-from observation import Proposal
-from observation import Requirements
-from observation import Target
-from observation import TargetPosition
-from observation import Telescope
-
-# enums
 from artifact import ProductType
-from artifact import ReleaseType
-from plane import CalibrationLevel
-from plane import DataProductType
-from plane import EnergyBand
-from plane import PolarizationState
-from plane import Quality
-from observation import ObservationIntentType
-from observation import Status
-from observation import TargetType
+from util import TypedList
+from util import Util
 
-# observation reader and writer
-from xml_reader_writer import ObservationReader
-from xml_reader_writer import ObservationWriter
-from xml_reader_writer import CAOM20_NAMESPACE
-from xml_reader_writer import CAOM21_NAMESPACE
-from xml_reader_writer import CAOM22_NAMESPACE
+
+class Part(AbstractCaomEntity):
+    """A qualitative subsection of an artifact.
+       eg: a extension of a FITS file.
+
+
+       This object should contain the product_tpye attribute
+       and the list of chunks.
+    """
+
+    def __init__(self, name, product_type=None, chunks=None):
+        super(Part, self).__init__()
+        self.name = name
+        self.product_type = product_type
+        if chunks is None:
+            chunks = TypedList((Chunk),)
+        self.chunks = chunks
+
+    def _key(self):
+        return self.name
+
+    def __eq__(self, y):
+        if isinstance(y, Part):
+            return self._key() == y._key()
+        return False
+
+    def __hash__(self):
+        return hash(self._key())
+
+    @property
+    def product_type(self):
+        """The type of data product referred to by this part.
+
+        Must be one of the allowed data product types:
+        str(ProductType.names())"""
+        return self._product_type
+
+    @product_type.setter
+    def product_type(self, value):
+        Util.type_check(value, ProductType, "product_type")
+        self._product_type = value
+
+    @property
+    def name(self):
+        """The name of this part, normally the FITS extension.
+
+        This values is also used as the key to find the part in the
+        Artifact.parts dictionary"""
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        Util.type_check(value, str, 'name', override=False)
+        self._name = value
+
+    @property
+    def key(self):
+        """Dictionary key for a part is the name, this is an alias property"""
+        return self._name
+
+    @property
+    def chunks(self):
+        """A list of chunks that this part contains"""
+        return self._chunks
+
+    @chunks.setter
+    def chunks(self, value):
+        Util.type_check(value, TypedList, 'chunks', override=False)
+        self._chunks = value

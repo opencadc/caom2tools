@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,102 +68,74 @@
 #***********************************************************************
 #
 
-""" Deines __init__ """
-
-#
+from enum import Enum
 from caom_object import CaomObject
-from caom_object import AbstractCaomEntity
-
-# Util classes
 from util import Util
-from util import TypedList
-from util import TypedSet
-from util import TypedOrderedDict
-from util import ClassProperty
-from util import Validator
 
-# WCS data types
-from wcs import Axis
-from wcs import Coord2D
-from wcs import CoordAxis1D
-from wcs import CoordAxis2D
-from wcs import CoordBounds1D
-from wcs import CoordBounds2D
-from wcs import CoordCircle2D
-from wcs import CoordError
-from wcs import CoordFunction1D
-from wcs import CoordFunction2D
-from wcs import CoordPolygon2D
-from wcs import CoordRange1D
-from wcs import CoordRange2D
-from wcs import Dimension2D
-from wcs import RefCoord
-from wcs import Slice
-from wcs import ValueCoord2D
-from wcs import EnergyTransition
 
-# Discovery data types
-from data_type import Box
-from data_type import Circle
-from data_type import Interval
-from data_type import Point
-from data_type import Polygon
-from data_type import Vertex
+SegmentType = Enum('SegmentType',
+                   CLOSE=0,
+                   LINE=1,
+                   MOVE=2)
 
-# Chunk level classes
-from chunk import Chunk
-from chunk import ObservableAxis
-from chunk import SpatialWCS
-from chunk import SpectralWCS
-from chunk import TemporalWCS
-from chunk import PolarizationWCS
 
-# Part level classes
-from part import Part
+class Box(CaomObject):
 
-# Artifact level classes
-from artifact import Artifact
+    def __init__(self):
+        pass
 
-# Plane level classes
-from plane import Plane
-from plane import PlaneURI
-from plane import DataQuality
-from plane import Metrics
-from plane import Provenance
-from plane import Position
-from plane import Energy
-from plane import EnergyTransition
-from plane import Polarization
-from plane import Time
 
-# Observation level classes
-from observation import Observation
-from observation import ObservationURI
-from observation import SimpleObservation
-from observation import CompositeObservation
-from observation import Algorithm
-from observation import Environment
-from observation import Proposal
-from observation import Requirements
-from observation import Target
-from observation import TargetPosition
-from observation import Telescope
+class Circle(CaomObject):
 
-# enums
-from artifact import ProductType
-from artifact import ReleaseType
-from plane import CalibrationLevel
-from plane import DataProductType
-from plane import EnergyBand
-from plane import PolarizationState
-from plane import Quality
-from observation import ObservationIntentType
-from observation import Status
-from observation import TargetType
+    def __init__(self):
+        pass
 
-# observation reader and writer
-from xml_reader_writer import ObservationReader
-from xml_reader_writer import ObservationWriter
-from xml_reader_writer import CAOM20_NAMESPACE
-from xml_reader_writer import CAOM21_NAMESPACE
-from xml_reader_writer import CAOM22_NAMESPACE
+
+class Interval(CaomObject):
+
+    def __init__(self):
+        pass
+
+
+class Point(CaomObject):
+
+    def __init__(self, cval1, cval2):
+
+        self.cval1 = cval1
+        self.cval2 = cval2
+
+    @property
+    def cval1(self):
+        """
+        type: float
+        """
+        return self._cval1
+
+    @cval1.setter
+    def cval1(self, value):
+        Util.type_check(value, float, 'cval1', override=False)
+        self._cval1 = value
+
+    @property
+    def cval2(self):
+        """
+        type: float
+        """
+        return self._cval2
+
+    @cval2.setter
+    def cval2(self, value):
+        Util.type_check(value, float, 'cval2', override=False)
+        self._cval2 = value
+
+
+class Polygon(CaomObject):
+
+    def __init__(self):
+        pass
+
+
+class Vertex(CaomObject):
+
+    def __init__(self):
+        pass

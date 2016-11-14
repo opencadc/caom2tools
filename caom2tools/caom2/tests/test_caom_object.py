@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,102 +68,37 @@
 #***********************************************************************
 #
 
-""" Deines __init__ """
+""" Defines TestCaom2IdGenerator class """
 
-#
-from caom_object import CaomObject
-from caom_object import AbstractCaomEntity
+import unittest
 
-# Util classes
-from util import Util
-from util import TypedList
-from util import TypedSet
-from util import TypedOrderedDict
-from util import ClassProperty
-from util import Validator
+from caom2.artifact import Artifact, ProductType, ReleaseType
+from caom2.caom_object import AbstractCaomEntity
+from caom2.chunk import Chunk
+from caom2.observation import Algorithm
+from caom2.observation import Observation
+from caom2.part import Part
+from caom2.plane import Plane
 
-# WCS data types
-from wcs import Axis
-from wcs import Coord2D
-from wcs import CoordAxis1D
-from wcs import CoordAxis2D
-from wcs import CoordBounds1D
-from wcs import CoordBounds2D
-from wcs import CoordCircle2D
-from wcs import CoordError
-from wcs import CoordFunction1D
-from wcs import CoordFunction2D
-from wcs import CoordPolygon2D
-from wcs import CoordRange1D
-from wcs import CoordRange2D
-from wcs import Dimension2D
-from wcs import RefCoord
-from wcs import Slice
-from wcs import ValueCoord2D
-from wcs import EnergyTransition
 
-# Discovery data types
-from data_type import Box
-from data_type import Circle
-from data_type import Interval
-from data_type import Point
-from data_type import Polygon
-from data_type import Vertex
+class TestCaom2IdGenerator(unittest.TestCase):
 
-# Chunk level classes
-from chunk import Chunk
-from chunk import ObservableAxis
-from chunk import SpatialWCS
-from chunk import SpectralWCS
-from chunk import TemporalWCS
-from chunk import PolarizationWCS
+    def test_all(self):
+        #Not much for now. Just to make sure that all the clients work
+        entity = AbstractCaomEntity()
+        print entity._id, entity._last_modified
+        artifact = Artifact("caom2:/blah/blah", ProductType.SCIENCE, ReleaseType.DATA)
+        print artifact._id, artifact._last_modified
+        chunk = Chunk()
+        print chunk._id, chunk._last_modified
+        algorithm = Algorithm("myAlg")
+        obs = Observation("colect", "obs", algorithm)
+        print obs._id, obs._last_modified
+        part = Part("part")
+        print part._id, part._last_modified
+        plane = Plane("prodid")
+        print plane._id, plane._last_modified
 
-# Part level classes
-from part import Part
+if __name__ == '__main__':
+    unittest.main()
 
-# Artifact level classes
-from artifact import Artifact
-
-# Plane level classes
-from plane import Plane
-from plane import PlaneURI
-from plane import DataQuality
-from plane import Metrics
-from plane import Provenance
-from plane import Position
-from plane import Energy
-from plane import EnergyTransition
-from plane import Polarization
-from plane import Time
-
-# Observation level classes
-from observation import Observation
-from observation import ObservationURI
-from observation import SimpleObservation
-from observation import CompositeObservation
-from observation import Algorithm
-from observation import Environment
-from observation import Proposal
-from observation import Requirements
-from observation import Target
-from observation import TargetPosition
-from observation import Telescope
-
-# enums
-from artifact import ProductType
-from artifact import ReleaseType
-from plane import CalibrationLevel
-from plane import DataProductType
-from plane import EnergyBand
-from plane import PolarizationState
-from plane import Quality
-from observation import ObservationIntentType
-from observation import Status
-from observation import TargetType
-
-# observation reader and writer
-from xml_reader_writer import ObservationReader
-from xml_reader_writer import ObservationWriter
-from xml_reader_writer import CAOM20_NAMESPACE
-from xml_reader_writer import CAOM21_NAMESPACE
-from xml_reader_writer import CAOM22_NAMESPACE
