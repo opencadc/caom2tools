@@ -74,19 +74,14 @@ from datetime import datetime
 from urlparse import SplitResult
 from urlparse import urlsplit
 
-from artifact import Artifact
-from caom_object import AbstractCaomEntity
-from caom_object import CaomObject
-from shape import Box
-from shape import Circle
-from shape import Interval
-from shape import Polygon
+import artifact
+import caom_object
+import observation
+import shape
+import caom_util
+import wcs
 from enum import Enum
-from observation import ObservationURI
-from util import TypedOrderedDict
-from util import TypedSet
-from util import Util
-from wcs import Dimension2D
+from caom_util import Util
 
 CalibrationLevel = Enum('CalibrationLevel',
                         RAW_INSTRUMENT=0,
@@ -131,7 +126,7 @@ Quality = Enum('Quality',
                JUNK="junk")
 
 
-class Plane(AbstractCaomEntity):
+class Plane(caom_object.AbstractCaomEntity):
     """ Plane class """
 
     def __init__(self, product_id,
@@ -152,7 +147,7 @@ class Plane(AbstractCaomEntity):
         super(Plane, self).__init__()
         self.product_id = product_id
         if artifacts is None:
-            artifacts = TypedOrderedDict((Artifact),)
+            artifacts = caom_util.TypedOrderedDict((artifact.Artifact), )
         self.artifacts = artifacts
 
         self.meta_release = meta_release
@@ -210,7 +205,7 @@ class Plane(AbstractCaomEntity):
 
     @artifacts.setter
     def artifacts(self, value):
-        Util.type_check(value, TypedOrderedDict, 'artifacts', override=False)
+        Util.type_check(value, caom_util.TypedOrderedDict, 'artifacts', override=False)
         self._artifacts = value
 
     @property
@@ -408,7 +403,7 @@ class Plane(AbstractCaomEntity):
             "has not been implemented in this module")
 
 
-class PlaneURI(CaomObject):
+class PlaneURI(caom_object.CaomObject):
     """ Plane URI """
 
     def __init__(self, uri):
@@ -442,13 +437,13 @@ class PlaneURI(CaomObject):
         observation_uri : the uri of the observation
         product_id : ID of the product
         """
-        Util.type_check(observation_uri, ObservationURI, "observation_uri",
+        Util.type_check(observation_uri, observation.ObservationURI, "observation_uri",
                         override=False)
         Util.type_check(product_id, str, "observation_uri", override=False)
         Util.validate_path_component(cls, "product_id", product_id)
 
         path = urlsplit(observation_uri.uri).path
-        uri = SplitResult(ObservationURI._SCHEME, "", path + "/" +
+        uri = SplitResult(observation.ObservationURI._SCHEME, "", path + "/" +
                           product_id, "", "").geturl()
         return cls(uri)
 
@@ -464,7 +459,7 @@ class PlaneURI(CaomObject):
         Util.type_check(value, str, "uri", override=False)
         tmp = urlsplit(value)
 
-        if tmp.scheme != ObservationURI._SCHEME:
+        if tmp.scheme != observation.ObservationURI._SCHEME:
             raise ValueError("{} doesn't have an allowed scheme".format(value))
         if tmp.geturl() != value:
             raise ValueError("Failed to parse uri correctly: {}".format(value))
@@ -477,8 +472,8 @@ class PlaneURI(CaomObject):
 
         self._product_id = product_id
         self._observation_uri = \
-            ObservationURI.get_observation_uri(collection,
-                                               observation_id)
+            observation.ObservationURI.get_observation_uri(collection,
+                                                           observation_id)
         self._uri = value
 
     @property
@@ -493,7 +488,7 @@ class PlaneURI(CaomObject):
         return self._observation_uri
 
 
-class DataQuality(CaomObject):
+class DataQuality(caom_object.CaomObject):
     """ DataQuality """
 
     def __init__(self, flag):
@@ -516,7 +511,7 @@ class DataQuality(CaomObject):
         self._flag = value
 
 
-class Metrics(CaomObject):
+class Metrics(caom_object.CaomObject):
     """ Metrics """
 
     def __init__(self):
@@ -614,7 +609,7 @@ class Metrics(CaomObject):
         self._mag_limit = value
 
 
-class Provenance(CaomObject):
+class Provenance(caom_object.CaomObject):
     """ Provenance """
 
     def __init__(self, name,
@@ -643,7 +638,7 @@ class Provenance(CaomObject):
         self.last_executed = last_executed
 
         self._keywords = set()
-        self._inputs = TypedSet((PlaneURI),)
+        self._inputs = caom_util.TypedSet((PlaneURI), )
 
     # Properties
 
@@ -726,7 +721,7 @@ class Provenance(CaomObject):
         return self._inputs
 
 
-class Position(CaomObject):
+class Position(caom_object.CaomObject):
     """ Position """
 
     def __init__(self, bounds=None,
@@ -757,7 +752,7 @@ class Position(CaomObject):
     @bounds.setter
     def bounds(self, value):
         if value is not None:
-            assert isinstance(value, (Box, Circle, Polygon)), (
+            assert isinstance(value, (shape.Box, shape.Circle, shape.Polygon)), (
                 "bounds is not a Shape: {0}".format(value))
         self._bounds = value
 
@@ -769,7 +764,7 @@ class Position(CaomObject):
     @dimension.setter
     def dimension(self, value):
         if value is not None:
-            assert isinstance(value, Dimension2D), (
+            assert isinstance(value, wcs.Dimension2D), (
                 "dimension is not a Dimension2D: {0}".format(value))
         self._dimension = value
 
@@ -810,7 +805,7 @@ class Position(CaomObject):
         self._time_dependent = value
 
 
-class Energy(CaomObject):
+class Energy(caom_object.CaomObject):
     """ Energy """
 
     def __init__(self):
@@ -850,7 +845,7 @@ class Energy(CaomObject):
     @bounds.setter
     def bounds(self, value):
         if value is not None:
-            assert isinstance(value, Interval), (
+            assert isinstance(value, shape.Interval), (
                 "energy bounds is not an Interval: {0}".format(value))
         self._bounds = value
 
@@ -927,7 +922,7 @@ class Energy(CaomObject):
         self._transition = value
 
 
-class EnergyTransition(CaomObject):
+class EnergyTransition(caom_object.CaomObject):
     """ EnergyTransition """
 
     def __init__(self, species, transition):
@@ -954,7 +949,7 @@ class EnergyTransition(CaomObject):
         return self._transition
 
 
-class Polarization(CaomObject):
+class Polarization(caom_object.CaomObject):
     """ Polarization """
 
     def __init__(self,
@@ -986,7 +981,7 @@ class Polarization(CaomObject):
         self._dimension = value
 
 
-class Time(CaomObject):
+class Time(caom_object.CaomObject):
     """ Time """
 
     def __init__(self,
@@ -1041,7 +1036,7 @@ class Time(CaomObject):
 
     @bounds.setter
     def bounds(self, value):
-        Util.type_check(value, Interval, 'bounds')
+        Util.type_check(value, shape.Interval, 'bounds')
         self._bounds = value
 
     @property

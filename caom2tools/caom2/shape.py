@@ -69,8 +69,8 @@
 #
 
 from enum import Enum
-from caom_object import CaomObject
-from util import Util
+import caom_object
+from caom_util import Util
 
 
 SegmentType = Enum('SegmentType',
@@ -79,25 +79,25 @@ SegmentType = Enum('SegmentType',
                    MOVE=2)
 
 
-class Box(CaomObject):
+class Box(caom_object.CaomObject):
 
     def __init__(self):
         pass
 
 
-class Circle(CaomObject):
+class Circle(caom_object.CaomObject):
 
     def __init__(self):
         pass
 
 
-class Interval(CaomObject):
+class Interval(caom_object.CaomObject):
 
     def __init__(self):
         pass
 
 
-class Point(CaomObject):
+class Point(caom_object.CaomObject):
 
     def __init__(self, cval1, cval2):
 
@@ -129,13 +129,13 @@ class Point(CaomObject):
         self._cval2 = value
 
 
-class Polygon(CaomObject):
+class Polygon(caom_object.CaomObject):
 
     def __init__(self):
         pass
 
 
-class Vertex(CaomObject):
+class Vertex(caom_object.CaomObject):
 
     def __init__(self):
         pass

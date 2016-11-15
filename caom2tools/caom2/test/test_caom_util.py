@@ -73,17 +73,17 @@
 import unittest
 import uuid
 
-from caom2.artifact import Artifact
-from caom2.artifact import ProductType
-from caom2.artifact import ReleaseType
-from caom2.part import Part
-from caom2.plane import Energy
-from caom2.plane import Plane
-from caom2.plane import PlaneURI
-from caom2.util import TypedList
-from caom2.util import TypedOrderedDict
-from caom2.util import TypedSet
-from caom2.util import Util
+from caom2tools.caom2.artifact import Artifact
+from caom2tools.caom2.artifact import ProductType
+from caom2tools.caom2.artifact import ReleaseType
+from caom2tools.caom2.part import Part
+from caom2tools.caom2.plane import Energy
+from caom2tools.caom2.plane import Plane
+from caom2tools.caom2.plane import PlaneURI
+from caom2tools.caom2.caom_util import TypedList
+from caom2tools.caom2.caom_util import TypedOrderedDict
+from caom2tools.caom2.caom_util import TypedSet
+from caom2tools.caom2.caom_util import Util
 
 
 class TestCaomUtil(unittest.TestCase):

@@ -73,24 +73,24 @@
 import unittest
 from datetime import datetime
 
-from caom2.artifact import Artifact
-from caom2.artifact import ProductType, ReleaseType
-from caom2.observation import ObservationURI
-from caom2.plane import CalibrationLevel
-from caom2.plane import DataProductType
-from caom2.plane import DataQuality
-from caom2.plane import Energy
-from caom2.plane import EnergyBand
-from caom2.plane import EnergyTransition
-from caom2.plane import Metrics
-from caom2.plane import Plane
-from caom2.plane import PlaneURI
-from caom2.plane import Polarization
-from caom2.plane import PolarizationState
-from caom2.plane import Position
-from caom2.plane import Provenance
-from caom2.plane import Quality
-from caom2.plane import Time
+from caom2tools.caom2.artifact import Artifact
+from caom2tools.caom2.artifact import ProductType, ReleaseType
+from caom2tools.caom2.observation import ObservationURI
+from caom2tools.caom2.plane import CalibrationLevel
+from caom2tools.caom2.plane import DataProductType
+from caom2tools.caom2.plane import DataQuality
+from caom2tools.caom2.plane import Energy
+from caom2tools.caom2.plane import EnergyBand
+from caom2tools.caom2.plane import EnergyTransition
+from caom2tools.caom2.plane import Metrics
+from caom2tools.caom2.plane import Plane
+from caom2tools.caom2.plane import PlaneURI
+from caom2tools.caom2.plane import Polarization
+from caom2tools.caom2.plane import PolarizationState
+from caom2tools.caom2.plane import Position
+from caom2tools.caom2.plane import Provenance
+from caom2tools.caom2.plane import Quality
+from caom2tools.caom2.plane import Time
 
 
 class TestEnums(unittest.TestCase):

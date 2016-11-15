@@ -73,24 +73,24 @@
 import unittest
 from datetime import datetime
 
-from caom2.shape import Point
-from caom2.observation import Algorithm
-from caom2.observation import CompositeObservation
-from caom2.observation import Environment
-from caom2.observation import Instrument
-from caom2.observation import Observation
-from caom2.observation import ObservationIntentType
-from caom2.observation import ObservationURI
-from caom2.observation import Proposal
-from caom2.observation import Requirements
-from caom2.observation import SimpleObservation
-from caom2.observation import Status
-from caom2.observation import Target
-from caom2.observation import TargetPosition
-from caom2.observation import TargetType
-from caom2.observation import Telescope
-from caom2.plane import Plane
-from caom2.util import Util
+from caom2tools.caom2.shape import Point
+from caom2tools.caom2.observation import Algorithm
+from caom2tools.caom2.observation import CompositeObservation
+from caom2tools.caom2.observation import Environment
+from caom2tools.caom2.observation import Instrument
+from caom2tools.caom2.observation import Observation
+from caom2tools.caom2.observation import ObservationIntentType
+from caom2tools.caom2.observation import ObservationURI
+from caom2tools.caom2.observation import Proposal
+from caom2tools.caom2.observation import Requirements
+from caom2tools.caom2.observation import SimpleObservation
+from caom2tools.caom2.observation import Status
+from caom2tools.caom2.observation import Target
+from caom2tools.caom2.observation import TargetPosition
+from caom2tools.caom2.observation import TargetType
+from caom2tools.caom2.observation import Telescope
+from caom2tools.caom2.plane import Plane
+from caom2tools.caom2.caom_util import Util
 
 
 class TestEnums(unittest.TestCase):

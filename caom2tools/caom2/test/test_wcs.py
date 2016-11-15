@@ -70,7 +70,7 @@
 
 import unittest
 
-from caom2 import wcs
+from caom2tools.caom2 import wcs
 
 
 class TestAxis(unittest.TestCase):

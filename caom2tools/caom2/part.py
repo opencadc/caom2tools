@@ -71,15 +71,14 @@
 """Defines the caom2.Part class which describes
 the caom2_Observation_Plane_Artifact_Part object."""
 
+import artifact
+import caom_object
+import chunk
+import caom_util
+from caom_util import Util
 
-from caom_object import AbstractCaomEntity
-from chunk import Chunk
-from artifact import ProductType
-from util import TypedList
-from util import Util
 
-
-class Part(AbstractCaomEntity):
+class Part(caom_object.AbstractCaomEntity):
     """A qualitative subsection of an artifact.
        eg: a extension of a FITS file.
 
@@ -93,7 +92,7 @@ class Part(AbstractCaomEntity):
         self.name = name
         self.product_type = product_type
         if chunks is None:
-            chunks = TypedList((Chunk),)
+            chunks = caom_util.TypedList((chunk.Chunk), )
         self.chunks = chunks
 
     def _key(self):
@@ -117,7 +116,7 @@ class Part(AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        Util.type_check(value, ProductType, "product_type")
+        Util.type_check(value, artifact.ProductType, "product_type")
         self._product_type = value
 
     @property
@@ -145,5 +144,5 @@ class Part(AbstractCaomEntity):
 
     @chunks.setter
     def chunks(self, value):
-        Util.type_check(value, TypedList, 'chunks', override=False)
+        Util.type_check(value, caom_util.TypedList, 'chunks', override=False)
         self._chunks = value

@@ -78,14 +78,14 @@ import os
 import shutil
 import unittest
 
-from caom2.observation import CompositeObservation
-from caom2.observation import SimpleObservation
-from caom2.wcs import CoordCircle2D
-from caom2.wcs import CoordPolygon2D
-from caom2.obs_reader_writer import CAOM20_NAMESPACE
-from caom2.obs_reader_writer import CAOM21_NAMESPACE
-from caom2.obs_reader_writer import ObservationReader
-from caom2.obs_reader_writer import ObservationWriter
+from caom2tools.caom2.observation import CompositeObservation
+from caom2tools.caom2.observation import SimpleObservation
+from caom2tools.caom2.wcs import CoordCircle2D
+from caom2tools.caom2.wcs import CoordPolygon2D
+from caom2tools.caom2.obs_reader_writer import CAOM20_NAMESPACE
+from caom2tools.caom2.obs_reader_writer import CAOM21_NAMESPACE
+from caom2tools.caom2.obs_reader_writer import ObservationReader
+from caom2tools.caom2.obs_reader_writer import ObservationWriter
 from caom_test_instances import Caom2TestInstances
 
 

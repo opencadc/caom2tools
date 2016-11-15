@@ -72,18 +72,18 @@
 
 import unittest
 
-from caom2.artifact import ProductType
-from caom2.chunk import Chunk
-from caom2.chunk import ObservableAxis
-from caom2.chunk import PolarizationWCS
-from caom2.chunk import SpatialWCS
-from caom2.chunk import SpectralWCS
-from caom2.chunk import TemporalWCS
-from caom2.plane import EnergyTransition
-from caom2.wcs import Axis
-from caom2.wcs import CoordAxis1D
-from caom2.wcs import CoordAxis2D
-from caom2.wcs import Slice
+from caom2tools.caom2.artifact import ProductType
+from caom2tools.caom2.chunk import Chunk
+from caom2tools.caom2.chunk import ObservableAxis
+from caom2tools.caom2.chunk import PolarizationWCS
+from caom2tools.caom2.chunk import SpatialWCS
+from caom2tools.caom2.chunk import SpectralWCS
+from caom2tools.caom2.chunk import TemporalWCS
+from caom2tools.caom2.plane import EnergyTransition
+from caom2tools.caom2.wcs import Axis
+from caom2tools.caom2.wcs import CoordAxis1D
+from caom2tools.caom2.wcs import CoordAxis2D
+from caom2tools.caom2.wcs import Slice
 
 
 class TestChunk(unittest.TestCase):

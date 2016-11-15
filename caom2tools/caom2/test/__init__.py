@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,37 +68,4 @@
 #***********************************************************************
 #
 
-""" Defines TestCaom2IdGenerator class """
-
-import unittest
-
-from caom2.artifact import Artifact, ProductType, ReleaseType
-from caom2.caom_object import AbstractCaomEntity
-from caom2.chunk import Chunk
-from caom2.observation import Algorithm
-from caom2.observation import Observation
-from caom2.part import Part
-from caom2.plane import Plane
-
-
-class TestCaom2IdGenerator(unittest.TestCase):
-
-    def test_all(self):
-        #Not much for now. Just to make sure that all the clients work
-        entity = AbstractCaomEntity()
-        print entity._id, entity._last_modified
-        artifact = Artifact("caom2:/blah/blah", ProductType.SCIENCE, ReleaseType.DATA)
-        print artifact._id, artifact._last_modified
-        chunk = Chunk()
-        print chunk._id, chunk._last_modified
-        algorithm = Algorithm("myAlg")
-        obs = Observation("colect", "obs", algorithm)
-        print obs._id, obs._last_modified
-        part = Part("part")
-        print part._id, part._last_modified
-        plane = Plane("prodid")
-        print plane._id, plane._last_modified
-
-if __name__ == '__main__':
-    unittest.main()
-
+""" Defines __init__ """

@@ -74,7 +74,7 @@ import time
 import uuid
 from datetime import datetime
 
-from util import Util
+from caom_util import Util
 
 
 class CaomObject(object):
@@ -87,12 +87,10 @@ class CaomObject(object):
 
     def __str__(self):
         args = inspect.getargspec(self.__init__).args[1:]
-        clsName = self.__class__.__name__
-        return "\n".join(
-            ["{}.{} : {}".format(clsName,
-                                 arg,
-                                 getattr(self, arg, None))
-                                 for arg in args])
+        class_name = self.__class__.__name__
+        return "\n".join(["{}.{} : {}".
+                         format(class_name, arg, getattr(self, arg, None))
+                         for arg in args])
 
     def __eq__(self, other):
         if type(other) == type(self):
@@ -102,17 +100,15 @@ class CaomObject(object):
 
     def __repr__(self):
         args = inspect.getargspec(self.__init__).args[1:]
-        clsName = ""
+        class_name = ""
         if self.__class__.__module__ != '__main__':
-            clsName += self.__class__.__module__ + "."
-        clsName += self.__class__.__name__
-        pading = " " * (len(clsName) + 1)
-        return clsName + "(" + (
+            class_name += self.__class__.__module__ + "."
+        class_name += self.__class__.__name__
+        pading = " " * (len(class_name) + 1)
+        return class_name + "(" + (
             ",\n" + pading).join(
             ["%s=%r" % (arg, getattr(self, arg, None)
-                        ) for arg in args
-            ]
-            ) + ")"
+                        ) for arg in args]) + ")"
 
 
 class AbstractCaomEntity(CaomObject):

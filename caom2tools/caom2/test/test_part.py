@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -68,112 +68,50 @@
 #***********************************************************************
 #
 
-""" Defines __init__ """
+""" Defines TestPart class """
 
-# import artifact as artifact
-# import caom_object as caom_object
-# import chunk as chunk
-# import observation as observation
-# import part as part
-# import plane as plane
-# import caom_util as caom_util
-# import wcs as wcs
-from caom_util import Util as Util
+import unittest
 
+from caom2tools.caom2.artifact import ProductType
+from caom2tools.caom2.chunk import Chunk
+from caom2tools.caom2.part import Part
+
+
+class TestPart(unittest.TestCase):
+
+    def testInit(self):
+
+        self.assertRaises(TypeError, Part, long(1))
+
+        part = Part("partName")
+        self.assertEquals("partName", part.name, "Part name")
+        self.assertIsNone(part.product_type)
+        self.assertTrue(len(part.chunks) == 0)
+
+        part.product_type = ProductType.SCIENCE
+        self.assertEqual(ProductType.SCIENCE, part.product_type)
+
+        chunk = Chunk()
+        chunk.naxis = 5
+        part.chunks.append(chunk)
+        self.assertTrue(len(part.chunks) == 1)
+        self.assertEqual(chunk, part.chunks.pop())
+
+#        # the set prevents adding the same object multiple times ...
+#        chunk_alias = chunk
+#        part.chunks.add(chunk_alias)
+#        part.chunks.add(chunk_alias)
+#        part.chunks.add(chunk_alias)
+#        self.assertTrue(len(part.chunks) == 1)
 #
-# from .caom_object import CaomObject
-# from .caom_object import AbstractCaomEntity
+#        # ... but everything else is not a duplicate
+#        chunk = Chunk()
+#        chunk.naxis = 33
+#        part.chunks.add(chunk)
+#        self.assertTrue(len(part.chunks) == 2)
 
-# Util classes
-# from util import Util
-# from .util import TypedList
-# from .util import TypedSet
-# from .util import TypedOrderedDict
-# from .util import ClassProperty
-# from .util import Validator
 
-# WCS data types
-# from .wcs import Axis
-# from .wcs import Coord2D
-# from .wcs import CoordAxis1D
-# from .wcs import CoordAxis2D
-# from .wcs import CoordBounds1D
-# from .wcs import CoordBounds2D
-# from .wcs import CoordCircle2D
-# from .wcs import CoordError
-# from .wcs import CoordFunction1D
-# from .wcs import CoordFunction2D
-# from .wcs import CoordPolygon2D
-# from .wcs import CoordRange1D
-# from .wcs import CoordRange2D
-# from .wcs import Dimension2D
-# from .wcs import RefCoord
-# from .wcs import Slice
-# from .wcs import ValueCoord2D
-# from .wcs import EnergyTransition
 
-# Discovery data types
-# from .shape import Box
-# from .shape import Circle
-# from .shape import Interval
-# from .shape import Point
-# from .shape import Polygon
-# from .shape import Vertex
+if __name__ == '__main__':
+    unittest.main()
 
-# Chunk level classes
-# from .chunk import Chunk
-# from .chunk import ObservableAxis
-# from .chunk import SpatialWCS
-# from .chunk import SpectralWCS
-# from .chunk import TemporalWCS
-# from .chunk import PolarizationWCS
-
-# Part level classes
-# from .part import Part
-
-# Artifact level classes
-# from .artifact import Artifact
-
-# Plane level classes
-# from .plane import Plane
-# from .plane import PlaneURI
-# from .plane import DataQuality
-# from .plane import Metrics
-# from .plane import Provenance
-# from .plane import Position
-# from .plane import Energy
-# from .plane import EnergyTransition
-# from .plane import Polarization
-# from .plane import Time
-
-# Observation level classes
-# from .observation import Observation
-# from .observation import ObservationURI
-# from .observation import SimpleObservation
-# from .observation import CompositeObservation
-# from .observation import Algorithm
-# from .observation import Environment
-# from .observation import Proposal
-# from .observation import Requirements
-# from .observation import Target
-# from .observation import TargetPosition
-# from .observation import Telescope
-
-# enums
-# from .artifact import ProductType
-# from .artifact import ReleaseType
-# from .plane import CalibrationLevel
-# from .plane import DataProductType
-# from .plane import EnergyBand
-# from .plane import PolarizationState
-# from .plane import Quality
-# from .observation import ObservationIntentType
-# from .observation import Status
-# from .observation import TargetType
-
-# observation reader and writer
-# from .obs_reader_writer import ObservationReader
-# from .obs_reader_writer import ObservationWriter
-# from .obs_reader_writer import CAOM20_NAMESPACE
-# from .obs_reader_writer import CAOM21_NAMESPACE
-# from .obs_reader_writer import CAOM22_NAMESPACE

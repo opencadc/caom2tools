@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -70,37 +70,32 @@
 
 import unittest
 
-from caom2.shape import Point
-from caom2.shape import SegmentType
+from caom2tools.caom2 import shape
 
 
 class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(SegmentType.get(999), None)
-        self.assertRaises(AttributeError, SegmentType.get, None)
-        self.assertRaises(AttributeError, SegmentType.get, "foo")
+        self.assertEqual(shape.SegmentType.get(999), None)
+        self.assertRaises(AttributeError, shape.SegmentType.get, None)
+        self.assertRaises(AttributeError, shape.SegmentType.get, "foo")
 
-        self.assertEqual(SegmentType.CLOSE.value, 0)
-        self.assertEqual(SegmentType.LINE.value, 1)
-        self.assertEqual(SegmentType.MOVE.value, 2)
+        self.assertEqual(shape.SegmentType.CLOSE.value, 0)
+        self.assertEqual(shape.SegmentType.LINE.value, 1)
+        self.assertEqual(shape.SegmentType.MOVE.value, 2)
 
 
 class TestPoint(unittest.TestCase):
 
     def test_all(self):
 
-        self.assertRaises(TypeError, Point, None, None)
-        self.assertRaises(TypeError, Point, None, 1.0)
-        self.assertRaises(TypeError, Point, 1.0, None)
-        self.assertRaises(TypeError, Point, "string", int(1))
-        self.assertRaises(TypeError, Point, int(1), "string")
+        self.assertRaises(TypeError, shape.Point, None, None)
+        self.assertRaises(TypeError, shape.Point, None, 1.0)
+        self.assertRaises(TypeError, shape.Point, 1.0, None)
+        self.assertRaises(TypeError, shape.Point, "string", int(1))
+        self.assertRaises(TypeError, shape.Point, int(1), "string")
 
-        point = Point(1.0, 2.0)
+        point = shape.Point(1.0, 2.0)
         self.assertEqual(point.cval1, 1.0)
         self.assertEqual(point.cval2, 2.0)
-
-
-if __name__ == '__main__':
-    unittest.main()

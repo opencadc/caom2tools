@@ -74,11 +74,11 @@
 
 from urlparse import urlparse
 
-from caom_object import AbstractCaomEntity
+import caom_object
+import caom_util
+import part
+from caom_util import Util
 from enum import Enum
-from part import Part
-from util import TypedOrderedDict
-from util import Util
 
 ProductType = Enum('ProductType',
                    SCIENCE="science",
@@ -96,7 +96,7 @@ ReleaseType = Enum('ReleaseType',
                    META="meta")
 
 
-class Artifact(AbstractCaomEntity):
+class Artifact(caom_object.AbstractCaomEntity):
     """Contains the meta data assocaited with a file.
 
     - location of the file (uri)
@@ -132,7 +132,7 @@ class Artifact(AbstractCaomEntity):
         self.content_type = content_type
         self.content_length = content_length
         if parts is None:
-            parts = TypedOrderedDict((Part),)
+            parts = caom_util.TypedOrderedDict((part.Part),)
         self.parts = parts
 
     def _key(self):
@@ -254,7 +254,7 @@ class Artifact(AbstractCaomEntity):
     @parts.setter
     def parts(self, value):
         Util.type_check(value,
-                        TypedOrderedDict,
+                        caom_util.TypedOrderedDict,
                         'parts',
                         override=False)
         self._parts = value

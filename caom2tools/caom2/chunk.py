@@ -72,17 +72,14 @@
 
 """
 
-from artifact import ProductType
-from caom_object import AbstractCaomEntity
-from caom_object import CaomObject
-from plane import EnergyTransition
-from util import Util
-from wcs import CoordAxis1D
-from wcs import CoordAxis2D
-from wcs import Slice
+import artifact
+import caom_object
+import plane
+from caom_util import Util
+import wcs
 
 
-class Chunk(AbstractCaomEntity):
+class Chunk(caom_object.AbstractCaomEntity):
     """A caom2.Chunk object.  A chunk is a peice of file part.
 
     eg.  a column in a Table extension of a FITS file.
@@ -140,7 +137,7 @@ class Chunk(AbstractCaomEntity):
         eg.  Chunk.product_type = ProductType('SCIENCE')
 
         Allowed values:
-        """ + str(ProductType.names()) + """
+        """ + str(artifact.ProductType.names()) + """
 
         """
 
@@ -148,10 +145,10 @@ class Chunk(AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        if isinstance(value, str) and value in ProductType.names():
+        if isinstance(value, str) and value in artifact.ProductType.names():
             ## be helpful
-            value = ProductType('value')
-        Util.type_check(value, ProductType, 'product_type')
+            value = artifact.ProductType('value')
+        Util.type_check(value, artifact.ProductType, 'product_type')
         self._product_type = value
 
     @property
@@ -361,7 +358,7 @@ class Chunk(AbstractCaomEntity):
         self._polarization = value
 
 
-class ObservableAxis(CaomObject):
+class ObservableAxis(caom_object.CaomObject):
     """The slice through the data structure that provides the thing being
     described by this Axis.
 
@@ -416,7 +413,7 @@ class ObservableAxis(CaomObject):
 
     @dependent.setter
     def dependent(self, value):
-        Util.type_check(value, Slice, 'dependent', override=False)
+        Util.type_check(value, wcs.Slice, 'dependent', override=False)
         self._dependent = value
 
     @property
@@ -431,11 +428,11 @@ class ObservableAxis(CaomObject):
 
     @independent.setter
     def independent(self, value):
-        Util.type_check(value, Slice, "independent")
+        Util.type_check(value, wcs.Slice, "independent")
         self._independent = value
 
 
-class SpatialWCS(CaomObject):
+class SpatialWCS(caom_object.CaomObject):
     """this object contains the WCS information needed to convert an
     astronomical spatial location (ie. RA/DEC) into a pixel location
     in the image.
@@ -467,7 +464,7 @@ class SpatialWCS(CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, CoordAxis2D, 'axis', override=False)
+        Util.type_check(value, wcs.CoordAxis2D, 'axis', override=False)
         self._axis = value
 
     @property
@@ -521,7 +518,7 @@ class SpatialWCS(CaomObject):
         self._resolution = value
 
 
-class SpectralWCS(CaomObject):
+class SpectralWCS(caom_object.CaomObject):
     """A transformation that maps pixel coordinates to spectral ones.
 
     Note that a 2D image has implicit 'spectral' (and temporal)
@@ -580,7 +577,7 @@ class SpectralWCS(CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, CoordAxis1D, 'axis', override=False)
+        Util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
         self._axis = value
 
     @property
@@ -733,7 +730,7 @@ class SpectralWCS(CaomObject):
 
     @transition.setter
     def transition(self, value):
-        Util.type_check(value, EnergyTransition, "transition")
+        Util.type_check(value, plane.EnergyTransition, "transition")
         self._transition = value
 
     @property
@@ -754,7 +751,7 @@ class SpectralWCS(CaomObject):
         self._resolving_power = value
 
 
-class TemporalWCS(CaomObject):
+class TemporalWCS(caom_object.CaomObject):
     """Describes the Time variation within the data.
 
     In the case of a single exposure, define the center of the first
@@ -786,7 +783,7 @@ class TemporalWCS(CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, CoordAxis1D, 'axis', override=False)
+        Util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
         self._axis = value
 
     @property
@@ -883,7 +880,7 @@ class TemporalWCS(CaomObject):
         self._resolution = value
 
 
-class PolarizationWCS(CaomObject):
+class PolarizationWCS(caom_object.CaomObject):
     """A WCS structure that describes the relation ship between a pixel
     location and the polarization value.
 
@@ -908,7 +905,7 @@ class PolarizationWCS(CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, CoordAxis1D, 'axis', override=False)
+        Util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
         if value.axis.ctype != 'STOKES':
             raise ValueError('CTYPE must be STOKES')
         self._axis = value

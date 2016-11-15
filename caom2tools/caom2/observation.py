@@ -73,14 +73,12 @@
 from datetime import datetime
 from urlparse import SplitResult
 
-from caom_object import AbstractCaomEntity
-from caom_object import CaomObject
-from shape import Point
+import caom_object
+import plane
+import shape
+import caom_util
 from enum import Enum
-from plane import Plane
-from util import TypedOrderedDict
-from util import TypedSet
-from util import Util
+from caom_util import Util
 
 ObservationIntentType = Enum('ObservationIntentType',
                              CALIBRATION="calibration",
@@ -94,7 +92,7 @@ TargetType = Enum('TargetType',
                   OBJECT="object")
 
 
-class Observation(AbstractCaomEntity):
+class Observation(caom_object.AbstractCaomEntity):
     """
     Observation
 
@@ -190,7 +188,7 @@ class Observation(AbstractCaomEntity):
         self.requirements = requirements
         self.meta_release = meta_release
         if planes is None:
-            planes = Util.TypedOrderedDict((Plane),)
+            planes = Util.TypedOrderedDict((plane.Plane),)
         self.planes = planes
 
     # Properties
@@ -251,7 +249,7 @@ class Observation(AbstractCaomEntity):
 
     @planes.setter
     def planes(self, value):
-        Util.type_check(value, TypedOrderedDict, 'planes')
+        Util.type_check(value, caom_util.TypedOrderedDict, 'planes')
         self._planes = value
 
     @property
@@ -441,7 +439,7 @@ class Observation(AbstractCaomEntity):
         self._meta_release = value
 
 
-class ObservationURI(CaomObject):
+class ObservationURI(caom_object.CaomObject):
     """ Observation URI """
 
     _SCHEME = str("caom")
@@ -535,7 +533,7 @@ class ObservationURI(CaomObject):
         return self._observation_id
 
 
-class SimpleObservation(Observation):
+class SimpleObservation(observation.Observation):
     """A convenience class for building Observations where
     algorithm='exposure'.
 
@@ -618,7 +616,7 @@ class SimpleObservation(Observation):
         self._algorithm = value
 
 
-class CompositeObservation(Observation):
+class CompositeObservation(observation.Observation):
     """
     Composite Observation
 
@@ -661,7 +659,7 @@ class CompositeObservation(Observation):
                                                    environment,
                                                    target_position
                                                    )
-        self._members = TypedSet((ObservationURI),)
+        self._members = caom_util.TypedSet(ObservationURI, )
 
     @property
     def algorithm(self):
@@ -681,7 +679,7 @@ class CompositeObservation(Observation):
         return self._members
 
 
-class Algorithm(CaomObject):
+class Algorithm(caom_object.CaomObject):
     """
     The concept of Algorithm is to provide a way for users to find all
     composite observation sets that have been built using a particular
@@ -718,7 +716,7 @@ class Algorithm(CaomObject):
         return self._name
 
 
-class Environment(CaomObject):
+class Environment(caom_object.CaomObject):
     """A CAOM2 Environment Object.
 
     This object contains the various values that can be set in the environment
@@ -841,7 +839,7 @@ class Environment(CaomObject):
         self._photometric = value
 
 
-class Instrument(CaomObject):
+class Instrument(caom_object.CaomObject):
     """The telescopic instrument that recorded a given observation.
 
     Each observation should have an associated instrument.
@@ -894,7 +892,7 @@ class Instrument(CaomObject):
         return self._keywords
 
 
-class Proposal(CaomObject):
+class Proposal(caom_object.CaomObject):
     """ Proposal """
 
     def __init__(self,
@@ -990,7 +988,7 @@ class Proposal(CaomObject):
         self._title = value
 
 
-class Requirements(CaomObject):
+class Requirements(caom_object.CaomObject):
     """ Requirements """
 
     def __init__(self, flag):
@@ -1013,7 +1011,7 @@ class Requirements(CaomObject):
         self._flag = value
 
 
-class Target(CaomObject):
+class Target(caom_object.CaomObject):
     """ Target """
 
     def __init__(self, name,
@@ -1136,7 +1134,7 @@ class Target(CaomObject):
         self._moving = value
 
 
-class TargetPosition(CaomObject):
+class TargetPosition(caom_object.CaomObject):
     """ TargetPosition """
 
     def __init__(self, coordinates, coordsys, equinox=None):
@@ -1161,7 +1159,7 @@ class TargetPosition(CaomObject):
 
     @coordinates.setter
     def coordinates(self, value):
-        Util.type_check(value, Point, "coordinates")
+        Util.type_check(value, shape.Point, "coordinates")
         self._coordinates = value
 
     @property
@@ -1185,7 +1183,7 @@ class TargetPosition(CaomObject):
         self._equinox = value
 
 
-class Telescope(CaomObject):
+class Telescope(caom_object.CaomObject):
     """ Telescope """
 
     def __init__(self, name,

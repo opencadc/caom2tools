@@ -73,13 +73,13 @@
 import collections
 from datetime import datetime
 
-from caom2 import artifact
-from caom2 import chunk
-from caom2 import observation as obs
-from caom2 import part
-from caom2 import plane
-from caom2 import util
-from caom2 import wcs
+import artifact
+import chunk
+import observation as obs
+import part
+import plane
+import caom_util
+import wcs
 
 
 class Caom2TestInstances(object):
@@ -225,7 +225,7 @@ class Caom2TestInstances(object):
         return env
 
     def get_members(self):
-        members = util.TypedSet(
+        members = caom_util.TypedSet(
             obs.ObservationURI, obs.ObservationURI("caom:foo/bar"))
         return members
 
@@ -261,9 +261,9 @@ class Caom2TestInstances(object):
         return provenance
 
     def get_inputs(self):
-        return util.TypedSet(plane.PlaneURI,
-                             plane.PlaneURI("caom:foo/bar/plane1"),
-                             plane.PlaneURI("caom:foo/bar/plane2"))
+        return caom_util.TypedSet(plane.PlaneURI,
+                                  plane.PlaneURI("caom:foo/bar/plane1"),
+                                  plane.PlaneURI("caom:foo/bar/plane2"))
 
     def get_metrics(self):
         metrics = plane.Metrics()
@@ -303,7 +303,7 @@ class Caom2TestInstances(object):
         return parts
 
     def get_chunks(self):
-        chunks = util.TypedList(chunk.Chunk,)
+        chunks = caom_util.TypedList(chunk.Chunk, )
         _chunk = chunk.Chunk()
         if self.complete:
             _chunk.product_type = artifact.ProductType.SCIENCE

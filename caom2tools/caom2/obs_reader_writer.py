@@ -82,7 +82,7 @@ import observation
 import part
 import plane
 import wcs
-from util import Util
+from caom_util import Util
 
 CAOM2_PKG = 'caom2'
 

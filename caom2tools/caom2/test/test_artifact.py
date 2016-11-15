@@ -73,10 +73,10 @@
 import unittest
 from urlparse import urlparse
 
-from caom2.artifact import Artifact
-from caom2.artifact import ProductType
-from caom2.artifact import ReleaseType
-from caom2.part import Part
+from caom2tools.caom2.artifact import Artifact
+from caom2tools.caom2.artifact import ProductType
+from caom2tools.caom2.artifact import ReleaseType
+from caom2tools.caom2.part import Part
 
 
 class TestEnums(unittest.TestCase):
