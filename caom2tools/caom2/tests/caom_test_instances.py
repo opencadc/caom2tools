@@ -73,57 +73,13 @@
 import collections
 from datetime import datetime
 
-# from caom2.caom2_algorithm import Algorithm
-# from caom2.artifact import Artifact
-# from caom2.chunk import Chunk
-# from caom2.caom2_composite_observation import CompositeObservation
-# from caom2.caom2_data_quality import DataQuality
-# from caom2.caom2_energy_transition import EnergyTransition
-# from caom2.caom_enums import CalibrationLevel
-# from caom2.caom_enums import DataProductType
-# from caom2.caom_enums import ObservationIntentType
-# from caom2.caom_enums import ProductType
-# from caom2.caom_enums import Quality
-# from caom2.caom_enums import Status
-# from caom2.caom_enums import TargetType
-# from caom2.caom_enums import ReleaseType
-# from caom2.caom2_environment import Environment
-# from caom2.caom2_instrument import Instrument
-# from caom2.caom2_metrics import Metrics
-# from caom2.caom2_observation_uri import ObservationURI
-# from caom2.part import Part
-# from caom2.plane import Plane
-# from caom2.caom2_plane_uri import PlaneURI
-# from caom2.caom2_proposal import Proposal
-# from caom2.caom2_provenance import Provenance
-# from caom2.caom2_requirements import Requirements
-# from caom2.caom2_simple_observation import SimpleObservation
-# from caom2.caom2_target import Target
-# from caom2.caom2_target_position import TargetPosition
-# from caom2.caom2_telescope import Telescope
-# from caom2.data_type.caom2_point import Point
-# from caom2.util.caom2_util import TypedList, TypedSet
-# from caom2.wcs.caom2_axis import Axis
-# from caom2.wcs.caom2_coord2d import Coord2D
-# from caom2.wcs.caom2_coord_axis1d import CoordAxis1D
-# from caom2.wcs.caom2_coord_axis2d import CoordAxis2D
-# from caom2.wcs.caom2_coord_bounds1d import CoordBounds1D
-# from caom2.wcs.caom2_coord_circle2d import CoordCircle2D
-# from caom2.wcs.caom2_coord_error import CoordError
-# from caom2.wcs.caom2_coord_function1d import CoordFunction1D
-# from caom2.wcs.caom2_coord_function2d import CoordFunction2D
-# from caom2.wcs.caom2_coord_polygon2d import CoordPolygon2D
-# from caom2.wcs.caom2_coord_range1d import CoordRange1D
-# from caom2.wcs.caom2_coord_range2d import CoordRange2D
-# from caom2.wcs.caom2_dimension2d import Dimension2D
-# from caom2.wcs.caom2_observable_axis import ObservableAxis
-# from caom2.wcs.caom2_polarization_wcs import PolarizationWCS
-# from caom2.wcs.caom2_ref_coord import RefCoord
-# from caom2.wcs.caom2_slice import Slice
-# from caom2.wcs.caom2_spatial_wcs import SpatialWCS
-# from caom2.wcs.caom2_spectral_wcs import SpectralWCS
-# from caom2.wcs.caom2_temporal_wcs import TemporalWCS
-# from caom2.wcs.caom2_value_coord2d import ValueCoord2D
+from caom2 import artifact
+from caom2 import chunk
+from caom2 import observation as obs
+from caom2 import part
+from caom2 import plane
+from caom2 import util
+from caom2 import wcs
 
 
 class Caom2TestInstances(object):
@@ -173,13 +129,13 @@ class Caom2TestInstances(object):
         self._caom_version = v
 
     def get_simple_observation(self):
-        observation = SimpleObservation(Caom2TestInstances._collection,
-                                        Caom2TestInstances._observation_id)
+        observation = \
+            obs.SimpleObservation(Caom2TestInstances._collection,
+                                  Caom2TestInstances._observation_id)
         if self.complete:
             observation.sequence_number = int(5)
             observation.obs_type = "flat"
-            observation.intent = (
-                ObservationIntentType.CALIBRATION)
+            observation.intent = obs.ObservationIntentType.CALIBRATION
             observation.meta_release = Caom2TestInstances._ivoa_date
             observation.proposal = self.get_proposal()
             observation.target = self.get_target()
@@ -194,14 +150,14 @@ class Caom2TestInstances(object):
         return observation
 
     def get_composite_observation(self):
-        observation = CompositeObservation(Caom2TestInstances._collection,
-                                           Caom2TestInstances._observation_id,
-                                        self.get_algorithm())
+        observation = \
+            obs.CompositeObservation(Caom2TestInstances._collection,
+                                     Caom2TestInstances._observation_id,
+                                     self.get_algorithm())
         if self.complete:
             observation.sequence_number = int(10)
             observation.obs_type = "filed"
-            observation.intent = (
-                ObservationIntentType.SCIENCE)
+            observation.intent = obs.ObservationIntentType.SCIENCE
             observation.meta_release = Caom2TestInstances._ivoa_date
             observation.proposal = self.get_proposal()
             observation.target = self.get_target()
@@ -217,10 +173,10 @@ class Caom2TestInstances(object):
         return observation
 
     def get_algorithm(self):
-        return Algorithm("algorithmName")
+        return obs.Algorithm("algorithmName")
 
     def get_proposal(self):
-        proposal = Proposal("proposalId")
+        proposal = obs.Proposal("proposalId")
         proposal.pi_name = "proposalPi"
         proposal.project = "proposalProject"
         proposal.title = "proposalTitle"
@@ -228,24 +184,24 @@ class Caom2TestInstances(object):
         return proposal
 
     def get_target(self):
-        target = Target("targetName")
-        target.target_type = TargetType.OBJECT
+        target = obs.Target("targetName")
+        target.target_type = obs.TargetType.OBJECT
         target.standard = False
         target.redshift = 1.5
         target.keywords.update(Caom2TestInstances._keywords)
         return target
 
     def get_target_position(self):
-        point = Point(1.0, 2.0)
-        target_position = TargetPosition(point, "coordsys")
+        point = wcs.Point(1.0, 2.0)
+        target_position = obs.TargetPosition(point, "coordsys")
         target_position.equinox = 3.0
         return target_position
 
     def get_requirements(self):
-        return Requirements(Status.FAIL)
+        return obs.Requirements(obs.Status.FAIL)
 
     def get_telescope(self):
-        telescope = Telescope("telescopeName")
+        telescope = obs.Telescope("telescopeName")
         telescope.geo_location_x = 1.0
         telescope.geo_location_y = 2.0
         telescope.geo_location_z = 3.0
@@ -253,12 +209,12 @@ class Caom2TestInstances(object):
         return telescope
 
     def get_instrument(self):
-        instrument = Instrument("instrumentName")
+        instrument = obs.Instrument("instrumentName")
         instrument.keywords.update(Caom2TestInstances._keywords)
         return instrument
 
     def get_environment(self):
-        env = Environment()
+        env = obs.Environment()
         env.seeing = 0.08
         env.humidity = 0.35
         env.elevation = 2.7
@@ -269,31 +225,31 @@ class Caom2TestInstances(object):
         return env
 
     def get_members(self):
-        members = TypedSet(
-            ObservationURI, ObservationURI("caom:foo/bar"))
+        members = util.TypedSet(
+            obs.ObservationURI, obs.ObservationURI("caom:foo/bar"))
         return members
 
     def get_planes(self):
         planes = collections.OrderedDict()
-        plane = Plane("productID")
+        _plane = plane.Plane("productID")
         if self.complete:
-            plane.meta_release = Caom2TestInstances._ivoa_date
-            plane.data_release = Caom2TestInstances._ivoa_date
-            plane.data_product_type = DataProductType.IMAGE
-            plane.calibration_level = CalibrationLevel.PRODUCT
-            plane.provenance = self.get_provenance()
-            plane.metrics = self.get_metrics()
+            _plane.meta_release = Caom2TestInstances._ivoa_date
+            _plane.data_release = Caom2TestInstances._ivoa_date
+            _plane.data_product_type = plane.DataProductType.IMAGE
+            _plane.calibration_level = plane.CalibrationLevel.PRODUCT
+            _plane.provenance = self.get_provenance()
+            _plane.metrics = self.get_metrics()
             if self.caom_version == 21:
-                plane.quality = self.get_quality()
+                _plane.quality = self.get_quality()
 
         if self.depth > 2:
             for k, v in self.get_artifacts().iteritems():
-                plane.artifacts[k] = v
-        planes["productID"] = plane
+                _plane.artifacts[k] = v
+        planes["productID"] = _plane
         return planes
 
     def get_provenance(self):
-        provenance = Provenance("name")
+        provenance = plane.Provenance("name")
         provenance.version = "version"
         provenance.product = "product"
         provenance.producer = "producer"
@@ -305,11 +261,12 @@ class Caom2TestInstances(object):
         return provenance
 
     def get_inputs(self):
-        return TypedSet(PlaneURI, PlaneURI("caom:foo/bar/plane1"),
-                        PlaneURI("caom:foo/bar/plane2"))
+        return util.TypedSet(plane.PlaneURI,
+                             plane.PlaneURI("caom:foo/bar/plane1"),
+                             plane.PlaneURI("caom:foo/bar/plane2"))
 
     def get_metrics(self):
-        metrics = Metrics()
+        metrics = plane.Metrics()
         metrics.source_number_density = float(1.0)
         metrics.background = float(2.0)
         metrics.background_std_dev = float(3.0)
@@ -318,60 +275,62 @@ class Caom2TestInstances(object):
         return metrics
 
     def get_quality(self):
-        return DataQuality(Quality.JUNK)
+        return plane.DataQuality(plane.Quality.JUNK)
 
     def get_artifacts(self):
         artifacts = collections.OrderedDict()
-        artifact = Artifact("ad:foo/bar1", ProductType.SCIENCE, ReleaseType.META)
+        _artifact = artifact.Artifact("ad:foo/bar1",
+                                      artifact.ProductType.SCIENCE,
+                                      artifact.ReleaseType.META)
         if self.complete:
-            artifact.content_type = "application/fits"
-            artifact.content_length = 12345L
+            _artifact.content_type = "application/fits"
+            _artifact.content_length = 12345L
         if self.depth > 3:
             for k, v in self.get_parts().iteritems():
-                artifact.parts[k] = v
-        artifacts["ad:foo/bar1"] = artifact
+                _artifact.parts[k] = v
+        artifacts["ad:foo/bar1"] = _artifact
         return artifacts
 
     def get_parts(self):
         parts = collections.OrderedDict()
-        part = Part("x")
+        _part = part.Part("x")
         if self.complete:
-            part.product_type = ProductType.SCIENCE
+            _part.product_type = artifact.ProductType.SCIENCE
         if self.depth > 4:
             for chunk in self.get_chunks():
-                part.chunks.append(chunk)
-        parts["x"] = part
+                _part.chunks.append(chunk)
+        parts["x"] = _part
         return parts
 
     def get_chunks(self):
-        chunks = TypedList(Chunk,)
-        chunk = Chunk()
+        chunks = util.TypedList(chunk.Chunk,)
+        _chunk = chunk.Chunk()
         if self.complete:
-            chunk.product_type = ProductType.SCIENCE
-            chunk.naxis = 5
-            chunk.observable_axis = 1
-            chunk.position_axis_1 = 1
-            chunk.position_axis_2 = 2
-            chunk.energy_axis = 3
-            chunk.time_axis = 4
-            chunk.polarization_axis = 5
-            chunk.observable = self.get_observable_axis()
-            chunk.position = self.get_spatial_wcs()
-            chunk.energy = self.get_spectral_wcs()
-            chunk.time = self.get_temporal_wcs()
-            chunk.polarization = self.get_polarization_wcs()
-        chunks.append(chunk)
+            _chunk.product_type = artifact.ProductType.SCIENCE
+            _chunk.naxis = 5
+            _chunk.observable_axis = 1
+            _chunk.position_axis_1 = 1
+            _chunk.position_axis_2 = 2
+            _chunk.energy_axis = 3
+            _chunk.time_axis = 4
+            _chunk.polarization_axis = 5
+            _chunk.observable = self.get_observable_axis()
+            _chunk.position = self.get_spatial_wcs()
+            _chunk.energy = self.get_spectral_wcs()
+            _chunk.time = self.get_temporal_wcs()
+            _chunk.polarization = self.get_polarization_wcs()
+        chunks.append(_chunk)
         return chunks
 
     def get_observable_axis(self):
-        observable = ObservableAxis(self.get_slice())
+        observable = chunk.ObservableAxis(self.get_slice())
         if self.complete:
             observable.independent = self.get_slice()
         return observable
 
     def get_spatial_wcs(self):
-        coord_axis_2d = self.get_coord_axis_2d()
-        position = SpatialWCS(coord_axis_2d)
+        coord_axis2d = self.get_coord_axis2d()
+        position = chunk.SpatialWCS(coord_axis2d)
         if self.complete:
             position.coordsys = "position coordsys"
             position.equinox = 2000.0
@@ -379,8 +338,8 @@ class Caom2TestInstances(object):
         return position
 
     def get_spectral_wcs(self):
-        axis = self.get_coord_axis_1d()
-        energy = SpectralWCS(axis, "energy specsys")
+        axis = self.get_coord_axis1d()
+        energy = chunk.SpectralWCS(axis, "energy specsys")
         if self.complete:
             energy.ssysobs = "energy ssysobs"
             energy.ssyssrc = "energy ssyssrc"
@@ -391,12 +350,12 @@ class Caom2TestInstances(object):
             energy.velang = 5.0
             energy.bandpassName = "energy bandpassName"
             energy.resolvingPower = 6.0
-            energy.transition = EnergyTransition("H", "21cm")
+            energy.transition = plane.EnergyTransition("H", "21cm")
         return energy
 
     def get_temporal_wcs(self):
-        axis = self.get_coord_axis_1d()
-        time = TemporalWCS(axis)
+        axis = self.get_coord_axis1d()
+        time = chunk.TemporalWCS(axis)
         if self.complete:
             time.exposure = 1.0
             time.resolution = 2.0
@@ -406,53 +365,58 @@ class Caom2TestInstances(object):
         return time
 
     def get_polarization_wcs(self):
-        axis = Axis('STOKES')
-        axis_1d = CoordAxis1D(axis)
+        axis = wcs.Axis('STOKES')
+        axis1d = wcs.CoordAxis1D(axis)
         #IQUV
-        axis_1d.function = CoordFunction1D(4L, 1.0, RefCoord(1.0, 1.0))
-        pol = PolarizationWCS(axis_1d)
+        axis1d.function = wcs.CoordFunction1D(4L, 1.0,
+                                              wcs.RefCoord(1.0, 1.0))
+        pol = chunk.PolarizationWCS(axis1d)
         return pol
 
     def get_slice(self):
-        return Slice(Axis("sliceCtype", "sliceCunit"), 1L)
+        return wcs.Slice(wcs.Axis("sliceCtype", "sliceCunit"), 1L)
 
-    def get_coord_axis_1d(self):
-        coord_axis_1d = CoordAxis1D(Axis("axisCtype", "axisCunit"))
+    def get_coord_axis1d(self):
+        coord_axis1d = wcs.CoordAxis1D(wcs.Axis("axisCtype", "axisCunit"))
         if self.complete:
-            coord_axis_1d.error = CoordError(1.0, 1.5)
-            coord_axis_1d.range = CoordRange1D(RefCoord(2.0, 2.5),
-                                               RefCoord(3.0, 3.5))
-            coord_axis_1d.function = (
-                CoordFunction1D(4L, 4.5, RefCoord(5.0, 5.5)))
-            bounds = CoordBounds1D()
-            bounds.samples.append(CoordRange1D(RefCoord(6.0, 6.5),
-                                               RefCoord(7.0, 7.5)))
-            bounds.samples.append(CoordRange1D(RefCoord(8.0, 8.5),
-                                               RefCoord(9.0, 9.5)))
-            coord_axis_1d.bounds = bounds
-        return coord_axis_1d
+            coord_axis1d.error = wcs.CoordError(1.0, 1.5)
+            coord_axis1d.range = wcs.CoordRange1D(wcs.RefCoord(2.0, 2.5),
+                                                   wcs.RefCoord(3.0, 3.5))
+            coord_axis1d.function = (
+                wcs.CoordFunction1D(4L, 4.5, wcs.RefCoord(5.0, 5.5)))
+            bounds = wcs.CoordBounds1D()
+            bounds.samples.append(wcs.CoordRange1D(wcs.RefCoord(6.0, 6.5),
+                                                   wcs.RefCoord(7.0, 7.5)))
+            bounds.samples.append(wcs.CoordRange1D(wcs.RefCoord(8.0, 8.5),
+                                                   wcs.RefCoord(9.0, 9.5)))
+            coord_axis1d.bounds = bounds
+        return coord_axis1d
 
-    def get_coord_axis_2d(self):
-        axis1 = Axis("axis1Ctype", "axis1Cunit")
-        axis2 = Axis("axis2Ctype", "axis2Cunit")
-        coord_axis_2d = CoordAxis2D(axis1, axis2)
+    def get_coord_axis2d(self):
+        axis1 = wcs.Axis("axis1Ctype", "axis1Cunit")
+        axis2 = wcs.Axis("axis2Ctype", "axis2Cunit")
+        coord_axis2d = wcs.CoordAxis2D(axis1, axis2)
         if self.complete:
-            coord_axis_2d.error1 = CoordError(1.0, 1.5)
-            coord_axis_2d.error2 = CoordError(2.0, 2.5)
-            start = Coord2D(RefCoord(3.0, 3.5), RefCoord(4.0, 4.5))
-            end = Coord2D(RefCoord(5.0, 5.5), RefCoord(6.0, 6.5))
-            coord_axis_2d.range = CoordRange2D(start, end)
-            dimension = Dimension2D(7L, 8L)
-            ref_coord = Coord2D(RefCoord(9.0, 9.5), RefCoord(10.0, 10.5))
-            coord_axis_2d.function = (CoordFunction2D(dimension, ref_coord,
-                                      11.0, 12.0, 13.0, 14.0))
+            coord_axis2d.error1 = wcs.CoordError(1.0, 1.5)
+            coord_axis2d.error2 = wcs.CoordError(2.0, 2.5)
+            start = wcs.Coord2D(wcs.RefCoord(3.0, 3.5),
+                                wcs.RefCoord(4.0, 4.5))
+            end = wcs.Coord2D(wcs.RefCoord(5.0, 5.5),
+                              wcs.RefCoord(6.0, 6.5))
+            coord_axis2d.range = wcs.CoordRange2D(start, end)
+            dimension = wcs.Dimension2D(7L, 8L)
+            ref_coord = wcs.Coord2D(wcs.RefCoord(9.0, 9.5),
+                                    wcs.RefCoord(10.0, 10.5))
+            coord_axis2d.function = (
+                wcs.CoordFunction2D(dimension, ref_coord,
+                                    11.0, 12.0, 13.0, 14.0))
             if self.bounds_is_circle:
-                center = ValueCoord2D(15.0, 16.0)
-                coord_axis_2d.bounds = CoordCircle2D(center, 17.0)
+                center = wcs.ValueCoord2D(15.0, 16.0)
+                coord_axis2d.bounds = wcs.CoordCircle2D(center, 17.0)
             else:
-                polygon = CoordPolygon2D()
-                polygon.vertices.append(ValueCoord2D(15.0, 16.0))
-                polygon.vertices.append(ValueCoord2D(17.0, 18.0))
-                polygon.vertices.append(ValueCoord2D(19.0, 20.0))
-                coord_axis_2d.bounds = polygon
-        return coord_axis_2d
+                polygon = wcs.CoordPolygon2D()
+                polygon.vertices.append(wcs.ValueCoord2D(15.0, 16.0))
+                polygon.vertices.append(wcs.ValueCoord2D(17.0, 18.0))
+                polygon.vertices.append(wcs.ValueCoord2D(19.0, 20.0))
+                coord_axis2d.bounds = polygon
+        return coord_axis2d
