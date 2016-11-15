@@ -153,9 +153,9 @@ class ObservationReader(object):
         if element_last_modified:
             caom2_entity._last_modified = Util.str2ivoa(element_last_modified)
 
-    def _get_child_element(self, elTag, parent, ns, required):
+    def _get_child_element(self, element_tag, parent, ns, required):
         for element in list(parent):
-            if element.tag == "{" + ns + "}" + elTag:
+            if element.tag == "{" + ns + "}" + element_tag:
                 if not element.keys() and not element.text:
                     # element is empty, return None
                     return None
@@ -164,40 +164,40 @@ class ObservationReader(object):
                     return element
 
         if required:
-            error = elTag + " element not found in " + parent.tag
+            error = element_tag + " element not found in " + parent.tag
             raise ObservationParsingException(error)
         else:
             return None
 
-    def _get_child_text(self, elTag, parent, ns, required):
-        childElement = self._get_child_element(elTag, parent, ns, required)
-        if childElement is None:
+    def _get_child_text(self, element_tag, parent, ns, required):
+        child_element = self._get_child_element(element_tag, parent, ns, required)
+        if child_element is None:
             return None
         else:
-            return childElement.text
+            return child_element.text
 
-    def _get_child_text_as_int(self, elTag, parent, ns, required):
-        childElement = self._get_child_element(elTag, parent, ns, required)
-        if childElement is None:
+    def _get_child_text_as_int(self, element_tag, parent, ns, required):
+        child_element = self._get_child_element(element_tag, parent, ns, required)
+        if child_element is None:
             return None
         else:
-            return int(childElement.text)
+            return int(child_element.text)
 
-    def _get_child_text_as_long(self, elTag, parent, ns, required):
-        childElement = self._get_child_element(elTag, parent, ns, required)
-        if childElement is None:
+    def _get_child_text_as_long(self, element_tag, parent, ns, required):
+        child_element = self._get_child_element(element_tag, parent, ns, required)
+        if child_element is None:
             return None
         else:
-            return long(childElement.text)
+            return long(child_element.text)
 
-    def _get_child_text_as_float(self, elTag, parent, ns, required):
-        childElement = self._get_child_element(elTag, parent, ns, required)
-        if childElement is None:
+    def _get_child_text_as_float(self, element_tag, parent, ns, required):
+        child_element = self._get_child_element(element_tag, parent, ns, required)
+        if child_element is None:
             return None
         else:
-            return float(childElement.text)
+            return float(child_element.text)
 
-    def _get_algorithm(self, elTag, parent, ns, required):
+    def _get_algorithm(self, element_tag, parent, ns, required):
         """Build an Algorithm object from an XML representation
 
         Arguments:
@@ -209,13 +209,13 @@ class ObservationReader(object):
                  None if the document does not contain an algorithm element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
             return observation.Algorithm(self._get_child_text("name", el, ns, True))
 
-    def _get_meta_release(self, elTag, parent, ns, required):
+    def _get_meta_release(self, element_tag, parent, ns, required):
         """Build a MetaRelease object from an XML representation
 
         Arguments:
@@ -227,7 +227,7 @@ class ObservationReader(object):
                 None if the document does not contain a MetaRelease element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -235,7 +235,7 @@ class ObservationReader(object):
             # what kind of exceptions are thrown?
             return Util.str2ivoa(el.text)
 
-    def _get_proposal(self, elTag, parent, ns, required):
+    def _get_proposal(self, element_tag, parent, ns, required):
         """Build a Proposal object from an XML representation
 
         Arguments:
@@ -247,7 +247,7 @@ class ObservationReader(object):
                  None if the document does not contain a Proposal element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -261,7 +261,7 @@ class ObservationReader(object):
                     proposal.keywords.add(keyword)
             return proposal
 
-    def _get_target(self, elTag, parent, ns, required):
+    def _get_target(self, element_tag, parent, ns, required):
         """Build a Target object from an XML representation
 
         Arguments:
@@ -273,14 +273,14 @@ class ObservationReader(object):
                  None if the document does not contain a Target element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
             target = observation.Target(self._get_child_text("name", el, ns, True))
-            targetType = self._get_child_text("type", el, ns, False)
-            if targetType:
-                target.target_type = observation.TargetType.getByValue(targetType)
+            target_type = self._get_child_text("type", el, ns, False)
+            if target_type:
+                target.target_type = observation.TargetType.getByValue(target_type)
             target.standard = ("true" ==
                                self._get_child_text("standard", el, ns, False))
             target.redshift = (
@@ -293,7 +293,7 @@ class ObservationReader(object):
                     target.keywords.add(keyword)
             return target
 
-    def _get_target_position(self, elTag, parent, ns, required):
+    def _get_target_position(self, element_tag, parent, ns, required):
         """Build a TargetPosition object from an XML representation
 
         Arguments:
@@ -305,7 +305,7 @@ class ObservationReader(object):
                  None if the document does not contain a TargetPosition element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -316,7 +316,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("equinox", el, ns, False))
             return target_position
 
-    def _get_requirements(self, elTag, parent, ns, required):
+    def _get_requirements(self, element_tag, parent, ns, required):
         """Build an Requirements object from an XML representation
 
         Arguments:
@@ -328,7 +328,7 @@ class ObservationReader(object):
                  None if the document does not contain an Requirements element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -336,7 +336,7 @@ class ObservationReader(object):
             requirements = observation.Requirements(observation.Status.getByValue(flag))
             return requirements
 
-    def _get_telescope(self, elTag, parent, ns, required):
+    def _get_telescope(self, element_tag, parent, ns, required):
         """Build a Telescope object from an XML representation
 
         Arguments:
@@ -348,7 +348,7 @@ class ObservationReader(object):
                  None if the document does not contain a Telescope element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -365,7 +365,7 @@ class ObservationReader(object):
                     telescope.keywords.add(keyword)
             return telescope
 
-    def _get_instrument(self, elTag, parent, ns, required):
+    def _get_instrument(self, element_tag, parent, ns, required):
         """Build an Instrument object from an XML representation
 
         Arguments:
@@ -377,7 +377,7 @@ class ObservationReader(object):
                  None if the document does not contain an Instrument element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -388,7 +388,7 @@ class ObservationReader(object):
                     instrument.keywords.add(keyword)
             return instrument
 
-    def _get_environment(self, elTag, parent, ns, required):
+    def _get_environment(self, element_tag, parent, ns, required):
         """Build an Environment object from an XML representation
 
         Arguments:
@@ -400,7 +400,7 @@ class ObservationReader(object):
                  None if the document does not contain an Environment element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -436,8 +436,8 @@ class ObservationReader(object):
         """
         el = self._get_child_element("members", parent, ns, False)
         if el is not None:
-            for memberEl in el.iterchildren("{" + ns + "}observationURI"):
-                members.add(observation.ObservationURI(memberEl.text))
+            for member_element in el.iterchildren("{" + ns + "}observationURI"):
+                members.add(observation.ObservationURI(member_element.text))
 
             if not members:
                 error = "No observationURI element found in members"
@@ -455,14 +455,14 @@ class ObservationReader(object):
         """
         el = self._get_child_element("inputs", parent, ns, False)
         if el is not None:
-            for uriEl in el.iterchildren("{" + ns + "}planeURI"):
-                inputs.add(plane.PlaneURI(uriEl.text))
+            for uri_element in el.iterchildren("{" + ns + "}planeURI"):
+                inputs.add(plane.PlaneURI(uri_element.text))
 
             if not inputs:
                 error = "No planeURI element found in members"
                 raise ObservationParsingException(error)
 
-    def _get_provenance(self, elTag, parent, ns, required):
+    def _get_provenance(self, element_tag, parent, ns, required):
         """Build a Provenance object from an XML representation of a
         Provenance element.
 
@@ -475,7 +475,7 @@ class ObservationReader(object):
                  None if the document does not contain a Provenance element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -496,7 +496,7 @@ class ObservationReader(object):
             self._add_inputs(prov.inputs, el, ns)
             return prov
 
-    def _get_metrics(self, elTag, parent, ns, required):
+    def _get_metrics(self, element_tag, parent, ns, required):
         """Build a Metrics object from an XML representation of a
         Metrics element.
 
@@ -509,7 +509,7 @@ class ObservationReader(object):
                  None if the document does not contain a Metrics element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -526,7 +526,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("magLimit", el, ns, False)
             return metrics
 
-    def _get_quality(self, elTag, parent, ns, required):
+    def _get_quality(self, element_tag, parent, ns, required):
         """Build an Quality object from an XML representation
 
         Arguments:
@@ -538,15 +538,15 @@ class ObservationReader(object):
                  None if the document does not contain an Quality element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
             flag = self._get_child_text("flag", el, ns, True)
-            dataQuality = plane.DataQuality(plane.Quality.getByValue(flag))
-            return dataQuality
+            data_quality = plane.DataQuality(plane.Quality.getByValue(flag))
+            return data_quality
 
-    def _get_point(self, elTag, parent, ns, required):
+    def _get_point(self, element_tag, parent, ns, required):
         """Build an Point object from an XML representation
         of an Point element.
 
@@ -559,14 +559,14 @@ class ObservationReader(object):
                  None if the document does not contain an Point element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
             return shape.Point(self._get_child_text_as_float("cval1", el, ns, True),
                                self._get_child_text_as_float("cval2", el, ns, True))
 
-    def _get_axis(self, elTag, parent, ns, required):
+    def _get_axis(self, element_tag, parent, ns, required):
         """Build an Axis object from an XML representation of an Axis element.
 
         Arguments:
@@ -578,14 +578,14 @@ class ObservationReader(object):
                  None if the document does not contain an Axis element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
             return shape.Axis(self._get_child_text("ctype", el, ns, True),
                               self._get_child_text("cunit", el, ns, False))
 
-    def _get_slice(self, elTag, parent, ns, required):
+    def _get_slice(self, element_tag, parent, ns, required):
         """Build a Slice object from an XML representation of a Slice element.
 
         Arguments:
@@ -597,14 +597,14 @@ class ObservationReader(object):
                  None if the document does not contain a Slice element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
             return shape.Slice(self._get_axis("axis", el, ns, True),
                                self._get_child_text_as_long("bin", el, ns, True))
 
-    def _get_observable_axis(self, elTag, parent, ns, required):
+    def _get_observable_axis(self, element_tag, parent, ns, required):
         """Build an ObservableAxis object from an XML representation of an
         observable element.
 
@@ -617,7 +617,7 @@ class ObservationReader(object):
                  None if the document does not contain an Observable element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -627,7 +627,7 @@ class ObservationReader(object):
                 self._get_slice("independent", el, ns, False)
             return observable
 
-    def _get_coord_error(self, elTag, parent, ns, required):
+    def _get_coord_error(self, element_tag, parent, ns, required):
         """Build a CoordError object from an XML representation of an error
         element.
 
@@ -640,7 +640,7 @@ class ObservationReader(object):
                  None if the document does not contain an error element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -648,7 +648,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("syser", el, ns, True),
                 self._get_child_text_as_float("rnder", el, ns, True))
 
-    def _get_ref_coord(self, elTag, parent, ns, required):
+    def _get_ref_coord(self, element_tag, parent, ns, required):
         """Build a RefCoord object from an XML representation of a coord
         element.
 
@@ -661,7 +661,7 @@ class ObservationReader(object):
                  None if the document does not contain a coord element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -669,7 +669,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("pix", el, ns, True),
                 self._get_child_text_as_float("val", el, ns, True))
 
-    def _get_coord2d(self, elTag, parent, ns, required):
+    def _get_coord2d(self, element_tag, parent, ns, required):
         """Build a Coord2D object from an XML representation of a coord
         element.
 
@@ -682,7 +682,7 @@ class ObservationReader(object):
                  None if the document does not contain a coord element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -690,7 +690,7 @@ class ObservationReader(object):
                 self._get_ref_coord("coord1", el, ns, True),
                 self._get_ref_coord("coord2", el, ns, True))
 
-    def _get_value_coord2d(self, elTag, parent, ns, required):
+    def _get_value_coord2d(self, element_tag, parent, ns, required):
         """Build a ValueCoord2D object from an XML representation of a
         value coord element.
 
@@ -703,7 +703,7 @@ class ObservationReader(object):
                  None if the document does not contain a coord element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -711,7 +711,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("coord1", el, ns, True),
                 self._get_child_text_as_float("coord2", el, ns, True))
 
-    def _get_coord_range2d(self, elTag, parent, ns, required):
+    def _get_coord_range2d(self, element_tag, parent, ns, required):
         """Build a CoordRange2D object from an XML representation of a range
         element.
 
@@ -724,7 +724,7 @@ class ObservationReader(object):
                  None if the document does not contain a range element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -732,7 +732,7 @@ class ObservationReader(object):
                 self._get_coord2d("start", el, ns, True),
                 self._get_coord2d("end", el, ns, True))
 
-    def _get_coord_circle2d(self, elTag, parent, ns, required):
+    def _get_coord_circle2d(self, element_tag, parent, ns, required):
         """Build a CoordCircle2D object from an XML representation of a circle
         element.
 
@@ -745,7 +745,7 @@ class ObservationReader(object):
                  None if the document does not contain a circle element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -753,7 +753,7 @@ class ObservationReader(object):
                 self._get_value_coord2d("center", el, ns, True),
                 self._get_child_text_as_float("radius", el, ns, True))
 
-    def _get_coord_polygon2d(self, elTag, parent, ns, required):
+    def _get_coord_polygon2d(self, element_tag, parent, ns, required):
         """Build a CoordPolygon2D object from an XML representation
         of a polygon element.
 
@@ -766,28 +766,28 @@ class ObservationReader(object):
                  None if the document does not contain a polygon element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
-            verticeEl = self._get_child_element("vertices", el, ns, True)
-            childrenVertices = list(
-                verticeEl.iterchildren(tag=("{" + ns + "}vertex")))
-            if len(childrenVertices) < 3:
+            vertice_element = self._get_child_element("vertices", el, ns, True)
+            children_vertices = list(
+                vertice_element.iterchildren(tag=("{" + ns + "}vertex")))
+            if len(children_vertices) < 3:
                 error = ("CoordPolygon2D must have a minimum of 3 vertices, "
-                         "found " + len(childrenVertices))
+                         "found " + len(children_vertices))
                 raise ObservationParsingException(error)
             else:
                 polygon = wcs.CoordPolygon2D()
-                for childVertexEl in childrenVertices:
+                for child_vertex_el in children_vertices:
                     polygon.vertices.append(wcs.ValueCoord2D(
                         self._get_child_text_as_float(
-                                    "coord1", childVertexEl, ns, True),
+                                    "coord1", child_vertex_el, ns, True),
                         self._get_child_text_as_float(
-                                    "coord2", childVertexEl, ns, True)))
+                                    "coord2", child_vertex_el, ns, True)))
                 return polygon
 
-    def _get_coord_bounds2d(self, elTag, parent, ns, required):
+    def _get_coord_bounds2d(self, element_tag, parent, ns, required):
         """Build a CoordBounds2D object from an XML representation of a bounds
         element.
 
@@ -800,7 +800,7 @@ class ObservationReader(object):
                  None if the document does not contain a bounds element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -812,11 +812,11 @@ class ObservationReader(object):
                 if polygon is not None:
                     return polygon
                 else:
-                    error = "Unsupported element not found in " + elTag + \
+                    error = "Unsupported element not found in " + element_tag + \
                         ": " + el.getText()
                     raise ObservationParsingException(error)
 
-    def _get_dimension2d(self, elTag, parent, ns, required):
+    def _get_dimension2d(self, element_tag, parent, ns, required):
         """Build a Dimension2D object from an XML representation of a dimension
         element.
 
@@ -829,7 +829,7 @@ class ObservationReader(object):
                  None if the document does not contain a dimension element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -837,7 +837,7 @@ class ObservationReader(object):
                 self._get_child_text_as_long("naxis1", el, ns, True),
                 self._get_child_text_as_long("naxis2", el, ns, True))
 
-    def _get_coord_function2d(self, elTag, parent, ns, required):
+    def _get_coord_function2d(self, element_tag, parent, ns, required):
         """Build a CoordFunction2D object from an XML representation of a
         function element.
 
@@ -850,7 +850,7 @@ class ObservationReader(object):
                  None if the document does not contain a function element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -862,7 +862,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("cd21", el, ns, True),
                 self._get_child_text_as_float("cd22", el, ns, True))
 
-    def _get_coord_axis2d(self, elTag, parent, ns, required):
+    def _get_coord_axis2d(self, element_tag, parent, ns, required):
         """Build a CoordAxis2D object from an XML representation of an axis
         element.
 
@@ -875,7 +875,7 @@ class ObservationReader(object):
                  None if the document does not contain an axis element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -888,7 +888,7 @@ class ObservationReader(object):
             axis.function = self._get_coord_function2d("function", el, ns, False)
             return axis
 
-    def _get_spatial_wcs(self, elTag, parent, ns, required):
+    def _get_spatial_wcs(self, element_tag, parent, ns, required):
         """Build a SpatialWCS object from an XML representation of a position
         element.
 
@@ -901,7 +901,7 @@ class ObservationReader(object):
                  None if the document does not contain a position element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -913,7 +913,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("resolution", el, ns, False)
             return position
 
-    def _add_children_to_coord_range1d_list(self, elTag, ranges, parent, ns,
+    def _add_children_to_coord_range1d_list(self, element_tag, ranges, parent, ns,
                                             required):
         """Create CoordRange1D objects from an XML representation of the
         range elements and add them to the set of ranges.
@@ -925,12 +925,12 @@ class ObservationReader(object):
         ns : namespace of the document
         required : boolean indicating whether the element is required
         """
-        for rangeEl in parent.iterchildren("{" + ns + "}" + elTag):
+        for range_element in parent.iterchildren("{" + ns + "}" + element_tag):
             ranges.append(wcs.CoordRange1D(
-                 self._get_ref_coord("start", rangeEl, ns, True),
-                 self._get_ref_coord("end", rangeEl, ns, True)))
+                 self._get_ref_coord("start", range_element, ns, True),
+                 self._get_ref_coord("end", range_element, ns, True)))
 
-    def _get_coord_bounds1d(self, elTag, parent, ns, required):
+    def _get_coord_bounds1d(self, element_tag, parent, ns, required):
         """Build a CoordBounds1D object from an XML representation of a bounds
         element.
 
@@ -943,18 +943,18 @@ class ObservationReader(object):
                  None if the document does not contain a bounds element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
-            coordBounds1D = wcs.CoordBounds1D()
-            samplesEl = self._get_child_element("samples", el, ns, False)
-            if samplesEl is not None:
+            coord_bounds1d = wcs.CoordBounds1D()
+            samples_element = self._get_child_element("samples", el, ns, False)
+            if samples_element is not None:
                 self._add_children_to_coord_range1d_list(
-                    "range", coordBounds1D.samples, samplesEl, ns, False)
-            return coordBounds1D
+                    "range", coord_bounds1d.samples, samples_element, ns, False)
+            return coord_bounds1d
 
-    def _get_coord_range1d(self, elTag, parent, ns, required):
+    def _get_coord_range1d(self, element_tag, parent, ns, required):
         """Build a CoordRange1D object from an XML representation of a range
         element.
 
@@ -967,7 +967,7 @@ class ObservationReader(object):
                  None if the document does not contain a range element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -975,7 +975,7 @@ class ObservationReader(object):
                 self._get_ref_coord("start", el, ns, True),
                 self._get_ref_coord("end", el, ns, True))
 
-    def _get_coord_function1d(self, elTag, parent, ns, required):
+    def _get_coord_function1d(self, element_tag, parent, ns, required):
         """Build a CoordFunction1D object from an XML representation of a
         function element.
 
@@ -988,7 +988,7 @@ class ObservationReader(object):
                  None if the document does not contain a function element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -997,7 +997,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("delta", el, ns, True),
                 self._get_ref_coord("refCoord", el, ns, True))
 
-    def _get_coord_axis1d(self, elTag, parent, ns, required):
+    def _get_coord_axis1d(self, element_tag, parent, ns, required):
         """Build a CoordAxis1D object from an XML representation of an axis
         element.
 
@@ -1010,7 +1010,7 @@ class ObservationReader(object):
                  None if the document does not contain an axis element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -1021,7 +1021,7 @@ class ObservationReader(object):
             axis.function = self._get_coord_function1d("function", el, ns, False)
             return axis
 
-    def _get_transition(self, elTag, parent, ns, required):
+    def _get_transition(self, element_tag, parent, ns, required):
         """Build an EnergyTransition object from an XML representation of
         a transition element.
 
@@ -1034,7 +1034,7 @@ class ObservationReader(object):
                  None if the document does not contain a transition element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -1042,7 +1042,7 @@ class ObservationReader(object):
                 self._get_child_text("species", el, ns, True),
                 self._get_child_text("transition", el, ns, True))
 
-    def _get_spectral_wcs(self, elTag, parent, ns, required):
+    def _get_spectral_wcs(self, element_tag, parent, ns, required):
         """Build a SpectralWCS object from an XML representation of an energy
         element.
 
@@ -1055,7 +1055,7 @@ class ObservationReader(object):
                  None if the document does not contain an energy element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -1084,7 +1084,7 @@ class ObservationReader(object):
                 self._get_transition("transition", el, ns, False)
             return energy
 
-    def _get_temporal_wcs(self, elTag, parent, ns, required):
+    def _get_temporal_wcs(self, element_tag, parent, ns, required):
         """Build a TemporalWCS object from an XML representation of an time
         element.
 
@@ -1097,7 +1097,7 @@ class ObservationReader(object):
                  None if the document does not contain an time element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -1115,7 +1115,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("resolution", el, ns, False)
             return time
 
-    def _get_polarization_wcs(self, elTag, parent, ns, required):
+    def _get_polarization_wcs(self, element_tag, parent, ns, required):
         """Build a PolarizationWCS object from an XML representation of a
         polarization element.
 
@@ -1128,7 +1128,7 @@ class ObservationReader(object):
                  None if the document does not contain an polarization element
         raise : ObservationParsingException
         """
-        el = self._get_child_element(elTag, parent, ns, required)
+        el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
         else:
@@ -1149,44 +1149,44 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            for chunkEl in el.iterchildren("{" + ns + "}chunk"):
-                tempChunk = chunk.Chunk()
-                productType = \
-                    self._get_child_text("productType", chunkEl, ns, False)
-                if productType:
-                    tempChunk.product_type = \
-                        artifact.ProductType.getByValue(productType)
-                tempChunk.naxis = \
-                    self._get_child_text_as_int("naxis", chunkEl, ns, False)
-                tempChunk.observable_axis = \
-                    self._get_child_text_as_int("observableAxis", chunkEl, ns,
+            for chunk_element in el.iterchildren("{" + ns + "}chunk"):
+                _chunk = chunk.Chunk()
+                product_type = \
+                    self._get_child_text("productType", chunk_element, ns, False)
+                if product_type:
+                    _chunk.product_type = \
+                        artifact.ProductType.getByValue(product_type)
+                _chunk.naxis = \
+                    self._get_child_text_as_int("naxis", chunk_element, ns, False)
+                _chunk.observable_axis = \
+                    self._get_child_text_as_int("observableAxis", chunk_element, ns,
                                                 False)
-                tempChunk.position_axis_1 = \
-                    self._get_child_text_as_int("positionAxis1", chunkEl, ns,
+                _chunk.position_axis_1 = \
+                    self._get_child_text_as_int("positionAxis1", chunk_element, ns,
                                                 False)
-                tempChunk.position_axis_2 = \
-                    self._get_child_text_as_int("positionAxis2", chunkEl, ns,
+                _chunk.position_axis_2 = \
+                    self._get_child_text_as_int("positionAxis2", chunk_element, ns,
                                                 False)
-                tempChunk.energy_axis = \
-                    self._get_child_text_as_int("energyAxis", chunkEl, ns, False)
-                tempChunk.time_axis = \
-                    self._get_child_text_as_int("timeAxis", chunkEl, ns, False)
-                tempChunk.polarization_axis = \
-                    self._get_child_text_as_int("polarizationAxis", chunkEl, ns,
+                _chunk.energy_axis = \
+                    self._get_child_text_as_int("energyAxis", chunk_element, ns, False)
+                _chunk.time_axis = \
+                    self._get_child_text_as_int("timeAxis", chunk_element, ns, False)
+                _chunk.polarization_axis = \
+                    self._get_child_text_as_int("polarizationAxis", chunk_element, ns,
                                                 False)
-                tempChunk.observable = \
-                    self._get_observable_axis("observable", chunkEl, ns, False)
-                tempChunk.position = \
-                    self._get_spatial_wcs("position", chunkEl, ns, False)
-                tempChunk.energy = \
-                    self._get_spectral_wcs("energy", chunkEl, ns, False)
-                tempChunk.time = \
-                    self._get_temporal_wcs("time", chunkEl, ns, False)
-                tempChunk.polarization = \
-                    self._get_polarization_wcs("polarization", chunkEl, ns,
+                _chunk.observable = \
+                    self._get_observable_axis("observable", chunk_element, ns, False)
+                _chunk.position = \
+                    self._get_spatial_wcs("position", chunk_element, ns, False)
+                _chunk.energy = \
+                    self._get_spectral_wcs("energy", chunk_element, ns, False)
+                _chunk.time = \
+                    self._get_temporal_wcs("time", chunk_element, ns, False)
+                _chunk.polarization = \
+                    self._get_polarization_wcs("polarization", chunk_element, ns,
                                                False)
-                self._set_entity_attributes(chunkEl, ns, tempChunk)
-                chunks.append(tempChunk)
+                self._set_entity_attributes(chunk_element, ns, _chunk)
+                chunks.append(_chunk)
 
     def _add_parts(self, parts, parent, ns):
         """Build Part objects from an XML representation of Part elements and
@@ -1202,17 +1202,17 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            for partEl in el.iterchildren("{" + ns + "}part"):
-                tempPart = \
-                    part.Part(self._get_child_text("name", partEl, ns, True))
-                productType = \
-                    self._get_child_text("productType", partEl, ns, False)
-                if productType:
-                    tempPart.product_type = \
-                        artifact.ProductType.getByValue(productType)
-                self._add_chunks(tempPart.chunks, partEl, ns)
-                self._set_entity_attributes(partEl, ns, tempPart)
-                parts[tempPart.name] = tempPart
+            for part_element in el.iterchildren("{" + ns + "}part"):
+                _part = \
+                    part.Part(self._get_child_text("name", part_element, ns, True))
+                product_type = \
+                    self._get_child_text("productType", part_element, ns, False)
+                if product_type:
+                    _part.product_type = \
+                        artifact.ProductType.getByValue(product_type)
+                self._add_chunks(_part.chunks, part_element, ns)
+                self._set_entity_attributes(part_element, ns, _part)
+                parts[_part.name] = _part
 
     def _add_artifacts(self, artifacts, parent, ns):
         """Build artifacts from an XML representation of the artifact elements
@@ -1228,30 +1228,30 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            for artifactEl in el.iterchildren("{" + ns + "}artifact"):
-                uri = self._get_child_text("uri", artifactEl, ns, True)
+            for artifact_element in el.iterchildren("{" + ns + "}artifact"):
+                uri = self._get_child_text("uri", artifact_element, ns, True)
 
-                product_type = self._get_child_text("productType", artifactEl, ns, False)
+                product_type = self._get_child_text("productType", artifact_element, ns, False)
                 if product_type is None:
                     product_type = artifact.ProductType.SCIENCE
                     print "Using default Artifact.productType value {0}".format(str(artifact.ProductType.SCIENCE))
                 else:
                     product_type = artifact.ProductType.getByValue(product_type)
 
-                release_type = self._get_child_text("releaseType", artifactEl, ns, False)
+                release_type = self._get_child_text("releaseType", artifact_element, ns, False)
                 if release_type is None:
                     release_type = artifact.ReleaseType.DATA
                     print "Using default Artifact.releaseType value {0}".format(str(artifact.ReleaseType.DATA))
                 else:
                     release_type = artifact.ReleaseType.getByValue(release_type)
 
-                tempArtifact = artifact.Artifact(uri, product_type, release_type)
-                tempArtifact.content_type = self._get_child_text("contentType", artifactEl, ns, False)
-                tempArtifact.content_length = (
-                    self._get_child_text_as_long("contentLength", artifactEl, ns, False))
-                self._add_parts(tempArtifact.parts, artifactEl, ns)
-                self._set_entity_attributes(artifactEl, ns, tempArtifact)
-                artifacts[tempArtifact.uri] = tempArtifact
+                _artifact = artifact.Artifact(uri, product_type, release_type)
+                _artifact.content_type = self._get_child_text("contentType", artifact_element, ns, False)
+                _artifact.content_length = (
+                    self._get_child_text_as_long("contentLength", artifact_element, ns, False))
+                self._add_parts(_artifact.parts, artifact_element, ns)
+                self._set_entity_attributes(artifact_element, ns, _artifact)
+                artifacts[_artifact.uri] = _artifact
 
     def _add_planes(self, planes, parent, ns):
         """Create Planes object from XML representation of Plane elements
@@ -1267,32 +1267,32 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            for planeEl in el.iterchildren("{" + ns + "}plane"):
-                tempPlane = plane.Plane(
-                    self._get_child_text("productID", planeEl, ns, True))
-                tempPlane.meta_release = Util.str2ivoa(
-                    self._get_child_text("metaRelease", planeEl, ns, False))
-                tempPlane.data_release = Util.str2ivoa(
-                    self._get_child_text("dataRelease", planeEl, ns, False))
-                dataProductType = \
-                    self._get_child_text("dataProductType", planeEl, ns, False)
-                if dataProductType:
-                    tempPlane.data_product_type = \
-                        plane.DataProductType.getByValue(dataProductType)
-                calibrationLevel = \
-                    self._get_child_text("calibrationLevel", planeEl, ns, False)
-                if calibrationLevel:
-                    tempPlane.calibration_level = \
-                        plane.CalibrationLevel.getByValue(int(calibrationLevel))
-                tempPlane.provenance = \
-                    self._get_provenance("provenance", planeEl, ns, False)
-                tempPlane.metrics = \
-                    self._get_metrics("metrics", planeEl, ns, False)
-                tempPlane.quality = \
-                    self._get_quality("quality", planeEl, ns, False)
-                self._add_artifacts(tempPlane.artifacts, planeEl, ns)
-                self._set_entity_attributes(planeEl, ns, tempPlane)
-                planes[tempPlane.product_id] = tempPlane
+            for plane_element in el.iterchildren("{" + ns + "}plane"):
+                _plane = plane.Plane(
+                    self._get_child_text("productID", plane_element, ns, True))
+                _plane.meta_release = Util.str2ivoa(
+                    self._get_child_text("metaRelease", plane_element, ns, False))
+                _plane.data_release = Util.str2ivoa(
+                    self._get_child_text("dataRelease", plane_element, ns, False))
+                data_product_type = \
+                    self._get_child_text("dataProductType", plane_element, ns, False)
+                if data_product_type:
+                    _plane.data_product_type = \
+                        plane.DataProductType.getByValue(data_product_type)
+                calibration_level = \
+                    self._get_child_text("calibrationLevel", plane_element, ns, False)
+                if calibration_level:
+                    _plane.calibration_level = \
+                        plane.CalibrationLevel.getByValue(int(calibration_level))
+                _plane.provenance = \
+                    self._get_provenance("provenance", plane_element, ns, False)
+                _plane.metrics = \
+                    self._get_metrics("metrics", plane_element, ns, False)
+                _plane.quality = \
+                    self._get_quality("quality", plane_element, ns, False)
+                self._add_artifacts(_plane.artifacts, plane_element, ns)
+                self._set_entity_attributes(plane_element, ns, _plane)
+                planes[_plane.product_id] = _plane
 
             if not planes:
                 error = "No plane element found in planes"
@@ -1314,18 +1314,18 @@ class ObservationReader(object):
         root = doc.getroot()
         ns = root.nsmap["caom2"]
         collection = self._get_child_element("collection", root, ns, True).text
-        observationID = \
+        observation_id = \
             self._get_child_element("observationID", root, ns, True).text
         # Instantiate Algorithm
         algorithm = self._get_algorithm("algorithm", root, ns, True)
         # Instantiate Observation
         if root.get("{http://www.w3.org/2001/XMLSchema-instance}type") \
                 == "caom2:SimpleObservation":
-            obs = observation.SimpleObservation(collection, observationID)
+            obs = observation.SimpleObservation(collection, observation_id)
             obs.algorithm = algorithm
         else:
             obs = \
-                observation.CompositeObservation(collection, observationID, algorithm)
+                observation.CompositeObservation(collection, observation_id, algorithm)
         # Instantiate children of Observation
         obs.sequence_number = \
             self._get_child_text_as_int("sequenceNumber", root, ns, False)
@@ -1405,44 +1405,44 @@ class ObservationWriter(object):
 
         self._nsmap = {namespace_prefix: self._namespace, "xsi": XSI_NAMESPACE}
 
-    def write(self, observation, out):
-        assert isinstance(observation, observation.Observation), (
+    def write(self, obs, out):
+        assert isinstance(obs, observation.Observation), (
             "observation is not an Observation")
 
-        obs = etree.Element(self._caom2_namespace + "Observation", nsmap=self._nsmap)
-        if isinstance(observation, observation.SimpleObservation):
-            obs.set(XSI + "type", "caom2:SimpleObservation")
+        obs_element = etree.Element(self._caom2_namespace + "Observation", nsmap=self._nsmap)
+        if isinstance(obs, observation.SimpleObservation):
+            obs_element.set(XSI + "type", "caom2:SimpleObservation")
         else:
-            obs.set(XSI + "type", "caom2:CompositeObservation")
+            obs_element.set(XSI + "type", "caom2:CompositeObservation")
 
-        self._add_enity_attributes(observation, obs)
+        self._add_enity_attributes(obs, obs_element)
 
-        self._add_element("collection", observation.collection, obs)
-        self._add_element("observationID", observation.observation_id, obs)
-        self._add_datetime_element("metaRelease", observation.meta_release, obs)
-        self._add_element("sequenceNumber", observation.sequence_number, obs)
-        self._add_algorithm_element(observation.algorithm, obs)
-        self._add_element("type", observation.obs_type, obs)
-        if observation.intent is not None:
+        self._add_element("collection", obs.collection, obs_element)
+        self._add_element("observationID", obs.observation_id, obs_element)
+        self._add_datetime_element("metaRelease", obs.meta_release, obs_element)
+        self._add_element("sequenceNumber", obs.sequence_number, obs_element)
+        self._add_algorithm_element(obs.algorithm, obs_element)
+        self._add_element("type", obs.obs_type, obs_element)
+        if obs.intent is not None:
             self._add_element(
-                "intent", observation.ObservationIntentType.get(str(observation.intent)).value, obs)
+                "intent", observation.ObservationIntentType.get(str(obs.intent)).value, obs_element)
 
-        self._add_proposal_element(observation.proposal, obs)
-        self._add_target_element(observation.target, obs)
-        self._add_target_position_element(observation.target_position, obs)
-        self._add_requirements_element(observation.requirements, obs)
-        self._add_telescope_element(observation.telescope, obs)
-        self._add_instrument_element(observation.instrument, obs)
-        self._add_environment_element(observation.environment, obs)
-        self._add_planes_element(observation.planes, obs)
+        self._add_proposal_element(obs.proposal, obs_element)
+        self._add_target_element(obs.target, obs_element)
+        self._add_target_position_element(obs.target_position, obs_element)
+        self._add_requirements_element(obs.requirements, obs_element)
+        self._add_telescope_element(obs.telescope, obs_element)
+        self._add_instrument_element(obs.instrument, obs_element)
+        self._add_environment_element(obs.environment, obs_element)
+        self._add_planes_element(obs.planes, obs_element)
 
-        if isinstance(observation, observation.CompositeObservation):
-            self._add_members_element(observation.members, obs)
+        if isinstance(obs, observation.CompositeObservation):
+            self._add_members_element(obs.members, obs_element)
 
         if self._validate and self._xmlschema:
-            self._xmlschema.assertValid(obs)
+            self._xmlschema.assertValid(obs_element)
 
-        out.write(etree.tostring(obs, xml_declaration=True, encoding='UTF-8',
+        out.write(etree.tostring(obs_element, xml_declaration=True, encoding='UTF-8',
                                  pretty_print=True))
 
     def _add_enity_attributes(self, entity, element):
@@ -1561,26 +1561,26 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("planes", parent)
-        for plane in planes.itervalues():
+        for _plane in planes.itervalues():
             plane_element = self._get_caom_element("plane", element)
-            self._add_enity_attributes(plane, plane_element)
-            self._add_element("productID", plane.product_id, plane_element)
-            self._add_datetime_element("metaRelease", plane.meta_release,
+            self._add_enity_attributes(_plane, plane_element)
+            self._add_element("productID", _plane.product_id, plane_element)
+            self._add_datetime_element("metaRelease", _plane.meta_release,
                                        plane_element)
-            self._add_datetime_element("dataRelease", plane.data_release,
+            self._add_datetime_element("dataRelease", _plane.data_release,
                                        plane_element)
-            if plane.data_product_type is not None:
+            if _plane.data_product_type is not None:
                 self._add_element("dataProductType",
-                                  plane.DataProductType.get(str(plane.data_product_type)).value,
+                                  plane.DataProductType.get(str(_plane.data_product_type)).value,
                                   plane_element)
-            if plane.calibration_level is not None:
+            if _plane.calibration_level is not None:
                 self._add_element("calibrationLevel",
-                                  plane.CalibrationLevel(str(plane.calibration_level)).value,
+                                  plane.CalibrationLevel(str(_plane.calibration_level)).value,
                                   plane_element)
-            self._add_provenance_element(plane.provenance, plane_element)
-            self._add_metrics_element(plane.metrics, plane_element)
-            self._add_quality_element(plane.quality, plane_element)
-            self._add_artifacts_element(plane.artifacts, plane_element)
+            self._add_provenance_element(_plane.provenance, plane_element)
+            self._add_metrics_element(_plane.metrics, plane_element)
+            self._add_quality_element(_plane.quality, plane_element)
+            self._add_artifacts_element(_plane.artifacts, plane_element)
 
     def _add_provenance_element(self, provenance, parent):
         if provenance is None:
@@ -1710,7 +1710,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("position", parent)
-        self._add_coord_axis_2d_element("axis", position.axis, element)
+        self._add_coord_axis2d_element("axis", position.axis, element)
         self._add_element("coordsys", position.coordsys, element)
         self._add_element("equinox", position.equinox, element)
         self._add_element("resolution", position.resolution, element)
@@ -1722,7 +1722,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("energy", parent)
-        self._add_coord_axis_1d_element("axis", energy.axis, element)
+        self._add_coord_axis1d_element("axis", energy.axis, element)
         self._add_element("specsys", energy.specsys, element)
         self._add_element("ssysobs", energy.ssysobs, element)
         self._add_element("ssyssrc", energy.ssyssrc, element)
@@ -1742,7 +1742,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("time", parent)
-        self._add_coord_axis_1d_element("axis", time.axis, element)
+        self._add_coord_axis1d_element("axis", time.axis, element)
         self._add_element("timesys", time.timesys, element)
         self._add_element("trefpos", time.trefpos, element)
         self._add_element("mjdref", time.mjdref, element)
@@ -1756,7 +1756,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("polarization", parent)
-        self._add_coord_axis_1d_element("axis", polarization.axis, element)
+        self._add_coord_axis1d_element("axis", polarization.axis, element)
 
     #/*+ CAOM2 Types #-*/
 
@@ -1783,7 +1783,7 @@ class ObservationWriter(object):
         if axis.cunit:
             self._add_element("cunit", axis.cunit, element)
 
-    def _add_coord_2d_element(self, name, coord, parent):
+    def _add_coord2d_element(self, name, coord, parent):
         """ Builds a representation of a Coord2D and adds it to the
             parent element. """
         if coord is None:
@@ -1793,7 +1793,7 @@ class ObservationWriter(object):
         self._add_ref_coord_element("coord1", coord.coord1, element)
         self._add_ref_coord_element("coord2", coord.coord2, element)
 
-    def _add_value_coord_2d_element(self, name, coord, parent):
+    def _add_value_coord2d_element(self, name, coord, parent):
         """ Builds a representation of a ValueCoord2D and adds it to the
             parent element. """
         if coord is None:
@@ -1803,7 +1803,7 @@ class ObservationWriter(object):
         self._add_element("coord1", coord.coord1, element)
         self._add_element("coord2", coord.coord2, element)
 
-    def _add_coord_axis_1d_element(self, name, axis, parent):
+    def _add_coord_axis1d_element(self, name, axis, parent):
         """ Builds a representation of a CoordAxis1D and adds it to the
             parent element. """
         if axis is None:
@@ -1812,11 +1812,11 @@ class ObservationWriter(object):
         element = self._get_caom_element(name, parent)
         self._add_axis_element("axis", axis.axis, element)
         self._add_coord_error_element("error", axis.error, element)
-        self._add_coord_range_1d_element("range", axis.range, element)
-        self._add_coord_bounds_1d_element("bounds", axis.bounds, element)
-        self._add_coord_function_1d_element("function", axis.function, element)
+        self._add_coord_range1d_element("range", axis.range, element)
+        self._add_coord_bounds1d_element("bounds", axis.bounds, element)
+        self._add_coord_function1d_element("function", axis.function, element)
 
-    def _add_coord_axis_2d_element(self, name, axis, parent):
+    def _add_coord_axis2d_element(self, name, axis, parent):
         """ Builds a representation of a CoordAxis2D and adds it to the
             parent element. """
         if axis is None:
@@ -1827,11 +1827,11 @@ class ObservationWriter(object):
         self._add_axis_element("axis2", axis.axis2, element)
         self._add_coord_error_element("error1", axis.error1, element)
         self._add_coord_error_element("error2", axis.error2, element)
-        self._add_coord_range_2d_element("range", axis.range, element)
-        self._add_coord_bounds_2d_element("bounds", axis.bounds, element)
-        self._add_coord_function_2d_element("function", axis.function, element)
+        self._add_coord_range2d_element("range", axis.range, element)
+        self._add_coord_bounds2d_element("bounds", axis.bounds, element)
+        self._add_coord_function2d_element("function", axis.function, element)
 
-    def _add_coord_bounds_1d_element(self, name, bounds, parent):
+    def _add_coord_bounds1d_element(self, name, bounds, parent):
         """ Builds a representation of a CoordBounds1D and adds it to the
             parent element. """
         if bounds is None:
@@ -1840,7 +1840,7 @@ class ObservationWriter(object):
         element = self._get_caom_element(name, parent)
         self._add_coord_range_1d_list_element("samples", bounds.samples, element)
 
-    def _add_coord_bounds_2d_element(self, name, bounds, parent):
+    def _add_coord_bounds2d_element(self, name, bounds, parent):
         """Builds a representation of a CoordBounds2D and adds it to the
             parent element. """
         if bounds is None:
@@ -1848,23 +1848,23 @@ class ObservationWriter(object):
 
         element = self._get_caom_element(name, parent)
         if isinstance(bounds, wcs.CoordCircle2D):
-            self._add_coord_circle_2d_element("circle",
-                                              wcs.CoordCircle2D(bounds.center,
+            self._add_coord_circle2d_element("circle",
+                                             wcs.CoordCircle2D(bounds.center,
                                                         bounds.radius), element)
         elif isinstance(bounds, wcs.CoordPolygon2D):
-            self._add_coord_polygon_2d_element("polygon", bounds, element)
+            self._add_coord_polygon2d_element("polygon", bounds, element)
         else:
             raise TypeError("BUG: unsupported CoordBounds2D type "
                             + bounds.__class__.__name__)
 
-    def _add_coord_circle_2d_element(self, name, circle, parent):
+    def _add_coord_circle2d_element(self, name, circle, parent):
         """ Builds a representation of a CoordCircle2D and adds it to the
             parent element. """
         if circle is None:
             return
 
         element = self._get_caom_element(name, parent)
-        self._add_value_coord_2d_element("center", circle.center, element)
+        self._add_value_coord2d_element("center", circle.center, element)
         self._add_element("radius", circle.radius, element)
 
     def _add_coord_error_element(self, name, error, parent):
@@ -1877,7 +1877,7 @@ class ObservationWriter(object):
         self._add_element("syser", error.syser, element)
         self._add_element("rnder", error.rnder, element)
 
-    def _add_coord_function_1d_element(self, name, function, parent):
+    def _add_coord_function1d_element(self, name, function, parent):
         """ Builds a representation of a CoordFunction1D and adds it to the
             parent element. """
         if function is None:
@@ -1888,21 +1888,21 @@ class ObservationWriter(object):
         self._add_element("delta", function.delta, element)
         self._add_ref_coord_element("refCoord", function.ref_coord, element)
 
-    def _add_coord_function_2d_element(self, name, function, parent):
+    def _add_coord_function2d_element(self, name, function, parent):
         """ Builds a representation of a CoordFunction2D and adds it to the
             parent element. """
         if function is None:
             return
 
         element = self._get_caom_element(name, parent)
-        self._add_dimension_2d_element("dimension", function.dimension, element)
-        self._add_coord_2d_element("refCoord", function.ref_coord, element)
+        self._add_dimension2d_element("dimension", function.dimension, element)
+        self._add_coord2d_element("refCoord", function.ref_coord, element)
         self._add_element("cd11", function.cd11, element)
         self._add_element("cd12", function.cd12, element)
         self._add_element("cd21", function.cd21, element)
         self._add_element("cd22", function.cd22, element)
 
-    def _add_coord_polygon_2d_element(self, name, polygon, parent):
+    def _add_coord_polygon2d_element(self, name, polygon, parent):
         """ Builds a representation of a CoordPolygon2D and adds it to the
             parent element. """
         if polygon is None:
@@ -1912,9 +1912,9 @@ class ObservationWriter(object):
         if len(polygon.vertices) > 0:
             vertices_element = self._get_caom_element("vertices", element)
             for vertex in polygon.vertices:
-                self._add_value_coord_2d_element("vertex", vertex, vertices_element)
+                self._add_value_coord2d_element("vertex", vertex, vertices_element)
 
-    def _add_coord_range_1d_element(self, name, _range, parent):
+    def _add_coord_range1d_element(self, name, _range, parent):
         """ Builds a representation of a CoordRange1D and adds it to the
             parent element. """
         if _range is None:
@@ -1924,17 +1924,17 @@ class ObservationWriter(object):
         self._add_ref_coord_element("start", _range.start, element)
         self._add_ref_coord_element("end", _range.end, element)
 
-    def _add_coord_range_2d_element(self, name, _range, parent):
+    def _add_coord_range2d_element(self, name, _range, parent):
         """ Builds a representation of a CoordRange2D and adds it to the
             parent element. """
         if _range is None:
             return
 
         element = self._get_caom_element(name, parent)
-        self._add_coord_2d_element("start", _range.start, element)
-        self._add_coord_2d_element("end", _range.end, element)
+        self._add_coord2d_element("start", _range.start, element)
+        self._add_coord2d_element("end", _range.end, element)
 
-    def _add_dimension_2d_element(self, name, dimension, parent):
+    def _add_dimension2d_element(self, name, dimension, parent):
         """ Builds a representation of a Dimension2D and adds it to the
             parent element. """
         if dimension is None:
@@ -1944,15 +1944,15 @@ class ObservationWriter(object):
         self._add_element("naxis1", dimension.naxis1, element)
         self._add_element("naxis2", dimension.naxis2, element)
 
-    def _add_ref_coord_element(self, name, refCoord, parent):
+    def _add_ref_coord_element(self, name, ref_coord, parent):
         """ Builds a representation of a RefCoord and adds it to the
             parent element. """
-        if refCoord is None:
+        if ref_coord is None:
             return
 
         element = self._get_caom_element(name, parent)
-        self._add_element("pix", refCoord.pix, element)
-        self._add_element("val", refCoord.val, element)
+        self._add_element("pix", ref_coord.pix, element)
+        self._add_element("val", ref_coord.val, element)
 
     def _add_slice_element(self, name, _slice, parent):
         """ Builds a representation of a Slice and adds it to the
@@ -1994,7 +1994,7 @@ class ObservationWriter(object):
             return
         element = self._get_caom_element(name, parent)
         for v in values:
-            self._add_coord_range_1d_element("range", v, element)
+            self._add_coord_range1d_element("range", v, element)
 
     def _add_inputs_element(self, name, collection, parent):
         if collection is None or \

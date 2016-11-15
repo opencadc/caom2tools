@@ -162,8 +162,8 @@ from observation import Status
 from observation import TargetType
 
 # observation reader and writer
-from xml_reader_writer import ObservationReader
-from xml_reader_writer import ObservationWriter
-from xml_reader_writer import CAOM20_NAMESPACE
-from xml_reader_writer import CAOM21_NAMESPACE
-from xml_reader_writer import CAOM22_NAMESPACE
+from obs_reader_writer import ObservationReader
+from obs_reader_writer import ObservationWriter
+from obs_reader_writer import CAOM20_NAMESPACE
+from obs_reader_writer import CAOM21_NAMESPACE
+from obs_reader_writer import CAOM22_NAMESPACE
