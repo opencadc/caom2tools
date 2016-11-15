@@ -77,7 +77,7 @@ from lxml import etree
 
 import artifact
 import chunk
-import data_type
+import shape
 import observation
 import part
 import plane
@@ -563,8 +563,8 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            return data_type.Point(self._get_child_text_as_float("cval1", el, ns, True),
-                                   self._get_child_text_as_float("cval2", el, ns, True))
+            return shape.Point(self._get_child_text_as_float("cval1", el, ns, True),
+                               self._get_child_text_as_float("cval2", el, ns, True))
 
     def _get_axis(self, elTag, parent, ns, required):
         """Build an Axis object from an XML representation of an Axis element.
@@ -582,8 +582,8 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            return data_type.Axis(self._get_child_text("ctype", el, ns, True),
-                                  self._get_child_text("cunit", el, ns, False))
+            return shape.Axis(self._get_child_text("ctype", el, ns, True),
+                              self._get_child_text("cunit", el, ns, False))
 
     def _get_slice(self, elTag, parent, ns, required):
         """Build a Slice object from an XML representation of a Slice element.
@@ -601,8 +601,8 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            return data_type.Slice(self._get_axis("axis", el, ns, True),
-                                   self._get_child_text_as_long("bin", el, ns, True))
+            return shape.Slice(self._get_axis("axis", el, ns, True),
+                               self._get_child_text_as_long("bin", el, ns, True))
 
     def _get_observable_axis(self, elTag, parent, ns, required):
         """Build an ObservableAxis object from an XML representation of an

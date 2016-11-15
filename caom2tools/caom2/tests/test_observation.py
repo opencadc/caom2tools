@@ -73,7 +73,7 @@
 import unittest
 from datetime import datetime
 
-from caom2.data_type import Point
+from caom2.shape import Point
 from caom2.observation import Algorithm
 from caom2.observation import CompositeObservation
 from caom2.observation import Environment

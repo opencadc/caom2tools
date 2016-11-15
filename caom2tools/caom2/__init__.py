@@ -103,12 +103,12 @@ from wcs import ValueCoord2D
 from wcs import EnergyTransition
 
 # Discovery data types
-from data_type import Box
-from data_type import Circle
-from data_type import Interval
-from data_type import Point
-from data_type import Polygon
-from data_type import Vertex
+from shape import Box
+from shape import Circle
+from shape import Interval
+from shape import Point
+from shape import Polygon
+from shape import Vertex
 
 # Chunk level classes
 from chunk import Chunk

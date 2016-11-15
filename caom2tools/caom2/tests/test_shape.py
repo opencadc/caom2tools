@@ -70,8 +70,8 @@
 
 import unittest
 
-from caom2.data_type import Point
-from caom2.data_type import SegmentType
+from caom2.shape import Point
+from caom2.shape import SegmentType
 
 
 class TestEnums(unittest.TestCase):

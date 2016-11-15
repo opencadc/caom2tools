@@ -75,7 +75,7 @@ from urlparse import SplitResult
 
 from caom_object import AbstractCaomEntity
 from caom_object import CaomObject
-from data_type import Point
+from shape import Point
 from enum import Enum
 from plane import Plane
 from util import TypedOrderedDict

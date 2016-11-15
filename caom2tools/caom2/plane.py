@@ -77,10 +77,10 @@ from urlparse import urlsplit
 from artifact import Artifact
 from caom_object import AbstractCaomEntity
 from caom_object import CaomObject
-from data_type import Box
-from data_type import Circle
-from data_type import Interval
-from data_type import Polygon
+from shape import Box
+from shape import Circle
+from shape import Interval
+from shape import Polygon
 from enum import Enum
 from observation import ObservationURI
 from util import TypedOrderedDict
