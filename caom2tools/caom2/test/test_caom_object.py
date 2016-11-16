@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -72,33 +71,34 @@
 
 import unittest
 
-from caom2tools.caom2.artifact import Artifact, ProductType, ReleaseType
-from caom2tools.caom2.caom_object import AbstractCaomEntity
-from caom2tools.caom2.chunk import Chunk
-from caom2tools.caom2.observation import Algorithm
-from caom2tools.caom2.observation import Observation
-from caom2tools.caom2.part import Part
-from caom2tools.caom2.plane import Plane
+from .. import artifact
+from .. import caom_object
+from .. import chunk
+from .. import observation
+from .. import part
+from .. import plane
 
 
 class TestCaom2IdGenerator(unittest.TestCase):
 
     def test_all(self):
         #Not much for now. Just to make sure that all the clients work
-        entity = AbstractCaomEntity()
-        print entity._id, entity._last_modified
-        artifact = Artifact("caom2:/blah/blah", ProductType.SCIENCE, ReleaseType.DATA)
-        print artifact._id, artifact._last_modified
-        chunk = Chunk()
-        print chunk._id, chunk._last_modified
-        algorithm = Algorithm("myAlg")
-        obs = Observation("colect", "obs", algorithm)
-        print obs._id, obs._last_modified
-        part = Part("part")
-        print part._id, part._last_modified
-        plane = Plane("prodid")
-        print plane._id, plane._last_modified
+        test_entity = caom_object.AbstractCaomEntity()
+        print test_entity._id, test_entity._last_modified
+        test_artifact = artifact.Artifact("caom2:/blah/blah",
+                                          artifact.ProductType.SCIENCE,
+                                          artifact.ReleaseType.DATA)
+        print test_artifact._id, test_artifact._last_modified
 
-if __name__ == '__main__':
-    unittest.main()
+        test_chunk = chunk.Chunk()
+        print test_chunk._id, test_chunk._last_modified
 
+        algorithm = observation.Algorithm("myAlg")
+        test_observation = observation.Observation("colect", "obs", algorithm)
+        print test_observation._id, test_observation._last_modified
+
+        test_part = part.Part("part")
+        print test_part._id, test_part._last_modified
+
+        test_plane = plane.Plane("prodid")
+        print test_plane._id, test_plane._last_modified

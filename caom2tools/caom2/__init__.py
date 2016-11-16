@@ -78,7 +78,7 @@
 # import plane as plane
 # import caom_util as caom_util
 # import wcs as wcs
-from caom_util import Util as Util
+# from caom_util import Util as Util
 
 #
 # from .caom_object import CaomObject

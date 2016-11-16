@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -70,7 +69,7 @@
 
 import unittest
 
-from caom2tools.caom2 import wcs
+from .. import wcs
 
 
 class TestAxis(unittest.TestCase):
@@ -454,8 +453,3 @@ class TestValueCoord2d(unittest.TestCase):
         self.assertIsNotNone(value_coord2d)
         self.assertEqual(value_coord2d.coord1, float(1))
         self.assertEqual(value_coord2d.coord2, float(2))
-
-
-if __name__ == '__main__':
-    unittest.main()
-

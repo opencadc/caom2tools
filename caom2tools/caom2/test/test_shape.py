@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -70,16 +69,16 @@
 
 import unittest
 
-from caom2tools.caom2 import shape
+from .. import shape
 
 
 class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(shape.SegmentType.get(999), None)
+        self.assertEqual(shape.SegmentType.get("foo"), None)
         self.assertRaises(AttributeError, shape.SegmentType.get, None)
-        self.assertRaises(AttributeError, shape.SegmentType.get, "foo")
+        self.assertRaises(AttributeError, shape.SegmentType.get, 999)
 
         self.assertEqual(shape.SegmentType.CLOSE.value, 0)
         self.assertEqual(shape.SegmentType.LINE.value, 1)

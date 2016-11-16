@@ -76,12 +76,11 @@ from urlparse import urlsplit
 
 import artifact
 import caom_object
+import caom_util
 import observation
 import shape
-import caom_util
 import wcs
 from enum import Enum
-from caom_util import Util
 
 CalibrationLevel = Enum('CalibrationLevel',
                         RAW_INSTRUMENT=0,
@@ -184,7 +183,7 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @product_id.setter
     def product_id(self, value):
-        Util.type_check(value, str, 'product_id', override=False)
+        caom_util.type_check(value, str, 'product_id', override=False)
         self._product_id = value
 
     @property
@@ -205,7 +204,7 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @artifacts.setter
     def artifacts(self, value):
-        Util.type_check(value, caom_util.TypedOrderedDict, 'artifacts', override=False)
+        caom_util.type_check(value, caom_util.TypedOrderedDict, 'artifacts', override=False)
         self._artifacts = value
 
     @property
@@ -226,8 +225,8 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @meta_release.setter
     def meta_release(self, value):
-        Util.type_check(value, datetime, 'meta_release')
-        Util.value_check(value,
+        caom_util.type_check(value, datetime, 'meta_release')
+        caom_util.value_check(value,
                          datetime(1800, 1, 1, 0, 0, 0),
                          datetime(2050, 1, 1, 0, 0, 0),
                         'meta_release')
@@ -250,8 +249,8 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @data_release.setter
     def data_release(self, value):
-        Util.type_check(value, datetime, 'data_release')
-        Util.value_check(value,
+        caom_util.type_check(value, datetime, 'data_release')
+        caom_util.value_check(value,
                          datetime(1800, 1, 1, 0, 0, 0),
                          datetime(2050, 1, 1, 0, 0, 0),
                         'data_release')
@@ -271,7 +270,7 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @data_product_type.setter
     def data_product_type(self, value):
-        Util.type_check(value, DataProductType, 'data_product_type')
+        caom_util.type_check(value, DataProductType, 'data_product_type')
         self._data_product_type = value
 
     @property
@@ -290,7 +289,7 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @calibration_level.setter
     def calibration_level(self, value):
-        Util.type_check(value, CalibrationLevel, "calibration_level")
+        caom_util.type_check(value, CalibrationLevel, "calibration_level")
         self._calibration_level = value
 
     @property
@@ -303,7 +302,7 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @provenance.setter
     def provenance(self, value):
-        Util.type_check(value, Provenance, "provenance")
+        caom_util.type_check(value, Provenance, "provenance")
         self._provenance = value
 
     @property
@@ -316,7 +315,7 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @metrics.setter
     def metrics(self, value):
-        Util.type_check(value, Metrics, 'metrics')
+        caom_util.type_check(value, Metrics, 'metrics')
         self._metrics = value
 
     @property
@@ -329,7 +328,7 @@ class Plane(caom_object.AbstractCaomEntity):
 
     @quality.setter
     def quality(self, value):
-        Util.type_check(value, DataQuality, 'quality')
+        caom_util.type_check(value, DataQuality, 'quality')
         self._quality = value
 
     #@property
@@ -437,10 +436,10 @@ class PlaneURI(caom_object.CaomObject):
         observation_uri : the uri of the observation
         product_id : ID of the product
         """
-        Util.type_check(observation_uri, observation.ObservationURI, "observation_uri",
+        caom_util.type_check(observation_uri, observation.ObservationURI, "observation_uri",
                         override=False)
-        Util.type_check(product_id, str, "observation_uri", override=False)
-        Util.validate_path_component(cls, "product_id", product_id)
+        caom_util.type_check(product_id, str, "observation_uri", override=False)
+        caom_util.validate_path_component(cls, "product_id", product_id)
 
         path = urlsplit(observation_uri.uri).path
         uri = SplitResult(observation.ObservationURI._SCHEME, "", path + "/" +
@@ -456,7 +455,7 @@ class PlaneURI(caom_object.CaomObject):
     @uri.setter
     def uri(self, value):
 
-        Util.type_check(value, str, "uri", override=False)
+        caom_util.type_check(value, str, "uri", override=False)
         tmp = urlsplit(value)
 
         if tmp.scheme != observation.ObservationURI._SCHEME:
@@ -507,7 +506,7 @@ class DataQuality(caom_object.CaomObject):
 
     @flag.setter
     def flag(self, value):
-        Util.type_check(value, Quality, "flag")
+        caom_util.type_check(value, Quality, "flag")
         self._flag = value
 
 
@@ -539,8 +538,8 @@ class Metrics(caom_object.CaomObject):
 
     @source_number_density.setter
     def source_number_density(self, value):
-        Util.type_check(value, float, "source_number_density")
-        Util.value_check(value, 0, 1E10, "source_number_density")
+        caom_util.type_check(value, float, "source_number_density")
+        caom_util.value_check(value, 0, 1E10, "source_number_density")
         self._source_number_density = value
 
     @property
@@ -554,8 +553,8 @@ class Metrics(caom_object.CaomObject):
 
     @background.setter
     def background(self, value):
-        Util.type_check(value, float, "background")
-        Util.value_check(value, 0, 1E10, "background")
+        caom_util.type_check(value, float, "background")
+        caom_util.value_check(value, 0, 1E10, "background")
         self._background = value
 
     @property
@@ -570,8 +569,8 @@ class Metrics(caom_object.CaomObject):
 
     @background_std_dev.setter
     def background_std_dev(self, value):
-        Util.type_check(value, float, "background_std_dev")
-        Util.value_check(value, 0, 1E10, "background")
+        caom_util.type_check(value, float, "background_std_dev")
+        caom_util.value_check(value, 0, 1E10, "background")
         self._background_std_dev = value
 
     @property
@@ -587,8 +586,8 @@ class Metrics(caom_object.CaomObject):
 
     @flux_density_limit.setter
     def flux_density_limit(self, value):
-        Util.type_check(value, float, "flux_denisty_limit")
-        Util.value_check(value, 0, 1E10, "flux_density_limit")
+        caom_util.type_check(value, float, "flux_denisty_limit")
+        caom_util.value_check(value, 0, 1E10, "flux_density_limit")
         self._flux_density_limit = value
 
     @property
@@ -604,8 +603,8 @@ class Metrics(caom_object.CaomObject):
 
     @mag_limit.setter
     def mag_limit(self, value):
-        Util.type_check(value, float, 'mag_limit')
-        Util.value_check(value, 0, 40, 'mag_limit')
+        caom_util.type_check(value, float, 'mag_limit')
+        caom_util.value_check(value, 0, 40, 'mag_limit')
         self._mag_limit = value
 
 
@@ -654,7 +653,7 @@ class Provenance(caom_object.CaomObject):
 
     @version.setter
     def version(self, value):
-        Util.type_check(value, str, 'version')
+        caom_util.type_check(value, str, 'version')
         self._version = value
 
     @property
@@ -664,7 +663,7 @@ class Provenance(caom_object.CaomObject):
 
     @project.setter
     def project(self, value):
-        Util.type_check(value, str, 'project')
+        caom_util.type_check(value, str, 'project')
         self._project = value
 
     @property
@@ -674,7 +673,7 @@ class Provenance(caom_object.CaomObject):
 
     @producer.setter
     def producer(self, value):
-        Util.type_check(value, str, 'producer')
+        caom_util.type_check(value, str, 'producer')
         self._producer = value
 
     @property
@@ -684,7 +683,7 @@ class Provenance(caom_object.CaomObject):
 
     @run_id.setter
     def run_id(self, value):
-        Util.type_check(value, str, 'run_id')
+        caom_util.type_check(value, str, 'run_id')
         self._run_id = value
 
     @property
@@ -694,7 +693,7 @@ class Provenance(caom_object.CaomObject):
 
     @reference.setter
     def reference(self, value):
-        Util.type_check(value, str, 'version')
+        caom_util.type_check(value, str, 'version')
         if value is not None:
             tmp = urlsplit(value)
             assert tmp.geturl() == value, "Invalid URI: " + value
@@ -707,7 +706,7 @@ class Provenance(caom_object.CaomObject):
 
     @last_executed.setter
     def last_executed(self, value):
-        Util.type_check(value, datetime, 'last_executed')
+        caom_util.type_check(value, datetime, 'last_executed')
         self._last_executed = value
 
     @property
@@ -933,8 +932,8 @@ class EnergyTransition(caom_object.CaomObject):
         species
         transition
         """
-        Util.type_check(species, str, "species", override=False)
-        Util.type_check(transition, str, "transition", override=False)
+        caom_util.type_check(species, str, "species", override=False)
+        caom_util.type_check(transition, str, "transition", override=False)
         self._species = species
         self._transition = transition
 
@@ -976,8 +975,8 @@ class Polarization(caom_object.CaomObject):
 
     @dimension.setter
     def dimension(self, value):
-        Util.type_check(value, int, 'dimension')
-        Util.value_check(value, 0, 1E10, 'dimension')
+        caom_util.type_check(value, int, 'dimension')
+        caom_util.value_check(value, 0, 1E10, 'dimension')
         self._dimension = value
 
 
@@ -1018,7 +1017,7 @@ class Time(caom_object.CaomObject):
 
     @value.setter
     def value(self, value):
-        Util.type_check(value, float, 'value')
+        caom_util.type_check(value, float, 'value')
         self._value = value
 
     @property
@@ -1036,7 +1035,7 @@ class Time(caom_object.CaomObject):
 
     @bounds.setter
     def bounds(self, value):
-        Util.type_check(value, shape.Interval, 'bounds')
+        caom_util.type_check(value, shape.Interval, 'bounds')
         self._bounds = value
 
     @property
@@ -1051,7 +1050,7 @@ class Time(caom_object.CaomObject):
 
     @dimension.setter
     def dimension(self, value):
-        Util.type_check(value, long, 'dimension')
+        caom_util.type_check(value, long, 'dimension')
         self._dimension = value
 
     @property
@@ -1071,7 +1070,7 @@ class Time(caom_object.CaomObject):
 
     @resolution.setter
     def resolution(self, value):
-        Util.type_check(value, float, 'resolution')
+        caom_util.type_check(value, float, 'resolution')
         self._resolution = value
 
     @property
@@ -1083,7 +1082,7 @@ class Time(caom_object.CaomObject):
 
     @sample_size.setter
     def sample_size(self, value):
-        Util.type_check(value, float, 'sample_size')
+        caom_util.type_check(value, float, 'sample_size')
         self._sample_size = value
 
     @property
@@ -1093,6 +1092,6 @@ class Time(caom_object.CaomObject):
 
     @exposure.setter
     def exposure(self, value):
-        Util.type_check(value, float, 'exposure')
+        caom_util.type_check(value, float, 'exposure')
         self._exposure = value
 

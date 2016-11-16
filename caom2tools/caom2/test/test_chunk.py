@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -72,210 +71,106 @@
 
 import unittest
 
-from caom2tools.caom2.artifact import ProductType
-from caom2tools.caom2.chunk import Chunk
-from caom2tools.caom2.chunk import ObservableAxis
-from caom2tools.caom2.chunk import PolarizationWCS
-from caom2tools.caom2.chunk import SpatialWCS
-from caom2tools.caom2.chunk import SpectralWCS
-from caom2tools.caom2.chunk import TemporalWCS
-from caom2tools.caom2.plane import EnergyTransition
-from caom2tools.caom2.wcs import Axis
-from caom2tools.caom2.wcs import CoordAxis1D
-from caom2tools.caom2.wcs import CoordAxis2D
-from caom2tools.caom2.wcs import Slice
+from .. import artifact
+from .. import chunk
+from .. import plane
+from .. import wcs
 
 
 class TestChunk(unittest.TestCase):
 
     def test_init(self):
 
-        chunk = Chunk()
-        self.assertIsNone(chunk.product_type)
-        self.assertIsNone(chunk.naxis)
-        #self.assertIsNone(chunk.observable_axis)
-        self.assertIsNone(chunk.position_axis_1)
-        self.assertIsNone(chunk.position_axis_2)
-        self.assertIsNone(chunk.energy_axis)
-        self.assertIsNone(chunk.time_axis)
-        self.assertIsNone(chunk.polarization_axis)
-        self.assertIsNone(chunk.observable)
-        self.assertIsNone(chunk.position)
-        self.assertIsNone(chunk.energy)
-        self.assertIsNone(chunk.time)
-        self.assertIsNone(chunk.polarization)
+        test_chunk = chunk.Chunk()
+        self.assertIsNone(test_chunk.product_type)
+        self.assertIsNone(test_chunk.naxis)
+        self.assertIsNone(test_chunk.position_axis_1)
+        self.assertIsNone(test_chunk.position_axis_2)
+        self.assertIsNone(test_chunk.energy_axis)
+        self.assertIsNone(test_chunk.time_axis)
+        self.assertIsNone(test_chunk.polarization_axis)
+        self.assertIsNone(test_chunk.observable)
+        self.assertIsNone(test_chunk.position)
+        self.assertIsNone(test_chunk.energy)
+        self.assertIsNone(test_chunk.time)
+        self.assertIsNone(test_chunk.polarization)
 
     def test_attributes(self):
 
-        chunk = Chunk()
+        test_chunk = chunk.Chunk()
         with self.assertRaises(TypeError):
-            chunk.product_type = float(1.0)
-            chunk.naxis = float(1.0)
-            #chunk.observable_axis = float(1.0)
-            chunk.position_axis_1 = float(1.0)
-            chunk.position_axis_2 = float(1.0)
-            chunk.energy_axis = float(1.0)
-            chunk.time_axis = float(1.0)
-            chunk.polarization_axis = float(1.0)
-            chunk.observable = float(1.0)
-            chunk.position = float(1.0)
-            chunk.energy = float(1.0)
-            chunk.time = float(1.0)
-            chunk.polarization = float(1.0)
+            test_chunk.product_type = float(1.0)
+            test_chunk.naxis = float(1.0)
+            test_chunk.position_axis_1 = float(1.0)
+            test_chunk.position_axis_2 = float(1.0)
+            test_chunk.energy_axis = float(1.0)
+            test_chunk.time_axis = float(1.0)
+            test_chunk.polarization_axis = float(1.0)
+            test_chunk.observable = float(1.0)
+            test_chunk.position = float(1.0)
+            test_chunk.energy = float(1.0)
+            test_chunk.time = float(1.0)
+            test_chunk.polarization = float(1.0)
 
-        chunk.product_type = ProductType.SCIENCE
-        self.assertEqual(ProductType.SCIENCE, chunk.product_type)
+        test_chunk.product_type = artifact.ProductType.SCIENCE
+        self.assertEqual(artifact.ProductType.SCIENCE, test_chunk.product_type)
 
-        chunk.naxis = int(5)
-        self.assertEqual(int(5), chunk.naxis)
+        test_chunk.naxis = int(5)
+        self.assertEqual(int(5), test_chunk.naxis)
 
-        #chunk.observable_axis = int(2)
-        #self.assertEqual(int(2), chunk.observable_axis)
+        test_chunk.position_axis_1 = int(1)
+        self.assertEqual(int(1), test_chunk.position_axis_1)
 
-        chunk.position_axis_1 = int(1)
-        self.assertEqual(int(1), chunk.position_axis_1)
+        test_chunk.position_axis_2 = int(2)
+        self.assertEqual(int(2), test_chunk.position_axis_2)
 
-        chunk.position_axis_2 = int(2)
-        self.assertEqual(int(2), chunk.position_axis_2)
+        test_chunk.energy_axis = int(3)
+        self.assertEqual(int(3), test_chunk.energy_axis)
 
-        chunk.energy_axis = int(3)
-        self.assertEqual(int(3), chunk.energy_axis)
+        test_chunk.time_axis = int(4)
+        self.assertEqual(int(4), test_chunk.time_axis)
 
-        chunk.time_axis = int(4)
-        self.assertEqual(int(4), chunk.time_axis)
+        test_chunk.polarization_axis = int(5)
+        self.assertEqual(int(5), test_chunk.polarization_axis)
 
-        chunk.polarization_axis = int(5)
-        self.assertEqual(int(5), chunk.polarization_axis)
+        axis = wcs.Axis("ctype", "cunit")
+        dependent = wcs.Slice(axis, long(1))
+        observable = chunk.ObservableAxis(dependent)
+        test_chunk.observable = observable
+        self.assertEqual(observable, test_chunk.observable)
 
-        axis = Axis("ctype", "cunit")
-        dependent = Slice(axis, long(1))
-        observable = ObservableAxis(dependent)
-        chunk.observable = observable
-        self.assertEqual(observable, chunk.observable)
+        axis1 = wcs.Axis("ctype1", "cunit1")
+        axis2 = wcs.Axis("ctype2", "cunit2")
+        axis_2d = wcs.CoordAxis2D(axis1, axis2)
+        position = chunk.SpatialWCS(axis_2d)
+        test_chunk.position = position
+        self.assertEqual(position, test_chunk.position)
 
-        axis1 = Axis("ctype1", "cunit1")
-        axis2 = Axis("ctype2", "cunit2")
-        axis_2d = CoordAxis2D(axis1, axis2)
-        position = SpatialWCS(axis_2d)
-        chunk.position = position
-        self.assertEqual(position, chunk.position)
+        axis_1d = wcs.CoordAxis1D(axis)
+        energy = chunk.SpectralWCS(axis_1d, "specsys")
+        test_chunk.energy = energy
+        self.assertEqual(energy, test_chunk.energy)
 
-        axis_1d = CoordAxis1D(axis)
-        energy = SpectralWCS(axis_1d, "specsys")
-        chunk.energy = energy
-        self.assertEqual(energy, chunk.energy)
+        time = chunk.TemporalWCS(axis_1d)
+        test_chunk.time = time
+        self.assertEqual(time, test_chunk.time)
 
-        time = TemporalWCS(axis_1d)
-        chunk.time = time
-        self.assertEqual(time, chunk.time)
-
-        polarization = PolarizationWCS(CoordAxis1D(Axis('STOKES')))
-        chunk.polarization = polarization
-        self.assertEqual(polarization, chunk.polarization)
-
-#    def test_compare_to(self):
-#        # test for chunk1 == chunk2
-#        chunk1 = Chunk()
-#        chunk1.naxis = 1
-#        chunk1.observableAxis = 2
-#        chunk1.positionAxis1 = 3
-#        chunk1.positionAxis2 = 4
-#        chunk1.energyAxis = 5
-#        chunk1.timeAxis = 6
-#        chunk1.polarizationAxis = 7
-#        chunk1.observable = ObservableAxis()
-#        chunk1.position = SpatialWCS()
-#        chunk1.energy = SpectralWCS()
-#        chunk1.time = TemporalWCS()
-#        chunk1.polarization = PolarizationWCS()
-
-#        chunk2 = Chunk()
-#        chunk2.naxis = 1
-#        chunk2.observableAxis = 2
-#        chunk2.positionAxis1 = 3
-#        chunk2.positionAxis2 = 4
-#        chunk2.energyAxis = 5
-#        chunk2.timeAxis = 6
-#        chunk2.polarizationAxis = 7
-#        chunk2.observable = ObservableAxis()
-#        chunk2.position = SpatialWCS()
-#        chunk2.energy = SpectralWCS()
-#        chunk2.time = TemporalWCS()
-#        chunk2.polarization = PolarizationWCS()
-
-        # test for chunk1 < chunk2
-#        chunk1 = Chunk()
-#        chunk1.naxis = 1
-#        chunk1.observableAxis = 2
-#        chunk1.positionAxis1 = 3
-#        chunk1.positionAxis2 = 4
-#        chunk1.energyAxis = 5
-#        chunk1.timeAxis = 6
-#        chunk1.polarizationAxis = 7
-#        chunk1.observable = ObservableAxis()
-#        chunk1.position = SpatialWCS()
-#        chunk1.energy = SpectralWCS()
-#        chunk1.time = TemporalWCS()
-#        chunk1.polarization = PolarizationWCS()
-
-#        chunk2 = Chunk()
-#        chunk2.naxis = 2
-#        chunk2.observableAxis = 2
-#        chunk2.positionAxis1 = 3
-#        chunk2.positionAxis2 = 4
-#        chunk2.energyAxis = 5
-#        chunk2.timeAxis = 6
-#        chunk2.polarizationAxis = 7
-#        chunk2.observable = ObservableAxis()
-#        chunk2.position = SpatialWCS()
-#        chunk2.energy = SpectralWCS()
-#        chunk2.time = TemporalWCS()
-#        chunk2.polarization = PolarizationWCS()
-#
-#        self.assertEqual(chunk1.compareTo(chunk2), -1,
-#                         "compareTo equal failed")
-#
-        # test for chunk1 > chunk2
-#        chunk1 = Chunk()
-#        chunk1.naxis = 2
-#        chunk1.observableAxis = 2
-#        chunk1.positionAxis1 = 3
-#        chunk1.positionAxis2 = 4
-#        chunk1.energyAxis = 5
-#        chunk1.timeAxis = 6
-#        chunk1.polarizationAxis = 7
-#        chunk1.observable = ObservableAxis()
-#        chunk1.position = SpatialWCS()
-#        chunk1.energy = SpectralWCS()
-#        chunk1.time = TemporalWCS()
-#        chunk1.polarization = PolarizationWCS()
-#
-#        chunk2 = Chunk()
-#        chunk2.naxis = 1
-#        chunk2.observableAxis = 2
-#        chunk2.positionAxis1 = 3
-#        chunk2.positionAxis2 = 4
-#        chunk2.energyAxis = 5
-#        chunk2.timeAxis = 6
-#        chunk2.polarizationAxis = 7
-#        chunk2.observable = ObservableAxis()
-#        chunk2.position = SpatialWCS()
-#        chunk2.energy = SpectralWCS()
-#        chunk2.time = TemporalWCS()
-#        chunk2.polarization = PolarizationWCS()
+        polarization = chunk.PolarizationWCS(wcs.CoordAxis1D(wcs.Axis('STOKES')))
+        test_chunk.polarization = polarization
+        self.assertEqual(polarization, test_chunk.polarization)
 
 
 class TestObservableAxis(unittest.TestCase):
 
     def test_init(self):
 
-        self.assertRaises(TypeError, ObservableAxis, None)
-        self.assertRaises(TypeError, ObservableAxis, int(1))
+        self.assertRaises(TypeError, chunk.ObservableAxis, None)
+        self.assertRaises(TypeError, chunk.ObservableAxis, int(1))
 
-        dependent = Slice(Axis("ctype1", "cunit1"), long(1))
-        independent = Slice(Axis("ctype2", "cunit2"), long(2))
+        dependent = wcs.Slice(wcs.Axis("ctype1", "cunit1"), long(1))
+        independent = wcs.Slice(wcs.Axis("ctype2", "cunit2"), long(2))
 
-        observable = ObservableAxis(dependent)
+        observable = chunk.ObservableAxis(dependent)
         self.assertEqual(observable.dependent, dependent)
 
         observable.independent = independent
@@ -286,13 +181,13 @@ class TestSpatialWCS(unittest.TestCase):
 
     def test_init(self):
 
-        self.assertRaises(TypeError, SpatialWCS, None)
-        self.assertRaises(TypeError, SpatialWCS, int(1))
+        self.assertRaises(TypeError, chunk.SpatialWCS, None)
+        self.assertRaises(TypeError, chunk.SpatialWCS, int(1))
 
-        axis1 = Axis("ctype1", "cunit1")
-        axis2 = Axis("ctype2", "cunit2")
-        axis_2d = CoordAxis2D(axis1, axis2)
-        position = SpatialWCS(axis_2d)
+        axis1 = wcs.Axis("ctype1", "cunit1")
+        axis2 = wcs.Axis("ctype2", "cunit2")
+        axis_2d = wcs.CoordAxis2D(axis1, axis2)
+        position = chunk.SpatialWCS(axis_2d)
         self.assertEqual(position.axis, axis_2d)
         with self.assertRaises(TypeError):
             position.coordsys = float(1.0)
@@ -314,16 +209,16 @@ class TestSpectralWCS(unittest.TestCase):
 
     def test_init(self):
 
-        axis = Axis("ctype", "cunit")
-        axis_1d = CoordAxis1D(axis)
+        axis = wcs.Axis("ctype", "cunit")
+        axis_1d = wcs.CoordAxis1D(axis)
 
-        self.assertRaises(TypeError, SpectralWCS, None, None)
-        self.assertRaises(TypeError, SpectralWCS, None, str("s"))
-        self.assertRaises(TypeError, SpectralWCS, axis_1d, None)
-        self.assertRaises(TypeError, SpectralWCS, int(1), str("s"))
-        self.assertRaises(TypeError, SpectralWCS, axis_1d, int(1))
+        self.assertRaises(TypeError, chunk.SpectralWCS, None, None)
+        self.assertRaises(TypeError, chunk.SpectralWCS, None, str("s"))
+        self.assertRaises(TypeError, chunk.SpectralWCS, axis_1d, None)
+        self.assertRaises(TypeError, chunk.SpectralWCS, int(1), str("s"))
+        self.assertRaises(TypeError, chunk.SpectralWCS, axis_1d, int(1))
 
-        energy = SpectralWCS(axis_1d, "specsys")
+        energy = chunk.SpectralWCS(axis_1d, "specsys")
         self.assertEqual(energy.axis, axis_1d)
         self.assertEqual(energy.specsys, "specsys")
         with self.assertRaises(TypeError):
@@ -369,7 +264,7 @@ class TestSpectralWCS(unittest.TestCase):
         energy.bandpass_name = "bandpass_name"
         self.assertEqual(energy.bandpass_name, "bandpass_name")
 
-        transition = EnergyTransition("species", "transition")
+        transition = plane.EnergyTransition("species", "transition")
         energy.transition = transition
         self.assertEqual(energy.transition, transition)
 
@@ -381,12 +276,12 @@ class TestTemporalWCS(unittest.TestCase):
 
     def test_init(self):
 
-        self.assertRaises(TypeError, TemporalWCS, None)
-        self.assertRaises(TypeError, TemporalWCS, int(1))
+        self.assertRaises(TypeError, chunk.TemporalWCS, None)
+        self.assertRaises(TypeError, chunk.TemporalWCS, int(1))
 
-        axis = Axis("ctype", "cunit")
-        axis_1d = CoordAxis1D(axis)
-        time = TemporalWCS(axis_1d)
+        axis = wcs.Axis("ctype", "cunit")
+        axis_1d = wcs.CoordAxis1D(axis)
+        time = chunk.TemporalWCS(axis_1d)
         self.assertEqual(time.axis, axis_1d)
         with self.assertRaises(TypeError):
             time.exposure = str("s")
@@ -412,14 +307,10 @@ class TestPolarizationWCS(unittest.TestCase):
 
     def test_init(self):
 
-        self.assertRaises(TypeError, PolarizationWCS, None)
-        self.assertRaises(TypeError, PolarizationWCS, int(1))
+        self.assertRaises(TypeError, chunk.PolarizationWCS, None)
+        self.assertRaises(TypeError, chunk.PolarizationWCS, int(1))
 
-        axis = Axis('STOKES')
-        axis_1d = CoordAxis1D(axis)
-        polarization = PolarizationWCS(axis_1d)
+        axis = wcs.Axis('STOKES')
+        axis_1d = wcs.CoordAxis1D(axis)
+        polarization = chunk.PolarizationWCS(axis_1d)
         self.assertEqual(polarization.axis, axis_1d)
-
-
-if __name__ == '__main__':
-    unittest.main()

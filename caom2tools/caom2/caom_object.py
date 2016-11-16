@@ -74,7 +74,7 @@ import time
 import uuid
 from datetime import datetime
 
-from caom_util import Util
+import caom_util
 
 
 class CaomObject(object):
@@ -138,7 +138,7 @@ class AbstractCaomEntity(CaomObject):
             rand = vmrandom | randtime
             if rand & 0x8000000000000000:
                 rand = 0x1000000000000000 + rand
-            return Util.long2uuid(rand)
+            return caom_util.long2uuid(rand)
 
     @classmethod
     def _gen_last_modified(cls):

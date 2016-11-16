@@ -72,13 +72,13 @@
 
 from datetime import datetime
 from urlparse import SplitResult
+from urlparse import urlsplit
 
 import caom_object
+import caom_util
 import plane
 import shape
-import caom_util
 from enum import Enum
-from caom_util import Util
 
 ObservationIntentType = Enum('ObservationIntentType',
                              CALIBRATION="calibration",
@@ -188,7 +188,7 @@ class Observation(caom_object.AbstractCaomEntity):
         self.requirements = requirements
         self.meta_release = meta_release
         if planes is None:
-            planes = Util.TypedOrderedDict((plane.Plane),)
+            planes = caom_util.TypedOrderedDict((plane.Plane),)
         self.planes = planes
 
     # Properties
@@ -203,7 +203,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @collection.setter
     def collection(self, value):
-        Util.type_check(value, str, 'collection', override=False)
+        caom_util.type_check(value, str, 'collection', override=False)
         self._collection = value
 
     @property
@@ -217,7 +217,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @observation_id.setter
     def observation_id(self, value):
-        Util.type_check(value, str, 'observation_id', override=False)
+        caom_util.type_check(value, str, 'observation_id', override=False)
         self._observation_id = value
 
     @property
@@ -231,7 +231,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @uri.setter
     def uri(self, value):
-        Util.type_check(value, ObservationURI, 'uri')
+        caom_util.type_check(value, ObservationURI, 'uri')
         self._uri = value
 
     @property
@@ -249,7 +249,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @planes.setter
     def planes(self, value):
-        Util.type_check(value, caom_util.TypedOrderedDict, 'planes')
+        caom_util.type_check(value, caom_util.TypedOrderedDict, 'planes')
         self._planes = value
 
     @property
@@ -264,7 +264,7 @@ class Observation(caom_object.AbstractCaomEntity):
     def algorithm(self, value):
         if isinstance(value, str):
             value = Algorithm(value)
-        Util.type_check(value, Algorithm, 'algorithm')
+        caom_util.type_check(value, Algorithm, 'algorithm')
         self._algorithm = value
 
     @property
@@ -282,7 +282,7 @@ class Observation(caom_object.AbstractCaomEntity):
     def intent(self, value):
         if isinstance(value, str):
             value = ObservationIntentType(value)
-        Util.type_check(value, ObservationIntentType, 'intent')
+        caom_util.type_check(value, ObservationIntentType, 'intent')
         self._intent = value
 
     @property
@@ -294,7 +294,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @sequence_number.setter
     def sequence_number(self, value):
-        Util.type_check(value, int, 'sequence_number')
+        caom_util.type_check(value, int, 'sequence_number')
         self._sequence_number = value
 
     @property
@@ -308,7 +308,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @obs_type.setter
     def obs_type(self, value):
-        Util.type_check(value, str, 'obs_type')
+        caom_util.type_check(value, str, 'obs_type')
         self._obs_type = value
 
     @property
@@ -324,7 +324,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @proposal.setter
     def proposal(self, value):
-        Util.type_check(value, Proposal, "proposal")
+        caom_util.type_check(value, Proposal, "proposal")
         self._proposal = value
 
     @property
@@ -338,7 +338,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @telescope.setter
     def telescope(self, value):
-        Util.type_check(value, Telescope, 'telescope')
+        caom_util.type_check(value, Telescope, 'telescope')
         self._telescope = value
 
     @property
@@ -354,7 +354,7 @@ class Observation(caom_object.AbstractCaomEntity):
     def instrument(self, value):
         if isinstance(value, str):
             value = Instrument(str)
-        Util.type_check(value, Instrument, "instrument")
+        caom_util.type_check(value, Instrument, "instrument")
         self._instrument = value
 
     @property
@@ -370,7 +370,7 @@ class Observation(caom_object.AbstractCaomEntity):
     def target(self, value):
         if isinstance(value, str):
             value = Target(str)
-        Util.type_check(value, Target, 'target')
+        caom_util.type_check(value, Target, 'target')
         self._target = value
 
     @property
@@ -385,7 +385,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @environment.setter
     def environment(self, value):
-        Util.type_check(value, Environment, 'environment')
+        caom_util.type_check(value, Environment, 'environment')
         self._environment = value
 
     @property
@@ -400,7 +400,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @target_position.setter
     def target_position(self, value):
-        Util.type_check(value, TargetPosition, 'target_position')
+        caom_util.type_check(value, TargetPosition, 'target_position')
         self._target_position = value
 
     @property
@@ -415,7 +415,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @requirements.setter
     def requirements(self, value):
-        Util.type_check(value, Requirements, 'requirements')
+        caom_util.type_check(value, Requirements, 'requirements')
         self._requirements = value
 
     @property
@@ -435,7 +435,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @meta_release.setter
     def meta_release(self, value):
-        Util.type_check(value, datetime, 'meta_release')
+        caom_util.type_check(value, datetime, 'meta_release')
         self._meta_release = value
 
 
@@ -451,7 +451,7 @@ class ObservationURI(caom_object.CaomObject):
         Arguments:
         uri : URI corresponding to observation
         """
-        tmp = Util.urlsplit(uri)
+        tmp = urlsplit(uri)
 
         if tmp.scheme != ObservationURI._SCHEME:
             raise ValueError(
@@ -467,12 +467,12 @@ class ObservationURI(caom_object.CaomObject):
             raise ValueError(
                 "uri did not contain a collection part. received: {}"
                 .format(uri))
-        Util.validate_path_component(self, "collection", collection)
+        caom_util.validate_path_component(self, "collection", collection)
         if observation_id is None:
             raise ValueError(
                 "uri did not contain an observation_id part. received: {}"
                 .format(uri))
-        Util.validate_path_component(self, "observation_id", observation_id)
+        caom_util.validate_path_component(self, "observation_id", observation_id)
         (self._collection, self._observation_id) = (collection, observation_id)
         self._print_attributes = ['uri', 'collection', 'observation_id']
 
@@ -497,11 +497,11 @@ class ObservationURI(caom_object.CaomObject):
         observation_id : ID of the observation
         """
 
-        Util.type_check(collection, str, "collection", override=False)
-        Util.type_check(observation_id, str, "observation_id", override=False)
+        caom_util.type_check(collection, str, "collection", override=False)
+        caom_util.type_check(observation_id, str, "observation_id", override=False)
 
-        Util.validate_path_component(cls, "collection", collection)
-        Util.validate_path_component(cls, "observation_id", observation_id)
+        caom_util.validate_path_component(cls, "collection", collection)
+        caom_util.validate_path_component(cls, "observation_id", observation_id)
 
         uri = SplitResult(ObservationURI._SCHEME, "", collection + "/" + observation_id,
                           "", "").geturl()
@@ -533,7 +533,44 @@ class ObservationURI(caom_object.CaomObject):
         return self._observation_id
 
 
-class SimpleObservation(observation.Observation):
+class Algorithm(caom_object.CaomObject):
+    """
+    The concept of Algorithm is to provide a way for users to find all
+    composite observation sets that have been built using a particular
+    grouping algorithm (eg. the MegaPipe stacks).  For simple
+    observations the algorithm is 'exposure'.
+    """
+
+    def __init__(self, name):
+        """
+        Initializes an Algorithm instance
+
+        Arguments:
+        name : name of the algorithm.  Should be 'exposure' if this is a
+               simple observation, otherwise name of algorithm that selected
+               composite members or just 'composite' works too.
+        """
+        caom_util.type_check(name, str, "name", override=False)
+        self._name = name
+
+    def _key(self):
+        return (self._name)
+
+    def __ne__(self, y):
+        return not self.__eq__(y)
+
+    # Properties
+
+    @property
+    def name(self):
+        """
+        algorithm that defines the composite grouping; 'exposure' for
+        simple observations
+        """
+        return self._name
+
+
+class SimpleObservation(Observation):
     """A convenience class for building Observations where
     algorithm='exposure'.
 
@@ -609,14 +646,14 @@ class SimpleObservation(observation.Observation):
         # build an Algorithm type if passed a string...
         if isinstance(value, str):
             value = Algorithm(value)
-        Util.type_check(value, Algorithm, 'algorithm', override=False)
-        Util.value_check(value, None, None,
+        caom_util.type_check(value, Algorithm, 'algorithm', override=False)
+        caom_util.value_check(value, None, None,
                         'algorithm',
                          override=self._ALGORITHM)
         self._algorithm = value
 
 
-class CompositeObservation(observation.Observation):
+class CompositeObservation(Observation):
     """
     Composite Observation
 
@@ -679,43 +716,6 @@ class CompositeObservation(observation.Observation):
         return self._members
 
 
-class Algorithm(caom_object.CaomObject):
-    """
-    The concept of Algorithm is to provide a way for users to find all
-    composite observation sets that have been built using a particular
-    grouping algorithm (eg. the MegaPipe stacks).  For simple
-    observations the algorithm is 'exposure'.
-    """
-
-    def __init__(self, name):
-        """
-        Initializes an Algorithm instance
-
-        Arguments:
-        name : name of the algorithm.  Should be 'exposure' if this is a
-               simple observation, otherwise name of algorithm that selected
-               composite members or just 'composite' works too.
-        """
-        Util.type_check(name, str, "name", override=False)
-        self._name = name
-
-    def _key(self):
-        return (self._name)
-
-    def __ne__(self, y):
-        return not self.__eq__(y)
-
-    # Properties
-
-    @property
-    def name(self):
-        """
-        algorithm that defines the composite grouping; 'exposure' for
-        simple observations
-        """
-        return self._name
-
-
 class Environment(caom_object.CaomObject):
     """A CAOM2 Environment Object.
 
@@ -748,8 +748,8 @@ class Environment(caom_object.CaomObject):
 
     @seeing.setter
     def seeing(self, value):
-        Util.type_check(value, float, 'seeing')
-        Util.value_check(value, 0, 360 * 3600.0, 'seeing')
+        caom_util.type_check(value, float, 'seeing')
+        caom_util.value_check(value, 0, 360 * 3600.0, 'seeing')
         self._seeing = value
 
     @property
@@ -763,8 +763,8 @@ class Environment(caom_object.CaomObject):
     @humidity.setter
     def humidity(self, value):
         # set the humidity to value, which  must be +ve fraction less than 200
-        Util.type_check(value, float, 'humidity')
-        Util.value_check(value, 0, 200, 'humidity')
+        caom_util.type_check(value, float, 'humidity')
+        caom_util.value_check(value, 0, 200, 'humidity')
         self._humidity = value
 
     @property
@@ -777,8 +777,8 @@ class Environment(caom_object.CaomObject):
 
     @elevation.setter
     def elevation(self, value):
-        Util.type_check(value, float, 'elevation')
-        Util.value_check(value, 0, 90, 'elevation')
+        caom_util.type_check(value, float, 'elevation')
+        caom_util.value_check(value, 0, 90, 'elevation')
         self._elevation = value
 
     @property
@@ -793,8 +793,8 @@ class Environment(caom_object.CaomObject):
 
     @tau.setter
     def tau(self, value):
-        Util.type_check(value, float, 'tau')
-        Util.value_check(value, 0, 1, 'tau')
+        caom_util.type_check(value, float, 'tau')
+        caom_util.value_check(value, 0, 1, 'tau')
         self._tau = value
 
     @property
@@ -809,8 +809,8 @@ class Environment(caom_object.CaomObject):
 
     @wavelength_tau.setter
     def wavelength_tau(self, value):
-        Util.type_check(value, float, 'wavelength_tau')
-        Util.value_check(value, 0, 1E3, 'wavelength_tau')
+        caom_util.type_check(value, float, 'wavelength_tau')
+        caom_util.value_check(value, 0, 1E3, 'wavelength_tau')
         self._wavelength_tau = value
 
     @property
@@ -823,8 +823,8 @@ class Environment(caom_object.CaomObject):
 
     @ambient_temp.setter
     def ambient_temp(self, value):
-        Util.type_check(value, float, 'ambient_temp')
-        Util.value_check(value, -100, 100, 'ambient_temp')
+        caom_util.type_check(value, float, 'ambient_temp')
+        caom_util.value_check(value, -100, 100, 'ambient_temp')
         self._ambient_temp = value
 
     @property
@@ -835,7 +835,7 @@ class Environment(caom_object.CaomObject):
 
     @photometric.setter
     def photometric(self, value):
-        Util.type_check(value, bool, 'photometric')
+        caom_util.type_check(value, bool, 'photometric')
         self._photometric = value
 
 
@@ -859,7 +859,7 @@ class Instrument(caom_object.CaomObject):
         Arguments:
         name - name of the instrument
         """
-        Util.type_check(name, str, 'name', override='none')
+        caom_util.type_check(name, str, 'name', override='none')
         self._name = name
         self._keywords = set()
 
@@ -926,7 +926,7 @@ class Proposal(caom_object.CaomObject):
 
     @id.setter
     def proposal_id(self, value):
-        Util.type_check(value, str, 'id')
+        caom_util.type_check(value, str, 'id')
         self._proposal_id = value
 
     @property
@@ -944,7 +944,7 @@ class Proposal(caom_object.CaomObject):
 
     @keywords.setter
     def keywords(self, value):
-        Util.type_check(value, set, 'keywords', override=False)
+        caom_util.type_check(value, set, 'keywords', override=False)
         self._keywords = value
 
     @property
@@ -958,7 +958,7 @@ class Proposal(caom_object.CaomObject):
 
     @pi_name.setter
     def pi_name(self, value):
-        Util.type_check(value, str, 'pi_name')
+        caom_util.type_check(value, str, 'pi_name')
         self._pi_name = value
 
     @property
@@ -971,7 +971,7 @@ class Proposal(caom_object.CaomObject):
 
     @project.setter
     def project(self, value):
-        Util.type_check(value, str, 'project')
+        caom_util.type_check(value, str, 'project')
         self._project = value
 
     @property
@@ -984,7 +984,7 @@ class Proposal(caom_object.CaomObject):
 
     @title.setter
     def title(self, value):
-        Util.type_check(value, str, 'title')
+        caom_util.type_check(value, str, 'title')
         self._title = value
 
 
@@ -1007,7 +1007,7 @@ class Requirements(caom_object.CaomObject):
 
     @flag.setter
     def flag(self, value):
-        Util.type_check(value, Status, "flag")
+        caom_util.type_check(value, Status, "flag")
         self._flag = value
 
 
@@ -1051,7 +1051,7 @@ class Target(caom_object.CaomObject):
 
     @name.setter
     def name(self, value):
-        Util.type_check(value, str, "name", override=False)
+        caom_util.type_check(value, str, "name", override=False)
         self._name = value
 
     @property
@@ -1069,7 +1069,7 @@ class Target(caom_object.CaomObject):
     def target_type(self, value):
         if isinstance(value, str):
             value = TargetType(value)
-        Util.type_check(value, TargetType, "target_type")
+        caom_util.type_check(value, TargetType, "target_type")
         self._type = value
 
     @property
@@ -1084,7 +1084,7 @@ class Target(caom_object.CaomObject):
 
     @keywords.setter
     def keywords(self, value):
-        Util.type_check(value, set, 'keywords', override=False)
+        caom_util.type_check(value, set, 'keywords', override=False)
         self._keywords = value
 
     @property
@@ -1099,7 +1099,7 @@ class Target(caom_object.CaomObject):
 
     @standard.setter
     def standard(self, value):
-        Util.type_check(value, bool, 'standard')
+        caom_util.type_check(value, bool, 'standard')
         self._standard = value
 
     @property
@@ -1114,8 +1114,8 @@ class Target(caom_object.CaomObject):
 
     @redshift.setter
     def redshift(self, value):
-        Util.type_check(value, float, 'redshift')
-        Util.value_check(value, -0.5, 1200, 'redshift')
+        caom_util.type_check(value, float, 'redshift')
+        caom_util.value_check(value, -0.5, 1200, 'redshift')
         self._redshift = value
 
     @property
@@ -1130,7 +1130,7 @@ class Target(caom_object.CaomObject):
 
     @moving.setter
     def moving(self, value):
-        Util.type_check(value, bool, 'moving')
+        caom_util.type_check(value, bool, 'moving')
         self._moving = value
 
 
@@ -1159,7 +1159,7 @@ class TargetPosition(caom_object.CaomObject):
 
     @coordinates.setter
     def coordinates(self, value):
-        Util.type_check(value, shape.Point, "coordinates")
+        caom_util.type_check(value, shape.Point, "coordinates")
         self._coordinates = value
 
     @property
@@ -1169,7 +1169,7 @@ class TargetPosition(caom_object.CaomObject):
 
     @coordsys.setter
     def coordsys(self, value):
-        Util.type_check(value, str, "coordsys")
+        caom_util.type_check(value, str, "coordsys")
         self._coordsys = value
 
     @property
@@ -1179,7 +1179,7 @@ class TargetPosition(caom_object.CaomObject):
 
     @equinox.setter
     def equinox(self, value):
-        Util.type_check(value, float, "equinox")
+        caom_util.type_check(value, float, "equinox")
         self._equinox = value
 
 
@@ -1223,7 +1223,7 @@ class Telescope(caom_object.CaomObject):
 
     @name.setter
     def name(self, value):
-        Util.type_check(value, str, 'name', override=False)
+        caom_util.type_check(value, str, 'name', override=False)
         self._name = value
 
     @property
@@ -1238,7 +1238,7 @@ class Telescope(caom_object.CaomObject):
 
     @keywords.setter
     def keywords(self, value):
-        Util.type_check(value, set, 'keywords', override=False)
+        caom_util.type_check(value, set, 'keywords', override=False)
         self._keywords = value
 
     @property
@@ -1261,7 +1261,7 @@ class Telescope(caom_object.CaomObject):
 
     @geo_location_x.setter
     def geo_location_x(self, value):
-        Util.type_check(value, float, 'geo_location_x')
+        caom_util.type_check(value, float, 'geo_location_x')
         self._geo_location_x = value
 
     @property
@@ -1284,7 +1284,7 @@ class Telescope(caom_object.CaomObject):
 
     @geo_location_y.setter
     def geo_location_y(self, value):
-        Util.type_check(value, float, 'geo_location_y')
+        caom_util.type_check(value, float, 'geo_location_y')
         self._geo_location_y = value
 
     @property
@@ -1306,5 +1306,5 @@ class Telescope(caom_object.CaomObject):
 
     @geo_location_z.setter
     def geo_location_z(self, value):
-        Util.type_check(value, float, 'geo_location_z')
+        caom_util.type_check(value, float, 'geo_location_z')
         self._geo_location_z = value

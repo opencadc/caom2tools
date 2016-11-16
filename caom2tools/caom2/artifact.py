@@ -77,7 +77,6 @@ from urlparse import urlparse
 import caom_object
 import caom_util
 import part
-from caom_util import Util
 from enum import Enum
 
 ProductType = Enum('ProductType',
@@ -163,9 +162,9 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @uri.setter
     def uri(self, value):
-        Util.type_check(value, str, 'uri')
+        caom_util.type_check(value, str, 'uri')
         uri = urlparse(value).geturl()
-        Util.value_check(value, None, None, 'uri', override=uri)
+        caom_util.value_check(value, None, None, 'uri', override=uri)
         self._uri = uri
 
     @property
@@ -181,7 +180,7 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        Util.type_check(value, ProductType, "product_type", False)
+        caom_util.type_check(value, ProductType, "product_type", False)
         self._product_type = value
 
     @property
@@ -197,7 +196,7 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @release_type.setter
     def release_type(self, value):
-        Util.type_check(value, ReleaseType, "release_type", False)
+        caom_util.type_check(value, ReleaseType, "release_type", False)
         self._release_type = value
 
     @property
@@ -210,7 +209,7 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @content_type.setter
     def content_type(self, value):
-        Util.type_check(value, str, "content_type")
+        caom_util.type_check(value, str, "content_type")
         self._content_type = value
 
     @property
@@ -225,8 +224,8 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @content_length.setter
     def content_length(self, value):
-        Util.type_check(value, long, "content_length")
-        Util.value_check(value, 0, 1E10, "content_length")
+        caom_util.type_check(value, long, "content_length")
+        caom_util.value_check(value, 0, 1E10, "content_length")
         self._content_length = value
 
     @property
@@ -253,7 +252,7 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @parts.setter
     def parts(self, value):
-        Util.type_check(value,
+        caom_util.type_check(value,
                         caom_util.TypedOrderedDict,
                         'parts',
                         override=False)

@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -78,33 +77,28 @@ import os
 import shutil
 import unittest
 
-from caom2tools.caom2.observation import CompositeObservation
-from caom2tools.caom2.observation import SimpleObservation
-from caom2tools.caom2.wcs import CoordCircle2D
-from caom2tools.caom2.wcs import CoordPolygon2D
-from caom2tools.caom2.obs_reader_writer import CAOM20_NAMESPACE
-from caom2tools.caom2.obs_reader_writer import CAOM21_NAMESPACE
-from caom2tools.caom2.obs_reader_writer import ObservationReader
-from caom2tools.caom2.obs_reader_writer import ObservationWriter
-from caom_test_instances import Caom2TestInstances
+import caom_test_instances
+from .. import obs_reader_writer
+from .. import observation
+from .. import wcs
 
 
 class TestObservationReaderWriter(unittest.TestCase):
 
     def test_invalid_long_id(self):
         print "Test Invalid long id "
-        observation = minimal_simple(1, False, 20)
-        writer = ObservationWriter(
-            False, False, "caom2", CAOM20_NAMESPACE)
+        simple_observation = minimal_simple(1, False, 20)
+        writer = obs_reader_writer.ObservationWriter(
+            False, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
         output = StringIO.StringIO()
-        writer.write(observation, output)
+        writer.write(simple_observation, output)
         xml = output.getvalue()
         output.close()
         xml = xml.replace("caom2:id=\"", "caom2:id=\"x")
         f = open('/tmp/test.xml', 'w')
         f.write(xml)
         f.close()
-        reader = ObservationReader(False)
+        reader = obs_reader_writer.ObservationReader(False)
         try:
             reader.read('/tmp/test.xml')
             self.fail("invalid long id should throw ValueError")
@@ -113,17 +107,17 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_invalid_uuid(self):
         print "Test Invalid UUID id"
-        observation = minimal_simple(1, False, 21)
-        writer = ObservationWriter(False, False)  # default writer is 2.1
+        simple_observation = minimal_simple(1, False, 21)
+        writer = obs_reader_writer.ObservationWriter(False, False)  # default writer is 2.1
         output = StringIO.StringIO()
-        writer.write(observation, output)
+        writer.write(simple_observation, output)
         xml = output.getvalue()
         output.close()
         xml = xml.replace("0000", "xxxx", 1)
         f = open('/tmp/test.xml', 'w')
         f.write(xml)
         f.close()
-        reader = ObservationReader(False)
+        reader = obs_reader_writer.ObservationReader(False)
         try:
             reader.read('/tmp/test.xml')
             self.fail("invalid uuid id should throw ValueError")
@@ -136,17 +130,17 @@ class TestObservationReaderWriter(unittest.TestCase):
             for i in range(1, 6):
                 print "Test Minimal Simple {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
-                observation = minimal_simple(i, True, version)
+                simple_observation = minimal_simple(i, True, version)
                 # write empty elements
-                test_observation(self, observation, True, True, version)
+                test_observation(self, simple_observation, True, True, version)
                 # do not write empty elements
-                test_observation(self, observation, True, False, version)
+                test_observation(self, simple_observation, True, False, version)
                 # CoordBounds2D as CoordPolygon2D
-                observation = minimal_simple(i, False, version)
+                simple_observation = minimal_simple(i, False, version)
                 # write empty elements
-                test_observation(self, observation, True, True, version)
+                test_observation(self, simple_observation, True, True, version)
                 # do not write empty elements
-                test_observation(self, observation, True, False, version)
+                test_observation(self, simple_observation, True, False, version)
 
     def test_complete_simple(self):
 
@@ -154,17 +148,17 @@ class TestObservationReaderWriter(unittest.TestCase):
             for i in range(1, 6):
                 print "Test Complete Simple {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
-                observation = complete_simple(i, True, version)
+                simple_observation = complete_simple(i, True, version)
                 # write empty elements
-                test_observation(self, observation, True, True, version)
+                test_observation(self, simple_observation, True, True, version)
                 # do not write empty elements
-                test_observation(self, observation, True, False, version)
+                test_observation(self, simple_observation, True, False, version)
                 # CoordBounds2D as CoordPolygon2D
-                observation = complete_simple(i, False, version)
+                simple_observation = complete_simple(i, False, version)
                 # write empty elements
-                test_observation(self, observation, True, True, version)
+                test_observation(self, simple_observation, True, True, version)
                 # do not write empty elements
-                test_observation(self, observation, True, False, version)
+                test_observation(self, simple_observation, True, False, version)
 
     def test_minimal_composite(self):
 
@@ -172,17 +166,17 @@ class TestObservationReaderWriter(unittest.TestCase):
             for i in range(1, 6):
                 print "Test Minimal Composite {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
-                observation = minimal_composite(i, True, version)
+                composite_observation = minimal_composite(i, True, version)
                 # write empty elements
-                test_observation(self, observation, True, True, version)
+                test_observation(self, composite_observation, True, True, version)
                 # do not write empty elements
-                test_observation(self, observation, True, False, version)
+                test_observation(self, composite_observation, True, False, version)
                 # CoordBounds2D as CoordPolygon2D
-                observation = minimal_composite(i, False, version)
+                composite_observation = minimal_composite(i, False, version)
                 # write empty elements
-                test_observation(self, observation, True, True, version)
+                test_observation(self, composite_observation, True, True, version)
                 # do not write empty elements
-                test_observation(self, observation, True, False, version)
+                test_observation(self, composite_observation, True, False, version)
 
     def test_complete_composite(self):
 
@@ -190,40 +184,40 @@ class TestObservationReaderWriter(unittest.TestCase):
             for i in range(1, 6):
                 print "Test Complete Composite {} version {}".format(i, version)
                 # CoordBounds2D as CoordCircle2D
-                observation = complete_composite(i, True, version)
+                composite_observation = complete_composite(i, True, version)
                 # write empty elements
-                test_observation(self, observation, True, True, version)
+                test_observation(self, composite_observation, True, True, version)
                 # do not write empty elements
-                test_observation(self, observation, True, False, version)
+                test_observation(self, composite_observation, True, False, version)
                 # CoordBounds2D as CoordPolygon2D
-                observation = complete_composite(i, False, version)
+                composite_observation = complete_composite(i, False, version)
                 # write empty elements
-                test_observation(self, observation, True, True, version)
+                test_observation(self, composite_observation, True, True, version)
                 # do not write empty elements
-                test_observation(self, observation, True, False, version)
+                test_observation(self, composite_observation, True, False, version)
 
     def test_versions(self):
-        observation = complete_composite(6, True, 20)
-        test_observation(self, observation, True, True, 20)
-        test_observation(self, observation, True, True, 21)
-        test_observation(self, observation, True, True, 22)
+        composite_observation = complete_composite(6, True, 20)
+        test_observation(self, composite_observation, True, True, 20)
+        test_observation(self, composite_observation, True, True, 21)
+        test_observation(self, composite_observation, True, True, 22)
 
-        observation = complete_composite(6, True, 21)
-        test_observation(self, observation, True, True, 20)
-        test_observation(self, observation, True, True, 21)
-        test_observation(self, observation, True, True, 22)
+        composite_observation = complete_composite(6, True, 21)
+        test_observation(self, composite_observation, True, True, 20)
+        test_observation(self, composite_observation, True, True, 21)
+        test_observation(self, composite_observation, True, True, 22)
 
-        observation = complete_composite(6, True, 22)
-        test_observation(self, observation, True, True, 20)
-        test_observation(self, observation, True, True, 21)
-        test_observation(self, observation, True, True, 22)
+        composite_observation = complete_composite(6, True, 22)
+        test_observation(self, composite_observation, True, True, 20)
+        test_observation(self, composite_observation, True, True, 21)
+        test_observation(self, composite_observation, True, True, 22)
 
 
 class TestRoundTrip(unittest.TestCase):
 
-    TEST_FILE_SOURCE_DIR = '../caom2/test/data'
+    TEST_FILE_SOURCE_DIR = 'data'
     XML_FILE_SOURCE_DIR = '/tmp/caom2-round-trip-test'
-    XML_FILE_DEST_DIR = '/tmp/caom2-round-trip-test/pyCAOM2'
+    XML_FILE_DEST_DIR = '/tmp/caom2-round-trip-test/caom2'
 
     def make_test_dir(self):
         try:
@@ -233,8 +227,13 @@ class TestRoundTrip(unittest.TestCase):
                 raise
 
     def copy_files(self):
+        print glob.glob(os.path.join(TestRoundTrip.
+                           TEST_FILE_SOURCE_DIR,
+                           '*.xml'))
         for filename in glob.glob(os.path.join(TestRoundTrip.
-                                                       TEST_FILE_SOURCE_DIR, '*.xml')):
+                                               TEST_FILE_SOURCE_DIR,
+                                               '*.xml')):
+            print "copied file " + filename
             shutil.copy(filename, TestRoundTrip.XML_FILE_SOURCE_DIR)
 
     def init(self):
@@ -245,24 +244,23 @@ class TestRoundTrip(unittest.TestCase):
         shutil.rmtree(TestRoundTrip.XML_FILE_SOURCE_DIR)
 
     def get_file_list(self):
-        return [f for f in os.listdir(TestRoundTrip.XML_FILE_SOURCE_DIR) \
+        return [f for f in os.listdir(TestRoundTrip.XML_FILE_SOURCE_DIR)
                 if f.endswith('.xml')]
 
     def do_test(self, reader, writer, filename):
-        sourceFilePath = (TestRoundTrip.XML_FILE_SOURCE_DIR +
-                          '/' + filename)
-        print "test file: " + sourceFilePath
-        sourceXMLfp = open(sourceFilePath, 'r')
-        observation = reader.read(sourceFilePath)
-        sourceXMLfp.close()
-        destFilePath = TestRoundTrip.XML_FILE_DEST_DIR + '/' + filename
-        destXMLfp = open(destFilePath, 'w')
-        writer.write(observation, destXMLfp)
-        destXMLfp.close()
-        self.assertTrue(filecmp.cmp(sourceFilePath, destFilePath),
+        source_file_path = (TestRoundTrip.XML_FILE_SOURCE_DIR + '/' + filename)
+        print "test file: " + source_file_path
+        source_xml_fp = open(source_file_path, 'r')
+        obs = reader.read(source_file_path)
+        source_xml_fp.close()
+        dest_file_path = TestRoundTrip.XML_FILE_DEST_DIR + '/' + filename
+        dest_xml_fp = open(dest_file_path, 'w')
+        writer.write(obs, dest_xml_fp)
+        dest_xml_fp.close()
+        self.assertTrue(filecmp.cmp(source_file_path, dest_file_path),
                         'files are different, ' +
-                        'file from Java was: ' + sourceFilePath + ' '
-                                                                  'file from Python was: ' + destFilePath)
+                        'file from Java was: ' + source_file_path + ' '
+                        'file from Python was: ' + dest_file_path)
 
     # This test reads each file in XML_FILE_SOURCE_DIR, creates the CAOM2
     # objects and writes a file in XML_FILE_DEST_DIR based on the CAOM2
@@ -284,10 +282,12 @@ class TestRoundTrip(unittest.TestCase):
                 if e.errno != errno.EEXIST:
                     raise
 
-            reader = ObservationReader(True)
-            writer20 = ObservationWriter(True, False, "caom2", CAOM20_NAMESPACE)
-            writer21 = ObservationWriter(True, False, "caom2", CAOM21_NAMESPACE)
-            writer22 = ObservationWriter(True, False, "caom2")
+            reader = obs_reader_writer.ObservationReader(True)
+            writer20 = obs_reader_writer.ObservationWriter(
+                True, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
+            writer21 = obs_reader_writer.ObservationWriter(
+                True, False, "caom2", obs_reader_writer.CAOM21_NAMESPACE)
+            writer22 = obs_reader_writer.ObservationWriter(True, False, "caom2")
             for filename in files:
                 if filename.endswith("CAOM-2.2.xml"):
                     self.do_test(reader, writer22, filename)
@@ -304,7 +304,7 @@ class TestRoundTrip(unittest.TestCase):
 
 
 def minimal_simple(depth, bounds_is_circle, version):
-    instances = Caom2TestInstances()
+    instances = caom_test_instances.Caom2TestInstances()
     instances.complete = False
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
@@ -313,7 +313,7 @@ def minimal_simple(depth, bounds_is_circle, version):
 
 
 def complete_simple(depth, bounds_is_circle, version):
-    instances = Caom2TestInstances()
+    instances = caom_test_instances.Caom2TestInstances()
     instances.complete = True
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
@@ -322,7 +322,7 @@ def complete_simple(depth, bounds_is_circle, version):
 
 
 def minimal_composite(depth, bounds_is_circle, version):
-    instances = Caom2TestInstances()
+    instances = caom_test_instances.Caom2TestInstances()
     instances.complete = False
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
@@ -331,7 +331,7 @@ def minimal_composite(depth, bounds_is_circle, version):
 
 
 def complete_composite(depth, bounds_is_circle, version):
-    instances = Caom2TestInstances()
+    instances = caom_test_instances.Caom2TestInstances()
     instances.complete = True
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
@@ -339,31 +339,35 @@ def complete_composite(depth, bounds_is_circle, version):
     return instances.get_composite_observation()
 
 
-def test_observation(self, observation, validate, write_empty_collections, version):
+def test_observation(self, obs, validate, write_empty_collections, version):
     if version == 20:
-        writer = ObservationWriter(
-            validate, write_empty_collections, "caom2", CAOM20_NAMESPACE)
+        writer = obs_reader_writer.ObservationWriter(
+            validate, write_empty_collections, "caom2",
+            obs_reader_writer.CAOM20_NAMESPACE)
     elif version == 21:
-        writer = ObservationWriter(
-            validate, write_empty_collections, "caom2", CAOM21_NAMESPACE)
+        writer = obs_reader_writer.ObservationWriter(
+            validate, write_empty_collections, "caom2",
+            obs_reader_writer.CAOM21_NAMESPACE)
     else:
-        writer = ObservationWriter(validate, write_empty_collections)
-    xmlfile = open('/tmp/test.xml', 'w')
-    writer.write(observation, xmlfile)
-    xmlfile.close()
-    reader = ObservationReader(True)
+        writer = obs_reader_writer.ObservationWriter(
+            validate, write_empty_collections)
+    xml_file = open('/tmp/test.xml', 'w')
+    writer.write(obs, xml_file)
+    xml_file.close()
+    reader = obs_reader_writer.ObservationReader(True)
     returned = reader.read('/tmp/test.xml')
-    compare_observations(self, observation, returned, version)
+    compare_observations(self, obs, returned, version)
 
 
 def compare_observations(self, expected, actual, version):
 
-    assert ((isinstance(expected, SimpleObservation) and
-            isinstance(actual, SimpleObservation)) or
-            (isinstance(expected, CompositeObservation) and
-            isinstance(actual, CompositeObservation))), (
+    assert ((isinstance(expected, observation.SimpleObservation) and
+            isinstance(actual, observation.SimpleObservation)) or
+            (isinstance(expected, observation.CompositeObservation) and
+            isinstance(actual, observation.CompositeObservation))), (
                 "Observation types do not match 0 vs 1".
-                format(expected.__class__.__name__, actual.__class__.__name__))
+                format(expected.__class__.__name__, 
+                       actual.__class__.__name__))
 
     self.assertIsNotNone(expected.collection)
     self.assertIsNotNone(actual.collection)
@@ -390,7 +394,8 @@ def compare_observations(self, expected, actual, version):
     self.assertEqual(expected.meta_release, actual.meta_release)
     compare_proposal(self, expected.proposal, actual.proposal)
     compare_target(self, expected.target, actual.target)
-    compare_target_position(self, expected.target_position, actual.target_position)
+    compare_target_position(self, expected.target_position, 
+                            actual.target_position)
     compare_telescope(self, expected.telescope, actual.telescope)
     compare_instrument(self, expected.instrument, actual.instrument)
     compare_environment(self, expected.environment, actual.environment)
@@ -399,8 +404,8 @@ def compare_observations(self, expected, actual, version):
 
     compare_planes(self, expected.planes, actual.planes, version)
 
-    if (isinstance(expected, CompositeObservation) and
-        isinstance(actual, CompositeObservation)):
+    if (isinstance(expected, observation.CompositeObservation) and
+        isinstance(actual, observation.CompositeObservation)):
         compare_members(self, expected.members, actual.members)
 
 
@@ -541,9 +546,11 @@ def compare_planes(self, expected, actual, version):
                            actual_plane.provenance)
         compare_metrics(self, expected_plane.metrics, actual_plane.metrics)
         if version == 21:
-            compare_quality(self, expected_plane.quality, actual_plane.quality)
+            compare_quality(self, expected_plane.quality, 
+                            actual_plane.quality)
 
-        compare_artifacts(self, expected_plane.artifacts, actual_plane.artifacts, version)
+        compare_artifacts(self, expected_plane.artifacts, 
+                          actual_plane.artifacts, version)
 
 
 def compare_provenance(self, expected, actual):
@@ -565,7 +572,8 @@ def compare_metrics(self, expected, actual):
         return
     self.assertIsNotNone(expected)
     self.assertIsNotNone(actual)
-    self.assertEqual(expected.source_number_density, actual.source_number_density)
+    self.assertEqual(expected.source_number_density, 
+                     actual.source_number_density)
     self.assertEqual(expected.background, actual.background)
     self.assertEqual(expected.background_std_dev, actual.background_std_dev)
     self.assertEqual(expected.flux_density_limit, actual.flux_density_limit)
@@ -607,14 +615,20 @@ def compare_artifacts(self, expected, actual, version):
         self.assertEqual(expected_artifact._id, actual_artifact._id)
         self.assertIsNotNone(expected_artifact._last_modified)
         self.assertIsNotNone(actual_artifact._last_modified)
-        self.assertEqual(expected_artifact._last_modified, actual_artifact._last_modified)
+        self.assertEqual(expected_artifact._last_modified, 
+                         actual_artifact._last_modified)
         self.assertEqual(expected_artifact.uri, actual_artifact.uri)
-        self.assertEqual(expected_artifact.content_type, actual_artifact.content_type)
-        self.assertEqual(expected_artifact.content_length, actual_artifact.content_length)
-        self.assertEqual(expected_artifact.product_type, actual_artifact.product_type)
+        self.assertEqual(expected_artifact.content_type, 
+                         actual_artifact.content_type)
+        self.assertEqual(expected_artifact.content_length, 
+                         actual_artifact.content_length)
+        self.assertEqual(expected_artifact.product_type, 
+                         actual_artifact.product_type)
         if version > 21:
-            self.assertEqual(expected_artifact.release_type, actual_artifact.release_type)
-        compare_parts(self, expected_artifact.parts, actual_artifact.parts, version)
+            self.assertEqual(expected_artifact.release_type, 
+                             actual_artifact.release_type)
+        compare_parts(self, expected_artifact.parts, 
+                      actual_artifact.parts, version)
 
 
 def compare_parts(self, expected, actual, version):
@@ -672,7 +686,8 @@ def compare_chunks(self, expected, actual):
                          actual_chunk.polarization_axis)
         compare_observable_axis(self, expected_chunk.observable,
                                 actual_chunk.observable)
-        compare_spatial_wcs(self, expected_chunk.position, actual_chunk.position)
+        compare_spatial_wcs(self, expected_chunk.position, 
+                            actual_chunk.position)
         compare_spectral_wcs(self, expected_chunk.energy, actual_chunk.energy)
         compare_temporal_wcs(self, expected_chunk.time, actual_chunk.time)
         compare_polarization_wcs(self, expected_chunk.polarization,
@@ -811,11 +826,11 @@ def compare_coord_bounds2d(self, expected, actual):
         self.assertIsNone(actual)
         return
     self.assertIsNotNone(actual)
-    if (isinstance(expected, CoordCircle2D) and
-        isinstance(actual, CoordCircle2D)):
+    if (isinstance(expected, wcs.CoordCircle2D) and
+        isinstance(actual, wcs.CoordCircle2D)):
         compare_coord_circle2d(self, expected, actual)
-    elif (isinstance(expected, CoordPolygon2D) and
-          isinstance(actual, CoordPolygon2D)):
+    elif (isinstance(expected, wcs.CoordPolygon2D) and
+          isinstance(actual, wcs.CoordPolygon2D)):
         compare_coord_polygon2d(self, expected, actual)
     else:
         self.fail("CoordBounds2D expected and actual are different types.")
@@ -946,7 +961,3 @@ def compare_point(self, expected, actual):
     self.assertIsNotNone(actual.cval2)
     self.assertEqual(expected.cval1, actual.cval1)
     self.assertEqual(expected.cval2, actual.cval2)
-
-
-if __name__ == '__main__':
-    unittest.main()

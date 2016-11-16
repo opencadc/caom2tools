@@ -71,7 +71,6 @@
 
 import caom_object
 import caom_util
-from caom_util import Util
 
 
 class Axis(caom_object.CaomObject):
@@ -94,7 +93,7 @@ class Axis(caom_object.CaomObject):
 
     @ctype.setter
     def ctype(self, value):
-        Util.type_check(value, str, 'ctype', override=False)
+        caom_util.type_check(value, str, 'ctype', override=False)
         self._ctype = value
 
     @property
@@ -109,7 +108,7 @@ class Axis(caom_object.CaomObject):
 
     @cunit.setter
     def cunit(self, value):
-        Util.type_check(value, str, 'cunit')
+        caom_util.type_check(value, str, 'cunit')
         self._cunit = value
 
 
@@ -133,7 +132,7 @@ class Coord2D(caom_object.CaomObject):
 
     @coord1.setter
     def coord1(self, value):
-        Util.type_check(value, RefCoord, 'coord1', override=False)
+        caom_util.type_check(value, RefCoord, 'coord1', override=False)
         self._coord1 = value
 
     @property
@@ -146,7 +145,7 @@ class Coord2D(caom_object.CaomObject):
 
     @coord2.setter
     def coord2(self, value):
-        Util.type_check(value, RefCoord, 'coord2', override=False)
+        caom_util.type_check(value, RefCoord, 'coord2', override=False)
         self._coord2 = value
 
 
@@ -177,7 +176,7 @@ class CoordAxis1D(caom_object.CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, Axis, "Axis", override=False)
+        caom_util.type_check(value, Axis, "Axis", override=False)
         self._axis = value
 
     @property
@@ -192,7 +191,7 @@ class CoordAxis1D(caom_object.CaomObject):
 
     @error.setter
     def error(self, value):
-        Util.type_check(value, CoordError, 'error')
+        caom_util.type_check(value, CoordError, 'error')
         self._error = value
 
     @property
@@ -209,7 +208,7 @@ class CoordAxis1D(caom_object.CaomObject):
 
     @range.setter
     def range(self, value):
-        Util.type_check(value, CoordRange1D, 'range')
+        caom_util.type_check(value, CoordRange1D, 'range')
         self._range = value
 
     @property
@@ -224,7 +223,7 @@ class CoordAxis1D(caom_object.CaomObject):
 
     @bounds.setter
     def bounds(self, value):
-        Util.type_check(value, CoordBounds1D, "bounds")
+        caom_util.type_check(value, CoordBounds1D, "bounds")
         self._bounds = value
 
     @property
@@ -241,7 +240,7 @@ class CoordAxis1D(caom_object.CaomObject):
 
     @function.setter
     def function(self, value):
-        Util.type_check(value, CoordFunction1D, 'function')
+        caom_util.type_check(value, CoordFunction1D, 'function')
         self._function = value
 
 
@@ -276,7 +275,7 @@ class CoordAxis2D(caom_object.CaomObject):
 
     @axis1.setter
     def axis1(self, value):
-        Util.type_check(value, Axis, "axis1", override=False)
+        caom_util.type_check(value, Axis, "axis1", override=False)
         self._axis1 = value
 
     @property
@@ -291,7 +290,7 @@ class CoordAxis2D(caom_object.CaomObject):
 
     @axis2.setter
     def axis2(self, value):
-        Util.type_check(value, Axis, "axis2", override=False)
+        caom_util.type_check(value, Axis, "axis2", override=False)
         self._axis2 = value
 
     @property
@@ -306,7 +305,7 @@ class CoordAxis2D(caom_object.CaomObject):
 
     @error1.setter
     def error1(self, value):
-        Util.type_check(value, CoordError, 'error1')
+        caom_util.type_check(value, CoordError, 'error1')
         self._error1 = value
 
     @property
@@ -321,7 +320,7 @@ class CoordAxis2D(caom_object.CaomObject):
 
     @error2.setter
     def error2(self, value):
-        Util.type_check(value, CoordError, "error2")
+        caom_util.type_check(value, CoordError, "error2")
         self._error2 = value
 
     @property
@@ -334,7 +333,7 @@ class CoordAxis2D(caom_object.CaomObject):
 
     @range.setter
     def range(self, value):
-        Util.type_check(value, CoordRange2D, 'range')
+        caom_util.type_check(value, CoordRange2D, 'range')
         self._range = value
 
     @property
@@ -348,7 +347,7 @@ class CoordAxis2D(caom_object.CaomObject):
 
     @bounds.setter
     def bounds(self, value):
-        Util.type_check(value, (CoordCircle2D, CoordPolygon2D), 'bounds')
+        caom_util.type_check(value, (CoordCircle2D, CoordPolygon2D), 'bounds')
         self._bounds = value
 
     @property
@@ -363,7 +362,7 @@ class CoordAxis2D(caom_object.CaomObject):
 
     @function.setter
     def function(self, value):
-        Util.type_check(value, CoordFunction2D, 'function')
+        caom_util.type_check(value, CoordFunction2D, 'function')
         self._function = value
 
 
@@ -393,7 +392,7 @@ class CoordBounds1D(caom_object.CaomObject):
 
     @samples.setter
     def samples(self, value):
-        Util.type_check(value,
+        caom_util.type_check(value,
                         caom_util.TypedList,
                        'samples',
                         override=False)
@@ -452,7 +451,7 @@ class CoordCircle2D(caom_object.CaomObject):
 
     @center.setter
     def center(self, value):
-        Util.type_check(value, ValueCoord2D, 'center', override=False)
+        caom_util.type_check(value, ValueCoord2D, 'center', override=False)
         self._center = value
 
     @property
@@ -468,8 +467,8 @@ class CoordCircle2D(caom_object.CaomObject):
 
     @radius.setter
     def radius(self, value):
-        Util.type_check(value, float, 'radius', override=False)
-        Util.value_check(value, 0, 1E10, 'radius')
+        caom_util.type_check(value, float, 'radius', override=False)
+        caom_util.value_check(value, 0, 1E10, 'radius')
         self._radius = value
 
 
@@ -504,7 +503,7 @@ class CoordError(caom_object.CaomObject):
 
     @syser.setter
     def syser(self, value):
-        Util.type_check(value, float, "syser", override=False)
+        caom_util.type_check(value, float, "syser", override=False)
         self._syser = value
 
     @property
@@ -518,7 +517,7 @@ class CoordError(caom_object.CaomObject):
 
     @rnder.setter
     def rnder(self, value):
-        Util.type_check(value, float, "rnder", override=False)
+        caom_util.type_check(value, float, "rnder", override=False)
         self._rnder = value
 
 
@@ -552,7 +551,7 @@ class CoordFunction1D(caom_object.CaomObject):
 
     @naxis.setter
     def naxis(self, value):
-        Util.type_check(value, long, 'naxis', override=False)
+        caom_util.type_check(value, long, 'naxis', override=False)
         self._naxis = value
 
     @property
@@ -567,7 +566,7 @@ class CoordFunction1D(caom_object.CaomObject):
 
     @delta.setter
     def delta(self, value):
-        Util.type_check(value, float, 'delta', override=False)
+        caom_util.type_check(value, float, 'delta', override=False)
         self._delta = value
 
     @property
@@ -582,7 +581,7 @@ class CoordFunction1D(caom_object.CaomObject):
 
     @ref_coord.setter
     def ref_coord(self, value):
-        Util.type_check(value, RefCoord, 'ref_coord', override=False)
+        caom_util.type_check(value, RefCoord, 'ref_coord', override=False)
         self._ref_coord = value
 
 
@@ -613,7 +612,7 @@ class CoordFunction2D(caom_object.CaomObject):
 
     @dimension.setter
     def dimension(self, value):
-        Util.type_check(value, Dimension2D, 'dimension', override=False)
+        caom_util.type_check(value, Dimension2D, 'dimension', override=False)
         self._dimension = value
 
     @property
@@ -628,7 +627,7 @@ class CoordFunction2D(caom_object.CaomObject):
 
     @ref_coord.setter
     def ref_coord(self, value):
-        Util.type_check(value, Coord2D, 'ref_coord', override=False)
+        caom_util.type_check(value, Coord2D, 'ref_coord', override=False)
         self._ref_coord = value
 
     @property
@@ -644,7 +643,7 @@ class CoordFunction2D(caom_object.CaomObject):
 
     @cd11.setter
     def cd11(self, value):
-        Util.type_check(value, float, 'cd11', override=False)
+        caom_util.type_check(value, float, 'cd11', override=False)
         self._cd11 = value
 
     @property
@@ -660,7 +659,7 @@ class CoordFunction2D(caom_object.CaomObject):
 
     @cd12.setter
     def cd12(self, value):
-        Util.type_check(value, float, 'cd12', override=False)
+        caom_util.type_check(value, float, 'cd12', override=False)
         self._cd12 = value
 
     @property
@@ -676,7 +675,7 @@ class CoordFunction2D(caom_object.CaomObject):
 
     @cd21.setter
     def cd21(self, value):
-        Util.type_check(value, float, 'cd21', override=False)
+        caom_util.type_check(value, float, 'cd21', override=False)
         self._cd21 = value
 
     @property
@@ -692,7 +691,7 @@ class CoordFunction2D(caom_object.CaomObject):
 
     @cd22.setter
     def cd22(self, value):
-        Util.type_check(value, float, 'cd22', override=False)
+        caom_util.type_check(value, float, 'cd22', override=False)
         self._cd22 = value
 
 
@@ -728,7 +727,7 @@ class CoordPolygon2D(caom_object.CaomObject):
 
     @vertices.setter
     def vertices(self, value):
-        Util.type_check(value, caom_util.TypedList, 'vertices', override=False)
+        caom_util.type_check(value, caom_util.TypedList, 'vertices', override=False)
         self._vertices = value
 
 
@@ -754,7 +753,7 @@ class CoordRange1D(caom_object.CaomObject):
 
     @start.setter
     def start(self, value):
-        Util.type_check(value, RefCoord, "start", override=False)
+        caom_util.type_check(value, RefCoord, "start", override=False)
         self._start = value
 
     @property
@@ -769,7 +768,7 @@ class CoordRange1D(caom_object.CaomObject):
 
     @end.setter
     def end(self, value):
-        Util.type_check(value, RefCoord, "end", override=False)
+        caom_util.type_check(value, RefCoord, "end", override=False)
         self._end = value
 
 
@@ -795,7 +794,7 @@ class CoordRange2D(caom_object.CaomObject):
 
     @start.setter
     def start(self, value):
-        Util.type_check(value, Coord2D, 'start', override=False)
+        caom_util.type_check(value, Coord2D, 'start', override=False)
         self._start = value
 
     @property
@@ -808,7 +807,7 @@ class CoordRange2D(caom_object.CaomObject):
 
     @end.setter
     def end(self, value):
-        Util.type_check(value, Coord2D, 'end', override=False)
+        caom_util.type_check(value, Coord2D, 'end', override=False)
         self._end = value
 
 
@@ -835,8 +834,8 @@ class Dimension2D(caom_object.CaomObject):
 
     @naxis1.setter
     def naxis1(self, value):
-        Util.type_check(value, long, 'naxis1', override=False)
-        Util.value_check(value, 0, 1E10, 'naxis1', override=False)
+        caom_util.type_check(value, long, 'naxis1', override=False)
+        caom_util.value_check(value, 0, 1E10, 'naxis1', override=False)
         self._naxis1 = value
 
     @property
@@ -852,8 +851,8 @@ class Dimension2D(caom_object.CaomObject):
 
     @naxis2.setter
     def naxis2(self, value):
-        Util.type_check(value, long, 'naxis2', override=False)
-        Util.value_check(value, 0, 1E10, 'naxis2', override=False)
+        caom_util.type_check(value, long, 'naxis2', override=False)
+        caom_util.value_check(value, 0, 1E10, 'naxis2', override=False)
         self._naxis2 = value
 
 
@@ -883,7 +882,7 @@ class RefCoord(caom_object.CaomObject):
 
     @pix.setter
     def pix(self, value):
-        Util.type_check(value, float, 'pix', override=False)
+        caom_util.type_check(value, float, 'pix', override=False)
         self._pix = value
 
     @property
@@ -898,7 +897,7 @@ class RefCoord(caom_object.CaomObject):
 
     @val.setter
     def val(self, value):
-        Util.type_check(value, float, 'val', override=False)
+        caom_util.type_check(value, float, 'val', override=False)
         self._val = value
 
 
@@ -926,7 +925,7 @@ class Slice(caom_object.CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, Axis, 'axis', override=False)
+        caom_util.type_check(value, Axis, 'axis', override=False)
         self._axis = value
 
     @property
@@ -941,7 +940,7 @@ class Slice(caom_object.CaomObject):
 
     @bin.setter
     def bin(self, value):
-        Util.type_check(value, long, 'long', override=False)
+        caom_util.type_check(value, long, 'long', override=False)
         self._bin = value
 
 
@@ -959,7 +958,7 @@ class ValueCoord2D(caom_object.CaomObject):
 
     @coord1.setter
     def coord1(self, value):
-        Util.type_check(value, float, 'coord1', override=False)
+        caom_util.type_check(value, float, 'coord1', override=False)
         self._coord1 = value
 
     @property
@@ -969,7 +968,7 @@ class ValueCoord2D(caom_object.CaomObject):
 
     @coord2.setter
     def coord2(self, value):
-        Util.type_check(value, float, 'coord2', override=False)
+        caom_util.type_check(value, float, 'coord2', override=False)
         self._coord2 = value
 
 
@@ -984,8 +983,8 @@ class EnergyTransition(caom_object.CaomObject):
         species
         transition
         """
-        Util.type_check(species, str, "species", override=False)
-        Util.type_check(transition, str, "transition", override=False)
+        caom_util.type_check(species, str, "species", override=False)
+        caom_util.type_check(transition, str, "transition", override=False)
         self._species = species
         self._transition = transition
 

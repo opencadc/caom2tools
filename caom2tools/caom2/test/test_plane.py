@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -73,155 +72,146 @@
 import unittest
 from datetime import datetime
 
-from caom2tools.caom2.artifact import Artifact
-from caom2tools.caom2.artifact import ProductType, ReleaseType
-from caom2tools.caom2.observation import ObservationURI
-from caom2tools.caom2.plane import CalibrationLevel
-from caom2tools.caom2.plane import DataProductType
-from caom2tools.caom2.plane import DataQuality
-from caom2tools.caom2.plane import Energy
-from caom2tools.caom2.plane import EnergyBand
-from caom2tools.caom2.plane import EnergyTransition
-from caom2tools.caom2.plane import Metrics
-from caom2tools.caom2.plane import Plane
-from caom2tools.caom2.plane import PlaneURI
-from caom2tools.caom2.plane import Polarization
-from caom2tools.caom2.plane import PolarizationState
-from caom2tools.caom2.plane import Position
-from caom2tools.caom2.plane import Provenance
-from caom2tools.caom2.plane import Quality
-from caom2tools.caom2.plane import Time
+from .. import artifact
+from .. import observation
+from .. import plane
 
 
 class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(CalibrationLevel.get(999), None)
-        self.assertRaises(AttributeError, CalibrationLevel.get, None)
-        self.assertRaises(AttributeError, CalibrationLevel.get, "foo")
+        self.assertEqual(plane.CalibrationLevel.get("no_such_string"), None)
+        self.assertRaises(AttributeError, plane.CalibrationLevel.get, None)
+        self.assertRaises(AttributeError, plane.CalibrationLevel.get, 999)
 
-        self.assertEqual(DataProductType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, DataProductType.get, None)
-        self.assertRaises(AttributeError, DataProductType.get, 1)
+        self.assertEqual(plane.DataProductType.get("no_such_string"), None)
+        self.assertRaises(AttributeError, plane.DataProductType.get, None)
+        self.assertRaises(AttributeError, plane.DataProductType.get, 1)
 
-        self.assertEqual(EnergyBand.get("no_such_string"), None)
-        self.assertRaises(AttributeError, EnergyBand.get, None)
-        self.assertRaises(AttributeError, EnergyBand.get, 1)
+        self.assertEqual(plane.EnergyBand.get("no_such_string"), None)
+        self.assertRaises(AttributeError, plane.EnergyBand.get, None)
+        self.assertRaises(AttributeError, plane.EnergyBand.get, 1)
 
-        self.assertEqual(PolarizationState.get("no_such_string"), None)
-        self.assertRaises(AttributeError, PolarizationState.get, None)
-        self.assertRaises(AttributeError, PolarizationState.get, 1)
+        self.assertEqual(plane.PolarizationState.get("no_such_string"), None)
+        self.assertRaises(AttributeError, plane.PolarizationState.get, None)
+        self.assertRaises(AttributeError, plane.PolarizationState.get, 1)
 
-        self.assertEqual(Quality.get("no_such_string"), None)
-        self.assertRaises(AttributeError, Quality.get, None)
-        self.assertRaises(AttributeError, Quality.get, 1)
+        self.assertEqual(plane.Quality.get("no_such_string"), None)
+        self.assertRaises(AttributeError, plane.Quality.get, None)
+        self.assertRaises(AttributeError, plane.Quality.get, 1)
 
         # test that we can get the object for each enum by name
-        self.assertEqual(CalibrationLevel.RAW_INSTRUMENT.value, 0)
-        self.assertEqual(CalibrationLevel.RAW_STANDARD.value, 1)
-        self.assertEqual(CalibrationLevel.CALIBRATED.value, 2)
-        self.assertEqual(CalibrationLevel.PRODUCT.value, 3)
+        self.assertEqual(plane.CalibrationLevel.RAW_INSTRUMENT.value, 0)
+        self.assertEqual(plane.CalibrationLevel.RAW_STANDARD.value, 1)
+        self.assertEqual(plane.CalibrationLevel.CALIBRATED.value, 2)
+        self.assertEqual(plane.CalibrationLevel.PRODUCT.value, 3)
 
-        self.assertEqual(DataProductType.IMAGE.value, "image")
-        self.assertEqual(DataProductType.CATALOG.value, "catalog")
-        self.assertEqual(DataProductType.CUBE.value, "cube")
-        self.assertEqual(DataProductType.EVENTLIST.value, "eventlist")
-        self.assertEqual(DataProductType.SPECTRUM.value, "spectrum")
-        self.assertEqual(DataProductType.TIMESERIES.value, "timeseries")
-        self.assertEqual(DataProductType.VISIBILITY.value, "visibility")
+        self.assertEqual(plane.DataProductType.IMAGE.value, "image")
+        self.assertEqual(plane.DataProductType.CATALOG.value, "catalog")
+        self.assertEqual(plane.DataProductType.CUBE.value, "cube")
+        self.assertEqual(plane.DataProductType.EVENTLIST.value, "eventlist")
+        self.assertEqual(plane.DataProductType.SPECTRUM.value, "spectrum")
+        self.assertEqual(plane.DataProductType.TIMESERIES.value, "timeseries")
+        self.assertEqual(plane.DataProductType.VISIBILITY.value, "visibility")
 
-        self.assertEqual(EnergyBand.get('RADIO').value, "Radio")
-        self.assertEqual(EnergyBand.get('MILLIMETER').value, "Millimeter")
-        self.assertEqual(EnergyBand.get('INFRARED').value, "Infrared")
-        self.assertEqual(EnergyBand.get('OPTICAL').value, "Optical")
-        self.assertEqual(EnergyBand.get('UV').value, "UV")
-        self.assertEqual(EnergyBand.get('EUV').value, "EUV")
-        self.assertEqual(EnergyBand.get('XRAY').value, "X-ray")
-        self.assertEqual(EnergyBand.get('GAMMARAY').value, "Gamma-ray")
+        self.assertEqual(plane.EnergyBand.get('RADIO').value, "Radio")
+        self.assertEqual(plane.EnergyBand.get('MILLIMETER').value, "Millimeter")
+        self.assertEqual(plane.EnergyBand.get('INFRARED').value, "Infrared")
+        self.assertEqual(plane.EnergyBand.get('OPTICAL').value, "Optical")
+        self.assertEqual(plane.EnergyBand.get('UV').value, "UV")
+        self.assertEqual(plane.EnergyBand.get('EUV').value, "EUV")
+        self.assertEqual(plane.EnergyBand.get('XRAY').value, "X-ray")
+        self.assertEqual(plane.EnergyBand.get('GAMMARAY').value, "Gamma-ray")
 
-        self.assertEqual(PolarizationState.get('I').value, "I")
-        self.assertEqual(PolarizationState.get('Q').value, "Q")
-        self.assertEqual(PolarizationState.get('U').value, "U")
-        self.assertEqual(PolarizationState.get('V').value, "V")
-        self.assertEqual(PolarizationState.get('LL').value, "LL")
-        self.assertEqual(PolarizationState.get('LR').value, "LR")
-        self.assertEqual(PolarizationState.get('RL').value, "RL")
-        self.assertEqual(PolarizationState.get('RR').value, "RR")
-        self.assertEqual(PolarizationState.get('XX').value, "XX")
-        self.assertEqual(PolarizationState.get('XY').value, "XY")
-        self.assertEqual(PolarizationState.get('YX').value, "YX")
-        self.assertEqual(PolarizationState.get('YY').value, "YY")
+        self.assertEqual(plane.PolarizationState.get('I').value, "I")
+        self.assertEqual(plane.PolarizationState.get('Q').value, "Q")
+        self.assertEqual(plane.PolarizationState.get('U').value, "U")
+        self.assertEqual(plane.PolarizationState.get('V').value, "V")
+        self.assertEqual(plane.PolarizationState.get('LL').value, "LL")
+        self.assertEqual(plane.PolarizationState.get('LR').value, "LR")
+        self.assertEqual(plane.PolarizationState.get('RL').value, "RL")
+        self.assertEqual(plane.PolarizationState.get('RR').value, "RR")
+        self.assertEqual(plane.PolarizationState.get('XX').value, "XX")
+        self.assertEqual(plane.PolarizationState.get('XY').value, "XY")
+        self.assertEqual(plane.PolarizationState.get('YX').value, "YX")
+        self.assertEqual(plane.PolarizationState.get('YY').value, "YY")
 
-        self.assertEqual(Quality.get('JUNK').value, "junk")
+        self.assertEqual(plane.Quality.get('JUNK').value, "junk")
 
 
 class TestPlane(unittest.TestCase):
 
     def test_all(self):
-        plane = Plane("ProdID")
-        self.assertEqual("ProdID", plane.product_id, "Product ID")
-        self.assertEqual(0, len(plane.artifacts),
+        test_plane = plane.Plane("ProdID")
+        self.assertEqual("ProdID", test_plane.product_id, "Product ID")
+        self.assertEqual(0, len(test_plane.artifacts),
                          "Default number of artifacts")
-        self.assertIsNone(plane.meta_release, "Default meta release date")
+        self.assertIsNone(test_plane.meta_release, "Default meta release date")
         date_now = datetime.now()
-        plane.meta_release = date_now
-        self.assertEqual(date_now, plane.meta_release, "Metadata release date")
-        self.assertIsNone(plane.data_release, "Default data release date")
+        test_plane.meta_release = date_now
+        self.assertEqual(date_now, test_plane.meta_release, "Metadata release date")
+        self.assertIsNone(test_plane.data_release, "Default data release date")
         date_now = datetime.now()
-        plane.data_release = date_now
-        self.assertEqual(date_now, plane.data_release, "Data release date")
-        self.assertIsNone(plane.data_product_type, "Default data product type")
-        plane.data_product_type = DataProductType.IMAGE
-        self.assertEqual(DataProductType.IMAGE, plane.data_product_type,
+        test_plane.data_release = date_now
+        self.assertEqual(date_now, test_plane.data_release, "Data release date")
+        self.assertIsNone(test_plane.data_product_type, "Default data product type")
+        test_plane.data_product_type = plane.DataProductType.IMAGE
+        self.assertEqual(plane.DataProductType.IMAGE, test_plane.data_product_type,
                          "Data product type")
-        self.assertIsNone(plane.calibration_level,
+        self.assertIsNone(test_plane.calibration_level,
                           "Default calibration level")
-        plane.calibration_level = CalibrationLevel.CALIBRATED
-        self.assertEqual(CalibrationLevel.CALIBRATED,
-                         plane.calibration_level, "CalibrationLevel")
-        self.assertIsNone(plane.quality,
+        test_plane.calibration_level = plane.CalibrationLevel.CALIBRATED
+        self.assertEqual(plane.CalibrationLevel.CALIBRATED,
+                         test_plane.calibration_level, "plane.CalibrationLevel")
+        self.assertIsNone(test_plane.quality,
                           "Default quality")
-        quality = DataQuality(Quality.JUNK)
-        plane.quality = quality
+        quality = plane.DataQuality(plane.Quality.JUNK)
+        test_plane.quality = quality
         self.assertEqual(quality,
-                         plane.quality, "Quality")
-        self.assertIsNone(plane.provenance, "Default provenance")
-        provenance = Provenance("myProv")
-        plane.provenance = provenance
-        self.assertEqual("myProv", plane.provenance.name, "Provenance - name")
-        self.assertIsNone(plane.metrics, "Default metrics")
-        metrics = Metrics()
-        plane.metrics = metrics
-        self.assertEqual(metrics, plane.metrics, "Provenance - metrics")
+                         test_plane.quality, "plane.Quality")
+        self.assertIsNone(test_plane.provenance, "Default provenance")
+        provenance = plane.Provenance("myProv")
+        test_plane.provenance = provenance
+        self.assertEqual("myProv", test_plane.provenance.name, "Provenance - name")
+        self.assertIsNone(test_plane.metrics, "Default metrics")
+        metrics = plane.Metrics()
+        test_plane.metrics = metrics
+        self.assertEqual(metrics, test_plane.metrics, "Provenance - metrics")
         #self.assertIsNone(plane.observable, "Default observable")
-        self.assertIsNone(plane.position, "Default position")
-        self.assertIsNone(plane.energy, "Default energy")
-        self.assertIsNone(plane.time, "Default time")
-        self.assertIsNone(plane.polarization, "Default polarization")
+        self.assertIsNone(test_plane.position, "Default position")
+        self.assertIsNone(test_plane.energy, "Default energy")
+        self.assertIsNone(test_plane.time, "Default time")
+        self.assertIsNone(test_plane.polarization, "Default polarization")
 
-        artifact1 = Artifact("caom:GEMINI/222/333", ProductType.SCIENCE, ReleaseType.DATA)
-        plane.artifacts["caom:GEMINI/222/333"] = artifact1
-        self.assertEquals(1, len(plane.artifacts), "Artifacts")
-        self.assertTrue("caom:GEMINI/222/333" in plane.artifacts.keys())
+        test_artifact1 = artifact.Artifact("caom:GEMINI/222/333",
+                                           artifact.ProductType.SCIENCE,
+                                           artifact.ReleaseType.DATA)
+        test_plane.artifacts["caom:GEMINI/222/333"] = test_artifact1
+        self.assertEquals(1, len(test_plane.artifacts), "Artifacts")
+        self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
 
-        artifact2 = Artifact("caom:CFHT/55/66", ProductType.SCIENCE, ReleaseType.DATA)
-        plane.artifacts["caom:CFHT/55/66"] = artifact2
-        self.assertEquals(2, len(plane.artifacts), "Artifacts")
-        self.assertTrue("caom:GEMINI/222/333" in plane.artifacts.keys())
-        self.assertTrue("caom:CFHT/55/66" in plane.artifacts.keys())
+        test_artifact2 = artifact.Artifact("caom:CFHT/55/66",
+                                           artifact.ProductType.SCIENCE,
+                                           artifact.ReleaseType.DATA)
+        test_plane.artifacts["caom:CFHT/55/66"] = test_artifact2
+        self.assertEquals(2, len(test_plane.artifacts), "Artifacts")
+        self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
+        self.assertTrue("caom:CFHT/55/66" in test_plane.artifacts.keys())
 
         #try to append a duplicate artifact
-        artifact3 = Artifact("caom:GEMINI/222/333", ProductType.SCIENCE, ReleaseType.DATA)
-        plane.artifacts["caom:GEMINI/222/333"] = artifact3
-        self.assertEquals(2, len(plane.artifacts), "Artifacts")
-        self.assertTrue("caom:GEMINI/222/333" in plane.artifacts.keys())
-        self.assertTrue("caom:CFHT/55/66" in plane.artifacts.keys())
+        test_artifact3 = artifact.Artifact("caom:GEMINI/222/333",
+                                           artifact.ProductType.SCIENCE,
+                                           artifact.ReleaseType.DATA)
+        test_plane.artifacts["caom:GEMINI/222/333"] = test_artifact3
+        self.assertEquals(2, len(test_plane.artifacts), "Artifacts")
+        self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
+        self.assertTrue("caom:CFHT/55/66" in test_plane.artifacts.keys())
 
         #Error cases
         exception = False
         try:
-            plane = Plane(None)
+            test_plane = plane.Plane(None)
         except TypeError:
             exception = True
         self.assertTrue(exception, "Null argument in initialize")
@@ -244,7 +234,7 @@ class TestPlane(unittest.TestCase):
 
         exception = False
         try:
-            plane.compute_energy()
+            test_plane.compute_energy()
         except NotImplementedError:
             exception = True
         self.assertTrue(exception,
@@ -252,14 +242,14 @@ class TestPlane(unittest.TestCase):
 
         exception = False
         try:
-            plane.compute_time()
+            test_plane.compute_time()
         except NotImplementedError:
             exception = True
         self.assertTrue(exception, "compute_time implemented - Testing needed")
 
         exception = False
         try:
-            plane.compute_polarization()
+            test_plane.compute_polarization()
         except NotImplementedError:
             exception = True
         self.assertTrue(exception, "compute_polarization implemented"
@@ -269,35 +259,35 @@ class TestPlane(unittest.TestCase):
 class TestPlaneURI(unittest.TestCase):
 
     def test_all(self):
-        planeURI = PlaneURI("caom:GEMINI/12345/3333")
-        self.assertEqual("caom:GEMINI/12345/3333", planeURI.uri,
+        plane_uri = plane.PlaneURI("caom:GEMINI/12345/3333")
+        self.assertEqual("caom:GEMINI/12345/3333", plane_uri.uri,
                          "Plane URI")
-        self.assertEqual("GEMINI", planeURI.observation_uri.collection,
+        self.assertEqual("GEMINI", plane_uri.observation_uri.collection,
                          "Collection")
-        self.assertEqual("12345", planeURI.observation_uri.observation_id,
+        self.assertEqual("12345", plane_uri.observation_uri.observation_id,
                          "Observation ID")
-        self.assertEqual("3333", planeURI.product_id, "Product ID")
+        self.assertEqual("3333", plane_uri.product_id, "Product ID")
 
-        planeURI = PlaneURI.get_plane_uri(ObservationURI("caom:CFHT/654321"),
+        plane_uri = plane.PlaneURI.get_plane_uri(observation.ObservationURI("caom:CFHT/654321"),
                                           "555")
-        self.assertEqual("caom:CFHT/654321/555", planeURI.uri,
+        self.assertEqual("caom:CFHT/654321/555", plane_uri.uri,
                          "Observation URI")
-        self.assertEqual("CFHT", planeURI.observation_uri.collection,
+        self.assertEqual("CFHT", plane_uri.observation_uri.collection,
                          "Collection")
-        self.assertEqual("654321", planeURI.observation_uri.observation_id,
+        self.assertEqual("654321", plane_uri.observation_uri.observation_id,
                          "Observation ID")
-        self.assertEqual("555", planeURI.product_id, "Product ID")
+        self.assertEqual("555", plane_uri.product_id, "Product ID")
 
         exception = False
         try:
-            planeURI = PlaneURI.get_plane_uri(None, "123")
+            plane_uri = plane.PlaneURI.get_plane_uri(None, "123")
         except TypeError:
             exception = True
         self.assertTrue(exception, "Missing exception")
 
         exception = False
         try:
-            planeURI = PlaneURI.get_plane_uri("GEMINI", None)
+            plane_uri = plane.PlaneURI.get_plane_uri("GEMINI", None)
         except TypeError:
             exception = True
         self.assertTrue(exception, "Missing exception")
@@ -305,14 +295,14 @@ class TestPlaneURI(unittest.TestCase):
         #wrong scheme
         exception = False
         try:
-            planeURI = PlaneURI("somescheme:GEMINI/12345/3333")
+            plane_uri = plane.PlaneURI("somescheme:GEMINI/12345/3333")
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
 
         exception = False
         try:
-            planeURI = PlaneURI("caom:GEMINI/12345")
+            plane_uri = plane.PlaneURI("caom:GEMINI/12345")
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
@@ -322,16 +312,16 @@ class TestDataQuality(unittest.TestCase):
 
     def test_all(self):
 
-        self.assertRaises(TypeError, DataQuality, "string")
-        quality = DataQuality(Quality.JUNK)
-        self.assertEqual(Quality.JUNK, quality.flag,
+        self.assertRaises(TypeError, plane.DataQuality, "string")
+        quality = plane.DataQuality(plane.Quality.JUNK)
+        self.assertEqual(plane.Quality.JUNK, quality.flag,
                          "DataQuality flag")
 
 
 class TestMetrics(unittest.TestCase):
 
     def test_all(self):
-        metrics = Metrics()
+        metrics = plane.Metrics()
 
         self.assertIsNone(metrics.source_number_density,
                           "Default source number density")
@@ -359,7 +349,7 @@ class TestMetrics(unittest.TestCase):
 class TestProvenance(unittest.TestCase):
 
     def test_all(self):
-        provenance = Provenance("MyProvenance")
+        provenance = plane.Provenance("MyProvenance")
         self.assertEqual("MyProvenance", provenance.name, "Name")
 
         self.assertIsNone(provenance.version, "Default version")
@@ -377,23 +367,23 @@ class TestProvenance(unittest.TestCase):
         self.assertIsNone(provenance.reference, "Default reference")
 
         self.assertEqual(0, len(provenance.inputs), "Default inputs")
-        planeURI1 = PlaneURI("caom:HST/11/00")
-        provenance.inputs.add(planeURI1)
+        plane_uri1 = plane.PlaneURI("caom:HST/11/00")
+        provenance.inputs.add(plane_uri1)
         self.assertEqual(1, len(provenance.inputs), "Default inputs")
-        self.assertTrue(planeURI1 in provenance.inputs)
+        self.assertTrue(plane_uri1 in provenance.inputs)
 
-        planeURI2 = PlaneURI("caom:HST/22/00")
-        provenance.inputs.add(planeURI2)
+        plane_uri2 = plane.PlaneURI("caom:HST/22/00")
+        provenance.inputs.add(plane_uri2)
         self.assertEqual(2, len(provenance.inputs), "Default inputs")
-        self.assertTrue(planeURI1 in provenance.inputs)
-        self.assertTrue(planeURI2 in provenance.inputs)
+        self.assertTrue(plane_uri1 in provenance.inputs)
+        self.assertTrue(plane_uri2 in provenance.inputs)
 
         # testing duplicates
-        planeURI3 = PlaneURI("caom:HST/22/00")
-        provenance.inputs.add(planeURI3)
+        plane_uri3 = plane.PlaneURI("caom:HST/22/00")
+        provenance.inputs.add(plane_uri3)
         self.assertEqual(2, len(provenance.inputs), "Default inputs")
-        self.assertTrue(planeURI1 in provenance.inputs)
-        self.assertTrue(planeURI2 in provenance.inputs)
+        self.assertTrue(plane_uri1 in provenance.inputs)
+        self.assertTrue(plane_uri2 in provenance.inputs)
 
         self.assertIsNone(provenance.last_executed, "Default last executed")
         now_date = datetime.now()
@@ -410,13 +400,13 @@ class TestProvenance(unittest.TestCase):
         self.assertTrue("keyword2" in provenance.keywords, "Keyword not found")
 
         # test the full constructor
-        provenance = Provenance("MyOtherProvenance",
-                                "Version2.0",
-                                "JCMT",
-                                "Mutt Lang",
-                                "b32",
-                                "caom:JCMT/33/00",
-                                now_date)
+        provenance = plane.Provenance("MyOtherProvenance",
+                                      "Version2.0",
+                                      "JCMT",
+                                      "Mutt Lang",
+                                      "b32",
+                                      "caom:JCMT/33/00",
+                                      now_date)
 
         self.assertIsNotNone(provenance.name)
         self.assertIsNotNone(provenance.version)
@@ -438,7 +428,7 @@ class TestProvenance(unittest.TestCase):
 class TestPosition(unittest.TestCase):
 
     def test_all(self):
-        position = Position()
+        position = plane.Position()
 
         self.assertIsNone(position.bounds, "Default bounds")
         #position.bounds = 123
@@ -460,7 +450,7 @@ class TestPosition(unittest.TestCase):
 class TestEnergy(unittest.TestCase):
 
     def test_all(self):
-        energy = Energy()
+        energy = plane.Energy()
         self.assertIsNone(energy.value, "Default energy value")
         energy.value = 33.33
         self.assertEqual(33.33, energy.value, "Energy value")
@@ -482,8 +472,8 @@ class TestEnergy(unittest.TestCase):
         energy.bandpass_name = "EBN"
         self.assertEqual("EBN", energy.bandpass_name, "Energy bandpass name")
         self.assertIsNone(energy.em_band, "Default energy em band")
-        energy.em_band = EnergyBand.OPTICAL
-        self.assertEqual(EnergyBand.OPTICAL, energy.em_band, "Energy band")
+        energy.em_band = plane.EnergyBand.OPTICAL
+        self.assertEqual(plane.EnergyBand.OPTICAL, energy.em_band, "Energy band")
         self.assertIsNone(energy.transition, "Default energy transition")
         #TODO replace with EnergyTransistion
         #energy.transition = "BLAH"
@@ -493,19 +483,19 @@ class TestEnergyTransition(unittest.TestCase):
 
     def test__init__(self):
         # test for invalid values
-        self.assertRaises(TypeError, EnergyTransition, None, None)
-        self.assertRaises(TypeError, EnergyTransition, 'aString', None)
-        self.assertRaises(TypeError, EnergyTransition, None, 'aString')
-        self.assertRaises(TypeError, EnergyTransition, 1, 'aString')
-        self.assertRaises(TypeError, EnergyTransition, 'aString', 2)
+        self.assertRaises(TypeError, plane.EnergyTransition, None, None)
+        self.assertRaises(TypeError, plane.EnergyTransition, 'aString', None)
+        self.assertRaises(TypeError, plane.EnergyTransition, None, 'aString')
+        self.assertRaises(TypeError, plane.EnergyTransition, 1, 'aString')
+        self.assertRaises(TypeError, plane.EnergyTransition, 'aString', 2)
         # test for happy path
-        transition = EnergyTransition("aSpecies", "aTransition")
+        transition = plane.EnergyTransition("aSpecies", "aTransition")
         self.assertEqual(transition._species, "aSpecies")
         self.assertEqual(transition._transition, "aTransition")
 
     def test_setters(self):
         # test that we cannot change the attribute values
-        transition = EnergyTransition("aSpecies", "aTransition")
+        transition = plane.EnergyTransition("aSpecies", "aTransition")
         try:
             transition.species = "newSpecies"
             transition.transition = "newTransition"
@@ -518,11 +508,11 @@ class TestEnergyTransition(unittest.TestCase):
 class TestPolarizaton(unittest.TestCase):
 
     def test_all(self):
-        polarization = Polarization()
+        polarization = plane.Polarization()
 
         self.assertIsNone(polarization.dimension,
                           "Default polarization dimension")
-        energy = Energy()
+        energy = plane.Energy()
         energy.bandpass_name = '123'
         self.assertEqual('123', energy.bandpass_name, "Polarization dimension")
 
@@ -532,7 +522,7 @@ class TestPolarizaton(unittest.TestCase):
 class TestTime(unittest.TestCase):
 
     def test_all(self):
-        time = Time()
+        time = plane.Time()
         self.assertIsNone(time.value, "Default value")
         self.assertIsNone(time.bounds, "Default bounds")
         self.assertIsNone(time.dimension, "Default dimension")
@@ -550,8 +540,3 @@ class TestTime(unittest.TestCase):
         self.assertEqual(12.34, time.sample_size, "Sample size")
         time.exposure = 55.55
         self.assertEqual(55.55, time.exposure, "Exposure")
-
-
-if __name__ == '__main__':
-    unittest.main()
-

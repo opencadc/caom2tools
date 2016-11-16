@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -73,13 +72,14 @@
 import collections
 from datetime import datetime
 
-import artifact
-import chunk
-import observation as obs
-import part
-import plane
-import caom_util
-import wcs
+from caom2tools.caom2 import artifact
+from caom2tools.caom2 import caom_util
+from caom2tools.caom2 import chunk
+from caom2tools.caom2 import observation
+from caom2tools.caom2 import part
+from caom2tools.caom2 import plane
+from caom2tools.caom2 import shape
+from caom2tools.caom2 import wcs
 
 
 class Caom2TestInstances(object):
@@ -129,54 +129,54 @@ class Caom2TestInstances(object):
         self._caom_version = v
 
     def get_simple_observation(self):
-        observation = \
-            obs.SimpleObservation(Caom2TestInstances._collection,
-                                  Caom2TestInstances._observation_id)
+        simple_observation = \
+            observation.SimpleObservation(Caom2TestInstances._collection,
+                                          Caom2TestInstances._observation_id)
         if self.complete:
-            observation.sequence_number = int(5)
-            observation.obs_type = "flat"
-            observation.intent = obs.ObservationIntentType.CALIBRATION
-            observation.meta_release = Caom2TestInstances._ivoa_date
-            observation.proposal = self.get_proposal()
-            observation.target = self.get_target()
-            observation.target_position = self.get_target_position()
+            simple_observation.sequence_number = int(5)
+            simple_observation.obs_type = "flat"
+            simple_observation.intent = observation.ObservationIntentType.CALIBRATION
+            simple_observation.meta_release = Caom2TestInstances._ivoa_date
+            simple_observation.proposal = self.get_proposal()
+            simple_observation.target = self.get_target()
+            simple_observation.target_position = self.get_target_position()
             if self.caom_version == 21:
-                observation.requirements = self.get_requirements()
-            observation.telescope = self.get_telescope()
-            observation.instrument = self.get_instrument()
-            observation.environment = self.get_environment()
+                simple_observation.requirements = self.get_requirements()
+            simple_observation.telescope = self.get_telescope()
+            simple_observation.instrument = self.get_instrument()
+            simple_observation.environment = self.get_environment()
         if self.depth > 1:
-            observation.planes.update(self.get_planes())
-        return observation
+            simple_observation.planes.update(self.get_planes())
+        return simple_observation
 
     def get_composite_observation(self):
-        observation = \
-            obs.CompositeObservation(Caom2TestInstances._collection,
-                                     Caom2TestInstances._observation_id,
-                                     self.get_algorithm())
+        composite_observation = \
+            observation.CompositeObservation(Caom2TestInstances._collection,
+                                             Caom2TestInstances._observation_id,
+                                             self.get_algorithm())
         if self.complete:
-            observation.sequence_number = int(10)
-            observation.obs_type = "filed"
-            observation.intent = obs.ObservationIntentType.SCIENCE
-            observation.meta_release = Caom2TestInstances._ivoa_date
-            observation.proposal = self.get_proposal()
-            observation.target = self.get_target()
-            observation.target_position = self.get_target_position()
+            composite_observation.sequence_number = int(10)
+            composite_observation.obs_type = "filed"
+            composite_observation.intent = observation.ObservationIntentType.SCIENCE
+            composite_observation.meta_release = Caom2TestInstances._ivoa_date
+            composite_observation.proposal = self.get_proposal()
+            composite_observation.target = self.get_target()
+            composite_observation.target_position = self.get_target_position()
             if self.caom_version == 21:
-                observation.requirements = self.get_requirements()
-            observation.telescope = self.get_telescope()
-            observation.instrument = self.get_instrument()
-            observation.environment = self.get_environment()
+                composite_observation.requirements = self.get_requirements()
+            composite_observation.telescope = self.get_telescope()
+            composite_observation.instrument = self.get_instrument()
+            composite_observation.environment = self.get_environment()
         if self.depth > 1:
-            observation.planes.update(self.get_planes())
-            observation.members.update(self.get_members())
-        return observation
+            composite_observation.planes.update(self.get_planes())
+            composite_observation.members.update(self.get_members())
+        return composite_observation
 
     def get_algorithm(self):
-        return obs.Algorithm("algorithmName")
+        return observation.Algorithm("algorithmName")
 
     def get_proposal(self):
-        proposal = obs.Proposal("proposalId")
+        proposal = observation.Proposal("proposalId")
         proposal.pi_name = "proposalPi"
         proposal.project = "proposalProject"
         proposal.title = "proposalTitle"
@@ -184,24 +184,24 @@ class Caom2TestInstances(object):
         return proposal
 
     def get_target(self):
-        target = obs.Target("targetName")
-        target.target_type = obs.TargetType.OBJECT
+        target = observation.Target("targetName")
+        target.target_type = observation.TargetType.OBJECT
         target.standard = False
         target.redshift = 1.5
         target.keywords.update(Caom2TestInstances._keywords)
         return target
 
     def get_target_position(self):
-        point = wcs.Point(1.0, 2.0)
-        target_position = obs.TargetPosition(point, "coordsys")
+        point = shape.Point(1.0, 2.0)
+        target_position = observation.TargetPosition(point, "coordsys")
         target_position.equinox = 3.0
         return target_position
 
     def get_requirements(self):
-        return obs.Requirements(obs.Status.FAIL)
+        return observation.Requirements(observation.Status.FAIL)
 
     def get_telescope(self):
-        telescope = obs.Telescope("telescopeName")
+        telescope = observation.Telescope("telescopeName")
         telescope.geo_location_x = 1.0
         telescope.geo_location_y = 2.0
         telescope.geo_location_z = 3.0
@@ -209,12 +209,12 @@ class Caom2TestInstances(object):
         return telescope
 
     def get_instrument(self):
-        instrument = obs.Instrument("instrumentName")
+        instrument = observation.Instrument("instrumentName")
         instrument.keywords.update(Caom2TestInstances._keywords)
         return instrument
 
     def get_environment(self):
-        env = obs.Environment()
+        env = observation.Environment()
         env.seeing = 0.08
         env.humidity = 0.35
         env.elevation = 2.7
@@ -226,7 +226,7 @@ class Caom2TestInstances(object):
 
     def get_members(self):
         members = caom_util.TypedSet(
-            obs.ObservationURI, obs.ObservationURI("caom:foo/bar"))
+            observation.ObservationURI, observation.ObservationURI("caom:foo/bar"))
         return members
 
     def get_planes(self):

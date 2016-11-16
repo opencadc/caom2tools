@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -73,106 +72,124 @@
 import unittest
 from urlparse import urlparse
 
-from caom2tools.caom2.artifact import Artifact
-from caom2tools.caom2.artifact import ProductType
-from caom2tools.caom2.artifact import ReleaseType
-from caom2tools.caom2.part import Part
+from .. import artifact
+from .. import part
 
 
 class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(ProductType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, ProductType.get, None)
-        self.assertRaises(AttributeError, ProductType.get, 1)
+        self.assertEqual(artifact.ProductType.get("no_such_string"), None)
+        self.assertRaises(AttributeError, artifact.ProductType.get, None)
+        self.assertRaises(AttributeError, artifact.ProductType.get, 1)
 
-        self.assertEqual(ReleaseType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, ReleaseType.get, None)
-        self.assertRaises(AttributeError, ReleaseType.get, 1)
+        self.assertEqual(artifact.ReleaseType.get("no_such_string"), None)
+        self.assertRaises(AttributeError, artifact.ReleaseType.get, None)
+        self.assertRaises(AttributeError, artifact.ReleaseType.get, 1)
 
         # test that we can get the object for each enum by name
-        self.assertEqual(ProductType.SCIENCE.name, "SCIENCE")
-        self.assertEqual(ProductType.get(ProductType.SCIENCE.name).name, "SCIENCE")
-        self.assertEqual(ProductType.get('SCIENCE').value, "science")
-        self.assertEqual(ProductType.get(ProductType.SCIENCE.name).value, "science")
-        self.assertEqual(ProductType.getByValue(ProductType.SCIENCE.value).value, "science")
-        self.assertEqual(ProductType.getByValue(ProductType.CALIBRATED.value).name, "SCIENCE")
+        self.assertEqual(artifact.ProductType.SCIENCE.name, "SCIENCE")
+        self.assertEqual(artifact.ProductType.get(
+            artifact.ProductType.SCIENCE.name).name, "SCIENCE")
+        self.assertEqual(artifact.ProductType.get(
+            'SCIENCE').value, "science")
+        self.assertEqual(artifact.ProductType.get(
+            artifact.ProductType.SCIENCE.name).value, "science")
+        self.assertEqual(artifact.ProductType.getByValue(
+            artifact.ProductType.SCIENCE.value).value, "science")
+        self.assertEqual(artifact.ProductType.getByValue(
+            artifact.ProductType.SCIENCE.value).name, "SCIENCE")
 
-        self.assertEqual(ProductType.SCIENCE.value, "science")
-        self.assertEqual(ProductType.CALIBRATION.value, "calibration")
-        self.assertEqual(ProductType.PREVIEW.value, "preview")
-        self.assertEqual(ProductType.INFO.value, "info")
-        self.assertEqual(ProductType.NOISE.value, "noise")
-        self.assertEqual(ProductType.WEIGHT.value, "weight")
-        self.assertEqual(ProductType.AUXILIARY.value, "auxiliary")
-        self.assertEqual(ProductType.THUMBNAIL.value, "thumbnail")
+        self.assertEqual(artifact.ProductType.SCIENCE.value, "science")
+        self.assertEqual(artifact.ProductType.CALIBRATION.value, "calibration")
+        self.assertEqual(artifact.ProductType.PREVIEW.value, "preview")
+        self.assertEqual(artifact.ProductType.INFO.value, "info")
+        self.assertEqual(artifact.ProductType.NOISE.value, "noise")
+        self.assertEqual(artifact.ProductType.WEIGHT.value, "weight")
+        self.assertEqual(artifact.ProductType.AUXILIARY.value, "auxiliary")
+        self.assertEqual(artifact.ProductType.THUMBNAIL.value, "thumbnail")
 
-        self.assertEqual(ReleaseType.DATA.value, "data")
-        self.assertEqual(ReleaseType.META.value, "meta")
+        self.assertEqual(artifact.ReleaseType.DATA.value, "data")
+        self.assertEqual(artifact.ReleaseType.META.value, "meta")
 
 
 class TestArtifact(unittest.TestCase):
 
     def test_all(self):
         with self.assertRaises(TypeError):
-            artifact = Artifact("caom:GEMINI/12345")
+            test_artifact = artifact.Artifact("caom:GEMINI/12345")
         with self.assertRaises(TypeError):
-            artifact = Artifact("caom:GEMINI/12345", ReleaseType('META'), ProductType('THUMBNAIL'))
+            test_artifact = artifact.Artifact("caom:GEMINI/12345",
+                                              artifact.ReleaseType('META'),
+                                              artifact.ProductType('THUMBNAIL'))
         with self.assertRaises(TypeError):
-            artifact = Artifact("caom:GEMINI/12345", ProductType('THUMBNAIL'), None)
+            test_artifact = artifact.Artifact("caom:GEMINI/12345",
+                                              artifact.ProductType('THUMBNAIL'),
+                                              None)
         with self.assertRaises(TypeError):
-            artifact = Artifact("caom:GEMINI/12345", None, ReleaseType('META'))
+            test_artifact = artifact.Artifact("caom:GEMINI/12345",
+                                              None,
+                                              artifact.ReleaseType('META'))
 
-        artifact = Artifact("caom:GEMINI/12345", ProductType('THUMBNAIL'), ReleaseType('META'))
+        test_artifact = artifact.Artifact("caom:GEMINI/12345",
+                                          artifact.ProductType('THUMBNAIL'),
+                                          artifact.ReleaseType('META'))
         urlparse("caom:GEMINI/12345")
-        self.assertEqual("caom:GEMINI/12345", artifact.uri, "Artifact URI")
-        self.assertEqual(ProductType('THUMBNAIL'), artifact.product_type, "Artifact ProductType")
-        self.assertEqual(ReleaseType('META'), artifact.release_type, "Artifact ReleaseType")
+        self.assertEqual("caom:GEMINI/12345",
+                         test_artifact.uri,
+                         "Artifact URI")
+        self.assertEqual(artifact.ProductType('THUMBNAIL'),
+                         test_artifact.product_type,
+                         "Artifact ProductType")
+        self.assertEqual(artifact.ReleaseType('META'),
+                         test_artifact.release_type,
+                         "Artifact ReleaseType")
 
-        self.assertIsNone(artifact.content_type, "Default content type")
-        artifact.content_type = "FITS"
-        self.assertEquals("FITS", artifact.content_type, "Content type")
-        self.assertIsNone(artifact.content_length, "Default content length")
-        artifact.content_length = 23L
-        self.assertEquals(23L, artifact.content_length, "Content length")
-        artifact.product_type = ProductType.PREVIEW
-        self.assertEquals(ProductType.PREVIEW, artifact.product_type, "Product type")
-        self.assertEquals(0, len(artifact.parts), "Default parts")
-        part1 = Part("1")
-        artifact.parts["1"] = part1
-        self.assertEquals(1, len(artifact.parts), "Parts")
-        self.assertTrue("1" in artifact.parts.keys())
+        self.assertIsNone(test_artifact.content_type, "Default content type")
+        test_artifact.content_type = "FITS"
+        self.assertEquals("FITS", test_artifact.content_type, "Content type")
+        self.assertIsNone(test_artifact.content_length,
+                          "Default content length")
+        test_artifact.content_length = 23L
+        self.assertEquals(23L, test_artifact.content_length, "Content length")
+        test_artifact.product_type = artifact.ProductType.PREVIEW
+        self.assertEquals(artifact.ProductType.PREVIEW,
+                          test_artifact.product_type,
+                          "Product type")
+        self.assertEquals(0, len(test_artifact.parts), "Default parts")
+        part1 = part.Part("1")
+        test_artifact.parts["1"] = part1
+        self.assertEquals(1, len(test_artifact.parts), "Parts")
+        self.assertTrue("1" in test_artifact.parts.keys())
         #add same part again
-        part2 = Part("2")
-        artifact.parts["2"] = part2
-        self.assertEquals(2, len(artifact.parts), "Parts")
-        self.assertTrue("1" in artifact.parts.keys())
-        self.assertTrue("2" in artifact.parts.keys())
+        part2 = part.Part("2")
+        test_artifact.parts["2"] = part2
+        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertTrue("1" in test_artifact.parts.keys())
+        self.assertTrue("2" in test_artifact.parts.keys())
 
         # try to add duplicates
         part3 = part1
-        artifact.parts["1"] = part3
-        self.assertEquals(2, len(artifact.parts), "Parts")
-        self.assertTrue("1" in artifact.parts.keys())
-        self.assertTrue("2" in artifact.parts.keys())
+        test_artifact.parts["1"] = part3
+        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertTrue("1" in test_artifact.parts.keys())
+        self.assertTrue("2" in test_artifact.parts.keys())
 
-        part4 = Part("1")
-        artifact.parts["1"] = part4
-        self.assertEquals(2, len(artifact.parts), "Parts")
-        self.assertTrue("1" in artifact.parts.keys())
-        self.assertTrue("2" in artifact.parts.keys())
+        part4 = part.Part("1")
+        test_artifact.parts["1"] = part4
+        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertTrue("1" in test_artifact.parts.keys())
+        self.assertTrue("2" in test_artifact.parts.keys())
 
         #incorrect URI
         exception = False
         try:
-            artifact = Artifact("caom://#observation://? something#//", ReleaseType('META'), ProductType('THUMBNAIL'))
+            test_artifact = artifact.Artifact(
+                "caom://#observation://? something#//",
+                artifact.ReleaseType('META'),
+                artifact.ProductType('THUMBNAIL'))
             print artifact.uri
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
-
-
-if __name__ == '__main__':
-    unittest.main()
-

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -72,46 +71,27 @@
 
 import unittest
 
-from caom2tools.caom2.artifact import ProductType
-from caom2tools.caom2.chunk import Chunk
-from caom2tools.caom2.part import Part
+from .. import artifact
+from .. import chunk
+from .. import part
 
 
 class TestPart(unittest.TestCase):
 
-    def testInit(self):
+    def test_init(self):
 
-        self.assertRaises(TypeError, Part, long(1))
+        self.assertRaises(TypeError, part.Part, long(1))
 
-        part = Part("partName")
-        self.assertEquals("partName", part.name, "Part name")
-        self.assertIsNone(part.product_type)
-        self.assertTrue(len(part.chunks) == 0)
+        test_part = part.Part("partName")
+        self.assertEquals("partName", test_part.name, "Part name")
+        self.assertIsNone(test_part.product_type)
+        self.assertTrue(len(test_part.chunks) == 0)
 
-        part.product_type = ProductType.SCIENCE
-        self.assertEqual(ProductType.SCIENCE, part.product_type)
+        test_part.product_type = artifact.ProductType.SCIENCE
+        self.assertEqual(artifact.ProductType.SCIENCE, test_part.product_type)
 
-        chunk = Chunk()
-        chunk.naxis = 5
-        part.chunks.append(chunk)
-        self.assertTrue(len(part.chunks) == 1)
-        self.assertEqual(chunk, part.chunks.pop())
-
-#        # the set prevents adding the same object multiple times ...
-#        chunk_alias = chunk
-#        part.chunks.add(chunk_alias)
-#        part.chunks.add(chunk_alias)
-#        part.chunks.add(chunk_alias)
-#        self.assertTrue(len(part.chunks) == 1)
-#
-#        # ... but everything else is not a duplicate
-#        chunk = Chunk()
-#        chunk.naxis = 33
-#        part.chunks.add(chunk)
-#        self.assertTrue(len(part.chunks) == 2)
-
-
-
-if __name__ == '__main__':
-    unittest.main()
-
+        test_chunk = chunk.Chunk()
+        test_chunk.naxis = 5
+        test_part.chunks.append(test_chunk)
+        self.assertTrue(len(test_part.chunks) == 1)
+        self.assertEqual(test_chunk, test_part.chunks.pop())

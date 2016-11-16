@@ -83,117 +83,124 @@ import sys
 import uuid
 from datetime import datetime
 
-import artifact
-import chunk
-import observation
-import part
-import plane
+# import artifact
+# import chunk
+# import observation
+# import part
+# import plane
 
 
-class Util(object):
+# TODO both these are very bad, implement more sensibly
+IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
-    # TODO both these are very bad, implement more sensibly
-    IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
-    def validate_path_component(self, caller, name, test):
-        """
-        Function to validate a URI path component. Component is invalid
-        if it contains space ( ), slash (/), escape (\\) or percent (%) characters.
+def validate_path_component(caller, name, test):
+    """
+    Function to validate a URI path component. Component is invalid
+    if it contains space ( ), slash (/), escape (\\) or percent (%) characters.
 
-        Arguments:
-        caller : caller object
-        name : name of the component
-        test : component to be tested
+    Arguments:
+    caller : caller object
+    name : name of the component
+    test : component to be tested
 
-        An assertionError is thrown when the the provided test argument
-        is invalid
-        """
+    An assertionError is thrown when the the provided test argument
+    is invalid
+    """
 
-        assert (' ' not in test and
-                '/' not in test and
-                '||' not in test and
-                '%' not in test), (
-            caller.__class__.__name__ + ": invalid " + name +
-            ": may not contain space ( ), slash (/), escape (\\), or percent (%)")
+    assert (' ' not in test and
+            '/' not in test and
+            '||' not in test and
+            '%' not in test), (
+        caller.__class__.__name__ + ": invalid " + name +
+        ": may not contain space ( ), slash (/), escape (\\), or percent (%)")
 
-    def date2ivoa(self, d):
-        """
-        Takes a datetime and returns a string formatted
-        to the IVOA date format yyyy-MM-dd'T'HH:mm:ss.SSS
-        """
 
-        if d is None:
-            return None
-        return d.strftime(self.IVOA_DATE_FORMAT)[:23]
+def date2ivoa(d):
+    """
+    Takes a datetime and returns a string formatted
+    to the IVOA date format yyyy-MM-dd'T'HH:mm:ss.SSS
+    """
 
-    def str2ivoa(self, s):
-        """Takes a IVOA date formatted string and returns a datetime"""
+    if d is None:
+        return None
+    return d.strftime(IVOA_DATE_FORMAT)[:23]
 
-        if s is None:
-            return None
-        return datetime.strptime(s, self.IVOA_DATE_FORMAT)
 
-    def attr2str(self, s):
-        pass
+def str2ivoa(s):
+    """Takes a IVOA date formatted string and returns a datetime"""
 
-    def repr2str(self, s):
-        pass
+    if s is None:
+        return None
+    return datetime.strptime(s, IVOA_DATE_FORMAT)
 
-    def uuid2long(self, uid):
-        """
-        UUID is 128 bits (32 bytes). Unpack the 32 bytes into two
-        16 byte longs. For CAOM-2.0 compatibility only the least significant
-        16 bytes in the UUID should have a value.
 
-        return the UUID least significant bytes as a long.
-        """
-        longs = struct.unpack('>qq', str(uid.bytes))
-        if longs[0] != 0:
-            raise ValueError("lossy conversion from UUID to long: {}".format(uid))
-        return longs[1]
+def attr2str(s):
+    pass
 
-    def long2uuid(self, l):
-        """
-        Takes a long and creates a UUID using the 16 byte long
-        as the least significant bytes in the 32 byte UUID.
-        """
-        if l.bit_length() > 63:
-            raise ValueError("expected 64 bit long {}".format(l))
-        return uuid.UUID(bytes='\x00'*8 + str(struct.pack(">q", l)))
 
-    def type_check(self, value, value_type, variable, override=None):
-        """Check value is of type value_type, or is override"""
+def repr2str(s):
+    pass
 
-        sys.tracebacklimit = None
-        if not isinstance(value, value_type) and value is not override:
-            if override is not False:
-                raise TypeError(
-                    "Excepted {} or {} for {}, received {}".format(value_type,
-                                                                   override,
-                                                                   variable,
-                                                                   type(value)))
-            else:
-                raise TypeError(
-                    "Expected {} for {}, received {}".format(value_type,
-                                                             variable,
-                                                             type(value)))
-        return True
 
-    def value_check(self, value, min_value, max_value, variable, override=None):
-        """Check if value is inside allowed range, or override"""
+def uuid2long(uid):
+    """
+    UUID is 128 bits (32 bytes). Unpack the 32 bytes into two
+    16 byte longs. For CAOM-2.0 compatibility only the least significant
+    16 bytes in the UUID should have a value.
 
-        sys.tracebacklimit = None
-        if value != override and not (min_value <= value <= max_value):
-            if override is not False:
-                raise ValueError(
-                    "Expected {} <= {} <= {} or {}, received {}".format(
-                        min_value, variable, max_value, override, value))
-            else:
-                raise ValueError(
-                    "Expected {} <= {} <= {}, received {}".format(
-                        min_value, variable, max_value, value))
+    return the UUID least significant bytes as a long.
+    """
+    longs = struct.unpack('>qq', str(uid.bytes))
+    if longs[0] != 0:
+        raise ValueError("lossy conversion from UUID to long: {}".format(uid))
+    return longs[1]
 
-        return True
+
+def long2uuid(l):
+    """
+    Takes a long and creates a UUID using the 16 byte long
+    as the least significant bytes in the 32 byte UUID.
+    """
+    if l.bit_length() > 63:
+        raise ValueError("expected 64 bit long {}".format(l))
+    return uuid.UUID(bytes='\x00'*8 + str(struct.pack(">q", l)))
+
+
+def type_check(value, value_type, variable, override=None):
+    """Check value is of type value_type, or is override"""
+
+    sys.tracebacklimit = None
+    if not isinstance(value, value_type) and value is not override:
+        if override is not False:
+            raise TypeError(
+                "Excepted {} or {} for {}, received {}".format(value_type,
+                                                               override,
+                                                               variable,
+                                                               type(value)))
+        else:
+            raise TypeError(
+                "Expected {} for {}, received {}".format(value_type,
+                                                         variable,
+                                                         type(value)))
+    return True
+
+
+def value_check(value, min_value, max_value, variable, override=None):
+    """Check if value is inside allowed range, or override"""
+
+    sys.tracebacklimit = None
+    if value != override and not (min_value <= value <= max_value):
+        if override is not False:
+            raise ValueError(
+                "Expected {} <= {} <= {} or {}, received {}".format(
+                    min_value, variable, max_value, override, value))
+        else:
+            raise ValueError(
+                "Expected {} <= {} <= {}, received {}".format(
+                    min_value, variable, max_value, value))
+
+    return True
 
 
 class TypedList(collections.MutableSequence):
@@ -384,48 +391,48 @@ class ClassProperty(property):
         return self.fget.__get__(None, owner)()
 
 
-class Validator(object):
-
-    def __init__(self):
-        self.errors = {}
-
-    def validate(self, obs):
-        if not isinstance(obs, observation.Observation):
-            self.errors['observation'] = 'not an Observation instance'
-            return
-        self._validate_planes(obs.planes)
-        if len(self.errors) > 0:
-            return False
-        return True
-
-    def _validate_planes(self, planes):
-        for product_id, _plane in planes.iteritems():
-            if not isinstance(_plane, plane.Plane):
-                self.errors['plane'].append("not a Plane instance")
-                continue
-            if product_id != _plane.product_id:
-                self.errors['plane'].append("plane productIDs do not match")
-            self._validate_artifacts(_plane.artifacts)
-
-    def _validate_artifacts(self, artifacts):
-        for uri, _artifact in artifacts.iteritems():
-            if not isinstance(_artifact, artifact.Artifact):
-                self.errors['artifact'].append("not an Artifact instance")
-                continue
-            if uri != _artifact.uri:
-                self.errors['artifact'].append("artifact uris do not match")
-            self._validate_parts(_artifact.parts)
-
-    def _validate_parts(self, parts):
-        for name, _part in parts.iteritems():
-            if not isinstance(_part, part.Part):
-                self.errors['part'].append("not a Part instance")
-                continue
-            if name != _part.name:
-                self.errors['part'].append("part names do not match")
-            self._validate_chunks(_part.chunks)
-
-    def _validate_chunks(self, chunks):
-        for _chunk in chunks:
-            if not isinstance(_chunk, chunk.Chunk):
-                self.errors['chunk'].append("not a chunk instance")
+# class Validator(object):
+#
+#     def __init__(self):
+#         self.errors = {}
+#
+#     def validate(self, obs):
+#         if not isinstance(obs, observation.Observation):
+#             self.errors['observation'] = 'not an Observation instance'
+#             return
+#         self._validate_planes(obs.planes)
+#         if len(self.errors) > 0:
+#             return False
+#         return True
+#
+#     def _validate_planes(self, planes):
+#         for product_id, _plane in planes.iteritems():
+#             if not isinstance(_plane, plane.Plane):
+#                 self.errors['plane'].append("not a Plane instance")
+#                 continue
+#             if product_id != _plane.product_id:
+#                 self.errors['plane'].append("plane productIDs do not match")
+#             self._validate_artifacts(_plane.artifacts)
+#
+#     def _validate_artifacts(self, artifacts):
+#         for uri, _artifact in artifacts.iteritems():
+#             if not isinstance(_artifact, artifact.Artifact):
+#                 self.errors['artifact'].append("not an Artifact instance")
+#                 continue
+#             if uri != _artifact.uri:
+#                 self.errors['artifact'].append("artifact uris do not match")
+#             self._validate_parts(_artifact.parts)
+#
+#     def _validate_parts(self, parts):
+#         for name, _part in parts.iteritems():
+#             if not isinstance(_part, part.Part):
+#                 self.errors['part'].append("not a Part instance")
+#                 continue
+#             if name != _part.name:
+#                 self.errors['part'].append("part names do not match")
+#             self._validate_chunks(_part.chunks)
+#
+#     def _validate_chunks(self, chunks):
+#         for _chunk in chunks:
+#             if not isinstance(_chunk, chunk.Chunk):
+#                 self.errors['chunk'].append("not a chunk instance")

@@ -68,10 +68,9 @@
 #***********************************************************************
 #
 
-from enum import Enum
 import caom_object
-from caom_util import Util
-
+import caom_util
+from enum import Enum
 
 SegmentType = Enum('SegmentType',
                    CLOSE=0,
@@ -113,7 +112,7 @@ class Point(caom_object.CaomObject):
 
     @cval1.setter
     def cval1(self, value):
-        Util.type_check(value, float, 'cval1', override=False)
+        caom_util.type_check(value, float, 'cval1', override=False)
         self._cval1 = value
 
     @property
@@ -125,7 +124,7 @@ class Point(caom_object.CaomObject):
 
     @cval2.setter
     def cval2(self, value):
-        Util.type_check(value, float, 'cval2', override=False)
+        caom_util.type_check(value, float, 'cval2', override=False)
         self._cval2 = value
 
 

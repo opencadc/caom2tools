@@ -74,8 +74,8 @@
 
 import artifact
 import caom_object
+import caom_util
 import plane
-from caom_util import Util
 import wcs
 
 
@@ -148,7 +148,7 @@ class Chunk(caom_object.AbstractCaomEntity):
         if isinstance(value, str) and value in artifact.ProductType.names():
             ## be helpful
             value = artifact.ProductType('value')
-        Util.type_check(value, artifact.ProductType, 'product_type')
+        caom_util.type_check(value, artifact.ProductType, 'product_type')
         self._product_type = value
 
     @property
@@ -163,8 +163,8 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @naxis.setter
     def naxis(self, value):
-        Util.type_check(value, int, 'naxis')
-        Util.value_check(value, 0, 5, 'naxis')
+        caom_util.type_check(value, int, 'naxis')
+        caom_util.value_check(value, 0, 5, 'naxis')
         self._naxis = value
 
     @property
@@ -181,7 +181,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @position_axis_1.setter
     def position_axis_1(self, value):
-        Util.type_check(value, int, 'position_axis_1')
+        caom_util.type_check(value, int, 'position_axis_1')
 #         util.valueCheck(value, 0, self.naxis, 'position_axis_1')
         self._position_axis_1 = value
 
@@ -200,7 +200,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @position_axis_2.setter
     def position_axis_2(self, value):
-        Util.type_check(value, int, 'position_axis_2')
+        caom_util.type_check(value, int, 'position_axis_2')
 #         util.valueCheck(value, 0, self.naxis, 'position_axis_2')
         self._position_axis_2 = value
 
@@ -220,7 +220,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @energy_axis.setter
     def energy_axis(self, value):
-        Util.type_check(value, int, 'energy_axis')
+        caom_util.type_check(value, int, 'energy_axis')
 #         util.valueCheck(value, 0, self.naxis, 'energy_axis')
         self._energy_axis = value
 
@@ -238,7 +238,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @time_axis.setter
     def time_axis(self, value):
-        Util.type_check(value, int, 'polarization_axis')
+        caom_util.type_check(value, int, 'polarization_axis')
 #         util.valueCheck(value, 0, self._naxis, 'polarization_axis')
         self._time_axis = value
 
@@ -256,7 +256,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @polarization_axis.setter
     def polarization_axis(self, value):
-        Util.type_check(value, int, 'polarization_axis')
+        caom_util.type_check(value, int, 'polarization_axis')
 #         util.valueCheck(value, 0, self._naxis, 'polariztion_axis')
         self._polarization_axis = value
 
@@ -271,7 +271,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @observable_axis.setter
     def observable_axis(self, value):
-        Util.type_check(value, int, 'obserable_axis')
+        caom_util.type_check(value, int, 'obserable_axis')
 #         util.valueCheck(value, 0, 1E10, 'observable_axis')
         self._observable_axis = value
 
@@ -286,7 +286,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @observable.setter
     def observable(self, value):
-        Util.type_check(value, ObservableAxis, 'observable_axis')
+        caom_util.type_check(value, ObservableAxis, 'observable_axis')
         self._observable = value
 
     @property
@@ -303,7 +303,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @position.setter
     def position(self, value):
-        Util.type_check(value, SpatialWCS, 'position')
+        caom_util.type_check(value, SpatialWCS, 'position')
         self._position = value
 
     @property
@@ -321,7 +321,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @energy.setter
     def energy(self, value):
-        Util.type_check(value, SpectralWCS, 'energy')
+        caom_util.type_check(value, SpectralWCS, 'energy')
         self._energy = value
 
     @property
@@ -338,7 +338,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @time.setter
     def time(self, value):
-        Util.type_check(value, TemporalWCS, 'time')
+        caom_util.type_check(value, TemporalWCS, 'time')
         self._time = value
 
     @property
@@ -354,7 +354,7 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @polarization.setter
     def polarization(self, value):
-        Util.type_check(value, PolarizationWCS, 'polarization')
+        caom_util.type_check(value, PolarizationWCS, 'polarization')
         self._polarization = value
 
 
@@ -413,7 +413,7 @@ class ObservableAxis(caom_object.CaomObject):
 
     @dependent.setter
     def dependent(self, value):
-        Util.type_check(value, wcs.Slice, 'dependent', override=False)
+        caom_util.type_check(value, wcs.Slice, 'dependent', override=False)
         self._dependent = value
 
     @property
@@ -428,7 +428,7 @@ class ObservableAxis(caom_object.CaomObject):
 
     @independent.setter
     def independent(self, value):
-        Util.type_check(value, wcs.Slice, "independent")
+        caom_util.type_check(value, wcs.Slice, "independent")
         self._independent = value
 
 
@@ -464,7 +464,7 @@ class SpatialWCS(caom_object.CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, wcs.CoordAxis2D, 'axis', override=False)
+        caom_util.type_check(value, wcs.CoordAxis2D, 'axis', override=False)
         self._axis = value
 
     @property
@@ -480,7 +480,7 @@ class SpatialWCS(caom_object.CaomObject):
 
     @coordsys.setter
     def coordsys(self, value):
-        Util.type_check(value, str, 'coordsys')
+        caom_util.type_check(value, str, 'coordsys')
         self._coordsys = value
 
     @property
@@ -497,8 +497,8 @@ class SpatialWCS(caom_object.CaomObject):
 
     @equinox.setter
     def equinox(self, value):
-        Util.type_check(value, float, 'equinox')
-        Util.value_check(value, 1800, 2500, 'equinox')
+        caom_util.type_check(value, float, 'equinox')
+        caom_util.value_check(value, 1800, 2500, 'equinox')
         self._equinox = value
 
     @property
@@ -513,8 +513,8 @@ class SpatialWCS(caom_object.CaomObject):
 
     @resolution.setter
     def resolution(self, value):
-        Util.type_check(value, float, 'resolution')
-        Util.value_check(value, 0, 360 * 3600.0, 'resolution')
+        caom_util.type_check(value, float, 'resolution')
+        caom_util.value_check(value, 0, 360 * 3600.0, 'resolution')
         self._resolution = value
 
 
@@ -577,7 +577,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
+        caom_util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
         self._axis = value
 
     @property
@@ -593,7 +593,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @specsys.setter
     def specsys(self, value):
-        Util.type_check(value, str, 'specsys', override=False)
+        caom_util.type_check(value, str, 'specsys', override=False)
         self._specsys = value
 
     @property
@@ -613,7 +613,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @ssysobs.setter
     def ssysobs(self, value):
-        Util.type_check(value, str, 'ssysobs')
+        caom_util.type_check(value, str, 'ssysobs')
         self._ssysobs = value
 
     @property
@@ -627,7 +627,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @ssyssrc.setter
     def ssyssrc(self, value):
-        Util.type_check(value, str, 'ssyssrc')
+        caom_util.type_check(value, str, 'ssyssrc')
         self._ssyssrc = value
 
     @property
@@ -641,7 +641,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @restfrq.setter
     def restfrq(self, value):
-        Util.type_check(value, float, 'restfrq')
+        caom_util.type_check(value, float, 'restfrq')
         self._restfrq = value
 
     @property
@@ -657,7 +657,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @restwav.setter
     def restwav(self, value):
-        Util.type_check(value, float, 'restwav')
+        caom_util.type_check(value, float, 'restwav')
         self._restwav = value
 
     @property
@@ -676,7 +676,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @velosys.setter
     def velosys(self, value):
-        Util.type_check(value, float, 'velosys')
+        caom_util.type_check(value, float, 'velosys')
         self._velosys = value
 
     @property
@@ -692,8 +692,8 @@ class SpectralWCS(caom_object.CaomObject):
 
     @zsource.setter
     def zsource(self, value):
-        Util.type_check(value, float, 'zsource')
-        Util.value_check(value, -0.5, 1200, 'zsource')
+        caom_util.type_check(value, float, 'zsource')
+        caom_util.value_check(value, -0.5, 1200, 'zsource')
         self._zsource = value
 
     @property
@@ -703,7 +703,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @velang.setter
     def velang(self, value):
-        Util.type_check(value, float, 'velang')
+        caom_util.type_check(value, float, 'velang')
         self._velang = value
 
     @property
@@ -717,7 +717,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @bandpass_name.setter
     def bandpass_name(self, value):
-        Util.type_check(value, str, 'bandpass_name')
+        caom_util.type_check(value, str, 'bandpass_name')
         self._bandpass_name = value
 
     @property
@@ -730,7 +730,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @transition.setter
     def transition(self, value):
-        Util.type_check(value, plane.EnergyTransition, "transition")
+        caom_util.type_check(value, plane.EnergyTransition, "transition")
         self._transition = value
 
     @property
@@ -746,8 +746,8 @@ class SpectralWCS(caom_object.CaomObject):
 
     @resolving_power.setter
     def resolving_power(self, value):
-        Util.type_check(value, float, 'resolving_power')
-        Util.value_check(value, 0, 1E8, 'resolving_power')
+        caom_util.type_check(value, float, 'resolving_power')
+        caom_util.value_check(value, 0, 1E8, 'resolving_power')
         self._resolving_power = value
 
 
@@ -783,7 +783,7 @@ class TemporalWCS(caom_object.CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
+        caom_util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
         self._axis = value
 
     @property
@@ -797,7 +797,7 @@ class TemporalWCS(caom_object.CaomObject):
 
     @timesys.setter
     def timesys(self, value):
-        Util.type_check(value, str, 'timesys')
+        caom_util.type_check(value, str, 'timesys')
         self._timesys = value
 
     @property
@@ -813,7 +813,7 @@ class TemporalWCS(caom_object.CaomObject):
 
     @trefpos.setter
     def trefpos(self, value):
-        Util.type_check(value, str, 'trefpos')
+        caom_util.type_check(value, str, 'trefpos')
         self._trefpos = value
 
     @property
@@ -834,9 +834,9 @@ class TemporalWCS(caom_object.CaomObject):
 
     @mjdref.setter
     def mjdref(self, value):
-        Util.type_check(value, float, 'mjdref')
+        caom_util.type_check(value, float, 'mjdref')
         ### set the limits to be after 1800 but before year 2050
-        Util.value_check(value, -22000, 70000, 'mjdref')
+        caom_util.value_check(value, -22000, 70000, 'mjdref')
         self._mjdref = value
 
     @property
@@ -853,8 +853,8 @@ class TemporalWCS(caom_object.CaomObject):
 
     @exposure.setter
     def exposure(self, value):
-        Util.type_check(value, float, "exposure")
-        Util.value_check(value, 0, 30 * 24 * 3600.0, "exposure")
+        caom_util.type_check(value, float, "exposure")
+        caom_util.value_check(value, 0, 30 * 24 * 3600.0, "exposure")
         self._exposure = value
 
     @property
@@ -875,8 +875,8 @@ class TemporalWCS(caom_object.CaomObject):
 
     @resolution.setter
     def resolution(self, value):
-        Util.type_check(value, float, 'resolution')
-        Util.value_check(value, 0, 100 * 365 * 24 * 3600.0, "resolution")
+        caom_util.type_check(value, float, 'resolution')
+        caom_util.value_check(value, 0, 100 * 365 * 24 * 3600.0, "resolution")
         self._resolution = value
 
 
@@ -905,7 +905,7 @@ class PolarizationWCS(caom_object.CaomObject):
 
     @axis.setter
     def axis(self, value):
-        Util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
+        caom_util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
         if value.axis.ctype != 'STOKES':
             raise ValueError('CTYPE must be STOKES')
         self._axis = value

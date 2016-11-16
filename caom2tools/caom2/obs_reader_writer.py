@@ -76,19 +76,19 @@ import pkg_resources
 from lxml import etree
 
 import artifact
+import caom_util
 import chunk
-import shape
 import observation
 import part
 import plane
+import shape
 import wcs
-from caom_util import Util
 
-CAOM2_PKG = 'caom2'
+CAOM2_PKG = 'caom2tools'
 
-CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
-CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
-CAOM22_SCHEMA_FILE = 'CAOM-2.2.xsd'
+CAOM20_SCHEMA_FILE = 'caom2/CAOM-2.0.xsd'
+CAOM21_SCHEMA_FILE = 'caom2/CAOM-2.1.xsd'
+CAOM22_SCHEMA_FILE = 'caom2/CAOM-2.2.xsd'
 
 CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
 CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
@@ -147,11 +147,11 @@ class ObservationReader(object):
         if expect_uuid:
             uid = uuid.UUID(element_id)
         else:
-            uid = Util.long2uuid(long(element_id))
+            uid = caom_util.long2uuid(long(element_id))
         caom2_entity._id = uid
 
         if element_last_modified:
-            caom2_entity._last_modified = Util.str2ivoa(element_last_modified)
+            caom2_entity._last_modified = caom_util.str2ivoa(element_last_modified)
 
     def _get_child_element(self, element_tag, parent, ns, required):
         for element in list(parent):
@@ -233,7 +233,7 @@ class ObservationReader(object):
         else:
             # TODO: need to catch exceptions,
             # what kind of exceptions are thrown?
-            return Util.str2ivoa(el.text)
+            return caom_util.str2ivoa(el.text)
 
     def _get_proposal(self, element_tag, parent, ns, required):
         """Build a Proposal object from an XML representation
@@ -487,7 +487,7 @@ class ObservationReader(object):
             reference = self._get_child_text("reference", el, ns, False)
             if reference:
                 prov.reference = reference
-            prov.last_executed = Util.str2ivoa(
+            prov.last_executed = caom_util.str2ivoa(
                 self._get_child_text("lastExecuted", el, ns, False))
             keywords = self._get_child_text("keywords", el, ns, False)
             if keywords is not None:
@@ -1270,9 +1270,9 @@ class ObservationReader(object):
             for plane_element in el.iterchildren("{" + ns + "}plane"):
                 _plane = plane.Plane(
                     self._get_child_text("productID", plane_element, ns, True))
-                _plane.meta_release = Util.str2ivoa(
+                _plane.meta_release = caom_util.str2ivoa(
                     self._get_child_text("metaRelease", plane_element, ns, False))
-                _plane.data_release = Util.str2ivoa(
+                _plane.data_release = caom_util.str2ivoa(
                     self._get_child_text("dataRelease", plane_element, ns, False))
                 data_product_type = \
                     self._get_child_text("dataProductType", plane_element, ns, False)
@@ -1333,7 +1333,7 @@ class ObservationReader(object):
             self._get_child_text("type", root, ns, False)
         intent = self._get_child_text("intent", root, ns, False)
         if intent:
-            obs.intent = obs.ObservationIntentType.getByValue(intent)
+            obs.intent = observation.ObservationIntentType.getByValue(intent)
         obs.meta_release = \
             self._get_meta_release("metaRelease", root, ns, False)
         obs.proposal = \
@@ -1351,7 +1351,7 @@ class ObservationReader(object):
         obs.requirements = \
             self._get_requirements("requirements", root, ns, False)
         self._add_planes(obs.planes, root, ns)
-        if isinstance(obs, obs.CompositeObservation):
+        if isinstance(obs, observation.CompositeObservation):
             self._add_members(obs.members, root, ns)
 
         self._set_entity_attributes(root, ns, obs)
@@ -1447,14 +1447,14 @@ class ObservationWriter(object):
 
     def _add_enity_attributes(self, entity, element):
         if self._output_version == 20:
-            uid = Util.uuid2long(entity._id)
+            uid = caom_util.uuid2long(entity._id)
             self._add_attribute("id", str(uid), element)
         else:
             self._add_attribute("id", str(entity._id), element)
 
         if entity._last_modified is not None:
             self._add_attribute(
-                "lastModified", Util.date2ivoa(entity._last_modified), element)
+                "lastModified", caom_util.date2ivoa(entity._last_modified), element)
 
     def _add_algorithm_element(self, algorithm, parent):
         if algorithm is None:
@@ -1980,7 +1980,7 @@ class ObservationWriter(object):
         if value is None:
             return
         element = self._get_caom_element(name, parent)
-        element.text = Util.date2ivoa(value)
+        element.text = caom_util.date2ivoa(value)
 
     def _add_list_element(self, name, collection, parent):
         if collection is None or \

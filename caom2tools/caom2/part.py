@@ -73,9 +73,8 @@ the caom2_Observation_Plane_Artifact_Part object."""
 
 import artifact
 import caom_object
-import chunk
 import caom_util
-from caom_util import Util
+import chunk
 
 
 class Part(caom_object.AbstractCaomEntity):
@@ -116,7 +115,7 @@ class Part(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        Util.type_check(value, artifact.ProductType, "product_type")
+        caom_util.type_check(value, artifact.ProductType, "product_type")
         self._product_type = value
 
     @property
@@ -129,7 +128,7 @@ class Part(caom_object.AbstractCaomEntity):
 
     @name.setter
     def name(self, value):
-        Util.type_check(value, str, 'name', override=False)
+        caom_util.type_check(value, str, 'name', override=False)
         self._name = value
 
     @property
@@ -144,5 +143,5 @@ class Part(caom_object.AbstractCaomEntity):
 
     @chunks.setter
     def chunks(self, value):
-        Util.type_check(value, caom_util.TypedList, 'chunks', override=False)
+        caom_util.type_check(value, caom_util.TypedList, 'chunks', override=False)
         self._chunks = value

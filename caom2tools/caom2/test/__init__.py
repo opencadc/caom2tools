@@ -69,3 +69,5 @@
 #
 
 """ Defines __init__ """
+
+from caom_test_instances import Caom2TestInstances

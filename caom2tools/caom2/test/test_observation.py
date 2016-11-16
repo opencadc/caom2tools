@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #***********************************************************************
 #******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -73,68 +72,54 @@
 import unittest
 from datetime import datetime
 
-from caom2tools.caom2.shape import Point
-from caom2tools.caom2.observation import Algorithm
-from caom2tools.caom2.observation import CompositeObservation
-from caom2tools.caom2.observation import Environment
-from caom2tools.caom2.observation import Instrument
-from caom2tools.caom2.observation import Observation
-from caom2tools.caom2.observation import ObservationIntentType
-from caom2tools.caom2.observation import ObservationURI
-from caom2tools.caom2.observation import Proposal
-from caom2tools.caom2.observation import Requirements
-from caom2tools.caom2.observation import SimpleObservation
-from caom2tools.caom2.observation import Status
-from caom2tools.caom2.observation import Target
-from caom2tools.caom2.observation import TargetPosition
-from caom2tools.caom2.observation import TargetType
-from caom2tools.caom2.observation import Telescope
-from caom2tools.caom2.plane import Plane
-from caom2tools.caom2.caom_util import Util
+from .. import caom_util
+from .. import observation
+from .. import plane
+from .. import shape
 
 
 class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(ObservationIntentType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, ObservationIntentType.get, None)
-        self.assertRaises(AttributeError, ObservationIntentType.get, 1)
+        self.assertEqual(observation.ObservationIntentType.get("no_such_string"), None)
+        self.assertRaises(AttributeError, observation.ObservationIntentType.get, None)
+        self.assertRaises(AttributeError, observation.ObservationIntentType.get, 1)
 
-        self.assertEqual(Status.get("no_such_string"), None)
-        self.assertRaises(AttributeError, Status.get, None)
-        self.assertRaises(AttributeError, Status.get, 1)
+        self.assertEqual(observation.Status.get("no_such_string"), None)
+        self.assertRaises(AttributeError, observation.Status.get, None)
+        self.assertRaises(AttributeError, observation.Status.get, 1)
 
-        self.assertEqual(TargetType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, TargetType.get, None)
-        self.assertRaises(AttributeError, TargetType.get, 1)
+        self.assertEqual(observation.TargetType.get("no_such_string"), None)
+        self.assertRaises(AttributeError, observation.TargetType.get, None)
+        self.assertRaises(AttributeError, observation.TargetType.get, 1)
 
         # test that we can get the object for each enum by name
-        self.assertEqual(ObservationIntentType.CALIBRATION.value, "calibration")
-        self.assertEqual(ObservationIntentType.SCIENCE.value, "science")
+        self.assertEqual(observation.ObservationIntentType.CALIBRATION.value, "calibration")
+        self.assertEqual(observation.ObservationIntentType.SCIENCE.value, "science")
 
-        self.assertEqual(Status.FAIL.value, "fail")
+        self.assertEqual(observation.Status.FAIL.value, "fail")
 
-        self.assertEqual(TargetType.FIELD.value, "field")
-        self.assertEqual(TargetType.OBJECT.value, "object")
+        self.assertEqual(observation.TargetType.FIELD.value, "field")
+        self.assertEqual(observation.TargetType.OBJECT.value, "object")
 
 
 class TestObservation(unittest.TestCase):
 
     def test_all(self):
-        algorithm = Algorithm("myAlg")
-        obs = Observation("GSA", "A12345", algorithm)
+        algorithm = observation.Algorithm("myAlg")
+        obs = observation.Observation("GSA", "A12345", algorithm)
         self.assertEqual("GSA", obs.collection, "Collection")
         self.assertEqual("A12345", obs.observation_id, "Observation ID")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
 
-        new_algorithm = Algorithm("myNewAlg")
+        new_algorithm = observation.Algorithm("myNewAlg")
         obs.algorithm = new_algorithm
         self.assertEquals(new_algorithm, obs.algorithm, "New algorithm")
 
         self.assertIsNone(obs.intent, "Default intent")
-        obs.intent = ObservationIntentType.CALIBRATION
-        self.assertEqual(ObservationIntentType.CALIBRATION,
+        obs.intent = observation.ObservationIntentType.CALIBRATION
+        self.assertEqual(observation.ObservationIntentType.CALIBRATION,
                          obs.intent, "Observation intent")
 
         self.assertIsNone(obs.obs_type, "Default obs_type")
@@ -143,40 +128,40 @@ class TestObservation(unittest.TestCase):
                          obs.obs_type, "obs type")
 
         self.assertIsNone(obs.proposal, "Default proposal")
-        proposal = Proposal("ABC")
+        proposal = observation.Proposal("ABC")
         obs.proposal = proposal
         self.assertEqual(proposal,
                          obs.proposal, "Proposal")
 
         self.assertIsNone(obs.telescope, "Default telescope")
-        telescope = Telescope("GSAGN")
+        telescope = observation.Telescope("GSAGN")
         obs.telescope = telescope
         self.assertEqual(telescope, obs.telescope, "Telescope")
 
         self.assertIsNone(obs.instrument, "Default instrument")
-        instrument = Instrument("NIRI")
+        instrument = observation.Instrument("NIRI")
         obs.instrument = instrument
         self.assertEqual(instrument, obs.instrument, "Instrument")
 
         self.assertIsNone(obs.target, "Default target")
-        target = Target("TGT")
+        target = observation.Target("TGT")
         obs.target = target
         self.assertEqual(target, obs.target, "Target")
 
         self.assertIsNone(obs.target_position, "Default target position")
-        target_position = TargetPosition(Point(1.0, 2.0), "coordsys")
+        target_position = observation.TargetPosition(shape.Point(1.0, 2.0), "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
 
         self.assertIsNone(obs.requirements, "Default requirements")
-        requirements = Requirements(Status.FAIL)
+        requirements = observation.Requirements(observation.Status.FAIL)
         obs.requirements = requirements
         self.assertEqual(requirements,
                          obs.requirements, "Requirements")
 
         self.assertIsNone(obs.environment, "Default environment")
-        environment = Environment()
+        environment = observation.Environment()
         obs.environment = environment
         self.assertEqual(environment,
                          obs.environment, "Environment")
@@ -188,63 +173,64 @@ class TestObservation(unittest.TestCase):
                          obs.meta_release, "Metadata release")
 
         self.assertEqual(0, len(obs.planes), "Default planes")
-        plane1 = Plane("myPlaneID")
+        plane1 = plane.Plane("myPlaneID")
         obs.planes["myPlaneID"] = plane1
         self.assertEqual(1, len(obs.planes), "Planes")
         self.assertTrue("myPlaneID" in obs.planes.keys())
 
-        plane2 = Plane("myPlaneID2")
+        plane2 = plane.Plane("myPlaneID2")
         obs.planes["myPlaneID2"] = plane2
         self.assertEqual(2, len(obs.planes), "Planes")
         self.assertTrue("myPlaneID" in obs.planes)
         self.assertTrue("myPlaneID2" in obs.planes.keys())
 
         # test duplicates
-        plane3 = Plane("myPlaneID2")
+        plane3 = plane.Plane("myPlaneID2")
         obs.planes["myPlaneID2"] = plane3
         self.assertEqual(2, len(obs.planes), "Planes")
         self.assertTrue("myPlaneID" in obs.planes)
         self.assertTrue("myPlaneID2" in obs.planes.keys())
 
-        obs2 = Observation(obs.collection,
-                           obs.observation_id,
-                           obs.algorithm,
-                           planes=obs.planes,
-                           sequence_number=obs.sequence_number,
-                           intent=obs.intent,
-                           obs_type=obs.obs_type,
-                           proposal=obs.proposal,
-                           telescope=obs.telescope,
-                           instrument=obs.instrument,
-                           target=obs.target,
-                           meta_release=obs.meta_release,
-                           environment=obs.environment,
-                           target_position=obs.target_position)
+        obs2 = observation.Observation(
+            obs.collection,
+            obs.observation_id,
+            obs.algorithm,
+            planes=obs.planes,
+            sequence_number=obs.sequence_number,
+            intent=obs.intent,
+            obs_type=obs.obs_type,
+            proposal=obs.proposal,
+            telescope=obs.telescope,
+            instrument=obs.instrument,
+            target=obs.target,
+            meta_release=obs.meta_release,
+            environment=obs.environment,
+            target_position=obs.target_position)
 
 
 class TestObservationURI(unittest.TestCase):
 
     def test_all(self):
-        obsURI = ObservationURI("caom:GEMINI/12345")
-        self.assertEqual("caom:GEMINI/12345", obsURI.uri, "Observation URI")
-        self.assertEqual("GEMINI", obsURI.collection, "Collection")
-        self.assertEqual("12345", obsURI.observation_id, "Observation ID")
+        obs_uri = observation.ObservationURI("caom:GEMINI/12345")
+        self.assertEqual("caom:GEMINI/12345", obs_uri.uri, "Observation URI")
+        self.assertEqual("GEMINI", obs_uri.collection, "Collection")
+        self.assertEqual("12345", obs_uri.observation_id, "Observation ID")
 
-        obsURI = ObservationURI.get_observation_uri("CFHT", "654321")
-        self.assertEqual("caom:CFHT/654321", obsURI.uri, "Observation URI")
-        self.assertEqual("CFHT", obsURI.collection, "Collection")
-        self.assertEqual("654321", obsURI.observation_id, "Observation ID")
+        obs_uri = observation.ObservationURI.get_observation_uri("CFHT", "654321")
+        self.assertEqual("caom:CFHT/654321", obs_uri.uri, "Observation URI")
+        self.assertEqual("CFHT", obs_uri.collection, "Collection")
+        self.assertEqual("654321", obs_uri.observation_id, "Observation ID")
 
         exception = False
         try:
-            obsURI = ObservationURI.get_observation_uri(None, "123")
+            obs_uri = observation.ObservationURI.get_observation_uri(None, "123")
         except TypeError:
             exception = True
         self.assertTrue(exception, "Missing exception")
 
         exception = False
         try:
-            obsURI = ObservationURI.get_observation_uri("GEMINI", None)
+            obs_uri = observation.ObservationURI.get_observation_uri("GEMINI", None)
         except TypeError:
             exception = True
         self.assertTrue(exception, "Missing exception")
@@ -253,8 +239,8 @@ class TestObservationURI(unittest.TestCase):
 class TestSimpleObservation(unittest.TestCase):
 
     def test_all(self):
-        algorithm = SimpleObservation._ALGORITHM
-        obs = SimpleObservation("GSA", "A12345")
+        algorithm = observation.SimpleObservation._ALGORITHM
+        obs = observation.SimpleObservation("GSA", "A12345")
         self.assertEqual("GSA", obs.collection, "Collection")
         self.assertEqual("A12345", obs.observation_id, "Observation ID")
 
@@ -265,15 +251,15 @@ class TestSimpleObservation(unittest.TestCase):
         # try to set algorithm
         exception = False
         try:
-            obs.algorithm = Algorithm("myAlg")
+            obs.algorithm = observation.Algorithm("myAlg")
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
 
         # run the rest of the Observation tests
         self.assertIsNone(obs.intent, "Default intent")
-        obs.intent = ObservationIntentType.CALIBRATION
-        self.assertEqual(ObservationIntentType.CALIBRATION,
+        obs.intent = observation.ObservationIntentType.CALIBRATION
+        self.assertEqual(observation.ObservationIntentType.CALIBRATION,
                          obs.intent, "Observation intent")
 
         self.assertIsNone(obs.obs_type, "Default obs_type")
@@ -282,43 +268,43 @@ class TestSimpleObservation(unittest.TestCase):
                          obs.obs_type, "obs type")
 
         self.assertIsNone(obs.proposal, "Default proposal")
-        proposal = Proposal("ABC")
+        proposal = observation.Proposal("ABC")
         obs.proposal = proposal
         self.assertEqual(proposal,
                          obs.proposal, "Proposal")
 
         self.assertIsNone(obs.telescope, "Default telescope")
-        telescope = Telescope("GSAGN")
+        telescope = observation.Telescope("GSAGN")
         obs.telescope = telescope
         self.assertEqual(telescope,
                          obs.telescope, "Telescope")
 
         self.assertIsNone(obs.instrument, "Default instrument")
-        instrument = Instrument("NIRI")
+        instrument = observation.Instrument("NIRI")
         obs.instrument = instrument
         self.assertEqual(instrument,
                          obs.instrument, "Instrument")
 
         self.assertIsNone(obs.target, "Default target")
-        target = Target("TGT")
+        target = observation.Target("TGT")
         obs.target = target
         self.assertEqual(target,
                          obs.target, "Target")
 
         self.assertIsNone(obs.environment, "Default environment")
-        environment = Environment()
+        environment = observation.Environment()
         obs.environment = environment
         self.assertEqual(environment,
                          obs.environment, "Environment")
 
         self.assertIsNone(obs.target_position, "Default target position")
-        target_position = TargetPosition(Point(1.0, 2.0), "coordsys")
+        target_position = observation.TargetPosition(shape.Point(1.0, 2.0), "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
 
         self.assertIsNone(obs.requirements, "Default requirements")
-        requirements = Requirements(Status.FAIL)
+        requirements = observation.Requirements(observation.Status.FAIL)
         obs.requirements = requirements
         self.assertEquals(requirements, obs.requirements, "requirements")
 
@@ -331,38 +317,39 @@ class TestSimpleObservation(unittest.TestCase):
     # Test the complete constructor
     def test_complete_init(self):
         collection = str("CFHT")
-        observationID = str("543210")
-        algorithm = SimpleObservation._ALGORITHM
+        observation_id = str("543210")
+        algorithm = observation.SimpleObservation._ALGORITHM
         sequence_number = int(3)
-        intent = ObservationIntentType.SCIENCE
+        intent = observation.ObservationIntentType.SCIENCE
         obs_type = str("foo")
-        proposal = Proposal("123")
-        telescope = Telescope("TEL")
-        instrument = Instrument("INST")
-        target = Target("LMC")
+        proposal = observation.Proposal("123")
+        telescope = observation.Telescope("TEL")
+        instrument = observation.Instrument("INST")
+        target = observation.Target("LMC")
         meta_release = datetime.now()
-        planes = Util.TypedOrderedDict((Plane),)
-        environment = Environment()
+        planes = caom_util.TypedOrderedDict(plane.Plane,)
+        environment = observation.Environment()
 
-        obs = SimpleObservation(collection,
-                                observationID,
-                                algorithm,
-                                sequence_number,
-                                intent,
-                                obs_type,
-                                proposal,
-                                telescope,
-                                instrument,
-                                target,
-                                meta_release,
-                                planes,
-                                environment)
+        obs = observation.SimpleObservation(
+            collection,
+            observation_id,
+            algorithm,
+            sequence_number,
+            intent,
+            obs_type,
+            proposal,
+            telescope,
+            instrument,
+            target,
+            meta_release,
+            planes,
+            environment)
 
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
 
         self.assertIsNotNone(obs.observation_id, "Observation ID")
-        self.assertEqual(observationID, obs.observation_id, "Observation ID")
+        self.assertEqual(observation_id, obs.observation_id, "Observation ID")
 
         self.assertIsNotNone(obs.algorithm, "Algorithm")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
@@ -398,8 +385,8 @@ class TestSimpleObservation(unittest.TestCase):
 class TestCompositeObservation(unittest.TestCase):
 
     def test_all(self):
-        algorithm = Algorithm("mozaic")
-        obs = CompositeObservation("GSA", "A12345", algorithm)
+        algorithm = observation.Algorithm("mozaic")
+        obs = observation.CompositeObservation("GSA", "A12345", algorithm)
         self.assertEqual("GSA", obs.collection, "Collection")
         self.assertEqual("A12345", obs.observation_id, "Observation ID")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
@@ -409,7 +396,7 @@ class TestCompositeObservation(unittest.TestCase):
         # try to set algorithm to an invalid value
         exception = False
         try:
-            obs.algorithm = SimpleObservation._ALGORITHM
+            obs.algorithm = observation.SimpleObservation._ALGORITHM
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
@@ -423,28 +410,28 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertTrue(exception, "Missing exception")
 
         self.assertEqual(0, len(obs.members), "Members")
-        observationURI1 = ObservationURI("caom:collection/obsID")
-        obs.members.add(observationURI1)
+        observation_uri1 = observation.ObservationURI("caom:collection/obsID")
+        obs.members.add(observation_uri1)
         self.assertEqual(1, len(obs.members), "Members")
-        self.assertTrue(observationURI1 in obs.members)
+        self.assertTrue(observation_uri1 in obs.members)
 
-        observationURI2 = ObservationURI("caom:collection/obsID2")
-        obs.members.add(observationURI2)
+        observation_uri2 = observation.ObservationURI("caom:collection/obsID2")
+        obs.members.add(observation_uri2)
         self.assertEqual(2, len(obs.members), "Members")
-        self.assertTrue(observationURI1 in obs.members)
-        self.assertTrue(observationURI2 in obs.members)
+        self.assertTrue(observation_uri1 in obs.members)
+        self.assertTrue(observation_uri2 in obs.members)
 
         #duplicates
-        observationURI3 = ObservationURI("caom:collection/obsID")
-        obs.members.add(observationURI3)
+        observation_uri3 = observation.ObservationURI("caom:collection/obsID")
+        obs.members.add(observation_uri3)
         self.assertEqual(2, len(obs.members), "Members")
-        self.assertTrue(observationURI1 in obs.members)
-        self.assertTrue(observationURI2 in obs.members)
+        self.assertTrue(observation_uri1 in obs.members)
+        self.assertTrue(observation_uri2 in obs.members)
 
         # run the rest of the Observation tests
         self.assertIsNone(obs.intent, "Default intent")
-        obs.intent = ObservationIntentType.CALIBRATION
-        self.assertEqual(ObservationIntentType.CALIBRATION,
+        obs.intent = observation.ObservationIntentType.CALIBRATION
+        self.assertEqual(observation.ObservationIntentType.CALIBRATION,
                          obs.intent, "Observation intent")
 
         self.assertIsNone(obs.obs_type, "Default obs_type")
@@ -453,43 +440,43 @@ class TestCompositeObservation(unittest.TestCase):
                          obs.obs_type, "obs type")
 
         self.assertIsNone(obs.proposal, "Default proposal")
-        proposal = Proposal("ABC")
+        proposal = observation.Proposal("ABC")
         obs.proposal = proposal
         self.assertEqual(proposal,
                          obs.proposal, "Proposal")
 
         self.assertIsNone(obs.telescope, "Default telescope")
-        telescope = Telescope("GSAGN")
+        telescope = observation.Telescope("GSAGN")
         obs.telescope = telescope
         self.assertEqual(telescope,
                          obs.telescope, "Telescope")
 
         self.assertIsNone(obs.instrument, "Default instrument")
-        instrument = Instrument("NIRI")
+        instrument = observation.Instrument("NIRI")
         obs.instrument = instrument
         self.assertEqual(instrument,
                          obs.instrument, "Instrument")
 
         self.assertIsNone(obs.target, "Default target")
-        target = Target("TGT")
+        target = observation.Target("TGT")
         obs.target = target
         self.assertEqual(target,
                          obs.target, "Target")
 
         self.assertIsNone(obs.environment, "Default environment")
-        environment = Environment()
+        environment = observation.Environment()
         obs.environment = environment
         self.assertEqual(environment,
                          obs.environment, "Environment")
 
         self.assertIsNone(obs.target_position, "Default target position")
-        target_position = TargetPosition(Point(1.0, 2.0), "coordsys")
+        target_position = observation.TargetPosition(shape.Point(1.0, 2.0), "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
 
         self.assertIsNone(obs.requirements, "Default requirements")
-        requirements = Requirements(Status.FAIL)
+        requirements = observation.Requirements(observation.Status.FAIL)
         obs.requirements = requirements
         self.assertEquals(requirements, obs.requirements, "requirements")
 
@@ -502,40 +489,41 @@ class TestCompositeObservation(unittest.TestCase):
     # Test the complete constructor
     def test_complete_init(self):
         collection = str("CFHT")
-        observationID = str("543210")
+        observation_id = str("543210")
         algorithm = str("algo")
         sequence_number = int(3)
-        intent = ObservationIntentType.SCIENCE
+        intent = observation.ObservationIntentType.SCIENCE
         obs_type = str("foo")
-        proposal = Proposal("123")
-        telescope = Telescope("TEL")
-        instrument = Instrument("INST")
-        target = Target("LMC")
+        proposal = observation.Proposal("123")
+        telescope = observation.Telescope("TEL")
+        instrument = observation.Instrument("INST")
+        target = observation.Target("LMC")
         meta_release = datetime.now()
-        planes = Util.TypedOrderedDict((Plane),)
-        environment = Environment()
-        target_position = TargetPosition(Point(1.0, 2.0), "coordsys")
+        planes = caom_util.TypedOrderedDict(plane.Plane,)
+        environment = observation.Environment()
+        target_position = observation.TargetPosition(shape.Point(1.0, 2.0), "coordsys")
 
-        obs = CompositeObservation(collection,
-                                   observationID,
-                                   algorithm,
-                                   sequence_number,
-                                   intent,
-                                   obs_type,
-                                   proposal,
-                                   telescope,
-                                   instrument,
-                                   target,
-                                   meta_release,
-                                   planes,
-                                   environment,
-                                   target_position)
+        obs = observation.CompositeObservation(
+            collection,
+            observation_id,
+            algorithm,
+            sequence_number,
+            intent,
+            obs_type,
+            proposal,
+            telescope,
+            instrument,
+            target,
+            meta_release,
+            planes,
+            environment,
+            target_position)
 
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
 
         self.assertIsNotNone(obs.observation_id, "Observation ID")
-        self.assertEqual(observationID, obs.observation_id, "Observation ID")
+        self.assertEqual(observation_id, obs.observation_id, "Observation ID")
 
         self.assertIsNotNone(obs.algorithm, "Algorithm")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
@@ -582,14 +570,14 @@ class TestCompositeObservation(unittest.TestCase):
 class TestAlgorithm(unittest.TestCase):
 
     def test_all(self):
-        algorithm = Algorithm("myAlgorithm")
+        algorithm = observation.Algorithm("myAlgorithm")
         self.assertEqual("myAlgorithm", algorithm.name, "Algorithm name")
 
 
 class TestEnvironment(unittest.TestCase):
 
     def test_all(self):
-        environment = Environment()
+        environment = observation.Environment()
 
         self.assertIsNone(environment.seeing, "Default seeing")
         environment.seeing = 123.321
@@ -619,7 +607,7 @@ class TestEnvironment(unittest.TestCase):
 class TestIntrument(unittest.TestCase):
 
     def test_all(self):
-        instrument = Instrument("myInstrument")
+        instrument = observation.Instrument("myInstrument")
         self.assertEqual("myInstrument", instrument.name, "Instrument name")
         self.assertEqual(0, len(instrument.keywords), "Default number of keywords")
 
@@ -635,7 +623,7 @@ class TestIntrument(unittest.TestCase):
 class TestProposal(unittest.TestCase):
 
     def test_all(self):
-        proposal = Proposal("myProposal")
+        proposal = observation.Proposal("myProposal")
         self.assertEqual("myProposal", proposal.proposal_id, "Proposal ID")
         self.assertEqual(0, len(proposal.keywords), "Default number of keywords")
         proposal.keywords.add("optical")
@@ -655,20 +643,20 @@ class TestProposal(unittest.TestCase):
 class TestRequirements(unittest.TestCase):
 
     def test_all(self):
-        self.assertRaises(TypeError, Requirements, "string")
-        requirements = Requirements(Status.FAIL)
-        self.assertEqual(Status.FAIL, requirements.flag,
+        self.assertRaises(TypeError, observation.Requirements, "string")
+        requirements = observation.Requirements(observation.Status.FAIL)
+        self.assertEqual(observation.Status.FAIL, requirements.flag,
                          "Requirements flag")
 
 
 class TestTarget(unittest.TestCase):
 
     def test_all(self):
-        target = Target("myTarget")
+        target = observation.Target("myTarget")
         self.assertEqual("myTarget", target.name, "target name")
 
-        target.target_type = TargetType.FIELD
-        self.assertEqual(TargetType.FIELD, target.target_type, "target type")
+        target.target_type = observation.TargetType.FIELD
+        self.assertEqual(observation.TargetType.FIELD, target.target_type, "target type")
 
         self.assertEqual(0, len(target.keywords), "Default number of keywords")
         target.keywords.add("optical")
@@ -687,9 +675,9 @@ class TestTarget(unittest.TestCase):
         target.moving = True
         self.assertTrue(target.moving, "Moving")
 
-        target = Target("myOtherTarget", TargetType.OBJECT, False, 1.2, {"radio"}, False)
+        target = observation.Target("myOtherTarget", observation.TargetType.OBJECT, False, 1.2, {"radio"}, False)
         self.assertEquals("myOtherTarget", target.name, "target name")
-        self.assertEquals(TargetType.OBJECT, target.target_type, "target type")
+        self.assertEquals(observation.TargetType.OBJECT, target.target_type, "target type")
         self.assertFalse(target.standard, "Standard")
         self.assertEquals(1.2, target.redshift, "Redshift")
         self.assertEquals(1, len(target.keywords), "Keywords")
@@ -700,9 +688,9 @@ class TestTarget(unittest.TestCase):
 class TestTargetPosition(unittest.TestCase):
 
     def test_all(self):
-        self.assertRaises(TypeError, TargetPosition, "string")
-        point = Point(1.0, 2.0)
-        target_position = TargetPosition(point, "coordsys")
+        self.assertRaises(TypeError, observation.TargetPosition, "string")
+        point = shape.Point(1.0, 2.0)
+        target_position = observation.TargetPosition(point, "coordsys")
         self.assertIsNotNone(target_position.coordinates,
                              "target position coordinates")
         self.assertEqual(point.cval1, target_position.coordinates.cval1,
@@ -715,7 +703,7 @@ class TestTargetPosition(unittest.TestCase):
         self.assertIsNone(target_position.equinox,
                           "target position equinox")
 
-        target_position = TargetPosition(point, "coordsys", 1.0)
+        target_position = observation.TargetPosition(point, "coordsys", 1.0)
         self.assertIsNotNone(target_position.equinox,
                              "target position equinox")
         self.assertEqual(1.0, target_position.equinox,
@@ -725,7 +713,7 @@ class TestTargetPosition(unittest.TestCase):
 class TestTelescope(unittest.TestCase):
 
     def test_all(self):
-        telescope = Telescope("myTelescope")
+        telescope = observation.Telescope("myTelescope")
         self.assertEqual("myTelescope", telescope.name, "telescope name")
         self.assertEqual(0, len(telescope.keywords), "Default number of keywords")
 
@@ -744,8 +732,3 @@ class TestTelescope(unittest.TestCase):
         self.assertIsNone(telescope.geo_location_z, "Default geo location z")
         telescope.geo_location_z = 12.12
         self.assertEqual(12.12, telescope.geo_location_z, "Geo location z")
-
-
-
-if __name__ == '__main__':
-    unittest.main()

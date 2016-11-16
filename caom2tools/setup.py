@@ -47,8 +47,8 @@ if sys.version_info[0] > 2:
     print 'The caom2 package is only compatible with Python version 2.n'
     sys.exit(-1)
 
-setup(name='pyCAOM2',
-      version='2.2.1',
+setup(name='caom2tools',
+      version='2.3.0',
       description='CAOM-2.2 library',
       url='This is a Home-page.',
       author='Canadian Astronomy Data Centre',
