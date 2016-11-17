@@ -346,8 +346,7 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.delete_observation(collection, observation_id)
 
 
-    @patch('test_caom2repo.CAOM2RepoClient._get_observations')
-    def test_process(self, mock_obs):
+    def test_process(self):
         caom2repo.BATCH_SIZE = 3 # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
         visitor = CAOM2RepoClient()
