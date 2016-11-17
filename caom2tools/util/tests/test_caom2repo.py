@@ -71,11 +71,13 @@ import unittest
 import copy
 import sys
 import os
+import requests
 from mock import Mock, patch, MagicMock
 #TODO to be changed to io.StringIO when caom2 is prepared for python3
 from StringIO import StringIO
 from datetime import datetime
 
+from caom2tools.util import caom2repo
 from caom2tools.util.caom2repo import CAOM2RepoClient, DATE_FORMAT
 from caom2tools.caom2.observation import SimpleObservation
 from caom2tools.caom2 import ObservationReader, ObservationWriter
@@ -88,275 +90,275 @@ class TestCAOM2Repo(unittest.TestCase):
 
 
     def test_plugin_class(self):
-        
-        
-        
         # plugin class does not change the observation
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht')
-        obs = SimpleObservation('cfht', '7000000o')
+        collection = 'cfht'
+        observation_id = '7000000o'
+        visitor = CAOM2RepoClient()
+        obs = SimpleObservation(collection, observation_id)
         expect_obs = copy.deepcopy(obs)
+        visitor._load_plugin_class(os.path.join(THIS_DIR, 'passplugin.py'))
         visitor.plugin.update(obs)
         self.assertEquals(expect_obs, obs)
         
         # plugin class adds a plane to the observation
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'addplaneplugin.py'), 'cfht')
+        visitor = CAOM2RepoClient()
         obs = SimpleObservation('cfht', '7000000o')
         expect_obs = copy.deepcopy(obs)
+        visitor._load_plugin_class(os.path.join(THIS_DIR, 'addplaneplugin.py'))
         visitor.plugin.update(obs)
         self.assertNotEquals(expect_obs, obs)
         self.assertEquals(len(expect_obs.planes) + 1, len(obs.planes))
         
         # non-existent the plugin file
         with self.assertRaises(Exception):
-            visitor = CAOM2RepoClient('blah.py', 'cfht')
+            visitor._load_plugin_class(os.path.join(THIS_DIR, 'blah.py'))
         
         # non-existent ObservationUpdater class in the plugin file
         with self.assertRaises(Exception):
-            visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'test_visitor.py'), 'cfht')
+            visitor._load_plugin_class(os.path.join(THIS_DIR, 'test_visitor.py'))
             
         # non-existent update method in ObservationUpdater class
         with self.assertRaises(Exception):    
-            visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'noupdateplugin.py'), 'cfht')
+            visitor._load_plugin_class(os.path.join(THIS_DIR, 'noupdateplugin.py'))
    
    
     # patch sleep to stop the test from sleeping and slowing down execution
-    @patch('caom2repoClient.caom2repoClient.time.sleep', MagicMock(), create=True)
-    @patch('caom2repoClient.caom2repoClient.open', MagicMock(), create=True)
-    @patch('caom2repoClient.caom2repoClient.HTTPSConnection')
-    def test_get_observation(self, mock_conn):
-                
-        obs = SimpleObservation('cfht', '7000000o')
+    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadctools.net.ws.open', MagicMock(), create=True)
+    @patch('cadctools.net.ws.Session.send')
+    def test_get_observation(self, mock_get):
+        collection = 'cfht'
+        observation_id = '7000000o'
+        service_url = 'www.cadc.nrc.ca/caom2repo'
+        obs = SimpleObservation(collection, observation_id)
         writer = ObservationWriter()
         ibuffer = StringIO()
         writer.write(obs, ibuffer)
         response = MagicMock()
-        response.status = 200
-        response.read.return_value = ibuffer.getvalue()
-        conn = mock_conn.return_value
-        conn.getresponse.return_value = response
+        response.status_code = 200
+        response.content = ibuffer.getvalue()
+        mock_get.return_value = response
         ibuffer.seek(0) # reposition the buffer for reading
+        visitor = CAOM2RepoClient(server=service_url)
+        self.assertEquals(obs, visitor.get_observation(collection, observation_id))
         
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht')
-        
-        self.assertEquals(
-            'ivo://cadc.nrc.ca/caom2repo/cfht', visitor.collection_uri)
-        
-        self.assertEquals(obs, visitor._get_observation('700000o'))
-        conn.request.assert_called_once_with(
-            'GET', '/caom2repo/pub/cfht/700000o', '',
-            {})
-        
-        # signal some problems
-        response.status = 404
-        with self.assertRaises(IOError):
-            visitor._get_observation('700000o')
+        # signal problems
+        http_error = requests.HTTPError()
+        response.status_code = 500
+        http_error.response = response
+        response.raise_for_status.side_effect = [http_error]
+        with self.assertRaises(requests.HTTPError):
+            visitor.get_observation(collection, observation_id)
             
-        response.status = 405
-        with self.assertRaises(IOError):
-            visitor._get_observation('700000o')
-        
-        # transient problem no retries
-        response.status = 503
-        with self.assertRaises(IOError):
-            visitor._get_observation('700000o')
-            
-        # permanent transient problem with 2 retries
-        response.status = 503
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', retries=2)
-        with self.assertRaises(IOError):
-            visitor._get_observation('700000o')
-            
-        # temporary transient problem. Succeeds after 2 retries
-        response.status = 200
-        ibuffer.seek(0) # reposition the buffer for reading
-        transient_response = MagicMock()
-        transient_response.status = 503
-        conn = MagicMock()
-        conn.getresponse.side_effect = [transient_response, transient_response, response]
-        mock_conn.return_value = conn 
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', retries=2)
-        self.assertEquals(obs, visitor._get_observation('700000o'))
+        # temporary transient errors
+        http_error = requests.HTTPError()
+        response.status_code = 503
+        http_error.response = response
+        response.raise_for_status.side_effect = [http_error, None]
+        visitor.get_observation(collection, observation_id)
+
+        # permanent transient errors
+        http_error = requests.HTTPError()
+        response.status_code = 503
+        http_error.response = response
+        def raise_error(): raise http_error
+        response.raise_for_status.side_effect = raise_error
+        with self.assertRaises(requests.HTTPError):
+            visitor.get_observation(collection, observation_id)
 
 
     # patch sleep to stop the test from sleeping and slowing down execution
-    @patch('caom2repoClient.caom2repoClient.time.sleep', MagicMock(), create=True)
-    @patch('caom2repoClient.caom2repoClient.open', MagicMock(), create=True)
-    @patch('caom2visitor.visitor.CAOM2RepoClient')
-    def test_get_observations(self, mock_repo):
+    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadctools.net.ws.open', MagicMock(), create=True)
+    @patch('caom2tools.util.caom2repo.ws.BaseWsClient.get')
+    def test_get_observations(self, mock_get):
         # This is almost similar to the previous test except that it gets
         # observations matching a collection and start/end criteria
         # Also, patch the CAOM2RepoClient now.
 
         response = MagicMock()
-        response.status = 200
+        response.status_code = 200
         last_datetime = '2000-10-10T12:30:00.333'
-        response.read.return_value = '700000o,2000-10-10T12:20:11.123\n700001o,' +\
+        response.content = '700000o,2000-10-10T12:20:11.123\n700001o,' +\
             last_datetime
-        repo = mock_repo.return_value
-        repo.send_request.return_value = response
+        mock_get.return_value = response
         
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht')
-        
-        self.assertEquals(None, visitor.start)
-        self.assertEquals(None, visitor.end)
-        self.assertEquals(None, visitor.current_start)
+        visitor = CAOM2RepoClient()
         end_date = datetime.strptime(last_datetime, DATE_FORMAT)
         
         expect_observations = ['700000o', '700001o']
-        self.assertEquals(expect_observations, visitor._get_observations())
-        self.assertEquals(end_date, visitor.current_start)
-        repo.send_request.assert_called_once_with('GET', 
-            '/cfht',
-            {"Content-type": "application/x-www-form-urlencoded"}, 
-            'MAXREC=10000')
+        self.assertEquals(expect_observations, visitor._get_observations('cfht'))
+        self.assertEquals(end_date, visitor._start)
+        mock_get.assert_called_once_with('cfht', params={'MAXREC':caom2repo.BATCH_SIZE})
 
-        repo.reset_mock()
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', 
-                end=datetime.strptime('2000-11-11', '%Y-%m-%d'))
-        visitor._get_observations()
-        repo.send_request.assert_called_once_with('GET', 
-            '/cfht',
-            {"Content-type": "application/x-www-form-urlencoded"}, 
-            'END=2000-11-11T00%3A00%3A00.000000&MAXREC=10000')
-        
-        repo.reset_mock()
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', 
-                start=datetime.strptime('2000-11-11', '%Y-%m-%d'),
-                end=datetime.strptime('2000-11-12', '%Y-%m-%d'))
-        visitor._get_observations()
-        repo.send_request.assert_called_once_with('GET', 
-            '/cfht',
-            {"Content-type": "application/x-www-form-urlencoded"}, 
-            'START=2000-11-11T00%3A00%3A00.000000&' +\
-            'END=2000-11-12T00%3A00%3A00.000000&MAXREC=10000')
-        
-        # signal some problems
-        response.status = 404
-        with self.assertRaises(IOError):
-            visitor._get_observations()
-            
-        response.status = 405
-        with self.assertRaises(IOError):
-            visitor._get_observations()
-        
-        # transient problem no retries
-        response.status = 503
-        with self.assertRaises(IOError):
-            visitor._get_observations()
-            
-        # permanent transient problem with 2 retries
-        response.status = 503
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', retries=2)
-        repo.retry.return_value = response
-        with self.assertRaises(IOError):
-            visitor._get_observations()
-            
-        # temporary transient problem. Succeeds after 2 retries
-        repo.reset_mock()
-        response.status = 200
-        transient_response = MagicMock()
-        transient_response.status = 503
-        repo.send_request.return_value = transient_response
-        repo.retry.return_value = response
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', retries=2)
-        self.assertEquals(expect_observations, visitor._get_observations())
-        self.assertEquals(end_date, visitor.current_start)
-        repo.send_request.assert_called_once_with('GET', 
-            '/cfht',
-            {"Content-type": "application/x-www-form-urlencoded"}, 
-            'MAXREC=10000')
-        repo.retry.assert_called_once_with('GET', 
-            '/cfht',
-            {"Content-type": "application/x-www-form-urlencoded"}, 
-            'MAXREC=10000')
-                
+        mock_get.reset_mock()
+        visitor._get_observations('cfht', end=datetime.strptime('2000-11-11', '%Y-%m-%d'))
+        mock_get.assert_called_once_with('cfht', params={'END':'2000-11-11T00:00:00.000000',
+                                                         'MAXREC': caom2repo.BATCH_SIZE})
+
+        mock_get.reset_mock()
+        visitor._get_observations('cfht',
+                                  start=datetime.strptime('2000-11-11', '%Y-%m-%d'),
+                                  end=datetime.strptime('2000-11-12', '%Y-%m-%d'))
+        mock_get.assert_called_once_with('cfht', params={'START':'2000-11-11T00:00:00.000000',
+                                                         'END': '2000-11-12T00:00:00.000000',
+                                                         'MAXREC': caom2repo.BATCH_SIZE})
+
     
     # patch sleep to stop the test from sleeping and slowing down execution
-    @patch('caom2repoClient.caom2repoClient.time.sleep', MagicMock(), create=True)
-    @patch('caom2repoClient.caom2repoClient.open', MagicMock(), create=True)
-    @patch('caom2repoClient.caom2repoClient.HTTPSConnection')
-    def test_persist_observation(self, mock_conn):
-        obs = SimpleObservation('cfht', '7000000o')
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht')
+    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadctools.net.ws.Session.send')
+    def test_post_observation(self, mock_conn):
+        collection = 'cfht'
+        observation_id = '7000000o'
+        service_url = 'www.cadc.nrc.ca/caom2repo'
+
+        obs = SimpleObservation(collection, observation_id)
+        visitor = CAOM2RepoClient(server=service_url)
         response = MagicMock()
         response.status = 200
-        conn = mock_conn.return_value
-        conn.getresponse.return_value = response
-        #mock_conn.return_value = conn        
+        mock_conn.return_value = response
         iobuffer = StringIO()
         ObservationWriter().write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
+        response.content = obsxml
         
-        visitor._persist_observation('700000o', obs)
-        
-        conn.request.assert_called_once_with(
-            'POST', '/caom2repo/pub/cfht/700000o', obsxml,
-            {'Content-Type': 'text/xml'})
-        
-        conn.reset_mock()
-        
-        # signal some problems
-        response.status = 404
-        with self.assertRaises(IOError):
-            visitor._persist_observation('700000o', obs)
-            
-        response.status = 405
-        with self.assertRaises(IOError):
-            visitor._persist_observation('700000o', obs)
-        
-        # transient problem no retries
-        response.status = 503
-        with self.assertRaises(IOError):
-            visitor._persist_observation('700000o', obs)
-            
-        # permanent transient problem with 2 retries
-        response.status = 503
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', retries=2)
-        with self.assertRaises(IOError):
-            visitor._persist_observation('700000o', obs)
-            
-        # temporary transient problem. Succeeds after 2 retries
+        self.assertEqual(obs, visitor.post_observation(collection, observation_id, obs))
+        self.assertEqual('POST', mock_conn.call_args[0][0].method)
+        self.assertEqual('application/xml', mock_conn.call_args[0][0].headers['Content-Type'])
+        self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
+
+        # signal problems
+        http_error = requests.HTTPError()
+        response.status_code = 500
+        http_error.response = response
+        response.raise_for_status.side_effect = [http_error]
+        with self.assertRaises(requests.HTTPError):
+            visitor.post_observation(collection, observation_id, obs)
+
+        # temporary transient errors
+        http_error = requests.HTTPError()
+        response.status_code = 503
+        http_error.response = response
+        response.raise_for_status.side_effect = [http_error, None]
+        visitor.post_observation(collection, observation_id, obs)
+
+        # permanent transient errors
+        http_error = requests.HTTPError()
+        response.status_code = 503
+        http_error.response = response
+        def raise_error(): raise http_error
+        response.raise_for_status.side_effect = raise_error
+        with self.assertRaises(requests.HTTPError):
+            visitor.post_observation(collection, observation_id, obs)
+
+
+    # patch sleep to stop the test from sleeping and slowing down execution
+    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadctools.net.ws.Session.send')
+    def test_put_observation(self, mock_conn):
+        collection = 'cfht'
+        observation_id = '7000000o'
+        service_url = 'www.cadc.nrc.ca/caom2repo'
+
+        obs = SimpleObservation(collection, observation_id)
+        visitor = CAOM2RepoClient(server=service_url)
+        response = MagicMock()
         response.status = 200
-        transient_response = MagicMock()
-        transient_response.status = 503
-        conn = MagicMock()
-        conn.getresponse.side_effect = [transient_response, transient_response, response]
-        mock_conn.return_value = conn 
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht', retries=2)
-        visitor._persist_observation('700000o', obs) 
-        conn.request.assert_called_with(
-            'POST', '/caom2repo/pub/cfht/700000o', obsxml,
-            {'Content-Type': 'text/xml'})
-        
+        mock_conn.return_value = response
+        iobuffer = StringIO()
+        ObservationWriter().write(obs, iobuffer)
+        obsxml = iobuffer.getvalue()
+        response.content = obsxml
 
-    @patch('test_visitor.CAOM2Visitor._get_observation', MagicMock(), create = True)
-    @patch('test_visitor.CAOM2Visitor._persist_observation', MagicMock(), create = True)
-    @patch('test_visitor.CAOM2Visitor._get_observations')
+        self.assertEqual(obs, visitor.put_observation(collection, obs))
+        self.assertEqual('PUT', mock_conn.call_args[0][0].method)
+        self.assertEqual('application/xml', mock_conn.call_args[0][0].headers['Content-Type'])
+        self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
+
+        # signal problems
+        http_error = requests.HTTPError()
+        response.status_code = 500
+        http_error.response = response
+        response.raise_for_status.side_effect = [http_error]
+        with self.assertRaises(requests.HTTPError):
+            visitor.put_observation(collection, obs)
+
+        # temporary transient errors
+        http_error = requests.HTTPError()
+        response.status_code = 503
+        http_error.response = response
+        response.raise_for_status.side_effect = [http_error, None]
+        visitor.put_observation(collection, obs)
+
+        # permanent transient errors
+        http_error = requests.HTTPError()
+        response.status_code = 503
+        http_error.response = response
+
+        def raise_error(): raise http_error
+
+        response.raise_for_status.side_effect = raise_error
+        with self.assertRaises(requests.HTTPError):
+            visitor.put_observation(collection, obs)
+
+    # patch sleep to stop the test from sleeping and slowing down execution
+    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadctools.net.ws.Session.send')
+    def test_delete_observation(self, mock_conn):
+        collection = 'cfht'
+        observation_id = '7000000o'
+        service_url = 'www.cadc.nrc.ca/caom2repo'
+
+        obs = SimpleObservation(collection, observation_id)
+        visitor = CAOM2RepoClient(server=service_url)
+        response = MagicMock()
+        response.status = 200
+        mock_conn.return_value = response
+
+        visitor.delete_observation(collection, observation_id)
+        self.assertEqual('DELETE', mock_conn.call_args[0][0].method)
+
+        # signal problems
+        http_error = requests.HTTPError()
+        response.status_code = 500
+        http_error.response = response
+        response.raise_for_status.side_effect = [http_error]
+        with self.assertRaises(requests.HTTPError):
+            visitor.delete_observation(collection, observation_id)
+
+        # temporary transient errors
+        http_error = requests.HTTPError()
+        response.status_code = 503
+        http_error.response = response
+        response.raise_for_status.side_effect = [http_error, None]
+        visitor.delete_observation(collection, observation_id)
+
+        # permanent transient errors
+        http_error = requests.HTTPError()
+        response.status_code = 503
+        http_error.response = response
+
+        def raise_error(): raise http_error
+
+        response.raise_for_status.side_effect = raise_error
+        with self.assertRaises(requests.HTTPError):
+            visitor.delete_observation(collection, observation_id)
+
+
+    @patch('test_caom2repo.CAOM2RepoClient._get_observations')
     def test_process(self, mock_obs):
-        CAOM2RepoClient.visitor.BATCH_SIZE = 3 # size of the batch is 3
-        mock_obs.side_effect = [['a', 'b', 'c'], ['d'], []]
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht')
-        visitor.plugin = MagicMock()
-        self.assertEquals(4, visitor.process())
+        caom2repo.BATCH_SIZE = 3 # size of the batch is 3
+        obs = [['a', 'b', 'c'], ['d'], []]
+        visitor = CAOM2RepoClient()
+        visitor.get_observation = MagicMock(return_value=MagicMock(spec=SimpleObservation))
+        visitor.post_observation = MagicMock()
+        visitor._get_observations = MagicMock(side_effect=obs)
 
-        mock_obs.side_effect = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
-        visitor = CAOM2RepoClient(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht')
-        visitor.plugin = MagicMock()
-        self.assertEquals(6, visitor.process())
+        self.assertEquals(4, visitor.visit(os.path.join(
+                THIS_DIR, 'passplugin.py'), 'cfht'))
+
+        obs = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
+        visitor._get_observations = MagicMock(side_effect=obs)
+        self.assertEquals(6, visitor.visit(os.path.join(
+                THIS_DIR, 'passplugin.py'), 'cfht'))

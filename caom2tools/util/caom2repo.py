@@ -66,46 +66,44 @@
 #
 #***********************************************************************
 #
-import sys
-print('\n'.join(sys.path))
 from datetime import datetime
-import errno
 import logging
-import httplib
+import argparse
 import imp
 import os
+import sys
 import os.path
 #TODO to be changed to io.StringIO when caom2 is prepared for python3
-from StringIO import StringIO 
-import urllib
-
+from StringIO import StringIO
 from cadctools.net import ws
+from cadctools.util import util
 
 from ..caom2 import ObservationReader, ObservationWriter
 
 BATCH_SIZE = int(10000)
-SERVICE_URI = 'ivo://cadc.nrc.ca/caom2repo'
+SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo' #TODO replace with SERVICE_URI when server supports it
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
 
 class CAOM2RepoClient:
 
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, plugin, collection=None, start=None, end=None, retries=0, server=None):
+    def __init__(self, start=None, end=None, retries=0, server=None):
 
         if retries is not None:
             self.retries = int(retries)
         else:
             self.retries = 0
 
-        self.collection_uri = SERVICE_URI + '/' +\
-            self.collection
         # repo client to use
-        self._repo_client = ws.BaseWsServer(server)
-        logging.info('Service URL: {}'.format(self._repo_client.SERVICE_URL))
+        if server is not None:
+            self._repo_client = ws.BaseWsClient(server)
+        else:
+            self._repo_client = ws.BaseWsClient(SERVICE_URL)
+        logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
 
-    def visit(self, plugin, collection=None, start=None, end=None):
+    def visit(self, plugin, collection, start=None, end=None):
         """
         Main processing function that iterates through the observations of
         the collection and updates them according to the algorithm 
@@ -113,25 +111,27 @@ class CAOM2RepoClient:
         """
         if not os.path.isfile(plugin):
             raise Exception('Cannot find plugin file ' + plugin)
+        assert collection is not None
         if start is not None:
             assert type(start) is datetime
         if end is not None:
             assert type(end) is datetime
         self._load_plugin_class(plugin)
+        self._start = start # this is updated by _get_observations with the timestamp of last observation in the batch
         count = 0
-        observations = self._get_observations(collection, start, end)
+        observations = self._get_observations(collection, self._start, end)
         while len(observations) > 0:
             for observationID in observations:
-                observation = self._get_observation(observationID)
+                observation = self.get_observation(collection, observationID)
                 logging.info("Process observation: " + observation.observation_id)
                 self.plugin.update(observation)
-                self._persist_observation(observationID, observation)
+                self.post_observation(collection, observationID, observation)
                 count = count + 1
             if len(observations) == BATCH_SIZE:
                 observations = self._get_observations()
             else:
                 # the last batch was smaller so it must have been the last
-                break;
+                break
         return count
 
     def _get_observations(self, collection, start=None, end=None):
@@ -141,35 +141,17 @@ class CAOM2RepoClient:
         assert collection is not None
         observations = []
         params = {'MAXREC':BATCH_SIZE}
-        if start:
+        if start is not None:
             params['START'] = start.strftime(DATE_FORMAT)
-        if end:
+        if end is not None:
             params['END'] = end.strftime(DATE_FORMAT)
 
-        #self._repo_client.get(collection)
-        response = self._repo_client.send_request("GET", "/{}".format(self.collection),
-                {"Content-type": "application/x-www-form-urlencoded"},
-            urllib.urlencode(params)) #TODO use BaseWs
-        if response.status != 200:
-            logging.error('Cannot find the %s collection at %s. \n' %
-                          (self.collection, self._repo_client.SERVICE_URL))
-            raise IOError(errno.ENOENT)
-        elif response.status >= 400:
-            logging.error(
-                'Unable to retrieve list of observations from \'%s\'.\n' % 
-                self.collection_uri)
-            logging.error('Server Returned: ' +\
-                          httplib.responses[response.status] + ' ('
-                          + str(response.status) + ')\n' + response.read())
-            raise IOError(errno.ENOEXEC)
-        else:
-            data = response.read()
-            last_datetime = None
-            for line in data.splitlines():
-                (obs, last_datetime) = line.split(',')
-                observations.append(obs)
+        response = self._repo_client.get(collection, params=params)
+        for line in response.content.splitlines():
+            (obs, last_datetime) = line.split(',')
+            observations.append(obs)
         if last_datetime is not None:
-            self.current_start = datetime.strptime(last_datetime, DATE_FORMAT)
+            self._start = datetime.strptime(last_datetime, DATE_FORMAT)
         return observations
         
          
@@ -196,65 +178,78 @@ class CAOM2RepoClient:
                 filepath)
             
     
-    def _get_observation(self, observationID):
-        logging.debug("GET " + observationID)
-        uri = '/' + self.collection + '/' + observationID
-        response = self._repo_client.send_request("GET", uri, {}, '')
+    def get_observation(self, collection, observationID):
+        assert collection is not None
+        assert observationID is not None
+        resource = '/{}/{}'.format(collection, observationID)
+        logging.debug('GET '.format(resource))
 
-        logging.debug("GET status: " + str(response.status))
-        if response.status == 503 and (self.retries > 0):
-            response = self._repo_client.retry("GET", uri, {}, '')
+        response = self._repo_client.get(resource)
+        obs_reader = ObservationReader()
+        content = response.content
+        if len(content) == 0:
+            logging.error(response.status)
+            response.close()
+            raise Exception('Got empty response for resource: {}'.format(resource))
+        return obs_reader.read(StringIO(content))
 
-        if response.status == 404:
-            logging.error('No such Observation found with URI \'%s\'.\n' % uri)
-            raise IOError(errno.ENOENT)
-        elif response.status >= 400:
-            logging.error('Unable to retrieve Observation with URI \'%s\'.\n' % uri)
-            logging.error('Server Returned: ' +\
-                          httplib.responses[response.status] + ' ('
-                          + str(response.status) + ')\n' + response.read())
-            raise IOError(errno.ENOEXEC)
-        else:
-            obs_reader = ObservationReader()
-            content = response.read()
-            if len(content) == 0:
-                logging.error(response.status)
-                response.close()
-                raise Exception("Got empty response for uri: " + uri)
-            return obs_reader.read(StringIO(content))
-        
-    def _persist_observation(self, observationID, observation):
-        uri = '/' + self.collection + '/' + observationID
+
+    def post_observation(self, collection, observationID, observation):
+        assert collection is not None
+        assert observationID is not None
+        resource = '/{}/{}'.format(collection, observationID)
+        logging.debug('POST {}'.format(resource))
+
         ibuffer = StringIO()
         ObservationWriter().write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
-        response = self._repo_client.send_request(
-            "POST", uri, {'Content-Type': 'text/xml'}, obs_xml)
+        headers = {'Content-Type': 'application/xml'}
+        response = self._repo_client.post(
+            resource, headers=headers, data=obs_xml)
+        logging.debug('Successfully updated Observation\n')
+        obs_reader = ObservationReader()
+        content = response.content
+        if len(content) == 0:
+            logging.error(response.status)
+            response.close()
+            raise Exception('Got empty response for resource: {}'.format(resource))
+        return obs_reader.read(StringIO(content))
 
-        if response.status == 503 and (self.retries > 0):
-            response = self._repo_client.retry(
-            "POST", uri, {'Content-Type': 'text/xml'}, obs_xml)
 
-        if response.status == 404:
-            logging.error('Observation with URI \'%s\' does not exist.\n' % uri)
-            raise IOError(errno.ENOENT)
-        elif response.status >= 400:
-            msg = ''
-            for hmsg in response.msg.headers:
-                msg = msg + hmsg
-            logging.error('Unable to update Observation ' + str(observationID)
-                          + '\nServer Returned: ' +\
-                        httplib.responses[response.status] + ' ('
-                          + str(response.status) + ')\n' + msg + response.read())
-            raise IOError(errno.ENOEXEC)
-        else:
-            logging.debug('Successfully updated Observation\n')
+    def put_observation(self, collection, observation):
+        assert collection is not None
+        resource = '/{}'.format(collection)
+        logging.debug('PUT {}'.format(resource))
+
+        ibuffer = StringIO()
+        ObservationWriter().write(observation, ibuffer)
+        obs_xml = ibuffer.getvalue()
+        headers = {'Content-Type': 'application/xml'}
+        response = self._repo_client.put(
+            resource, headers=headers, data=obs_xml)
+        logging.debug('Successfully put Observation\n')
+        obs_reader = ObservationReader()
+        content = response.content
+        if len(content) == 0:
+            logging.error(response.status)
+            response.close()
+            raise Exception('Got empty response for resource: {}'.format(resource))
+        return obs_reader.read(StringIO(content))
+
+
+    def delete_observation(self, collection, observationID):
+        assert observationID is not None
+        resource = '/{}/{}'.format(collection, observationID)
+        logging.debug('DELETE {}'.format(resource))
+        response = self._repo_client.delete(resource)
+        logging.debug('Successfully deleted Observation\n')
 
 
 def run():
 
-    parser = CommonParser(description=description,
+    parser = util.BaseParser(description=description,
                           formatter_class=argparse.RawTextHelpFormatter)
+    parser.description = description
 
     parser.add_argument('--plugin', required=True,
                         metavar=('<pluginClassFile>'),
