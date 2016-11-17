@@ -81,7 +81,7 @@
 # from caom_util import Util as Util
 
 #
-# from .caom_object import CaomObject
+from .caom_object import CaomObject
 # from .caom_object import AbstractCaomEntity
 
 # Util classes
@@ -172,8 +172,7 @@
 # from .observation import TargetType
 
 # observation reader and writer
-# from .obs_reader_writer import ObservationReader
-# from .obs_reader_writer import ObservationWriter
+from .obs_reader_writer import ObservationReader, ObservationWriter
 # from .obs_reader_writer import CAOM20_NAMESPACE
 # from .obs_reader_writer import CAOM21_NAMESPACE
 # from .obs_reader_writer import CAOM22_NAMESPACE
