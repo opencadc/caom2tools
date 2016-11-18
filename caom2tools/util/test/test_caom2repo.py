@@ -84,6 +84,10 @@ from caom2tools.caom2 import ObservationReader, ObservationWriter
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
+
+class MyExitError(Exception):
+    pass
+
 class TestCAOM2Repo(unittest.TestCase):
 
     """Test the Caom2Visitor class"""
@@ -211,7 +215,8 @@ class TestCAOM2Repo(unittest.TestCase):
     def test_post_observation(self, mock_conn):
         collection = 'cfht'
         observation_id = '7000000o'
-        service_url = 'www.cadc.nrc.ca/caom2repo'
+        service = 'caom2repo'
+        service_url = 'www.cadc.nrc.ca/{}'.format(service)
 
         obs = SimpleObservation(collection, observation_id)
         visitor = CAOM2RepoClient(server=service_url)
@@ -223,8 +228,10 @@ class TestCAOM2Repo(unittest.TestCase):
         obsxml = iobuffer.getvalue()
         response.content = obsxml
         
-        self.assertEqual(obs, visitor.post_observation(collection, observation_id, obs))
+        self.assertEqual(obs, visitor.post_observation(obs))
         self.assertEqual('POST', mock_conn.call_args[0][0].method)
+        self.assertEqual('/{}/{}/{}'.format(service, collection, observation_id),
+                         mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml', mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
 
@@ -234,14 +241,14 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(requests.HTTPError):
-            visitor.post_observation(collection, observation_id, obs)
+            visitor.post_observation(obs)
 
         # temporary transient errors
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
         response.raise_for_status.side_effect = [http_error, None]
-        visitor.post_observation(collection, observation_id, obs)
+        visitor.post_observation(obs)
 
         # permanent transient errors
         http_error = requests.HTTPError()
@@ -250,7 +257,7 @@ class TestCAOM2Repo(unittest.TestCase):
         def raise_error(): raise http_error
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(requests.HTTPError):
-            visitor.post_observation(collection, observation_id, obs)
+            visitor.post_observation(obs)
 
 
     # patch sleep to stop the test from sleeping and slowing down execution
@@ -259,7 +266,8 @@ class TestCAOM2Repo(unittest.TestCase):
     def test_put_observation(self, mock_conn):
         collection = 'cfht'
         observation_id = '7000000o'
-        service_url = 'www.cadc.nrc.ca/caom2repo'
+        service = 'caom2repo'
+        service_url = 'www.cadc.nrc.ca/{}'.format(service)
 
         obs = SimpleObservation(collection, observation_id)
         visitor = CAOM2RepoClient(server=service_url)
@@ -271,8 +279,10 @@ class TestCAOM2Repo(unittest.TestCase):
         obsxml = iobuffer.getvalue()
         response.content = obsxml
 
-        self.assertEqual(obs, visitor.put_observation(collection, obs))
+        self.assertEqual(obs, visitor.put_observation(obs))
         self.assertEqual('PUT', mock_conn.call_args[0][0].method)
+        self.assertEqual('/{}/{}'.format(service, collection),
+                         mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml', mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
 
@@ -282,14 +292,14 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(requests.HTTPError):
-            visitor.put_observation(collection, obs)
+            visitor.put_observation(obs)
 
         # temporary transient errors
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
         response.raise_for_status.side_effect = [http_error, None]
-        visitor.put_observation(collection, obs)
+        visitor.put_observation(obs)
 
         # permanent transient errors
         http_error = requests.HTTPError()
@@ -300,7 +310,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(requests.HTTPError):
-            visitor.put_observation(collection, obs)
+            visitor.put_observation(obs)
 
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
@@ -361,3 +371,12 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._get_observations = MagicMock(side_effect=obs)
         self.assertEquals(6, visitor.visit(os.path.join(
                 THIS_DIR, 'passplugin.py'), 'cfht'))
+
+
+
+    @patch('sys.argv')
+    @patch('sys.exit', Mock(side_effect=[MyExitError]))
+    def test_main(self, mock_argv):
+        mock_argv.return_value = ["caom2-client", "--help"]
+        with self.assertRaises(MyExitError):
+            caom2repo.main()
