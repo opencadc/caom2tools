@@ -373,10 +373,236 @@ class TestCAOM2Repo(unittest.TestCase):
                 THIS_DIR, 'passplugin.py'), 'cfht'))
 
 
+    @patch('caom2tools.util.caom2repo.CAOM2RepoClient')
+    def test_main(self, client_mock):
 
-    @patch('sys.argv')
-    @patch('sys.exit', Mock(side_effect=[MyExitError]))
-    def test_main(self, mock_argv):
-        mock_argv.return_value = ["caom2-client", "--help"]
-        with self.assertRaises(MyExitError):
-            caom2repo.main()
+
+        collection = 'cfht'
+        observation_id = '7000000o'
+        service = 'caom2repo'
+        ifile = '/tmp/inputobs'
+
+        obs = SimpleObservation(collection, observation_id)
+        iobuffer = StringIO()
+        with open(ifile, 'w') as infile:
+            ObservationWriter().write(obs, infile)
+
+        put_mock = Mock(id='Mymock')
+        client_mock.return_value = Mock(id='mmm')
+        client_mock.put_observation = put_mock
+        sys.argv = ["caom2tools", "create", ifile]
+        caom2repo.main()
+        put_mock.assert_called_with('blah')
+
+
+    @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
+                                         MyExitError, MyExitError, MyExitError]))
+    def test_help(self):
+        """ Tests the helper displays for commands and subcommands in main"""
+
+        # expected helper messages
+        usage=\
+"""usage: caom2-client [-h] [--certfile CERTFILE] [--anonymous] [--host HOST]
+                    [--verbose] [--debug] [--quiet]
+                    {create,read,update,delete,visit} ...
+
+Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) operations it also implements a visitor operation that allows for updating multiple observations in a collection
+
+positional arguments:
+  {create,read,update,delete,visit}
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --certfile CERTFILE   location of your CADC certificate file (default: $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc for name/password)
+  --anonymous           Force anonymous connection
+  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
+  --verbose             verbose messages
+  --debug               debug messages
+  --quiet               run quietly
+"""
+
+        create_usage=\
+"""usage: caom2-client create [-h] [--certfile CERTFILE] [--anonymous]
+                           [--host HOST] [--verbose] [--debug] [--quiet]
+                           <new observation file>
+
+Create a new observation
+
+positional arguments:
+  <new observation file>
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --certfile CERTFILE   location of your CADC certificate file (default:
+                        $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
+                        for name/password)
+  --anonymous           Force anonymous connection
+  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
+                        iha.nrc-cnrc.gc.ca)
+  --verbose             verbose messages
+  --debug               debug messages
+  --quiet               run quietly
+"""
+
+        read_usage =\
+"""usage: caom2-client read [-h] [--certfile CERTFILE] [--anonymous]
+                         [--host HOST] [--verbose] [--debug] [--quiet]
+                         [--output <destination file>]
+                         <observation>
+
+Read an existing observation
+
+positional arguments:
+  <observation>
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --certfile CERTFILE   location of your CADC certificate file (default:
+                        $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
+                        for name/password)
+  --anonymous           Force anonymous connection
+  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
+                        iha.nrc-cnrc.gc.ca)
+  --verbose             verbose messages
+  --debug               debug messages
+  --quiet               run quietly
+  --output <destination file>, -o <destination file>
+"""
+
+        update_usage =\
+"""usage: caom2-client update [-h] [--certfile CERTFILE] [--anonymous]
+                           [--host HOST] [--verbose] [--debug] [--quiet]
+                           <observation file>
+
+Update an existing observation
+
+positional arguments:
+  <observation file>
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --certfile CERTFILE  location of your CADC certificate file (default:
+                       $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
+                       for name/password)
+  --anonymous          Force anonymous connection
+  --host HOST          Base hostname for services(default: www.cadc-ccda.hia-
+                       iha.nrc-cnrc.gc.ca)
+  --verbose            verbose messages
+  --debug              debug messages
+  --quiet              run quietly
+"""
+
+        delete_usage =\
+"""usage: caom2-client delete [-h] [--certfile CERTFILE] [--anonymous]
+                           [--host HOST] [--verbose] [--debug] [--quiet]
+                           --collection <collection>
+                           <ID of observation>
+
+Delete an existing observation
+
+positional arguments:
+  <ID of observation>
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --certfile CERTFILE   location of your CADC certificate file (default:
+                        $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
+                        for name/password)
+  --anonymous           Force anonymous connection
+  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
+                        iha.nrc-cnrc.gc.ca)
+  --verbose             verbose messages
+  --debug               debug messages
+  --quiet               run quietly
+  --collection <collection>
+"""
+
+        visit_usage =\
+"""usage: caom2-client visit [-h] [--certfile CERTFILE] [--anonymous]
+                          [--host HOST] [--verbose] [--debug] [--quiet]
+                          --plugin <pluginClassFile>
+                          [--start <datetime start point>]
+                          [--end <datetime end point>]
+                          [--retries <number of retries>]
+                          [-s <CAOM2 service URL>]
+                          <datacollection>
+
+Visit observations in a collection
+
+positional arguments:
+  <datacollection>      data collection in CAOM2 repo
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --certfile CERTFILE   location of your CADC certificate file (default: $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc for name/password)
+  --anonymous           Force anonymous connection
+  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
+  --verbose             verbose messages
+  --debug               debug messages
+  --quiet               run quietly
+  --plugin <pluginClassFile>
+                        Pluging class to update each observation
+  --start <datetime start point>
+                        oldest dataset to visit (UTC %Y-%m-%d format)
+  --end <datetime end point>
+                        earliest dataset to visit (UTC %Y-%m-%d format)
+  --retries <number of retries>
+                        number of tries with transient server errors
+  -s <CAOM2 service URL>, --server <CAOM2 service URL>
+                        URL of the CAOM2 repo server
+
+Minimum plugin file format:
+----
+   from caom2.caom2_observation import Observation
+
+   class ObservationUpdater:
+
+    def update(self, observation):
+        assert isinstance(observation, Observation), (
+            'observation {} is not an Observation'.format(observation))
+        # custom code to update the observation
+----
+"""
+
+
+        # --help
+        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+            sys.argv = ["caom2-client", "--help"]
+            with self.assertRaises(MyExitError):
+                caom2repo.main()
+            self.assertEqual(usage, stdout_mock.getvalue())
+
+        # create --help
+        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+            sys.argv = ["caom2-client", "create", "--help"]
+            with self.assertRaises(MyExitError):
+                caom2repo.main()
+            self.assertEqual(create_usage, stdout_mock.getvalue())
+
+        # read --help
+        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+            sys.argv = ["caom2-client", "read", "--help"]
+            with self.assertRaises(MyExitError):
+                caom2repo.main()
+            self.assertEqual(read_usage, stdout_mock.getvalue())
+
+        # update --help
+        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+            sys.argv = ["caom2-client", "update", "--help"]
+            with self.assertRaises(MyExitError):
+                caom2repo.main()
+            self.assertEqual(update_usage, stdout_mock.getvalue())
+
+        # delete --help
+        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+            sys.argv = ["caom2-client", "delete", "--help"]
+            with self.assertRaises(MyExitError):
+                caom2repo.main()
+            self.assertEqual(delete_usage, stdout_mock.getvalue())
+
+        # visit --help
+        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+            sys.argv = ["caom2-client", "visit", "--help"]
+            with self.assertRaises(MyExitError):
+                caom2repo.main()
+            self.assertEqual(visit_usage, stdout_mock.getvalue())

@@ -255,18 +255,20 @@ def main():
     create_parser = subparsers.add_parser('create', description='Create a new observation')
     create_parser.add_argument('observation', metavar='<new observation file>', type=file)
 
-    update_parser = subparsers.add_parser('update', description='Update an existing observation')
-    update_parser.add_argument('observation', metavar='<observation file>', type=file)
-
     read_parser = subparsers.add_parser('read', description='Read an existing observation')
     read_parser.add_argument('--output', '-o', metavar='<destination file>', required=False)
     read_parser.add_argument('observation', metavar='<observation>', type=file)
 
-    delete_parser = subparsers.add_parser('delete', description='Update an existing observation')
+    update_parser = subparsers.add_parser('update', description='Update an existing observation')
+    update_parser.add_argument('observation', metavar='<observation file>', type=file)
+
+    delete_parser = subparsers.add_parser('delete', description='Delete an existing observation')
     delete_parser.add_argument('--collection', metavar='<collection>', type=file, required=True)
     delete_parser.add_argument('observationID', metavar='<ID of observation>', type=file)
 
-    visit_parser = subparsers.add_parser('visit', description='Visit observations in a collection')
+    # Note: RawTextHelpFormatter allows for the use of newline in epilog
+    visit_parser = subparsers.add_parser('visit', formatter_class=argparse.RawTextHelpFormatter,
+                                         description='Visit observations in a collection')
     visit_parser.add_argument('--plugin', required=True, type=file,
                         metavar=('<pluginClassFile>'),
                         help='Pluging class to update each observation')
@@ -298,7 +300,6 @@ Minimum plugin file format:
         # custom code to update the observation
 ----
 """
-
     args = parser.parse_args()
 
 
@@ -308,7 +309,7 @@ Minimum plugin file format:
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    client = CAOM2RepoClient(server=args.server)
+    client = CAOM2RepoClient(server=args.host)
     if args.cmd == 'visit':
         print ("Visit")
 
@@ -323,9 +324,8 @@ Minimum plugin file format:
 
     elif args.cmd == 'create':
         print("Create")
-        with open(args.observation, 'r') as obsfile:
-            obs_reader = ObservationReader()
-            client.put_observation(obs_reader.read(StringIO(obsfile.read()))) #TODO not sure if need to read in string first
+        obs_reader = ObservationReader()
+        client.put_observation(obs_reader.read(args.observation))
     elif args.cmd == 'read':
         print("Read")
         observation = client.get_observation(args.collection, args.observationID)
