@@ -88,18 +88,15 @@ class CAOM2RepoClient:
 
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, start=None, end=None, retries=0, server=None):
-
-        if retries is not None:
-            self.retries = int(retries)
-        else:
-            self.retries = 0
+    def __init__(self, anon=True, cert_file=None, verify=False, server=None):
 
         # repo client to use
+        serv = SERVICE_URL
         if server is not None:
-            self._repo_client = ws.BaseWsClient(server)
-        else:
-            self._repo_client = ws.BaseWsClient(SERVICE_URL)
+            serv = server
+        agent = 'CAOM2RepoClient' #TODO add version
+        self._repo_client = ws.BaseWsClient(serv, anon=anon, cert_file=cert_file,
+                 agent=agent, verify=verify, retry=True)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
 
@@ -194,10 +191,10 @@ class CAOM2RepoClient:
         return obs_reader.read(StringIO(content))
 
 
-    def post_observation(self, collection, observationID, observation):
-        assert collection is not None
-        assert observationID is not None
-        resource = '/{}/{}'.format(collection, observationID)
+    def post_observation(self, observation):
+        assert observation.collection is not None
+        assert observation.observation_id is not None
+        resource = '/{}/{}'.format(observation.collection, observation.observation_id)
         logging.debug('POST {}'.format(resource))
 
         ibuffer = StringIO()
@@ -216,9 +213,9 @@ class CAOM2RepoClient:
         return obs_reader.read(StringIO(content))
 
 
-    def put_observation(self, collection, observation):
-        assert collection is not None
-        resource = '/{}'.format(collection)
+    def put_observation(self, observation):
+        assert observation.collection is not None
+        resource = '/{}'.format(observation.collection)
         logging.debug('PUT {}'.format(resource))
 
         ibuffer = StringIO()
@@ -245,30 +242,51 @@ class CAOM2RepoClient:
         logging.debug('Successfully deleted Observation\n')
 
 
-def run():
+def main():
 
-    parser = util.BaseParser(description=description,
-                          formatter_class=argparse.RawTextHelpFormatter)
-    parser.description = description
+    parser = util.BaseParser()
 
-    parser.add_argument('--plugin', required=True,
+    parser.description = ('Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) '
+                          'operations it also implements a visitor operation that allows for updating '
+                          'multiple observations in a collection')
+    parser.formatter_class = argparse.RawTextHelpFormatter
+
+    subparsers = parser.add_subparsers(dest='cmd')
+    create_parser = subparsers.add_parser('create', description='Create a new observation')
+    create_parser.add_argument('observation', metavar='<new observation file>', type=file)
+
+    read_parser = subparsers.add_parser('read', description='Read an existing observation')
+    read_parser.add_argument('--output', '-o', metavar='<destination file>', required=False)
+    read_parser.add_argument('observation', metavar='<observation>', type=file)
+
+    update_parser = subparsers.add_parser('update', description='Update an existing observation')
+    update_parser.add_argument('observation', metavar='<observation file>', type=file)
+
+    delete_parser = subparsers.add_parser('delete', description='Delete an existing observation')
+    delete_parser.add_argument('--collection', metavar='<collection>', type=file, required=True)
+    delete_parser.add_argument('observationID', metavar='<ID of observation>', type=file)
+
+    # Note: RawTextHelpFormatter allows for the use of newline in epilog
+    visit_parser = subparsers.add_parser('visit', formatter_class=argparse.RawTextHelpFormatter,
+                                         description='Visit observations in a collection')
+    visit_parser.add_argument('--plugin', required=True, type=file,
                         metavar=('<pluginClassFile>'),
                         help='Pluging class to update each observation')
-    parser.add_argument('--start', metavar='<datetime start point>',
-                        type=parse_date,
+    visit_parser.add_argument('--start', metavar='<datetime start point>',
+                        type=util.str2ivoa,
                         help='oldest dataset to visit (UTC %%Y-%%m-%%d format)');
-    parser.add_argument('--end', metavar='<datetime end point>',
-                        type=parse_date,
+    visit_parser.add_argument('--end', metavar='<datetime end point>',
+                        type=util.str2ivoa,
                         help='earliest dataset to visit (UTC %%Y-%%m-%%d format)');
-    parser.add_argument('--retries', metavar='<number of retries>',
+    visit_parser.add_argument('--retries', metavar='<number of retries>',
                         type=int,
                         help='number of tries with transient server errors');
-    parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
+    visit_parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
                       help="URL of the CAOM2 repo server")
 
-    parser.add_argument('collection', metavar='<datacollection>', type=str,
+    visit_parser.add_argument('collection', metavar='<datacollection>', type=str,
                 help='data collection in CAOM2 repo')
-    parser.epilog =\
+    visit_parser.epilog =\
 """
 Minimum plugin file format:
 ----
@@ -282,7 +300,6 @@ Minimum plugin file format:
         # custom code to update the observation
 ----
 """
-
     args = parser.parse_args()
 
 
@@ -292,22 +309,43 @@ Minimum plugin file format:
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    plugin = args.plugin
-    if not os.path.isfile(args.plugin):
-        logging.error('Cannot find plugin file ' + plugin)
-        sys.exit(-1)
+    client = CAOM2RepoClient(server=args.host)
+    if args.cmd == 'visit':
+        print ("Visit")
 
-    start = args.start
-    end = args.end
-    retries = args.retries
-    collection = args.collection
+        plugin = args.plugin
+        start = args.start
+        end = args.end
+        retries = args.retries
+        collection = args.collection
+        logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
+               format(plugin, start, end, collection, retries))
+        client.visit(plugin, collection, start=start, end=end)
 
-    logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
-           format(plugin, start, end, collection, retries))
-    client = CAOM2Visitor(plugin=plugin, start=start, end=end,
-                          collection=collection, retries=retries, server=args.server)
-    client.process()
-    logging.debug("debug")
+    elif args.cmd == 'create':
+        print("Create")
+        obs_reader = ObservationReader()
+        client.put_observation(obs_reader.read(args.observation))
+    elif args.cmd == 'read':
+        print("Read")
+        observation = client.get_observation(args.collection, args.observationID)
+        observation_writer = ObservationWriter()
+        ibuffer = StringIO()
+        ObservationWriter.write(observation, ibuffer)
+        obs_xml = ibuffer.getvalue()
+        if args.output:
+            with open(args.output, 'w') as obsfile:
+                obsfile.write(obs_xml)
+        else:
+            print obs_xml
+    elif args.cmd == 'update':
+        print("Update")
+        with open(args.observation, 'r') as obsfile:
+            obs_reader = ObservationReader()
+            client.post_observation(obs_reader.read(StringIO(obsfile.read()))) #TODO not sure if need to read in string first
+    else:
+        print("Delete")
+        client.delete_observation(collection=args.collection, observation=args.observationID)
 
     print("DONE")
 
