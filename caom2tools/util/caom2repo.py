@@ -78,7 +78,7 @@ from StringIO import StringIO
 from cadctools.net import ws
 from cadctools.util import util
 
-from ..caom2 import ObservationReader, ObservationWriter
+from ..caom2.obs_reader_writer import ObservationReader, ObservationWriter
 
 BATCH_SIZE = int(10000)
 SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo' #TODO replace with SERVICE_URI when server supports it
@@ -122,10 +122,10 @@ class CAOM2RepoClient:
                 observation = self.get_observation(collection, observationID)
                 logging.info("Process observation: " + observation.observation_id)
                 self.plugin.update(observation)
-                self.post_observation(collection, observationID, observation)
-                count = count + 1
+                self.post_observation(observation)
+                count += 1
             if len(observations) == BATCH_SIZE:
-                observations = self._get_observations()
+                observations = self._get_observations(collection)
             else:
                 # the last batch was smaller so it must have been the last
                 break
@@ -144,6 +144,7 @@ class CAOM2RepoClient:
             params['END'] = end.strftime(DATE_FORMAT)
 
         response = self._repo_client.get(collection, params=params)
+        last_datetime = None
         for line in response.content.splitlines():
             (obs, last_datetime) = line.split(',')
             observations.append(obs)
@@ -156,12 +157,11 @@ class CAOM2RepoClient:
         expected_class = 'ObservationUpdater'
     
         mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
-    
-        if file_ext.lower() == '.py':
-            py_mod = imp.load_source(mod_name, filepath)
-    
-        elif file_ext.lower() == '.pyc':
+
+        if file_ext.lower() == '.pyc':
             py_mod = imp.load_compiled(mod_name, filepath)
+        else:
+            py_mod = imp.load_source(mod_name, filepath)
     
         if hasattr(py_mod, expected_class):
             self.plugin = getattr(py_mod, expected_class)()
@@ -256,15 +256,16 @@ def main():
     create_parser.add_argument('observation', metavar='<new observation file>', type=file)
 
     read_parser = subparsers.add_parser('read', description='Read an existing observation')
+    read_parser.add_argument('--collection', metavar='<collection>', required=True)
     read_parser.add_argument('--output', '-o', metavar='<destination file>', required=False)
-    read_parser.add_argument('observation', metavar='<observation>', type=file)
+    read_parser.add_argument('observation', metavar='<observation>')
 
     update_parser = subparsers.add_parser('update', description='Update an existing observation')
     update_parser.add_argument('observation', metavar='<observation file>', type=file)
 
     delete_parser = subparsers.add_parser('delete', description='Delete an existing observation')
-    delete_parser.add_argument('--collection', metavar='<collection>', type=file, required=True)
-    delete_parser.add_argument('observationID', metavar='<ID of observation>', type=file)
+    delete_parser.add_argument('--collection', metavar='<collection>', required=True)
+    delete_parser.add_argument('observationID', metavar='<ID of observation>')
 
     # Note: RawTextHelpFormatter allows for the use of newline in epilog
     visit_parser = subparsers.add_parser('visit', formatter_class=argparse.RawTextHelpFormatter,
@@ -274,13 +275,13 @@ def main():
                         help='Pluging class to update each observation')
     visit_parser.add_argument('--start', metavar='<datetime start point>',
                         type=util.str2ivoa,
-                        help='oldest dataset to visit (UTC %%Y-%%m-%%d format)');
+                        help='oldest dataset to visit (UTC %%Y-%%m-%%d format)')
     visit_parser.add_argument('--end', metavar='<datetime end point>',
                         type=util.str2ivoa,
-                        help='earliest dataset to visit (UTC %%Y-%%m-%%d format)');
+                        help='earliest dataset to visit (UTC %%Y-%%m-%%d format)')
     visit_parser.add_argument('--retries', metavar='<number of retries>',
                         type=int,
-                        help='number of tries with transient server errors');
+                        help='number of tries with transient server errors')
     visit_parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
                       help="URL of the CAOM2 repo server")
 
@@ -328,21 +329,17 @@ Minimum plugin file format:
         client.put_observation(obs_reader.read(args.observation))
     elif args.cmd == 'read':
         print("Read")
-        observation = client.get_observation(args.collection, args.observationID)
+        observation = client.get_observation(args.collection, args.observation)
         observation_writer = ObservationWriter()
-        ibuffer = StringIO()
-        ObservationWriter.write(observation, ibuffer)
-        obs_xml = ibuffer.getvalue()
         if args.output:
             with open(args.output, 'w') as obsfile:
-                obsfile.write(obs_xml)
+                observation_writer.write(observation, obsfile)
         else:
-            print obs_xml
+            observation_writer.write(observation, sys.stdout)
     elif args.cmd == 'update':
         print("Update")
-        with open(args.observation, 'r') as obsfile:
-            obs_reader = ObservationReader()
-            client.post_observation(obs_reader.read(StringIO(obsfile.read()))) #TODO not sure if need to read in string first
+        obs_reader = ObservationReader()
+        client.post_observation(obs_reader.read(args.observation)) #TODO not sure if need to read in string first
     else:
         print("Delete")
         client.delete_observation(collection=args.collection, observation=args.observationID)
