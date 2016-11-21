@@ -84,11 +84,11 @@ import plane
 import shape
 import wcs
 
-CAOM2_PKG = 'caom2tools'
+DATA_PKG = 'caom2tools.data'
 
-CAOM20_SCHEMA_FILE = 'caom2/CAOM-2.0.xsd'
-CAOM21_SCHEMA_FILE = 'caom2/CAOM-2.1.xsd'
-CAOM22_SCHEMA_FILE = 'caom2/CAOM-2.2.xsd'
+CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
+CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
+CAOM22_SCHEMA_FILE = 'CAOM-2.2.xsd'
 
 CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
 CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
@@ -117,7 +117,7 @@ class ObservationReader(object):
 
         if self._validate:
             caom20_schema_path = pkg_resources.resource_filename(
-                CAOM2_PKG, CAOM20_SCHEMA_FILE)
+                DATA_PKG, CAOM20_SCHEMA_FILE)
 
             parser = etree.XMLParser(remove_blank_text=True)
             xsd = etree.parse(caom20_schema_path, parser)
@@ -582,7 +582,7 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            return shape.Axis(self._get_child_text("ctype", el, ns, True),
+            return wcs.Axis(self._get_child_text("ctype", el, ns, True),
                               self._get_child_text("cunit", el, ns, False))
 
     def _get_slice(self, element_tag, parent, ns, required):
@@ -601,7 +601,7 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            return shape.Slice(self._get_axis("axis", el, ns, True),
+            return wcs.Slice(self._get_axis("axis", el, ns, True),
                                self._get_child_text_as_long("bin", el, ns, True))
 
     def _get_observable_axis(self, element_tag, parent, ns, required):
@@ -905,7 +905,7 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            position = wcs.SpatialWCS(self._get_coord_axis2d("axis", el, ns, False))
+            position = chunk.SpatialWCS(self._get_coord_axis2d("axis", el, ns, False))
             position.coordsys = self._get_child_text("coordsys", el, ns, False)
             position.equinox = \
                 self._get_child_text_as_float("equinox", el, ns, False)
@@ -1399,7 +1399,7 @@ class ObservationWriter(object):
             else:
                 schema_file = CAOM22_SCHEMA_FILE
             schema_path = pkg_resources.resource_filename(
-                CAOM2_PKG, schema_file)
+                DATA_PKG, schema_file)
             xmlschema_doc = etree.parse(schema_path)
             self._xmlschema = etree.XMLSchema(xmlschema_doc)
 
@@ -1758,7 +1758,7 @@ class ObservationWriter(object):
         element = self._get_caom_element("polarization", parent)
         self._add_coord_axis1d_element("axis", polarization.axis, element)
 
-    #/*+ CAOM2 Types #-*/
+    # /*+ CAOM2 Types #-*/
 
     def _add_point_element(self, name, point, parent):
         """ Builds a representation of a Point and adds it to the
@@ -1770,7 +1770,7 @@ class ObservationWriter(object):
         self._add_element("cval1", point.cval1, element)
         self._add_element("cval2", point.cval2, element)
 
-    #/*+ WCS Types #-*/
+    # /*+ WCS Types #-*/
 
     def _add_axis_element(self, name, axis, parent):
         """ Builds a representation of a Axis and adds it to the
@@ -1850,7 +1850,8 @@ class ObservationWriter(object):
         if isinstance(bounds, wcs.CoordCircle2D):
             self._add_coord_circle2d_element("circle",
                                              wcs.CoordCircle2D(bounds.center,
-                                                        bounds.radius), element)
+                                                               bounds.radius),
+                                             element)
         elif isinstance(bounds, wcs.CoordPolygon2D):
             self._add_coord_polygon2d_element("polygon", bounds, element)
         else:
@@ -2010,4 +2011,3 @@ class ObservationWriter(object):
 
 class ObservationParsingException(Exception):
     pass
-
