@@ -72,7 +72,6 @@
 import StringIO
 import errno
 import filecmp
-import glob
 import os
 import pkg_resources
 import shutil
