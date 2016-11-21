@@ -72,7 +72,6 @@
 import StringIO
 import errno
 import filecmp
-import glob
 import os
 import pkg_resources
 import shutil
@@ -840,29 +839,11 @@ class TestRoundTrip(unittest.TestCase):
                 raise
 
     def copy_files(self):
-        # print os.path.join(TestRoundTrip.TEST_FILE_SOURCE_DIR, '*.xml')
-        # print glob.glob(os.path.join(
-        #     TestRoundTrip.TEST_FILE_SOURCE_DIR, '*.xml'))
-        # for filename in glob.glob(os.path.join(
-        #         TestRoundTrip.TEST_FILE_SOURCE_DIR, '*.xml')):
-        #     print "copied file " + filename
-        #     shutil.copy(filename, TestRoundTrip.XML_FILE_SOURCE_DIR)
-
-        # file_list = pkg_resources.resource_listdir("caom2tools.caom2.test", "data")
-        # # print file_list
-        # for filename in file_list:
-        #     if filename.endswith(".xml"):
-        #         print "copied " + filename
-        #         shutil.copy(filename, TestRoundTrip.XML_FILE_SOURCE_DIR)
-
-        test_data = pkg_resources.resource_filename("caom2tools.caom2.test", "data")
-        print os.path.join(test_data, '*.xml')
-        file_list = glob.glob(os.path.join(test_data, '*.xml'))
+        file_list = pkg_resources.resource_listdir("caom2tools.caom2.test", "data")
         for filename in file_list:
-            print filename
-            test_file = pkg_resources.resource_filename("caom2tools.caom2.test.data", filename)
-            print test_file
-            shutil.copy(test_file, TestRoundTrip.XML_FILE_SOURCE_DIR)
+            if filename.endswith(".xml"):
+                the_file = pkg_resources.resource_stream("caom2tools.caom2.test.data", filename)
+                shutil.copy(the_file.name, TestRoundTrip.XML_FILE_SOURCE_DIR)
 
     def init(self):
         self.make_test_dir()
