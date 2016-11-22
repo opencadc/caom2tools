@@ -72,15 +72,16 @@ import copy
 import sys
 import os
 import requests
-from mock import Mock, patch, MagicMock
+from mock import Mock, patch, MagicMock, ANY
 #TODO to be changed to io.StringIO when caom2 is prepared for python3
 from StringIO import StringIO
 from datetime import datetime
 
+from cadctools import util
 from caom2tools.util import caom2repo
 from caom2tools.util.caom2repo import CAOM2RepoClient, DATE_FORMAT
 from caom2tools.caom2.observation import SimpleObservation
-from caom2tools.caom2 import ObservationReader, ObservationWriter
+from caom2tools.caom2.obs_reader_writer import ObservationReader, ObservationWriter
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -375,24 +376,54 @@ class TestCAOM2Repo(unittest.TestCase):
 
     @patch('caom2tools.util.caom2repo.CAOM2RepoClient')
     def test_main(self, client_mock):
-
-
         collection = 'cfht'
         observation_id = '7000000o'
         service = 'caom2repo'
         ifile = '/tmp/inputobs'
 
         obs = SimpleObservation(collection, observation_id)
-        iobuffer = StringIO()
+
+        # test create
         with open(ifile, 'w') as infile:
             ObservationWriter().write(obs, infile)
-
-        put_mock = Mock(id='Mymock')
-        client_mock.return_value = Mock(id='mmm')
-        client_mock.put_observation = put_mock
         sys.argv = ["caom2tools", "create", ifile]
         caom2repo.main()
-        put_mock.assert_called_with('blah')
+        client_mock.return_value.put_observation.assert_called_with(obs)
+
+        # test update
+        sys.argv = ["caom2tools", "update", ifile]
+        caom2repo.main()
+        client_mock.return_value.post_observation.assert_called_with(obs)
+
+
+        # test read
+        sys.argv = ["caom2tools", "read", "--collection", collection, observation_id]
+        client_mock.return_value.get_observation.return_value = obs
+        caom2repo.main()
+        client_mock.return_value.get_observation.assert_called_with(collection, observation_id)
+        # repeat with outout argument
+        sys.argv = ["caom2tools", "read", "--collection", collection, "--output", ifile, observation_id]
+        client_mock.return_value.get_observation.return_value = obs
+        caom2repo.main()
+        client_mock.return_value.get_observation.assert_called_with(collection, observation_id)
+        os.remove(ifile)
+
+        # test delete
+        sys.argv = ["caom2tools", "delete", "--collection", collection, observation_id]
+        caom2repo.main()
+        client_mock.return_value.delete_observation.assert_called_with(collection=collection,
+                                                                       observation=observation_id)
+
+        # test visit
+        # get the absolute path to be able to run the tests with the astropy frameworks
+        plugin_file = THIS_DIR + "/passplugin.py"
+        sys.argv = ["caom2tools", "visit", "--plugin", plugin_file, "--start", "2012-01-01T11:22:33.44",
+                    "--end", "2013-01-01T11:33:22.443", collection]
+        with open(plugin_file, 'r') as infile:
+            caom2repo.main()
+            client_mock.return_value.visit.assert_called_with(ANY, collection,
+                        start=util.str2ivoa("2012-01-01T11:22:33.44"),
+                        end=util.str2ivoa("2013-01-01T11:33:22.443"))
 
 
     @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
@@ -447,6 +478,7 @@ optional arguments:
         read_usage =\
 """usage: caom2-client read [-h] [--certfile CERTFILE] [--anonymous]
                          [--host HOST] [--verbose] [--debug] [--quiet]
+                         --collection <collection>
                          [--output <destination file>]
                          <observation>
 
@@ -466,6 +498,7 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --collection <collection>
   --output <destination file>, -o <destination file>
 """
 
