@@ -212,6 +212,7 @@ class TestCAOM2Repo(unittest.TestCase):
     
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadctools.net.ws.auth.get_user_password', Mock(return_value=('usr', 'passwd')))
     @patch('cadctools.net.ws.Session.send')
     def test_post_observation(self, mock_conn):
         collection = 'cfht'
@@ -220,7 +221,7 @@ class TestCAOM2Repo(unittest.TestCase):
         service_url = 'www.cadc.nrc.ca/{}'.format(service)
 
         obs = SimpleObservation(collection, observation_id)
-        visitor = CAOM2RepoClient(server=service_url)
+        visitor = CAOM2RepoClient(anon=False, server=service_url)
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
@@ -231,7 +232,7 @@ class TestCAOM2Repo(unittest.TestCase):
         
         self.assertEqual(obs, visitor.post_observation(obs))
         self.assertEqual('POST', mock_conn.call_args[0][0].method)
-        self.assertEqual('/{}/{}/{}'.format(service, collection, observation_id),
+        self.assertEqual('/{}/auth/{}/{}'.format(service, collection, observation_id),
                          mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml', mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
@@ -271,7 +272,7 @@ class TestCAOM2Repo(unittest.TestCase):
         service_url = 'www.cadc.nrc.ca/{}'.format(service)
 
         obs = SimpleObservation(collection, observation_id)
-        visitor = CAOM2RepoClient(server=service_url)
+        visitor = CAOM2RepoClient(cert_file='somefile.pem', server=service_url)
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response

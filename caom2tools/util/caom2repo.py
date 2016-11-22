@@ -88,23 +88,34 @@ class CAOM2RepoClient:
 
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, anon=True, cert_file=None, verify=False, server=None):
+    def __init__(self, anon=True, cert_file=None, server=None):
+        """
+        Instance of a CAOM2RepoClient
+        :param anon: True if anonymous access, False otherwise
+        :param cert_file: Location of X509 certificate used for authentication
+        :param server: Host server for the caom2repo service
+        """
 
         # repo client to use
-        serv = SERVICE_URL
+        s = SERVICE_URL
         if server is not None:
-            serv = server
+            s = server
         agent = 'CAOM2RepoClient' #TODO add version
-        self._repo_client = ws.BaseWsClient(serv, anon=anon, cert_file=cert_file,
-                 agent=agent, verify=verify, retry=True)
+        self._repo_client = ws.BaseWsClient(s, anon=anon, cert_file=cert_file, agent=agent, retry=True)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
 
     def visit(self, plugin, collection, start=None, end=None):
         """
         Main processing function that iterates through the observations of
-        the collection and updates them according to the algorithm 
+        the collection and updates them according to the algorithm
         of the plugin function
+        :param plugin: path to python file that contains the algorithm to be applied to visited
+                        observations
+        :param collection: name of the CAOM2 collection
+        :param start: optional earliest date-time of the targeted observation set
+        :param end: optional latest date-time of the targeted observation set
+        :return: number of visited observations
         """
         if not os.path.isfile(plugin):
             raise Exception('Cannot find plugin file ' + plugin)
@@ -134,6 +145,10 @@ class CAOM2RepoClient:
     def _get_observations(self, collection, start=None, end=None):
         """
         Returns a list of datasets from the collection
+        :param collection: name of the collection
+        :param start: earliest observation
+        :param end: latest observation
+        :return:
         """
         assert collection is not None
         observations = []
@@ -154,6 +169,10 @@ class CAOM2RepoClient:
         
          
     def _load_plugin_class(self, filepath):
+        """
+        Loads the plugin method and sets the self.plugin to refer to it.
+        :param filepath: path to the file containing the python function
+        """
         expected_class = 'ObservationUpdater'
     
         mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
@@ -167,8 +186,7 @@ class CAOM2RepoClient:
             self.plugin = getattr(py_mod, expected_class)()
         else:
             raise Exception(
-                'Cannot find ObservationUpdater class in pluging file ' +\
-                filepath)
+                'Cannot find ObservationUpdater class in pluging file ' + filepath)
         
         if not hasattr(self.plugin, 'update'):
             raise Exception('Cannot find update method in plugin class ' +\
@@ -176,6 +194,12 @@ class CAOM2RepoClient:
             
     
     def get_observation(self, collection, observationID):
+        """
+        Get an observation from the CAOM2 repo
+        :param collection: name of the collection
+        :param observationID: the ID of the observation
+        :return: the caom2.observation.Observation object
+        """
         assert collection is not None
         assert observationID is not None
         resource = '/{}/{}'.format(collection, observationID)
@@ -192,6 +216,11 @@ class CAOM2RepoClient:
 
 
     def post_observation(self, observation):
+        """
+        Updates an observation in the CAOM2 repo
+        :param observation: observation to update
+        :return: updated observation
+        """
         assert observation.collection is not None
         assert observation.observation_id is not None
         resource = '/{}/{}'.format(observation.collection, observation.observation_id)
@@ -214,6 +243,11 @@ class CAOM2RepoClient:
 
 
     def put_observation(self, observation):
+        """
+        Add an observation to the CAOM2 repo
+        :param observation: observation to add to the CAOM2 repo
+        :return: Added observation
+        """
         assert observation.collection is not None
         resource = '/{}'.format(observation.collection)
         logging.debug('PUT {}'.format(resource))
@@ -235,6 +269,11 @@ class CAOM2RepoClient:
 
 
     def delete_observation(self, collection, observationID):
+        """
+        Delete an observation from the CAOM2 repo
+        :param collection: Name of the collection
+        :param observationID: ID of the observation
+        """
         assert observationID is not None
         resource = '/{}/{}'.format(collection, observationID)
         logging.debug('DELETE {}'.format(resource))
@@ -310,7 +349,7 @@ Minimum plugin file format:
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    client = CAOM2RepoClient(server=args.host)
+    client = CAOM2RepoClient(anon=args.anonymous, cert_file=args.certfile, server=args.host)
     if args.cmd == 'visit':
         print ("Visit")
 
