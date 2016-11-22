@@ -70,12 +70,12 @@
 """ Defines TestObservationReaderWriter class """
 
 import StringIO
-import errno
-import filecmp
 import os
-import pkg_resources
-import shutil
 import unittest
+
+import pkg_resources
+from lxml import etree
+from xml_compare import xml_compare
 
 import caom_test_instances
 from .. import obs_reader_writer
@@ -827,49 +827,48 @@ class TestObservationReaderWriter(unittest.TestCase):
 
 class TestRoundTrip(unittest.TestCase):
 
-    TEST_FILE_SOURCE_DIR = 'data'
-    XML_FILE_SOURCE_DIR = '/tmp/caom2-round-trip-test'
-    XML_FILE_DEST_DIR = '/tmp/caom2-round-trip-test/caom2'
+    TEST_PACKAGE = 'caom2tools.caom2.test'
+    TEST_DATA_PACKAGE = 'caom2tools.caom2.test.data'
+    TEST_DATA_DIR = 'data'
+    # XML_FILE_SOURCE_DIR = '/tmp/caom2-round-trip-test'
+    # XML_FILE_DEST_DIR = '/tmp/caom2-round-trip-test/caom2'
 
-    def make_test_dir(self):
-        try:
-            os.makedirs(TestRoundTrip.XML_FILE_SOURCE_DIR)
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                raise
-
-    def copy_files(self):
-        file_list = pkg_resources.resource_listdir("caom2tools.caom2.test", "data")
-        for filename in file_list:
-            if filename.endswith(".xml"):
-                the_file = pkg_resources.resource_stream("caom2tools.caom2.test.data", filename)
-                shutil.copy(the_file.name, TestRoundTrip.XML_FILE_SOURCE_DIR)
+    # def make_test_dir(self):
+    #     try:
+    #         os.makedirs(TestRoundTrip.XML_FILE_SOURCE_DIR)
+    #     except OSError as exception:
+    #         if exception.errno != errno.EEXIST:
+    #             raise
+    #
+    # def copy_files(self):
+    #     file_list = pkg_resources.resource_listdir("caom2tools.caom2.test", "data")
+    #     for filename in file_list:
+    #         if filename.endswith(".xml"):
+    #             the_file = pkg_resources.resource_stream("caom2tools.caom2.test.data", filename)
+    #             shutil.copy(the_file.name, TestRoundTrip.XML_FILE_SOURCE_DIR)
 
     def init(self):
-        self.make_test_dir()
-        self.copy_files()
-
-    def cleanup(self):
-        shutil.rmtree(TestRoundTrip.XML_FILE_SOURCE_DIR)
+        pass
 
     def get_file_list(self):
-        return [f for f in os.listdir(TestRoundTrip.XML_FILE_SOURCE_DIR)
-                if f.endswith('.xml')]
+        file_list = pkg_resources.resource_listdir(TestRoundTrip.TEST_PACKAGE,
+                                                   TestRoundTrip.TEST_DATA_DIR)
+        return [f for f in file_list if f.endswith('.xml')]
 
     def do_test(self, reader, writer, filename):
-        source_file_path = (TestRoundTrip.XML_FILE_SOURCE_DIR + '/' + filename)
+        source_file = pkg_resources.resource_stream(TestRoundTrip.TEST_DATA_PACKAGE, filename)
+        source_file_path = os.path.abspath(source_file.name)
         print "test file: " + source_file_path
         source_xml_fp = open(source_file_path, 'r')
         obs = reader.read(source_file_path)
         source_xml_fp.close()
-        dest_file_path = TestRoundTrip.XML_FILE_DEST_DIR + '/' + filename
-        dest_xml_fp = open(dest_file_path, 'w')
-        writer.write(obs, dest_xml_fp)
-        dest_xml_fp.close()
-        self.assertTrue(filecmp.cmp(source_file_path, dest_file_path),
-                        'files are different, ' +
-                        'file from Java was: ' + source_file_path +
-                        ' file from Python was: ' + dest_file_path)
+        dest_file = StringIO.StringIO()
+        writer.write(obs, dest_file)
+
+        source_dom = etree.parse(source_file_path).getroot()
+        dest_dom = etree.fromstring(dest_file.getvalue())
+        self.assertTrue(xml_compare(source_dom, dest_dom),
+                        'files are different')
 
     # This test reads each file in XML_FILE_SOURCE_DIR, creates the CAOM2
     # objects and writes a file in XML_FILE_DEST_DIR based on the CAOM2
@@ -883,13 +882,7 @@ class TestRoundTrip(unittest.TestCase):
         try:
             self.init()
             files = self.get_file_list()
-            self.assertTrue(len(files) > 0, 'No XML files in ' +
-                            TestRoundTrip.XML_FILE_SOURCE_DIR)
-            try:
-                os.makedirs(TestRoundTrip.XML_FILE_DEST_DIR)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
+            self.assertTrue(len(files) > 0, 'No XML files in test data directory')
 
             reader = obs_reader_writer.ObservationReader(True)
             writer20 = obs_reader_writer.ObservationWriter(
@@ -905,8 +898,5 @@ class TestRoundTrip(unittest.TestCase):
                 else:
                     self.do_test(reader, writer20, filename)
 
-        #finally:
-        #    self.cleanup()
         except Exception as e:
-            #if e.errno != errno.EEXIST:
             raise

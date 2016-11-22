@@ -241,8 +241,7 @@ def Enum(classname, **kargs):
         >>> Numbers('phi')
         Traceback (most recent call last):
             ...
-
-        ValueError: 'phi' is not a valid enum name
+        ValueError: 'phi' is not a valid enum name \
         (Must be one of: ['e', 'pi'])
 
 
