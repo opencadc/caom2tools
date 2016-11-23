@@ -84,7 +84,7 @@ import plane
 import shape
 import wcs
 
-DATA_PKG = 'caom2tools.data'
+DATA_PKG = 'caom2.data'
 
 CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
 CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'

@@ -78,10 +78,10 @@ from StringIO import StringIO
 from datetime import datetime
 
 from cadctools import util
-from caom2tools.util import caom2repo
-from caom2tools.util.caom2repo import CAOM2RepoClient, DATE_FORMAT
-from caom2tools.caom2.observation import SimpleObservation
-from caom2tools.caom2.obs_reader_writer import ObservationReader, ObservationWriter
+from caom2repo import core
+from caom2repo.core import CAOM2RepoClient, DATE_FORMAT
+from caom2.observation import SimpleObservation
+from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -175,7 +175,7 @@ class TestCAOM2Repo(unittest.TestCase):
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadctools.net.ws.open', MagicMock(), create=True)
-    @patch('caom2tools.util.caom2repo.ws.BaseWsClient.get')
+    @patch('caom2repo.core.ws.BaseWsClient.get')
     def test_get_observations(self, mock_get):
         # This is almost similar to the previous test except that it gets
         # observations matching a collection and start/end criteria
@@ -194,12 +194,12 @@ class TestCAOM2Repo(unittest.TestCase):
         expect_observations = ['700000o', '700001o']
         self.assertEquals(expect_observations, visitor._get_observations('cfht'))
         self.assertEquals(end_date, visitor._start)
-        mock_get.assert_called_once_with('cfht', params={'MAXREC':caom2repo.BATCH_SIZE})
+        mock_get.assert_called_once_with('cfht', params={'MAXREC':core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11', '%Y-%m-%d'))
         mock_get.assert_called_once_with('cfht', params={'END':'2000-11-11T00:00:00.000000',
-                                                         'MAXREC': caom2repo.BATCH_SIZE})
+                                                         'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht',
@@ -207,7 +207,7 @@ class TestCAOM2Repo(unittest.TestCase):
                                   end=datetime.strptime('2000-11-12', '%Y-%m-%d'))
         mock_get.assert_called_once_with('cfht', params={'START':'2000-11-11T00:00:00.000000',
                                                          'END': '2000-11-12T00:00:00.000000',
-                                                         'MAXREC': caom2repo.BATCH_SIZE})
+                                                         'MAXREC': core.BATCH_SIZE})
 
     
     # patch sleep to stop the test from sleeping and slowing down execution
@@ -359,7 +359,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
 
     def test_process(self):
-        caom2repo.BATCH_SIZE = 3 # size of the batch is 3
+        core.BATCH_SIZE = 3 # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
         visitor = CAOM2RepoClient()
         visitor.get_observation = MagicMock(return_value=MagicMock(spec=SimpleObservation))
@@ -375,7 +375,7 @@ class TestCAOM2Repo(unittest.TestCase):
                 THIS_DIR, 'passplugin.py'), 'cfht'))
 
 
-    @patch('caom2tools.util.caom2repo.CAOM2RepoClient')
+    @patch('caom2repo.core.CAOM2RepoClient')
     def test_main(self, client_mock):
         collection = 'cfht'
         observation_id = '7000000o'
@@ -388,30 +388,30 @@ class TestCAOM2Repo(unittest.TestCase):
         with open(ifile, 'w') as infile:
             ObservationWriter().write(obs, infile)
         sys.argv = ["caom2tools", "create", ifile]
-        caom2repo.main()
+        core.main()
         client_mock.return_value.put_observation.assert_called_with(obs)
 
         # test update
         sys.argv = ["caom2tools", "update", ifile]
-        caom2repo.main()
+        core.main()
         client_mock.return_value.post_observation.assert_called_with(obs)
 
 
         # test read
         sys.argv = ["caom2tools", "read", "--collection", collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
-        caom2repo.main()
+        core.main()
         client_mock.return_value.get_observation.assert_called_with(collection, observation_id)
         # repeat with outout argument
         sys.argv = ["caom2tools", "read", "--collection", collection, "--output", ifile, observation_id]
         client_mock.return_value.get_observation.return_value = obs
-        caom2repo.main()
+        core.main()
         client_mock.return_value.get_observation.assert_called_with(collection, observation_id)
         os.remove(ifile)
 
         # test delete
         sys.argv = ["caom2tools", "delete", "--collection", collection, observation_id]
-        caom2repo.main()
+        core.main()
         client_mock.return_value.delete_observation.assert_called_with(collection=collection,
                                                                        observation=observation_id)
 
@@ -421,7 +421,7 @@ class TestCAOM2Repo(unittest.TestCase):
         sys.argv = ["caom2tools", "visit", "--plugin", plugin_file, "--start", "2012-01-01T11:22:33.44",
                     "--end", "2013-01-01T11:33:22.443", collection]
         with open(plugin_file, 'r') as infile:
-            caom2repo.main()
+            core.main()
             client_mock.return_value.visit.assert_called_with(ANY, collection,
                         start=util.str2ivoa("2012-01-01T11:22:33.44"),
                         end=util.str2ivoa("2013-01-01T11:33:22.443"))
@@ -603,40 +603,40 @@ Minimum plugin file format:
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-client", "--help"]
             with self.assertRaises(MyExitError):
-                caom2repo.main()
+                core.main()
             self.assertEqual(usage, stdout_mock.getvalue())
 
         # create --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-client", "create", "--help"]
             with self.assertRaises(MyExitError):
-                caom2repo.main()
+                core.main()
             self.assertEqual(create_usage, stdout_mock.getvalue())
 
         # read --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-client", "read", "--help"]
             with self.assertRaises(MyExitError):
-                caom2repo.main()
+                core.main()
             self.assertEqual(read_usage, stdout_mock.getvalue())
 
         # update --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-client", "update", "--help"]
             with self.assertRaises(MyExitError):
-                caom2repo.main()
+                core.main()
             self.assertEqual(update_usage, stdout_mock.getvalue())
 
         # delete --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-client", "delete", "--help"]
             with self.assertRaises(MyExitError):
-                caom2repo.main()
+                core.main()
             self.assertEqual(delete_usage, stdout_mock.getvalue())
 
         # visit --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-client", "visit", "--help"]
             with self.assertRaises(MyExitError):
-                caom2repo.main()
+                core.main()
             self.assertEqual(visit_usage, stdout_mock.getvalue())

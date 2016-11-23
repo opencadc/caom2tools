@@ -72,14 +72,14 @@
 import collections
 from datetime import datetime
 
-from caom2tools.caom2 import artifact
-from caom2tools.caom2 import caom_util
-from caom2tools.caom2 import chunk
-from caom2tools.caom2 import observation
-from caom2tools.caom2 import part
-from caom2tools.caom2 import plane
-from caom2tools.caom2 import shape
-from caom2tools.caom2 import wcs
+from caom2 import artifact
+from caom2 import caom_util
+from caom2 import chunk
+from caom2 import observation
+from caom2 import part
+from caom2 import plane
+from caom2 import shape
+from caom2 import wcs
 
 
 class Caom2TestInstances(object):

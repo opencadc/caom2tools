@@ -827,8 +827,8 @@ class TestObservationReaderWriter(unittest.TestCase):
 
 class TestRoundTrip(unittest.TestCase):
 
-    TEST_PACKAGE = 'caom2tools.caom2.test'
-    TEST_DATA_PACKAGE = 'caom2tools.caom2.test.data'
+    TEST_PACKAGE = 'caom2.test'
+    TEST_DATA_PACKAGE = 'caom2.test.data'
     TEST_DATA_DIR = 'data'
     # XML_FILE_SOURCE_DIR = '/tmp/caom2-round-trip-test'
     # XML_FILE_DEST_DIR = '/tmp/caom2-round-trip-test/caom2'
@@ -841,10 +841,10 @@ class TestRoundTrip(unittest.TestCase):
     #             raise
     #
     # def copy_files(self):
-    #     file_list = pkg_resources.resource_listdir("caom2tools.caom2.test", "data")
+    #     file_list = pkg_resources.resource_listdir("caom2.test", "data")
     #     for filename in file_list:
     #         if filename.endswith(".xml"):
-    #             the_file = pkg_resources.resource_stream("caom2tools.caom2.test.data", filename)
+    #             the_file = pkg_resources.resource_stream("caom2.test.data", filename)
     #             shutil.copy(the_file.name, TestRoundTrip.XML_FILE_SOURCE_DIR)
 
     def init(self):
@@ -853,6 +853,8 @@ class TestRoundTrip(unittest.TestCase):
     def get_file_list(self):
         file_list = pkg_resources.resource_listdir(TestRoundTrip.TEST_PACKAGE,
                                                    TestRoundTrip.TEST_DATA_DIR)
+        with open('/tmp/dbg.txt', 'w') as f:
+            f.write(str(file_list))
         return [f for f in file_list if f.endswith('.xml')]
 
     def do_test(self, reader, writer, filename):

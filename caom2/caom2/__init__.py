@@ -68,24 +68,19 @@
 #***********************************************************************
 #
 
-""" Defines __init__ """
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-# import os
-#
-# _ROOT = os.path.abspath(os.path.dirname(__file__))
-#
-#
-# def get_data(path):
-#     # return os.path.join(_ROOT, 'data', path)
-#     foo = os.path.join(_ROOT, 'data', path)
-#     print "path to " + path + " is " + foo
-#     return foo
+"""
+This is an Astropy affiliated package.
+"""
 
-# import artifact as artifact
-# import caom_object as caom_object
-# import chunk as chunk
-# import observation as observation
-# import part as part
-# import plane as plane
-# import caom_util as caom_util
-# import wcs as wcs
+# Affiliated packages may add whatever they like to this file, but
+# should keep this content at the top.
+# ----------------------------------------------------------------------------
+from ._astropy_init import *
+# ----------------------------------------------------------------------------
+
+# For egg_info test builds to pass, put package imports here.
+if not _ASTROPY_SETUP_:
+#    from .caom2tools import *
+    pass

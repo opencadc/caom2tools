@@ -78,7 +78,7 @@ from StringIO import StringIO
 from cadctools.net import ws
 from cadctools.util import util
 
-from ..caom2.obs_reader_writer import ObservationReader, ObservationWriter
+from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 
 BATCH_SIZE = int(10000)
 SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo' #TODO replace with SERVICE_URI when server supports it

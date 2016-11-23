@@ -67,7 +67,7 @@
 #***********************************************************************
 #
 
-from caom2tools.caom2.observation import Observation
+from caom2.observation import Observation
 
 class ObservationUpdater:
 

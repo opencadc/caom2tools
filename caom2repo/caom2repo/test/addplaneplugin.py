@@ -67,8 +67,8 @@
 #***********************************************************************
 #
 
-from caom2tools.caom2.observation import Observation
-from caom2tools.caom2.plane import Plane
+from caom2.observation import Observation
+from caom2.plane import Plane
 
 class ObservationUpdater:
 
