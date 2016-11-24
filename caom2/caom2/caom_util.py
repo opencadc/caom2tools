@@ -82,7 +82,7 @@ import sys
 import uuid
 from datetime import datetime
 
-__all__ = ['TypedList', 'ProducTypedSettType', 'TypedOrderedDict', 'ClassProperty']
+__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
 
 
 # TODO both these are very bad, implement more sensibly

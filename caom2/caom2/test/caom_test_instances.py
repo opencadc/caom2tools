@@ -350,7 +350,7 @@ class Caom2TestInstances(object):
             energy.velang = 5.0
             energy.bandpassName = "energy bandpassName"
             energy.resolvingPower = 6.0
-            energy.transition = plane.EnergyTransition("H", "21cm")
+            energy.transition = wcs.EnergyTransition("H", "21cm")
         return energy
 
     def get_temporal_wcs(self):

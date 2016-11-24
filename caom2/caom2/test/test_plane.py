@@ -75,6 +75,7 @@ from datetime import datetime
 from .. import artifact
 from .. import observation
 from .. import plane
+from .. import wcs
 
 
 class TestEnums(unittest.TestCase):
@@ -483,19 +484,19 @@ class TestEnergyTransition(unittest.TestCase):
 
     def test__init__(self):
         # test for invalid values
-        self.assertRaises(TypeError, plane.EnergyTransition, None, None)
-        self.assertRaises(TypeError, plane.EnergyTransition, 'aString', None)
-        self.assertRaises(TypeError, plane.EnergyTransition, None, 'aString')
-        self.assertRaises(TypeError, plane.EnergyTransition, 1, 'aString')
-        self.assertRaises(TypeError, plane.EnergyTransition, 'aString', 2)
+        self.assertRaises(TypeError, wcs.EnergyTransition, None, None)
+        self.assertRaises(TypeError, wcs.EnergyTransition, 'aString', None)
+        self.assertRaises(TypeError, wcs.EnergyTransition, None, 'aString')
+        self.assertRaises(TypeError, wcs.EnergyTransition, 1, 'aString')
+        self.assertRaises(TypeError, wcs.EnergyTransition, 'aString', 2)
         # test for happy path
-        transition = plane.EnergyTransition("aSpecies", "aTransition")
+        transition = wcs.EnergyTransition("aSpecies", "aTransition")
         self.assertEqual(transition._species, "aSpecies")
         self.assertEqual(transition._transition, "aTransition")
 
     def test_setters(self):
         # test that we cannot change the attribute values
-        transition = plane.EnergyTransition("aSpecies", "aTransition")
+        transition = wcs.EnergyTransition("aSpecies", "aTransition")
         try:
             transition.species = "newSpecies"
             transition.transition = "newTransition"

@@ -71,11 +71,10 @@
 
 """
 
+import artifact
 import caom_object
 import caom_util
 import wcs
-from artifact import ProductType
-from plane import EnergyTransition
 
 __all__ = ['Chunk', 'ObservableAxis', 'SpatialWCS', 'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
 
@@ -138,7 +137,7 @@ class Chunk(caom_object.AbstractCaomEntity):
         eg.  Chunk.product_type = ProductType('SCIENCE')
 
         Allowed values:
-        """ + str(ProductType.names()) + """
+        """ + str(artifact.ProductType.names()) + """
 
         """
 
@@ -146,10 +145,10 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        if isinstance(value, str) and value in ProductType.names():
+        if isinstance(value, str) and value in artifact.ProductType.names():
             # be helpful
-            value = ProductType('value')
-        caom_util.type_check(value, ProductType, 'product_type')
+            value = artifact.ProductType('value')
+        caom_util.type_check(value, artifact.ProductType, 'product_type')
         self._product_type = value
 
     @property
@@ -731,7 +730,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @transition.setter
     def transition(self, value):
-        caom_util.type_check(value, EnergyTransition, "transition")
+        caom_util.type_check(value, wcs.EnergyTransition, "transition")
         self._transition = value
 
     @property

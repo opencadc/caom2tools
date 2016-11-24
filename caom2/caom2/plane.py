@@ -73,13 +73,13 @@ from datetime import datetime
 from urlparse import SplitResult
 from urlparse import urlsplit
 
+import artifact
 import caom_object
 import caom_util
+import observation
 import shape
 import wcs
-from artifact import Artifact
 from enum import Enum
-from observation import ObservationURI
 
 CalibrationLevel = Enum('CalibrationLevel',
                         RAW_INSTRUMENT=0,
@@ -124,7 +124,7 @@ Quality = Enum('Quality',
                JUNK="junk")
 
 __all__ = ['Plane', 'PlaneURI', 'DataQuality', 'Metrics', 'Provenance',
-           'Position', 'Energy', 'EnergyTransition', 'Polarization', 'Time']
+           'Position', 'Energy', 'Polarization', 'Time']
 
 
 class Plane(caom_object.AbstractCaomEntity):
@@ -148,7 +148,7 @@ class Plane(caom_object.AbstractCaomEntity):
         super(Plane, self).__init__()
         self.product_id = product_id
         if artifacts is None:
-            artifacts = caom_util.TypedOrderedDict(Artifact, )
+            artifacts = caom_util.TypedOrderedDict(artifact.Artifact, )
         self.artifacts = artifacts
 
         self.meta_release = meta_release
@@ -438,13 +438,13 @@ class PlaneURI(caom_object.CaomObject):
         observation_uri : the uri of the observation
         product_id : ID of the product
         """
-        caom_util.type_check(observation_uri, ObservationURI, "observation_uri",
+        caom_util.type_check(observation_uri, observation.ObservationURI, "observation_uri",
                              override=False)
         caom_util.type_check(product_id, str, "observation_uri", override=False)
         caom_util.validate_path_component(cls, "product_id", product_id)
 
         path = urlsplit(observation_uri.uri).path
-        uri = SplitResult(ObservationURI._SCHEME, "", path + "/" +
+        uri = SplitResult(observation.ObservationURI._SCHEME, "", path + "/" +
                           product_id, "", "").geturl()
         return cls(uri)
 
@@ -460,7 +460,7 @@ class PlaneURI(caom_object.CaomObject):
         caom_util.type_check(value, str, "uri", override=False)
         tmp = urlsplit(value)
 
-        if tmp.scheme != ObservationURI._SCHEME:
+        if tmp.scheme != observation.ObservationURI._SCHEME:
             raise ValueError("{} doesn't have an allowed scheme".format(value))
         if tmp.geturl() != value:
             raise ValueError("Failed to parse uri correctly: {}".format(value))
@@ -473,7 +473,7 @@ class PlaneURI(caom_object.CaomObject):
 
         self._product_id = product_id
         self._observation_uri = \
-            ObservationURI.get_observation_uri(collection, observation_id)
+            observation.ObservationURI.get_observation_uri(collection, observation_id)
         self._uri = value
 
     @property
@@ -917,36 +917,9 @@ class Energy(caom_object.CaomObject):
     @transition.setter
     def transition(self, value):
         if value is not None:
-            assert isinstance(value, EnergyTransition), (
+            assert isinstance(value, wcs.EnergyTransition), (
                 "transition is not an EnergyTransition: {0}".format(value))
         self._transition = value
-
-
-class EnergyTransition(caom_object.CaomObject):
-    """ EnergyTransition """
-
-    def __init__(self, species, transition):
-        """
-        Construct an EnergyTransition instance
-
-        Arguments:
-        species
-        transition
-        """
-        caom_util.type_check(species, str, "species", override=False)
-        caom_util.type_check(transition, str, "transition", override=False)
-        self._species = species
-        self._transition = transition
-
-    @property
-    def species(self):
-        """ Species """
-        return self._species
-
-    @property
-    def transition(self):
-        """ Transition """
-        return self._transition
 
 
 class Polarization(caom_object.CaomObject):

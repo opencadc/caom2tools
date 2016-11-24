@@ -84,13 +84,13 @@ from ._astropy_init import *
 # if not _ASTROPY_SETUP_:
 #    from .caom2 import *
 
-from artifact import *
-from caom_object import *
-from caom_util import *
-from chunk import *
-from obs_reader_writer import *
-from observation import *
-from part import *
-from plane import *
-from shape import *
-from wcs import *
+# from artifact import *
+# from caom_object import *
+# from caom_util import *
+# from chunk import *
+# from obs_reader_writer import *
+# from observation import *
+# from part import *
+# from plane import *
+# from shape import *
+# from wcs import *

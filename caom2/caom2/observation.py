@@ -76,8 +76,8 @@ from urlparse import urlsplit
 import caom_object
 import caom_util
 from enum import Enum
-from plane import Plane
-from shape import Point
+import plane
+import shape
 
 ObservationIntentType = Enum('ObservationIntentType',
                              CALIBRATION="calibration",
@@ -191,7 +191,7 @@ class Observation(caom_object.AbstractCaomEntity):
         self.requirements = requirements
         self.meta_release = meta_release
         if planes is None:
-            planes = caom_util.TypedOrderedDict(Plane,)
+            planes = caom_util.TypedOrderedDict(plane.Plane,)
         self.planes = planes
 
     # Properties
@@ -1160,7 +1160,7 @@ class TargetPosition(caom_object.CaomObject):
 
     @coordinates.setter
     def coordinates(self, value):
-        caom_util.type_check(value, Point, "coordinates")
+        caom_util.type_check(value, shape.Point, "coordinates")
         self._coordinates = value
 
     @property

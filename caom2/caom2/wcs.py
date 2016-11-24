@@ -73,7 +73,7 @@ import caom_util
 
 __all__ = ['Axis', 'Coord2D', 'CoordAxis1D', 'CoordAxis2D', 'CoordBounds1D', 'CoordBounds2D', 'CoordCircle2D',
            'CoordError', 'CoordFunction1D', 'CoordFunction2D', 'CoordPolygon2D', 'CoordRange1D', 'CoordRange2D',
-           'Dimension2D', 'RefCoord', 'Slice', 'ValueCoord2D']
+           'Dimension2D', 'EnergyTransition', 'RefCoord', 'Slice', 'ValueCoord2D']
 
 
 class Axis(caom_object.CaomObject):
@@ -854,6 +854,33 @@ class Dimension2D(caom_object.CaomObject):
         caom_util.type_check(value, long, 'naxis2', override=False)
         caom_util.value_check(value, 0, 1E10, 'naxis2', override=False)
         self._naxis2 = value
+
+
+class EnergyTransition(caom_object.CaomObject):
+    """ EnergyTransition """
+
+    def __init__(self, species, transition):
+        """
+        Construct an EnergyTransition instance
+
+        Arguments:
+        species
+        transition
+        """
+        caom_util.type_check(species, str, "species", override=False)
+        caom_util.type_check(transition, str, "transition", override=False)
+        self._species = species
+        self._transition = transition
+
+    @property
+    def species(self):
+        """ Species """
+        return self._species
+
+    @property
+    def transition(self):
+        """ Transition """
+        return self._transition
 
 
 class RefCoord(caom_object.CaomObject):

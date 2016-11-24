@@ -264,7 +264,7 @@ class TestSpectralWCS(unittest.TestCase):
         energy.bandpass_name = "bandpass_name"
         self.assertEqual(energy.bandpass_name, "bandpass_name")
 
-        transition = plane.EnergyTransition("species", "transition")
+        transition = wcs.EnergyTransition("species", "transition")
         energy.transition = transition
         self.assertEqual(energy.transition, transition)
 
