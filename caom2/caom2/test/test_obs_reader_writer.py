@@ -853,8 +853,6 @@ class TestRoundTrip(unittest.TestCase):
     def get_file_list(self):
         file_list = pkg_resources.resource_listdir(TestRoundTrip.TEST_PACKAGE,
                                                    TestRoundTrip.TEST_DATA_DIR)
-        with open('/tmp/dbg.txt', 'w') as f:
-            f.write(str(file_list))
         return [f for f in file_list if f.endswith('.xml')]
 
     def do_test(self, reader, writer, filename):
