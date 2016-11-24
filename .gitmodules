@@ -1,3 +1,9 @@
 [submodule "astropy_helpers"]
 	path = astropy_helpers
 	url = https://github.com/astropy/astropy-helpers.git
+[submodule "caom2/astropy_helpers"]
+	path = caom2/astropy_helpers
+	url = https://github.com/astropy/astropy-helpers.git
+[submodule "caom2repo/astropy_helpers"]
+	path = caom2repo/astropy_helpers
+	url = https://github.com/astropy/astropy-helpers.git
