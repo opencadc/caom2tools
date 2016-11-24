@@ -82,5 +82,15 @@ from ._astropy_init import *
 
 # For egg_info test builds to pass, put package imports here.
 if not _ASTROPY_SETUP_:
-#    from .caom2tools import *
     pass
+
+from artifact import *
+from caom_object import *
+from caom_util import *
+from chunk import *
+from obs_reader_writer import *
+from observation import *
+from part import *
+from plane import *
+from shape import *
+from wcs import *

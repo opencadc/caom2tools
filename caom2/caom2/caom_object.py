@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,8 +64,9 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
+
 
 import inspect
 import random
@@ -75,6 +75,8 @@ import uuid
 from datetime import datetime
 
 import caom_util
+
+__all__ = ['CaomObject', 'AbstractCaomEntity']
 
 
 class CaomObject(object):

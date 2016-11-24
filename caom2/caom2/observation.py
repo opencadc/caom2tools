@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """definition of the  caom2.Observation object."""
@@ -76,9 +75,9 @@ from urlparse import urlsplit
 
 import caom_object
 import caom_util
-import plane
-import shape
 from enum import Enum
+from plane import Plane
+from shape import Point
 
 ObservationIntentType = Enum('ObservationIntentType',
                              CALIBRATION="calibration",
@@ -90,6 +89,10 @@ Status = Enum('Status',
 TargetType = Enum('TargetType',
                   FIELD="field",
                   OBJECT="object")
+
+__all__ = ['Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
+           'CompositeObservation', 'Environment', 'Instrument', 'Proposal',
+           'Requirements', 'Target', 'TargetPosition', 'Telescope']
 
 
 class Observation(caom_object.AbstractCaomEntity):
@@ -188,7 +191,7 @@ class Observation(caom_object.AbstractCaomEntity):
         self.requirements = requirements
         self.meta_release = meta_release
         if planes is None:
-            planes = caom_util.TypedOrderedDict((plane.Plane),)
+            planes = caom_util.TypedOrderedDict(Plane,)
         self.planes = planes
 
     # Properties
@@ -463,7 +466,7 @@ class ObservationURI(caom_object.CaomObject):
 
         self._uri = tmp.geturl()
         (collection, observation_id) = tmp.path.split("/")
-        if collection is  None:
+        if collection is None:
             raise ValueError(
                 "uri did not contain a collection part. received: {}"
                 .format(uri))
@@ -511,8 +514,8 @@ class ObservationURI(caom_object.CaomObject):
 
     @property
     @classmethod
-    def SCHEME(cls):
-        """The SCHEME defines where this Observation can be looked up.
+    def scheme(cls):
+        """The scheme defines where this Observation can be looked up.
 
         Only 'caom' is currently supported."""
         return cls._SCHEME
@@ -554,7 +557,7 @@ class Algorithm(caom_object.CaomObject):
         self._name = name
 
     def _key(self):
-        return (self._name)
+        return self._name
 
     def __ne__(self, y):
         return not self.__eq__(y)
@@ -647,9 +650,7 @@ class SimpleObservation(Observation):
         if isinstance(value, str):
             value = Algorithm(value)
         caom_util.type_check(value, Algorithm, 'algorithm', override=False)
-        caom_util.value_check(value, None, None,
-                        'algorithm',
-                         override=self._ALGORITHM)
+        caom_util.value_check(value, None, None, 'algorithm', override=self._ALGORITHM)
         self._algorithm = value
 
 
@@ -917,14 +918,14 @@ class Proposal(caom_object.CaomObject):
     # Properties
 
     @property
-    def id(self):
+    def proposal_id(self):
         """The proposal ID.  Sometimes also called a RUNID.
 
         type: str
         """
         return self._proposal_id
 
-    @id.setter
+    @proposal_id.setter
     def proposal_id(self, value):
         caom_util.type_check(value, str, 'id')
         self._proposal_id = value
@@ -1159,7 +1160,7 @@ class TargetPosition(caom_object.CaomObject):
 
     @coordinates.setter
     def coordinates(self, value):
-        caom_util.type_check(value, shape.Point, "coordinates")
+        caom_util.type_check(value, Point, "coordinates")
         self._coordinates = value
 
     @property

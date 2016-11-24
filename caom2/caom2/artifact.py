@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """Defines the caom2.Artifact class.
@@ -93,6 +92,8 @@ ProductType = Enum('ProductType',
 ReleaseType = Enum('ReleaseType',
                    DATA="data",
                    META="meta")
+
+__all__ = ['Artifact']
 
 
 class Artifact(caom_object.AbstractCaomEntity):
@@ -131,11 +132,11 @@ class Artifact(caom_object.AbstractCaomEntity):
         self.content_type = content_type
         self.content_length = content_length
         if parts is None:
-            parts = caom_util.TypedOrderedDict((part.Part),)
+            parts = caom_util.TypedOrderedDict(part.Part,)
         self.parts = parts
 
     def _key(self):
-        return (self.uri)
+        return self.uri
 
     def __hash__(self):
         return hash(self._key())
@@ -252,8 +253,6 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @parts.setter
     def parts(self, value):
-        caom_util.type_check(value,
-                        caom_util.TypedOrderedDict,
-                        'parts',
-                        override=False)
+        caom_util.type_check(value, caom_util.TypedOrderedDict, 'parts',
+                             override=False)
         self._parts = value

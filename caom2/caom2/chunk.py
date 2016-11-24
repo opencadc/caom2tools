@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,18 +64,20 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """Defines caom2.Chunk class.
 
 """
 
-import artifact
 import caom_object
 import caom_util
-import plane
 import wcs
+from artifact import ProductType
+from plane import EnergyTransition
+
+__all__ = ['Chunk', 'ObservableAxis', 'SpatialWCS', 'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
 
 
 class Chunk(caom_object.AbstractCaomEntity):
@@ -101,19 +102,19 @@ class Chunk(caom_object.AbstractCaomEntity):
     """
 
     def __init__(self, product_type=None,
-                       naxis=None,
-                       position_axis_1=None,
-                       position_axis_2=None,
-                       position=None,
-                       energy_axis=None,
-                       energy=None,
-                       time_axis=None,
-                       time=None,
-                       polarization_axis=None,
-                       polarization=None,
-                       observable_axis=None,
-                       observable=None,
-                       ):
+                 naxis=None,
+                 position_axis_1=None,
+                 position_axis_2=None,
+                 position=None,
+                 energy_axis=None,
+                 energy=None,
+                 time_axis=None,
+                 time=None,
+                 polarization_axis=None,
+                 polarization=None,
+                 observable_axis=None,
+                 observable=None,
+                 ):
 
         super(Chunk, self).__init__()
         self.product_type = product_type
@@ -137,7 +138,7 @@ class Chunk(caom_object.AbstractCaomEntity):
         eg.  Chunk.product_type = ProductType('SCIENCE')
 
         Allowed values:
-        """ + str(artifact.ProductType.names()) + """
+        """ + str(ProductType.names()) + """
 
         """
 
@@ -145,10 +146,10 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        if isinstance(value, str) and value in artifact.ProductType.names():
-            ## be helpful
-            value = artifact.ProductType('value')
-        caom_util.type_check(value, artifact.ProductType, 'product_type')
+        if isinstance(value, str) and value in ProductType.names():
+            # be helpful
+            value = ProductType('value')
+        caom_util.type_check(value, ProductType, 'product_type')
         self._product_type = value
 
     @property
@@ -730,7 +731,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @transition.setter
     def transition(self, value):
-        caom_util.type_check(value, plane.EnergyTransition, "transition")
+        caom_util.type_check(value, EnergyTransition, "transition")
         self._transition = value
 
     @property
@@ -835,7 +836,7 @@ class TemporalWCS(caom_object.CaomObject):
     @mjdref.setter
     def mjdref(self, value):
         caom_util.type_check(value, float, 'mjdref')
-        ### set the limits to be after 1800 but before year 2050
+        # set the limits to be after 1800 but before year 2050
         caom_util.value_check(value, -22000, 70000, 'mjdref')
         self._mjdref = value
 
@@ -909,5 +910,3 @@ class PolarizationWCS(caom_object.CaomObject):
         if value.axis.ctype != 'STOKES':
             raise ValueError('CTYPE must be STOKES')
         self._axis = value
-
-

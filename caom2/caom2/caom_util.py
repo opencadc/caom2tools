@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """
@@ -83,11 +82,7 @@ import sys
 import uuid
 from datetime import datetime
 
-# import artifact
-# import chunk
-# import observation
-# import part
-# import plane
+__all__ = ['TypedList', 'ProducTypedSettType', 'TypedOrderedDict', 'ClassProperty']
 
 
 # TODO both these are very bad, implement more sensibly
@@ -235,8 +230,8 @@ class TypedList(collections.MutableSequence):
         return "\n".join(["{}".format(v) for v in self])
 
     def __repr__(self):
-        return "TypedList((%r))," % (self._oktypes) + (
-            "(".join(["(%r)" % (v) for v in self]) + ")")
+        return "TypedList((%r))," % self._oktypes + (
+            "(".join(["(%r)" % v for v in self]) + ")")
 
     def check(self, v):
         assert isinstance(v, self._oktypes), (
@@ -336,7 +331,7 @@ class TypedOrderedDict(collections.OrderedDict):
     with the wrong type.
     """
 
-    def __init__(self, keyType, *args):
+    def __init__(self, key_type, *args):
         """
         Initializes a TypedOrderedDict.
 
@@ -349,7 +344,7 @@ class TypedOrderedDict(collections.OrderedDict):
         is not the same as keyType.
         """
         super(TypedOrderedDict, self).__init__(self)
-        self._keyType = keyType
+        self._keyType = key_type
         for arg in args:
             self.__setitem__(arg[0], arg[1])
 
@@ -358,7 +353,7 @@ class TypedOrderedDict(collections.OrderedDict):
                           for k, v in self.iteritems()])
 
     def __repr__(self):
-        return "TypeOrderedDict((%r))," % (self._keyType) + (
+        return "TypeOrderedDict((%r))," % self._keyType + (
             "(".join(["(%r,%r)" % (k, v) for k, v in self.iteritems()]) + ")")
 
     def check(self, key, value):
@@ -389,50 +384,3 @@ class ClassProperty(property):
     """ """
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()
-
-
-# class Validator(object):
-#
-#     def __init__(self):
-#         self.errors = {}
-#
-#     def validate(self, obs):
-#         if not isinstance(obs, observation.Observation):
-#             self.errors['observation'] = 'not an Observation instance'
-#             return
-#         self._validate_planes(obs.planes)
-#         if len(self.errors) > 0:
-#             return False
-#         return True
-#
-#     def _validate_planes(self, planes):
-#         for product_id, _plane in planes.iteritems():
-#             if not isinstance(_plane, plane.Plane):
-#                 self.errors['plane'].append("not a Plane instance")
-#                 continue
-#             if product_id != _plane.product_id:
-#                 self.errors['plane'].append("plane productIDs do not match")
-#             self._validate_artifacts(_plane.artifacts)
-#
-#     def _validate_artifacts(self, artifacts):
-#         for uri, _artifact in artifacts.iteritems():
-#             if not isinstance(_artifact, artifact.Artifact):
-#                 self.errors['artifact'].append("not an Artifact instance")
-#                 continue
-#             if uri != _artifact.uri:
-#                 self.errors['artifact'].append("artifact uris do not match")
-#             self._validate_parts(_artifact.parts)
-#
-#     def _validate_parts(self, parts):
-#         for name, _part in parts.iteritems():
-#             if not isinstance(_part, part.Part):
-#                 self.errors['part'].append("not a Part instance")
-#                 continue
-#             if name != _part.name:
-#                 self.errors['part'].append("part names do not match")
-#             self._validate_chunks(_part.chunks)
-#
-#     def _validate_chunks(self, chunks):
-#         for _chunk in chunks:
-#             if not isinstance(_chunk, chunk.Chunk):
-#                 self.errors['chunk'].append("not a chunk instance")

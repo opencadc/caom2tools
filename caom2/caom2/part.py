@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,16 +64,18 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """Defines the caom2.Part class which describes
 the caom2_Observation_Plane_Artifact_Part object."""
 
-import artifact
 import caom_object
 import caom_util
-import chunk
+from artifact import ProductType
+from chunk import Chunk
+
+__all__ = ['Part']
 
 
 class Part(caom_object.AbstractCaomEntity):
@@ -91,7 +92,7 @@ class Part(caom_object.AbstractCaomEntity):
         self.name = name
         self.product_type = product_type
         if chunks is None:
-            chunks = caom_util.TypedList((chunk.Chunk), )
+            chunks = caom_util.TypedList(Chunk, )
         self.chunks = chunks
 
     def _key(self):
@@ -115,7 +116,7 @@ class Part(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        caom_util.type_check(value, artifact.ProductType, "product_type")
+        caom_util.type_check(value, ProductType, "product_type")
         self._product_type = value
 
     @property

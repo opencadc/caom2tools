@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,12 +64,16 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 
 import caom_object
 import caom_util
+
+__all__ = ['Axis', 'Coord2D', 'CoordAxis1D', 'CoordAxis2D', 'CoordBounds1D', 'CoordBounds2D', 'CoordCircle2D',
+           'CoordError', 'CoordFunction1D', 'CoordFunction2D', 'CoordPolygon2D', 'CoordRange1D', 'CoordRange2D',
+           'Dimension2D', 'RefCoord', 'Slice', 'ValueCoord2D']
 
 
 class Axis(caom_object.CaomObject):
@@ -374,7 +377,7 @@ class CoordBounds1D(caom_object.CaomObject):
     def __init__(self, samples=None):
 
         if samples is None:
-            samples = caom_util.TypedList((CoordRange1D),)
+            samples = caom_util.TypedList(CoordRange1D,)
         self.samples = samples
 
     @property
@@ -392,10 +395,7 @@ class CoordBounds1D(caom_object.CaomObject):
 
     @samples.setter
     def samples(self, value):
-        caom_util.type_check(value,
-                        caom_util.TypedList,
-                       'samples',
-                        override=False)
+        caom_util.type_check(value, caom_util.TypedList, 'samples', override=False)
         self._samples = value
 
 
@@ -706,7 +706,7 @@ class CoordPolygon2D(caom_object.CaomObject):
 
     def __init__(self, vertices=None):
         if vertices is None:
-            vertices = caom_util.TypedList((ValueCoord2D),)
+            vertices = caom_util.TypedList(ValueCoord2D,)
         self.vertices = vertices
 
     @property
@@ -970,30 +970,3 @@ class ValueCoord2D(caom_object.CaomObject):
     def coord2(self, value):
         caom_util.type_check(value, float, 'coord2', override=False)
         self._coord2 = value
-
-
-class EnergyTransition(caom_object.CaomObject):
-    """ EnergyTransition """
-
-    def __init__(self, species, transition):
-        """
-        Construct an EnergyTransition instance
-
-        Arguments:
-        species
-        transition
-        """
-        caom_util.type_check(species, str, "species", override=False)
-        caom_util.type_check(transition, str, "transition", override=False)
-        self._species = species
-        self._transition = transition
-
-    @property
-    def species(self):
-        """ Species """
-        return self._species
-
-    @property
-    def transition(self):
-        """ Transition """
-        return self._transition

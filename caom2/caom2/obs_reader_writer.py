@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """ Defines ObservationReader class """
@@ -100,6 +99,8 @@ CAOM22 = "{%s}" % CAOM22_NAMESPACE
 
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 XSI = "{%s}" % XSI_NAMESPACE
+
+__all__ = ['ObservationReader', 'ObservationWriter', 'ObservationParsingException']
 
 
 class ObservationReader(object):
@@ -583,7 +584,7 @@ class ObservationReader(object):
             return None
         else:
             return wcs.Axis(self._get_child_text("ctype", el, ns, True),
-                              self._get_child_text("cunit", el, ns, False))
+                            self._get_child_text("cunit", el, ns, False))
 
     def _get_slice(self, element_tag, parent, ns, required):
         """Build a Slice object from an XML representation of a Slice element.
@@ -602,7 +603,7 @@ class ObservationReader(object):
             return None
         else:
             return wcs.Slice(self._get_axis("axis", el, ns, True),
-                               self._get_child_text_as_long("bin", el, ns, True))
+                             self._get_child_text_as_long("bin", el, ns, True))
 
     def _get_observable_axis(self, element_tag, parent, ns, required):
         """Build an ObservableAxis object from an XML representation of an

@@ -1,8 +1,7 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """defines the caom2.Plane class"""
@@ -74,13 +73,13 @@ from datetime import datetime
 from urlparse import SplitResult
 from urlparse import urlsplit
 
-import artifact
 import caom_object
 import caom_util
-import observation
 import shape
 import wcs
+from artifact import Artifact
 from enum import Enum
+from observation import ObservationURI
 
 CalibrationLevel = Enum('CalibrationLevel',
                         RAW_INSTRUMENT=0,
@@ -124,6 +123,9 @@ PolarizationState = Enum('PolarizationState',
 Quality = Enum('Quality',
                JUNK="junk")
 
+__all__ = ['Plane', 'PlaneURI', 'DataQuality', 'Metrics', 'Provenance',
+           'Position', 'Energy', 'EnergyTransition', 'Polarization', 'Time']
+
 
 class Plane(caom_object.AbstractCaomEntity):
     """ Plane class """
@@ -146,7 +148,7 @@ class Plane(caom_object.AbstractCaomEntity):
         super(Plane, self).__init__()
         self.product_id = product_id
         if artifacts is None:
-            artifacts = caom_util.TypedOrderedDict((artifact.Artifact), )
+            artifacts = caom_util.TypedOrderedDict(Artifact, )
         self.artifacts = artifacts
 
         self.meta_release = meta_release
@@ -227,9 +229,9 @@ class Plane(caom_object.AbstractCaomEntity):
     def meta_release(self, value):
         caom_util.type_check(value, datetime, 'meta_release')
         caom_util.value_check(value,
-                         datetime(1800, 1, 1, 0, 0, 0),
-                         datetime(2050, 1, 1, 0, 0, 0),
-                        'meta_release')
+                              datetime(1800, 1, 1, 0, 0, 0),
+                              datetime(2050, 1, 1, 0, 0, 0),
+                              'meta_release')
         self._meta_release = value
 
     @property
@@ -251,9 +253,9 @@ class Plane(caom_object.AbstractCaomEntity):
     def data_release(self, value):
         caom_util.type_check(value, datetime, 'data_release')
         caom_util.value_check(value,
-                         datetime(1800, 1, 1, 0, 0, 0),
-                         datetime(2050, 1, 1, 0, 0, 0),
-                        'data_release')
+                              datetime(1800, 1, 1, 0, 0, 0),
+                              datetime(2050, 1, 1, 0, 0, 0),
+                              'data_release')
         self._data_release = value
 
     @property
@@ -331,8 +333,8 @@ class Plane(caom_object.AbstractCaomEntity):
         caom_util.type_check(value, DataQuality, 'quality')
         self._quality = value
 
-    #@property
-    #def observable(self):
+    # @property
+    # def observable(self):
     #    """ """
     #    return self._observable
 
@@ -436,13 +438,13 @@ class PlaneURI(caom_object.CaomObject):
         observation_uri : the uri of the observation
         product_id : ID of the product
         """
-        caom_util.type_check(observation_uri, observation.ObservationURI, "observation_uri",
-                        override=False)
+        caom_util.type_check(observation_uri, ObservationURI, "observation_uri",
+                             override=False)
         caom_util.type_check(product_id, str, "observation_uri", override=False)
         caom_util.validate_path_component(cls, "product_id", product_id)
 
         path = urlsplit(observation_uri.uri).path
-        uri = SplitResult(observation.ObservationURI._SCHEME, "", path + "/" +
+        uri = SplitResult(ObservationURI._SCHEME, "", path + "/" +
                           product_id, "", "").geturl()
         return cls(uri)
 
@@ -458,7 +460,7 @@ class PlaneURI(caom_object.CaomObject):
         caom_util.type_check(value, str, "uri", override=False)
         tmp = urlsplit(value)
 
-        if tmp.scheme != observation.ObservationURI._SCHEME:
+        if tmp.scheme != ObservationURI._SCHEME:
             raise ValueError("{} doesn't have an allowed scheme".format(value))
         if tmp.geturl() != value:
             raise ValueError("Failed to parse uri correctly: {}".format(value))
@@ -471,8 +473,7 @@ class PlaneURI(caom_object.CaomObject):
 
         self._product_id = product_id
         self._observation_uri = \
-            observation.ObservationURI.get_observation_uri(collection,
-                                                           observation_id)
+            ObservationURI.get_observation_uri(collection, observation_id)
         self._uri = value
 
     @property
@@ -637,7 +638,7 @@ class Provenance(caom_object.CaomObject):
         self.last_executed = last_executed
 
         self._keywords = set()
-        self._inputs = caom_util.TypedSet((PlaneURI), )
+        self._inputs = caom_util.TypedSet(PlaneURI, )
 
     # Properties
 
@@ -1094,4 +1095,3 @@ class Time(caom_object.CaomObject):
     def exposure(self, value):
         caom_util.type_check(value, float, 'exposure')
         self._exposure = value
-
