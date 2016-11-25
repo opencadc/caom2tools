@@ -69,9 +69,9 @@
 
 """ Defines ObservationReader class """
 
+import os
 import uuid
 
-import pkg_resources
 from lxml import etree
 
 import artifact
@@ -83,7 +83,7 @@ import plane
 import shape
 import wcs
 
-DATA_PKG = 'caom2.data'
+DATA_PKG = 'data'
 
 CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
 CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
@@ -99,6 +99,8 @@ CAOM22 = "{%s}" % CAOM22_NAMESPACE
 
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 XSI = "{%s}" % XSI_NAMESPACE
+
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 __all__ = ['ObservationReader', 'ObservationWriter', 'ObservationParsingException']
 
@@ -117,8 +119,10 @@ class ObservationReader(object):
         self._validate = valididate
 
         if self._validate:
-            caom20_schema_path = pkg_resources.resource_filename(
-                DATA_PKG, CAOM20_SCHEMA_FILE)
+            # caom20_schema_path = pkg_resources.resource_filename(
+            #     DATA_PKG, CAOM20_SCHEMA_FILE)
+            caom20_schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
+                                              CAOM20_SCHEMA_FILE)
 
             parser = etree.XMLParser(remove_blank_text=True)
             xsd = etree.parse(caom20_schema_path, parser)
@@ -1039,7 +1043,7 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            return plane.EnergyTransition(
+            return wcs.EnergyTransition(
                 self._get_child_text("species", el, ns, True),
                 self._get_child_text("transition", el, ns, True))
 
@@ -1399,8 +1403,10 @@ class ObservationWriter(object):
                 schema_file = CAOM21_SCHEMA_FILE
             else:
                 schema_file = CAOM22_SCHEMA_FILE
-            schema_path = pkg_resources.resource_filename(
-                DATA_PKG, schema_file)
+            schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
+                                       schema_file)
+            # schema_path = pkg_resources.resource_filename(
+            #     DATA_PKG, schema_file)
             xmlschema_doc = etree.parse(schema_path)
             self._xmlschema = etree.XMLSchema(xmlschema_doc)
 

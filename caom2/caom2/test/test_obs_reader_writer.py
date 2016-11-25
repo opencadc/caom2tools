@@ -73,7 +73,6 @@ import StringIO
 import os
 import unittest
 
-import pkg_resources
 from lxml import etree
 from xml_compare import xml_compare
 
@@ -81,6 +80,8 @@ import caom_test_instances
 from .. import obs_reader_writer
 from .. import observation
 from .. import wcs
+
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def minimal_simple(depth, bounds_is_circle, version):
@@ -827,38 +828,18 @@ class TestObservationReaderWriter(unittest.TestCase):
 
 class TestRoundTrip(unittest.TestCase):
 
-    TEST_PACKAGE = 'caom2.test'
-    TEST_DATA_PACKAGE = 'caom2.test.data'
-    TEST_DATA_DIR = 'data'
-    # XML_FILE_SOURCE_DIR = '/tmp/caom2-round-trip-test'
-    # XML_FILE_DEST_DIR = '/tmp/caom2-round-trip-test/caom2'
-
-    # def make_test_dir(self):
-    #     try:
-    #         os.makedirs(TestRoundTrip.XML_FILE_SOURCE_DIR)
-    #     except OSError as exception:
-    #         if exception.errno != errno.EEXIST:
-    #             raise
-    #
-    # def copy_files(self):
-    #     file_list = pkg_resources.resource_listdir("caom2.test", "data")
-    #     for filename in file_list:
-    #         if filename.endswith(".xml"):
-    #             the_file = pkg_resources.resource_stream("caom2.test.data", filename)
-    #             shutil.copy(the_file.name, TestRoundTrip.XML_FILE_SOURCE_DIR)
+    TEST_DATA = 'data'
 
     def init(self):
         pass
 
     def get_file_list(self):
-        file_list = pkg_resources.resource_listdir(TestRoundTrip.TEST_PACKAGE,
-                                                   TestRoundTrip.TEST_DATA_DIR)
-        return [f for f in file_list if f.endswith('.xml')]
+        return [f for f in os.listdir(THIS_DIR + "/" + TestRoundTrip.TEST_DATA)
+                if f.endswith('.xml')]
 
     def do_test(self, reader, writer, filename):
-        source_file = pkg_resources.resource_stream(TestRoundTrip.TEST_DATA_PACKAGE, filename)
-        source_file_path = os.path.abspath(source_file.name)
-        print "test file: " + source_file_path
+        source_file_path = os.path.join(THIS_DIR + "/" +
+                                        TestRoundTrip.TEST_DATA + "/" + filename)
         source_xml_fp = open(source_file_path, 'r')
         obs = reader.read(source_file_path)
         source_xml_fp.close()
@@ -898,5 +879,5 @@ class TestRoundTrip(unittest.TestCase):
                 else:
                     self.do_test(reader, writer20, filename)
 
-        except Exception as e:
+        except Exception:
             raise
