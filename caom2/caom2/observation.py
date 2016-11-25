@@ -69,30 +69,60 @@
 
 """definition of the  caom2.Observation object."""
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 from datetime import datetime
 from urlparse import SplitResult
 from urlparse import urlsplit
 
-import caom_object
-import caom_util
 from enum import Enum
-import plane
-import shape
+from . import caom_object
+from . import caom_util
+# from . import plane
+from .plane import Plane
+from . import shape
 
-ObservationIntentType = Enum('ObservationIntentType',
-                             CALIBRATION="calibration",
-                             SCIENCE="science")
+# ObservationIntentType = Enum('ObservationIntentType',
+#                              CALIBRATION="calibration",
+#                              SCIENCE="science")
 
-Status = Enum('Status',
-              FAIL="fail")
+# Status = Enum('Status',
+#               FAIL="fail")
 
-TargetType = Enum('TargetType',
-                  FIELD="field",
-                  OBJECT="object")
+# TargetType = Enum('TargetType',
+#                   FIELD="field",
+#                   OBJECT="object")
 
-__all__ = ['Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
+__all__ = ['ObservationIntentType', 'Status', 'TargetType',
+           'Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
            'CompositeObservation', 'Environment', 'Instrument', 'Proposal',
            'Requirements', 'Target', 'TargetPosition', 'Telescope']
+
+
+class ObservationIntentType(Enum):
+    """
+    CALIBRATION: "calibration"
+    SCIENCE: "science"
+    """
+    CALIBRATION = "calibration"
+    SCIENCE = "science"
+
+
+class Status(Enum):
+    """
+    FAIL: "fail"
+    """
+    FAIL = "fail"
+
+
+class TargetType(Enum):
+    """
+    FIELD: "field",
+    OBJECT: "object"
+    """
+    FIELD = "field"
+    OBJECT = "object"
 
 
 class Observation(caom_object.AbstractCaomEntity):
@@ -191,7 +221,7 @@ class Observation(caom_object.AbstractCaomEntity):
         self.requirements = requirements
         self.meta_release = meta_release
         if planes is None:
-            planes = caom_util.TypedOrderedDict(plane.Plane,)
+            planes = caom_util.TypedOrderedDict(Plane,)
         self.planes = planes
 
     # Properties

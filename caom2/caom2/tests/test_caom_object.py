@@ -67,31 +67,41 @@
 #***********************************************************************
 #
 
-""" Defines TestPart class """
+""" Defines TestCaom2IdGenerator class """
+
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import unittest
 
-from .. import artifact
+from .. import caom_object
 from .. import chunk
 from .. import part
+from .. import plane
+from .. import artifact
+from .. import observation
 
 
-class TestPart(unittest.TestCase):
+class TestCaom2IdGenerator(unittest.TestCase):
 
-    def test_init(self):
-
-        self.assertRaises(TypeError, part.Part, long(1))
-
-        test_part = part.Part("partName")
-        self.assertEquals("partName", test_part.name, "Part name")
-        self.assertIsNone(test_part.product_type)
-        self.assertTrue(len(test_part.chunks) == 0)
-
-        test_part.product_type = artifact.ProductType.SCIENCE
-        self.assertEqual(artifact.ProductType.SCIENCE, test_part.product_type)
+    def test_all(self):
+        #Not much for now. Just to make sure that all the clients work
+        test_entity = caom_object.AbstractCaomEntity()
+        print(test_entity._id, test_entity._last_modified)
+        test_artifact = artifact.Artifact("caom2:/blah/blah",
+                                          chunk.ProductType.SCIENCE,
+                                          chunk.ReleaseType.DATA)
+        print(test_artifact._id, test_artifact._last_modified)
 
         test_chunk = chunk.Chunk()
-        test_chunk.naxis = 5
-        test_part.chunks.append(test_chunk)
-        self.assertTrue(len(test_part.chunks) == 1)
-        self.assertEqual(test_chunk, test_part.chunks.pop())
+        print(test_chunk._id, test_chunk._last_modified)
+
+        algorithm = observation.Algorithm("myAlg")
+        test_observation = observation.Observation("colect", "obs", algorithm)
+        print(test_observation._id, test_observation._last_modified)
+
+        test_part = part.Part("part")
+        print(test_part._id, test_part._last_modified)
+
+        test_plane = plane.Plane("prodid")
+        print(test_plane._id, test_plane._last_modified)

@@ -69,12 +69,16 @@
 
 """ Defines TestPlane class """
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import unittest
 from datetime import datetime
 
 from .. import artifact
 from .. import observation
 from .. import plane
+from .. import chunk
 from .. import wcs
 
 
@@ -186,14 +190,14 @@ class TestPlane(unittest.TestCase):
         self.assertIsNone(test_plane.polarization, "Default polarization")
 
         test_artifact1 = artifact.Artifact("caom:GEMINI/222/333",
-                                           artifact.ProductType.SCIENCE,
+                                           chunk.ProductType.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:GEMINI/222/333"] = test_artifact1
         self.assertEquals(1, len(test_plane.artifacts), "Artifacts")
         self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
 
         test_artifact2 = artifact.Artifact("caom:CFHT/55/66",
-                                           artifact.ProductType.SCIENCE,
+                                           chunk.ProductType.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:CFHT/55/66"] = test_artifact2
         self.assertEquals(2, len(test_plane.artifacts), "Artifacts")
@@ -202,7 +206,7 @@ class TestPlane(unittest.TestCase):
 
         #try to append a duplicate artifact
         test_artifact3 = artifact.Artifact("caom:GEMINI/222/333",
-                                           artifact.ProductType.SCIENCE,
+                                           chunk.ProductType.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:GEMINI/222/333"] = test_artifact3
         self.assertEquals(2, len(test_plane.artifacts), "Artifacts")

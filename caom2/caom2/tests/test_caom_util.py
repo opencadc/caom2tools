@@ -67,13 +67,17 @@
 #***********************************************************************
 #
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import unittest
 import uuid
 
 from .. import artifact
+from .. import caom_util
+from .. import chunk
 from .. import part
 from .. import plane
-from .. import caom_util
 
 
 class TestCaomUtil(unittest.TestCase):
@@ -213,8 +217,8 @@ class TestCaomUtil(unittest.TestCase):
         # test validation and constructor with an empty dictionary
         test_plane10 = plane.Plane('key10')
         test_artifact66 = artifact.Artifact('caom:CFHT/55/66',
-                                            artifact.ProductType.SCIENCE,
-                                            artifact.ReleaseType.DATA)
+                                            chunk.ProductType.SCIENCE,
+                                            chunk.ReleaseType.DATA)
         test_part10 = part.Part("10")
         test_plane_uri = plane.PlaneURI('caom:CFHT/55/66')
         my_dict_plane = caom_util.TypedOrderedDict(plane.Plane,)

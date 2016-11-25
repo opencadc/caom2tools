@@ -69,6 +69,9 @@
 
 """ Defines TestObservationReaderWriter class """
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import StringIO
 import os
 import unittest
@@ -123,7 +126,6 @@ def complete_composite(depth, bounds_is_circle, version):
 class TestObservationReaderWriter(unittest.TestCase):
 
     def test_invalid_long_id(self):
-        print "Test Invalid long id "
         simple_observation = minimal_simple(1, False, 20)
         writer = obs_reader_writer.ObservationWriter(
             False, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
@@ -143,7 +145,6 @@ class TestObservationReaderWriter(unittest.TestCase):
             pass
 
     def test_invalid_uuid(self):
-        print "Test Invalid UUID id"
         simple_observation = minimal_simple(1, False, 21)
         writer = obs_reader_writer.ObservationWriter(False, False)  # default writer is 2.1
         output = StringIO.StringIO()
@@ -164,7 +165,7 @@ class TestObservationReaderWriter(unittest.TestCase):
     def test_minimal_simple(self):
         for version in (20, 21):
             for i in range(1, 6):
-                print "Test Minimal Simple {} version {}".format(i, version)
+                print("Test Minimal Simple {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
                 simple_observation = minimal_simple(i, True, version)
                 # write empty elements
@@ -181,7 +182,7 @@ class TestObservationReaderWriter(unittest.TestCase):
     def test_complete_simple(self):
         for version in (20, 21, 22):
             for i in range(1, 6):
-                print "Test Complete Simple {} version {}".format(i, version)
+                print("Test Complete Simple {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
                 simple_observation = complete_simple(i, True, version)
                 # write empty elements
@@ -198,7 +199,7 @@ class TestObservationReaderWriter(unittest.TestCase):
     def test_minimal_composite(self):
         for version in (20, 21, 22):
             for i in range(1, 6):
-                print "Test Minimal Composite {} version {}".format(i, version)
+                print("Test Minimal Composite {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
                 composite_observation = minimal_composite(i, True, version)
                 # write empty elements
@@ -215,7 +216,7 @@ class TestObservationReaderWriter(unittest.TestCase):
     def test_complete_composite(self):
         for version in (20, 21, 22):
             for i in range(1, 6):
-                print "Test Complete Composite {} version {}".format(i, version)
+                print("Test Complete Composite {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
                 composite_observation = complete_composite(i, True, version)
                 # write empty elements
@@ -858,7 +859,7 @@ class TestRoundTrip(unittest.TestCase):
     # test/data/*.xml files can be used in this test.
 
     def test_round_trip(self):
-        print "Test Round Trip"
+        print("Test Round Trip")
 
         try:
             self.init()

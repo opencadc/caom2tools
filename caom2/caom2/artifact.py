@@ -71,29 +71,27 @@
 
 """
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 from urlparse import urlparse
 
-import caom_object
-import caom_util
-import part
 from enum import Enum
+from . import caom_object
+from . import caom_util
+from . import chunk
+from . import part
 
-ProductType = Enum('ProductType',
-                   SCIENCE="science",
-                   CALIBRATION="calibration",
-                   PREVIEW="preview",
-                   INFO="info",
-                   NOISE="noise",
-                   WEIGHT="weight",
-                   AUXILIARY="auxiliary",
-                   THUMBNAIL="thumbnail",
-                   )
+__all__ = ['ReleaseType', 'Artifact']
 
-ReleaseType = Enum('ReleaseType',
-                   DATA="data",
-                   META="meta")
 
-__all__ = ['Artifact']
+class ReleaseType(Enum):
+    """"
+    DATA: "data"
+    META: "meta"
+    """
+    DATA = "data"
+    META = "meta"
 
 
 class Artifact(caom_object.AbstractCaomEntity):
@@ -181,7 +179,7 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        caom_util.type_check(value, ProductType, "product_type", False)
+        caom_util.type_check(value, chunk.ProductType, "product_type", False)
         self._product_type = value
 
     @property

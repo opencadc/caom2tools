@@ -69,62 +69,155 @@
 
 """defines the caom2.Plane class"""
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 from datetime import datetime
 from urlparse import SplitResult
 from urlparse import urlsplit
 
-import artifact
-import caom_object
-import caom_util
-import observation
-import shape
-import wcs
 from enum import Enum
+from . import artifact
+from . import caom_object
+from . import caom_util
+# from . import observation
+from .observation import ObservationURI
+from . import shape
+from . import wcs
 
-CalibrationLevel = Enum('CalibrationLevel',
-                        RAW_INSTRUMENT=0,
-                        RAW_STANDARD=1,
-                        CALIBRATED=2,
-                        PRODUCT=3)
+# CalibrationLevel = Enum('CalibrationLevel',
+#                         RAW_INSTRUMENT=0,
+#                         RAW_STANDARD=1,
+#                         CALIBRATED=2,
+#                         PRODUCT=3)
 
-DataProductType = Enum('DataProductType',
-                       IMAGE="image",
-                       CATALOG="catalog",
-                       CUBE="cube",
-                       EVENTLIST="eventlist",
-                       SPECTRUM="spectrum",
-                       TIMESERIES="timeseries",
-                       VISIBILITY="visibility")
+# DataProductType = Enum('DataProductType',
+#                        IMAGE="image",
+#                        CATALOG="catalog",
+#                        CUBE="cube",
+#                        EVENTLIST="eventlist",
+#                        SPECTRUM="spectrum",
+#                        TIMESERIES="timeseries",
+#                        VISIBILITY="visibility")
 
-EnergyBand = Enum('EnergyBand',
-                  EUV="EUV",
-                  GAMMARAY="Gamma-ray",
-                  INFRARED="Infrared",
-                  MILLIMETER="Millimeter",
-                  OPTICAL="Optical",
-                  RADIO="Radio",
-                  UV="UV",
-                  XRAY="X-ray")
+# EnergyBand = Enum('EnergyBand',
+#                   EUV="EUV",
+#                   GAMMARAY="Gamma-ray",
+#                   INFRARED="Infrared",
+#                   MILLIMETER="Millimeter",
+#                   OPTICAL="Optical",
+#                   RADIO="Radio",
+#                   UV="UV",
+#                   XRAY="X-ray")
 
-PolarizationState = Enum('PolarizationState',
-                         I="I",
-                         Q="Q",
-                         U="U",
-                         V="V",
-                         LL="LL",
-                         LR="LR",
-                         RL="RL",
-                         RR="RR",
-                         XX="XX",
-                         XY="XY",
-                         YX="YX",
-                         YY="YY")
+# PolarizationState = Enum('PolarizationState',
+#                          I="I",
+#                          Q="Q",
+#                          U="U",
+#                          V="V",
+#                          LL="LL",
+#                          LR="LR",
+#                          RL="RL",
+#                          RR="RR",
+#                          XX="XX",
+#                          XY="XY",
+#                          YX="YX",
+#                          YY="YY")
 
-Quality = Enum('Quality',
-               JUNK="junk")
+# Quality = Enum('Quality',
+#                JUNK="junk")
 
-__all__ = ['Plane', 'PlaneURI', 'DataQuality', 'Metrics', 'Provenance',
-           'Position', 'Energy', 'Polarization', 'Time']
+__all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand', "PolarizationState", "Quality",
+           'Plane', 'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 'Energy',
+           'Polarization', 'Time']
+
+
+class CalibrationLevel(Enum):
+    """
+    RAW_INSTRUMENT: 0
+    RAW_STANDARD: 1
+    CALIBRATED: 2
+    PRODUCT: 3
+    """
+    RAW_INSTRUMENT = 0
+    RAW_STANDARD = 1
+    CALIBRATED = 2
+    PRODUCT = 3
+
+
+class DataProductType(Enum):
+    """
+    IMAGE: "image"
+    CATALOG: "catalog"
+    CUBE: "cube"
+    EVENTLIST: "eventlist"
+    SPECTRUM: "spectrum"
+    TIMESERIES: "timeseries"
+    VISIBILITY: "visibility"
+    """
+    IMAGE = "image"
+    CATALOG = "catalog"
+    CUBE = "cube"
+    EVENTLIST = "eventlist"
+    SPECTRUM = "spectrum"
+    TIMESERIES = "timeseries"
+    VISIBILITY = "visibility"
+
+
+class EnergyBand(Enum):
+    """
+    GAMMARAY: "Gamma-ray"
+    INFRARED: "Infrared"
+    MILLIMETER: "Millimeter"
+    OPTICAL: "Optical"
+    RADIO: "Radio"
+    UV: "UV"
+    XRAY: "X-ray"
+    """
+    EUV = "EUV"
+    GAMMARAY = "Gamma-ray"
+    INFRARED = "Infrared"
+    MILLIMETER = "Millimeter"
+    OPTICAL = "Optical"
+    RADIO = "Radio"
+    UV = "UV"
+    XRAY = "X-ray"
+
+
+class PolarizationState(Enum):
+    """
+    I: "I"
+    Q: "Q"
+    U: "U"
+    V: "V"
+    LL: "LL"
+    LR: "LR"
+    RL: "RL"
+    RR: "RR"
+    XX: "XX"
+    XY: "XY"
+    YX: "YX"
+    YY: "YY"
+    """
+    I = "I"
+    Q = "Q"
+    U = "U"
+    V = "V"
+    LL = "LL"
+    LR = "LR"
+    RL = "RL"
+    RR = "RR"
+    XX = "XX"
+    XY = "XY"
+    YX = "YX"
+    YY = "YY"
+
+
+class Quality(Enum):
+    """
+    JUNK: junk
+    """
+    JUNK = "junk"
 
 
 class Plane(caom_object.AbstractCaomEntity):
@@ -438,13 +531,13 @@ class PlaneURI(caom_object.CaomObject):
         observation_uri : the uri of the observation
         product_id : ID of the product
         """
-        caom_util.type_check(observation_uri, observation.ObservationURI, "observation_uri",
+        caom_util.type_check(observation_uri, ObservationURI, "observation_uri",
                              override=False)
         caom_util.type_check(product_id, str, "observation_uri", override=False)
         caom_util.validate_path_component(cls, "product_id", product_id)
 
         path = urlsplit(observation_uri.uri).path
-        uri = SplitResult(observation.ObservationURI._SCHEME, "", path + "/" +
+        uri = SplitResult(ObservationURI._SCHEME, "", path + "/" +
                           product_id, "", "").geturl()
         return cls(uri)
 
@@ -460,7 +553,7 @@ class PlaneURI(caom_object.CaomObject):
         caom_util.type_check(value, str, "uri", override=False)
         tmp = urlsplit(value)
 
-        if tmp.scheme != observation.ObservationURI._SCHEME:
+        if tmp.scheme != ObservationURI._SCHEME:
             raise ValueError("{} doesn't have an allowed scheme".format(value))
         if tmp.geturl() != value:
             raise ValueError("Failed to parse uri correctly: {}".format(value))
@@ -473,7 +566,7 @@ class PlaneURI(caom_object.CaomObject):
 
         self._product_id = product_id
         self._observation_uri = \
-            observation.ObservationURI.get_observation_uri(collection, observation_id)
+            ObservationURI.get_observation_uri(collection, observation_id)
         self._uri = value
 
     @property

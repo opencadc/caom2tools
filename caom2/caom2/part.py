@@ -70,10 +70,12 @@
 """Defines the caom2.Part class which describes
 the caom2_Observation_Plane_Artifact_Part object."""
 
-import artifact
-import caom_object
-import caom_util
-import chunk
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from . import caom_object
+from . import caom_util
+from . import chunk
 
 __all__ = ['Part']
 
@@ -116,7 +118,7 @@ class Part(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        caom_util.type_check(value, artifact.ProductType, "product_type")
+        caom_util.type_check(value, chunk.ProductType, "product_type")
         self._product_type = value
 
     @property

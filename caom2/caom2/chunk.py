@@ -71,12 +71,48 @@
 
 """
 
-import artifact
-import caom_object
-import caom_util
-import wcs
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-__all__ = ['Chunk', 'ObservableAxis', 'SpatialWCS', 'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
+from enum import Enum
+from . import caom_object
+from . import caom_util
+from . import wcs
+
+
+class ProductType(Enum):
+    """
+    SCIENCE: "science"
+    CALIBRATION: "calibration"
+    PREVIEW: "preview"
+    INFO: "info"
+    NOISE: "noise"
+    WEIGHT: "weight"
+    AUXILIARY: "auxiliary"
+    THUMBNAIL: "thumbnail"
+    """
+    SCIENCE = "science"
+    CALIBRATION = "calibration"
+    PREVIEW = "preview"
+    INFO = "info"
+    NOISE = "noise"
+    WEIGHT = "weight"
+    AUXILIARY = "auxiliary"
+    THUMBNAIL = "thumbnail"
+
+# ProductType = Enum('ProductType',
+#                    SCIENCE="science",
+#                    CALIBRATION="calibration",
+#                    PREVIEW="preview",
+#                    INFO="info",
+#                    NOISE="noise",
+#                    WEIGHT="weight",
+#                    AUXILIARY="auxiliary",
+#                    THUMBNAIL="thumbnail",
+#                    )
+
+__all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',
+           'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
 
 
 class Chunk(caom_object.AbstractCaomEntity):
@@ -137,7 +173,7 @@ class Chunk(caom_object.AbstractCaomEntity):
         eg.  Chunk.product_type = ProductType('SCIENCE')
 
         Allowed values:
-        """ + str(artifact.ProductType.names()) + """
+        """ + str(ProductType.names()) + """
 
         """
 
@@ -145,10 +181,10 @@ class Chunk(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        if isinstance(value, str) and value in artifact.ProductType.names():
+        if isinstance(value, str) and value in ProductType.names():
             # be helpful
-            value = artifact.ProductType('value')
-        caom_util.type_check(value, artifact.ProductType, 'product_type')
+            value = ProductType('value')
+        caom_util.type_check(value, ProductType, 'product_type')
         self._product_type = value
 
     @property

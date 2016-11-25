@@ -69,12 +69,44 @@
 
 """ Defines TestChunk class """
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import unittest
 
-from .. import artifact
 from .. import chunk
-from .. import plane
 from .. import wcs
+
+
+class TestEnums(unittest.TestCase):
+
+    def test_all(self):
+        # test for invalid value
+        self.assertEqual(chunk.ProductType.get("no_such_string"), None)
+        self.assertRaises(AttributeError, chunk.ProductType.get, None)
+        self.assertRaises(AttributeError, chunk.ProductType.get, 1)
+
+        # test that we can get the object for each enum by name
+        self.assertEqual(chunk.ProductType.SCIENCE.name, "SCIENCE")
+        self.assertEqual(chunk.ProductType.get(
+            chunk.ProductType.SCIENCE.name).name, "SCIENCE")
+        self.assertEqual(chunk.ProductType.get(
+            'SCIENCE').value, "science")
+        self.assertEqual(chunk.ProductType.get(
+            chunk.ProductType.SCIENCE.name).value, "science")
+        self.assertEqual(chunk.ProductType.getByValue(
+            chunk.ProductType.SCIENCE.value).value, "science")
+        self.assertEqual(chunk.ProductType.getByValue(
+            chunk.ProductType.SCIENCE.value).name, "SCIENCE")
+
+        self.assertEqual(chunk.ProductType.SCIENCE.value, "science")
+        self.assertEqual(chunk.ProductType.CALIBRATION.value, "calibration")
+        self.assertEqual(chunk.ProductType.PREVIEW.value, "preview")
+        self.assertEqual(chunk.ProductType.INFO.value, "info")
+        self.assertEqual(chunk.ProductType.NOISE.value, "noise")
+        self.assertEqual(chunk.ProductType.WEIGHT.value, "weight")
+        self.assertEqual(chunk.ProductType.AUXILIARY.value, "auxiliary")
+        self.assertEqual(chunk.ProductType.THUMBNAIL.value, "thumbnail")
 
 
 class TestChunk(unittest.TestCase):
@@ -112,8 +144,8 @@ class TestChunk(unittest.TestCase):
             test_chunk.time = float(1.0)
             test_chunk.polarization = float(1.0)
 
-        test_chunk.product_type = artifact.ProductType.SCIENCE
-        self.assertEqual(artifact.ProductType.SCIENCE, test_chunk.product_type)
+        test_chunk.product_type = chunk.ProductType.SCIENCE
+        self.assertEqual(chunk.ProductType.SCIENCE, test_chunk.product_type)
 
         test_chunk.naxis = int(5)
         self.assertEqual(int(5), test_chunk.naxis)

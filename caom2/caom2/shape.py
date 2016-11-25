@@ -67,16 +67,25 @@
 # ***********************************************************************
 #
 
-import caom_object
-import caom_util
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 from enum import Enum
+from . import caom_object
+from . import caom_util
 
-SegmentType = Enum('SegmentType',
-                   CLOSE=0,
-                   LINE=1,
-                   MOVE=2)
+__all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point', 'Polygon', 'Vertex']
 
-__all__ = ['Box', 'Circle', 'Interval', 'Point', 'Polygon', 'Vertex']
+
+class SegmentType(Enum):
+    """
+    CLOSE: 0
+    LINE: 1
+    MOVE: 2
+    """
+    CLOSE = 0
+    LINE = 1
+    MOVE = 2
 
 
 class Box(caom_object.CaomObject):

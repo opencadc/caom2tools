@@ -67,6 +67,9 @@
 #***********************************************************************
 #
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import unittest
 
 from .. import wcs
@@ -267,7 +270,6 @@ class TestCoordError(unittest.TestCase):
         self.assertRaises(TypeError, wcs.CoordError, float(1.0), int(1))
 
         error = wcs.CoordError(float(1), float(2))
-        print error.rnder
         self.assertIsNotNone(error)
         self.assertEqual(error.syser, float(1))
         self.assertEqual(error.rnder, float(2))

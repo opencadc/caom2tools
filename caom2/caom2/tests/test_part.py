@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# ***********************************************************************
-# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+#***********************************************************************
+#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -64,94 +64,36 @@
 #
 #  $Revision: 4 $
 #
-# ***********************************************************************
+#***********************************************************************
 #
+
+""" Defines TestPart class """
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import inspect
-import random
-import time
-import uuid
-from datetime import datetime
+import unittest
 
-from . import caom_util
+from .. import chunk
+from .. import part
 
 
-__all__ = ['CaomObject', 'AbstractCaomEntity']
+class TestPart(unittest.TestCase):
 
+    def test_init(self):
 
-class CaomObject(object):
-    """
-    setup all objects with the same generic equality, str and repr methods
-    """
+        self.assertRaises(TypeError, part.Part, long(1))
 
-    def __init__(self):
-        pass
+        test_part = part.Part("partName")
+        self.assertEquals("partName", test_part.name, "Part name")
+        self.assertIsNone(test_part.product_type)
+        self.assertTrue(len(test_part.chunks) == 0)
 
-    def __str__(self):
-        args = inspect.getargspec(self.__init__).args[1:]
-        class_name = self.__class__.__name__
-        return "\n".join(["{}.{} : {}".
-                         format(class_name, arg, getattr(self, arg, None))
-                         for arg in args])
+        test_part.product_type = chunk.ProductType.SCIENCE
+        self.assertEqual(chunk.ProductType.SCIENCE, test_part.product_type)
 
-    def __eq__(self, other):
-        if type(other) == type(self):
-            return self.__dict__ == other.__dict__
-        else:
-            return False
-
-    def __repr__(self):
-        args = inspect.getargspec(self.__init__).args[1:]
-        class_name = ""
-        if self.__class__.__module__ != '__main__':
-            class_name += self.__class__.__module__ + "."
-        class_name += self.__class__.__name__
-        pading = " " * (len(class_name) + 1)
-        return class_name + "(" + (
-            ",\n" + pading).join(
-            ["%s=%r" % (arg, getattr(self, arg, None)
-                        ) for arg in args]) + ")"
-
-
-class AbstractCaomEntity(CaomObject):
-    """Class that defines the persistence unique ID and last mod date """
-
-    def __init__(self, fulluuid=False):
-        self._id = AbstractCaomEntity._gen_id(fulluuid)
-        self._last_modified = AbstractCaomEntity._gen_last_modified()
-
-    @classmethod
-    def _gen_id(cls, fulluuid=False):
-        """Generate a 128 but UUID by default. For backwards compatibility
-        allow creation of a 64 bit UUID using a rand number for the
-        lower 64 bits. First two bytes of the random number are generated
-        with the random and the last 6 bytes from the current time
-        in microseconds.
-
-        return: UUID
-        """
-
-        if fulluuid:
-            return uuid.uuid4()
-        else:
-            vmrandom = random.randint(-int(0x7fff), int(0x7fff)) << 8 * 6
-            randtime = int(round(time.time() * 1000000))
-            randtime = randtime & 0xffffffffffff
-            rand = vmrandom | randtime
-            if rand & 0x8000000000000000:
-                rand = 0x1000000000000000 + rand
-            return caom_util.long2uuid(rand)
-
-    @classmethod
-    def _gen_last_modified(cls):
-        """Generate a datetime with 3 digit microsecond precision.
-
-        return: datatime
-            IVOA date format to millisecond precision.
-        """
-        now = datetime.now()
-        return datetime(now.year, now.month, now.day, now.hour, now.minute, \
-                        now.second, long(str(now.microsecond)[:-3] + '000'))
+        test_chunk = chunk.Chunk()
+        test_chunk.naxis = 5
+        test_part.chunks.append(test_chunk)
+        self.assertTrue(len(test_part.chunks) == 1)
+        self.assertEqual(test_chunk, test_part.chunks.pop())

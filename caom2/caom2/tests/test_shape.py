@@ -67,38 +67,37 @@
 #***********************************************************************
 #
 
-""" Defines TestCaom2IdGenerator class """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import unittest
 
-from .. import artifact
-from .. import caom_object
-from .. import chunk
-from .. import observation
-from .. import part
-from .. import plane
+from .. import shape
 
 
-class TestCaom2IdGenerator(unittest.TestCase):
+class TestEnums(unittest.TestCase):
 
     def test_all(self):
-        #Not much for now. Just to make sure that all the clients work
-        test_entity = caom_object.AbstractCaomEntity()
-        print test_entity._id, test_entity._last_modified
-        test_artifact = artifact.Artifact("caom2:/blah/blah",
-                                          artifact.ProductType.SCIENCE,
-                                          artifact.ReleaseType.DATA)
-        print test_artifact._id, test_artifact._last_modified
+        # test for invalid value
+        self.assertEqual(shape.SegmentType.get("foo"), None)
+        self.assertRaises(AttributeError, shape.SegmentType.get, None)
+        self.assertRaises(AttributeError, shape.SegmentType.get, 999)
 
-        test_chunk = chunk.Chunk()
-        print test_chunk._id, test_chunk._last_modified
+        self.assertEqual(shape.SegmentType.CLOSE.value, 0)
+        self.assertEqual(shape.SegmentType.LINE.value, 1)
+        self.assertEqual(shape.SegmentType.MOVE.value, 2)
 
-        algorithm = observation.Algorithm("myAlg")
-        test_observation = observation.Observation("colect", "obs", algorithm)
-        print test_observation._id, test_observation._last_modified
 
-        test_part = part.Part("part")
-        print test_part._id, test_part._last_modified
+class TestPoint(unittest.TestCase):
 
-        test_plane = plane.Plane("prodid")
-        print test_plane._id, test_plane._last_modified
+    def test_all(self):
+
+        self.assertRaises(TypeError, shape.Point, None, None)
+        self.assertRaises(TypeError, shape.Point, None, 1.0)
+        self.assertRaises(TypeError, shape.Point, 1.0, None)
+        self.assertRaises(TypeError, shape.Point, "string", int(1))
+        self.assertRaises(TypeError, shape.Point, int(1), "string")
+
+        point = shape.Point(1.0, 2.0)
+        self.assertEqual(point.cval1, 1.0)
+        self.assertEqual(point.cval2, 2.0)

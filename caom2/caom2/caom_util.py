@@ -76,6 +76,9 @@ the first point of use could be implemented.  This helps the data
 engineer get the correct meta data more quickly.
 """
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import collections
 import struct
 import sys

@@ -69,6 +69,9 @@
 
 """ Defines Caom2TestInstances class """
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import collections
 from datetime import datetime
 
@@ -280,7 +283,7 @@ class Caom2TestInstances(object):
     def get_artifacts(self):
         artifacts = collections.OrderedDict()
         _artifact = artifact.Artifact("ad:foo/bar1",
-                                      artifact.ProductType.SCIENCE,
+                                      chunk.ProductType.SCIENCE,
                                       artifact.ReleaseType.META)
         if self.complete:
             _artifact.content_type = "application/fits"
@@ -295,7 +298,7 @@ class Caom2TestInstances(object):
         parts = collections.OrderedDict()
         _part = part.Part("x")
         if self.complete:
-            _part.product_type = artifact.ProductType.SCIENCE
+            _part.product_type = chunk.ProductType.SCIENCE
         if self.depth > 4:
             for chunk in self.get_chunks():
                 _part.chunks.append(chunk)
@@ -306,7 +309,7 @@ class Caom2TestInstances(object):
         chunks = caom_util.TypedList(chunk.Chunk, )
         _chunk = chunk.Chunk()
         if self.complete:
-            _chunk.product_type = artifact.ProductType.SCIENCE
+            _chunk.product_type = chunk.ProductType.SCIENCE
             _chunk.naxis = 5
             _chunk.observable_axis = 1
             _chunk.position_axis_1 = 1

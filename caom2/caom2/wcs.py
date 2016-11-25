@@ -67,9 +67,11 @@
 # ***********************************************************************
 #
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-import caom_object
-import caom_util
+from . import caom_object
+from . import caom_util
 
 __all__ = ['Axis', 'Coord2D', 'CoordAxis1D', 'CoordAxis2D', 'CoordBounds1D', 'CoordBounds2D', 'CoordCircle2D',
            'CoordError', 'CoordFunction1D', 'CoordFunction2D', 'CoordPolygon2D', 'CoordRange1D', 'CoordRange2D',

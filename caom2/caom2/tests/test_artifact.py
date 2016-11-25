@@ -67,34 +67,100 @@
 #***********************************************************************
 #
 
-import unittest
+""" Defines TestArtifact class """
 
-from .. import shape
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import unittest
+from urlparse import urlparse
+
+from .. import artifact
+from .. import part
 
 
 class TestEnums(unittest.TestCase):
 
     def test_all(self):
-        # test for invalid value
-        self.assertEqual(shape.SegmentType.get("foo"), None)
-        self.assertRaises(AttributeError, shape.SegmentType.get, None)
-        self.assertRaises(AttributeError, shape.SegmentType.get, 999)
-
-        self.assertEqual(shape.SegmentType.CLOSE.value, 0)
-        self.assertEqual(shape.SegmentType.LINE.value, 1)
-        self.assertEqual(shape.SegmentType.MOVE.value, 2)
+        self.assertEqual(artifact.ReleaseType.DATA.value, "data")
+        self.assertEqual(artifact.ReleaseType.META.value, "meta")
 
 
-class TestPoint(unittest.TestCase):
+class TestArtifact(unittest.TestCase):
 
     def test_all(self):
+        with self.assertRaises(TypeError):
+            test_artifact = artifact.Artifact("caom:GEMINI/12345")
+        with self.assertRaises(TypeError):
+            test_artifact = artifact.Artifact("caom:GEMINI/12345",
+                                              artifact.ReleaseType('META'),
+                                              artifact.ProductType('THUMBNAIL'))
+        with self.assertRaises(TypeError):
+            test_artifact = artifact.Artifact("caom:GEMINI/12345",
+                                              artifact.ProductType('THUMBNAIL'),
+                                              None)
+        with self.assertRaises(TypeError):
+            test_artifact = artifact.Artifact("caom:GEMINI/12345",
+                                              None,
+                                              artifact.ReleaseType('META'))
 
-        self.assertRaises(TypeError, shape.Point, None, None)
-        self.assertRaises(TypeError, shape.Point, None, 1.0)
-        self.assertRaises(TypeError, shape.Point, 1.0, None)
-        self.assertRaises(TypeError, shape.Point, "string", int(1))
-        self.assertRaises(TypeError, shape.Point, int(1), "string")
+        test_artifact = artifact.Artifact("caom:GEMINI/12345",
+                                          artifact.ProductType('THUMBNAIL'),
+                                          artifact.ReleaseType('META'))
+        urlparse("caom:GEMINI/12345")
+        self.assertEqual("caom:GEMINI/12345",
+                         test_artifact.uri,
+                         "Artifact URI")
+        self.assertEqual(artifact.ProductType('THUMBNAIL'),
+                         test_artifact.product_type,
+                         "Artifact ProductType")
+        self.assertEqual(artifact.ReleaseType('META'),
+                         test_artifact.release_type,
+                         "Artifact ReleaseType")
 
-        point = shape.Point(1.0, 2.0)
-        self.assertEqual(point.cval1, 1.0)
-        self.assertEqual(point.cval2, 2.0)
+        self.assertIsNone(test_artifact.content_type, "Default content type")
+        test_artifact.content_type = "FITS"
+        self.assertEquals("FITS", test_artifact.content_type, "Content type")
+        self.assertIsNone(test_artifact.content_length,
+                          "Default content length")
+        test_artifact.content_length = 23L
+        self.assertEquals(23L, test_artifact.content_length, "Content length")
+        test_artifact.product_type = artifact.ProductType.PREVIEW
+        self.assertEquals(artifact.ProductType.PREVIEW,
+                          test_artifact.product_type,
+                          "Product type")
+        self.assertEquals(0, len(test_artifact.parts), "Default parts")
+        part1 = part.Part("1")
+        test_artifact.parts["1"] = part1
+        self.assertEquals(1, len(test_artifact.parts), "Parts")
+        self.assertTrue("1" in test_artifact.parts.keys())
+        #add same part again
+        part2 = part.Part("2")
+        test_artifact.parts["2"] = part2
+        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertTrue("1" in test_artifact.parts.keys())
+        self.assertTrue("2" in test_artifact.parts.keys())
+
+        # try to add duplicates
+        part3 = part1
+        test_artifact.parts["1"] = part3
+        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertTrue("1" in test_artifact.parts.keys())
+        self.assertTrue("2" in test_artifact.parts.keys())
+
+        part4 = part.Part("1")
+        test_artifact.parts["1"] = part4
+        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertTrue("1" in test_artifact.parts.keys())
+        self.assertTrue("2" in test_artifact.parts.keys())
+
+        #incorrect URI
+        exception = False
+        try:
+            test_artifact = artifact.Artifact(
+                "caom://#observation://? something#//",
+                artifact.ReleaseType('META'),
+                artifact.ProductType('THUMBNAIL'))
+        except ValueError:
+            exception = True
+        self.assertTrue(exception, "Missing exception")

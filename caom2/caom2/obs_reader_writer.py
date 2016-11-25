@@ -69,19 +69,22 @@
 
 """ Defines ObservationReader class """
 
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import os
 import uuid
 
 from lxml import etree
 
-import artifact
-import caom_util
-import chunk
-import observation
-import part
-import plane
-import shape
-import wcs
+from . import artifact
+from . import caom_util
+from . import chunk
+from . import observation
+from . import part
+from . import plane
+from . import shape
+from . import wcs
 
 DATA_PKG = 'data'
 
@@ -1160,7 +1163,7 @@ class ObservationReader(object):
                     self._get_child_text("productType", chunk_element, ns, False)
                 if product_type:
                     _chunk.product_type = \
-                        artifact.ProductType.getByValue(product_type)
+                        chunk.ProductType.getByValue(product_type)
                 _chunk.naxis = \
                     self._get_child_text_as_int("naxis", chunk_element, ns, False)
                 _chunk.observable_axis = \
@@ -1214,7 +1217,7 @@ class ObservationReader(object):
                     self._get_child_text("productType", part_element, ns, False)
                 if product_type:
                     _part.product_type = \
-                        artifact.ProductType.getByValue(product_type)
+                        chunk.ProductType.getByValue(product_type)
                 self._add_chunks(_part.chunks, part_element, ns)
                 self._set_entity_attributes(part_element, ns, _part)
                 parts[_part.name] = _part
@@ -1238,15 +1241,15 @@ class ObservationReader(object):
 
                 product_type = self._get_child_text("productType", artifact_element, ns, False)
                 if product_type is None:
-                    product_type = artifact.ProductType.SCIENCE
-                    print "Using default Artifact.productType value {0}".format(str(artifact.ProductType.SCIENCE))
+                    product_type = chunk.ProductType.SCIENCE
+                    print("Using default Artifact.productType value {0}".format(str(chunk.ProductType.SCIENCE)))
                 else:
-                    product_type = artifact.ProductType.getByValue(product_type)
+                    product_type = chunk.ProductType.getByValue(product_type)
 
                 release_type = self._get_child_text("releaseType", artifact_element, ns, False)
                 if release_type is None:
                     release_type = artifact.ReleaseType.DATA
-                    print "Using default Artifact.releaseType value {0}".format(str(artifact.ReleaseType.DATA))
+                    print("Using default Artifact.releaseType value {0}".format(str(artifact.ReleaseType.DATA)))
                 else:
                     release_type = artifact.ReleaseType.getByValue(release_type)
 
@@ -1647,14 +1650,14 @@ class ObservationWriter(object):
             self._add_enity_attributes(_artifact, artifact_element)
             self._add_element("uri", _artifact.uri, artifact_element)
             if self._output_version > 21:
-                self._add_element("productType", artifact.ProductType.get(
+                self._add_element("productType", chunk.ProductType.get(
                     str(_artifact.product_type)).value, artifact_element)
                 self._add_element("releaseType", artifact.ReleaseType.get(
                     str(_artifact.release_type)).value, artifact_element)
             self._add_element("contentType", _artifact.content_type, artifact_element)
             self._add_element("contentLength", _artifact.content_length, artifact_element)
             if self._output_version < 22:
-                self._add_element("productType", artifact.ProductType.get(
+                self._add_element("productType", chunk.ProductType.get(
                     str(_artifact.product_type)).value, artifact_element)
             self._add_parts_element(_artifact.parts, artifact_element)
 
@@ -1668,7 +1671,7 @@ class ObservationWriter(object):
             self._add_enity_attributes(_part, part_element)
             self._add_element("name", _part.name, part_element)
             if _part.product_type is not None:
-                self._add_element("productType", artifact.ProductType.get(
+                self._add_element("productType", chunk.ProductType.get(
                     str(_part.product_type)).value, part_element)
             self._add_chunks_element(_part.chunks, part_element)
 
@@ -1682,7 +1685,7 @@ class ObservationWriter(object):
             self._add_enity_attributes(_chunk, chunk_element)
             if _chunk.product_type is not None:
                 self._add_element("productType",
-                                  artifact.ProductType.get(str(_chunk.product_type)).value,
+                                  chunk.ProductType.get(str(_chunk.product_type)).value,
                                   chunk_element)
             self._add_element("naxis", _chunk.naxis, chunk_element)
             self._add_element("observableAxis", _chunk.observable_axis,
