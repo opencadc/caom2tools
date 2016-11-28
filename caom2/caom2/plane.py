@@ -77,13 +77,14 @@ from urlparse import SplitResult
 from urlparse import urlsplit
 
 from enum import Enum
-from . import artifact
-from . import caom_object
+
 from . import caom_util
-# from . import observation
-from .observation import ObservationURI
 from . import shape
 from . import wcs
+from .artifact import Artifact
+from .common import AbstractCaomEntity
+from .common import CaomObject
+from .common import ObservationURI
 
 # CalibrationLevel = Enum('CalibrationLevel',
 #                         RAW_INSTRUMENT=0,
@@ -220,7 +221,7 @@ class Quality(Enum):
     JUNK = "junk"
 
 
-class Plane(caom_object.AbstractCaomEntity):
+class Plane(AbstractCaomEntity):
     """ Plane class """
 
     def __init__(self, product_id,
@@ -241,7 +242,7 @@ class Plane(caom_object.AbstractCaomEntity):
         super(Plane, self).__init__()
         self.product_id = product_id
         if artifacts is None:
-            artifacts = caom_util.TypedOrderedDict(artifact.Artifact, )
+            artifacts = caom_util.TypedOrderedDict(Artifact, )
         self.artifacts = artifacts
 
         self.meta_release = meta_release
@@ -272,13 +273,13 @@ class Plane(caom_object.AbstractCaomEntity):
         observation, that is stored in this plane.
 
         eg: '1234567p'
-        type: str
+        type: unicode
         """
         return self._product_id
 
     @product_id.setter
     def product_id(self, value):
-        caom_util.type_check(value, str, 'product_id', override=False)
+        caom_util.type_check(value, unicode, 'product_id', override=False)
         self._product_id = value
 
     @property
@@ -375,7 +376,7 @@ class Plane(caom_object.AbstractCaomEntity):
         is converted to an integer during storage.
 
         eg. Plane.calibration_level = "RAW_STANDARD"
-        type: str
+        type: unicode
 
         Must be one of CalibrationLevel.names()
 
@@ -497,7 +498,7 @@ class Plane(caom_object.AbstractCaomEntity):
             "has not been implemented in this module")
 
 
-class PlaneURI(caom_object.CaomObject):
+class PlaneURI(CaomObject):
     """ Plane URI """
 
     def __init__(self, uri):
@@ -533,7 +534,7 @@ class PlaneURI(caom_object.CaomObject):
         """
         caom_util.type_check(observation_uri, ObservationURI, "observation_uri",
                              override=False)
-        caom_util.type_check(product_id, str, "observation_uri", override=False)
+        caom_util.type_check(product_id, unicode, "observation_uri", override=False)
         caom_util.validate_path_component(cls, "product_id", product_id)
 
         path = urlsplit(observation_uri.uri).path
@@ -550,7 +551,7 @@ class PlaneURI(caom_object.CaomObject):
     @uri.setter
     def uri(self, value):
 
-        caom_util.type_check(value, str, "uri", override=False)
+        caom_util.type_check(value, unicode, "uri", override=False)
         tmp = urlsplit(value)
 
         if tmp.scheme != ObservationURI._SCHEME:
@@ -581,7 +582,7 @@ class PlaneURI(caom_object.CaomObject):
         return self._observation_uri
 
 
-class DataQuality(caom_object.CaomObject):
+class DataQuality(CaomObject):
     """ DataQuality """
 
     def __init__(self, flag):
@@ -604,7 +605,7 @@ class DataQuality(caom_object.CaomObject):
         self._flag = value
 
 
-class Metrics(caom_object.CaomObject):
+class Metrics(CaomObject):
     """ Metrics """
 
     def __init__(self):
@@ -702,7 +703,7 @@ class Metrics(caom_object.CaomObject):
         self._mag_limit = value
 
 
-class Provenance(caom_object.CaomObject):
+class Provenance(CaomObject):
     """ Provenance """
 
     def __init__(self, name,
@@ -720,7 +721,7 @@ class Provenance(caom_object.CaomObject):
         """
 
         assert name is not None, "No name provided"
-        assert isinstance(name, str), "name is not a str: {0}".format(name)
+        assert isinstance(name, unicode), "name is not a unicode: {0}".format(name)
         self._name = name
 
         self.version = version
@@ -747,7 +748,7 @@ class Provenance(caom_object.CaomObject):
 
     @version.setter
     def version(self, value):
-        caom_util.type_check(value, str, 'version')
+        caom_util.type_check(value, unicode, 'version')
         self._version = value
 
     @property
@@ -757,7 +758,7 @@ class Provenance(caom_object.CaomObject):
 
     @project.setter
     def project(self, value):
-        caom_util.type_check(value, str, 'project')
+        caom_util.type_check(value, unicode, 'project')
         self._project = value
 
     @property
@@ -767,7 +768,7 @@ class Provenance(caom_object.CaomObject):
 
     @producer.setter
     def producer(self, value):
-        caom_util.type_check(value, str, 'producer')
+        caom_util.type_check(value, unicode, 'producer')
         self._producer = value
 
     @property
@@ -777,7 +778,7 @@ class Provenance(caom_object.CaomObject):
 
     @run_id.setter
     def run_id(self, value):
-        caom_util.type_check(value, str, 'run_id')
+        caom_util.type_check(value, unicode, 'run_id')
         self._run_id = value
 
     @property
@@ -787,7 +788,7 @@ class Provenance(caom_object.CaomObject):
 
     @reference.setter
     def reference(self, value):
-        caom_util.type_check(value, str, 'version')
+        caom_util.type_check(value, unicode, 'version')
         if value is not None:
             tmp = urlsplit(value)
             assert tmp.geturl() == value, "Invalid URI: " + value
@@ -805,7 +806,7 @@ class Provenance(caom_object.CaomObject):
 
     @property
     def keywords(self):
-        """ Set of keywords as str"""
+        """ Set of keywords as unicode"""
         return self._keywords
 
     @property
@@ -814,7 +815,7 @@ class Provenance(caom_object.CaomObject):
         return self._inputs
 
 
-class Position(caom_object.CaomObject):
+class Position(CaomObject):
     """ Position """
 
     def __init__(self, bounds=None,
@@ -898,7 +899,7 @@ class Position(caom_object.CaomObject):
         self._time_dependent = value
 
 
-class Energy(caom_object.CaomObject):
+class Energy(CaomObject):
     """ Energy """
 
     def __init__(self):
@@ -986,8 +987,8 @@ class Energy(caom_object.CaomObject):
     @bandpass_name.setter
     def bandpass_name(self, value):
         if value is not None:
-            assert isinstance(value, str), (
-                "bandpass name is not str: {0}".format(value))
+            assert isinstance(value, unicode), (
+                "bandpass name is not unicode: {0}".format(value))
         self._bandpass_name = value
 
     @property
@@ -1015,7 +1016,7 @@ class Energy(caom_object.CaomObject):
         self._transition = value
 
 
-class Polarization(caom_object.CaomObject):
+class Polarization(CaomObject):
     """ Polarization """
 
     def __init__(self,
@@ -1047,7 +1048,7 @@ class Polarization(caom_object.CaomObject):
         self._dimension = value
 
 
-class Time(caom_object.CaomObject):
+class Time(CaomObject):
     """ Time """
 
     def __init__(self,

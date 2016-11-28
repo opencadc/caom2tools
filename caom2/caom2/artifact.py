@@ -77,10 +77,11 @@ from __future__ import (absolute_import, division, print_function,
 from urlparse import urlparse
 
 from enum import Enum
-from . import caom_object
+
 from . import caom_util
-from . import chunk
-from . import part
+from .chunk import ProductType
+from .common import AbstractCaomEntity
+from .part import Part
 
 __all__ = ['ReleaseType', 'Artifact']
 
@@ -94,7 +95,7 @@ class ReleaseType(Enum):
     META = "meta"
 
 
-class Artifact(caom_object.AbstractCaomEntity):
+class Artifact(AbstractCaomEntity):
     """Contains the meta data assocaited with a file.
 
     - location of the file (uri)
@@ -130,7 +131,7 @@ class Artifact(caom_object.AbstractCaomEntity):
         self.content_type = content_type
         self.content_length = content_length
         if parts is None:
-            parts = caom_util.TypedOrderedDict(part.Part,)
+            parts = caom_util.TypedOrderedDict(Part,)
         self.parts = parts
 
     def _key(self):
@@ -161,7 +162,7 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @uri.setter
     def uri(self, value):
-        caom_util.type_check(value, str, 'uri')
+        caom_util.type_check(value, unicode, 'uri')
         uri = urlparse(value).geturl()
         caom_util.value_check(value, None, None, 'uri', override=uri)
         self._uri = uri
@@ -179,7 +180,7 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        caom_util.type_check(value, chunk.ProductType, "product_type", False)
+        caom_util.type_check(value, ProductType, "product_type", False)
         self._product_type = value
 
     @property
@@ -208,7 +209,7 @@ class Artifact(caom_object.AbstractCaomEntity):
 
     @content_type.setter
     def content_type(self, value):
-        caom_util.type_check(value, str, "content_type")
+        caom_util.type_check(value, unicode, "content_type")
         self._content_type = value
 
     @property

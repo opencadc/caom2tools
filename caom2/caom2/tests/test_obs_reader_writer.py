@@ -79,7 +79,7 @@ import unittest
 from lxml import etree
 from xml_compare import xml_compare
 
-import caom_test_instances
+from . import caom_test_instances
 from .. import obs_reader_writer
 from .. import observation
 from .. import wcs

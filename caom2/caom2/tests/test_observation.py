@@ -85,17 +85,26 @@ class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(observation.ObservationIntentType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, observation.ObservationIntentType.get, None)
-        self.assertRaises(AttributeError, observation.ObservationIntentType.get, 1)
+        with self.assertRaises(KeyError):
+            observation.ObservationIntentType["no_such_string"]
+        with self.assertRaises(ValueError):
+            observation.ObservationIntentType(None)
+        with self.assertRaises(ValueError):
+            observation.ObservationIntentType(1)
 
-        self.assertEqual(observation.Status.get("no_such_string"), None)
-        self.assertRaises(AttributeError, observation.Status.get, None)
-        self.assertRaises(AttributeError, observation.Status.get, 1)
+        with self.assertRaises(KeyError):
+            observation.Status["no_such_string"]
+        with self.assertRaises(ValueError):
+            observation.Status(None)
+        with self.assertRaises(ValueError):
+            observation.Status(1)
 
-        self.assertEqual(observation.TargetType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, observation.TargetType.get, None)
-        self.assertRaises(AttributeError, observation.TargetType.get, 1)
+        with self.assertRaises(KeyError):
+            observation.TargetType["no_such_string"]
+        with self.assertRaises(ValueError):
+            observation.TargetType(None)
+        with self.assertRaises(ValueError):
+            observation.TargetType(1)
 
         # test that we can get the object for each enum by name
         self.assertEqual(observation.ObservationIntentType.CALIBRATION.value, "calibration")
@@ -211,34 +220,6 @@ class TestObservation(unittest.TestCase):
             target_position=obs.target_position)
 
 
-class TestObservationURI(unittest.TestCase):
-
-    def test_all(self):
-        obs_uri = observation.ObservationURI("caom:GEMINI/12345")
-        self.assertEqual("caom:GEMINI/12345", obs_uri.uri, "Observation URI")
-        self.assertEqual("GEMINI", obs_uri.collection, "Collection")
-        self.assertEqual("12345", obs_uri.observation_id, "Observation ID")
-
-        obs_uri = observation.ObservationURI.get_observation_uri("CFHT", "654321")
-        self.assertEqual("caom:CFHT/654321", obs_uri.uri, "Observation URI")
-        self.assertEqual("CFHT", obs_uri.collection, "Collection")
-        self.assertEqual("654321", obs_uri.observation_id, "Observation ID")
-
-        exception = False
-        try:
-            obs_uri = observation.ObservationURI.get_observation_uri(None, "123")
-        except TypeError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-        exception = False
-        try:
-            obs_uri = observation.ObservationURI.get_observation_uri("GEMINI", None)
-        except TypeError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-
 class TestSimpleObservation(unittest.TestCase):
 
     def test_all(self):
@@ -319,12 +300,12 @@ class TestSimpleObservation(unittest.TestCase):
 
     # Test the complete constructor
     def test_complete_init(self):
-        collection = str("CFHT")
-        observation_id = str("543210")
+        collection = "CFHT"
+        observation_id = "543210"
         algorithm = observation.SimpleObservation._ALGORITHM
         sequence_number = int(3)
         intent = observation.ObservationIntentType.SCIENCE
-        obs_type = str("foo")
+        obs_type = "foo"
         proposal = observation.Proposal("123")
         telescope = observation.Telescope("TEL")
         instrument = observation.Instrument("INST")
@@ -491,12 +472,12 @@ class TestCompositeObservation(unittest.TestCase):
 
     # Test the complete constructor
     def test_complete_init(self):
-        collection = str("CFHT")
-        observation_id = str("543210")
-        algorithm = str("algo")
+        collection = "CFHT"
+        observation_id = "543210"
+        algorithm = "algo"
         sequence_number = int(3)
         intent = observation.ObservationIntentType.SCIENCE
-        obs_type = str("foo")
+        obs_type = "foo"
         proposal = observation.Proposal("123")
         telescope = observation.Telescope("TEL")
         instrument = observation.Instrument("INST")
@@ -659,7 +640,7 @@ class TestTarget(unittest.TestCase):
         self.assertEqual("myTarget", target.name, "target name")
 
         target.target_type = observation.TargetType.FIELD
-        self.assertEqual(observation.TargetType.FIELD, target.target_type, "target type")
+        self.assertEqual(observation.TargetType.FIELD.name, target.target_type.name, "target type")
 
         self.assertEqual(0, len(target.keywords), "Default number of keywords")
         target.keywords.add("optical")

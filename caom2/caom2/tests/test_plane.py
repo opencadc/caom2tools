@@ -86,25 +86,40 @@ class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(plane.CalibrationLevel.get("no_such_string"), None)
-        self.assertRaises(AttributeError, plane.CalibrationLevel.get, None)
-        self.assertRaises(AttributeError, plane.CalibrationLevel.get, 999)
+        with self.assertRaises(ValueError):
+            plane.CalibrationLevel("no_such_string")
+        with self.assertRaises(ValueError):
+            plane.CalibrationLevel(None)
+        with self.assertRaises(ValueError):
+            plane.CalibrationLevel(999)
 
-        self.assertEqual(plane.DataProductType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, plane.DataProductType.get, None)
-        self.assertRaises(AttributeError, plane.DataProductType.get, 1)
+        with self.assertRaises(ValueError):
+            plane.DataProductType("no_such_string")
+        with self.assertRaises(ValueError):
+            plane.DataProductType(None)
+        with self.assertRaises(ValueError):
+            plane.DataProductType(1)
 
-        self.assertEqual(plane.EnergyBand.get("no_such_string"), None)
-        self.assertRaises(AttributeError, plane.EnergyBand.get, None)
-        self.assertRaises(AttributeError, plane.EnergyBand.get, 1)
+        with self.assertRaises(ValueError):
+            plane.EnergyBand("no_such_string")
+        with self.assertRaises(ValueError):
+            plane.EnergyBand(None)
+        with self.assertRaises(ValueError):
+            plane.EnergyBand(1)
 
-        self.assertEqual(plane.PolarizationState.get("no_such_string"), None)
-        self.assertRaises(AttributeError, plane.PolarizationState.get, None)
-        self.assertRaises(AttributeError, plane.PolarizationState.get, 1)
+        with self.assertRaises(ValueError):
+            plane.PolarizationState("no_such_string")
+        with self.assertRaises(ValueError):
+            plane.PolarizationState(None)
+        with self.assertRaises(ValueError):
+            plane.PolarizationState(1)
 
-        self.assertEqual(plane.Quality.get("no_such_string"), None)
-        self.assertRaises(AttributeError, plane.Quality.get, None)
-        self.assertRaises(AttributeError, plane.Quality.get, 1)
+        with self.assertRaises(ValueError):
+            plane.Quality("no_such_string")
+        with self.assertRaises(ValueError):
+            plane.Quality(None)
+        with self.assertRaises(ValueError):
+            plane.Quality(1)
 
         # test that we can get the object for each enum by name
         self.assertEqual(plane.CalibrationLevel.RAW_INSTRUMENT.value, 0)
@@ -120,29 +135,29 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(plane.DataProductType.TIMESERIES.value, "timeseries")
         self.assertEqual(plane.DataProductType.VISIBILITY.value, "visibility")
 
-        self.assertEqual(plane.EnergyBand.get('RADIO').value, "Radio")
-        self.assertEqual(plane.EnergyBand.get('MILLIMETER').value, "Millimeter")
-        self.assertEqual(plane.EnergyBand.get('INFRARED').value, "Infrared")
-        self.assertEqual(plane.EnergyBand.get('OPTICAL').value, "Optical")
-        self.assertEqual(plane.EnergyBand.get('UV').value, "UV")
-        self.assertEqual(plane.EnergyBand.get('EUV').value, "EUV")
-        self.assertEqual(plane.EnergyBand.get('XRAY').value, "X-ray")
-        self.assertEqual(plane.EnergyBand.get('GAMMARAY').value, "Gamma-ray")
+        self.assertEqual(plane.EnergyBand['RADIO'].value, "Radio")
+        self.assertEqual(plane.EnergyBand['MILLIMETER'].value, "Millimeter")
+        self.assertEqual(plane.EnergyBand['INFRARED'].value, "Infrared")
+        self.assertEqual(plane.EnergyBand['OPTICAL'].value, "Optical")
+        self.assertEqual(plane.EnergyBand['UV'].value, "UV")
+        self.assertEqual(plane.EnergyBand['EUV'].value, "EUV")
+        self.assertEqual(plane.EnergyBand['XRAY'].value, "X-ray")
+        self.assertEqual(plane.EnergyBand['GAMMARAY'].value, "Gamma-ray")
 
-        self.assertEqual(plane.PolarizationState.get('I').value, "I")
-        self.assertEqual(plane.PolarizationState.get('Q').value, "Q")
-        self.assertEqual(plane.PolarizationState.get('U').value, "U")
-        self.assertEqual(plane.PolarizationState.get('V').value, "V")
-        self.assertEqual(plane.PolarizationState.get('LL').value, "LL")
-        self.assertEqual(plane.PolarizationState.get('LR').value, "LR")
-        self.assertEqual(plane.PolarizationState.get('RL').value, "RL")
-        self.assertEqual(plane.PolarizationState.get('RR').value, "RR")
-        self.assertEqual(plane.PolarizationState.get('XX').value, "XX")
-        self.assertEqual(plane.PolarizationState.get('XY').value, "XY")
-        self.assertEqual(plane.PolarizationState.get('YX').value, "YX")
-        self.assertEqual(plane.PolarizationState.get('YY').value, "YY")
+        self.assertEqual(plane.PolarizationState['I'].value, "I")
+        self.assertEqual(plane.PolarizationState['Q'].value, "Q")
+        self.assertEqual(plane.PolarizationState['U'].value, "U")
+        self.assertEqual(plane.PolarizationState['V'].value, "V")
+        self.assertEqual(plane.PolarizationState['LL'].value, "LL")
+        self.assertEqual(plane.PolarizationState['LR'].value, "LR")
+        self.assertEqual(plane.PolarizationState['RL'].value, "RL")
+        self.assertEqual(plane.PolarizationState['RR'].value, "RR")
+        self.assertEqual(plane.PolarizationState['XX'].value, "XX")
+        self.assertEqual(plane.PolarizationState['XY'].value, "XY")
+        self.assertEqual(plane.PolarizationState['YX'].value, "YX")
+        self.assertEqual(plane.PolarizationState['YY'].value, "YY")
 
-        self.assertEqual(plane.Quality.get('JUNK').value, "junk")
+        self.assertEqual(plane.Quality['JUNK'].value, "junk")
 
 
 class TestPlane(unittest.TestCase):

@@ -82,22 +82,20 @@ class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(chunk.ProductType.get("no_such_string"), None)
-        self.assertRaises(AttributeError, chunk.ProductType.get, None)
-        self.assertRaises(AttributeError, chunk.ProductType.get, 1)
+        with self.assertRaises(ValueError):
+            chunk.ProductType("no_such_string")
+        with self.assertRaises(ValueError):
+            chunk.ProductType(None)
+        with self.assertRaises(ValueError):
+            chunk.ProductType(1)
 
         # test that we can get the object for each enum by name
         self.assertEqual(chunk.ProductType.SCIENCE.name, "SCIENCE")
-        self.assertEqual(chunk.ProductType.get(
-            chunk.ProductType.SCIENCE.name).name, "SCIENCE")
-        self.assertEqual(chunk.ProductType.get(
-            'SCIENCE').value, "science")
-        self.assertEqual(chunk.ProductType.get(
-            chunk.ProductType.SCIENCE.name).value, "science")
-        self.assertEqual(chunk.ProductType.getByValue(
-            chunk.ProductType.SCIENCE.value).value, "science")
-        self.assertEqual(chunk.ProductType.getByValue(
-            chunk.ProductType.SCIENCE.value).name, "SCIENCE")
+        self.assertEqual(chunk.ProductType[
+            chunk.ProductType.SCIENCE.name].name, "SCIENCE")
+        self.assertEqual(chunk.ProductType['SCIENCE'].value, "science")
+        self.assertEqual(chunk.ProductType[
+            chunk.ProductType.SCIENCE.name].value, "science")
 
         self.assertEqual(chunk.ProductType.SCIENCE.value, "science")
         self.assertEqual(chunk.ProductType.CALIBRATION.value, "calibration")
@@ -145,7 +143,7 @@ class TestChunk(unittest.TestCase):
             test_chunk.polarization = float(1.0)
 
         test_chunk.product_type = chunk.ProductType.SCIENCE
-        self.assertEqual(chunk.ProductType.SCIENCE, test_chunk.product_type)
+        self.assertEqual(chunk.ProductType.SCIENCE.name, test_chunk.product_type.name)
 
         test_chunk.naxis = int(5)
         self.assertEqual(int(5), test_chunk.naxis)
@@ -325,10 +323,10 @@ class TestTemporalWCS(unittest.TestCase):
         time.resolution = float(2.0)
         self.assertEqual(time.resolution, float(2.0))
 
-        time.timesys = str("timesys")
+        time.timesys = "timesys"
         self.assertEqual(time.timesys, "timesys")
 
-        time.trefpos = str("trefpos")
+        time.trefpos = "trefpos"
         self.assertEqual(time.trefpos, "trefpos")
 
         time.mjdref = float(3.0)

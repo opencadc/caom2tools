@@ -71,7 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from enum import Enum
-from . import caom_object
+from . import common
 from . import caom_util
 
 __all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point', 'Polygon', 'Vertex']
@@ -88,25 +88,25 @@ class SegmentType(Enum):
     MOVE = 2
 
 
-class Box(caom_object.CaomObject):
+class Box(common.CaomObject):
 
     def __init__(self):
         pass
 
 
-class Circle(caom_object.CaomObject):
+class Circle(common.CaomObject):
 
     def __init__(self):
         pass
 
 
-class Interval(caom_object.CaomObject):
+class Interval(common.CaomObject):
 
     def __init__(self):
         pass
 
 
-class Point(caom_object.CaomObject):
+class Point(common.CaomObject):
 
     def __init__(self, cval1, cval2):
 
@@ -138,13 +138,13 @@ class Point(caom_object.CaomObject):
         self._cval2 = value
 
 
-class Polygon(caom_object.CaomObject):
+class Polygon(common.CaomObject):
 
     def __init__(self):
         pass
 
 
-class Vertex(caom_object.CaomObject):
+class Vertex(common.CaomObject):
 
     def __init__(self):
         pass

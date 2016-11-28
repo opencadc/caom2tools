@@ -182,7 +182,7 @@ class ObservationReader(object):
         if child_element is None:
             return None
         else:
-            return child_element.text
+            return unicode(child_element.text)
 
     def _get_child_text_as_int(self, element_tag, parent, ns, required):
         child_element = self._get_child_element(element_tag, parent, ns, required)
@@ -288,7 +288,7 @@ class ObservationReader(object):
             target = observation.Target(self._get_child_text("name", el, ns, True))
             target_type = self._get_child_text("type", el, ns, False)
             if target_type:
-                target.target_type = observation.TargetType.getByValue(target_type)
+                target.target_type = observation.TargetType(target_type)
             target.standard = ("true" ==
                                self._get_child_text("standard", el, ns, False))
             target.redshift = (
@@ -341,7 +341,7 @@ class ObservationReader(object):
             return None
         else:
             flag = self._get_child_text("flag", el, ns, True)
-            requirements = observation.Requirements(observation.Status.getByValue(flag))
+            requirements = observation.Requirements(observation.Status(flag))
             return requirements
 
     def _get_telescope(self, element_tag, parent, ns, required):
@@ -464,7 +464,7 @@ class ObservationReader(object):
         el = self._get_child_element("inputs", parent, ns, False)
         if el is not None:
             for uri_element in el.iterchildren("{" + ns + "}planeURI"):
-                inputs.add(plane.PlaneURI(uri_element.text))
+                inputs.add(plane.PlaneURI(unicode(uri_element.text)))
 
             if not inputs:
                 error = "No planeURI element found in members"
@@ -551,7 +551,7 @@ class ObservationReader(object):
             return None
         else:
             flag = self._get_child_text("flag", el, ns, True)
-            data_quality = plane.DataQuality(plane.Quality.getByValue(flag))
+            data_quality = plane.DataQuality(plane.Quality(flag))
             return data_quality
 
     def _get_point(self, element_tag, parent, ns, required):
@@ -1163,7 +1163,7 @@ class ObservationReader(object):
                     self._get_child_text("productType", chunk_element, ns, False)
                 if product_type:
                     _chunk.product_type = \
-                        chunk.ProductType.getByValue(product_type)
+                        chunk.ProductType(product_type)
                 _chunk.naxis = \
                     self._get_child_text_as_int("naxis", chunk_element, ns, False)
                 _chunk.observable_axis = \
@@ -1217,7 +1217,7 @@ class ObservationReader(object):
                     self._get_child_text("productType", part_element, ns, False)
                 if product_type:
                     _part.product_type = \
-                        chunk.ProductType.getByValue(product_type)
+                        chunk.ProductType(product_type)
                 self._add_chunks(_part.chunks, part_element, ns)
                 self._set_entity_attributes(part_element, ns, _part)
                 parts[_part.name] = _part
@@ -1244,14 +1244,14 @@ class ObservationReader(object):
                     product_type = chunk.ProductType.SCIENCE
                     print("Using default Artifact.productType value {0}".format(str(chunk.ProductType.SCIENCE)))
                 else:
-                    product_type = chunk.ProductType.getByValue(product_type)
+                    product_type = chunk.ProductType(product_type)
 
                 release_type = self._get_child_text("releaseType", artifact_element, ns, False)
                 if release_type is None:
                     release_type = artifact.ReleaseType.DATA
                     print("Using default Artifact.releaseType value {0}".format(str(artifact.ReleaseType.DATA)))
                 else:
-                    release_type = artifact.ReleaseType.getByValue(release_type)
+                    release_type = artifact.ReleaseType(release_type)
 
                 _artifact = artifact.Artifact(uri, product_type, release_type)
                 _artifact.content_type = self._get_child_text("contentType", artifact_element, ns, False)
@@ -1286,12 +1286,12 @@ class ObservationReader(object):
                     self._get_child_text("dataProductType", plane_element, ns, False)
                 if data_product_type:
                     _plane.data_product_type = \
-                        plane.DataProductType.getByValue(data_product_type)
+                        plane.DataProductType(data_product_type)
                 calibration_level = \
                     self._get_child_text("calibrationLevel", plane_element, ns, False)
                 if calibration_level:
                     _plane.calibration_level = \
-                        plane.CalibrationLevel.getByValue(int(calibration_level))
+                        plane.CalibrationLevel(int(calibration_level))
                 _plane.provenance = \
                     self._get_provenance("provenance", plane_element, ns, False)
                 _plane.metrics = \
@@ -1321,9 +1321,9 @@ class ObservationReader(object):
             self._xmlschema.assertValid(doc)
         root = doc.getroot()
         ns = root.nsmap["caom2"]
-        collection = self._get_child_element("collection", root, ns, True).text
+        collection = unicode(self._get_child_element("collection", root, ns, True).text)
         observation_id = \
-            self._get_child_element("observationID", root, ns, True).text
+            unicode(self._get_child_element("observationID", root, ns, True).text)
         # Instantiate Algorithm
         algorithm = self._get_algorithm("algorithm", root, ns, True)
         # Instantiate Observation
@@ -1341,7 +1341,7 @@ class ObservationReader(object):
             self._get_child_text("type", root, ns, False)
         intent = self._get_child_text("intent", root, ns, False)
         if intent:
-            obs.intent = observation.ObservationIntentType.getByValue(intent)
+            obs.intent = observation.ObservationIntentType(intent)
         obs.meta_release = \
             self._get_meta_release("metaRelease", root, ns, False)
         obs.proposal = \
@@ -1435,7 +1435,7 @@ class ObservationWriter(object):
         self._add_element("type", obs.obs_type, obs_element)
         if obs.intent is not None:
             self._add_element(
-                "intent", observation.ObservationIntentType.get(str(obs.intent)).value, obs_element)
+                "intent",obs.intent.value, obs_element)
 
         self._add_proposal_element(obs.proposal, obs_element)
         self._add_target_element(obs.target, obs_element)
@@ -1491,8 +1491,7 @@ class ObservationWriter(object):
         element = self._get_caom_element("target", parent)
         self._add_element("name", target.name, element)
         if target.target_type is not None:
-            self._add_element(
-                "type", observation.TargetType.get(str(target.target_type)).value, element)
+            self._add_element("type", target.target_type.value, element)
         if target.standard is not None:
             self._add_element("standard", str(target.standard).lower(), element)
         self._add_element("redshift", target.redshift, element)
@@ -1519,7 +1518,7 @@ class ObservationWriter(object):
 
         element = self._get_caom_element("requirements", parent)
         self._add_element(
-            "flag", observation.Status.get(str(requirements.flag)).value, element)
+            "flag", requirements.flag.value, element)
 
     def _add_telescope_element(self, telescope, parent):
         if telescope is None:
@@ -1581,11 +1580,11 @@ class ObservationWriter(object):
                                        plane_element)
             if _plane.data_product_type is not None:
                 self._add_element("dataProductType",
-                                  plane.DataProductType.get(str(_plane.data_product_type)).value,
+                                  _plane.data_product_type.value,
                                   plane_element)
             if _plane.calibration_level is not None:
                 self._add_element("calibrationLevel",
-                                  plane.CalibrationLevel(str(_plane.calibration_level)).value,
+                                  _plane.calibration_level.value,
                                   plane_element)
             self._add_provenance_element(_plane.provenance, plane_element)
             self._add_metrics_element(_plane.metrics, plane_element)
@@ -1629,8 +1628,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("quality", parent)
-        self._add_element(
-            "flag", plane.Quality.get(str(quality.flag)).value, element)
+        self._add_element("flag", quality.flag.value, element)
 
     def _add_transition_element(self, transition, parent):
         if transition is None:
@@ -1650,15 +1648,12 @@ class ObservationWriter(object):
             self._add_enity_attributes(_artifact, artifact_element)
             self._add_element("uri", _artifact.uri, artifact_element)
             if self._output_version > 21:
-                self._add_element("productType", chunk.ProductType.get(
-                    str(_artifact.product_type)).value, artifact_element)
-                self._add_element("releaseType", artifact.ReleaseType.get(
-                    str(_artifact.release_type)).value, artifact_element)
+                self._add_element("productType", _artifact.product_type.value, artifact_element)
+                self._add_element("releaseType", _artifact.release_type.value, artifact_element)
             self._add_element("contentType", _artifact.content_type, artifact_element)
             self._add_element("contentLength", _artifact.content_length, artifact_element)
             if self._output_version < 22:
-                self._add_element("productType", chunk.ProductType.get(
-                    str(_artifact.product_type)).value, artifact_element)
+                self._add_element("productType", _artifact.product_type.value, artifact_element)
             self._add_parts_element(_artifact.parts, artifact_element)
 
     def _add_parts_element(self, parts, parent):
@@ -1671,8 +1666,7 @@ class ObservationWriter(object):
             self._add_enity_attributes(_part, part_element)
             self._add_element("name", _part.name, part_element)
             if _part.product_type is not None:
-                self._add_element("productType", chunk.ProductType.get(
-                    str(_part.product_type)).value, part_element)
+                self._add_element("productType", _part.product_type.value, part_element)
             self._add_chunks_element(_part.chunks, part_element)
 
     def _add_chunks_element(self, chunks, parent):
@@ -1685,7 +1679,7 @@ class ObservationWriter(object):
             self._add_enity_attributes(_chunk, chunk_element)
             if _chunk.product_type is not None:
                 self._add_element("productType",
-                                  chunk.ProductType.get(str(_chunk.product_type)).value,
+                                  _chunk.product_type.value,
                                   chunk_element)
             self._add_element("naxis", _chunk.naxis, chunk_element)
             self._add_element("observableAxis", _chunk.observable_axis,

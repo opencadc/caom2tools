@@ -75,7 +75,8 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from enum import Enum
-from . import caom_object
+from .common import AbstractCaomEntity
+from .common import CaomObject
 from . import caom_util
 from . import wcs
 
@@ -115,7 +116,7 @@ __all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',
            'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
 
 
-class Chunk(caom_object.AbstractCaomEntity):
+class Chunk(AbstractCaomEntity):
     """A caom2.Chunk object.  A chunk is a peice of file part.
 
     eg.  a column in a Table extension of a FITS file.
@@ -170,18 +171,18 @@ class Chunk(caom_object.AbstractCaomEntity):
     def product_type(self):
         """A word that describes the content of the chunk.
 
-        eg.  Chunk.product_type = ProductType('SCIENCE')
-
-        Allowed values:
-        """ + str(ProductType.names()) + """
-
+        eg.  Chunk.product_type = ProductType.SCIENCE
         """
+        # Allowed values:
+        # """ + str(ProductType.names()) + """
+        #
+        # """
 
         return self._product_type
 
     @product_type.setter
     def product_type(self, value):
-        if isinstance(value, str) and value in ProductType.names():
+        if isinstance(value, unicode) and value in ProductType.names():
             # be helpful
             value = ProductType('value')
         caom_util.type_check(value, ProductType, 'product_type')
@@ -394,7 +395,7 @@ class Chunk(caom_object.AbstractCaomEntity):
         self._polarization = value
 
 
-class ObservableAxis(caom_object.CaomObject):
+class ObservableAxis(CaomObject):
     """The slice through the data structure that provides the thing being
     described by this Axis.
 
@@ -468,7 +469,7 @@ class ObservableAxis(caom_object.CaomObject):
         self._independent = value
 
 
-class SpatialWCS(caom_object.CaomObject):
+class SpatialWCS(CaomObject):
     """this object contains the WCS information needed to convert an
     astronomical spatial location (ie. RA/DEC) into a pixel location
     in the image.
@@ -509,14 +510,14 @@ class SpatialWCS(caom_object.CaomObject):
 
         eg.  SpatialWCS.coordsys="ICRS"
 
-        type: str
+        type: unicode
 
         """
         return self._coordsys
 
     @coordsys.setter
     def coordsys(self, value):
-        caom_util.type_check(value, str, 'coordsys')
+        caom_util.type_check(value, unicode, 'coordsys')
         self._coordsys = value
 
     @property
@@ -554,7 +555,7 @@ class SpatialWCS(caom_object.CaomObject):
         self._resolution = value
 
 
-class SpectralWCS(caom_object.CaomObject):
+class SpectralWCS(CaomObject):
     """A transformation that maps pixel coordinates to spectral ones.
 
     Note that a 2D image has implicit 'spectral' (and temporal)
@@ -623,13 +624,13 @@ class SpectralWCS(caom_object.CaomObject):
 
         eg. BARYCENT
 
-        type: str
+        type: unicode
         """
         return self._specsys
 
     @specsys.setter
     def specsys(self, value):
-        caom_util.type_check(value, str, 'specsys', override=False)
+        caom_util.type_check(value, unicode, 'specsys', override=False)
         self._specsys = value
 
     @property
@@ -643,13 +644,13 @@ class SpectralWCS(caom_object.CaomObject):
 
         Nominally 'TOPOCENT'
 
-        type: str
+        type: unicode
         """
         return self._ssysobs
 
     @ssysobs.setter
     def ssysobs(self, value):
-        caom_util.type_check(value, str, 'ssysobs')
+        caom_util.type_check(value, unicode, 'ssysobs')
         self._ssysobs = value
 
     @property
@@ -663,7 +664,7 @@ class SpectralWCS(caom_object.CaomObject):
 
     @ssyssrc.setter
     def ssyssrc(self, value):
-        caom_util.type_check(value, str, 'ssyssrc')
+        caom_util.type_check(value, unicode, 'ssyssrc')
         self._ssyssrc = value
 
     @property
@@ -747,13 +748,13 @@ class SpectralWCS(caom_object.CaomObject):
         """string the represent the bandpass of the observation.
 
         eg. r'
-        type: str
+        type: unicode
         """
         return self._bandpass_name
 
     @bandpass_name.setter
     def bandpass_name(self, value):
-        caom_util.type_check(value, str, 'bandpass_name')
+        caom_util.type_check(value, unicode, 'bandpass_name')
         self._bandpass_name = value
 
     @property
@@ -787,7 +788,7 @@ class SpectralWCS(caom_object.CaomObject):
         self._resolving_power = value
 
 
-class TemporalWCS(caom_object.CaomObject):
+class TemporalWCS(CaomObject):
     """Describes the Time variation within the data.
 
     In the case of a single exposure, define the center of the first
@@ -827,13 +828,13 @@ class TemporalWCS(caom_object.CaomObject):
         """The time scale that you are using, almost alwasy UTC.
 
         eg.  timesys = "UTC"
-        type: str
+        type: unicode
         """
         return self._timesys
 
     @timesys.setter
     def timesys(self, value):
-        caom_util.type_check(value, str, 'timesys')
+        caom_util.type_check(value, unicode, 'timesys')
         self._timesys = value
 
     @property
@@ -843,13 +844,13 @@ class TemporalWCS(caom_object.CaomObject):
         light-time corrections have been applied.
 
         eg. trefpos = "TOPOCENTER"
-        type: str
+        type: unicode
         """
         return self._trefpos
 
     @trefpos.setter
     def trefpos(self, value):
-        caom_util.type_check(value, str, 'trefpos')
+        caom_util.type_check(value, unicode, 'trefpos')
         self._trefpos = value
 
     @property
@@ -916,7 +917,7 @@ class TemporalWCS(caom_object.CaomObject):
         self._resolution = value
 
 
-class PolarizationWCS(caom_object.CaomObject):
+class PolarizationWCS(CaomObject):
     """A WCS structure that describes the relation ship between a pixel
     location and the polarization value.
 

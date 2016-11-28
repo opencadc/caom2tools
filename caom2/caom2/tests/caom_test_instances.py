@@ -300,8 +300,8 @@ class Caom2TestInstances(object):
         if self.complete:
             _part.product_type = chunk.ProductType.SCIENCE
         if self.depth > 4:
-            for chunk in self.get_chunks():
-                _part.chunks.append(chunk)
+            for _chunk in self.get_chunks():
+                _part.chunks.append(_chunk)
         parts["x"] = _part
         return parts
 

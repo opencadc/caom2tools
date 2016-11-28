@@ -70,7 +70,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from . import caom_object
+from . import common
 from . import caom_util
 
 __all__ = ['Axis', 'Coord2D', 'CoordAxis1D', 'CoordAxis2D', 'CoordBounds1D', 'CoordBounds2D', 'CoordCircle2D',
@@ -78,7 +78,7 @@ __all__ = ['Axis', 'Coord2D', 'CoordAxis1D', 'CoordAxis2D', 'CoordBounds1D', 'Co
            'Dimension2D', 'EnergyTransition', 'RefCoord', 'Slice', 'ValueCoord2D']
 
 
-class Axis(caom_object.CaomObject):
+class Axis(common.CaomObject):
     """the Axis class holds the definition of the axis type and units"""
 
     def __init__(self, ctype, cunit=None):
@@ -91,14 +91,14 @@ class Axis(caom_object.CaomObject):
         """The Coordinate Type value for this axis.
 
         eg. DEC
-        type: str
+        type: unicode
 
         """
         return self._ctype
 
     @ctype.setter
     def ctype(self, value):
-        caom_util.type_check(value, str, 'ctype', override=False)
+        caom_util.type_check(value, unicode, 'ctype', override=False)
         self._ctype = value
 
     @property
@@ -106,18 +106,18 @@ class Axis(caom_object.CaomObject):
         """The unit of the coordinate that results after transform.
 
         eg. deg
-        type: str
+        type: unicode
 
         """
         return self._cunit
 
     @cunit.setter
     def cunit(self, value):
-        caom_util.type_check(value, str, 'cunit')
+        caom_util.type_check(value, unicode, 'cunit')
         self._cunit = value
 
 
-class Coord2D(caom_object.CaomObject):
+class Coord2D(common.CaomObject):
     """Represents the reference point.
 
     eg:  Coord2D(RefCoord(crpix1,crval1),RefCoord(crpix2,crval2))
@@ -154,7 +154,7 @@ class Coord2D(caom_object.CaomObject):
         self._coord2 = value
 
 
-class CoordAxis1D(caom_object.CaomObject):
+class CoordAxis1D(common.CaomObject):
     """Holds the metadata needed to transform a 1D pixel value into a
     World Coordinate value.
 
@@ -249,7 +249,7 @@ class CoordAxis1D(caom_object.CaomObject):
         self._function = value
 
 
-class CoordAxis2D(caom_object.CaomObject):
+class CoordAxis2D(common.CaomObject):
     """This object hold the metadata need to transform a 2D pixel
     array (say an image) into a World position, say RA/DEC
 
@@ -371,7 +371,7 @@ class CoordAxis2D(caom_object.CaomObject):
         self._function = value
 
 
-class CoordBounds1D(caom_object.CaomObject):
+class CoordBounds1D(common.CaomObject):
     """Contains the bounds for a 1D axis, a list of ranges
 
     """
@@ -401,7 +401,7 @@ class CoordBounds1D(caom_object.CaomObject):
         self._samples = value
 
 
-class CoordBounds2D(caom_object.CaomObject):
+class CoordBounds2D(common.CaomObject):
     """Contains the bounds for a 2D axis
 
     """
@@ -429,7 +429,7 @@ class CoordBounds2D(caom_object.CaomObject):
         self._bounds = value
 
 
-class CoordCircle2D(caom_object.CaomObject):
+class CoordCircle2D(common.CaomObject):
     """A circle expressed in both pixel and WCS value coordinates.
 
     These objects are used to map out the bounds of spatial WCS.
@@ -474,7 +474,7 @@ class CoordCircle2D(caom_object.CaomObject):
         self._radius = value
 
 
-class CoordError(caom_object.CaomObject):
+class CoordError(common.CaomObject):
     """Holds the systematic (syser) and random (rnder) error on a
     coordinate.
 
@@ -523,7 +523,7 @@ class CoordError(caom_object.CaomObject):
         self._rnder = value
 
 
-class CoordFunction1D(caom_object.CaomObject):
+class CoordFunction1D(common.CaomObject):
     """Defines a linear function that transforms from pixel to WCS
     values.
 
@@ -587,7 +587,7 @@ class CoordFunction1D(caom_object.CaomObject):
         self._ref_coord = value
 
 
-class CoordFunction2D(caom_object.CaomObject):
+class CoordFunction2D(common.CaomObject):
     """Describes the parameters needed for the standard CD matrix.
 
     defines a linear translation between pixel and WCS.
@@ -697,7 +697,7 @@ class CoordFunction2D(caom_object.CaomObject):
         self._cd22 = value
 
 
-class CoordPolygon2D(caom_object.CaomObject):
+class CoordPolygon2D(common.CaomObject):
     """A object to contain a TypeList ValueCoord2D vertices that are a
     polygon.  The vertices are given as ValueCoord2D objects, which are
     coordinate pairs.
@@ -733,7 +733,7 @@ class CoordPolygon2D(caom_object.CaomObject):
         self._vertices = value
 
 
-class CoordRange1D(caom_object.CaomObject):
+class CoordRange1D(common.CaomObject):
     """a CoordRange1D object contains the start and end of
      a range of values, expressed in both pixel and WCS units.
 
@@ -774,7 +774,7 @@ class CoordRange1D(caom_object.CaomObject):
         self._end = value
 
 
-class CoordRange2D(caom_object.CaomObject):
+class CoordRange2D(common.CaomObject):
     """A range (x1,y1) to (x2,y2) in two dimenstions.
 
     The range object should know the coordinate in both
@@ -813,7 +813,7 @@ class CoordRange2D(caom_object.CaomObject):
         self._end = value
 
 
-class Dimension2D(caom_object.CaomObject):
+class Dimension2D(common.CaomObject):
     """Hey, how big is this thing? What are its dimensions.  That's what
     Dimension2D will tell you.
 
@@ -858,7 +858,7 @@ class Dimension2D(caom_object.CaomObject):
         self._naxis2 = value
 
 
-class EnergyTransition(caom_object.CaomObject):
+class EnergyTransition(common.CaomObject):
     """ EnergyTransition """
 
     def __init__(self, species, transition):
@@ -869,8 +869,8 @@ class EnergyTransition(caom_object.CaomObject):
         species
         transition
         """
-        caom_util.type_check(species, str, "species", override=False)
-        caom_util.type_check(transition, str, "transition", override=False)
+        caom_util.type_check(species, unicode, "species", override=False)
+        caom_util.type_check(transition, unicode, "transition", override=False)
         self._species = species
         self._transition = transition
 
@@ -885,7 +885,7 @@ class EnergyTransition(caom_object.CaomObject):
         return self._transition
 
 
-class RefCoord(caom_object.CaomObject):
+class RefCoord(common.CaomObject):
     """A refernce coordinate object, maps pixel value to wcs value
 
     """
@@ -930,7 +930,7 @@ class RefCoord(caom_object.CaomObject):
         self._val = value
 
 
-class Slice(caom_object.CaomObject):
+class Slice(common.CaomObject):
     """defines a slice in a set of data contains values.
 
     The slice keeps track of the type/unit and values.
@@ -973,7 +973,7 @@ class Slice(caom_object.CaomObject):
         self._bin = value
 
 
-class ValueCoord2D(caom_object.CaomObject):
+class ValueCoord2D(common.CaomObject):
     """Represents the reference point."""
 
     def __init__(self, coord1, coord2):

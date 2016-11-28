@@ -75,11 +75,13 @@ import random
 import time
 import uuid
 from datetime import datetime
+from urlparse import SplitResult
+from urlparse import urlsplit
 
 from . import caom_util
 
 
-__all__ = ['CaomObject', 'AbstractCaomEntity']
+__all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI']
 
 
 class CaomObject(object):
@@ -134,16 +136,19 @@ class AbstractCaomEntity(CaomObject):
         return: UUID
         """
 
+        gen_id = uuid.uuid4()
         if fulluuid:
-            return uuid.uuid4()
+            return gen_id
         else:
-            vmrandom = random.randint(-int(0x7fff), int(0x7fff)) << 8 * 6
-            randtime = int(round(time.time() * 1000000))
-            randtime = randtime & 0xffffffffffff
-            rand = vmrandom | randtime
-            if rand & 0x8000000000000000:
-                rand = 0x1000000000000000 + rand
-            return caom_util.long2uuid(rand)
+            return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
+                                     gen_id.clock_seq_hi_variant, gen_id.clock_seq_low, gen_id.node))
+            # vmrandom = random.randint(-int(0x7fff), int(0x7fff)) << 8 * 6
+            # randtime = int(round(time.time() * 1000000))
+            # randtime = randtime & 0xffffffffffff
+            # rand = vmrandom | randtime
+            # if rand & 0x8000000000000000:
+            #     rand = 0x1000000000000000 + rand
+            # return caom_util.long2uuid(rand)
 
     @classmethod
     def _gen_last_modified(cls):
@@ -155,3 +160,97 @@ class AbstractCaomEntity(CaomObject):
         now = datetime.now()
         return datetime(now.year, now.month, now.day, now.hour, now.minute, \
                         now.second, long(str(now.microsecond)[:-3] + '000'))
+
+
+class ObservationURI(CaomObject):
+    """ Observation URI """
+
+    _SCHEME = str("caom")
+
+    def __init__(self, uri):
+        """
+        Initializes an Observation instance
+
+        Arguments:
+        uri : URI corresponding to observation
+        """
+        tmp = urlsplit(uri)
+
+        if tmp.scheme != ObservationURI._SCHEME:
+            raise ValueError(
+                "uri must be have scheme of {}. received: {}"
+                    .format(ObservationURI._SCHEME, uri))
+        if tmp.geturl() != uri:
+            raise ValueError(
+                "uri parsing failure.  received: {}".format(uri))
+
+        self._uri = tmp.geturl()
+        (collection, observation_id) = tmp.path.split("/")
+        if collection is None:
+            raise ValueError(
+                "uri did not contain a collection part. received: {}"
+                    .format(uri))
+        caom_util.validate_path_component(self, "collection", collection)
+        if observation_id is None:
+            raise ValueError(
+                "uri did not contain an observation_id part. received: {}"
+                    .format(uri))
+        caom_util.validate_path_component(self, "observation_id", observation_id)
+        (self._collection, self._observation_id) = (collection, observation_id)
+        self._print_attributes = ['uri', 'collection', 'observation_id']
+
+    def _key(self):
+        return self.uri
+
+    def __eq__(self, y):
+        if isinstance(y, ObservationURI):
+            return self._key() == y._key()
+        return False
+
+    def __hash__(self):
+        return hash(self._key())
+
+    @classmethod
+    def get_observation_uri(cls, collection, observation_id):
+        """
+        Initializes an Observation URI instance
+
+        Arguments:
+        collection : collection
+        observation_id : ID of the observation
+        """
+
+        caom_util.type_check(collection, unicode, "collection", override=False)
+        caom_util.type_check(observation_id, unicode, "observation_id", override=False)
+
+        caom_util.validate_path_component(cls, "collection", collection)
+        caom_util.validate_path_component(cls, "observation_id", observation_id)
+
+        uri = SplitResult(ObservationURI._SCHEME, "", collection + "/" + observation_id,
+                          "", "").geturl()
+        return cls(uri)
+
+    # Properties
+
+    @property
+    @classmethod
+    def scheme(cls):
+        """The scheme defines where this Observation can be looked up.
+
+        Only 'caom' is currently supported."""
+        return cls._SCHEME
+
+    @property
+    def uri(self):
+        """The uri that the caom service can use to find the observation"""
+        return self._uri
+
+    @property
+    def collection(self):
+        """The collection part of this Observations uri"""
+        return self._collection
+
+    @property
+    def observation_id(self):
+        """The observation_id of this Observations uri"""
+        return self._observation_id

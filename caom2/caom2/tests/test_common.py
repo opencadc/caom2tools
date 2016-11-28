@@ -74,7 +74,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import unittest
 
-from .. import caom_object
+from .. import common
 from .. import chunk
 from .. import part
 from .. import plane
@@ -85,12 +85,12 @@ from .. import observation
 class TestCaom2IdGenerator(unittest.TestCase):
 
     def test_all(self):
-        #Not much for now. Just to make sure that all the clients work
-        test_entity = caom_object.AbstractCaomEntity()
+        # Not much for now. Just to make sure that all the clients work
+        test_entity = common.AbstractCaomEntity()
         print(test_entity._id, test_entity._last_modified)
         test_artifact = artifact.Artifact("caom2:/blah/blah",
                                           chunk.ProductType.SCIENCE,
-                                          chunk.ReleaseType.DATA)
+                                          artifact.ReleaseType.DATA)
         print(test_artifact._id, test_artifact._last_modified)
 
         test_chunk = chunk.Chunk()
@@ -105,3 +105,31 @@ class TestCaom2IdGenerator(unittest.TestCase):
 
         test_plane = plane.Plane("prodid")
         print(test_plane._id, test_plane._last_modified)
+
+
+class TestObservationURI(unittest.TestCase):
+
+    def test_all(self):
+        obs_uri = observation.ObservationURI("caom:GEMINI/12345")
+        self.assertEqual("caom:GEMINI/12345", obs_uri.uri, "Observation URI")
+        self.assertEqual("GEMINI", obs_uri.collection, "Collection")
+        self.assertEqual("12345", obs_uri.observation_id, "Observation ID")
+
+        obs_uri = observation.ObservationURI.get_observation_uri("CFHT", "654321")
+        self.assertEqual("caom:CFHT/654321", obs_uri.uri, "Observation URI")
+        self.assertEqual("CFHT", obs_uri.collection, "Collection")
+        self.assertEqual("654321", obs_uri.observation_id, "Observation ID")
+
+        exception = False
+        try:
+            obs_uri = observation.ObservationURI.get_observation_uri(None, "123")
+        except TypeError:
+            exception = True
+        self.assertTrue(exception, "Missing exception")
+
+        exception = False
+        try:
+            obs_uri = observation.ObservationURI.get_observation_uri("GEMINI", None)
+        except TypeError:
+            exception = True
+        self.assertTrue(exception, "Missing exception")

@@ -73,14 +73,15 @@ the caom2_Observation_Plane_Artifact_Part object."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from . import caom_object
 from . import caom_util
-from . import chunk
+from .chunk import Chunk
+from .chunk import ProductType
+from .common import AbstractCaomEntity
 
 __all__ = ['Part']
 
 
-class Part(caom_object.AbstractCaomEntity):
+class Part(AbstractCaomEntity):
     """A qualitative subsection of an artifact.
        eg: a extension of a FITS file.
 
@@ -94,7 +95,7 @@ class Part(caom_object.AbstractCaomEntity):
         self.name = name
         self.product_type = product_type
         if chunks is None:
-            chunks = caom_util.TypedList(chunk.Chunk, )
+            chunks = caom_util.TypedList(Chunk, )
         self.chunks = chunks
 
     def _key(self):
@@ -113,12 +114,12 @@ class Part(caom_object.AbstractCaomEntity):
         """The type of data product referred to by this part.
 
         Must be one of the allowed data product types:
-        str(ProductType.names())"""
+        unicode(ProductType.names())"""
         return self._product_type
 
     @product_type.setter
     def product_type(self, value):
-        caom_util.type_check(value, chunk.ProductType, "product_type")
+        caom_util.type_check(value, ProductType, "product_type")
         self._product_type = value
 
     @property
@@ -131,7 +132,7 @@ class Part(caom_object.AbstractCaomEntity):
 
     @name.setter
     def name(self, value):
-        caom_util.type_check(value, str, 'name', override=False)
+        caom_util.type_check(value, unicode, 'name', override=False)
         self._name = value
 
     @property

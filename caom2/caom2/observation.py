@@ -73,26 +73,15 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from datetime import datetime
-from urlparse import SplitResult
-from urlparse import urlsplit
 
 from enum import Enum
-from . import caom_object
+
 from . import caom_util
-# from . import plane
+from .common import AbstractCaomEntity
+from .common import CaomObject
+from .common import ObservationURI
 from .plane import Plane
-from . import shape
-
-# ObservationIntentType = Enum('ObservationIntentType',
-#                              CALIBRATION="calibration",
-#                              SCIENCE="science")
-
-# Status = Enum('Status',
-#               FAIL="fail")
-
-# TargetType = Enum('TargetType',
-#                   FIELD="field",
-#                   OBJECT="object")
+from .shape import Point
 
 __all__ = ['ObservationIntentType', 'Status', 'TargetType',
            'Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
@@ -125,7 +114,7 @@ class TargetType(Enum):
     OBJECT = "object"
 
 
-class Observation(caom_object.AbstractCaomEntity):
+class Observation(AbstractCaomEntity):
     """
     Observation
 
@@ -230,13 +219,13 @@ class Observation(caom_object.AbstractCaomEntity):
         """The name of the collection of observations, normally a telescope
         name.
 
-        type: str
+        type: unicode
         """
         return self._collection
 
     @collection.setter
     def collection(self, value):
-        caom_util.type_check(value, str, 'collection', override=False)
+        caom_util.type_check(value, unicode, 'collection', override=False)
         self._collection = value
 
     @property
@@ -244,13 +233,13 @@ class Observation(caom_object.AbstractCaomEntity):
         """A string that uniquely identifies this obseravtion within the given
         collection.
 
-        type: str
+        type: unicode
         """
         return self._observation_id
 
     @observation_id.setter
     def observation_id(self, value):
-        caom_util.type_check(value, str, 'observation_id', override=False)
+        caom_util.type_check(value, unicode, 'observation_id', override=False)
         self._observation_id = value
 
     @property
@@ -258,7 +247,7 @@ class Observation(caom_object.AbstractCaomEntity):
         """A URI for this observation referenced in the caom system.
 
         This attribute is auto geneqrated from the other metadata.
-        type: str
+        type: unicode
         """
         return self._uri
 
@@ -295,7 +284,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @algorithm.setter
     def algorithm(self, value):
-        if isinstance(value, str):
+        if isinstance(value, unicode):
             value = Algorithm(value)
         caom_util.type_check(value, Algorithm, 'algorithm')
         self._algorithm = value
@@ -313,7 +302,7 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @intent.setter
     def intent(self, value):
-        if isinstance(value, str):
+        if isinstance(value, unicode):
             value = ObservationIntentType(value)
         caom_util.type_check(value, ObservationIntentType, 'intent')
         self._intent = value
@@ -335,13 +324,13 @@ class Observation(caom_object.AbstractCaomEntity):
         """The OBSTYPE of the observation being recorded.
 
         eg. OBJECT, FLAT, BIAS
-        type: str
+        type: unicode
         """
         return self._obs_type
 
     @obs_type.setter
     def obs_type(self, value):
-        caom_util.type_check(value, str, 'obs_type')
+        caom_util.type_check(value, unicode, 'obs_type')
         self._obs_type = value
 
     @property
@@ -385,8 +374,8 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @instrument.setter
     def instrument(self, value):
-        if isinstance(value, str):
-            value = Instrument(str)
+        if isinstance(value, unicode):
+            value = Instrument(value)
         caom_util.type_check(value, Instrument, "instrument")
         self._instrument = value
 
@@ -401,8 +390,8 @@ class Observation(caom_object.AbstractCaomEntity):
 
     @target.setter
     def target(self, value):
-        if isinstance(value, str):
-            value = Target(str)
+        if isinstance(value, unicode):
+            value = Target(value)
         caom_util.type_check(value, Target, 'target')
         self._target = value
 
@@ -472,101 +461,7 @@ class Observation(caom_object.AbstractCaomEntity):
         self._meta_release = value
 
 
-class ObservationURI(caom_object.CaomObject):
-    """ Observation URI """
-
-    _SCHEME = str("caom")
-
-    def __init__(self, uri):
-        """
-        Initializes an Observation instance
-
-        Arguments:
-        uri : URI corresponding to observation
-        """
-        tmp = urlsplit(uri)
-
-        if tmp.scheme != ObservationURI._SCHEME:
-            raise ValueError(
-                "uri must be have scheme of {}. received: {}"
-                .format(ObservationURI._SCHEME, uri))
-        if tmp.geturl() != uri:
-            raise ValueError(
-                "uri parsing failure.  received: {}".format(uri))
-
-        self._uri = tmp.geturl()
-        (collection, observation_id) = tmp.path.split("/")
-        if collection is None:
-            raise ValueError(
-                "uri did not contain a collection part. received: {}"
-                .format(uri))
-        caom_util.validate_path_component(self, "collection", collection)
-        if observation_id is None:
-            raise ValueError(
-                "uri did not contain an observation_id part. received: {}"
-                .format(uri))
-        caom_util.validate_path_component(self, "observation_id", observation_id)
-        (self._collection, self._observation_id) = (collection, observation_id)
-        self._print_attributes = ['uri', 'collection', 'observation_id']
-
-    def _key(self):
-        return self.uri
-
-    def __eq__(self, y):
-        if isinstance(y, ObservationURI):
-            return self._key() == y._key()
-        return False
-
-    def __hash__(self):
-        return hash(self._key())
-
-    @classmethod
-    def get_observation_uri(cls, collection, observation_id):
-        """
-        Initializes an Observation URI instance
-
-        Arguments:
-        collection : collection
-        observation_id : ID of the observation
-        """
-
-        caom_util.type_check(collection, str, "collection", override=False)
-        caom_util.type_check(observation_id, str, "observation_id", override=False)
-
-        caom_util.validate_path_component(cls, "collection", collection)
-        caom_util.validate_path_component(cls, "observation_id", observation_id)
-
-        uri = SplitResult(ObservationURI._SCHEME, "", collection + "/" + observation_id,
-                          "", "").geturl()
-        return cls(uri)
-
-    # Properties
-
-    @property
-    @classmethod
-    def scheme(cls):
-        """The scheme defines where this Observation can be looked up.
-
-        Only 'caom' is currently supported."""
-        return cls._SCHEME
-
-    @property
-    def uri(self):
-        """The uri that the caom service can use to find the observation"""
-        return self._uri
-
-    @property
-    def collection(self):
-        """The collection part of this Observations uri"""
-        return self._collection
-
-    @property
-    def observation_id(self):
-        """The observation_id of this Observations uri"""
-        return self._observation_id
-
-
-class Algorithm(caom_object.CaomObject):
+class Algorithm(CaomObject):
     """
     The concept of Algorithm is to provide a way for users to find all
     composite observation sets that have been built using a particular
@@ -583,7 +478,7 @@ class Algorithm(caom_object.CaomObject):
                simple observation, otherwise name of algorithm that selected
                composite members or just 'composite' works too.
         """
-        caom_util.type_check(name, str, "name", override=False)
+        caom_util.type_check(name, unicode, 'name', override=False)
         self._name = name
 
     def _key(self):
@@ -677,7 +572,7 @@ class SimpleObservation(Observation):
     @algorithm.setter
     def algorithm(self, value=_ALGORITHM):
         # build an Algorithm type if passed a string...
-        if isinstance(value, str):
+        if isinstance(value, unicode):
             value = Algorithm(value)
         caom_util.type_check(value, Algorithm, 'algorithm', override=False)
         caom_util.value_check(value, None, None, 'algorithm', override=self._ALGORITHM)
@@ -747,7 +642,7 @@ class CompositeObservation(Observation):
         return self._members
 
 
-class Environment(caom_object.CaomObject):
+class Environment(CaomObject):
     """A CAOM2 Environment Object.
 
     This object contains the various values that can be set in the environment
@@ -870,7 +765,7 @@ class Environment(caom_object.CaomObject):
         self._photometric = value
 
 
-class Instrument(caom_object.CaomObject):
+class Instrument(CaomObject):
     """The telescopic instrument that recorded a given observation.
 
     Each observation should have an associated instrument.
@@ -890,7 +785,7 @@ class Instrument(caom_object.CaomObject):
         Arguments:
         name - name of the instrument
         """
-        caom_util.type_check(name, str, 'name', override='none')
+        caom_util.type_check(name, unicode, 'name', override='none')
         self._name = name
         self._keywords = set()
 
@@ -899,7 +794,7 @@ class Instrument(caom_object.CaomObject):
     def name(self):
         """The name of the instrument.
 
-        type: str
+        type: unicode
         """
         return self._name
 
@@ -923,7 +818,7 @@ class Instrument(caom_object.CaomObject):
         return self._keywords
 
 
-class Proposal(caom_object.CaomObject):
+class Proposal(CaomObject):
     """ Proposal """
 
     def __init__(self,
@@ -951,13 +846,13 @@ class Proposal(caom_object.CaomObject):
     def proposal_id(self):
         """The proposal ID.  Sometimes also called a RUNID.
 
-        type: str
+        type: unicode
         """
         return self._proposal_id
 
     @proposal_id.setter
     def proposal_id(self, value):
-        caom_util.type_check(value, str, 'id')
+        caom_util.type_check(value, unicode, 'id')
         self._proposal_id = value
 
     @property
@@ -983,43 +878,43 @@ class Proposal(caom_object.CaomObject):
         """The name (First Last) of the Principle Investigator of the
         Proposal.
 
-        type: str
+        type: unicode
         """
         return self._pi_name
 
     @pi_name.setter
     def pi_name(self, value):
-        caom_util.type_check(value, str, 'pi_name')
+        caom_util.type_check(value, unicode, 'pi_name')
         self._pi_name = value
 
     @property
     def project(self):
         """The name of a project associated with this proposal.
 
-        type: str
+        type: unicode
         """
         return self._project
 
     @project.setter
     def project(self, value):
-        caom_util.type_check(value, str, 'project')
+        caom_util.type_check(value, unicode, 'project')
         self._project = value
 
     @property
     def title(self):
         """The title of the proposal.
 
-        type: str
+        type: unicode
         """
         return self._title
 
     @title.setter
     def title(self, value):
-        caom_util.type_check(value, str, 'title')
+        caom_util.type_check(value, unicode, 'title')
         self._title = value
 
 
-class Requirements(caom_object.CaomObject):
+class Requirements(CaomObject):
     """ Requirements """
 
     def __init__(self, flag):
@@ -1042,7 +937,7 @@ class Requirements(caom_object.CaomObject):
         self._flag = value
 
 
-class Target(caom_object.CaomObject):
+class Target(CaomObject):
     """ Target """
 
     def __init__(self, name,
@@ -1075,30 +970,30 @@ class Target(caom_object.CaomObject):
         """A name for the target
 
         eg 'NGC 3115'
-        type: str
+        type: unicode
 
         """
         return self._name
 
     @name.setter
     def name(self, value):
-        caom_util.type_check(value, str, "name", override=False)
+        caom_util.type_check(value, unicode, "name", override=False)
         self._name = value
 
     @property
     def target_type(self):
         """A keyword describing the type of target.
-
-        must be from the list
-        """ + ",".join(TargetType.names()) + """
-        type: TargetType
-
         """
+        # must be from the list
+        # """ + ",".join(TargetType.names()) + """
+        # type: TargetType
+        #
+        # """
         return self._type
 
     @target_type.setter
     def target_type(self, value):
-        if isinstance(value, str):
+        if isinstance(value, unicode):
             value = TargetType(value)
         caom_util.type_check(value, TargetType, "target_type")
         self._type = value
@@ -1165,7 +1060,7 @@ class Target(caom_object.CaomObject):
         self._moving = value
 
 
-class TargetPosition(caom_object.CaomObject):
+class TargetPosition(CaomObject):
     """ TargetPosition """
 
     def __init__(self, coordinates, coordsys, equinox=None):
@@ -1190,7 +1085,7 @@ class TargetPosition(caom_object.CaomObject):
 
     @coordinates.setter
     def coordinates(self, value):
-        caom_util.type_check(value, shape.Point, "coordinates")
+        caom_util.type_check(value, Point, "coordinates")
         self._coordinates = value
 
     @property
@@ -1200,7 +1095,7 @@ class TargetPosition(caom_object.CaomObject):
 
     @coordsys.setter
     def coordsys(self, value):
-        caom_util.type_check(value, str, "coordsys")
+        caom_util.type_check(value, unicode, "coordsys")
         self._coordsys = value
 
     @property
@@ -1214,7 +1109,7 @@ class TargetPosition(caom_object.CaomObject):
         self._equinox = value
 
 
-class Telescope(caom_object.CaomObject):
+class Telescope(CaomObject):
     """ Telescope """
 
     def __init__(self, name,
@@ -1231,7 +1126,7 @@ class Telescope(caom_object.CaomObject):
         """
 
         assert name is not None, "No telescope name provided"
-        assert isinstance(name, str), "name is not a str: {0}".format(name)
+        assert isinstance(name, unicode), "name is not a str: {0}".format(name)
         self.name = name
         self.geo_location_x = geo_location_x
         self.geo_location_y = geo_location_y
@@ -1247,14 +1142,14 @@ class Telescope(caom_object.CaomObject):
         """a name for this facility.
 
         eg. CFHT
-        type: str
+        type: unicode
 
         """
         return self._name
 
     @name.setter
     def name(self, value):
-        caom_util.type_check(value, str, 'name', override=False)
+        caom_util.type_check(value, unicode, 'name', override=False)
         self._name = value
 
     @property

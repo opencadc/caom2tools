@@ -83,7 +83,7 @@ from .. import plane
 class TestCaomUtil(unittest.TestCase):
 
     def test_typed_list(self):
-        my_list1 = caom_util.TypedList(str, "Test1")
+        my_list1 = caom_util.TypedList(unicode, "Test1")
         self.assertEquals(1, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
 
@@ -124,7 +124,7 @@ class TestCaomUtil(unittest.TestCase):
 
         exception = False
         try:
-            my_list2 = caom_util.TypedList(str, 1, 3)
+            my_list2 = caom_util.TypedList(unicode, 1, 3)
         except AssertionError:
             exception = True
         self.assertTrue(exception, "Exception thrown")
@@ -133,7 +133,7 @@ class TestCaomUtil(unittest.TestCase):
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
         self.assertEqual("Test2", my_list1[1], "Non matching elements")
 
-        my_list2 = caom_util.TypedList(str, "Test3", "Test4")
+        my_list2 = caom_util.TypedList(unicode, "Test3", "Test4")
         my_list1.extend(my_list2)
         self.assertEquals(4, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
@@ -186,15 +186,15 @@ class TestCaomUtil(unittest.TestCase):
 
     def test_typed_set(self):
 
-        my_set = caom_util.TypedSet(str,)
+        my_set = caom_util.TypedSet(unicode,)
         with self.assertRaises(AssertionError):
             my_set.add(float(1.0))
             my_set.add(long(1))
             my_set.add(bool(1))
 
-        self.assertRaises(AssertionError, caom_util.TypedSet, str, float(1.0))
+        self.assertRaises(AssertionError, caom_util.TypedSet, unicode, float(1.0))
 
-        my_set = caom_util.TypedSet(str, "Test1")
+        my_set = caom_util.TypedSet(unicode, "Test1")
         self.assertEquals(1, len(my_set))
         self.assertEqual("Test1", my_set.pop())
 
@@ -207,7 +207,7 @@ class TestCaomUtil(unittest.TestCase):
             my_set.add(bool(1))
             my_set.add("Test1")
 
-        my_set = caom_util.TypedSet(str,)
+        my_set = caom_util.TypedSet(unicode,)
         my_set.add("Test1")
         my_set.add("Test1")
         self.assertTrue(len(my_set) == 1)
@@ -216,9 +216,9 @@ class TestCaomUtil(unittest.TestCase):
 
         # test validation and constructor with an empty dictionary
         test_plane10 = plane.Plane('key10')
-        test_artifact66 = artifact.Artifact('caom:CFHT/55/66',
+        test_artifact66 = artifact.Artifact("caom:CFHT/55/66",
                                             chunk.ProductType.SCIENCE,
-                                            chunk.ReleaseType.DATA)
+                                            artifact.ReleaseType.DATA)
         test_part10 = part.Part("10")
         test_plane_uri = plane.PlaneURI('caom:CFHT/55/66')
         my_dict_plane = caom_util.TypedOrderedDict(plane.Plane,)
@@ -257,7 +257,7 @@ class TestCaomUtil(unittest.TestCase):
         test_plane1 = plane.Plane('key1')
         test_plane2 = plane.Plane('key2')
         my_dict1 = caom_util.TypedOrderedDict(plane.Plane, ('key1', test_plane1),
-                                            ('key2', test_plane2))
+                                              ('key2', test_plane2))
         self.assertEqual(2, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
         # test assignment via setdefault

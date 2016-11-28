@@ -79,10 +79,19 @@ class TestEnums(unittest.TestCase):
 
     def test_all(self):
         # test for invalid value
-        self.assertEqual(shape.SegmentType.get("foo"), None)
-        self.assertRaises(AttributeError, shape.SegmentType.get, None)
-        self.assertRaises(AttributeError, shape.SegmentType.get, 999)
+        with self.assertRaises(KeyError):
+            shape.SegmentType["foo"]
+        with self.assertRaises(KeyError):
+            shape.SegmentType[None]
+        with self.assertRaises(KeyError):
+            shape.SegmentType[999]
 
+        with self.assertRaises(ValueError):
+            shape.SegmentType("foo")
+        with self.assertRaises(ValueError):
+            shape.SegmentType(None)
+        with self.assertRaises(ValueError):
+            shape.SegmentType(4)
         self.assertEqual(shape.SegmentType.CLOSE.value, 0)
         self.assertEqual(shape.SegmentType.LINE.value, 1)
         self.assertEqual(shape.SegmentType.MOVE.value, 2)

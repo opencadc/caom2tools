@@ -160,9 +160,10 @@ def long2uuid(l):
     Takes a long and creates a UUID using the 16 byte long
     as the least significant bytes in the 32 byte UUID.
     """
+    foo = l.bit_length()
     if l.bit_length() > 63:
         raise ValueError("expected 64 bit long {}".format(l))
-    return uuid.UUID(bytes='\x00'*8 + str(struct.pack(">q", l)))
+    return uuid.UUID(int=l)
 
 
 def type_check(value, value_type, variable, override=None):

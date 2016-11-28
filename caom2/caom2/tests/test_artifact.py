@@ -93,28 +93,28 @@ class TestArtifact(unittest.TestCase):
             test_artifact = artifact.Artifact("caom:GEMINI/12345")
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
-                                              artifact.ReleaseType('META'),
-                                              artifact.ProductType('THUMBNAIL'))
+                                              artifact.ReleaseType.META,
+                                              artifact.ProductType.THUMBNAIL)
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
-                                              artifact.ProductType('THUMBNAIL'),
+                                              artifact.ProductType.THUMBNAIL,
                                               None)
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
                                               None,
-                                              artifact.ReleaseType('META'))
+                                              artifact.ReleaseType.META)
 
         test_artifact = artifact.Artifact("caom:GEMINI/12345",
-                                          artifact.ProductType('THUMBNAIL'),
-                                          artifact.ReleaseType('META'))
+                                          artifact.ProductType.THUMBNAIL,
+                                          artifact.ReleaseType.META)
         urlparse("caom:GEMINI/12345")
         self.assertEqual("caom:GEMINI/12345",
                          test_artifact.uri,
                          "Artifact URI")
-        self.assertEqual(artifact.ProductType('THUMBNAIL'),
+        self.assertEqual(artifact.ProductType.THUMBNAIL,
                          test_artifact.product_type,
                          "Artifact ProductType")
-        self.assertEqual(artifact.ReleaseType('META'),
+        self.assertEqual(artifact.ReleaseType.META,
                          test_artifact.release_type,
                          "Artifact ReleaseType")
 
