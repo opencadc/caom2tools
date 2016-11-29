@@ -216,7 +216,7 @@ class CAOM2RepoClient:
         obs_reader = ObservationReader()
         content = response.content
         if len(content) == 0:
-            logging.error(response.status)
+            logging.error(response.status_code)
             response.close()
             raise Exception('Got empty response for resource: {}'.format(resource))
         return obs_reader.read(StringIO(content))
@@ -240,13 +240,6 @@ class CAOM2RepoClient:
         response = self._repo_client.post(
             resource, headers=headers, data=obs_xml)
         logging.debug('Successfully updated Observation\n')
-        obs_reader = ObservationReader()
-        content = response.content
-        if len(content) == 0:
-            logging.error(response.status)
-            response.close()
-            raise Exception('Got empty response for resource: {}'.format(resource))
-        return obs_reader.read(StringIO(content))
 
 
     def put_observation(self, observation):
@@ -266,13 +259,6 @@ class CAOM2RepoClient:
         response = self._repo_client.put(
             resource, headers=headers, data=obs_xml)
         logging.debug('Successfully put Observation\n')
-        obs_reader = ObservationReader()
-        content = response.content
-        if len(content) == 0:
-            logging.error(response.status)
-            response.close()
-            raise Exception('Got empty response for resource: {}'.format(resource))
-        return obs_reader.read(StringIO(content))
 
 
     def delete_observation(self, collection, observationID):
@@ -285,7 +271,7 @@ class CAOM2RepoClient:
         resource = '/{}/{}'.format(collection, observationID)
         logging.debug('DELETE {}'.format(resource))
         response = self._repo_client.delete(resource)
-        logging.debug('Successfully deleted Observation\n')
+        logging.info('Successfully deleted Observation {}\n')
 
 
 def main():
@@ -355,11 +341,12 @@ Minimum plugin file format:
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-
-    client = CAOM2RepoClient(anon=args.anonymous, cert_file=args.certfile, server=args.host)
+    certfile = None
+    if os.path.isfile(args.certfile):
+        certfile = args.certfile
+    client = CAOM2RepoClient(anon=args.anonymous, cert_file=certfile, server=args.host)
     if args.cmd == 'visit':
         print ("Visit")
-
         plugin = args.plugin
         start = args.start
         end = args.end
@@ -367,7 +354,7 @@ Minimum plugin file format:
         collection = args.collection
         logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
                format(plugin, start, end, collection, retries))
-        client.visit(plugin, collection, start=start, end=end)
+        client.visit(plugin.name, collection, start=start, end=end)
 
     elif args.cmd == 'create':
         print("Create")
