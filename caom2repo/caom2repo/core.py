@@ -66,6 +66,8 @@
 #
 #***********************************************************************
 #
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 from datetime import datetime
 import logging
 import argparse
@@ -79,6 +81,8 @@ from cadctools import net
 from cadctools import util
 
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
+
+__all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
 SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo' #TODO replace with SERVICE_URI when server supports it
