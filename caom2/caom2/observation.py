@@ -263,7 +263,7 @@ class Observation(AbstractCaomEntity):
 
         see caom2.Plane for details about a creating a plane.
 
-        type: TypedOrderDict((Plane),)
+        type: TypedOrderDict(Plane,)
 
         eg. Observation.planes.add(Plane("SCIENCE"))
         """
@@ -295,7 +295,7 @@ class Observation(AbstractCaomEntity):
 
         type: ObservationIntentType
 
-        see ObservationIntentType.names() for allowed values
+        see ObservationIntentType for allowed values
 
         """
         return self._intent
@@ -381,7 +381,7 @@ class Observation(AbstractCaomEntity):
 
     @property
     def target(self):
-        """Reference to a Target object associted with this observation.
+        """Reference to a Target object associated with this observation.
 
         can be None
         type: caom2.Target
@@ -983,12 +983,12 @@ class Target(CaomObject):
     @property
     def target_type(self):
         """A keyword describing the type of target.
+
+        must be from the list
+        """ + str(list(TargetType)) + """
+        type: TargetType
+
         """
-        # must be from the list
-        # """ + ",".join(TargetType.names()) + """
-        # type: TargetType
-        #
-        # """
         return self._type
 
     @target_type.setter

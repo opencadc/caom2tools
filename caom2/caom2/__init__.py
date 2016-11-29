@@ -94,14 +94,3 @@ from artifact import *
 from plane import *
 from observation import *
 from obs_reader_writer import *
-
-# from obs_reader_writer import *
-# from observation import *
-# from plane import *
-# from artifact import *
-# from part import *
-# from chunk import *
-# from shape import *
-# from wcs import *
-# from caom_object import *
-# from caom_util import *
