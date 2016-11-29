@@ -1,7 +1,7 @@
-## -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# # -*- coding: utf-8 -*-
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #                                                                                                                                                          
 #  (c) 2016.                            (c) 2016.                                                                                                          
 #  Government of Canada                 Gouvernement du Canada                                                                                             
@@ -64,10 +64,11 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 from caom2.observation import Observation
+
 
 class ObservationUpdater:
 
