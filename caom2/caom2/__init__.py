@@ -1,8 +1,8 @@
 #
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,7 +65,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
@@ -81,16 +81,14 @@ from ._astropy_init import *
 # ----------------------------------------------------------------------------
 
 # For egg_info test builds to pass, put package imports here.
-# if not _ASTROPY_SETUP_:
-#    from .caom2 import *
-
-from caom_util import *
-from common import *
-from wcs import *
-from shape import *
-from chunk import *
-from part import *
-from artifact import *
-from plane import *
-from observation import *
-from obs_reader_writer import *
+if not _ASTROPY_SETUP_:
+    from caom_util import *
+    from common import *
+    from wcs import *
+    from shape import *
+    from chunk import *
+    from part import *
+    from artifact import *
+    from plane import *
+    from observation import *
+    from obs_reader_writer import *

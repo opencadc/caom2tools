@@ -66,11 +66,14 @@
 #
 # ***********************************************************************
 #
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import copy
 import os
 import sys
 import unittest
+# TODO to be changed to io.StringIO when caom2 is prepared for python3
 from StringIO import StringIO
 from datetime import datetime
 
@@ -142,7 +145,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status_code = 200
         response.content = ibuffer.getvalue()
         mock_get.return_value = response
-        ibuffer.seek(0) # reposition the buffer for reading
+        ibuffer.seek(0)  # reposition the buffer for reading
         visitor = CAOM2RepoClient(server=service_url)
         self.assertEquals(obs, visitor.get_observation(collection, observation_id))
         
@@ -165,6 +168,7 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
+
         def raise_error(): raise http_error
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(requests.HTTPError):
@@ -192,18 +196,18 @@ class TestCAOM2Repo(unittest.TestCase):
         expect_observations = ['700000o', '700001o']
         self.assertEquals(expect_observations, visitor._get_observations('cfht'))
         self.assertEquals(end_date, visitor._start)
-        mock_get.assert_called_once_with('cfht', params={'MAXREC':core.BATCH_SIZE})
+        mock_get.assert_called_once_with('cfht', params={'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11', '%Y-%m-%d'))
-        mock_get.assert_called_once_with('cfht', params={'END':'2000-11-11T00:00:00.000000',
+        mock_get.assert_called_once_with('cfht', params={'END': '2000-11-11T00:00:00.000000',
                                                          'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht',
                                   start=datetime.strptime('2000-11-11', '%Y-%m-%d'),
                                   end=datetime.strptime('2000-11-12', '%Y-%m-%d'))
-        mock_get.assert_called_once_with('cfht', params={'START':'2000-11-11T00:00:00.000000',
+        mock_get.assert_called_once_with('cfht', params={'START': '2000-11-11T00:00:00.000000',
                                                          'END': '2000-11-12T00:00:00.000000',
                                                          'MAXREC': core.BATCH_SIZE})
 
@@ -253,6 +257,7 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
+
         def raise_error(): raise http_error
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(requests.HTTPError):
@@ -354,7 +359,7 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.delete_observation(collection, observation_id)
 
     def test_process(self):
-        core.BATCH_SIZE = 3 # size of the batch is 3
+        core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
         visitor = CAOM2RepoClient()
         visitor.get_observation = MagicMock(return_value=MagicMock(spec=SimpleObservation))
@@ -390,7 +395,6 @@ class TestCAOM2Repo(unittest.TestCase):
         core.main()
         client_mock.return_value.post_observation.assert_called_with(obs)
 
-
         # test read
         sys.argv = ["caom2tools", "read", "--collection", collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
@@ -416,10 +420,10 @@ class TestCAOM2Repo(unittest.TestCase):
                     "--end", "2013-01-01T11:33:22.443", collection]
         with open(plugin_file, 'r') as infile:
             core.main()
-            client_mock.return_value.visit.assert_called_with(ANY, collection,
-                        start=util.str2ivoa("2012-01-01T11:22:33.44"),
-                        end=util.str2ivoa("2013-01-01T11:33:22.443"))
-
+            client_mock.return_value.visit.assert_called_with(
+                ANY, collection,
+                start=util.str2ivoa("2012-01-01T11:22:33.44"),
+                end=util.str2ivoa("2013-01-01T11:33:22.443"))
 
     @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                          MyExitError, MyExitError, MyExitError]))
@@ -427,171 +431,173 @@ class TestCAOM2Repo(unittest.TestCase):
         """ Tests the helper displays for commands and subcommands in main"""
 
         # expected helper messages
-        usage=\
-"""usage: caom2-client [-h] [--certfile CERTFILE] [--anonymous] [--host HOST]
-                    [--verbose] [--debug] [--quiet]
-                    {create,read,update,delete,visit} ...
+        usage =\
+            """usage: caom2-client [-h] [--certfile CERTFILE] [--anonymous] [--host HOST]
+                                [--verbose] [--debug] [--quiet]
+                                {create,read,update,delete,visit} ...
 
-Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) operations it also implements a visitor operation that allows for updating multiple observations in a collection
+            Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) operations it also \
+            implements a visitor operation that allows for updating multiple observations in a collection
 
-positional arguments:
-  {create,read,update,delete,visit}
+            positional arguments:
+              {create,read,update,delete,visit}
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --certfile CERTFILE   location of your CADC certificate file (default: $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc for name/password)
-  --anonymous           Force anonymous connection
-  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-  --verbose             verbose messages
-  --debug               debug messages
-  --quiet               run quietly
-"""
+            optional arguments:
+              -h, --help            show this help message and exit
+              --certfile CERTFILE   location of your CADC certificate file (default: $HOME/.ssl/cadcproxy.pem, \
+                                    otherwise uses $HOME/.netrc for name/password)
+              --anonymous           Force anonymous connection
+              --host HOST           Base hostname for services(default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
+              --verbose             verbose messages
+              --debug               debug messages
+              --quiet               run quietly
+            """
 
-        create_usage=\
-"""usage: caom2-client create [-h] [--certfile CERTFILE] [--anonymous]
-                           [--host HOST] [--verbose] [--debug] [--quiet]
-                           <new observation file>
+        create_usage =\
+            """usage: caom2-client create [-h] [--certfile CERTFILE] [--anonymous]
+                                       [--host HOST] [--verbose] [--debug] [--quiet]
+                                       <new observation file>
 
-Create a new observation
+            Create a new observation
 
-positional arguments:
-  <new observation file>
+            positional arguments:
+              <new observation file>
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --certfile CERTFILE   location of your CADC certificate file (default:
-                        $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
-                        for name/password)
-  --anonymous           Force anonymous connection
-  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
-                        iha.nrc-cnrc.gc.ca)
-  --verbose             verbose messages
-  --debug               debug messages
-  --quiet               run quietly
-"""
+            optional arguments:
+              -h, --help            show this help message and exit
+              --certfile CERTFILE   location of your CADC certificate file (default:
+                                    $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
+                                    for name/password)
+              --anonymous           Force anonymous connection
+              --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
+                                    iha.nrc-cnrc.gc.ca)
+              --verbose             verbose messages
+              --debug               debug messages
+              --quiet               run quietly
+            """
 
         read_usage =\
-"""usage: caom2-client read [-h] [--certfile CERTFILE] [--anonymous]
-                         [--host HOST] [--verbose] [--debug] [--quiet]
-                         --collection <collection>
-                         [--output <destination file>]
-                         <observation>
+            """usage: caom2-client read [-h] [--certfile CERTFILE] [--anonymous]
+                                     [--host HOST] [--verbose] [--debug] [--quiet]
+                                     --collection <collection>
+                                     [--output <destination file>]
+                                     <observation>
 
-Read an existing observation
+            Read an existing observation
 
-positional arguments:
-  <observation>
+            positional arguments:
+              <observation>
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --certfile CERTFILE   location of your CADC certificate file (default:
-                        $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
-                        for name/password)
-  --anonymous           Force anonymous connection
-  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
-                        iha.nrc-cnrc.gc.ca)
-  --verbose             verbose messages
-  --debug               debug messages
-  --quiet               run quietly
-  --collection <collection>
-  --output <destination file>, -o <destination file>
-"""
+            optional arguments:
+              -h, --help            show this help message and exit
+              --certfile CERTFILE   location of your CADC certificate file (default:
+                                    $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
+                                    for name/password)
+              --anonymous           Force anonymous connection
+              --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
+                                    iha.nrc-cnrc.gc.ca)
+              --verbose             verbose messages
+              --debug               debug messages
+              --quiet               run quietly
+              --collection <collection>
+              --output <destination file>, -o <destination file>
+            """
 
         update_usage =\
-"""usage: caom2-client update [-h] [--certfile CERTFILE] [--anonymous]
-                           [--host HOST] [--verbose] [--debug] [--quiet]
-                           <observation file>
+            """usage: caom2-client update [-h] [--certfile CERTFILE] [--anonymous]
+                                       [--host HOST] [--verbose] [--debug] [--quiet]
+                                       <observation file>
 
-Update an existing observation
+            Update an existing observation
 
-positional arguments:
-  <observation file>
+            positional arguments:
+              <observation file>
 
-optional arguments:
-  -h, --help           show this help message and exit
-  --certfile CERTFILE  location of your CADC certificate file (default:
-                       $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
-                       for name/password)
-  --anonymous          Force anonymous connection
-  --host HOST          Base hostname for services(default: www.cadc-ccda.hia-
-                       iha.nrc-cnrc.gc.ca)
-  --verbose            verbose messages
-  --debug              debug messages
-  --quiet              run quietly
-"""
+            optional arguments:
+              -h, --help           show this help message and exit
+              --certfile CERTFILE  location of your CADC certificate file (default:
+                                   $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
+                                   for name/password)
+              --anonymous          Force anonymous connection
+              --host HOST          Base hostname for services(default: www.cadc-ccda.hia-
+                                   iha.nrc-cnrc.gc.ca)
+              --verbose            verbose messages
+              --debug              debug messages
+              --quiet              run quietly
+            """
 
         delete_usage =\
-"""usage: caom2-client delete [-h] [--certfile CERTFILE] [--anonymous]
-                           [--host HOST] [--verbose] [--debug] [--quiet]
-                           --collection <collection>
-                           <ID of observation>
+            """usage: caom2-client delete [-h] [--certfile CERTFILE] [--anonymous]
+                                       [--host HOST] [--verbose] [--debug] [--quiet]
+                                       --collection <collection>
+                                       <ID of observation>
 
-Delete an existing observation
+            Delete an existing observation
 
-positional arguments:
-  <ID of observation>
+            positional arguments:
+              <ID of observation>
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --certfile CERTFILE   location of your CADC certificate file (default:
-                        $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
-                        for name/password)
-  --anonymous           Force anonymous connection
-  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
-                        iha.nrc-cnrc.gc.ca)
-  --verbose             verbose messages
-  --debug               debug messages
-  --quiet               run quietly
-  --collection <collection>
-"""
+            optional arguments:
+              -h, --help            show this help message and exit
+              --certfile CERTFILE   location of your CADC certificate file (default:
+                                    $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc
+                                    for name/password)
+              --anonymous           Force anonymous connection
+              --host HOST           Base hostname for services(default: www.cadc-ccda.hia-
+                                    iha.nrc-cnrc.gc.ca)
+              --verbose             verbose messages
+              --debug               debug messages
+              --quiet               run quietly
+              --collection <collection>
+            """
 
         visit_usage =\
-"""usage: caom2-client visit [-h] [--certfile CERTFILE] [--anonymous]
-                          [--host HOST] [--verbose] [--debug] [--quiet]
-                          --plugin <pluginClassFile>
-                          [--start <datetime start point>]
-                          [--end <datetime end point>]
-                          [--retries <number of retries>]
-                          [-s <CAOM2 service URL>]
-                          <datacollection>
+            """usage: caom2-client visit [-h] [--certfile CERTFILE] [--anonymous]
+                                      [--host HOST] [--verbose] [--debug] [--quiet]
+                                      --plugin <pluginClassFile>
+                                      [--start <datetime start point>]
+                                      [--end <datetime end point>]
+                                      [--retries <number of retries>]
+                                      [-s <CAOM2 service URL>]
+                                      <datacollection>
 
-Visit observations in a collection
+            Visit observations in a collection
 
-positional arguments:
-  <datacollection>      data collection in CAOM2 repo
+            positional arguments:
+              <datacollection>      data collection in CAOM2 repo
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --certfile CERTFILE   location of your CADC certificate file (default: $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc for name/password)
-  --anonymous           Force anonymous connection
-  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-  --verbose             verbose messages
-  --debug               debug messages
-  --quiet               run quietly
-  --plugin <pluginClassFile>
-                        Pluging class to update each observation
-  --start <datetime start point>
-                        oldest dataset to visit (UTC %Y-%m-%d format)
-  --end <datetime end point>
-                        earliest dataset to visit (UTC %Y-%m-%d format)
-  --retries <number of retries>
-                        number of tries with transient server errors
-  -s <CAOM2 service URL>, --server <CAOM2 service URL>
-                        URL of the CAOM2 repo server
+            optional arguments:
+              -h, --help            show this help message and exit
+              --certfile CERTFILE   location of your CADC certificate file (default: $HOME/.ssl/cadcproxy.pem, \
+                                    otherwise uses $HOME/.netrc for name/password)
+              --anonymous           Force anonymous connection
+              --host HOST           Base hostname for services(default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
+              --verbose             verbose messages
+              --debug               debug messages
+              --quiet               run quietly
+              --plugin <pluginClassFile>
+                                    Pluging class to update each observation
+              --start <datetime start point>
+                                    oldest dataset to visit (UTC %Y-%m-%d format)
+              --end <datetime end point>
+                                    earliest dataset to visit (UTC %Y-%m-%d format)
+              --retries <number of retries>
+                                    number of tries with transient server errors
+              -s <CAOM2 service URL>, --server <CAOM2 service URL>
+                                    URL of the CAOM2 repo server
 
-Minimum plugin file format:
-----
-   from caom2.caom2_observation import Observation
+            Minimum plugin file format:
+            ----
+               from caom2.caom2_observation import Observation
 
-   class ObservationUpdater:
+               class ObservationUpdater:
 
-    def update(self, observation):
-        assert isinstance(observation, Observation), (
-            'observation {} is not an Observation'.format(observation))
-        # custom code to update the observation
-----
-"""
-
+                def update(self, observation):
+                    assert isinstance(observation, Observation), (
+                        'observation {} is not an Observation'.format(observation))
+                    # custom code to update the observation
+            ----
+            """
 
         # --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
