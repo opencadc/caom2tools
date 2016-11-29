@@ -75,8 +75,8 @@ import sys
 import os.path
 #TODO to be changed to io.StringIO when caom2 is prepared for python3
 from StringIO import StringIO
-from cadctools.net import ws
-from cadctools.util import util
+from cadctools import net
+from cadctools import util
 
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 
@@ -101,7 +101,7 @@ class CAOM2RepoClient:
         if server is not None:
             s = server
         agent = 'CAOM2RepoClient' #TODO add version
-        self._repo_client = ws.BaseWsClient(s, anon=anon, cert_file=cert_file, agent=agent, retry=True)
+        self._repo_client = net.BaseWsClient(s, anon=anon, cert_file=cert_file, agent=agent, retry=True)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
 

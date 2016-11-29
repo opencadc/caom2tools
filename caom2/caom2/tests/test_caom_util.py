@@ -296,7 +296,7 @@ class TestCaomUtil(unittest.TestCase):
 
     def test_uuid2long(self):
         # > 64 bit uuid
-        u = uuid.UUID('3d26e30b-10cc-4301-8193-f2e0c6b63302')
+        u = uuid.UUID('{3d26e30b-10cc-4301-8193-f2e0c6b63302}')
         try:
             caom_util.uuid2long(u)
             self.fail("> 64 uuid should raise ValueError")

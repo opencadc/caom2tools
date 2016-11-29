@@ -175,7 +175,7 @@ class TestCAOM2Repo(unittest.TestCase):
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadctools.net.ws.open', MagicMock(), create=True)
-    @patch('caom2repo.core.ws.BaseWsClient.get')
+    @patch('caom2repo.core.net.BaseWsClient.get')
     def test_get_observations(self, mock_get):
         # This is almost similar to the previous test except that it gets
         # observations matching a collection and start/end criteria
@@ -402,7 +402,7 @@ class TestCAOM2Repo(unittest.TestCase):
         client_mock.return_value.get_observation.return_value = obs
         core.main()
         client_mock.return_value.get_observation.assert_called_with(collection, observation_id)
-        # repeat with outout argument
+        # repeat with output argument
         sys.argv = ["caom2tools", "read", "--collection", collection, "--output", ifile, observation_id]
         client_mock.return_value.get_observation.return_value = obs
         core.main()
