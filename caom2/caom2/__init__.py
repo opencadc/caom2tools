@@ -1,8 +1,8 @@
 #
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
 #  (c) 2010.                            (c) 2010.
 #  Government of Canada                 Gouvernement du Canada
@@ -65,7 +65,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
@@ -92,14 +92,3 @@ if not _ASTROPY_SETUP_:
     from plane import *
     from observation import *
     from obs_reader_writer import *
-
-# from obs_reader_writer import *
-# from observation import *
-# from plane import *
-# from artifact import *
-# from part import *
-# from chunk import *
-# from shape import *
-# from wcs import *
-# from caom_object import *
-# from caom_util import *

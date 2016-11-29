@@ -86,48 +86,6 @@ from .common import AbstractCaomEntity
 from .common import CaomObject
 from .common import ObservationURI
 
-# CalibrationLevel = Enum('CalibrationLevel',
-#                         RAW_INSTRUMENT=0,
-#                         RAW_STANDARD=1,
-#                         CALIBRATED=2,
-#                         PRODUCT=3)
-
-# DataProductType = Enum('DataProductType',
-#                        IMAGE="image",
-#                        CATALOG="catalog",
-#                        CUBE="cube",
-#                        EVENTLIST="eventlist",
-#                        SPECTRUM="spectrum",
-#                        TIMESERIES="timeseries",
-#                        VISIBILITY="visibility")
-
-# EnergyBand = Enum('EnergyBand',
-#                   EUV="EUV",
-#                   GAMMARAY="Gamma-ray",
-#                   INFRARED="Infrared",
-#                   MILLIMETER="Millimeter",
-#                   OPTICAL="Optical",
-#                   RADIO="Radio",
-#                   UV="UV",
-#                   XRAY="X-ray")
-
-# PolarizationState = Enum('PolarizationState',
-#                          I="I",
-#                          Q="Q",
-#                          U="U",
-#                          V="V",
-#                          LL="LL",
-#                          LR="LR",
-#                          RL="RL",
-#                          RR="RR",
-#                          XX="XX",
-#                          XY="XY",
-#                          YX="YX",
-#                          YY="YY")
-
-# Quality = Enum('Quality',
-#                JUNK="junk")
-
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand', "PolarizationState", "Quality",
            'Plane', 'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 'Energy',
            'Polarization', 'Time']
@@ -357,9 +315,9 @@ class Plane(AbstractCaomEntity):
         """The type of file structure that this plane contains.
 
         eg.
-        Plane.data_product_type = 'EVENTLIST'
+        Plane.data_product_type = DataProductType['EVENTLIST']
 
-        see DataProductType.names() for allowed values
+        see DataProductType for allowed values
 
         """
         return self._data_product_type
@@ -375,10 +333,10 @@ class Plane(AbstractCaomEntity):
         the data contained in this plane have received.  The string
         is converted to an integer during storage.
 
-        eg. Plane.calibration_level = "RAW_STANDARD"
+        eg. Plane.calibration_level = CalibrationLevel['RAW_STANDARD']
         type: unicode
 
-        Must be one of CalibrationLevel.names()
+        Must be one of CalibrationLevel
 
     """
         return self._calibration_level

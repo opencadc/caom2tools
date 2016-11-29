@@ -1,7 +1,7 @@
-## -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# # -*- coding: utf-8 -*-
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #                                                                                                                                                          
 #  (c) 2016.                            (c) 2016.                                                                                                          
 #  Government of Canada                 Gouvernement du Canada                                                                                             
@@ -64,12 +64,13 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from caom2.observation import Observation
 from caom2.plane import Plane
+
 
 class ObservationUpdater:
 
@@ -82,6 +83,3 @@ class ObservationUpdater:
         assert isinstance(observation, Observation), (
             "observation %s is not an Observation".format(observation))
         observation.planes.add(Plane('PREVIEW'))
-        
-        
-

@@ -172,9 +172,9 @@ class Artifact(AbstractCaomEntity):
         """The product type associated with the Artifact.
 
         type:  caom2.ProductType
-        restricted to caom2.ProductType.names()
+        restricted to caom2.ProductType
 
-        eg.  Artifact.product_type = caom2.ProductType('SCIENCE')
+        eg.  Artifact.product_type = caom2.ProductType['SCIENCE']
         """
         return self._product_type
 
@@ -188,9 +188,9 @@ class Artifact(AbstractCaomEntity):
         """The release type associated with the Artifact.
 
         type:   caom2.ReleaseType
-        restricted to caom2.ReleaseType.names()
+        restricted to caom2.ReleaseType
 
-        eg. Artifact.release = caom2.ReleaseType('META')
+        eg. Artifact.release = caom2.ReleaseType['META']
         """
         return self._release_type
 

@@ -71,15 +71,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import inspect
-import random
-import time
 import uuid
 from datetime import datetime
 from urlparse import SplitResult
 from urlparse import urlsplit
 
 from . import caom_util
-
 
 __all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI']
 
@@ -142,13 +139,6 @@ class AbstractCaomEntity(CaomObject):
         else:
             return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
                                      gen_id.clock_seq_hi_variant, gen_id.clock_seq_low, gen_id.node))
-            # vmrandom = random.randint(-int(0x7fff), int(0x7fff)) << 8 * 6
-            # randtime = int(round(time.time() * 1000000))
-            # randtime = randtime & 0xffffffffffff
-            # rand = vmrandom | randtime
-            # if rand & 0x8000000000000000:
-            #     rand = 0x1000000000000000 + rand
-            # return caom_util.long2uuid(rand)
 
     @classmethod
     def _gen_last_modified(cls):

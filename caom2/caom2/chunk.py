@@ -101,17 +101,6 @@ class ProductType(Enum):
     AUXILIARY = "auxiliary"
     THUMBNAIL = "thumbnail"
 
-# ProductType = Enum('ProductType',
-#                    SCIENCE="science",
-#                    CALIBRATION="calibration",
-#                    PREVIEW="preview",
-#                    INFO="info",
-#                    NOISE="noise",
-#                    WEIGHT="weight",
-#                    AUXILIARY="auxiliary",
-#                    THUMBNAIL="thumbnail",
-#                    )
-
 __all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',
            'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
 
@@ -172,11 +161,11 @@ class Chunk(AbstractCaomEntity):
         """A word that describes the content of the chunk.
 
         eg.  Chunk.product_type = ProductType.SCIENCE
+
+        Allowed values:
+        """ + str(list(ProductType)) + """
+
         """
-        # Allowed values:
-        # """ + str(ProductType.names()) + """
-        #
-        # """
 
         return self._product_type
 
@@ -639,7 +628,7 @@ class SpectralWCS(CaomObject):
         range of the non-spectral world coordinates
 
         For example, for a large image the the wavelength at the edges
-        is different from the centres.  This refernce frame is one where they
+        is different from the centres.  This reference frame is one where they
         are not different.
 
         Nominally 'TOPOCENT'

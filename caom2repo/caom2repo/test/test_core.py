@@ -1,7 +1,7 @@
-## -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# # -*- coding: utf-8 -*-
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #                                                                                                                                                          
 #  (c) 2016.                            (c) 2016.                                                                                                          
 #  Government of Canada                 Gouvernement du Canada                                                                                             
@@ -64,25 +64,27 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-import unittest
+
 import copy
-import sys
 import os
-import requests
-from mock import Mock, patch, MagicMock, ANY
-#TODO to be changed to io.StringIO when caom2 is prepared for python3
+import sys
+import unittest
+# TODO to be changed to io.StringIO when caom2 is prepared for python3
 from StringIO import StringIO
 from datetime import datetime
 
+import requests
 from cadctools import util
+from caom2.obs_reader_writer import ObservationWriter
+from caom2.observation import SimpleObservation
+from mock import Mock, patch, MagicMock, ANY
+
 from caom2repo import core
 from caom2repo.core import CAOM2RepoClient, DATE_FORMAT
-from caom2.observation import SimpleObservation
-from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -90,10 +92,10 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 class MyExitError(Exception):
     pass
 
+
 class TestCAOM2Repo(unittest.TestCase):
 
     """Test the Caom2Visitor class"""
-
 
     def test_plugin_class(self):
         # plugin class does not change the observation
@@ -126,8 +128,7 @@ class TestCAOM2Repo(unittest.TestCase):
         # non-existent update method in ObservationUpdater class
         with self.assertRaises(Exception):    
             visitor._load_plugin_class(os.path.join(THIS_DIR, 'noupdateplugin.py'))
-   
-   
+
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadctools.net.ws.open', MagicMock(), create=True)
@@ -144,7 +145,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status_code = 200
         response.content = ibuffer.getvalue()
         mock_get.return_value = response
-        ibuffer.seek(0) # reposition the buffer for reading
+        ibuffer.seek(0)  # reposition the buffer for reading
         visitor = CAOM2RepoClient(server=service_url)
         self.assertEquals(obs, visitor.get_observation(collection, observation_id))
         
@@ -167,11 +168,11 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
+
         def raise_error(): raise http_error
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(requests.HTTPError):
             visitor.get_observation(collection, observation_id)
-
 
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
@@ -195,22 +196,21 @@ class TestCAOM2Repo(unittest.TestCase):
         expect_observations = ['700000o', '700001o']
         self.assertEquals(expect_observations, visitor._get_observations('cfht'))
         self.assertEquals(end_date, visitor._start)
-        mock_get.assert_called_once_with('cfht', params={'MAXREC':core.BATCH_SIZE})
+        mock_get.assert_called_once_with('cfht', params={'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11', '%Y-%m-%d'))
-        mock_get.assert_called_once_with('cfht', params={'END':'2000-11-11T00:00:00.000000',
+        mock_get.assert_called_once_with('cfht', params={'END': '2000-11-11T00:00:00.000000',
                                                          'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht',
                                   start=datetime.strptime('2000-11-11', '%Y-%m-%d'),
                                   end=datetime.strptime('2000-11-12', '%Y-%m-%d'))
-        mock_get.assert_called_once_with('cfht', params={'START':'2000-11-11T00:00:00.000000',
+        mock_get.assert_called_once_with('cfht', params={'START': '2000-11-11T00:00:00.000000',
                                                          'END': '2000-11-12T00:00:00.000000',
                                                          'MAXREC': core.BATCH_SIZE})
 
-    
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadctools.net.ws.auth.get_user_password', Mock(return_value=('usr', 'passwd')))
@@ -257,11 +257,11 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
+
         def raise_error(): raise http_error
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(requests.HTTPError):
             visitor.post_observation(obs)
-
 
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
@@ -358,9 +358,8 @@ class TestCAOM2Repo(unittest.TestCase):
         with self.assertRaises(requests.HTTPError):
             visitor.delete_observation(collection, observation_id)
 
-
     def test_process(self):
-        core.BATCH_SIZE = 3 # size of the batch is 3
+        core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
         visitor = CAOM2RepoClient()
         visitor.get_observation = MagicMock(return_value=MagicMock(spec=SimpleObservation))
@@ -374,7 +373,6 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._get_observations = MagicMock(side_effect=obs)
         self.assertEquals(6, visitor.visit(os.path.join(
                 THIS_DIR, 'passplugin.py'), 'cfht'))
-
 
     @patch('caom2repo.core.CAOM2RepoClient')
     def test_main(self, client_mock):
@@ -396,7 +394,6 @@ class TestCAOM2Repo(unittest.TestCase):
         sys.argv = ["caom2tools", "update", ifile]
         core.main()
         client_mock.return_value.post_observation.assert_called_with(obs)
-
 
         # test read
         sys.argv = ["caom2tools", "read", "--collection", collection, observation_id]
@@ -423,10 +420,10 @@ class TestCAOM2Repo(unittest.TestCase):
                     "--end", "2013-01-01T11:33:22.443", collection]
         with open(plugin_file, 'r') as infile:
             core.main()
-            client_mock.return_value.visit.assert_called_with(ANY, collection,
-                        start=util.str2ivoa("2012-01-01T11:22:33.44"),
-                        end=util.str2ivoa("2013-01-01T11:33:22.443"))
-
+            client_mock.return_value.visit.assert_called_with(
+                ANY, collection,
+                start=util.str2ivoa("2012-01-01T11:22:33.44"),
+                end=util.str2ivoa("2013-01-01T11:33:22.443"))
 
     @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                          MyExitError, MyExitError, MyExitError]))
@@ -434,7 +431,7 @@ class TestCAOM2Repo(unittest.TestCase):
         """ Tests the helper displays for commands and subcommands in main"""
 
         # expected helper messages
-        usage=\
+        usage =\
 """usage: caom2-client [-h] [--certfile CERTFILE] [--anonymous] [--host HOST]
                     [--verbose] [--debug] [--quiet]
                     {create,read,update,delete,visit} ...
@@ -454,7 +451,7 @@ optional arguments:
   --quiet               run quietly
 """
 
-        create_usage=\
+        create_usage =\
 """usage: caom2-client create [-h] [--certfile CERTFILE] [--anonymous]
                            [--host HOST] [--verbose] [--debug] [--quiet]
                            <new observation file>
@@ -598,7 +595,6 @@ Minimum plugin file format:
         # custom code to update the observation
 ----
 """
-
 
         # --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:

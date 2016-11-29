@@ -114,7 +114,7 @@ class Part(AbstractCaomEntity):
         """The type of data product referred to by this part.
 
         Must be one of the allowed data product types:
-        unicode(ProductType.names())"""
+        caom2.ProductType"""
         return self._product_type
 
     @product_type.setter
