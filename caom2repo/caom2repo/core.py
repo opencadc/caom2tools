@@ -85,8 +85,9 @@ from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
-SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2repo' #TODO replace with SERVICE_URI when server supports it
+SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/' #TODO replace with SERVICE_URI when server supports it
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
+SERVICE = 'caom2repo'
 
 class CAOM2RepoClient:
 
@@ -104,8 +105,10 @@ class CAOM2RepoClient:
         s = SERVICE_URL
         if server is not None:
             s = server
+        if not s.endswith('/'):
+            s = s + "/"
         agent = 'CAOM2RepoClient' #TODO add version
-        self._repo_client = net.BaseWsClient(s, anon=anon, cert_file=cert_file, agent=agent, retry=True)
+        self._repo_client = net.BaseWsClient(s + SERVICE, anon=anon, cert_file=cert_file, agent=agent, retry=True)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
 
