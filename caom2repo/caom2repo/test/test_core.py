@@ -219,7 +219,7 @@ class TestCAOM2Repo(unittest.TestCase):
         collection = 'cfht'
         observation_id = '7000000o'
         service = 'caom2repo'
-        service_url = 'www.cadc.nrc.ca/{}'.format(service)
+        service_url = 'www.cadc.nrc.ca'
 
         obs = SimpleObservation(collection, observation_id)
         visitor = CAOM2RepoClient(anon=False, server=service_url)
@@ -230,8 +230,8 @@ class TestCAOM2Repo(unittest.TestCase):
         ObservationWriter().write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
-        
-        self.assertEqual(obs, visitor.post_observation(obs))
+
+        visitor.post_observation(obs)
         self.assertEqual('POST', mock_conn.call_args[0][0].method)
         self.assertEqual('/{}/auth/{}/{}'.format(service, collection, observation_id),
                          mock_conn.call_args[0][0].path_url)
@@ -270,7 +270,7 @@ class TestCAOM2Repo(unittest.TestCase):
         collection = 'cfht'
         observation_id = '7000000o'
         service = 'caom2repo'
-        service_url = 'www.cadc.nrc.ca/{}'.format(service)
+        service_url = 'www.cadc.nrc.ca/'
 
         obs = SimpleObservation(collection, observation_id)
         visitor = CAOM2RepoClient(cert_file='somefile.pem', server=service_url)
@@ -282,7 +282,7 @@ class TestCAOM2Repo(unittest.TestCase):
         obsxml = iobuffer.getvalue()
         response.content = obsxml
 
-        self.assertEqual(obs, visitor.put_observation(obs))
+        visitor.put_observation(obs)
         self.assertEqual('PUT', mock_conn.call_args[0][0].method)
         self.assertEqual('/{}/{}'.format(service, collection),
                          mock_conn.call_args[0][0].path_url)
