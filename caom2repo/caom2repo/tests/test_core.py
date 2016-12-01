@@ -440,6 +440,11 @@ Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) o
 
 positional arguments:
   {create,read,update,delete,visit}
+    create              Create a new observation
+    read                Read an existing observation
+    update              Update an existing observation
+    delete              Delete an existing observation
+    visit               Visit observations in a collection
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -573,7 +578,7 @@ optional arguments:
   --debug               debug messages
   --quiet               run quietly
   --plugin <pluginClassFile>
-                        Pluging class to update each observation
+                        Plugin class to update each observation
   --start <datetime start point>
                         oldest dataset to visit (UTC %Y-%m-%d format)
   --end <datetime end point>
@@ -583,17 +588,17 @@ optional arguments:
   -s <CAOM2 service URL>, --server <CAOM2 service URL>
                         URL of the CAOM2 repo server
 
-Minimum plugin file format:
-----
-   from caom2.caom2_observation import Observation
+        Minimum plugin file format:
+        ----
+           from caom2.caom2_observation import Observation
 
-   class ObservationUpdater:
+           class ObservationUpdater:
 
-    def update(self, observation):
-        assert isinstance(observation, Observation), (
-            'observation {} is not an Observation'.format(observation))
-        # custom code to update the observation
-----
+            def update(self, observation):
+                assert isinstance(observation, Observation), (
+                    'observation {} is not an Observation'.format(observation))
+                # custom code to update the observation
+        ----
 """
 
         # --help
@@ -636,4 +641,5 @@ Minimum plugin file format:
             sys.argv = ["caom2-client", "visit", "--help"]
             with self.assertRaises(MyExitError):
                 core.main()
+            self.maxDiff = None
             self.assertEqual(visit_usage, stdout_mock.getvalue())
