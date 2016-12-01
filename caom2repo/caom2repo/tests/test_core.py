@@ -588,17 +588,17 @@ optional arguments:
   -s <CAOM2 service URL>, --server <CAOM2 service URL>
                         URL of the CAOM2 repo server
 
-        Minimum plugin file format:
-        ----
-           from caom2.caom2_observation import Observation
+Minimum plugin file format:
+----
+   from caom2.caom2_observation import Observation
 
-           class ObservationUpdater:
+   class ObservationUpdater:
 
-            def update(self, observation):
-                assert isinstance(observation, Observation), (
-                    'observation {} is not an Observation'.format(observation))
-                # custom code to update the observation
-        ----
+    def update(self, observation):
+        assert isinstance(observation, Observation), (
+            'observation {} is not an Observation'.format(observation))
+        # custom code to update the observation
+----
 """
 
         # --help

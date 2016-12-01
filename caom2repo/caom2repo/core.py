@@ -335,19 +335,19 @@ def main():
     visit_parser.add_argument('collection', metavar='<datacollection>', type=str,
                               help='data collection in CAOM2 repo')
     visit_parser.epilog =\
-        """
-        Minimum plugin file format:
-        ----
-           from caom2.caom2_observation import Observation
+"""
+Minimum plugin file format:
+----
+   from caom2.caom2_observation import Observation
 
-           class ObservationUpdater:
+   class ObservationUpdater:
 
-            def update(self, observation):
-                assert isinstance(observation, Observation), (
-                    'observation {} is not an Observation'.format(observation))
-                # custom code to update the observation
-        ----
-        """
+    def update(self, observation):
+        assert isinstance(observation, Observation), (
+            'observation {} is not an Observation'.format(observation))
+        # custom code to update the observation
+----
+"""
     args = parser.parse_args()
 
     if args.verbose:
