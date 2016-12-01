@@ -200,7 +200,7 @@ class CAOM2RepoClient:
                 filepath)
             
     
-    def get_observation(self, collection, observationID):
+    def get_observation(self, collection, observation_id):
         """
         Get an observation from the CAOM2 repo
         :param collection: name of the collection
@@ -208,8 +208,8 @@ class CAOM2RepoClient:
         :return: the caom2.observation.Observation object
         """
         assert collection is not None
-        assert observationID is not None
-        resource = '/{}/{}'.format(collection, observationID)
+        assert observation_id is not None
+        resource = '/{}/{}'.format(collection, observation_id)
         logging.debug('GET '.format(resource))
 
         response = self._repo_client.get(resource)
@@ -249,7 +249,8 @@ class CAOM2RepoClient:
         :return: Added observation
         """
         assert observation.collection is not None
-        resource = '/{}'.format(observation.collection)
+        assert observation.observation_id is not None
+        resource = '/{}/{}'.format(observation.collection, observation.observation_id)
         logging.debug('PUT {}'.format(resource))
 
         ibuffer = StringIO()
@@ -261,14 +262,14 @@ class CAOM2RepoClient:
         logging.debug('Successfully put Observation\n')
 
 
-    def delete_observation(self, collection, observationID):
+    def delete_observation(self, collection, observation_id):
         """
         Delete an observation from the CAOM2 repo
         :param collection: Name of the collection
         :param observationID: ID of the observation
         """
-        assert observationID is not None
-        resource = '/{}/{}'.format(collection, observationID)
+        assert observation_id is not None
+        resource = '/{}/{}'.format(collection, observation_id)
         logging.debug('DELETE {}'.format(resource))
         response = self._repo_client.delete(resource)
         logging.info('Successfully deleted Observation {}\n')
@@ -375,7 +376,7 @@ Minimum plugin file format:
         client.post_observation(obs_reader.read(args.observation)) #TODO not sure if need to read in string first
     else:
         print("Delete")
-        client.delete_observation(collection=args.collection, observation=args.observationID)
+        client.delete_observation(collection=args.collection, observation_id=args.observationID)
 
     print("DONE")
 
