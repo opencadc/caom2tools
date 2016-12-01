@@ -1,6 +1,5 @@
 numpy==1.12.0b1
 astropy==1.2.1
-cadctools==0.1.dev11
 -e . 
 funcsigs==1.0.2
 mock==2.0.0
