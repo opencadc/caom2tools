@@ -1,7 +1,8 @@
-## -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+#!/usr/bin/env python2.7
+# # -*- coding: utf-8 -*-
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #                                                                                                                                                          
 #  (c) 2016.                            (c) 2016.                                                                                                          
 #  Government of Canada                 Gouvernement du Canada                                                                                             
@@ -64,7 +65,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -75,7 +76,7 @@ import imp
 import os
 import sys
 import os.path
-#TODO to be changed to io.StringIO when caom2 is prepared for python3
+# TODO to be changed to io.StringIO when caom2 is prepared for python3
 from StringIO import StringIO
 from cadcutils import net
 from cadcutils import util
@@ -85,9 +86,12 @@ from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
-SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/' #TODO replace with SERVICE_URI when server supports it
-DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
+# TODO replace with SERVICE_URI when server supports it
+SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/'
+# IVOA dateformat
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 SERVICE = 'caom2repo'
+
 
 class CAOM2RepoClient:
 
@@ -106,11 +110,11 @@ class CAOM2RepoClient:
         if server is not None:
             s = server
         if not s.endswith('/'):
-            s = s + "/"
-        agent = 'CAOM2RepoClient' #TODO add version
+            s += "/"
+        # TODO add version
+        agent = 'CAOM2RepoClient'
         self._repo_client = net.BaseWsClient(s + SERVICE, anon=anon, cert_file=cert_file, agent=agent, retry=True)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
-
 
     def visit(self, plugin, collection, start=None, end=None):
         """
@@ -132,7 +136,9 @@ class CAOM2RepoClient:
         if end is not None:
             assert type(end) is datetime
         self._load_plugin_class(plugin)
-        self._start = start # this is updated by _get_observations with the timestamp of last observation in the batch
+
+        # this is updated by _get_observations with the timestamp of last observation in the batch
+        self._start = start
         count = 0
         observations = self._get_observations(collection, self._start, end)
         while len(observations) > 0:
@@ -173,8 +179,7 @@ class CAOM2RepoClient:
         if last_datetime is not None:
             self._start = datetime.strptime(last_datetime, DATE_FORMAT)
         return observations
-        
-         
+
     def _load_plugin_class(self, filepath):
         """
         Loads the plugin method and sets the self.plugin to refer to it.
@@ -221,7 +226,6 @@ class CAOM2RepoClient:
             raise Exception('Got empty response for resource: {}'.format(resource))
         return obs_reader.read(StringIO(content))
 
-
     def post_observation(self, observation):
         """
         Updates an observation in the CAOM2 repo
@@ -240,7 +244,6 @@ class CAOM2RepoClient:
         response = self._repo_client.post(
             resource, headers=headers, data=obs_xml)
         logging.debug('Successfully updated Observation\n')
-
 
     def put_observation(self, observation):
         """
@@ -261,7 +264,6 @@ class CAOM2RepoClient:
             resource, headers=headers, data=obs_xml)
         logging.debug('Successfully put Observation\n')
 
-
     def delete_observation(self, collection, observation_id):
         """
         Delete an observation from the CAOM2 repo
@@ -277,75 +279,87 @@ class CAOM2RepoClient:
 
 def main():
 
-    parser = util.BaseParser()
+    base_parser = util.get_base_parser()
+
+    parser = argparse.ArgumentParser(parents=[base_parser])
 
     parser.description = ('Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) '
                           'operations it also implements a visitor operation that allows for updating '
                           'multiple observations in a collection')
     parser.formatter_class = argparse.RawTextHelpFormatter
 
-    subparsers = parser.add_subparsers(dest='cmd')
-    create_parser = subparsers.add_parser('create', description='Create a new observation')
+    subparsers = parser.add_subparsers(dest='cmd', )
+
+    create_parser = subparsers.add_parser('create', parents=[base_parser],
+                                          description='Create a new observation',
+                                          help='Create a new observation')
     create_parser.add_argument('observation', metavar='<new observation file>', type=file)
 
-    read_parser = subparsers.add_parser('read', description='Read an existing observation')
+    read_parser = subparsers.add_parser('read', parents=[base_parser],
+                                        description='Read an existing observation',
+                                        help='Read an existing observation')
     read_parser.add_argument('--collection', metavar='<collection>', required=True)
     read_parser.add_argument('--output', '-o', metavar='<destination file>', required=False)
     read_parser.add_argument('observation', metavar='<observation>')
 
-    update_parser = subparsers.add_parser('update', description='Update an existing observation')
+    update_parser = subparsers.add_parser('update', parents=[base_parser],
+                                          description='Update an existing observation',
+                                          help='Update an existing observation')
     update_parser.add_argument('observation', metavar='<observation file>', type=file)
 
-    delete_parser = subparsers.add_parser('delete', description='Delete an existing observation')
+    delete_parser = subparsers.add_parser('delete', parents=[base_parser],
+                                          description='Delete an existing observation',
+                                          help='Delete an existing observation')
     delete_parser.add_argument('--collection', metavar='<collection>', required=True)
     delete_parser.add_argument('observationID', metavar='<ID of observation>')
 
     # Note: RawTextHelpFormatter allows for the use of newline in epilog
-    visit_parser = subparsers.add_parser('visit', formatter_class=argparse.RawTextHelpFormatter,
-                                         description='Visit observations in a collection')
+    visit_parser = subparsers.add_parser('visit', parents=[base_parser],
+                                         formatter_class=argparse.RawTextHelpFormatter,
+                                         description='Visit observations in a collection',
+                                         help='Visit observations in a collection')
     visit_parser.add_argument('--plugin', required=True, type=file,
-                        metavar=('<pluginClassFile>'),
-                        help='Pluging class to update each observation')
+                              metavar='<pluginClassFile>',
+                              help='Plugin class to update each observation')
     visit_parser.add_argument('--start', metavar='<datetime start point>',
-                        type=util.str2ivoa,
-                        help='oldest dataset to visit (UTC %%Y-%%m-%%d format)')
+                              type=util.str2ivoa,
+                              help='oldest dataset to visit (UTC %%Y-%%m-%%d format)')
     visit_parser.add_argument('--end', metavar='<datetime end point>',
-                        type=util.str2ivoa,
-                        help='earliest dataset to visit (UTC %%Y-%%m-%%d format)')
-    visit_parser.add_argument('--retries', metavar='<number of retries>',
-                        type=int,
-                        help='number of tries with transient server errors')
-    visit_parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
-                      help="URL of the CAOM2 repo server")
+                              type=util.str2ivoa,
+                              help='earliest dataset to visit (UTC %%Y-%%m-%%d format)')
+    visit_parser.add_argument('--retries', metavar='<number of retries>', type=int,
+                              help='number of tries with transient server errors')
+    visit_parser.add_argument("-s", "--server", metavar='<CAOM2 service URL>',
+                              help="URL of the CAOM2 repo server")
 
     visit_parser.add_argument('collection', metavar='<datacollection>', type=str,
-                help='data collection in CAOM2 repo')
+                              help='data collection in CAOM2 repo')
     visit_parser.epilog =\
-"""
-Minimum plugin file format:
-----
-   from caom2.caom2_observation import Observation
+        """
+        Minimum plugin file format:
+        ----
+           from caom2.caom2_observation import Observation
 
-   class ObservationUpdater:
+           class ObservationUpdater:
 
-    def update(self, observation):
-        assert isinstance(observation, Observation), (
-            'observation {} is not an Observation'.format(observation))
-        # custom code to update the observation
-----
-"""
+            def update(self, observation):
+                assert isinstance(observation, Observation), (
+                    'observation {} is not an Observation'.format(observation))
+                # custom code to update the observation
+        ----
+        """
     args = parser.parse_args()
-
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
-
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    certfile = None
+
+    cert_file = None
     if os.path.isfile(args.certfile):
-        certfile = args.certfile
-    client = CAOM2RepoClient(anon=args.anonymous, cert_file=certfile, server=args.host)
+        cert_file = args.certfile
+
+    client = CAOM2RepoClient(anon=args.anonymous, cert_file=cert_file, server=args.host)
     if args.cmd == 'visit':
         print ("Visit")
         plugin = args.plugin
@@ -354,7 +368,7 @@ Minimum plugin file format:
         retries = args.retries
         collection = args.collection
         logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
-               format(plugin, start, end, collection, retries))
+                      format(plugin, start, end, collection, retries))
         client.visit(plugin.name, collection, start=start, end=end)
 
     elif args.cmd == 'create':
@@ -373,11 +387,10 @@ Minimum plugin file format:
     elif args.cmd == 'update':
         print("Update")
         obs_reader = ObservationReader()
-        client.post_observation(obs_reader.read(args.observation)) #TODO not sure if need to read in string first
+        # TODO not sure if need to read in string first
+        client.post_observation(obs_reader.read(args.observation))
     else:
         print("Delete")
         client.delete_observation(collection=args.collection, observation_id=args.observationID)
 
     print("DONE")
-
-
