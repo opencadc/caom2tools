@@ -77,8 +77,8 @@ import sys
 import os.path
 #TODO to be changed to io.StringIO when caom2 is prepared for python3
 from StringIO import StringIO
-from cadctools import net
-from cadctools import util
+from cadcutils import net
+from cadcutils import util
 
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 

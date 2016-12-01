@@ -78,7 +78,7 @@ from StringIO import StringIO
 from datetime import datetime
 
 import requests
-from cadctools import util
+from cadcutils import util
 from caom2.obs_reader_writer import ObservationWriter
 from caom2.observation import SimpleObservation
 from mock import Mock, patch, MagicMock, ANY
@@ -130,9 +130,9 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor._load_plugin_class(os.path.join(THIS_DIR, 'noupdateplugin.py'))
 
     # patch sleep to stop the test from sleeping and slowing down execution
-    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
-    @patch('cadctools.net.ws.open', MagicMock(), create=True)
-    @patch('cadctools.net.ws.Session.send')
+    @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadcutils.net.ws.open', MagicMock(), create=True)
+    @patch('cadcutils.net.ws.Session.send')
     def test_get_observation(self, mock_get):
         collection = 'cfht'
         observation_id = '7000000o'
@@ -175,8 +175,8 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.get_observation(collection, observation_id)
 
     # patch sleep to stop the test from sleeping and slowing down execution
-    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
-    @patch('cadctools.net.ws.open', MagicMock(), create=True)
+    @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadcutils.net.ws.open', MagicMock(), create=True)
     @patch('caom2repo.core.net.BaseWsClient.get')
     def test_get_observations(self, mock_get):
         # This is almost similar to the previous test except that it gets
@@ -212,9 +212,9 @@ class TestCAOM2Repo(unittest.TestCase):
                                                          'MAXREC': core.BATCH_SIZE})
 
     # patch sleep to stop the test from sleeping and slowing down execution
-    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
-    @patch('cadctools.net.ws.auth.get_user_password', Mock(return_value=('usr', 'passwd')))
-    @patch('cadctools.net.ws.Session.send')
+    @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadcutils.net.ws.auth.get_user_password', Mock(return_value=('usr', 'passwd')))
+    @patch('cadcutils.net.ws.Session.send')
     def test_post_observation(self, mock_conn):
         collection = 'cfht'
         observation_id = '7000000o'
@@ -264,8 +264,8 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.post_observation(obs)
 
     # patch sleep to stop the test from sleeping and slowing down execution
-    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
-    @patch('cadctools.net.ws.Session.send')
+    @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadcutils.net.ws.Session.send')
     def test_put_observation(self, mock_conn):
         collection = 'cfht'
         observation_id = '7000000o'
@@ -316,8 +316,8 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.put_observation(obs)
 
     # patch sleep to stop the test from sleeping and slowing down execution
-    @patch('cadctools.net.ws.time.sleep', MagicMock(), create=True)
-    @patch('cadctools.net.ws.Session.send')
+    @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
+    @patch('cadcutils.net.ws.Session.send')
     def test_delete_observation(self, mock_conn):
         collection = 'cfht'
         observation_id = '7000000o'
