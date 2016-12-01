@@ -125,7 +125,7 @@ install:
     # other dependencies.
 
 script:
-   - cd caom2; python setup.py $SETUP_CMD || break -1
+   - cd caom2; python setup.py $SETUP_CMD || break -1;cd ..
    - cd caom2repo; pip install ../caom2; python setup.py $SETUP_CMD || break -1
 
 after_success:
