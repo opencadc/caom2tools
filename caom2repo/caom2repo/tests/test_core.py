@@ -284,7 +284,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         visitor.put_observation(obs)
         self.assertEqual('PUT', mock_conn.call_args[0][0].method)
-        self.assertEqual('/{}/{}'.format(service, collection),
+        self.assertEqual('/{}/{}/{}'.format(service, collection, observation_id),
                          mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml', mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
@@ -411,7 +411,7 @@ class TestCAOM2Repo(unittest.TestCase):
         sys.argv = ["caom2tools", "delete", "--collection", collection, observation_id]
         core.main()
         client_mock.return_value.delete_observation.assert_called_with(collection=collection,
-                                                                       observation=observation_id)
+                                                                       observation_id=observation_id)
 
         # test visit
         # get the absolute path to be able to run the tests with the astropy frameworks
@@ -588,17 +588,17 @@ optional arguments:
   -s <CAOM2 service URL>, --server <CAOM2 service URL>
                         URL of the CAOM2 repo server
 
-        Minimum plugin file format:
-        ----
-           from caom2.caom2_observation import Observation
+Minimum plugin file format:
+----
+   from caom2.caom2_observation import Observation
 
-           class ObservationUpdater:
+   class ObservationUpdater:
 
-            def update(self, observation):
-                assert isinstance(observation, Observation), (
-                    'observation {} is not an Observation'.format(observation))
-                # custom code to update the observation
-        ----
+    def update(self, observation):
+        assert isinstance(observation, Observation), (
+            'observation {} is not an Observation'.format(observation))
+        # custom code to update the observation
+----
 """
 
         # --help
