@@ -76,8 +76,6 @@ package_info = get_package_info()
 
 # Add the project-global data
 package_info['package_data'].setdefault(PACKAGENAME, [])
-package_info['package_data'][PACKAGENAME].append('data/*')
-package_info['package_data'][PACKAGENAME].append('caom2/test/data/*')
 
 # Define entry points for command-line scripts
 entry_points = {'console_scripts': []}
@@ -107,7 +105,7 @@ setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
       scripts=scripts,
-      install_requires=['cadcutils'],
+      install_requires=['cadcutils>=1.0.2', 'caom2>=2.2.3'],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,

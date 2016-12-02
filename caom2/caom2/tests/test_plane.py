@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2010.                            (c) 2010.
+#  (c) 2016.                            (c) 2016.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -64,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """ Defines TestPlane class """
@@ -198,7 +198,7 @@ class TestPlane(unittest.TestCase):
         metrics = plane.Metrics()
         test_plane.metrics = metrics
         self.assertEqual(metrics, test_plane.metrics, "Provenance - metrics")
-        #self.assertIsNone(plane.observable, "Default observable")
+        # self.assertIsNone(plane.observable, "Default observable")
         self.assertIsNone(test_plane.position, "Default position")
         self.assertIsNone(test_plane.energy, "Default energy")
         self.assertIsNone(test_plane.time, "Default time")
@@ -219,7 +219,7 @@ class TestPlane(unittest.TestCase):
         self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
         self.assertTrue("caom:CFHT/55/66" in test_plane.artifacts.keys())
 
-        #try to append a duplicate artifact
+        # try to append a duplicate artifact
         test_artifact3 = artifact.Artifact("caom:GEMINI/222/333",
                                            chunk.ProductType.SCIENCE,
                                            artifact.ReleaseType.DATA)
@@ -228,7 +228,7 @@ class TestPlane(unittest.TestCase):
         self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
         self.assertTrue("caom:CFHT/55/66" in test_plane.artifacts.keys())
 
-        #Error cases
+        # Error cases
         exception = False
         try:
             test_plane = plane.Plane(None)
@@ -236,21 +236,21 @@ class TestPlane(unittest.TestCase):
             exception = True
         self.assertTrue(exception, "Null argument in initialize")
 
-        #exception = False
-        #try:
-        #    plane.compute_observable()
-        #except TypeError:
-        #    exception = True
-        #self.assertTrue(exception,
-        #                "compute_observable implemented - Testing needed")
+        # exception = False
+        # try:
+        #     plane.compute_observable()
+        # except TypeError:
+        #     exception = True
+        # self.assertTrue(exception,
+        #                 "compute_observable implemented - Testing needed")
 
-        #exception = False
-        #try:
+        # exception = False
+        # try:
         #    plane.compute_position()
-        #except TypeError:
-        #    exception = True
-        #self.assertTrue(exception,
-        #                "compute_position implemented - Testing needed")
+        # except TypeError:
+        #     exception = True
+        # self.assertTrue(exception,
+        #                 "compute_position implemented - Testing needed")
 
         exception = False
         try:
@@ -273,7 +273,7 @@ class TestPlane(unittest.TestCase):
         except NotImplementedError:
             exception = True
         self.assertTrue(exception, "compute_polarization implemented"
-                                    " - Testing needed")
+                                   " - Testing needed")
 
 
 class TestPlaneURI(unittest.TestCase):
@@ -289,7 +289,7 @@ class TestPlaneURI(unittest.TestCase):
         self.assertEqual("3333", plane_uri.product_id, "Product ID")
 
         plane_uri = plane.PlaneURI.get_plane_uri(observation.ObservationURI("caom:CFHT/654321"),
-                                          "555")
+                                                 "555")
         self.assertEqual("caom:CFHT/654321/555", plane_uri.uri,
                          "Observation URI")
         self.assertEqual("CFHT", plane_uri.observation_uri.collection,
@@ -312,7 +312,7 @@ class TestPlaneURI(unittest.TestCase):
             exception = True
         self.assertTrue(exception, "Missing exception")
 
-        #wrong scheme
+        # wrong scheme
         exception = False
         try:
             plane_uri = plane.PlaneURI("somescheme:GEMINI/12345/3333")
@@ -451,11 +451,11 @@ class TestPosition(unittest.TestCase):
         position = plane.Position()
 
         self.assertIsNone(position.bounds, "Default bounds")
-        #position.bounds = 123
-        #self.assertEqual(123, position.bounds, "Bounds")
+        # position.bounds = 123
+        # self.assertEqual(123, position.bounds, "Bounds")
         self.assertIsNone(position.dimension, "Default dimension")
-        #position.dimension = 123
-        #self.assertEqual(123, position.dimension, "Dimension")
+        # position.dimension = 123
+        # self.assertEqual(123, position.dimension, "Dimension")
         self.assertIsNone(position.resolution, "Default resolution")
         position.resolution = 123.321
         self.assertEqual(123.321, position.resolution, "Resolution")
@@ -475,8 +475,8 @@ class TestEnergy(unittest.TestCase):
         energy.value = 33.33
         self.assertEqual(33.33, energy.value, "Energy value")
         self.assertIsNone(energy.bounds, "Default energy bounds")
-        #TODO switch to Interval
-        #energy.bounds = 22
+        # TODO switch to Interval
+        # energy.bounds = 22
         self.assertIsNone(energy.dimension, "Default energy dimension")
         energy.dimension = 1000L
         self.assertEqual(1000L, energy.dimension, "Energy dimension")
@@ -495,8 +495,8 @@ class TestEnergy(unittest.TestCase):
         energy.em_band = plane.EnergyBand.OPTICAL
         self.assertEqual(plane.EnergyBand.OPTICAL, energy.em_band, "Energy band")
         self.assertIsNone(energy.transition, "Default energy transition")
-        #TODO replace with EnergyTransistion
-        #energy.transition = "BLAH"
+        # TODO replace with EnergyTransistion
+        # energy.transition = "BLAH"
 
 
 class TestEnergyTransition(unittest.TestCase):
@@ -536,7 +536,7 @@ class TestPolarizaton(unittest.TestCase):
         energy.bandpass_name = '123'
         self.assertEqual('123', energy.bandpass_name, "Polarization dimension")
 
-        #TODO add test for state
+        # TODO add test for state
 
 
 class TestTime(unittest.TestCase):

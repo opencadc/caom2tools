@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2010.                            (c) 2010.
+#  (c) 2016.                            (c) 2016.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -64,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """ Defines TestChunk class """
@@ -268,7 +268,6 @@ class TestSpectralWCS(unittest.TestCase):
             energy.zsource = float(1201)
             energy.resolving_power = float(-1)
             energy.resolving_power = float(1.1e8)
-
 
         energy.ssysobs = "ssysobs"
         self.assertEqual(energy.ssysobs, "ssysobs")

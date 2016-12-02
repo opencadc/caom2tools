@@ -113,7 +113,6 @@ def test(package=None, test_path=None, args=None, plugins=None,
 if not _ASTROPY_SETUP_:
     import os
     from warnings import warn
-    from astropy import config
 
     # add these here so we only need to cleanup the namespace at the end
     config_dir = None
@@ -122,6 +121,7 @@ if not _ASTROPY_SETUP_:
         config_dir = os.path.dirname(__file__)
         config_template = os.path.join(config_dir, __package__ + ".cfg")
         if os.path.isfile(config_template):
+            from astropy import config
             try:
                 config.configuration.update_default_config(
                     __package__, config_dir, version=__version__)
