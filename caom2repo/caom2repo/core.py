@@ -69,19 +69,23 @@
 #
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from datetime import datetime
-import logging
+
 import argparse
 import imp
+import logging
 import os
-import sys
 import os.path
-# TODO to be changed to io.StringIO when caom2 is prepared for python3
+import sys
 from StringIO import StringIO
+from datetime import datetime
+
 from cadcutils import net
 from cadcutils import util
-
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
+from caom2.version import version as caom2_version
+
+# from . import version as caom2repo_version
+from . import version
 
 __all__ = ['CAOM2RepoClient']
 
@@ -111,8 +115,9 @@ class CAOM2RepoClient:
             s = server
         if not s.endswith('/'):
             s += "/"
-        # TODO add version
-        agent = 'CAOM2RepoClient'
+
+        agent = "caom2-repo-client/{} caom2/{}".format(version.version, caom2_version)
+
         self._repo_client = net.BaseWsClient(s + SERVICE, anon=anon, cert_file=cert_file, agent=agent, retry=True)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
@@ -165,7 +170,7 @@ class CAOM2RepoClient:
         """
         assert collection is not None
         observations = []
-        params = {'MAXREC':BATCH_SIZE}
+        params = {'MAXREC': BATCH_SIZE}
         if start is not None:
             params['START'] = start.strftime(DATE_FORMAT)
         if end is not None:
@@ -187,7 +192,7 @@ class CAOM2RepoClient:
         """
         expected_class = 'ObservationUpdater'
     
-        mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
+        mod_name, file_ext = os.path.splitext(os.path.split(filepath)[-1])
 
         if file_ext.lower() == '.pyc':
             py_mod = imp.load_compiled(mod_name, filepath)
@@ -201,15 +206,13 @@ class CAOM2RepoClient:
                 'Cannot find ObservationUpdater class in pluging file ' + filepath)
         
         if not hasattr(self.plugin, 'update'):
-            raise Exception('Cannot find update method in plugin class ' +\
-                filepath)
-            
-    
+            raise Exception('Cannot find update method in plugin class ' + filepath)
+
     def get_observation(self, collection, observation_id):
         """
         Get an observation from the CAOM2 repo
         :param collection: name of the collection
-        :param observationID: the ID of the observation
+        :param observation_id: the ID of the observation
         :return: the caom2.observation.Observation object
         """
         assert collection is not None
@@ -268,7 +271,7 @@ class CAOM2RepoClient:
         """
         Delete an observation from the CAOM2 repo
         :param collection: Name of the collection
-        :param observationID: ID of the observation
+        :param observation_id: ID of the observation
         """
         assert observation_id is not None
         resource = '/{}/{}'.format(collection, observation_id)
@@ -279,7 +282,7 @@ class CAOM2RepoClient:
 
 def main():
 
-    base_parser = util.get_base_parser()
+    base_parser = util.get_base_parser(version=version.version)
 
     parser = argparse.ArgumentParser(parents=[base_parser])
 

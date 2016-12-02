@@ -433,7 +433,7 @@ class TestCAOM2Repo(unittest.TestCase):
         # expected helper messages
         usage =\
 """usage: caom2-client [-h] [--certfile CERTFILE] [--anonymous] [--host HOST]
-                    [--verbose] [--debug] [--quiet]
+                    [--verbose] [--debug] [--quiet] [--version]
                     {create,read,update,delete,visit} ...
 
 Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) operations it also implements a visitor operation that allows for updating multiple observations in a collection
@@ -454,11 +454,13 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
 """
 
         create_usage =\
 """usage: caom2-client create [-h] [--certfile CERTFILE] [--anonymous]
                            [--host HOST] [--verbose] [--debug] [--quiet]
+                           [--version]
                            <new observation file>
 
 Create a new observation
@@ -477,12 +479,13 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
 """
 
         read_usage =\
 """usage: caom2-client read [-h] [--certfile CERTFILE] [--anonymous]
                          [--host HOST] [--verbose] [--debug] [--quiet]
-                         --collection <collection>
+                         [--version] --collection <collection>
                          [--output <destination file>]
                          <observation>
 
@@ -502,6 +505,7 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
   --collection <collection>
   --output <destination file>, -o <destination file>
 """
@@ -509,6 +513,7 @@ optional arguments:
         update_usage =\
 """usage: caom2-client update [-h] [--certfile CERTFILE] [--anonymous]
                            [--host HOST] [--verbose] [--debug] [--quiet]
+                           [--version]
                            <observation file>
 
 Update an existing observation
@@ -527,12 +532,13 @@ optional arguments:
   --verbose            verbose messages
   --debug              debug messages
   --quiet              run quietly
+  --version            show program's version number and exit
 """
 
         delete_usage =\
 """usage: caom2-client delete [-h] [--certfile CERTFILE] [--anonymous]
                            [--host HOST] [--verbose] [--debug] [--quiet]
-                           --collection <collection>
+                           [--version] --collection <collection>
                            <ID of observation>
 
 Delete an existing observation
@@ -551,13 +557,14 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
   --collection <collection>
 """
 
         visit_usage =\
 """usage: caom2-client visit [-h] [--certfile CERTFILE] [--anonymous]
                           [--host HOST] [--verbose] [--debug] [--quiet]
-                          --plugin <pluginClassFile>
+                          [--version] --plugin <pluginClassFile>
                           [--start <datetime start point>]
                           [--end <datetime end point>]
                           [--retries <number of retries>]
@@ -577,6 +584,7 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
   --plugin <pluginClassFile>
                         Plugin class to update each observation
   --start <datetime start point>
@@ -641,5 +649,4 @@ Minimum plugin file format:
             sys.argv = ["caom2-client", "visit", "--help"]
             with self.assertRaises(MyExitError):
                 core.main()
-            self.maxDiff = None
             self.assertEqual(visit_usage, stdout_mock.getvalue())

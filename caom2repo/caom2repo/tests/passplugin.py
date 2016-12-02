@@ -80,5 +80,3 @@ class ObservationUpdater:
         """
         assert isinstance(observation, Observation), (
             "observation %s is not an Observation".format(observation))
-
-
