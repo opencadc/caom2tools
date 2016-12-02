@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2010.                            (c) 2010.
+#  (c) 2016.                            (c) 2016.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -64,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 from __future__ import (absolute_import, division, print_function,
@@ -129,9 +129,9 @@ class TestCoordAxis1D(unittest.TestCase):
 
         start = wcs.RefCoord(float(1.0), float(2.0))
         end = wcs.RefCoord(float(3.0), float(4.0))
-        coordRange = wcs.CoordRange1D(start, end)
-        axis_1d.range = coordRange
-        self.assertEqual(axis_1d.range, coordRange)
+        coord_range = wcs.CoordRange1D(start, end)
+        axis_1d.range = coord_range
+        self.assertEqual(axis_1d.range, coord_range)
 
         bounds = wcs.CoordBounds1D()
         axis_1d.bounds = bounds
@@ -177,9 +177,9 @@ class TestCoordAxis2D(unittest.TestCase):
                             wcs.RefCoord(float(3.0), float(4.0)))
         end = wcs.Coord2D(wcs.RefCoord(float(5.0), float(6.0)),
                           wcs.RefCoord(float(7.0), float(8.0)))
-        coordRange = wcs.CoordRange2D(start, end)
-        axis_2d.range = coordRange
-        self.assertEqual(axis_2d.range, coordRange)
+        coord_range = wcs.CoordRange2D(start, end)
+        axis_2d.range = coord_range
+        self.assertEqual(axis_2d.range, coord_range)
 
         center = wcs.ValueCoord2D(float(1.0), float(2.0))
         radius = float(1.5)
@@ -199,7 +199,7 @@ class TestCoordAxis2D(unittest.TestCase):
         cd21 = float(2.1)
         cd22 = float(2.2)
         function = wcs.CoordFunction2D(dimension, ref_coord,
-                                   cd11, cd12, cd21, cd22)
+                                       cd11, cd12, cd21, cd22)
         axis_2d.function = function
         self.assertEqual(axis_2d.function, function)
 
@@ -210,12 +210,12 @@ class TestCoordBounds1D(unittest.TestCase):
 
         start = wcs.RefCoord(float(1.0), float(2.0))
         end = wcs.RefCoord(float(3.0), float(4.0))
-        coordRange = wcs.CoordRange1D(start, end)
+        coord_range = wcs.CoordRange1D(start, end)
 
         bounds = wcs.CoordBounds1D()
-        bounds.samples.append(coordRange)
-        self.assertTrue(bounds.samples.count(coordRange) == 1)
-        self.assertEqual(bounds.samples.pop(), coordRange)
+        bounds.samples.append(coord_range)
+        self.assertTrue(bounds.samples.count(coord_range) == 1)
+        self.assertEqual(bounds.samples.pop(), coord_range)
 
         with self.assertRaises(TypeError):
             bounds.samples = [str("s")]
@@ -330,7 +330,7 @@ class TestCoordFunction2D(unittest.TestCase):
                           ref_coord, cd11, cd12, cd21, None)
 
         function = wcs.CoordFunction2D(dimension, ref_coord,
-                                   cd11, cd12, cd21, cd22)
+                                       cd11, cd12, cd21, cd22)
         self.assertEqual(function.dimension, dimension)
         self.assertEqual(function.ref_coord, ref_coord)
         self.assertEqual(function.cd11, cd11)
@@ -367,9 +367,9 @@ class TestCoordRange1D(unittest.TestCase):
         self.assertRaises(TypeError, wcs.CoordRange1D, int(1), end)
         self.assertRaises(TypeError, wcs.CoordRange1D, start, int(1))
 
-        coordRange = wcs.CoordRange1D(start, end)
-        self.assertEqual(coordRange.start, start)
-        self.assertEqual(coordRange.end, end)
+        coord_range = wcs.CoordRange1D(start, end)
+        self.assertEqual(coord_range.start, start)
+        self.assertEqual(coord_range.end, end)
 
 
 class TestCoordRange2D(unittest.TestCase):
@@ -387,9 +387,9 @@ class TestCoordRange2D(unittest.TestCase):
         self.assertRaises(TypeError, wcs.CoordRange2D, int(1), end)
         self.assertRaises(TypeError, wcs.CoordRange2D, start, int(1))
 
-        coordRange = wcs.CoordRange2D(start, end)
-        self.assertEqual(coordRange.start, start)
-        self.assertEqual(coordRange.end, end)
+        coord_range = wcs.CoordRange2D(start, end)
+        self.assertEqual(coord_range.start, start)
+        self.assertEqual(coord_range.end, end)
 
 
 class TestDimension2D(unittest.TestCase):
@@ -428,17 +428,17 @@ class TestSlice(unittest.TestCase):
     def test_init(self):
 
         axis = wcs.Axis("ctype", "cunit")
-        myBin = long(1)
+        my_bin = long(1)
 
         self.assertRaises(TypeError, wcs.Slice, None, None)
-        self.assertRaises(TypeError, wcs.Slice, None, myBin)
+        self.assertRaises(TypeError, wcs.Slice, None, my_bin)
         self.assertRaises(TypeError, wcs.Slice, axis, None)
-        self.assertRaises(TypeError, wcs.Slice, str("s"), myBin)
+        self.assertRaises(TypeError, wcs.Slice, str("s"), my_bin)
         self.assertRaises(TypeError, wcs.Slice, axis, int(1))
 
-        mySlice = wcs.Slice(axis, myBin)
-        self.assertEqual(mySlice.axis, axis)
-        self.assertEqual(mySlice.bin, long(1))
+        my_slice = wcs.Slice(axis, my_bin)
+        self.assertEqual(my_slice.axis, axis)
+        self.assertEqual(my_slice.bin, long(1))
 
 
 class TestValueCoord2d(unittest.TestCase):
