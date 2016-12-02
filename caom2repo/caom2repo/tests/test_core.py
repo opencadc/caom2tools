@@ -284,7 +284,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         visitor.put_observation(obs)
         self.assertEqual('PUT', mock_conn.call_args[0][0].method)
-        self.assertEqual('/{}/{}'.format(service, collection),
+        self.assertEqual('/{}/{}/{}'.format(service, collection, observation_id),
                          mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml', mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
@@ -411,7 +411,7 @@ class TestCAOM2Repo(unittest.TestCase):
         sys.argv = ["caom2tools", "delete", "--collection", collection, observation_id]
         core.main()
         client_mock.return_value.delete_observation.assert_called_with(collection=collection,
-                                                                       observation=observation_id)
+                                                                       observation_id=observation_id)
 
         # test visit
         # get the absolute path to be able to run the tests with the astropy frameworks
@@ -433,13 +433,18 @@ class TestCAOM2Repo(unittest.TestCase):
         # expected helper messages
         usage =\
 """usage: caom2-client [-h] [--certfile CERTFILE] [--anonymous] [--host HOST]
-                    [--verbose] [--debug] [--quiet]
+                    [--verbose] [--debug] [--quiet] [--version]
                     {create,read,update,delete,visit} ...
 
 Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) operations it also implements a visitor operation that allows for updating multiple observations in a collection
 
 positional arguments:
   {create,read,update,delete,visit}
+    create              Create a new observation
+    read                Read an existing observation
+    update              Update an existing observation
+    delete              Delete an existing observation
+    visit               Visit observations in a collection
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -449,11 +454,13 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
 """
 
         create_usage =\
 """usage: caom2-client create [-h] [--certfile CERTFILE] [--anonymous]
                            [--host HOST] [--verbose] [--debug] [--quiet]
+                           [--version]
                            <new observation file>
 
 Create a new observation
@@ -472,12 +479,13 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
 """
 
         read_usage =\
 """usage: caom2-client read [-h] [--certfile CERTFILE] [--anonymous]
                          [--host HOST] [--verbose] [--debug] [--quiet]
-                         --collection <collection>
+                         [--version] --collection <collection>
                          [--output <destination file>]
                          <observation>
 
@@ -497,6 +505,7 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
   --collection <collection>
   --output <destination file>, -o <destination file>
 """
@@ -504,6 +513,7 @@ optional arguments:
         update_usage =\
 """usage: caom2-client update [-h] [--certfile CERTFILE] [--anonymous]
                            [--host HOST] [--verbose] [--debug] [--quiet]
+                           [--version]
                            <observation file>
 
 Update an existing observation
@@ -522,12 +532,13 @@ optional arguments:
   --verbose            verbose messages
   --debug              debug messages
   --quiet              run quietly
+  --version            show program's version number and exit
 """
 
         delete_usage =\
 """usage: caom2-client delete [-h] [--certfile CERTFILE] [--anonymous]
                            [--host HOST] [--verbose] [--debug] [--quiet]
-                           --collection <collection>
+                           [--version] --collection <collection>
                            <ID of observation>
 
 Delete an existing observation
@@ -546,13 +557,14 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
   --collection <collection>
 """
 
         visit_usage =\
 """usage: caom2-client visit [-h] [--certfile CERTFILE] [--anonymous]
                           [--host HOST] [--verbose] [--debug] [--quiet]
-                          --plugin <pluginClassFile>
+                          [--version] --plugin <pluginClassFile>
                           [--start <datetime start point>]
                           [--end <datetime end point>]
                           [--retries <number of retries>]
@@ -572,8 +584,9 @@ optional arguments:
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly
+  --version             show program's version number and exit
   --plugin <pluginClassFile>
-                        Pluging class to update each observation
+                        Plugin class to update each observation
   --start <datetime start point>
                         oldest dataset to visit (UTC %Y-%m-%d format)
   --end <datetime end point>
