@@ -146,7 +146,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response.content = ibuffer.getvalue()
         mock_get.return_value = response
         ibuffer.seek(0)  # reposition the buffer for reading
-        visitor = CAOM2RepoClient(server=service_url)
+        visitor = CAOM2RepoClient(host=service_url)
         self.assertEquals(obs, visitor.get_observation(collection, observation_id))
         
         # signal problems
@@ -222,7 +222,7 @@ class TestCAOM2Repo(unittest.TestCase):
         service_url = 'www.cadc.nrc.ca'
 
         obs = SimpleObservation(collection, observation_id)
-        visitor = CAOM2RepoClient(anon=False, server=service_url)
+        visitor = CAOM2RepoClient(anon=False, host=service_url)
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
@@ -270,10 +270,10 @@ class TestCAOM2Repo(unittest.TestCase):
         collection = 'cfht'
         observation_id = '7000000o'
         service = 'caom2repo'
-        service_url = 'www.cadc.nrc.ca/'
+        service_url = 'www.cadc.nrc.ca'
 
         obs = SimpleObservation(collection, observation_id)
-        visitor = CAOM2RepoClient(cert_file='somefile.pem', server=service_url)
+        visitor = CAOM2RepoClient(cert_file='somefile.pem', host=service_url)
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
@@ -324,7 +324,7 @@ class TestCAOM2Repo(unittest.TestCase):
         service_url = 'www.cadc.nrc.ca/caom2repo'
 
         obs = SimpleObservation(collection, observation_id)
-        visitor = CAOM2RepoClient(server=service_url)
+        visitor = CAOM2RepoClient(host=service_url)
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
@@ -432,8 +432,9 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # expected helper messages
         usage =\
-"""usage: caom2-client [-h] [--certfile CERTFILE] [--anonymous] [--host HOST]
-                    [--verbose] [--debug] [--quiet] [--version]
+"""usage: caom2-client [-h] [--certfile CERTFILE] [--anonymous]
+                    [--host HOST] [--resourceID RESOURCEID] [--verbose]
+                    [--debug] [--quiet] [--version]
                     {create,read,update,delete,visit} ...
 
 Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) operations it also implements a visitor operation that allows for updating multiple observations in a collection
@@ -450,7 +451,9 @@ optional arguments:
   -h, --help            show this help message and exit
   --certfile CERTFILE   location of your CADC certificate file (default: $HOME/.ssl/cadcproxy.pem, otherwise uses $HOME/.netrc for name/password)
   --anonymous           Force anonymous connection
-  --host HOST           Base hostname for services(default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
+  --host HOST           Base hostname for services - used mainly for testing (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
+  --resourceID RESOURCEID
+                        resource identifier (default ivo://cadc.nrc.ca/caom2repo)
   --verbose             verbose messages
   --debug               debug messages
   --quiet               run quietly

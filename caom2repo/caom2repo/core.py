@@ -94,31 +94,28 @@ BATCH_SIZE = int(10000)
 SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/'
 # IVOA dateformat
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
-SERVICE = 'caom2repo'
+DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 
 
 class CAOM2RepoClient:
 
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, anon=True, cert_file=None, server=None):
+    def __init__(self, resource_id=DEFAULT_RESOURCE_ID, anon=True, cert_file=None, host=None):
         """
         Instance of a CAOM2RepoClient
+        :param resource_id: The identifier of the service resource (e.g 'ivo://cadc.nrc.ca/caom2repo')
         :param anon: True if anonymous access, False otherwise
         :param cert_file: Location of X509 certificate used for authentication
-        :param server: Host server for the caom2repo service
+        :param host: Host server for the caom2repo service
         """
 
-        # repo client to use
-        s = SERVICE_URL
-        if server is not None:
-            s = server
-        if not s.endswith('/'):
-            s += "/"
+        self.resource_id = resource_id
 
         agent = "caom2-repo-client/{} caom2/{}".format(version.version, caom2_version)
 
-        self._repo_client = net.BaseWsClient(s + SERVICE, anon=anon, cert_file=cert_file, agent=agent, retry=True)
+        self._repo_client = net.BaseWsClient(resource_id, anon=anon, cert_file=cert_file,
+                                             agent=agent, retry=True, host=host)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
     def visit(self, plugin, collection, start=None, end=None):
@@ -282,7 +279,7 @@ class CAOM2RepoClient:
 
 def main():
 
-    base_parser = util.get_base_parser(version=version.version)
+    base_parser = util.get_base_parser(version=version.version, default_resource_id=DEFAULT_RESOURCE_ID)
 
     parser = argparse.ArgumentParser(parents=[base_parser])
 
@@ -352,7 +349,6 @@ Minimum plugin file format:
 ----
 """
     args = parser.parse_args()
-
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
     if args.debug:
@@ -362,9 +358,9 @@ Minimum plugin file format:
     if os.path.isfile(args.certfile):
         cert_file = args.certfile
 
-    client = CAOM2RepoClient(anon=args.anonymous, cert_file=cert_file, server=args.host)
+    client = CAOM2RepoClient(args.resourceID, anon=args.anonymous, cert_file=cert_file, host=args.host)
     if args.cmd == 'visit':
-        print ("Visit")
+        logging.info("Visit")
         plugin = args.plugin
         start = args.start
         end = args.end
@@ -375,11 +371,11 @@ Minimum plugin file format:
         client.visit(plugin.name, collection, start=start, end=end)
 
     elif args.cmd == 'create':
-        print("Create")
+        logging.info("Create")
         obs_reader = ObservationReader()
         client.put_observation(obs_reader.read(args.observation))
     elif args.cmd == 'read':
-        print("Read")
+        logging.info("Read")
         observation = client.get_observation(args.collection, args.observation)
         observation_writer = ObservationWriter()
         if args.output:
@@ -388,12 +384,12 @@ Minimum plugin file format:
         else:
             observation_writer.write(observation, sys.stdout)
     elif args.cmd == 'update':
-        print("Update")
+        logging.info("Update")
         obs_reader = ObservationReader()
         # TODO not sure if need to read in string first
         client.post_observation(obs_reader.read(args.observation))
     else:
-        print("Delete")
+        logging.info("Delete")
         client.delete_observation(collection=args.collection, observation_id=args.observationID)
 
-    print("DONE")
+    logging.info("DONE")
