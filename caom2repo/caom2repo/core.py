@@ -83,6 +83,7 @@ from cadcutils import net
 from cadcutils import util
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 from caom2.version import version as caom2_version
+from six.moves.urllib.parse import urlparse
 
 # from . import version as caom2repo_version
 from . import version
@@ -112,10 +113,16 @@ class CAOM2RepoClient:
 
         self.resource_id = resource_id
 
+        # TODO This is just a temporary hack to be replaced with proper registry lookup functionaliy
+        resource_url = urlparse(resource_id)
+        self.host = host
+        if(resource_url.path.strip('/') == 'sc2repo'):
+            self.host = 'caom2workshop.canfar.net'
+
         agent = "caom2-repo-client/{} caom2/{}".format(version.version, caom2_version)
 
         self._repo_client = net.BaseWsClient(resource_id, anon=anon, cert_file=cert_file,
-                                             agent=agent, retry=True, host=host)
+                                             agent=agent, retry=True, host=self.host)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
     def visit(self, plugin, collection, start=None, end=None):
