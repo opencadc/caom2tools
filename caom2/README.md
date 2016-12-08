@@ -11,6 +11,7 @@ The caom2 module is a library implementing the Common Archive Observation Model 
 ## To create a minimal Simple Observation
 ```python
     import caom2
+    import sys
     
     # WARNING: unicode string parameters are required, no simple strings.
     # If you run python2 be aware of this.
@@ -19,22 +20,27 @@ The caom2 module is a library implementing the Common Archive Observation Model 
 
     observation.planes = caom2.TypedOrderedDict(Plane)
     plane = caom2.Plane(u'productID')
-    observation.planes['productID'] = plane
+    observation.planes[u'productID'] = plane
 
-    plane.artifacts = TypedOrderedDict(Artifact)
-    artifact = Artifact('uri:foo/bar', ProductType.SCIENCE, ReleaseType.META)
-    plane.artifacts['uri:foo/bar'] = artifact
+    plane.artifacts = caom2.TypedOrderedDict(caom2.Artifact)
+    artifact = caom2.Artifact(u'uri:foo/bar', coam2.ProductType.SCIENCE, caom2.ReleaseType.META)
+    plane.artifacts[u'uri:foo/bar'] = artifact
 
-    artifact.parts = TypedOrderedDict(Part)
-    part = Part('name')
-    artifact.parts['name'] = part
+    artifact.parts = caom2.TypedOrderedDict(caom2.Part)
+    part = Part(u'name')
+    artifact.parts[u'name'] = part
 
-    part.chunks = TypedList(Chunk)
-    chunk = Chunk()
+    part.chunks = caom2.TypedList(caom2.Chunk)
+    chunk = caom2.Chunk()
     part.chunks.append(chunk)
 
-    writer = ObservationWriter()
+    writer = caom2.ObservationWriter()
     writer.write(observation, sys.stdout)
+    # for file out, just provide file handle, e.g.
+    # outilename = '/your/path/to/file'
+    # out = fopen(outfile,'w')
+    # writer.write(observation, out)
+    # out.close()
 ```
 ```xml
 <?xml version='1.0' encoding='UTF-8'?>
