@@ -10,13 +10,15 @@ The caom2 module is a library implementing the Common Archive Observation Model 
 
 ## To create a minimal Simple Observation
 ```python
-    import caom
+    import caom2
     
-    # WARNING: requires unicode string parameters
-    observation = SimpleObservation(u'collection', u'observationID')
+    # WARNING: unicode string parameters are required, no simple strings.
+    # If you run python2 be aware of this.
+    
+    observation = caom2.SimpleObservation(u'collection', u'observationID')
 
-    observation.planes = TypedOrderedDict(Plane)
-    plane = Plane('productID')
+    observation.planes = caom2.TypedOrderedDict(Plane)
+    plane = caom2.Plane(u'productID')
     observation.planes['productID'] = plane
 
     plane.artifacts = TypedOrderedDict(Artifact)
