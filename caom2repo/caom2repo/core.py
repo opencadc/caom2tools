@@ -79,6 +79,7 @@ import os.path
 from StringIO import StringIO
 from cadcutils import net
 from cadcutils import util
+from caom2repo import version
 
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 
@@ -87,28 +88,22 @@ __all__ = ['CAOM2RepoClient']
 BATCH_SIZE = int(10000)
 SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/' #TODO replace with SERVICE_URI when server supports it
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
-SERVICE = 'caom2repo'
+DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
+APP_NAME = 'caom2repo'
 
 class CAOM2RepoClient:
 
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, anon=True, cert_file=None, server=None):
+    def __init__(self, subject, resource_id=DEFAULT_RESOURCE_ID, host=None):
         """
         Instance of a CAOM2RepoClient
-        :param anon: True if anonymous access, False otherwise
-        :param cert_file: Location of X509 certificate used for authentication
+        :param subject: the subject performing the action
+        :type cadcutils.auth.Subject
         :param server: Host server for the caom2repo service
         """
-
-        # repo client to use
-        s = SERVICE_URL
-        if server is not None:
-            s = server
-        if not s.endswith('/'):
-            s = s + "/"
-        agent = 'CAOM2RepoClient' #TODO add version
-        self._repo_client = net.BaseWsClient(s + SERVICE, anon=anon, cert_file=cert_file, agent=agent, retry=True)
+        agent = '{}/{}'.format(APP_NAME, version.version)
+        self._repo_client = net.BaseWsClient(resource_id, subject, agent, retry=True, host=host)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
 
@@ -274,9 +269,9 @@ class CAOM2RepoClient:
         logging.info('Successfully deleted Observation {}\n')
 
 
-def main():
+def main_app():
 
-    parser = util.BaseParser()
+    parser = util.get_base_parser()
 
     parser.description = ('Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) '
                           'operations it also implements a visitor operation that allows for updating '
@@ -285,7 +280,7 @@ def main():
 
     subparsers = parser.add_subparsers(dest='cmd')
     create_parser = subparsers.add_parser('create', description='Create a new observation')
-    create_parser.add_argument('observation', metavar='<new observation file>', type=file)
+    create_parser.add_argument('observation', metavar='<new observation file in XML format>', type=file)
 
     read_parser = subparsers.add_parser('read', description='Read an existing observation')
     read_parser.add_argument('--collection', metavar='<collection>', required=True)
@@ -307,13 +302,10 @@ def main():
                         help='Pluging class to update each observation')
     visit_parser.add_argument('--start', metavar='<datetime start point>',
                         type=util.str2ivoa,
-                        help='oldest dataset to visit (UTC %%Y-%%m-%%d format)')
+                        help='oldest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S.f)')
     visit_parser.add_argument('--end', metavar='<datetime end point>',
                         type=util.str2ivoa,
-                        help='earliest dataset to visit (UTC %%Y-%%m-%%d format)')
-    visit_parser.add_argument('--retries', metavar='<number of retries>',
-                        type=int,
-                        help='number of tries with transient server errors')
+                        help='earliest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S.f)')
     visit_parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
                       help="URL of the CAOM2 repo server")
 
@@ -323,7 +315,7 @@ def main():
 """
 Minimum plugin file format:
 ----
-   from caom2.caom2_observation import Observation
+   from caom2 import Observation
 
    class ObservationUpdater:
 
@@ -341,20 +333,14 @@ Minimum plugin file format:
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    certfile = None
-    if os.path.isfile(args.certfile):
-        certfile = args.certfile
-    client = CAOM2RepoClient(anon=args.anonymous, cert_file=certfile, server=args.host)
+
+    subject = net.Subject.get_subject(args)
+    client = CAOM2RepoClient(subject, args.resourceID, server=args.host)
     if args.cmd == 'visit':
         print ("Visit")
-        plugin = args.plugin
-        start = args.start
-        end = args.end
-        retries = args.retries
-        collection = args.collection
         logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
-               format(plugin, start, end, collection, retries))
-        client.visit(plugin.name, collection, start=start, end=end)
+               format(args.plugin.name, args.start, args.end, args.collection))
+        client.visit(args.plugin.name, args.collection, start=args.start, end=args.end)
 
     elif args.cmd == 'create':
         print("Create")
