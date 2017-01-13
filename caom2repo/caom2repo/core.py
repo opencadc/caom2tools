@@ -91,7 +91,7 @@ DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 APP_NAME = 'caom2repo'
 
-class CAOM2RepoClient:
+class CAOM2RepoClient(object):
 
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
@@ -334,7 +334,7 @@ Minimum plugin file format:
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    subject = net.Subject.get_subject(args)
+    subject = net.Subject.from_cmd_line_args(args)
     client = CAOM2RepoClient(subject, args.resourceID, server=args.host)
     if args.cmd == 'visit':
         print ("Visit")

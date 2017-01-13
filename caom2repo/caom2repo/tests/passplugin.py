@@ -70,7 +70,7 @@
 from caom2.observation import Observation
 
 
-class ObservationUpdater:
+class ObservationUpdater(object):
 
     """Plugin that does not update the observation"""
     

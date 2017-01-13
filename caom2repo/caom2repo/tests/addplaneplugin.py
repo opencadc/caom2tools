@@ -72,7 +72,7 @@ from caom2.observation import Observation
 from caom2.plane import Plane
 
 
-class ObservationUpdater:
+class ObservationUpdater(object):
 
     """ObservationUpdater that adds a plane to the observation."""
     

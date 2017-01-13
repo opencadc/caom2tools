@@ -215,7 +215,6 @@ class TestCAOM2Repo(unittest.TestCase):
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadcutils.net.auth.netrclib', MagicMock(), create=True)
-    @patch('cadcutils.net.ws.auth.get_user_password', Mock(return_value=('usr', 'passwd')))
     @patch('cadcutils.net.ws.Session.send')
     def test_post_observation(self, mock_conn):
         collection = 'cfht'
