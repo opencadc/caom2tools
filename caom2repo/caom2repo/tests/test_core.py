@@ -172,7 +172,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         def raise_error(): raise http_error
         response.raise_for_status.side_effect = raise_error
-        with self.assertRaises(requests.HTTPError):
+        with self.assertRaises(exceptions.HttpException):
             visitor.get_observation(collection, observation_id)
 
     # patch sleep to stop the test from sleeping and slowing down execution
@@ -261,7 +261,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         def raise_error(): raise http_error
         response.raise_for_status.side_effect = raise_error
-        with self.assertRaises(requests.HTTPError):
+        with self.assertRaises(exceptions.HttpException):
             visitor.post_observation(obs)
 
     # patch sleep to stop the test from sleeping and slowing down execution
@@ -287,7 +287,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         visitor.put_observation(obs)
         self.assertEqual('PUT', mock_conn.call_args[0][0].method)
-        self.assertEqual('/{}/pub/{}'.format(service, collection),
+        self.assertEqual('/{}/pub/{}/{}'.format(service, collection, observation_id),
                          mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml', mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
@@ -315,7 +315,7 @@ class TestCAOM2Repo(unittest.TestCase):
         def raise_error(): raise http_error
 
         response.raise_for_status.side_effect = raise_error
-        with self.assertRaises(requests.HTTPError):
+        with self.assertRaises(exceptions.HttpException):
             visitor.put_observation(obs)
 
     # patch sleep to stop the test from sleeping and slowing down execution
@@ -358,7 +358,7 @@ class TestCAOM2Repo(unittest.TestCase):
         def raise_error(): raise http_error
 
         response.raise_for_status.side_effect = raise_error
-        with self.assertRaises(requests.HTTPError):
+        with self.assertRaises(exceptions.HttpException):
             visitor.delete_observation(collection, observation_id)
 
     def test_process(self):
@@ -389,23 +389,23 @@ class TestCAOM2Repo(unittest.TestCase):
         # test create
         with open(ifile, 'w') as infile:
             ObservationWriter().write(obs, infile)
-        sys.argv = ["caom2tools", "create", '--resourceID', 'resource', ifile]
+        sys.argv = ["caom2tools", "create", '--resourceID', 'ivo://ca.nrc.ca/resource', ifile]
         core.main_app()
         client_mock.return_value.put_observation.assert_called_with(obs)
 
         # test update
-        sys.argv = ["caom2tools", "update", '--resourceID', 'resource', ifile]
+        sys.argv = ["caom2tools", "update", '--resourceID', 'ivo://ca.nrc.ca/resource', ifile]
         core.main_app()
         client_mock.return_value.post_observation.assert_called_with(obs)
 
         # test read
-        sys.argv = ["caom2tools", "read", '--resourceID', 'resource',
+        sys.argv = ["caom2tools", "read", '--resourceID', 'ivo://ca.nrc.ca/resource',
                     "--collection", collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
         core.main_app()
         client_mock.return_value.get_observation.assert_called_with(collection, observation_id)
         # repeat with output argument
-        sys.argv = ["caom2tools", "read", '--resourceID', 'resource',
+        sys.argv = ["caom2tools", "read", '--resourceID', 'ivo://ca.nrc.ca/resource',
                     "--collection", collection, "--output", ifile, observation_id]
         client_mock.return_value.get_observation.return_value = obs
         core.main_app()
@@ -413,16 +413,16 @@ class TestCAOM2Repo(unittest.TestCase):
         os.remove(ifile)
 
         # test delete
-        sys.argv = ["caom2tools", "delete", '--resourceID', 'resource',
+        sys.argv = ["caom2tools", "delete", '--resourceID', 'ivo://ca.nrc.ca/resource',
                     "--collection", collection, observation_id]
         core.main_app()
         client_mock.return_value.delete_observation.assert_called_with(collection=collection,
-                                                                       observation=observation_id)
+                                                                       observation_id=observation_id)
 
         # test visit
         # get the absolute path to be able to run the tests with the astropy frameworks
         plugin_file = THIS_DIR + "/passplugin.py"
-        sys.argv = ["caom2tools", "visit", '--resourceID', 'resource',
+        sys.argv = ["caom2tools", "visit", '--resourceID', 'ivo://ca.nrc.ca/resource',
                     "--plugin", plugin_file, "--start", "2012-01-01T11:22:33.44",
                     "--end", "2013-01-01T11:33:22.443", collection]
         with open(plugin_file, 'r') as infile:
@@ -445,15 +445,19 @@ Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) o
 
 positional arguments:
   {create,read,update,delete,visit}
+    read                Read an existing observation
+    update              Update an existing observation
+    delete              Delete an existing observation
+    visit               Visit observations in a collection
 
 optional arguments:
   -h, --help            show this help message and exit
 """
 
         create_usage =\
-"""usage: caom2-client create [-h]
+"""usage: caom2-client create [-h] [-V]
                            [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
-                           [--host HOST] --resourceID RESOURCEID
+                           [--host HOST] [--resourceID RESOURCEID]
                            [-d | -q | -v]
                            <new observation file in XML format>
 
@@ -474,17 +478,19 @@ optional arguments:
                         netrc file to use for authentication
   -q, --quiet           run quietly
   --resourceID RESOURCEID
-                        resource identifier (e.g. ivo://cadc.nrc.ca/service
+                        resource identifier (default
+                        ivo://cadc.nrc.ca/caom2repo)
   -u, --user USER       Name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
+  -V, --version         show program's version number and exit
 """
 
         read_usage =\
-"""usage: caom2-client read [-h]
+"""usage: caom2-client read [-h] [-V]
                          [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
-                         [--host HOST] --resourceID RESOURCEID [-d | -q | -v]
-                         --collection <collection>
+                         [--host HOST] [--resourceID RESOURCEID]
+                         [-d | -q | -v] --collection <collection>
                          [--output <destination file>]
                          <observation>
 
@@ -507,16 +513,18 @@ optional arguments:
   --output, -o <destination file>
   -q, --quiet           run quietly
   --resourceID RESOURCEID
-                        resource identifier (e.g. ivo://cadc.nrc.ca/service
+                        resource identifier (default
+                        ivo://cadc.nrc.ca/caom2repo)
   -u, --user USER       Name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
+  -V, --version         show program's version number and exit
 """
 
         update_usage =\
-"""usage: caom2-client update [-h]
+"""usage: caom2-client update [-h] [-V]
                            [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
-                           [--host HOST] --resourceID RESOURCEID
+                           [--host HOST] [--resourceID RESOURCEID]
                            [-d | -q | -v]
                            <observation file>
 
@@ -537,16 +545,18 @@ optional arguments:
                         netrc file to use for authentication
   -q, --quiet           run quietly
   --resourceID RESOURCEID
-                        resource identifier (e.g. ivo://cadc.nrc.ca/service
+                        resource identifier (default
+                        ivo://cadc.nrc.ca/caom2repo)
   -u, --user USER       Name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
+  -V, --version         show program's version number and exit
 """
 
         delete_usage =\
-"""usage: caom2-client delete [-h]
+"""usage: caom2-client delete [-h] [-V]
                            [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
-                           [--host HOST] --resourceID RESOURCEID
+                           [--host HOST] [--resourceID RESOURCEID]
                            [-d | -q | -v] --collection <collection>
                            <ID of observation>
 
@@ -568,17 +578,19 @@ optional arguments:
                         netrc file to use for authentication
   -q, --quiet           run quietly
   --resourceID RESOURCEID
-                        resource identifier (e.g. ivo://cadc.nrc.ca/service
+                        resource identifier (default
+                        ivo://cadc.nrc.ca/caom2repo)
   -u, --user USER       Name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
+  -V, --version         show program's version number and exit
 """
 
         visit_usage =\
-"""usage: caom2-client visit [-h]
+"""usage: caom2-client visit [-h] [-V]
                           [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
-                          [--host HOST] --resourceID RESOURCEID [-d | -q | -v]
-                          --plugin <pluginClassFile>
+                          [--host HOST] [--resourceID RESOURCEID]
+                          [-d | -q | -v] --plugin <pluginClassFile>
                           [--start <datetime start point>]
                           [--end <datetime end point>]
                           [-s <CAOM2 service URL>]
@@ -603,10 +615,11 @@ optional arguments:
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
   --plugin <pluginClassFile>
-                        Pluging class to update each observation
+                        Plugin class to update each observation
   -q, --quiet           run quietly
   --resourceID RESOURCEID
-                        resource identifier (e.g. ivo://cadc.nrc.ca/service
+                        resource identifier (default
+                        ivo://cadc.nrc.ca/caom2repo)
   -s, --server <CAOM2 service URL>
                         URL of the CAOM2 repo server
   --start <datetime start point>
@@ -615,6 +628,7 @@ optional arguments:
   -u, --user USER       Name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
+  -V, --version         show program's version number and exit
 
 Minimum plugin file format:
 ----

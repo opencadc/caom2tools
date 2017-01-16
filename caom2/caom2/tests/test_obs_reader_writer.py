@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2010.                            (c) 2010.
+#  (c) 2016.                            (c) 2016.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -64,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """ Defines TestObservationReaderWriter class """
@@ -437,7 +437,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertEqual(expected_plane.calibration_level,
                              actual_plane.calibration_level)
             self.compare_provenance(expected_plane.provenance,
-                               actual_plane.provenance)
+                                    actual_plane.provenance)
             self.compare_metrics(expected_plane.metrics, actual_plane.metrics)
             if version == 21:
                 self.compare_quality(expected_plane.quality,
@@ -517,7 +517,7 @@ class TestObservationReaderWriter(unittest.TestCase):
                 self.assertEqual(expected_artifact.release_type,
                                  actual_artifact.release_type)
             self.compare_parts(expected_artifact.parts,
-                          actual_artifact.parts, version)
+                               actual_artifact.parts, version)
 
     def compare_parts(self, expected, actual, version):
         if expected is None and actual is None:
@@ -578,7 +578,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.compare_spectral_wcs(expected_chunk.energy, actual_chunk.energy)
             self.compare_temporal_wcs(expected_chunk.time, actual_chunk.time)
             self.compare_polarization_wcs(expected_chunk.polarization,
-                                     actual_chunk.polarization)
+                                          actual_chunk.polarization)
 
     def compare_observable_axis(self, expected, actual):
         if expected is None and actual is None:

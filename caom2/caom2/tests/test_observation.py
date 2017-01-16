@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-#***********************************************************************
-#******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
-#*************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
+# ***********************************************************************
+# ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
+# *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2010.                            (c) 2010.
+#  (c) 2016.                            (c) 2016.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -64,7 +64,7 @@
 #
 #  $Revision: 4 $
 #
-#***********************************************************************
+# ***********************************************************************
 #
 
 """ Defines TestObservation class """
@@ -405,7 +405,7 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertTrue(observation_uri1 in obs.members)
         self.assertTrue(observation_uri2 in obs.members)
 
-        #duplicates
+        # duplicates
         observation_uri3 = observation.ObservationURI("caom:collection/obsID")
         obs.members.add(observation_uri3)
         self.assertEqual(2, len(obs.members), "Members")
