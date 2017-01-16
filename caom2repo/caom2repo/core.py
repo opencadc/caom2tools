@@ -81,6 +81,9 @@ from datetime import datetime
 
 from cadcutils import net
 from cadcutils import util
+
+from caom2repo import version
+
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 from caom2.version import version as caom2_version
 from six.moves.urllib.parse import urlparse
@@ -91,38 +94,32 @@ from . import version
 __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
-# TODO replace with SERVICE_URI when server supports it
-SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/'
-# IVOA dateformat
-DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/' #TODO replace with SERVICE_URI when server supports it
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
+APP_NAME = 'caom2repo'
 
 
-class CAOM2RepoClient:
+class CAOM2RepoClient(object):
 
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, resource_id=DEFAULT_RESOURCE_ID, anon=True, cert_file=None, host=None):
+    def __init__(self, subject, resource_id=DEFAULT_RESOURCE_ID, host=None):
         """
         Instance of a CAOM2RepoClient
-        :param resource_id: The identifier of the service resource (e.g 'ivo://cadc.nrc.ca/caom2repo')
-        :param anon: True if anonymous access, False otherwise
-        :param cert_file: Location of X509 certificate used for authentication
-        :param host: Host server for the caom2repo service
+        :param subject: the subject performing the action
+        :type cadcutils.auth.Subject
+        :param server: Host server for the caom2repo service
         """
-
-        self.resource_id = resource_id
-
-        # TODO This is just a temporary hack to be replaced with proper registry lookup functionaliy
-        resource_url = urlparse(resource_id)
+        agent = '{}/{}'.format(APP_NAME, version.version)
         self.host = host
-        if(resource_url.path.strip('/') == 'sc2repo'):
-            self.host = 'caom2workshop.canfar.net'
+        self._repo_client = net.BaseWsClient(resource_id, subject, agent, retry=True, host=host)
+        logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
         agent = "caom2-repo-client/{} caom2/{}".format(version.version, caom2_version)
 
-        self._repo_client = net.BaseWsClient(resource_id, anon=anon, cert_file=cert_file,
-                                             agent=agent, retry=True, host=self.host)
+        self._repo_client = net.BaseWsClient(resource_id, subject,
+                                             agent, retry=True, host=self.host)
         logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
     def visit(self, plugin, collection, start=None, end=None):
@@ -284,44 +281,39 @@ class CAOM2RepoClient:
         logging.info('Successfully deleted Observation {}\n')
 
 
-def main():
+def main_app():
 
-    base_parser = util.get_base_parser(version=version.version, default_resource_id=DEFAULT_RESOURCE_ID)
-
-    parser = argparse.ArgumentParser(parents=[base_parser])
+    parser = util.get_base_parser(version=version.version, default_resource_id=DEFAULT_RESOURCE_ID)
 
     parser.description = ('Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) '
                           'operations it also implements a visitor operation that allows for updating '
                           'multiple observations in a collection')
     parser.formatter_class = argparse.RawTextHelpFormatter
 
-    subparsers = parser.add_subparsers(dest='cmd', )
+    subparsers = parser.add_subparsers(dest='cmd')
+    create_parser = subparsers.add_parser('create', description='Create a new observation')
+    create_parser.add_argument('observation', metavar='<new observation file in XML format>', type=file)
 
-    create_parser = subparsers.add_parser('create', parents=[base_parser],
-                                          description='Create a new observation',
-                                          help='Create a new observation')
-    create_parser.add_argument('observation', metavar='<new observation file>', type=file)
-
-    read_parser = subparsers.add_parser('read', parents=[base_parser],
+    read_parser = subparsers.add_parser('read',
                                         description='Read an existing observation',
                                         help='Read an existing observation')
     read_parser.add_argument('--collection', metavar='<collection>', required=True)
     read_parser.add_argument('--output', '-o', metavar='<destination file>', required=False)
     read_parser.add_argument('observation', metavar='<observation>')
 
-    update_parser = subparsers.add_parser('update', parents=[base_parser],
+    update_parser = subparsers.add_parser('update',
                                           description='Update an existing observation',
                                           help='Update an existing observation')
     update_parser.add_argument('observation', metavar='<observation file>', type=file)
 
-    delete_parser = subparsers.add_parser('delete', parents=[base_parser],
+    delete_parser = subparsers.add_parser('delete',
                                           description='Delete an existing observation',
                                           help='Delete an existing observation')
     delete_parser.add_argument('--collection', metavar='<collection>', required=True)
     delete_parser.add_argument('observationID', metavar='<ID of observation>')
 
     # Note: RawTextHelpFormatter allows for the use of newline in epilog
-    visit_parser = subparsers.add_parser('visit', parents=[base_parser],
+    visit_parser = subparsers.add_parser('visit',
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          description='Visit observations in a collection',
                                          help='Visit observations in a collection')
@@ -329,23 +321,21 @@ def main():
                               metavar='<pluginClassFile>',
                               help='Plugin class to update each observation')
     visit_parser.add_argument('--start', metavar='<datetime start point>',
-                              type=util.str2ivoa,
-                              help='oldest dataset to visit (UTC %%Y-%%m-%%d format)')
-    visit_parser.add_argument('--end', metavar='<datetime end point>',
-                              type=util.str2ivoa,
-                              help='earliest dataset to visit (UTC %%Y-%%m-%%d format)')
-    visit_parser.add_argument('--retries', metavar='<number of retries>', type=int,
-                              help='number of tries with transient server errors')
-    visit_parser.add_argument("-s", "--server", metavar='<CAOM2 service URL>',
-                              help="URL of the CAOM2 repo server")
 
+                        type=util.str2ivoa,
+                        help='oldest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S.f)')
+    visit_parser.add_argument('--end', metavar='<datetime end point>',
+                        type=util.str2ivoa,
+                        help='earliest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S.f)')
+    visit_parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
+                      help="URL of the CAOM2 repo server")
     visit_parser.add_argument('collection', metavar='<datacollection>', type=str,
                               help='data collection in CAOM2 repo')
     visit_parser.epilog =\
 """
 Minimum plugin file format:
 ----
-   from caom2.caom2_observation import Observation
+   from caom2 import Observation
 
    class ObservationUpdater:
 
@@ -361,21 +351,13 @@ Minimum plugin file format:
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    cert_file = None
-    if os.path.isfile(args.certfile):
-        cert_file = args.certfile
-
-    client = CAOM2RepoClient(args.resourceID, anon=args.anonymous, cert_file=cert_file, host=args.host)
+    subject = net.Subject.from_cmd_line_args(args)
+    client = CAOM2RepoClient(subject, args.resourceID, server=args.host)
     if args.cmd == 'visit':
-        logging.info("Visit")
-        plugin = args.plugin
-        start = args.start
-        end = args.end
-        retries = args.retries
-        collection = args.collection
+        print ("Visit")
         logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
-                      format(plugin, start, end, collection, retries))
-        client.visit(plugin.name, collection, start=start, end=end)
+               format(args.plugin.name, args.start, args.end, args.collection))
+        client.visit(args.plugin.name, args.collection, start=args.start, end=args.end)
 
     elif args.cmd == 'create':
         logging.info("Create")
