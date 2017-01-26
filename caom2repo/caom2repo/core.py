@@ -89,13 +89,17 @@ from caom2.version import version as caom2_version
 from six.moves.urllib.parse import urlparse
 
 # from . import version as caom2repo_version
-from . import version
+from caom2repo import version
 
 __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
-SERVICE_URL = 'www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/' #TODO replace with SERVICE_URI when server supports it
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
+
+CAOM2REPO_FEATURE_ID = 'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0'
+# IVOA dateformat
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+# resource ID for info
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 APP_NAME = 'caom2repo'
 
@@ -114,13 +118,11 @@ class CAOM2RepoClient(object):
         agent = '{}/{}'.format(APP_NAME, version.version)
         self.host = host
         self._repo_client = net.BaseWsClient(resource_id, subject, agent, retry=True, host=host)
-        logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
         agent = "caom2-repo-client/{} caom2/{}".format(version.version, caom2_version)
 
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host)
-        logging.info('Service URL: {}'.format(self._repo_client.base_url))
 
     def visit(self, plugin, collection, start=None, end=None):
         """
@@ -218,16 +220,16 @@ class CAOM2RepoClient(object):
         """
         assert collection is not None
         assert observation_id is not None
-        resource = '/{}/{}'.format(collection, observation_id)
-        logging.debug('GET '.format(resource))
+        path = '/{}/{}'.format(collection, observation_id)
+        logging.debug('GET '.format(path))
 
-        response = self._repo_client.get(resource)
+        response = self._repo_client.get((CAOM2REPO_FEATURE_ID, path))
         obs_reader = ObservationReader()
         content = response.content
         if len(content) == 0:
             logging.error(response.status_code)
             response.close()
-            raise Exception('Got empty response for resource: {}'.format(resource))
+            raise Exception('Got empty response for resource: {}'.format(path))
         return obs_reader.read(StringIO(content))
 
     def post_observation(self, observation):
@@ -238,15 +240,15 @@ class CAOM2RepoClient(object):
         """
         assert observation.collection is not None
         assert observation.observation_id is not None
-        resource = '/{}/{}'.format(observation.collection, observation.observation_id)
-        logging.debug('POST {}'.format(resource))
+        path = '/{}/{}'.format(observation.collection, observation.observation_id)
+        logging.debug('POST {}'.format(path))
 
         ibuffer = StringIO()
         ObservationWriter().write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         response = self._repo_client.post(
-            resource, headers=headers, data=obs_xml)
+            (CAOM2REPO_FEATURE_ID, path), headers=headers, data=obs_xml)
         logging.debug('Successfully updated Observation\n')
 
     def put_observation(self, observation):
@@ -257,15 +259,15 @@ class CAOM2RepoClient(object):
         """
         assert observation.collection is not None
         assert observation.observation_id is not None
-        resource = '/{}/{}'.format(observation.collection, observation.observation_id)
-        logging.debug('PUT {}'.format(resource))
+        path = '/{}/{}'.format(observation.collection, observation.observation_id)
+        logging.debug('PUT {}'.format(path))
 
         ibuffer = StringIO()
         ObservationWriter().write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         response = self._repo_client.put(
-            resource, headers=headers, data=obs_xml)
+            (CAOM2REPO_FEATURE_ID, path), headers=headers, data=obs_xml)
         logging.debug('Successfully put Observation\n')
 
     def delete_observation(self, collection, observation_id):
@@ -275,9 +277,9 @@ class CAOM2RepoClient(object):
         :param observation_id: ID of the observation
         """
         assert observation_id is not None
-        resource = '/{}/{}'.format(collection, observation_id)
-        logging.debug('DELETE {}'.format(resource))
-        response = self._repo_client.delete(resource)
+        path = '/{}/{}'.format(collection, observation_id)
+        logging.debug('DELETE {}'.format(path))
+        response = self._repo_client.delete((CAOM2REPO_FEATURE_ID, path))
         logging.info('Successfully deleted Observation {}\n')
 
 
@@ -352,7 +354,7 @@ Minimum plugin file format:
         logging.basicConfig(level=logging.DEBUG)
 
     subject = net.Subject.from_cmd_line_args(args)
-    client = CAOM2RepoClient(subject, args.resourceID, server=args.host)
+    client = CAOM2RepoClient(subject, args.resourceID, host=args.host)
     if args.cmd == 'visit':
         print ("Visit")
         logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
@@ -382,3 +384,6 @@ Minimum plugin file format:
         client.delete_observation(collection=args.collection, observation_id=args.observationID)
 
     logging.info("DONE")
+
+if __name__ == '__main__':
+    main_app()

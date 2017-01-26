@@ -98,7 +98,9 @@ class TestCAOM2Repo(unittest.TestCase):
 
     """Test the Caom2Visitor class"""
 
-    def test_plugin_class(self):
+    @patch('cadcutils.net.ws.WsCapabilities')
+    def test_plugin_class(self, caps_mock):
+        caps_mock.get_service_host.return_value = 'some.host.com'
         # plugin class does not change the observation
         collection = 'cfht'
         observation_id = '7000000o'
@@ -131,10 +133,13 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor._load_plugin_class(os.path.join(THIS_DIR, 'noupdateplugin.py'))
 
     # patch sleep to stop the test from sleeping and slowing down execution
+    @patch('cadcutils.net.ws.WsCapabilities')
     @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadcutils.net.ws.open', MagicMock(), create=True)
     @patch('cadcutils.net.ws.Session.send')
-    def test_get_observation(self, mock_get):
+    def test_get_observation(self, mock_get, caps_mock):
+        caps_mock.get_service_host.return_value = 'some.host.com'
+        caps_mock.return_value.get_access_url.return_value = 'http://serviceurl/caom2repo/pub'
         collection = 'cfht'
         observation_id = '7000000o'
         service_url = 'www.cadc.nrc.ca/caom2repo'
@@ -176,14 +181,16 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.get_observation(collection, observation_id)
 
     # patch sleep to stop the test from sleeping and slowing down execution
+    @patch('cadcutils.net.ws.WsCapabilities')
     @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadcutils.net.ws.open', MagicMock(), create=True)
     @patch('caom2repo.core.net.BaseWsClient.get')
-    def test_get_observations(self, mock_get):
+    def test_get_observations(self, mock_get, caps_mock):
         # This is almost similar to the previous test except that it gets
         # observations matching a collection and start/end criteria
         # Also, patch the CAOM2RepoClient now.
-
+        caps_mock.get_service_host.return_value = 'some.host.com'
+        caps_mock.return_value.get_access_url.return_value = 'http://serviceurl/caom2repo/pub'
         response = MagicMock()
         response.status_code = 200
         last_datetime = '2000-10-10T12:30:00.333'
@@ -213,10 +220,13 @@ class TestCAOM2Repo(unittest.TestCase):
                                                          'MAXREC': core.BATCH_SIZE})
 
     # patch sleep to stop the test from sleeping and slowing down execution
+    @patch('cadcutils.net.ws.WsCapabilities')
     @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadcutils.net.auth.netrclib', MagicMock(), create=True)
     @patch('cadcutils.net.ws.Session.send')
-    def test_post_observation(self, mock_conn):
+    def test_post_observation(self, mock_conn, caps_mock):
+        caps_mock.get_service_host.return_value = 'some.host.com'
+        caps_mock.return_value.get_access_url.return_value = 'http://serviceurl/caom2repo/auth'
         collection = 'cfht'
         observation_id = '7000000o'
         service = 'caom2repo'
@@ -265,14 +275,17 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.post_observation(obs)
 
     # patch sleep to stop the test from sleeping and slowing down execution
+    @patch('cadcutils.net.ws.WsCapabilities')
     @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadcutils.net.auth.os', MagicMock(), create=True)
     @patch('cadcutils.net.ws.Session.send')
-    def test_put_observation(self, mock_conn):
+    def test_put_observation(self, mock_conn, caps_mock):
+        caps_mock.get_service_host.return_value = 'some.host.com'
+        caps_mock.return_value.get_access_url.return_value = 'http://serviceurl/caom2repo/pub'
         collection = 'cfht'
         observation_id = '7000000o'
         service = 'caom2repo'
-        service_url = 'www.cadc.nrc.ca/'
+        service_url = 'www.cadc.nrc.ca'
 
         obs = SimpleObservation(collection, observation_id)
         subject = auth.Subject(certificate='somefile.pem')
@@ -319,12 +332,15 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.put_observation(obs)
 
     # patch sleep to stop the test from sleeping and slowing down execution
+    @patch('cadcutils.net.ws.WsCapabilities')
     @patch('cadcutils.net.ws.time.sleep', MagicMock(), create=True)
     @patch('cadcutils.net.ws.Session.send')
-    def test_delete_observation(self, mock_conn):
+    def test_delete_observation(self, mock_conn, caps_mock):
+        caps_mock.get_service_host.return_value = 'some.host.com'
+        caps_mock.return_value.get_access_url.return_value = 'http://serviceurl/caom2repo/pub'
         collection = 'cfht'
         observation_id = '7000000o'
-        service_url = 'www.cadc.nrc.ca/caom2repo'
+        service_url = 'www.cadc.nrc.ca'
 
         obs = SimpleObservation(collection, observation_id)
         visitor = CAOM2RepoClient(auth.Subject(), host=service_url)
@@ -361,7 +377,9 @@ class TestCAOM2Repo(unittest.TestCase):
         with self.assertRaises(exceptions.HttpException):
             visitor.delete_observation(collection, observation_id)
 
-    def test_process(self):
+    @patch('cadcutils.net.ws.WsCapabilities')
+    def test_process(self, caps_mock):
+        caps_mock.get_service_host.return_value = 'some.host.com'
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
         visitor = CAOM2RepoClient(auth.Subject())
