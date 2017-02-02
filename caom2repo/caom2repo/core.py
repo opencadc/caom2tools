@@ -179,7 +179,7 @@ class CAOM2RepoClient(object):
         if end is not None:
             params['END'] = end.strftime(DATE_FORMAT)
 
-        response = self._repo_client.get(collection, params=params)
+        response = self._repo_client.get((CAOM2REPO_FEATURE_ID, collection), params=params)
         last_datetime = None
         for line in response.content.splitlines():
             (obs, last_datetime) = line.split(',')
@@ -283,7 +283,18 @@ class CAOM2RepoClient(object):
         logging.info('Successfully deleted Observation {}\n')
 
 
+def str2date(s):
+    """
+    Takes a date formatted string and returns a datetime.
+
+    """
+    date_format = '%Y-%m-%dT%H:%M:%S'
+    if s is None:
+        return None
+    return datetime.strptime(s, date_format)
+
 def main_app():
+
 
     parser = util.get_base_parser(version=version.version, default_resource_id=DEFAULT_RESOURCE_ID)
 
@@ -324,11 +335,11 @@ def main_app():
                               help='Plugin class to update each observation')
     visit_parser.add_argument('--start', metavar='<datetime start point>',
 
-                        type=util.str2ivoa,
-                        help='oldest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S.f)')
+                        type=str2date,
+                        help='oldest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
     visit_parser.add_argument('--end', metavar='<datetime end point>',
-                        type=util.str2ivoa,
-                        help='earliest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S.f)')
+                        type=str2date,
+                        help='earliest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
     visit_parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
                       help="URL of the CAOM2 repo server")
     visit_parser.add_argument('collection', metavar='<datacollection>', type=str,
@@ -349,12 +360,14 @@ Minimum plugin file format:
 """
     args = parser.parse_args()
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    elif args.debug:
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    else:
+        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
 
     subject = net.Subject.from_cmd_line_args(args)
-    client = CAOM2RepoClient(subject, args.resourceID, host=args.host)
+    client = CAOM2RepoClient(subject, args.resource_id, host=args.host)
     if args.cmd == 'visit':
         print ("Visit")
         logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
