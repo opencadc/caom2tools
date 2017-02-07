@@ -164,7 +164,7 @@ class TestChunk(unittest.TestCase):
         self.assertEqual(int(5), test_chunk.polarization_axis)
 
         axis = wcs.Axis("ctype", "cunit")
-        dependent = wcs.Slice(axis, long(1))
+        dependent = wcs.Slice(axis, 1)
         observable = chunk.ObservableAxis(dependent)
         test_chunk.observable = observable
         self.assertEqual(observable, test_chunk.observable)
@@ -197,8 +197,8 @@ class TestObservableAxis(unittest.TestCase):
         self.assertRaises(TypeError, chunk.ObservableAxis, None)
         self.assertRaises(TypeError, chunk.ObservableAxis, int(1))
 
-        dependent = wcs.Slice(wcs.Axis("ctype1", "cunit1"), long(1))
-        independent = wcs.Slice(wcs.Axis("ctype2", "cunit2"), long(2))
+        dependent = wcs.Slice(wcs.Axis("ctype1", "cunit1"), 1)
+        independent = wcs.Slice(wcs.Axis("ctype2", "cunit2"), 2)
 
         observable = chunk.ObservableAxis(dependent)
         self.assertEqual(observable.dependent, dependent)

@@ -70,6 +70,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from builtins import str, int
 from . import common
 from . import caom_util
 
@@ -91,14 +92,14 @@ class Axis(common.CaomObject):
         """The Coordinate Type value for this axis.
 
         eg. DEC
-        type: unicode
+        type: unicode string
 
         """
         return self._ctype
 
     @ctype.setter
     def ctype(self, value):
-        caom_util.type_check(value, unicode, 'ctype', override=False)
+        caom_util.type_check(value, str, 'ctype', override=False)
         self._ctype = value
 
     @property
@@ -106,14 +107,14 @@ class Axis(common.CaomObject):
         """The unit of the coordinate that results after transform.
 
         eg. deg
-        type: unicode
+        type: unicode string
 
         """
         return self._cunit
 
     @cunit.setter
     def cunit(self, value):
-        caom_util.type_check(value, unicode, 'cunit')
+        caom_util.type_check(value, str, 'cunit')
         self._cunit = value
 
 
@@ -546,14 +547,14 @@ class CoordFunction1D(common.CaomObject):
         """The length of the axis.
 
         unit: pix
-        type: long
+        type: int
 
         """
         return self._naxis
 
     @naxis.setter
     def naxis(self, value):
-        caom_util.type_check(value, long, 'naxis', override=False)
+        caom_util.type_check(value, int, 'naxis', override=False)
         self._naxis = value
 
     @property
@@ -829,14 +830,14 @@ class Dimension2D(common.CaomObject):
 
         eg.  naxis1=1024
         unit: pix
-        type: long
+        type: int
 
         """
         return self._naxis1
 
     @naxis1.setter
     def naxis1(self, value):
-        caom_util.type_check(value, long, 'naxis1', override=False)
+        caom_util.type_check(value, int, 'naxis1', override=False)
         caom_util.value_check(value, 0, 1E10, 'naxis1', override=False)
         self._naxis1 = value
 
@@ -846,14 +847,14 @@ class Dimension2D(common.CaomObject):
 
         eg.  naxis2=2048
         unit: pix
-        type: long
+        type: int
 
         """
         return self._naxis2
 
     @naxis2.setter
     def naxis2(self, value):
-        caom_util.type_check(value, long, 'naxis2', override=False)
+        caom_util.type_check(value, int, 'naxis2', override=False)
         caom_util.value_check(value, 0, 1E10, 'naxis2', override=False)
         self._naxis2 = value
 
@@ -869,8 +870,8 @@ class EnergyTransition(common.CaomObject):
         species
         transition
         """
-        caom_util.type_check(species, unicode, "species", override=False)
-        caom_util.type_check(transition, unicode, "transition", override=False)
+        caom_util.type_check(species, str, "species", override=False)
+        caom_util.type_check(transition, str, "transition", override=False)
         self._species = species
         self._transition = transition
 
@@ -963,13 +964,13 @@ class Slice(common.CaomObject):
 
         This value is use to transform to the WCS for this axis.
         unit: pixel
-        type: long
+        type: int
         """
         return self._bin
 
     @bin.setter
     def bin(self, value):
-        caom_util.type_check(value, long, 'long', override=False)
+        caom_util.type_check(value, int, 'int', override=False)
         self._bin = value
 
 

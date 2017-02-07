@@ -74,6 +74,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import os
 import uuid
+from builtins import str, int
+import six
 
 from lxml import etree
 
@@ -155,7 +157,7 @@ class ObservationReader(object):
         if expect_uuid:
             uid = uuid.UUID(element_id)
         else:
-            uid = caom_util.long2uuid(long(element_id))
+            uid = caom_util.long2uuid(int(element_id))
         caom2_entity._id = uid
 
         if element_last_modified:
@@ -182,7 +184,7 @@ class ObservationReader(object):
         if child_element is None:
             return None
         else:
-            return unicode(child_element.text)
+            return str(child_element.text)
 
     def _get_child_text_as_int(self, element_tag, parent, ns, required):
         child_element = self._get_child_element(element_tag, parent, ns, required)
@@ -196,7 +198,7 @@ class ObservationReader(object):
         if child_element is None:
             return None
         else:
-            return long(child_element.text)
+            return int(child_element.text)
 
     def _get_child_text_as_float(self, element_tag, parent, ns, required):
         child_element = self._get_child_element(element_tag, parent, ns, required)
@@ -464,7 +466,7 @@ class ObservationReader(object):
         el = self._get_child_element("inputs", parent, ns, False)
         if el is not None:
             for uri_element in el.iterchildren("{" + ns + "}planeURI"):
-                inputs.add(plane.PlaneURI(unicode(uri_element.text)))
+                inputs.add(plane.PlaneURI(str(uri_element.text)))
 
             if not inputs:
                 error = "No planeURI element found in members"
@@ -1321,9 +1323,9 @@ class ObservationReader(object):
             self._xmlschema.assertValid(doc)
         root = doc.getroot()
         ns = root.nsmap["caom2"]
-        collection = unicode(self._get_child_element("collection", root, ns, True).text)
+        collection = str(self._get_child_element("collection", root, ns, True).text)
         observation_id = \
-            unicode(self._get_child_element("observationID", root, ns, True).text)
+            str(self._get_child_element("observationID", root, ns, True).text)
         # Instantiate Algorithm
         algorithm = self._get_algorithm("algorithm", root, ns, True)
         # Instantiate Observation
@@ -1452,7 +1454,7 @@ class ObservationWriter(object):
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(obs_element)
 
-        out.write(etree.tostring(obs_element, xml_declaration=True, encoding='UTF-8',
+        out.write(etree.tostring(obs_element, encoding='unicode',
                                  pretty_print=True))
 
     def _add_enity_attributes(self, entity, element):
@@ -1570,7 +1572,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("planes", parent)
-        for _plane in planes.itervalues():
+        for _plane in six.itervalues(planes):
             plane_element = self._get_caom_element("plane", element)
             self._add_enity_attributes(_plane, plane_element)
             self._add_element("productID", _plane.product_id, plane_element)
@@ -1643,7 +1645,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("artifacts", parent)
-        for _artifact in artifacts.itervalues():
+        for _artifact in six.itervalues(artifacts):
             artifact_element = self._get_caom_element("artifact", element)
             self._add_enity_attributes(_artifact, artifact_element)
             self._add_element("uri", _artifact.uri, artifact_element)
@@ -1661,7 +1663,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("parts", parent)
-        for _part in parts.itervalues():
+        for _part in six.itervalues(parts):
             part_element = self._get_caom_element("part", element)
             self._add_enity_attributes(_part, part_element)
             self._add_element("name", _part.name, part_element)

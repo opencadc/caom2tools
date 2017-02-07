@@ -78,6 +78,7 @@ engineer get the correct meta data more quickly.
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+from builtins import bytes
 
 import collections
 import struct
@@ -149,7 +150,7 @@ def uuid2long(uid):
 
     return the UUID least significant bytes as a long.
     """
-    longs = struct.unpack(str('>qq'), str(uid.bytes))
+    longs = struct.unpack('>qq', bytes(uid.bytes))
     if longs[0] != 0:
         raise ValueError("lossy conversion from UUID to long: {}".format(uid))
     return longs[1]
@@ -163,7 +164,7 @@ def long2uuid(l):
     if l.bit_length() > 63:
         raise ValueError("expected 64 bit long {}".format(l))
     if l < 0:
-        l = (1<<64L) + l
+        l = (1<<64) + l
     return uuid.UUID(int=l)
 
 
@@ -190,7 +191,8 @@ def value_check(value, min_value, max_value, variable, override=None):
     """Check if value is inside allowed range, or override"""
 
     sys.tracebacklimit = None
-    if value != override and not (min_value <= value <= max_value):
+    if value != override and not ((min_value is not None) and (min_value <= value) and
+                                  (max_value is not None) and (value <= max_value)):
         if override is not False:
             raise ValueError(
                 "Expected {} <= {} <= {} or {}, received {}".format(
@@ -210,7 +212,7 @@ class TypedList(collections.MutableSequence):
 
        obstype = TypedList((str), "calibration", "science")
        emptylist = TypedList((str), )
-       multipletypes = TypedList((str, int, long), 1, 12L, "ABC")
+       multipletypes = TypedList((str, int, int), 1, 12L, "ABC")
 
     An AssertionError is thrown when the caller attempts to insert
     objects with the wrong type.
@@ -267,7 +269,7 @@ class TypedSet(collections.MutableSet):
 
        obstype = TypedSet((str), "calibration", "science")
        emptyset = TypedSet((str), )
-       multipletypes = TypedSet((str, int, long), 1, 12L, "ABC")
+       multipletypes = TypedSet((str, int, int), 1, 12L, "ABC")
 
     An AssertionError is thrown when the caller attempts to insert
     objects with the wrong type.

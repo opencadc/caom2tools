@@ -73,7 +73,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 
 from .. import artifact
 from .. import part
@@ -123,8 +123,8 @@ class TestArtifact(unittest.TestCase):
         self.assertEquals("FITS", test_artifact.content_type, "Content type")
         self.assertIsNone(test_artifact.content_length,
                           "Default content length")
-        test_artifact.content_length = 23L
-        self.assertEquals(23L, test_artifact.content_length, "Content length")
+        test_artifact.content_length = 23
+        self.assertEquals(23, test_artifact.content_length, "Content length")
         test_artifact.product_type = artifact.ProductType.PREVIEW
         self.assertEquals(artifact.ProductType.PREVIEW,
                           test_artifact.product_type,

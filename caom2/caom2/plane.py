@@ -73,9 +73,8 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from datetime import datetime
-from urlparse import SplitResult
-from urlparse import urlsplit
-
+from six.moves.urllib.parse import SplitResult, urlsplit
+from builtins import str, int
 from enum import Enum
 
 from . import caom_util
@@ -231,13 +230,13 @@ class Plane(AbstractCaomEntity):
         observation, that is stored in this plane.
 
         eg: '1234567p'
-        type: unicode
+        type: unicode string
         """
         return self._product_id
 
     @product_id.setter
     def product_id(self, value):
-        caom_util.type_check(value, unicode, 'product_id', override=False)
+        caom_util.type_check(value, str, 'product_id', override=False)
         self._product_id = value
 
     @property
@@ -334,7 +333,7 @@ class Plane(AbstractCaomEntity):
         is converted to an integer during storage.
 
         eg. Plane.calibration_level = CalibrationLevel['RAW_STANDARD']
-        type: unicode
+        type: unicode string
 
         Must be one of CalibrationLevel
 
@@ -492,7 +491,7 @@ class PlaneURI(CaomObject):
         """
         caom_util.type_check(observation_uri, ObservationURI, "observation_uri",
                              override=False)
-        caom_util.type_check(product_id, unicode, "observation_uri", override=False)
+        caom_util.type_check(product_id, str, "observation_uri", override=False)
         caom_util.validate_path_component(cls, "product_id", product_id)
 
         path = urlsplit(observation_uri.uri).path
@@ -509,7 +508,7 @@ class PlaneURI(CaomObject):
     @uri.setter
     def uri(self, value):
 
-        caom_util.type_check(value, unicode, "uri", override=False)
+        caom_util.type_check(value, str, "uri", override=False)
         tmp = urlsplit(value)
 
         if tmp.scheme != ObservationURI._SCHEME:
@@ -679,7 +678,7 @@ class Provenance(CaomObject):
         """
 
         assert name is not None, "No name provided"
-        assert isinstance(name, unicode), "name is not a unicode: {0}".format(name)
+        assert isinstance(name, str), "name is not a unicode string: {0}".format(name)
         self._name = name
 
         self.version = version
@@ -706,7 +705,7 @@ class Provenance(CaomObject):
 
     @version.setter
     def version(self, value):
-        caom_util.type_check(value, unicode, 'version')
+        caom_util.type_check(value, str, 'version')
         self._version = value
 
     @property
@@ -716,7 +715,7 @@ class Provenance(CaomObject):
 
     @project.setter
     def project(self, value):
-        caom_util.type_check(value, unicode, 'project')
+        caom_util.type_check(value, str, 'project')
         self._project = value
 
     @property
@@ -726,7 +725,7 @@ class Provenance(CaomObject):
 
     @producer.setter
     def producer(self, value):
-        caom_util.type_check(value, unicode, 'producer')
+        caom_util.type_check(value, str, 'producer')
         self._producer = value
 
     @property
@@ -736,7 +735,7 @@ class Provenance(CaomObject):
 
     @run_id.setter
     def run_id(self, value):
-        caom_util.type_check(value, unicode, 'run_id')
+        caom_util.type_check(value, str, 'run_id')
         self._run_id = value
 
     @property
@@ -746,7 +745,7 @@ class Provenance(CaomObject):
 
     @reference.setter
     def reference(self, value):
-        caom_util.type_check(value, unicode, 'version')
+        caom_util.type_check(value, str, 'version')
         if value is not None:
             tmp = urlsplit(value)
             assert tmp.geturl() == value, "Invalid URI: " + value
@@ -764,7 +763,7 @@ class Provenance(CaomObject):
 
     @property
     def keywords(self):
-        """ Set of keywords as unicode"""
+        """ Set of keywords as unicode string"""
         return self._keywords
 
     @property
@@ -909,8 +908,8 @@ class Energy(CaomObject):
     @dimension.setter
     def dimension(self, value):
         if value is not None:
-            assert isinstance(value, long), (
-                "energy dimension is not a long: {0}".format(value))
+            assert isinstance(value, int), (
+                "energy dimension is not an int: {0}".format(value))
         self._dimension = value
 
     @property
@@ -945,8 +944,8 @@ class Energy(CaomObject):
     @bandpass_name.setter
     def bandpass_name(self, value):
         if value is not None:
-            assert isinstance(value, unicode), (
-                "bandpass name is not unicode: {0}".format(value))
+            assert isinstance(value, str), (
+                "bandpass name is not unicode string: {0}".format(value))
         self._bandpass_name = value
 
     @property
@@ -1069,14 +1068,14 @@ class Time(CaomObject):
         """Number of pixel in the time direction, normally 1.
 
         eg 1
-        type: long
+        type: int
 
         """
         return self._dimension
 
     @dimension.setter
     def dimension(self, value):
-        caom_util.type_check(value, long, 'dimension')
+        caom_util.type_check(value, int, 'dimension')
         self._dimension = value
 
     @property

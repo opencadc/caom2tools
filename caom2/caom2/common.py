@@ -73,8 +73,8 @@ from __future__ import (absolute_import, division, print_function,
 import inspect
 import uuid
 from datetime import datetime
-from urlparse import SplitResult
-from urlparse import urlsplit
+from six.moves.urllib.parse import SplitResult, urlsplit
+from builtins import int, str
 
 from . import caom_util
 
@@ -149,7 +149,7 @@ class AbstractCaomEntity(CaomObject):
         """
         now = datetime.now()
         return datetime(now.year, now.month, now.day, now.hour, now.minute, \
-                        now.second, long(str(now.microsecond)[:-3] + '000'))
+                        now.second, int(str(now.microsecond)[:-3] + '000'))
 
 
 class ObservationURI(CaomObject):
@@ -210,8 +210,8 @@ class ObservationURI(CaomObject):
         observation_id : ID of the observation
         """
 
-        caom_util.type_check(collection, unicode, "collection", override=False)
-        caom_util.type_check(observation_id, unicode, "observation_id", override=False)
+        caom_util.type_check(collection, str, "collection", override=False)
+        caom_util.type_check(observation_id, str, "observation_id", override=False)
 
         caom_util.validate_path_component(cls, "collection", collection)
         caom_util.validate_path_component(cls, "observation_id", observation_id)

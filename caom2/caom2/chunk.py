@@ -73,6 +73,7 @@
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+from builtins import str
 
 from enum import Enum
 from .common import AbstractCaomEntity
@@ -171,7 +172,7 @@ class Chunk(AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        if isinstance(value, unicode) and value in ProductType.names():
+        if isinstance(value, str) and value in ProductType.names():
             # be helpful
             value = ProductType('value')
         caom_util.type_check(value, ProductType, 'product_type')
@@ -499,14 +500,14 @@ class SpatialWCS(CaomObject):
 
         eg.  SpatialWCS.coordsys="ICRS"
 
-        type: unicode
+        type: unicode string
 
         """
         return self._coordsys
 
     @coordsys.setter
     def coordsys(self, value):
-        caom_util.type_check(value, unicode, 'coordsys')
+        caom_util.type_check(value, str, 'coordsys')
         self._coordsys = value
 
     @property
@@ -613,13 +614,13 @@ class SpectralWCS(CaomObject):
 
         eg. BARYCENT
 
-        type: unicode
+        type: unicode string
         """
         return self._specsys
 
     @specsys.setter
     def specsys(self, value):
-        caom_util.type_check(value, unicode, 'specsys', override=False)
+        caom_util.type_check(value, str, 'specsys', override=False)
         self._specsys = value
 
     @property
@@ -633,13 +634,13 @@ class SpectralWCS(CaomObject):
 
         Nominally 'TOPOCENT'
 
-        type: unicode
+        type: unicode string
         """
         return self._ssysobs
 
     @ssysobs.setter
     def ssysobs(self, value):
-        caom_util.type_check(value, unicode, 'ssysobs')
+        caom_util.type_check(value, str, 'ssysobs')
         self._ssysobs = value
 
     @property
@@ -653,7 +654,7 @@ class SpectralWCS(CaomObject):
 
     @ssyssrc.setter
     def ssyssrc(self, value):
-        caom_util.type_check(value, unicode, 'ssyssrc')
+        caom_util.type_check(value, str, 'ssyssrc')
         self._ssyssrc = value
 
     @property
@@ -737,13 +738,13 @@ class SpectralWCS(CaomObject):
         """string the represent the bandpass of the observation.
 
         eg. r'
-        type: unicode
+        type: unicode string
         """
         return self._bandpass_name
 
     @bandpass_name.setter
     def bandpass_name(self, value):
-        caom_util.type_check(value, unicode, 'bandpass_name')
+        caom_util.type_check(value, str, 'bandpass_name')
         self._bandpass_name = value
 
     @property
@@ -817,13 +818,13 @@ class TemporalWCS(CaomObject):
         """The time scale that you are using, almost alwasy UTC.
 
         eg.  timesys = "UTC"
-        type: unicode
+        type: unicode string
         """
         return self._timesys
 
     @timesys.setter
     def timesys(self, value):
-        caom_util.type_check(value, unicode, 'timesys')
+        caom_util.type_check(value, str, 'timesys')
         self._timesys = value
 
     @property
@@ -833,13 +834,13 @@ class TemporalWCS(CaomObject):
         light-time corrections have been applied.
 
         eg. trefpos = "TOPOCENTER"
-        type: unicode
+        type: unicode string
         """
         return self._trefpos
 
     @trefpos.setter
     def trefpos(self, value):
-        caom_util.type_check(value, unicode, 'trefpos')
+        caom_util.type_check(value, str, 'trefpos')
         self._trefpos = value
 
     @property

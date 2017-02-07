@@ -72,12 +72,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import StringIO
+from six import StringIO
 import os
 import unittest
 
 from lxml import etree
-from xml_compare import xml_compare
+from .xml_compare import xml_compare
 
 from . import caom_test_instances
 from .. import obs_reader_writer
@@ -129,7 +129,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         simple_observation = minimal_simple(1, False, 20)
         writer = obs_reader_writer.ObservationWriter(
             False, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
-        output = StringIO.StringIO()
+        output = StringIO()
         writer.write(simple_observation, output)
         xml = output.getvalue()
         output.close()
@@ -147,7 +147,7 @@ class TestObservationReaderWriter(unittest.TestCase):
     def test_invalid_uuid(self):
         simple_observation = minimal_simple(1, False, 21)
         writer = obs_reader_writer.ObservationWriter(False, False)  # default writer is 2.1
-        output = StringIO.StringIO()
+        output = StringIO()
         writer.write(simple_observation, output)
         xml = output.getvalue()
         output.close()
@@ -844,12 +844,12 @@ class TestRoundTrip(unittest.TestCase):
         source_xml_fp = open(source_file_path, 'r')
         obs = reader.read(source_file_path)
         source_xml_fp.close()
-        dest_file = StringIO.StringIO()
+        dest_file = StringIO()
         writer.write(obs, dest_file)
 
         source_dom = etree.parse(source_file_path).getroot()
         dest_dom = etree.fromstring(dest_file.getvalue())
-        self.assertTrue(xml_compare(source_dom, dest_dom),
+        self.assertTrue(xml_compare(source_dom, dest_dom, reporter=print),
                         'files are different')
 
     # This test reads each file in XML_FILE_SOURCE_DIR, creates the CAOM2

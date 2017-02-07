@@ -72,6 +72,7 @@ the caom2_Observation_Plane_Artifact_Part object."""
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+from builtins import str
 
 from . import caom_util
 from .chunk import Chunk
@@ -132,7 +133,7 @@ class Part(AbstractCaomEntity):
 
     @name.setter
     def name(self, value):
-        caom_util.type_check(value, unicode, 'name', override=False)
+        caom_util.type_check(value, str, 'name', override=False)
         self._name = value
 
     @property
