@@ -3,6 +3,10 @@ NOTE: This is the xml_compare v1.0.5 module available on pypi (https://pypi.pyth
 with a tiny patch on line 69 to make it work with Python 3. The module hasn't been updated in almost 10 years,
 hence the need to copy it over here and patch it.
 
+Also patched the xml_compare function to deal with children nodes that are in different order.
+
+"""
+"""
 This module implements a XML comparer
 
 >>> from lxml import etree
@@ -105,11 +109,14 @@ def xml_compare(x1, x2, reporter=None, strip_whitespaces=False,ignore_order=Fals
     if len(cl1) != len(cl2):
         doReport(reporter,x1,x2,'children length differs, %i != %i'% (len(cl1), len(cl2)))
         return False
-    i = 0
-    for c1, c2 in zip(cl1, cl2):
-        i += 1
-        if not xml_compare(c1, c2, reporter, strip_whitespaces=strip_whitespaces, float_compare=float_compare):
-            doReport(reporter,c1,c2,'children %i do not match: %s'% (i, c1.tag))
+    found = False
+    for c1 in cl1:
+        for c2 in cl2:
+            if xml_compare(c1, c2, reporter, strip_whitespaces=strip_whitespaces, float_compare=float_compare):
+                found = True
+                break
+        if not found:
+            doReport(reporter,c1,c1,'child %s not found in destination'% (c1.tag))
             return False
     return True
 

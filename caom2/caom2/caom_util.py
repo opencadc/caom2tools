@@ -79,7 +79,7 @@ engineer get the correct meta data more quickly.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from builtins import bytes
-
+import six
 import collections
 import struct
 import sys
@@ -357,11 +357,11 @@ class TypedOrderedDict(collections.OrderedDict):
 
     def __str__(self):
         return "\n".join(["{} => {}".format(k, v)
-                          for k, v in self.iteritems()])
+                          for k, v in six.iteritems(self)])
 
     def __repr__(self):
         return "TypeOrderedDict((%r))," % self._keyType + (
-            "(".join(["(%r,%r)" % (k, v) for k, v in self.iteritems()]) + ")")
+            "(".join(["(%r,%r)" % (k, v) for k, v in six.iteritems(self)]) + ")")
 
     def check(self, key, value):
         """

@@ -71,7 +71,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 """
-This is an Astropy affiliated package.
+This library implements the Common Archive Observation Model (CAOM), a general
+purpose data model for use as the core data model of an astronomical data centre.
+The details about the model and its componenets can be found at:
+
+http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2/
 """
 
 # Affiliated packages may add whatever they like to this file, but
