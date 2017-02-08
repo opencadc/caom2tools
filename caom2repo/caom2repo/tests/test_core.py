@@ -74,7 +74,7 @@ import os
 import sys
 import unittest
 # TODO to be changed to io.StringIO when caom2 is prepared for python3
-from StringIO import StringIO
+from six import StringIO
 from datetime import datetime
 
 import requests
@@ -467,6 +467,7 @@ Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) o
 
 positional arguments:
   {create,read,update,delete,visit}
+    create              Create a new observation
     read                Read an existing observation
     update              Update an existing observation
     delete              Delete an existing observation

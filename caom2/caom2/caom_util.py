@@ -338,7 +338,7 @@ class TypedOrderedDict(collections.OrderedDict):
     with the wrong type.
     """
 
-    def __init__(self, key_type, *args):
+    def __init__(self, key_type=None, *args):
         """
         Initializes a TypedOrderedDict.
 

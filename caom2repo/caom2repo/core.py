@@ -76,7 +76,7 @@ import logging
 import os
 import os.path
 import sys
-from StringIO import StringIO
+from six import StringIO
 from datetime import datetime
 
 from cadcutils import net
@@ -304,8 +304,10 @@ def main_app():
     parser.formatter_class = argparse.RawTextHelpFormatter
 
     subparsers = parser.add_subparsers(dest='cmd')
-    create_parser = subparsers.add_parser('create', description='Create a new observation')
-    create_parser.add_argument('observation', metavar='<new observation file in XML format>', type=file)
+    create_parser = subparsers.add_parser('create', description='Create a new observation',
+                                          help='Create a new observation')
+    create_parser.add_argument('observation', metavar='<new observation file in XML format>',
+                               type=argparse.FileType('r'))
 
     read_parser = subparsers.add_parser('read',
                                         description='Read an existing observation',
@@ -317,7 +319,7 @@ def main_app():
     update_parser = subparsers.add_parser('update',
                                           description='Update an existing observation',
                                           help='Update an existing observation')
-    update_parser.add_argument('observation', metavar='<observation file>', type=file)
+    update_parser.add_argument('observation', metavar='<observation file>', type=argparse.FileType('r'))
 
     delete_parser = subparsers.add_parser('delete',
                                           description='Delete an existing observation',
@@ -330,7 +332,7 @@ def main_app():
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          description='Visit observations in a collection',
                                          help='Visit observations in a collection')
-    visit_parser.add_argument('--plugin', required=True, type=file,
+    visit_parser.add_argument('--plugin', required=True, type=argparse.FileType('r'),
                               metavar='<pluginClassFile>',
                               help='Plugin class to update each observation')
     visit_parser.add_argument('--start', metavar='<datetime start point>',

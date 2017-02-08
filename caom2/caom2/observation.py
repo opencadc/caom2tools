@@ -211,8 +211,9 @@ class Observation(AbstractCaomEntity):
         self.requirements = requirements
         self.meta_release = meta_release
         if planes is None:
-            planes = caom_util.TypedOrderedDict(Plane,)
-        self.planes = planes
+            self.planes = caom_util.TypedOrderedDict(Plane,)
+        else:
+            self.planes = planes
 
     # Properties
     @property
