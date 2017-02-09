@@ -125,8 +125,8 @@ install:
     # other dependencies.
 
 script:
-   - cd caom2; python setup.py $SETUP_CMD || break -1;cd ..
-   - cd caom2repo; pip install ../caom2; python setup.py $SETUP_CMD || break -1
+   - cd caom2; python setup.py $SETUP_CMD; cd ..
+   - cd caom2repo; pip install ../caom2; python setup.py $SETUP_CMD
 
 after_success:
     # If coveralls.io is set up for this package, uncomment the line
