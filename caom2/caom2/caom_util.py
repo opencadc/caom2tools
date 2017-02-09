@@ -343,7 +343,10 @@ class TypedOrderedDict(collections.OrderedDict):
         Initializes a TypedOrderedDict.
 
         Arguments:
-        keyType : the type values that will be stored in this dictionary
+        keyType : the type values that will be stored in this dictionary.
+        NOTE: the default values has been added only because the
+        parent class (OrderDict) requires a default constructor in
+        copydeep operations.
         *args : (key, value) tuples to be stored in the dictionary
         (value must match type)
 
