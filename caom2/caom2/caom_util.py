@@ -78,7 +78,7 @@ engineer get the correct meta data more quickly.
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from builtins import bytes
+from builtins import bytes, int
 import six
 import collections
 import struct
@@ -150,7 +150,7 @@ def uuid2long(uid):
 
     return the UUID least significant bytes as a long.
     """
-    longs = struct.unpack('>qq', bytes(uid.bytes))
+    longs = struct.unpack(str('>qq'), bytes(uid.bytes))
     if longs[0] != 0:
         raise ValueError("lossy conversion from UUID to long: {}".format(uid))
     return longs[1]
@@ -175,7 +175,7 @@ def type_check(value, value_type, variable, override=None):
     if not isinstance(value, value_type) and value is not override:
         if override is not False:
             raise TypeError(
-                "Excepted {} or {} for {}, received {}".format(value_type,
+                "Expected {} or {} for {}, received {}".format(value_type,
                                                                override,
                                                                variable,
                                                                type(value)))

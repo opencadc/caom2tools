@@ -73,7 +73,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from datetime import datetime
-from builtins import str
+from builtins import str, int
 from enum import Enum
 import six
 
