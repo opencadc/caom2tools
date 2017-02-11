@@ -391,13 +391,50 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor.post_observation = MagicMock()
         visitor._get_observations = MagicMock(side_effect=obs)
 
-        self.assertEquals(4, visitor.visit(os.path.join(
+        self.assertEquals((4, 4, 0, 0), visitor.visit(os.path.join(
                 THIS_DIR, 'passplugin.py'), 'cfht'))
 
         obs = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
         visitor._get_observations = MagicMock(side_effect=obs)
-        self.assertEquals(6, visitor.visit(os.path.join(
+        self.assertEquals((6, 6, 0, 0), visitor.visit(os.path.join(
                 THIS_DIR, 'passplugin.py'), 'cfht'))
+
+        # make it return different status. errorplugin returns according to the
+        # id of the observation: True for 'UPDATE', False for 'SKIP' and
+        # raises exception for 'ERROR'
+        obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
+        obs = [SimpleObservation(collection='TEST', observation_id='UPDATE'),
+                SimpleObservation(collection='TEST', observation_id='SKIP'),
+                SimpleObservation(collection='TEST', observation_id='ERROR')]
+        visitor._get_observations = MagicMock(side_effect=obs_ids)
+        visitor.get_observation = MagicMock(side_effect=obs)
+        self.assertEquals((3, 1, 1, 1), visitor.visit(os.path.join(
+            THIS_DIR, 'errorplugin.py'), 'cfht'))
+
+        # repeat with other obs
+        obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
+        obs = [SimpleObservation(collection='TEST', observation_id='UPDATE'),
+               SimpleObservation(collection='TEST', observation_id='SKIP'),
+               SimpleObservation(collection='TEST', observation_id='ERROR'),
+               SimpleObservation(collection='TEST', observation_id='UPDATE'),
+               SimpleObservation(collection='TEST', observation_id='SKIP')]
+        visitor._get_observations = MagicMock(side_effect=obs_ids)
+        visitor.get_observation = MagicMock(side_effect=obs)
+        self.assertEquals((5, 2, 2, 1), visitor.visit(os.path.join(
+            THIS_DIR, 'errorplugin.py'), 'cfht'))
+
+        # repeat but halt on first ERROR -> process only 3 observations
+        obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
+        obs = [SimpleObservation(collection='TEST', observation_id='UPDATE'),
+               SimpleObservation(collection='TEST', observation_id='SKIP'),
+               SimpleObservation(collection='TEST', observation_id='ERROR'),
+               SimpleObservation(collection='TEST', observation_id='UPDATE'),
+               SimpleObservation(collection='TEST', observation_id='SKIP')]
+        visitor._get_observations = MagicMock(side_effect=obs_ids)
+        visitor.get_observation = MagicMock(side_effect=obs)
+        with self.assertRaises(SystemError):
+            visitor.visit(os.path.join(
+                THIS_DIR, 'errorplugin.py'), 'cfht', halt_on_error=True)
 
     @patch('caom2repo.core.CAOM2RepoClient')
     def test_main_app(self, client_mock):
@@ -447,10 +484,24 @@ class TestCAOM2Repo(unittest.TestCase):
         sys.argv = ["caom2tools", "visit", '--resource-id', 'ivo://ca.nrc.ca/resource',
                     "--plugin", plugin_file, "--start", "2012-01-01T11:22:33",
                     "--end", "2013-01-01T11:33:22", collection]
+        client_mock.return_value.visit.return_value = 1, 1, 0, 0
         with open(plugin_file, 'r') as infile:
             core.main_app()
             client_mock.return_value.visit.assert_called_with(
-                ANY, collection,
+                ANY, collection, halt_on_error=False,
+                start=core.str2date("2012-01-01T11:22:33"),
+                end=core.str2date("2013-01-01T11:33:22"))
+
+        # repeat visit test with halt-on-error
+        sys.argv = ["caom2tools", "visit", '--resource-id', 'ivo://ca.nrc.ca/resource',
+                    "--plugin", plugin_file,'--halt-on-error',
+                    "--start", "2012-01-01T11:22:33",
+                    "--end", "2013-01-01T11:33:22", collection]
+        client_mock.return_value.visit.return_value = 1, 1, 0, 0
+        with open(plugin_file, 'r') as infile:
+            core.main_app()
+            client_mock.return_value.visit.assert_called_with(
+                ANY, collection, halt_on_error=True,
                 start=core.str2date("2012-01-01T11:22:33"),
                 end=core.str2date("2013-01-01T11:33:22"))
 
@@ -612,7 +663,7 @@ optional arguments:
                           [--host HOST] [--resource-id RESOURCE_ID]
                           [-d | -q | -v] --plugin <pluginClassFile>
                           [--start <datetime start point>]
-                          [--end <datetime end point>]
+                          [--end <datetime end point>] [--halt-on-error]
                           [-s <CAOM2 service URL>]
                           <datacollection>
 
@@ -628,6 +679,8 @@ optional arguments:
   --end <datetime end point>
                         earliest dataset to visit (UTC IVOA format: YYYY-mm-
                         ddTH:M:S)
+  --halt-on-error       Stop visitor on first update exception raised by
+                        plugin
   -h, --help            show this help message and exit
   --host HOST           Base hostname for services - used mainly for testing
                         (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
