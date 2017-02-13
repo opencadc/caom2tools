@@ -82,9 +82,7 @@ class TestPart(unittest.TestCase):
 
     def test_init(self):
 
-        self.assertRaises(TypeError, part.Part, long(1))
-
-        test_part = part.Part("partName")
+        test_part = part.Part(u"partName")
         self.assertEquals("partName", test_part.name, "Part name")
         self.assertIsNone(test_part.product_type)
         self.assertTrue(len(test_part.chunks) == 0)

@@ -69,6 +69,7 @@
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+from builtins import int
 
 import unittest
 
@@ -137,7 +138,7 @@ class TestCoordAxis1D(unittest.TestCase):
         axis_1d.bounds = bounds
         self.assertEqual(axis_1d.bounds, bounds)
 
-        naxis = long(1)
+        naxis = int(1)
         delta = float(2.5)
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
         function = wcs.CoordFunction1D(naxis, delta, ref_coord)
@@ -191,7 +192,7 @@ class TestCoordAxis2D(unittest.TestCase):
         axis_2d.bounds = polygon
         self.assertEqual(axis_2d.bounds, polygon)
 
-        dimension = wcs.Dimension2D(long(1), long(2))
+        dimension = wcs.Dimension2D(int(1), int(2))
         ref_coord = wcs.Coord2D(wcs.RefCoord(float(9.0), float(10.0)),
                                 wcs.RefCoord(float(11.0), float(12.0)))
         cd11 = float(1.1)
@@ -279,7 +280,7 @@ class TestCoordFunction1D(unittest.TestCase):
 
     def test_init(self):
 
-        naxis = long(1)
+        naxis = int(1)
         delta = float(2.5)
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
 
@@ -291,12 +292,12 @@ class TestCoordFunction1D(unittest.TestCase):
                           ref_coord)
         self.assertRaises(TypeError, wcs.CoordFunction1D, naxis, delta,
                           None)
-        self.assertRaises(TypeError, wcs.CoordFunction1D, int(1), delta,
+        self.assertRaises(TypeError, wcs.CoordFunction1D, 'w', delta,
                           ref_coord)
-        self.assertRaises(TypeError, wcs.CoordFunction1D, naxis, int(1),
+        self.assertRaises(TypeError, wcs.CoordFunction1D, naxis, 'w',
                           ref_coord)
         self.assertRaises(TypeError, wcs.CoordFunction1D, naxis, delta,
-                          int(1))
+                          'w')
 
         function = wcs.CoordFunction1D(naxis, delta, ref_coord)
         self.assertEqual(function.naxis, naxis)
@@ -308,7 +309,7 @@ class TestCoordFunction2D(unittest.TestCase):
 
     def test_init(self):
 
-        dimension = wcs.Dimension2D(long(1), long(2))
+        dimension = wcs.Dimension2D(int(1), int(2))
         ref_coord = wcs.Coord2D(wcs.RefCoord(float(9.0), float(10.0)),
                                 wcs.RefCoord(float(11.0), float(12.0)))
         cd11 = float(1.1)
@@ -397,14 +398,14 @@ class TestDimension2D(unittest.TestCase):
     def test_init(self):
 
         self.assertRaises(TypeError, wcs.Dimension2D, None, None)
-        self.assertRaises(TypeError, wcs.Dimension2D, long(1), None)
-        self.assertRaises(TypeError, wcs.Dimension2D, None, long(1))
-        self.assertRaises(TypeError, wcs.Dimension2D, int(1), long(1))
-        self.assertRaises(TypeError, wcs.Dimension2D, long(1), int(1))
+        self.assertRaises(TypeError, wcs.Dimension2D, int(1), None)
+        self.assertRaises(TypeError, wcs.Dimension2D, None, int(1))
+        self.assertRaises(TypeError, wcs.Dimension2D, 'w', 1)
+        self.assertRaises(TypeError, wcs.Dimension2D, 1, 'w')
 
-        dimension = wcs.Dimension2D(long(1), long(2))
-        self.assertEqual(dimension.naxis1, long(1))
-        self.assertEqual(dimension.naxis2, long(2))
+        dimension = wcs.Dimension2D(int(1), int(2))
+        self.assertEqual(dimension.naxis1, int(1))
+        self.assertEqual(dimension.naxis2, int(2))
 
 
 class TestRefCoord(unittest.TestCase):
@@ -428,17 +429,17 @@ class TestSlice(unittest.TestCase):
     def test_init(self):
 
         axis = wcs.Axis("ctype", "cunit")
-        my_bin = long(1)
+        my_bin = int(1)
 
         self.assertRaises(TypeError, wcs.Slice, None, None)
         self.assertRaises(TypeError, wcs.Slice, None, my_bin)
         self.assertRaises(TypeError, wcs.Slice, axis, None)
         self.assertRaises(TypeError, wcs.Slice, str("s"), my_bin)
-        self.assertRaises(TypeError, wcs.Slice, axis, int(1))
+        self.assertRaises(TypeError, wcs.Slice, axis, 'a')
 
         my_slice = wcs.Slice(axis, my_bin)
         self.assertEqual(my_slice.axis, axis)
-        self.assertEqual(my_slice.bin, long(1))
+        self.assertEqual(my_slice.bin, int(1))
 
 
 class TestValueCoord2d(unittest.TestCase):
@@ -448,8 +449,8 @@ class TestValueCoord2d(unittest.TestCase):
         self.assertRaises(TypeError, wcs.ValueCoord2D, None, None)
         self.assertRaises(TypeError, wcs.ValueCoord2D, None, float(1.0))
         self.assertRaises(TypeError, wcs.ValueCoord2D, float(1.0), None)
-        self.assertRaises(TypeError, wcs.ValueCoord2D, int(1), float(1.0))
-        self.assertRaises(TypeError, wcs.ValueCoord2D, float(1.0), int(1))
+        self.assertRaises(TypeError, wcs.ValueCoord2D, 1, float(1.0))
+        self.assertRaises(TypeError, wcs.ValueCoord2D, float(1.0), 1)
 
         value_coord2d = wcs.ValueCoord2D(float(1), float(2))
         self.assertIsNotNone(value_coord2d)

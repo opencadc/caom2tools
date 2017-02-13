@@ -74,7 +74,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
+from builtins import str, int
 
 from enum import Enum
 
@@ -162,7 +163,7 @@ class Artifact(AbstractCaomEntity):
 
     @uri.setter
     def uri(self, value):
-        caom_util.type_check(value, unicode, 'uri')
+        caom_util.type_check(value, str, 'uri')
         uri = urlparse(value).geturl()
         caom_util.value_check(value, None, None, 'uri', override=uri)
         self._uri = uri
@@ -209,7 +210,7 @@ class Artifact(AbstractCaomEntity):
 
     @content_type.setter
     def content_type(self, value):
-        caom_util.type_check(value, unicode, "content_type")
+        caom_util.type_check(value, str, "content_type")
         self._content_type = value
 
     @property
@@ -224,7 +225,7 @@ class Artifact(AbstractCaomEntity):
 
     @content_length.setter
     def content_length(self, value):
-        caom_util.type_check(value, long, "content_length")
+        caom_util.type_check(value, int, "content_length")
         caom_util.value_check(value, 0, 1E10, "content_length")
         self._content_length = value
 

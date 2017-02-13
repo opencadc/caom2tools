@@ -76,7 +76,7 @@ import logging
 import os
 import os.path
 import sys
-from StringIO import StringIO
+from six import StringIO
 from datetime import datetime
 
 from cadcutils import net
@@ -96,7 +96,7 @@ __all__ = ['CAOM2RepoClient']
 BATCH_SIZE = int(10000)
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
 
-CAOM2REPO_FEATURE_ID = 'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0'
+CAOM2REPO_OBS_CAPABILITY_ID = 'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0'
 # IVOA dateformat
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 # resource ID for info
@@ -107,6 +107,8 @@ APP_NAME = 'caom2repo'
 class CAOM2RepoClient(object):
 
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
+
+    logger = logging.getLogger('CAOM2RepoClient')
 
     def __init__(self, subject, resource_id=DEFAULT_RESOURCE_ID, host=None):
         """
@@ -124,7 +126,7 @@ class CAOM2RepoClient(object):
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host)
 
-    def visit(self, plugin, collection, start=None, end=None):
+    def visit(self, plugin, collection, start=None, end=None, halt_on_error=False):
         """
         Main processing function that iterates through the observations of
         the collection and updates them according to the algorithm
@@ -134,7 +136,10 @@ class CAOM2RepoClient(object):
         :param collection: name of the CAOM2 collection
         :param start: optional earliest date-time of the targeted observation set
         :param end: optional latest date-time of the targeted observation set
-        :return: number of visited observations
+        :param halt_on_error if True halts the execution on the first exception raised by
+               the plugin update function otherwise logs the error and continues
+        :return: tuple (number of visited observations, number of updates,
+                number of skipped observations, number errors)
         """
         if not os.path.isfile(plugin):
             raise Exception('Cannot find plugin file ' + plugin)
@@ -148,20 +153,35 @@ class CAOM2RepoClient(object):
         # this is updated by _get_observations with the timestamp of last observation in the batch
         self._start = start
         count = 0
+        errors = 0
+        updates = 0
+        skipped = 0
         observations = self._get_observations(collection, self._start, end)
         while len(observations) > 0:
             for observationID in observations:
                 observation = self.get_observation(collection, observationID)
-                logging.info("Process observation: " + observation.observation_id)
-                self.plugin.update(observation)
-                self.post_observation(observation)
+                self.logger.info('Process observation: ' + observation.observation_id)
+                try:
+                    if self.plugin.update(observation) is False:
+                        self.logger.info('Skip observation {}'.format(observation.observation_id))
+                        skipped += 1
+                    else:
+                        self.post_observation(observation)
+                        self.logger.debug('Updated observation {}'.format(observation.observation_id))
+                        updates += 1
+                except Exception as e:
+                    errors += 1
+                    self.logger.error('Observation {} not updated due to error: '.
+                                  format(observation.observation_id), e)
+                    if halt_on_error:
+                        raise e
                 count += 1
             if len(observations) == BATCH_SIZE:
                 observations = self._get_observations(collection)
             else:
                 # the last batch was smaller so it must have been the last
                 break
-        return count
+        return count, updates, skipped, errors
 
     def _get_observations(self, collection, start=None, end=None):
         """
@@ -169,7 +189,7 @@ class CAOM2RepoClient(object):
         :param collection: name of the collection
         :param start: earliest observation
         :param end: latest observation
-        :return:
+        :return: list of observation ids
         """
         assert collection is not None
         observations = []
@@ -179,7 +199,8 @@ class CAOM2RepoClient(object):
         if end is not None:
             params['END'] = end.strftime(DATE_FORMAT)
 
-        response = self._repo_client.get((CAOM2REPO_FEATURE_ID, collection), params=params)
+        response = self._repo_client.get((CAOM2REPO_OBS_CAPABILITY_ID, collection),
+                                         params=params)
         last_datetime = None
         for line in response.content.splitlines():
             (obs, last_datetime) = line.split(',')
@@ -223,7 +244,7 @@ class CAOM2RepoClient(object):
         path = '/{}/{}'.format(collection, observation_id)
         logging.debug('GET '.format(path))
 
-        response = self._repo_client.get((CAOM2REPO_FEATURE_ID, path))
+        response = self._repo_client.get((CAOM2REPO_OBS_CAPABILITY_ID, path))
         obs_reader = ObservationReader()
         content = response.content
         if len(content) == 0:
@@ -248,7 +269,7 @@ class CAOM2RepoClient(object):
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         response = self._repo_client.post(
-            (CAOM2REPO_FEATURE_ID, path), headers=headers, data=obs_xml)
+            (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
         logging.debug('Successfully updated Observation\n')
 
     def put_observation(self, observation):
@@ -267,7 +288,7 @@ class CAOM2RepoClient(object):
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         response = self._repo_client.put(
-            (CAOM2REPO_FEATURE_ID, path), headers=headers, data=obs_xml)
+            (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
         logging.debug('Successfully put Observation\n')
 
     def delete_observation(self, collection, observation_id):
@@ -279,7 +300,7 @@ class CAOM2RepoClient(object):
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
         logging.debug('DELETE {}'.format(path))
-        response = self._repo_client.delete((CAOM2REPO_FEATURE_ID, path))
+        response = self._repo_client.delete((CAOM2REPO_OBS_CAPABILITY_ID, path))
         logging.info('Successfully deleted Observation {}\n')
 
 
@@ -304,8 +325,10 @@ def main_app():
     parser.formatter_class = argparse.RawTextHelpFormatter
 
     subparsers = parser.add_subparsers(dest='cmd')
-    create_parser = subparsers.add_parser('create', description='Create a new observation')
-    create_parser.add_argument('observation', metavar='<new observation file in XML format>', type=file)
+    create_parser = subparsers.add_parser('create', description='Create a new observation',
+                                          help='Create a new observation')
+    create_parser.add_argument('observation', metavar='<new observation file in XML format>',
+                               type=argparse.FileType('r'))
 
     read_parser = subparsers.add_parser('read',
                                         description='Read an existing observation',
@@ -317,7 +340,7 @@ def main_app():
     update_parser = subparsers.add_parser('update',
                                           description='Update an existing observation',
                                           help='Update an existing observation')
-    update_parser.add_argument('observation', metavar='<observation file>', type=file)
+    update_parser.add_argument('observation', metavar='<observation file>', type=argparse.FileType('r'))
 
     delete_parser = subparsers.add_parser('delete',
                                           description='Delete an existing observation',
@@ -330,16 +353,17 @@ def main_app():
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          description='Visit observations in a collection',
                                          help='Visit observations in a collection')
-    visit_parser.add_argument('--plugin', required=True, type=file,
+    visit_parser.add_argument('--plugin', required=True, type=argparse.FileType('r'),
                               metavar='<pluginClassFile>',
                               help='Plugin class to update each observation')
     visit_parser.add_argument('--start', metavar='<datetime start point>',
-
                         type=str2date,
                         help='oldest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
     visit_parser.add_argument('--end', metavar='<datetime end point>',
                         type=str2date,
                         help='earliest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
+    visit_parser.add_argument('--halt-on-error', action='store_true',
+                              help='Stop visitor on first update exception raised by plugin')
     visit_parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
                       help="URL of the CAOM2 repo server")
     visit_parser.add_argument('collection', metavar='<datacollection>', type=str,
@@ -371,8 +395,12 @@ Minimum plugin file format:
     if args.cmd == 'visit':
         print ("Visit")
         logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
-               format(args.plugin.name, args.start, args.end, args.collection))
-        client.visit(args.plugin.name, args.collection, start=args.start, end=args.end)
+                      format(args.plugin.name, args.start, args.end, args.collection))
+        (visited, updated, skipped, errors) = \
+            client.visit(args.plugin.name, args.collection, start=args.start, end=args.end,
+                         halt_on_error=args.halt_on_error)
+        logging.info('Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.format(
+                     visited, updated, skipped, errors))
 
     elif args.cmd == 'create':
         logging.info("Create")

@@ -71,7 +71,8 @@
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-
+from builtins import int
+import six
 import collections
 from datetime import datetime
 
@@ -91,7 +92,7 @@ class Caom2TestInstances(object):
     _observation_id = "observationID"
     _product_id = "productId"
     _keywords = {"keyword1", "keyword2"}
-    _ivoa_date = datetime(2012, 07, 11, 13, 26, 37, 0)
+    _ivoa_date = datetime(2012, 7, 11, 13, 26, 37, 0)
 
     def __init__(self):
         self.depth = 5
@@ -246,7 +247,7 @@ class Caom2TestInstances(object):
                 _plane.quality = self.get_quality()
 
         if self.depth > 2:
-            for k, v in self.get_artifacts().iteritems():
+            for k, v in six.iteritems(self.get_artifacts()):
                 _plane.artifacts[k] = v
         planes["productID"] = _plane
         return planes
@@ -287,9 +288,9 @@ class Caom2TestInstances(object):
                                       artifact.ReleaseType.META)
         if self.complete:
             _artifact.content_type = "application/fits"
-            _artifact.content_length = 12345L
+            _artifact.content_length = int(12345)
         if self.depth > 3:
-            for k, v in self.get_parts().iteritems():
+            for k, v in six.iteritems(self.get_parts()):
                 _artifact.parts[k] = v
         artifacts["ad:foo/bar1"] = _artifact
         return artifacts
@@ -371,13 +372,13 @@ class Caom2TestInstances(object):
         axis = wcs.Axis('STOKES')
         axis1d = wcs.CoordAxis1D(axis)
         #IQUV
-        axis1d.function = wcs.CoordFunction1D(4L, 1.0,
+        axis1d.function = wcs.CoordFunction1D(int(4), 1.0,
                                               wcs.RefCoord(1.0, 1.0))
         pol = chunk.PolarizationWCS(axis1d)
         return pol
 
     def get_slice(self):
-        return wcs.Slice(wcs.Axis("sliceCtype", "sliceCunit"), 1L)
+        return wcs.Slice(wcs.Axis("sliceCtype", "sliceCunit"), int(1))
 
     def get_coord_axis1d(self):
         coord_axis1d = wcs.CoordAxis1D(wcs.Axis("axisCtype", "axisCunit"))
@@ -386,7 +387,7 @@ class Caom2TestInstances(object):
             coord_axis1d.range = wcs.CoordRange1D(wcs.RefCoord(2.0, 2.5),
                                                    wcs.RefCoord(3.0, 3.5))
             coord_axis1d.function = (
-                wcs.CoordFunction1D(4L, 4.5, wcs.RefCoord(5.0, 5.5)))
+                wcs.CoordFunction1D(4, 4.5, wcs.RefCoord(5.0, 5.5)))
             bounds = wcs.CoordBounds1D()
             bounds.samples.append(wcs.CoordRange1D(wcs.RefCoord(6.0, 6.5),
                                                    wcs.RefCoord(7.0, 7.5)))
@@ -407,7 +408,7 @@ class Caom2TestInstances(object):
             end = wcs.Coord2D(wcs.RefCoord(5.0, 5.5),
                               wcs.RefCoord(6.0, 6.5))
             coord_axis2d.range = wcs.CoordRange2D(start, end)
-            dimension = wcs.Dimension2D(7L, 8L)
+            dimension = wcs.Dimension2D(7, 8)
             ref_coord = wcs.Coord2D(wcs.RefCoord(9.0, 9.5),
                                     wcs.RefCoord(10.0, 10.5))
             coord_axis2d.function = (

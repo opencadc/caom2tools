@@ -72,6 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import unittest
 import uuid
+from builtins import str, int
 
 from .. import artifact
 from .. import caom_util
@@ -83,7 +84,7 @@ from .. import plane
 class TestCaomUtil(unittest.TestCase):
 
     def test_typed_list(self):
-        my_list1 = caom_util.TypedList(unicode, "Test1")
+        my_list1 = caom_util.TypedList(str, "Test1")
         self.assertEquals(1, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
 
@@ -124,7 +125,7 @@ class TestCaomUtil(unittest.TestCase):
 
         exception = False
         try:
-            my_list2 = caom_util.TypedList(unicode, 1, 3)
+            my_list2 = caom_util.TypedList(str, 1, 3)
         except AssertionError:
             exception = True
         self.assertTrue(exception, "Exception thrown")
@@ -133,7 +134,7 @@ class TestCaomUtil(unittest.TestCase):
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
         self.assertEqual("Test2", my_list1[1], "Non matching elements")
 
-        my_list2 = caom_util.TypedList(unicode, "Test3", "Test4")
+        my_list2 = caom_util.TypedList(str, "Test3", "Test4")
         my_list1.extend(my_list2)
         self.assertEquals(4, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
@@ -186,15 +187,15 @@ class TestCaomUtil(unittest.TestCase):
 
     def test_typed_set(self):
 
-        my_set = caom_util.TypedSet(unicode,)
+        my_set = caom_util.TypedSet(str,)
         with self.assertRaises(AssertionError):
             my_set.add(float(1.0))
-            my_set.add(long(1))
+            my_set.add(int(1))
             my_set.add(bool(1))
 
-        self.assertRaises(AssertionError, caom_util.TypedSet, unicode, float(1.0))
+        self.assertRaises(AssertionError, caom_util.TypedSet, str, float(1.0))
 
-        my_set = caom_util.TypedSet(unicode, "Test1")
+        my_set = caom_util.TypedSet(str, "Test1")
         self.assertEquals(1, len(my_set))
         self.assertEqual("Test1", my_set.pop())
 
@@ -203,11 +204,11 @@ class TestCaomUtil(unittest.TestCase):
         self.assertEquals(2, len(my_set), "set length")
         with self.assertRaises(AssertionError):
             my_set.add(float(1.0))
-            my_set.add(long(1))
+            my_set.add(int(1))
             my_set.add(bool(1))
             my_set.add("Test1")
 
-        my_set = caom_util.TypedSet(unicode,)
+        my_set = caom_util.TypedSet(str,)
         my_set.add("Test1")
         my_set.add("Test1")
         self.assertTrue(len(my_set) == 1)
@@ -243,15 +244,16 @@ class TestCaomUtil(unittest.TestCase):
         test_plane1 = plane.Plane('key1')
         my_dict['key2'] = test_plane2
         my_dict['key1'] = test_plane1
+        # need to cast to list in order to make it work with both python 2 and 3
         self.assertEqual(2, len(my_dict),
                          'mismatch in the number of entries in dictionary.')
-        self.assertEqual('key2', my_dict.keys()[0],
+        self.assertEqual('key2', list(my_dict.keys())[0],
                          'key mismatch for 1st key')
-        self.assertEqual('key1', my_dict.keys()[1],
+        self.assertEqual('key1', list(my_dict.keys())[1],
                          'key mismatch for 2nd key')
-        self.assertEqual(test_plane2, my_dict.values()[0],
+        self.assertEqual(test_plane2, list(my_dict.values())[0],
                          'value mismatch for 1st value')
-        self.assertEqual(test_plane1, my_dict.values()[1],
+        self.assertEqual(test_plane1, list(my_dict.values())[1],
                          'value mismatch for 2nd value')
         # test constructor with non-empty dictionary
         test_plane1 = plane.Plane('key1')
@@ -270,22 +272,22 @@ class TestCaomUtil(unittest.TestCase):
         my_dict1.update(my_dict)
         self.assertEqual(3, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        self.assertEqual('key2', my_dict.keys()[0],
+        self.assertEqual('key2', list(my_dict.keys())[0],
                          'key mismatch for 1st key')
-        self.assertEqual('key1', my_dict.keys()[1],
+        self.assertEqual('key1', list(my_dict.keys())[1],
                          'key mismatch for 2nd key')
 
         # test add function
         my_dict1.add(plane.Plane('key4'))
         self.assertEqual(4, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        self.assertEqual('key1', my_dict1.keys()[0],
+        self.assertEqual('key1', list(my_dict1.keys())[0],
                          'key mismatch for 1st key')
-        self.assertEqual('key2', my_dict1.keys()[1],
+        self.assertEqual('key2', list(my_dict1.keys())[1],
                          'key mismatch for 2nd key')
-        self.assertEqual('key3', my_dict1.keys()[2],
+        self.assertEqual('key3', list(my_dict1.keys())[2],
                          'key mismatch for 3rd key')
-        self.assertEqual('key4', my_dict1.keys()[3],
+        self.assertEqual('key4', list(my_dict1.keys())[3],
                          'key mismatch for 4th key')
 
         plane5 = plane.Plane("key5")
@@ -305,18 +307,18 @@ class TestCaomUtil(unittest.TestCase):
 
         u = uuid.UUID('00000000-0000-0000-0000-000000000001')
         l = caom_util.uuid2long(u)
-        self.assertEqual(1L, l)
+        self.assertEqual(int(1), l)
 
         u = uuid.UUID('00000000-0000-0000-0000-000000bc614e')
         l = caom_util.uuid2long(u)
-        self.assertEqual(12345678L, l)
+        self.assertEqual(int(12345678), l)
 
     def test_long2uuid(self):
-        # > 64 bit long
-        l = 123456781234567812345678L
+        # > 64 bit int
+        l = int(123456781234567812345678)
         try:
             caom_util.long2uuid(l)
-            self.fail("> 64 bit long should raise ValueError")
+            self.fail("> 64 bit int should raise ValueError")
         except ValueError:
             pass
 

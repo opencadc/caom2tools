@@ -78,7 +78,8 @@ engineer get the correct meta data more quickly.
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-
+from builtins import bytes, int
+import six
 import collections
 import struct
 import sys
@@ -149,7 +150,7 @@ def uuid2long(uid):
 
     return the UUID least significant bytes as a long.
     """
-    longs = struct.unpack(str('>qq'), str(uid.bytes))
+    longs = struct.unpack(str('>qq'), bytes(uid.bytes))
     if longs[0] != 0:
         raise ValueError("lossy conversion from UUID to long: {}".format(uid))
     return longs[1]
@@ -163,7 +164,7 @@ def long2uuid(l):
     if l.bit_length() > 63:
         raise ValueError("expected 64 bit long {}".format(l))
     if l < 0:
-        l = (1<<64L) + l
+        l = (1<<64) + l
     return uuid.UUID(int=l)
 
 
@@ -174,7 +175,7 @@ def type_check(value, value_type, variable, override=None):
     if not isinstance(value, value_type) and value is not override:
         if override is not False:
             raise TypeError(
-                "Excepted {} or {} for {}, received {}".format(value_type,
+                "Expected {} or {} for {}, received {}".format(value_type,
                                                                override,
                                                                variable,
                                                                type(value)))
@@ -190,7 +191,8 @@ def value_check(value, min_value, max_value, variable, override=None):
     """Check if value is inside allowed range, or override"""
 
     sys.tracebacklimit = None
-    if value != override and not (min_value <= value <= max_value):
+    if value != override and not ((min_value is not None) and (min_value <= value) and
+                                  (max_value is not None) and (value <= max_value)):
         if override is not False:
             raise ValueError(
                 "Expected {} <= {} <= {} or {}, received {}".format(
@@ -210,7 +212,7 @@ class TypedList(collections.MutableSequence):
 
        obstype = TypedList((str), "calibration", "science")
        emptylist = TypedList((str), )
-       multipletypes = TypedList((str, int, long), 1, 12L, "ABC")
+       multipletypes = TypedList((str, int, int), 1, 12L, "ABC")
 
     An AssertionError is thrown when the caller attempts to insert
     objects with the wrong type.
@@ -267,7 +269,7 @@ class TypedSet(collections.MutableSet):
 
        obstype = TypedSet((str), "calibration", "science")
        emptyset = TypedSet((str), )
-       multipletypes = TypedSet((str, int, long), 1, 12L, "ABC")
+       multipletypes = TypedSet((str, int, int), 1, 12L, "ABC")
 
     An AssertionError is thrown when the caller attempts to insert
     objects with the wrong type.
@@ -336,12 +338,15 @@ class TypedOrderedDict(collections.OrderedDict):
     with the wrong type.
     """
 
-    def __init__(self, key_type, *args):
+    def __init__(self, key_type=None, *args):
         """
         Initializes a TypedOrderedDict.
 
         Arguments:
-        keyType : the type values that will be stored in this dictionary
+        keyType : the type values that will be stored in this dictionary.
+        NOTE: the default values has been added only because the
+        parent class (OrderDict) requires a default constructor in
+        copydeep operations.
         *args : (key, value) tuples to be stored in the dictionary
         (value must match type)
 
@@ -355,11 +360,11 @@ class TypedOrderedDict(collections.OrderedDict):
 
     def __str__(self):
         return "\n".join(["{} => {}".format(k, v)
-                          for k, v in self.iteritems()])
+                          for k, v in six.iteritems(self)])
 
     def __repr__(self):
         return "TypeOrderedDict((%r))," % self._keyType + (
-            "(".join(["(%r,%r)" % (k, v) for k, v in self.iteritems()]) + ")")
+            "(".join(["(%r,%r)" % (k, v) for k, v in six.iteritems(self)]) + ")")
 
     def check(self, key, value):
         """

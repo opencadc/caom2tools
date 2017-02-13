@@ -478,8 +478,8 @@ class TestEnergy(unittest.TestCase):
         # TODO switch to Interval
         # energy.bounds = 22
         self.assertIsNone(energy.dimension, "Default energy dimension")
-        energy.dimension = 1000L
-        self.assertEqual(1000L, energy.dimension, "Energy dimension")
+        energy.dimension = 1000
+        self.assertEqual(1000, energy.dimension, "Energy dimension")
         self.assertIsNone(energy.resolving_power,
                           "Default energy resolving power")
         energy.resolving_power = 123.12
@@ -552,8 +552,8 @@ class TestTime(unittest.TestCase):
 
         time.value = 34.34
         self.assertEqual(34.34, time.value, "Value")
-        time.dimension = 777L
-        self.assertEqual(777L, time.dimension, "Dimension")
+        time.dimension = 777
+        self.assertEqual(777, time.dimension, "Dimension")
         time.resolution = 77.777
         self.assertEqual(77.777, time.resolution, "Resolution")
         time.sample_size = 12.34
