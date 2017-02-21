@@ -356,6 +356,7 @@ def main_app():
     visit_parser.add_argument('--plugin', required=True, type=argparse.FileType('r'),
                               help='plugin class to update each observation')
     visit_parser.add_argument('--start', type=str2date,
+
                         help='oldest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
     visit_parser.add_argument('--end', type=str2date,
                         help='earliest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
@@ -363,6 +364,7 @@ def main_app():
                               help='stop visitor on first update exception raised by plugin')
     visit_parser.add_argument("-s", "--server", help='URL of the CAOM2 repo server')
     visit_parser.add_argument('collection', help='data collection in CAOM2 repo')
+    
     visit_parser.epilog =\
 """
 Minimum plugin file format:
