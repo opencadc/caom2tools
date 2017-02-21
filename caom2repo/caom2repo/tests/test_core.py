@@ -459,13 +459,13 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # test read
         sys.argv = ["caom2tools", "read", '--resource-id', 'ivo://ca.nrc.ca/resource',
-                    "--collection", collection, observation_id]
+                    collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
         core.main_app()
         client_mock.return_value.get_observation.assert_called_with(collection, observation_id)
         # repeat with output argument
         sys.argv = ["caom2tools", "read", '--resource-id', 'ivo://ca.nrc.ca/resource',
-                    "--collection", collection, "--output", ifile, observation_id]
+                    "--output", ifile, collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
         core.main_app()
         client_mock.return_value.get_observation.assert_called_with(collection, observation_id)
@@ -473,7 +473,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # test delete
         sys.argv = ["caom2tools", "delete", '--resource-id', 'ivo://ca.nrc.ca/resource',
-                    "--collection", collection, observation_id]
+                    collection, observation_id]
         core.main_app()
         client_mock.return_value.delete_observation.assert_called_with(collection=collection,
                                                                        observation_id=observation_id)
@@ -546,16 +546,16 @@ optional arguments:
                         authentication (unencrypted, in PEM format)
   -d, --debug           debug messages
   -h, --help            show this help message and exit
-  --host HOST           Base hostname for services - used mainly for testing
+  --host HOST           base hostname for services - used mainly for testing
                         (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-  -n                    Use .netrc in $HOME for authentication
+  -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
                         resource identifier (default
                         ivo://cadc.nrc.ca/caom2repo)
-  -u, --user USER       Name of user to authenticate. Note: application
+  -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
 """
@@ -564,32 +564,31 @@ optional arguments:
 """usage: caom2-client read [-h]
                          [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                          [--host HOST] [--resource-id RESOURCE_ID]
-                         [-d | -q | -v] --collection <collection>
-                         [--output <destination file>]
-                         <observation>
+                         [-d | -q | -v] [--output OUTPUT]
+                         collection observationID
 
 Read an existing observation
 
 positional arguments:
-  <observation>
+  collection            collection name in CAOM2 repo
+  observationID         observation identifier
 
 optional arguments:
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
-  --collection <collection>
   -d, --debug           debug messages
   -h, --help            show this help message and exit
-  --host HOST           Base hostname for services - used mainly for testing
+  --host HOST           base hostname for services - used mainly for testing
                         (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-  -n                    Use .netrc in $HOME for authentication
+  -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
-  --output, -o <destination file>
+  --output, -o OUTPUT   destination file
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
                         resource identifier (default
                         ivo://cadc.nrc.ca/caom2repo)
-  -u, --user USER       Name of user to authenticate. Note: application
+  -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
 """
@@ -599,28 +598,28 @@ optional arguments:
                            [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                            [--host HOST] [--resource-id RESOURCE_ID]
                            [-d | -q | -v]
-                           <observation file>
+                           observation
 
 Update an existing observation
 
 positional arguments:
-  <observation file>
+  observation
 
 optional arguments:
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
   -d, --debug           debug messages
   -h, --help            show this help message and exit
-  --host HOST           Base hostname for services - used mainly for testing
+  --host HOST           base hostname for services - used mainly for testing
                         (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-  -n                    Use .netrc in $HOME for authentication
+  -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
                         resource identifier (default
                         ivo://cadc.nrc.ca/caom2repo)
-  -u, --user USER       Name of user to authenticate. Note: application
+  -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
 """
@@ -629,30 +628,30 @@ optional arguments:
 """usage: caom2-client delete [-h]
                            [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                            [--host HOST] [--resource-id RESOURCE_ID]
-                           [-d | -q | -v] --collection <collection>
-                           <ID of observation>
+                           [-d | -q | -v]
+                           collection observationID
 
 Delete an existing observation
 
 positional arguments:
-  <ID of observation>
+  collection            collection name in CAOM2 repo
+  observationID         observation identifier
 
 optional arguments:
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
-  --collection <collection>
   -d, --debug           debug messages
   -h, --help            show this help message and exit
-  --host HOST           Base hostname for services - used mainly for testing
+  --host HOST           base hostname for services - used mainly for testing
                         (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-  -n                    Use .netrc in $HOME for authentication
+  -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
                         resource identifier (default
                         ivo://cadc.nrc.ca/caom2repo)
-  -u, --user USER       Name of user to authenticate. Note: application
+  -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
 """
@@ -661,44 +660,38 @@ optional arguments:
 """usage: caom2-client visit [-h]
                           [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                           [--host HOST] [--resource-id RESOURCE_ID]
-                          [-d | -q | -v] --plugin <pluginClassFile>
-                          [--start <datetime start point>]
-                          [--end <datetime end point>] [--halt-on-error]
-                          [-s <CAOM2 service URL>]
-                          <datacollection>
+                          [-d | -q | -v] --plugin PLUGIN [--start START]
+                          [--end END] [--halt-on-error] [-s SERVER]
+                          collection
 
 Visit observations in a collection
 
 positional arguments:
-  <datacollection>      data collection in CAOM2 repo
+  collection            data collection in CAOM2 repo
 
 optional arguments:
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
   -d, --debug           debug messages
-  --end <datetime end point>
-                        earliest dataset to visit (UTC IVOA format: YYYY-mm-
+  --end END             earliest dataset to visit (UTC IVOA format: YYYY-mm-
                         ddTH:M:S)
-  --halt-on-error       Stop visitor on first update exception raised by
+  --halt-on-error       stop visitor on first update exception raised by
                         plugin
   -h, --help            show this help message and exit
-  --host HOST           Base hostname for services - used mainly for testing
+  --host HOST           base hostname for services - used mainly for testing
                         (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-  -n                    Use .netrc in $HOME for authentication
+  -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
-  --plugin <pluginClassFile>
-                        Plugin class to update each observation
+  --plugin PLUGIN       plugin class to update each observation
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
                         resource identifier (default
                         ivo://cadc.nrc.ca/caom2repo)
-  -s, --server <CAOM2 service URL>
-                        URL of the CAOM2 repo server
-  --start <datetime start point>
-                        oldest dataset to visit (UTC IVOA format: YYYY-mm-
+  -s, --server SERVER   URL of the CAOM2 repo server
+  --start START         oldest dataset to visit (UTC IVOA format: YYYY-mm-
                         ddTH:M:S)
-  -u, --user USER       Name of user to authenticate. Note: application
+  -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
 

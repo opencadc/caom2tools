@@ -85,6 +85,8 @@ matrix:
         #  env: SETUP_CMD='egg_info'
         - python: 3.3
           env: SETUP_CMD='test' NUMPY_VERSION=1.9
+        - python: 3.4
+          env: SETUP_CMD='test' NUMPY_VERSION=1.11
 
         # Try older numpy versions
         #- python: 2.7
@@ -103,6 +105,9 @@ matrix:
 
         - python: 3.3
           env: SETUP_CMD='test'
+        - python: 3.4
+          env: SETUP_CMD='test'
+
 install:
 
     # We now use the ci-helpers package to set up our testing environment.
