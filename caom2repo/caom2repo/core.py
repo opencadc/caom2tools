@@ -333,20 +333,20 @@ def main_app():
     read_parser = subparsers.add_parser('read',
                                         description='Read an existing observation',
                                         help='Read an existing observation')
-    read_parser.add_argument('--collection', metavar='<collection>', required=True)
-    read_parser.add_argument('--output', '-o', metavar='<destination file>', required=False)
-    read_parser.add_argument('observation', metavar='<observation>')
+    read_parser.add_argument('--output', '-o', help='destination file', required=False)
+    read_parser.add_argument('collection', help='collection name in CAOM2 repo')
+    read_parser.add_argument('observationID', help='observation identifier')
 
     update_parser = subparsers.add_parser('update',
                                           description='Update an existing observation',
                                           help='Update an existing observation')
-    update_parser.add_argument('observation', metavar='<observation file>', type=argparse.FileType('r'))
+    update_parser.add_argument('observation', type=argparse.FileType('r'))
 
     delete_parser = subparsers.add_parser('delete',
                                           description='Delete an existing observation',
                                           help='Delete an existing observation')
-    delete_parser.add_argument('--collection', metavar='<collection>', required=True)
-    delete_parser.add_argument('observationID', metavar='<ID of observation>')
+    delete_parser.add_argument('collection', help='collection name in CAOM2 repo')
+    delete_parser.add_argument('observationID', help='observation identifier')
 
     # Note: RawTextHelpFormatter allows for the use of newline in epilog
     visit_parser = subparsers.add_parser('visit',
@@ -354,20 +354,15 @@ def main_app():
                                          description='Visit observations in a collection',
                                          help='Visit observations in a collection')
     visit_parser.add_argument('--plugin', required=True, type=argparse.FileType('r'),
-                              metavar='<pluginClassFile>',
-                              help='Plugin class to update each observation')
-    visit_parser.add_argument('--start', metavar='<datetime start point>',
-                        type=str2date,
+                              help='plugin class to update each observation')
+    visit_parser.add_argument('--start', type=str2date,
                         help='oldest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
-    visit_parser.add_argument('--end', metavar='<datetime end point>',
-                        type=str2date,
+    visit_parser.add_argument('--end', type=str2date,
                         help='earliest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
     visit_parser.add_argument('--halt-on-error', action='store_true',
-                              help='Stop visitor on first update exception raised by plugin')
-    visit_parser.add_argument("-s", "--server", metavar=('<CAOM2 service URL>'),
-                      help="URL of the CAOM2 repo server")
-    visit_parser.add_argument('collection', metavar='<datacollection>', type=str,
-                              help='data collection in CAOM2 repo')
+                              help='stop visitor on first update exception raised by plugin')
+    visit_parser.add_argument("-s", "--server", help='URL of the CAOM2 repo server')
+    visit_parser.add_argument('collection', help='data collection in CAOM2 repo')
     visit_parser.epilog =\
 """
 Minimum plugin file format:
@@ -408,7 +403,7 @@ Minimum plugin file format:
         client.put_observation(obs_reader.read(args.observation))
     elif args.cmd == 'read':
         logging.info("Read")
-        observation = client.get_observation(args.collection, args.observation)
+        observation = client.get_observation(args.collection, args.observationID)
         observation_writer = ObservationWriter()
         if args.output:
             with open(args.output, 'w') as obsfile:
