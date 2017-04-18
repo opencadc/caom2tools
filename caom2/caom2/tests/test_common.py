@@ -73,6 +73,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
+import binascii
 
 from .. import common
 from .. import chunk
@@ -133,3 +134,12 @@ class TestObservationURI(unittest.TestCase):
         except TypeError:
             exception = True
         self.assertTrue(exception, "Missing exception")
+        
+class TestChecksumURI(unittest.TestCase):
+
+    def test_all(self):
+        cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
+        self.assertEqual("md5:e30580c1db513487f495fba09f64600e", cs_uri.uri, "Checksum URI")
+        self.assertEqual("md5", cs_uri.algorithm, "Algorithm")
+        self.assertEqual("e30580c1db513487f495fba09f64600e", cs_uri.checksum, "Checksum")
+        self.assertEqual("e30580c1db513487f495fba09f64600e", binascii.hexlify(cs_uri.get_bytes()), "Round trip")

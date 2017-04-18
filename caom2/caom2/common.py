@@ -78,7 +78,7 @@ from builtins import int, str
 
 from . import caom_util
 
-__all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI']
+__all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI']
 
 
 class CaomObject(object):
@@ -244,3 +244,62 @@ class ObservationURI(CaomObject):
     def observation_id(self):
         """The observation_id of this Observations uri"""
         return self._observation_id
+    
+class ChecksumURI(CaomObject):
+    """ Checksum URI """
+
+    def __init__(self, uri):
+        """
+        Initializes an Checksum URI instance
+
+        Arguments:
+        uri : Checksum URI in the format Algorithm:ChecksumValue
+        """
+        tmp = urlsplit(uri)
+        
+        algorithm = tmp.scheme
+        checksum = tmp.path
+        
+        if algorithm is None:
+            raise ValueError(
+                "A checksum scheme noting the algorithm is required.. received: {}"
+                    .format(uri))
+        
+        if checksum is None:
+            raise ValueError(
+                "checksum uri did not contain an checksum part. received: {}"
+                    .format(uri))
+        caom_util.validate_path_component(self, "checksum", checksum)
+        
+        (self._uri, self._algorithm, self._checksum) = (tmp.geturl(), algorithm, checksum)
+        self._print_attributes = ['uri', 'algorithm', 'checksum']
+
+    def _key(self):
+        return self.uri
+
+    def __eq__(self, y):
+        if isinstance(y, ChecksumURI):
+            return self._key() == y._key()
+        return False
+
+    def __hash__(self):
+        return hash(self._key())
+
+    def get_bytes(self):
+        return bytearray.fromhex(self._checksum)
+
+    # Properties
+    @property
+    def uri(self):
+        """The uri that the caom service can use to find the observation"""
+        return self._uri
+
+    @property
+    def algorithm(self):
+        """The checksum algorithm"""
+        return self._algorithm
+
+    @property
+    def checksum(self):
+        """The checksum value"""
+        return self._checksum
