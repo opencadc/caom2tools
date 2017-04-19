@@ -78,7 +78,7 @@ from builtins import int, str
 
 from . import caom_util
 
-__all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI']
+__all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI']
 
 
 class CaomObject(object):
@@ -121,6 +121,8 @@ class AbstractCaomEntity(CaomObject):
     def __init__(self, fulluuid=False):
         self._id = AbstractCaomEntity._gen_id(fulluuid)
         self._last_modified = AbstractCaomEntity._gen_last_modified()
+        self.meta_checksum = None
+        self.acc_meta_checksum = None
 
     @classmethod
     def _gen_id(cls, fulluuid=False):
@@ -150,6 +152,40 @@ class AbstractCaomEntity(CaomObject):
         now = datetime.now()
         return datetime(now.year, now.month, now.day, now.hour, now.minute, \
                         now.second, int(str(now.microsecond)[:-3] + '000'))
+        
+    @property
+    def meta_checksum(self):
+        """the meta checksum value
+        
+        type: ChecksumURI
+        
+        """
+        return self._meta_checksum
+            
+    @meta_checksum.setter
+    def meta_checksum(self, value):
+        if value is None:
+            self._meta_checksum = None
+        else:
+            caom_util.type_check(value, ChecksumURI, "meta_checksum", False)
+            self._meta_checksum = value
+            
+    @property
+    def acc_meta_checksum(self):
+        """the accumulated meta checksum value
+        
+        type: ChecksumURI
+        
+        """
+        return self._acc_meta_checksum
+            
+    @acc_meta_checksum.setter
+    def acc_meta_checksum(self, value):
+        if value is None:
+            self._acc_meta_checksum = None
+        else:
+            caom_util.type_check(value, ChecksumURI, "acc_meta_checksum", False)
+            self._acc_meta_checksum = value
 
 
 class ObservationURI(CaomObject):
@@ -244,3 +280,62 @@ class ObservationURI(CaomObject):
     def observation_id(self):
         """The observation_id of this Observations uri"""
         return self._observation_id
+    
+class ChecksumURI(CaomObject):
+    """ Checksum URI """
+
+    def __init__(self, uri):
+        """
+        Initializes an Checksum URI instance
+
+        Arguments:
+        uri : Checksum URI in the format Algorithm:ChecksumValue
+        """
+        tmp = urlsplit(uri)
+        
+        algorithm = tmp.scheme
+        checksum = tmp.path
+        
+        if algorithm is None:
+            raise ValueError(
+                "A checksum scheme noting the algorithm is required.. received: {}"
+                    .format(uri))
+        
+        if checksum is None:
+            raise ValueError(
+                "checksum uri did not contain an checksum part. received: {}"
+                    .format(uri))
+        caom_util.validate_path_component(self, "checksum", checksum)
+        
+        (self._uri, self._algorithm, self._checksum) = (tmp.geturl(), algorithm, checksum)
+        self._print_attributes = ['uri', 'algorithm', 'checksum']
+
+    def _key(self):
+        return self.uri
+
+    def __eq__(self, y):
+        if isinstance(y, ChecksumURI):
+            return self._key() == y._key()
+        return False
+
+    def __hash__(self):
+        return hash(self._key())
+
+    def get_bytes(self):
+        return bytearray.fromhex(self._checksum)
+
+    # Properties
+    @property
+    def uri(self):
+        """The uri that the caom service can use to find the observation"""
+        return self._uri
+
+    @property
+    def algorithm(self):
+        """The checksum algorithm"""
+        return self._algorithm
+
+    @property
+    def checksum(self):
+        """The checksum value"""
+        return self._checksum

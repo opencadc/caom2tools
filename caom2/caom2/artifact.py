@@ -82,6 +82,7 @@ from enum import Enum
 from . import caom_util
 from .chunk import ProductType
 from .common import AbstractCaomEntity
+from .common import ChecksumURI
 from .part import Part
 
 __all__ = ['ReleaseType', 'Artifact']
@@ -105,7 +106,7 @@ class Artifact(AbstractCaomEntity):
 
     As well as a pointer (parts) to content of the file.
 
-    eg:  Artificat('ad:CFHT/1234567o')
+    eg:  Artifact('ad:CFHT/1234567o')
     where 'ad:CFHT/1234567o' is a uri that refernce the file...
 
     """
@@ -116,6 +117,7 @@ class Artifact(AbstractCaomEntity):
                  release_type,
                  content_type=None,
                  content_length=None,
+                 content_checksum=None,
                  parts=None
                  ):
         """
@@ -131,6 +133,7 @@ class Artifact(AbstractCaomEntity):
         self.release_type = release_type
         self.content_type = content_type
         self.content_length = content_length
+        self.content_checksum = content_checksum
         if parts is None:
             parts = caom_util.TypedOrderedDict(Part,)
         self.parts = parts
@@ -228,6 +231,23 @@ class Artifact(AbstractCaomEntity):
         caom_util.type_check(value, int, "content_length")
         caom_util.value_check(value, 0, 1E10, "content_length")
         self._content_length = value
+        
+    @property
+    def content_checksum(self):
+        """the checksum value for the artifact data
+        
+        type: ChecksumURI
+        
+        """
+        return self._content_checksum
+            
+    @content_checksum.setter
+    def content_checksum(self, value):
+        if value is None:
+            self._content_checksum = None
+        else:
+            caom_util.type_check(value, ChecksumURI, "checksum_uri", False)
+            self._content_checksum = value
 
     @property
     def parts(self):

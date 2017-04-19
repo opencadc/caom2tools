@@ -77,6 +77,7 @@ from six.moves.urllib.parse import urlparse
 
 from .. import artifact
 from .. import part
+from .. import common
 
 
 class TestEnums(unittest.TestCase):
@@ -129,6 +130,12 @@ class TestArtifact(unittest.TestCase):
         self.assertEquals(artifact.ProductType.PREVIEW,
                           test_artifact.product_type,
                           "Product type")
+        
+        self.assertIsNone(test_artifact.content_checksum, "Default content checksum")
+        cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
+        test_artifact.content_checksum = cs_uri
+        self.assertEquals(test_artifact.content_checksum, cs_uri, "Content checksum")
+        
         self.assertEquals(0, len(test_artifact.parts), "Default parts")
         part1 = part.Part("1")
         test_artifact.parts["1"] = part1

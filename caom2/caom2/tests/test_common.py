@@ -73,6 +73,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
+import binascii
 
 from .. import common
 from .. import chunk
@@ -105,7 +106,15 @@ class TestCaom2IdGenerator(unittest.TestCase):
 
         test_plane = plane.Plane("prodid")
         print(test_plane._id, test_plane._last_modified)
-
+        
+        self.assertIsNone(test_plane.meta_checksum, "meta_checksum null")
+        self.assertIsNone(test_plane.acc_meta_checksum, "acc_meta_checksum null")
+        cs_uri_meta = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
+        cs_uri_acc = common.ChecksumURI("sha1:7e2b74edf8ff7ddfda5ee3917dc65946b515b1f7")
+        test_plane.meta_checksum = cs_uri_meta
+        test_plane.acc_meta_checksum = cs_uri_acc
+        self.assertEquals(test_plane.meta_checksum, cs_uri_meta, "meta_checksum")
+        self.assertEquals(test_plane.acc_meta_checksum, cs_uri_acc, "acc_meta_checksum")
 
 class TestObservationURI(unittest.TestCase):
 
@@ -133,3 +142,12 @@ class TestObservationURI(unittest.TestCase):
         except TypeError:
             exception = True
         self.assertTrue(exception, "Missing exception")
+        
+class TestChecksumURI(unittest.TestCase):
+
+    def test_all(self):
+        cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
+        self.assertEqual("md5:e30580c1db513487f495fba09f64600e", cs_uri.uri, "Checksum URI")
+        self.assertEqual("md5", cs_uri.algorithm, "Algorithm")
+        self.assertEqual("e30580c1db513487f495fba09f64600e", cs_uri.checksum, "Checksum")
+        self.assertEqual("e30580c1db513487f495fba09f64600e", binascii.hexlify(cs_uri.get_bytes()), "Round trip")

@@ -148,7 +148,7 @@ class Observation(AbstractCaomEntity):
     objects.  Information about the Spatial/Frequency/Time aspects of
     an Observation are expressed at the Chunk level.
 
-    The Chunk contains refernces to caom2 objects that fully describe
+    The Chunk contains references to caom2 objects that fully describe
     the circumstances of that chunk of observation.  Often a 'Chunk'
     is a single extension in a FITS image. But can also be a
     particular column of values from a FITS Table or some other data
