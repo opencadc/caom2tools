@@ -121,6 +121,8 @@ class AbstractCaomEntity(CaomObject):
     def __init__(self, fulluuid=False):
         self._id = AbstractCaomEntity._gen_id(fulluuid)
         self._last_modified = AbstractCaomEntity._gen_last_modified()
+        self.meta_checksum = None
+        self.acc_meta_checksum = None
 
     @classmethod
     def _gen_id(cls, fulluuid=False):
@@ -150,6 +152,40 @@ class AbstractCaomEntity(CaomObject):
         now = datetime.now()
         return datetime(now.year, now.month, now.day, now.hour, now.minute, \
                         now.second, int(str(now.microsecond)[:-3] + '000'))
+        
+    @property
+    def meta_checksum(self):
+        """the meta checksum value
+        
+        type: ChecksumURI
+        
+        """
+        return self._meta_checksum
+            
+    @meta_checksum.setter
+    def meta_checksum(self, value):
+        if value is None:
+            self._meta_checksum = None
+        else:
+            caom_util.type_check(value, ChecksumURI, "meta_checksum", False)
+            self._meta_checksum = value
+            
+    @property
+    def acc_meta_checksum(self):
+        """the accumulated meta checksum value
+        
+        type: ChecksumURI
+        
+        """
+        return self._acc_meta_checksum
+            
+    @acc_meta_checksum.setter
+    def acc_meta_checksum(self, value):
+        if value is None:
+            self._acc_meta_checksum = None
+        else:
+            caom_util.type_check(value, ChecksumURI, "acc_meta_checksum", False)
+            self._acc_meta_checksum = value
 
 
 class ObservationURI(CaomObject):
