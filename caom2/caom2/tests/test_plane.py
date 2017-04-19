@@ -165,6 +165,9 @@ class TestPlane(unittest.TestCase):
     def test_all(self):
         test_plane = plane.Plane("ProdID")
         self.assertEqual("ProdID", test_plane.product_id, "Product ID")
+        self.assertEqual(None, test_plane.creator_id, "Creator ID")
+        test_plane.creator_id = "ivo://cadc.nrc.ca/users?tester"
+        self.assertEqual("ivo://cadc.nrc.ca/users?tester", test_plane.creator_id, "Creator ID")
         self.assertEqual(0, len(test_plane.artifacts),
                          "Default number of artifacts")
         self.assertIsNone(test_plane.meta_release, "Default meta release date")

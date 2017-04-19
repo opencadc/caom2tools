@@ -182,6 +182,7 @@ class Plane(AbstractCaomEntity):
     """ Plane class """
 
     def __init__(self, product_id,
+                 creator_id=None,
                  artifacts=None,
                  meta_release=None,
                  data_release=None,
@@ -200,6 +201,7 @@ class Plane(AbstractCaomEntity):
         self.product_id = product_id
         if artifacts is None:
             artifacts = caom_util.TypedOrderedDict(Artifact, )
+        self.creator_id = creator_id
         self.artifacts = artifacts
 
         self.meta_release = meta_release
@@ -243,6 +245,23 @@ class Plane(AbstractCaomEntity):
     def key(self):
         """ The dictionary key for a plane is product ID """
         return self._product_id
+
+    @property
+    def creator_id(self):
+        """A URI that identifies the creator of this plane.
+
+        eg: ivo://cadc.nrc.ca/users?tester
+        type: URI 
+        """
+        return self._creator_id
+
+    @creator_id.setter
+    def creator_id(self, value):
+        caom_util.type_check(value, str, 'creator_id')
+        if value is not None:
+            tmp = urlsplit(value)
+            assert tmp.geturl() == value, "Invalid URI: " + value
+        self._creator_id = value
 
     @property
     def artifacts(self):
