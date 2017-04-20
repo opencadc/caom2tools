@@ -85,9 +85,10 @@ from .common import AbstractCaomEntity
 from .common import CaomObject
 from .common import ObservationURI
 
-__all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand', "PolarizationState", "Quality",
-           'Plane', 'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 'Energy',
-           'Polarization', 'Time']
+__all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand', 
+           'VocabularyTerm', 'PolarizationState', 'Quality', 'Plane', 
+           'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 
+           'Energy', 'Polarization', 'Time']
 
 
 class CalibrationLevel(Enum):
@@ -103,8 +104,95 @@ class CalibrationLevel(Enum):
     PRODUCT = 3
 
 
+class VocabularyTerm(object):
+    """ VocabularyTerm """
+
+    def __init__(self, namespace, term, base=False):
+        """
+        Construct a VocabularyTerm instance. This creates a term in the
+        specified vocabulary namespace. If the value of base is False, 
+        the string value (from getvalue()) will just be the namespace URI
+        plus the term added as a fragment. If the value of base is True, 
+        this is a term in a base vocabulary and the value will just be the
+        term (without the namespace).
+
+        Arguments:
+        namespace : namespace of the vocabulary
+        term : a term in the base vocabulary
+        base : if True, getValue() returns term, otherwise getvalue() returns
+               namespace URI plus term
+        """
+        self.namespace = namespace
+        self.term = term
+        self.base = base
+
+    def get_value(self):
+        """ get_value """
+        if self.base:
+            return self._term
+        else:
+            return self._namespace + "#" + self._term
+
+    def __str__(self):
+        """ __str__ """
+        return self.get_value()
+
+    # Properties
+    @property
+    def namespace(self):
+        """ namespace """
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, value):
+        caom_util.type_check(value, str, "namespace")
+        tmp = urlsplit(value)
+        assert tmp.geturl() == value, "Invalid URI: " + value
+        self._namespace = value
+
+    @property
+    def term(self):
+        """ term """
+        return self._term
+
+    @term.setter
+    def term(self, value):
+        caom_util.type_check(value, str, "term")
+        self._term = value
+
+    @property
+    def base(self):
+        """ base """
+        return self._base
+
+    @base.setter
+    def base(self, value):
+        caom_util.type_check(value, bool, "base")
+        self._base = value
+
+
 class DataProductType(Enum):
+    """ DataproductType """
+
+    _OBSCORE = "http://www.ivoa.net/std/ObsCore"
+    _CAOM = "http://www.opencadc.org/caom2"
+
+    """ 
+    def __init__(self, value, namespace=None):
+        Initialize a DataProductType instance 
+
+        Arguments:
+        value : fragment to be appended to namespace
+        namespace : namespace the data product type belongs to,
+                    defaults to OBSCORE
+        if namespace == None:
+            super(DataProductType, self).__init__(DataProductType._OBSCORE, value, True)
+        else:
+            super(DataProductType, self).__init__(namespace, value)
     """
+
+    """
+    ObsCore-1.0
     IMAGE: "image"
     CATALOG: "catalog"
     CUBE: "cube"
@@ -112,14 +200,22 @@ class DataProductType(Enum):
     SPECTRUM: "spectrum"
     TIMESERIES: "timeseries"
     VISIBILITY: "visibility"
+
+    ObsCore-1.1
+    MEASUREMENTS: "measurements"
+
+    ObsCore-2.3
+    CATALOG: "http://www.opencadc.org/caom2#catalog"
     """
-    IMAGE = "image"
-    CATALOG = "catalog"
-    CUBE = "cube"
-    EVENTLIST = "eventlist"
-    SPECTRUM = "spectrum"
-    TIMESERIES = "timeseries"
-    VISIBILITY = "visibility"
+
+    IMAGE = VocabularyTerm(_OBSCORE, "image", True).get_value()
+    CUBE = VocabularyTerm(_OBSCORE, "cube", True).get_value()
+    EVENTLIST = VocabularyTerm(_OBSCORE, "eventlist", True).get_value()
+    SPECTRUM = VocabularyTerm(_OBSCORE, "spectrum", True).get_value()
+    TIMESERIES = VocabularyTerm(_OBSCORE, "timeseries", True).get_value()
+    VISIBILITY = VocabularyTerm(_OBSCORE, "visibility", True).get_value()
+    MEASUREMENTS = VocabularyTerm(_OBSCORE, "measurements", True).get_value()
+    CATALOG = VocabularyTerm(_CAOM, "catalog").get_value()
 
 
 class EnergyBand(Enum):
@@ -356,7 +452,7 @@ class Plane(AbstractCaomEntity):
 
         Must be one of CalibrationLevel
 
-    """
+        """
         return self._calibration_level
 
     @calibration_level.setter
