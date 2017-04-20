@@ -175,7 +175,7 @@ class DataProductType(Enum):
     """ DataproductType """
 
     _OBSCORE = "http://www.ivoa.net/std/ObsCore"
-    _CAOM = "http://www.opencadc.org/caom2"
+    _CAOM = "http://www.opencadc.org/caom2/DataProductType"
 
     """ 
     def __init__(self, value, namespace=None):

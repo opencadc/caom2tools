@@ -134,7 +134,7 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(plane.DataProductType.TIMESERIES.value, "timeseries")
         self.assertEqual(plane.DataProductType.VISIBILITY.value, "visibility")
         self.assertEqual(plane.DataProductType.MEASUREMENTS.value, "measurements")
-        self.assertEqual(plane.DataProductType.CATALOG.value, "http://www.opencadc.org/caom2#catalog")
+        self.assertEqual(plane.DataProductType.CATALOG.value, "http://www.opencadc.org/caom2/DataProductType#catalog")
 
         self.assertEqual(plane.EnergyBand['RADIO'].value, "Radio")
         self.assertEqual(plane.EnergyBand['MILLIMETER'].value, "Millimeter")
