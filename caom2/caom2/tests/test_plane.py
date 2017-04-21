@@ -122,6 +122,7 @@ class TestEnums(unittest.TestCase):
             plane.Quality(1)
 
         # test that we can get the object for each enum by name
+        self.assertEqual(plane.CalibrationLevel.PROPOSED.value, -1)
         self.assertEqual(plane.CalibrationLevel.RAW_INSTRUMENT.value, 0)
         self.assertEqual(plane.CalibrationLevel.RAW_STANDARD.value, 1)
         self.assertEqual(plane.CalibrationLevel.CALIBRATED.value, 2)

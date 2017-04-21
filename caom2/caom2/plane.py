@@ -93,11 +93,13 @@ __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
 
 class CalibrationLevel(Enum):
     """
+    PROPOSED: -1
     RAW_INSTRUMENT: 0
     RAW_STANDARD: 1
     CALIBRATED: 2
     PRODUCT: 3
     """
+    PROPOSED = -1
     RAW_INSTRUMENT = 0
     RAW_STANDARD = 1
     CALIBRATED = 2
