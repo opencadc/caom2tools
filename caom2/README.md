@@ -1,6 +1,9 @@
 # caom2tools
 Common Archive Observation Model - data engineering tools
 
+Build status:
+<a href="https://travis-ci.org/opencadc/caom2"><img src="https://travis-ci.org/opencadc/caom2.svg?branch=master" /></a>
+
 caom2 module
 
 The caom2 module is a library implementing the Common Archive Observation Model (CAOM-2.2) for manipulating CAOM observations and reading and writing XML documents. 
