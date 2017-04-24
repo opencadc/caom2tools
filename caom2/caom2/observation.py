@@ -545,9 +545,6 @@ class SimpleObservation(Observation):
         """
         if algorithm is None:
             algorithm = SimpleObservation._ALGORITHM
-        if algorithm != SimpleObservation._ALGORITHM:
-            raise ValueError(
-                "E{0} (required for SimpleObservation)".format(algorithm))
         super(SimpleObservation, self).__init__(collection,
                                                 observation_id,
                                                 algorithm,
@@ -577,7 +574,6 @@ class SimpleObservation(Observation):
         if isinstance(value, str):
             value = Algorithm(value)
         caom_util.type_check(value, Algorithm, 'algorithm', override=False)
-        caom_util.value_check(value, None, None, 'algorithm', override=self._ALGORITHM)
         self._algorithm = value
 
 

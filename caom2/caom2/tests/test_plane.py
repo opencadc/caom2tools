@@ -122,18 +122,20 @@ class TestEnums(unittest.TestCase):
             plane.Quality(1)
 
         # test that we can get the object for each enum by name
+        self.assertEqual(plane.CalibrationLevel.PROPOSED.value, -1)
         self.assertEqual(plane.CalibrationLevel.RAW_INSTRUMENT.value, 0)
         self.assertEqual(plane.CalibrationLevel.RAW_STANDARD.value, 1)
         self.assertEqual(plane.CalibrationLevel.CALIBRATED.value, 2)
         self.assertEqual(plane.CalibrationLevel.PRODUCT.value, 3)
 
         self.assertEqual(plane.DataProductType.IMAGE.value, "image")
-        self.assertEqual(plane.DataProductType.CATALOG.value, "catalog")
         self.assertEqual(plane.DataProductType.CUBE.value, "cube")
         self.assertEqual(plane.DataProductType.EVENTLIST.value, "eventlist")
         self.assertEqual(plane.DataProductType.SPECTRUM.value, "spectrum")
         self.assertEqual(plane.DataProductType.TIMESERIES.value, "timeseries")
         self.assertEqual(plane.DataProductType.VISIBILITY.value, "visibility")
+        self.assertEqual(plane.DataProductType.MEASUREMENTS.value, "measurements")
+        self.assertEqual(plane.DataProductType.CATALOG.value, "http://www.opencadc.org/caom2/DataProductType#catalog")
 
         self.assertEqual(plane.EnergyBand['RADIO'].value, "Radio")
         self.assertEqual(plane.EnergyBand['MILLIMETER'].value, "Millimeter")

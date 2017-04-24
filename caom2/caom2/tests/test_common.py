@@ -160,4 +160,4 @@ class TestChecksumURI(unittest.TestCase):
         self.assertEqual("md5:e30580c1db513487f495fba09f64600e", cs_uri.uri, "Checksum URI")
         self.assertEqual("md5", cs_uri.algorithm, "Algorithm")
         self.assertEqual("e30580c1db513487f495fba09f64600e", cs_uri.checksum, "Checksum")
-        self.assertEqual("e30580c1db513487f495fba09f64600e", binascii.hexlify(cs_uri.get_bytes()), "Round trip")
+        self.assertEqual(binascii.hexlify(bytearray.fromhex("e30580c1db513487f495fba09f64600e")), binascii.hexlify(cs_uri.get_bytes()), "Round trip")
