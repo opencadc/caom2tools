@@ -152,6 +152,9 @@ class AbstractCaomEntity(CaomObject):
         else:
             return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
                                      gen_id.clock_seq_hi_variant, gen_id.clock_seq_low, gen_id.node))
+            
+    def compute_meta_checksum(self):
+        raise NotImplementedError("meta checksum calculation not yet implemented.")
         
     @property
     def last_modified(self):

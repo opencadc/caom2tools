@@ -124,7 +124,16 @@ class TestCaom2IdGenerator(unittest.TestCase):
         self.assertEquals(test_plane.max_last_modified, d2, "max_last_modified")
         self.assertEquals(test_plane.meta_checksum, cs_uri_meta, "meta_checksum")
         self.assertEquals(test_plane.acc_meta_checksum, cs_uri_acc, "acc_meta_checksum")
-        
+
+class TestMetadataChecksum(unittest.TestCase):
+    def test_all(self):
+        test_entity = common.AbstractCaomEntity()
+        print(test_entity._id, test_entity._last_modified)
+        test_artifact = artifact.Artifact("caom2:/blah/blah",
+                                          chunk.ProductType.SCIENCE,
+                                          artifact.ReleaseType.DATA)
+        with self.assertRaises(NotImplementedError):
+            test_artifact.compute_meta_checksum()
 
 class TestObservationURI(unittest.TestCase):
 
