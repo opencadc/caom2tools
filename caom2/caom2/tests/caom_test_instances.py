@@ -84,6 +84,7 @@ from caom2 import part
 from caom2 import plane
 from caom2 import shape
 from caom2 import wcs
+from caom2 import common
 
 
 class Caom2TestInstances(object):
@@ -149,6 +150,7 @@ class Caom2TestInstances(object):
             simple_observation.telescope = self.get_telescope()
             simple_observation.instrument = self.get_instrument()
             simple_observation.environment = self.get_environment()
+            simple_observation.last_modified = common.get_current_ivoa_time()
         if self.depth > 1:
             simple_observation.planes.update(self.get_planes())
         return simple_observation
@@ -171,6 +173,7 @@ class Caom2TestInstances(object):
             composite_observation.telescope = self.get_telescope()
             composite_observation.instrument = self.get_instrument()
             composite_observation.environment = self.get_environment()
+            composite_observation.last_modified = common.get_current_ivoa_time()
         if self.depth > 1:
             composite_observation.planes.update(self.get_planes())
             composite_observation.members.update(self.get_members())

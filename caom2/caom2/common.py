@@ -81,6 +81,16 @@ from . import caom_util
 __all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI']
 
 
+def get_current_ivoa_time():
+    """Generate a datetime with 3 digit microsecond precision.
+
+    return: datatime
+        IVOA date format to millisecond precision.
+    """
+    now = datetime.now()
+    return datetime(now.year, now.month, now.day, now.hour, now.minute, \
+                    now.second, int(str(now.microsecond)[:-3] + '000'))
+
 class CaomObject(object):
     """
     setup all objects with the same generic equality, str and repr methods
@@ -120,7 +130,8 @@ class AbstractCaomEntity(CaomObject):
 
     def __init__(self, fulluuid=False):
         self._id = AbstractCaomEntity._gen_id(fulluuid)
-        self._last_modified = AbstractCaomEntity._gen_last_modified()
+        self.last_modified = None
+        self.max_last_modified = None
         self.meta_checksum = None
         self.acc_meta_checksum = None
 
@@ -141,17 +152,30 @@ class AbstractCaomEntity(CaomObject):
         else:
             return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
                                      gen_id.clock_seq_hi_variant, gen_id.clock_seq_low, gen_id.node))
-
-    @classmethod
-    def _gen_last_modified(cls):
-        """Generate a datetime with 3 digit microsecond precision.
-
-        return: datatime
-            IVOA date format to millisecond precision.
-        """
-        now = datetime.now()
-        return datetime(now.year, now.month, now.day, now.hour, now.minute, \
-                        now.second, int(str(now.microsecond)[:-3] + '000'))
+        
+    @property
+    def last_modified(self):
+        return self._last_modified
+    
+    @last_modified.setter
+    def last_modified(self, value):
+        if value is None:
+            self._last_modified = None
+        else:
+            caom_util.type_check(value, datetime, "last_modified", False)
+            self._last_modified = value
+            
+    @property
+    def max_last_modified(self):
+        return self._max_last_modified
+    
+    @max_last_modified.setter
+    def max_last_modified(self, value):
+        if value is None:
+            self._max_last_modified = None
+        else:
+            caom_util.type_check(value, datetime, "max_last_modified", False)
+            self._max_last_modified = value
         
     @property
     def meta_checksum(self):

@@ -81,6 +81,7 @@ from .. import part
 from .. import plane
 from .. import artifact
 from .. import observation
+from datetime import datetime
 
 
 class TestCaom2IdGenerator(unittest.TestCase):
@@ -107,14 +108,23 @@ class TestCaom2IdGenerator(unittest.TestCase):
         test_plane = plane.Plane("prodid")
         print(test_plane._id, test_plane._last_modified)
         
+        self.assertIsNone(test_plane.last_modified, "last_modified null")
+        self.assertIsNone(test_plane.max_last_modified, "max_last_modified null")
         self.assertIsNone(test_plane.meta_checksum, "meta_checksum null")
         self.assertIsNone(test_plane.acc_meta_checksum, "acc_meta_checksum null")
+        d1 = common.get_current_ivoa_time()
+        d2 = common.get_current_ivoa_time()
         cs_uri_meta = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
         cs_uri_acc = common.ChecksumURI("sha1:7e2b74edf8ff7ddfda5ee3917dc65946b515b1f7")
+        test_plane.last_modified = d1
+        test_plane.max_last_modified = d2
         test_plane.meta_checksum = cs_uri_meta
         test_plane.acc_meta_checksum = cs_uri_acc
+        self.assertEquals(test_plane.last_modified, d1, "last_modified")
+        self.assertEquals(test_plane.max_last_modified, d2, "max_last_modified")
         self.assertEquals(test_plane.meta_checksum, cs_uri_meta, "meta_checksum")
         self.assertEquals(test_plane.acc_meta_checksum, cs_uri_acc, "acc_meta_checksum")
+        
 
 class TestObservationURI(unittest.TestCase):
 
