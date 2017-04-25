@@ -296,6 +296,33 @@ class TestCaomUtil(unittest.TestCase):
         with self.assertRaises(AttributeError):
             my_dict1.add(test_plane_uri)
 
+        # test pop function
+        self.assertEqual(5, len(my_dict1),
+                         'mismatch in the number of entries in dictionary.')
+        my_value = my_dict1.pop('key4')
+        self.assertEqual('key4', my_value.key,
+                         'popped the wrong entry from dictionary.')
+        self.assertEqual(4, len(my_dict1),
+                         'mismatch in the number of entries in dictionary.')
+        my_value = my_dict1.pop('key5')
+        self.assertEqual('key5', my_value.key,
+                         'popped the wrong entry from dictionary.')
+        self.assertEqual(3, len(my_dict1),
+                         'mismatch in the number of entries in dictionary.')
+        my_value = my_dict1.pop('key3')
+        self.assertEqual('key3', my_value.key,
+                         'popped the wrong entry from dictionary.')
+        self.assertEqual(2, len(my_dict1),
+                         'mismatch in the number of entries in dictionary.')
+        my_value = my_dict1.pop('key2')
+        self.assertEqual('key2', my_value.key,
+                         'popped the wrong entry from dictionary.')
+        self.assertEqual(1, len(my_dict1),
+                         'mismatch in the number of entries in dictionary.')
+        my_value = my_dict1.pop('key1')
+        self.assertEqual('key1', my_value.key,
+                         'popped the wrong entry from dictionary.')
+
     def test_uuid2long(self):
         # > 64 bit uuid
         u = uuid.UUID('{3d26e30b-10cc-4301-8193-f2e0c6b63302}')
