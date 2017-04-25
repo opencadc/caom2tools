@@ -152,7 +152,7 @@ class Box(common.CaomObject):
 class Circle(common.CaomObject):
 
     def __init__(self, center,
-                 width, radius):
+                 radius):
         """
         Initialize a Circle instance
         """
