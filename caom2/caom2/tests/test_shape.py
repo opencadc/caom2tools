@@ -71,6 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
+import math
 
 from .. import shape
 
@@ -95,6 +96,54 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(shape.SegmentType.CLOSE.value, 0)
         self.assertEqual(shape.SegmentType.LINE.value, 1)
         self.assertEqual(shape.SegmentType.MOVE.value, 2)
+
+
+class TestBox(unittest.TestCase):
+
+    def test_all(self):
+
+        self.assertRaises(TypeError, shape.Box, None, None, None)
+        self.assertRaises(TypeError, shape.Box, None, None, 1.0)
+        self.assertRaises(TypeError, shape.Box, None, 1.0, None)
+        self.assertRaises(TypeError, shape.Box, 1.0, None, None)
+        self.assertRaises(TypeError, shape.Box, int(1), "string", int(1))
+        self.assertRaises(TypeError, shape.Box, "string", int(1), "string")
+
+        val1 = 1.0
+        val2 = 2.0
+        width = 3.0
+        height = 4.0
+        box = shape.Box(shape.Point(val1, val2), width, height)
+        self.assertEqual(box.width, 3.0)
+        self.assertEqual(box.height, 4.0)
+        self.assertEqual(box.center.cval1, 1.0)
+        self.assertEqual(box.center.cval2, 2.0)
+        area = width * height 
+        self.assertEqual(box.get_area(), area)
+        size = math.sqrt(width * width + height * height)
+        self.assertEqual(box.get_size(), size)
+
+
+class TestCircle(unittest.TestCase):
+
+    def test_all(self):
+
+        self.assertRaises(TypeError, shape.Circle, None, None)
+        self.assertRaises(TypeError, shape.Circle, None, 1.0)
+        self.assertRaises(TypeError, shape.Circle, 1.0, None)
+        self.assertRaises(TypeError, shape.Circle, "string", int(1))
+        self.assertRaises(TypeError, shape.Circle, int(1), "string")
+
+        val1 = 1.0
+        val2 = 2.0
+        radius = 3.0
+        circle = shape.Circle(shape.Point(val1, val2), radius)
+        self.assertEqual(circle.radius, radius)
+        self.assertEqual(circle.center.cval1, val1)
+        self.assertEqual(circle.center.cval2, val2)
+        area = math.pi * radius * radius  
+        self.assertEqual(circle.get_area(), area)
+        self.assertEqual(circle.get_size(), 2.0 * radius)
 
 
 class TestPoint(unittest.TestCase):

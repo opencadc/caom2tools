@@ -98,7 +98,7 @@ class Box(common.CaomObject):
         """
         self.center = center
         self.width = width
-        selef.height = height
+        self.height = height
 
     def get_area(self):
         """ TODO: this is cartesian approximation, use spherical geom? """
@@ -118,7 +118,6 @@ class Box(common.CaomObject):
 
     @center.setter
     def center(self, value):
-        assert value is not None, "No center value provided"
         caom_util.type_check(value, Point, 'center', override=False)
         self._center = value
 
@@ -177,7 +176,6 @@ class Circle(common.CaomObject):
 
     @center.setter
     def center(self, value):
-        assert value is not None, "No center value provided"
         caom_util.type_check(value, Point, 'center', override=False)
         self._center = value
 
