@@ -197,9 +197,8 @@ class Interval(common.CaomObject):
 
     def __init__(self, lower, upper, samples=None):
 
-        assert not upper < lower, "Interval: upper < lower for " + str(upper) + "," + str(lower)
-        self.upper = upper
         self.lower = lower
+        self.upper = upper
         self.samples = samples
 
     def get_width(self):
@@ -227,7 +226,13 @@ class Interval(common.CaomObject):
     @lower.setter
     def lower(self, value):
         caom_util.type_check(value, float, 'lower', override=False)
-        assert not self._upper < value, "Interval: attempt to set upper < lower for "  + str(self._upper) + "," + str(value)
+        has_upper = True
+        try:
+            self._upper
+        except AttributeError:
+            has_upper = False
+        if has_upper:
+            assert not self._upper < value, "Interval: attempt to set upper < lower for "  + str(self._upper) + "," + str(value)
         self._lower = value
 
     @property
@@ -240,7 +245,13 @@ class Interval(common.CaomObject):
     @upper.setter
     def upper(self, value):
         caom_util.type_check(value, float, 'upper', override=False)
-        assert not value < self._lower, "Interval: attempt to set upper < lower for "  + str(value) + "," + str(self._lower)
+        has_lower = True
+        try:
+            self._lower
+        except AttributeError:
+            has_lower = False
+        if has_lower:
+            assert not value < self._lower, "Interval: attempt to set upper < lower for "  + str(value) + "," + str(self._lower)
         self._upper = value
 
     @property
@@ -252,7 +263,7 @@ class Interval(common.CaomObject):
 
     @samples.setter
     def samples(self, value):
-        if samples is not None:
+        if value is not None:
             caom_util.type_check(value, list, 'samples', override=False)
         self._samples = value
 

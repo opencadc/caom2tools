@@ -146,6 +146,66 @@ class TestCircle(unittest.TestCase):
         self.assertEqual(circle.get_size(), 2.0 * radius)
 
 
+class TestInterval(unittest.TestCase):
+
+    def test_all(self):
+
+        self.assertRaises(TypeError, shape.Interval, None, None, None)
+        self.assertRaises(TypeError, shape.Interval, None, None, 1.0)
+        self.assertRaises(TypeError, shape.Interval, None, 1.0, None)
+        self.assertRaises(TypeError, shape.Interval, 1.0, None, None)
+        self.assertRaises(TypeError, shape.Interval, int(2), int(1), "string")
+        self.assertRaises(TypeError, shape.Interval, "string1", "string2", int(1))
+        self.assertRaises(AssertionError, shape.Interval, 2.0, 1.0, None)
+
+        lower = 1.0
+        upper = 2.0
+        lower1 = 1.1
+        upper1 = 2.1
+        lower2 = 1.2
+        upper2 = 2.2
+        samples = [shape.Interval(lower,upper), shape.Interval(lower1,upper1), shape.Interval(lower2,upper2)]
+
+        # test cannot set interval with upper < lower
+        interval = shape.Interval(lower, upper, samples)
+        has_assertionError = False
+        try:
+            interval.upper = 0.5
+        except AssertionError:
+            has_assertionError = True
+        self.assertEqual(has_assertionError, True)
+
+        # test intervals in samples
+        actual_samples = interval.samples
+
+        actual_interval = actual_samples[0]
+        expected_interval = samples[0]
+        actual_lower = actual_interval.lower
+        actual_upper = actual_interval.upper
+        expected_lower = expected_interval.lower
+        expected_upper = expected_interval.upper
+        self.assertEqual(actual_lower, expected_lower)
+        self.assertEqual(actual_upper, expected_upper)
+
+        actual_interval = actual_samples[1]
+        expected_interval = samples[1]
+        actual_lower = actual_interval.lower
+        actual_upper = actual_interval.upper
+        expected_lower = expected_interval.lower
+        expected_upper = expected_interval.upper
+        self.assertEqual(actual_lower, expected_lower)
+        self.assertEqual(actual_upper, expected_upper)
+
+        actual_interval = actual_samples[2]
+        expected_interval = samples[2]
+        actual_lower = actual_interval.lower
+        actual_upper = actual_interval.upper
+        expected_lower = expected_interval.lower
+        expected_upper = expected_interval.upper
+        self.assertEqual(actual_lower, expected_lower)
+        self.assertEqual(actual_upper, expected_upper)
+
+
 class TestPoint(unittest.TestCase):
 
     def test_all(self):
