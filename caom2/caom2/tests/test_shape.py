@@ -156,7 +156,7 @@ class TestInterval(unittest.TestCase):
         upper1 = 2.1
         lower2 = 1.2
         upper2 = 2.2
-        samples = [shape.Interval(lower,upper), shape.Interval(lower1,upper1), shape.Interval(lower2,upper2)]
+        samples = [shape.SubInterval(lower,upper), shape.SubInterval(lower1,upper1), shape.SubInterval(lower2,upper2)]
 
         self.assertRaises(TypeError, shape.Interval, None, None, None)
         self.assertRaises(TypeError, shape.Interval, None, None, 1.0)
@@ -182,30 +182,30 @@ class TestInterval(unittest.TestCase):
         # test intervals in samples
         actual_samples = interval.samples
 
-        actual_interval = actual_samples[0]
-        expected_interval = samples[0]
-        actual_lower = actual_interval.lower
-        actual_upper = actual_interval.upper
-        expected_lower = expected_interval.lower
-        expected_upper = expected_interval.upper
+        actual_subInterval = actual_samples[0]
+        expected_subInterval = samples[0]
+        actual_lower = actual_subInterval.lower
+        actual_upper = actual_subInterval.upper
+        expected_lower = expected_subInterval.lower
+        expected_upper = expected_subInterval.upper
         self.assertEqual(actual_lower, expected_lower)
         self.assertEqual(actual_upper, expected_upper)
 
-        actual_interval = actual_samples[1]
-        expected_interval = samples[1]
-        actual_lower = actual_interval.lower
-        actual_upper = actual_interval.upper
-        expected_lower = expected_interval.lower
-        expected_upper = expected_interval.upper
+        actual_subInterval = actual_samples[1]
+        expected_subInterval = samples[1]
+        actual_lower = actual_subInterval.lower
+        actual_upper = actual_subInterval.upper
+        expected_lower = expected_subInterval.lower
+        expected_upper = expected_subInterval.upper
         self.assertEqual(actual_lower, expected_lower)
         self.assertEqual(actual_upper, expected_upper)
 
-        actual_interval = actual_samples[2]
-        expected_interval = samples[2]
-        actual_lower = actual_interval.lower
-        actual_upper = actual_interval.upper
-        expected_lower = expected_interval.lower
-        expected_upper = expected_interval.upper
+        actual_subInterval = actual_samples[2]
+        expected_subInterval = samples[2]
+        actual_lower = actual_subInterval.lower
+        actual_upper = actual_subInterval.upper
+        expected_lower = expected_subInterval.lower
+        expected_upper = expected_subInterval.upper
         self.assertEqual(actual_lower, expected_lower)
         self.assertEqual(actual_upper, expected_upper)
 
@@ -241,6 +241,56 @@ class TestPoint(unittest.TestCase):
         self.assertEqual(point.cval1, 1.0)
         self.assertEqual(point.cval2, 2.0)
         
+
+class TestSubInterval(unittest.TestCase):
+
+    def test_all(self):
+
+        self.assertRaises(TypeError, shape.SubInterval, None, None)
+        self.assertRaises(TypeError, shape.SubInterval, None, 1.0)
+        self.assertRaises(TypeError, shape.SubInterval, 1.0, None)
+        self.assertRaises(TypeError, shape.SubInterval, "string1", "string2")
+        self.assertRaises(AssertionError, shape.SubInterval, 2.0, 1.0)
+
+        # test cannot set subInterval with upper < lower
+        subInterval = shape.SubInterval(1.0, 2.0)
+        has_assertionError = False
+        try:
+            subInterval.upper = 0.5
+        except AssertionError:
+            has_assertionError = True
+        self.assertEqual(has_assertionError, True)
+
+        # test construction method
+        i1 = shape.SubInterval(10.0, 15.0)
+
+
+class TestPolygon(unittest.TestCase):
+
+    def test_all(self):
+
+        v1 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
+        v2 = shape.Vertex(2.0, 3.0, shape.SegmentType.LINE)
+        v3 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
+        v4 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
+        vl = [v1, v2, v3, v4]
+
+        polygon = shape.Polygon()
+        polygon.vertices = vl
+        actual_vertices = polygon.vertices
+        self.assertEqual(actual_vertices[0].cval1, 1.0)
+        self.assertEqual(actual_vertices[0].cval2, 2.0)
+        self.assertEqual(actual_vertices[0].type, shape.SegmentType.LINE)
+        self.assertEqual(actual_vertices[1].cval1, 2.0)
+        self.assertEqual(actual_vertices[1].cval2, 3.0)
+        self.assertEqual(actual_vertices[1].type, shape.SegmentType.LINE)
+        self.assertEqual(actual_vertices[2].cval1, 3.0)
+        self.assertEqual(actual_vertices[2].cval2, 4.0)
+        self.assertEqual(actual_vertices[2].type, shape.SegmentType.LINE)
+        self.assertEqual(actual_vertices[3].cval1, 0.0)
+        self.assertEqual(actual_vertices[3].cval2, 0.0)
+        self.assertEqual(actual_vertices[3].type, shape.SegmentType.CLOSE)
+
 
 class TestVertex(unittest.TestCase):
 
