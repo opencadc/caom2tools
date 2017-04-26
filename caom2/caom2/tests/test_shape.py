@@ -150,14 +150,6 @@ class TestInterval(unittest.TestCase):
 
     def test_all(self):
 
-        self.assertRaises(TypeError, shape.Interval, None, None, None)
-        self.assertRaises(TypeError, shape.Interval, None, None, 1.0)
-        self.assertRaises(TypeError, shape.Interval, None, 1.0, None)
-        self.assertRaises(TypeError, shape.Interval, 1.0, None, None)
-        self.assertRaises(TypeError, shape.Interval, int(2), int(1), "string")
-        self.assertRaises(TypeError, shape.Interval, "string1", "string2", int(1))
-        self.assertRaises(AssertionError, shape.Interval, 2.0, 1.0, None)
-
         lower = 1.0
         upper = 2.0
         lower1 = 1.1
@@ -165,6 +157,18 @@ class TestInterval(unittest.TestCase):
         lower2 = 1.2
         upper2 = 2.2
         samples = [shape.Interval(lower,upper), shape.Interval(lower1,upper1), shape.Interval(lower2,upper2)]
+
+        self.assertRaises(TypeError, shape.Interval, None, None, None)
+        self.assertRaises(TypeError, shape.Interval, None, None, 1.0)
+        self.assertRaises(TypeError, shape.Interval, None, 1.0, None)
+        self.assertRaises(TypeError, shape.Interval, 1.0, None, None)
+        self.assertRaises(TypeError, shape.Interval, None, None, samples)
+        self.assertRaises(TypeError, shape.Interval, None, int(1), samples)
+        self.assertRaises(TypeError, shape.Interval, int(1), None, samples)
+        self.assertRaises(TypeError, shape.Interval, None, "string", samples)
+        self.assertRaises(TypeError, shape.Interval, "string", None, samples)
+        self.assertRaises(TypeError, shape.Interval, "string1", "string2", int(1))
+        self.assertRaises(AssertionError, shape.Interval, 2.0, 1.0, None)
 
         # test cannot set interval with upper < lower
         interval = shape.Interval(lower, upper, samples)
@@ -205,6 +209,23 @@ class TestInterval(unittest.TestCase):
         self.assertEqual(actual_lower, expected_lower)
         self.assertEqual(actual_upper, expected_upper)
 
+        # test instance methods
+        i1 = shape.Interval(10.0, 15.0)
+        self.assertEqual(i1.get_width(), 5)
+
+        # test class methods
+        i1 = shape.Interval(10.0, 15.0)
+        i2 = shape.Interval(5.0, 8.0)
+        intersec1 = shape.Interval.intersection(i1, i2)
+        self.assertEqual(intersec1, None)
+        intersec2 = shape.Interval.intersection(i2, i1)
+        self.assertEqual(intersec2, None)
+        i3 = shape.Interval(8.0, 12.0)
+        lb = max(i1.lower, i3.lower)
+        ub = min(i1.upper, i3.upper)
+        intersec3 = shape.Interval.intersection(i1, i3)
+        self.assertEqual(intersec3, shape.Interval(lb, ub))
+        
 
 class TestPoint(unittest.TestCase):
 
@@ -219,3 +240,29 @@ class TestPoint(unittest.TestCase):
         point = shape.Point(1.0, 2.0)
         self.assertEqual(point.cval1, 1.0)
         self.assertEqual(point.cval2, 2.0)
+        
+
+class TestVertex(unittest.TestCase):
+
+    def test_all(self):
+
+        self.assertRaises(TypeError, shape.Vertex, None, None, None)
+        self.assertRaises(TypeError, shape.Vertex, 1.0, 2.0, None)
+        self.assertRaises(TypeError, shape.Vertex, 1.0, 2.0, 1.0)
+        self.assertRaises(TypeError, shape.Vertex, None, None, shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, None, 2.0, shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, 1.0, None, shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, None, "string", shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, "string", None, shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, None, int(1), shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, int(1), None, shape.SegmentType.LINE)
+
+        vertex = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
+        self.assertEqual(vertex.cval1, 1.0)
+        self.assertEqual(vertex.cval2, 2.0)
+        self.assertEqual(vertex.type, shape.SegmentType.LINE)
+
+        utypes = shape.Vertex.CTOR_UTYPES
+        self.assertEqual(utypes[0], "cval1")
+        self.assertEqual(utypes[1], "cval2")
+        self.assertEqual(utypes[2], "type")

@@ -206,13 +206,13 @@ class Interval(common.CaomObject):
 
 
     @classmethod
-    def intersection(i1, i2):
+    def intersection(cls, i1, i2):
         if i1.lower > i2.upper or i1.upper < i2.lower:
             return None
 
-        lb = math.max(i1.lower, i2.lower)
-        ub = math.min(i1.upper, i2.upper)
-        return Interval(lb, ub)
+        lb = max(i1.lower, i2.lower)
+        ub = min(i1.upper, i2.upper)
+        return cls(lb, ub)
 
     # Properties
 
@@ -306,10 +306,12 @@ class Polygon(common.CaomObject):
         pass
 
 
-class Vertex(common.CaomObject):
+class Vertex(Point):
+
+    CTOR_UTYPES = ["cval1", "cval2", "type"]
 
     def __init__(self, cval1, cval2, type):
-        super(Point, self).__init__(cval1, cval2)
+        super(Vertex, self).__init__(cval1, cval2)
         self.type = type
 
     # Properties
