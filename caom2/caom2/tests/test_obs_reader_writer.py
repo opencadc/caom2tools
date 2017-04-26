@@ -439,6 +439,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.compare_provenance(expected_plane.provenance,
                                     actual_plane.provenance)
             self.compare_metrics(expected_plane.metrics, actual_plane.metrics)
+            
+            self.compare_time(expected_plane.time, actual_plane.time)
+            
             if version == 21:
                 self.compare_quality(expected_plane.quality,
                                      actual_plane.quality)
@@ -486,6 +489,11 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertEqual(len(expected), len(actual))
         for expected_plane_uri, actual_plane_uri in zip(expected, actual):
             self.assertEqual(expected_plane_uri, actual_plane_uri)
+            
+    def compare_time(self, expected, actual):
+        if expected is None and actual is None:
+            return
+        
 
     def compare_artifacts(self, expected, actual, version):
         if expected is None and actual is None:

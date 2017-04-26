@@ -516,6 +516,11 @@ class Plane(AbstractCaomEntity):
         of the python module at this time.
         """
         return self._position
+    
+    @position.setter
+    def position(self, value):
+        caom_util.type_check(value, Position, "position")
+        self._position = value
 
     @property
     def energy(self):
@@ -528,6 +533,11 @@ class Plane(AbstractCaomEntity):
         """
         """ Energy """
         return self._energy
+    
+    @energy.setter
+    def energy(self, value):
+        caom_util.type_check(value, Energy, "energy")
+        self._energy = value
 
     @property
     def time(self):
@@ -540,7 +550,12 @@ class Plane(AbstractCaomEntity):
         """
         """ Time """
         return self._time
-
+    
+    @time.setter
+    def time(self, value):
+        caom_util.type_check(value, Time, "time")
+        self._time = value
+    
     @property
     def polarization(self):
         """A caom2 Polarization object that is developed from
@@ -551,6 +566,11 @@ class Plane(AbstractCaomEntity):
         of the python module at this time.
         """
         return self._polarization
+    
+    @polarization.setter
+    def polarization(self, value):
+        caom_util.type_check(value, Polarization, "polarization")
+        self._polarization = value
 
     # Compute derived fields
 
