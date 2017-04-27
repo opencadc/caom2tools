@@ -180,7 +180,7 @@ class TestObservationReaderWriter(unittest.TestCase):
                 self.observation_test(simple_observation, True, False, version)
 
     def test_complete_simple(self):
-        for version in (20, 21, 22):
+        for version in (20, 21, 22, 23):
             for i in range(1, 6):
                 print("Test Complete Simple {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
@@ -197,7 +197,7 @@ class TestObservationReaderWriter(unittest.TestCase):
                 self.observation_test(simple_observation, True, False, version)
 
     def test_minimal_composite(self):
-        for version in (20, 21, 22):
+        for version in (20, 21, 22, 23):
             for i in range(1, 6):
                 print("Test Minimal Composite {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
@@ -214,7 +214,7 @@ class TestObservationReaderWriter(unittest.TestCase):
                 self.observation_test(composite_observation, True, False, version)
 
     def test_complete_composite(self):
-        for version in (20, 21, 22):
+        for version in (20, 21, 22, 23):
             for i in range(1, 6):
                 print("Test Complete Composite {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
@@ -232,19 +232,23 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_versions(self):
         composite_observation = complete_composite(6, True, 20)
+        print("comp obs max lst mod: " + str(composite_observation.max_last_modified))
         self.observation_test(composite_observation, True, True, 20)
         self.observation_test(composite_observation, True, True, 21)
         self.observation_test(composite_observation, True, True, 22)
+        self.observation_test(composite_observation, True, True, 23)
 
         composite_observation = complete_composite(6, True, 21)
         self.observation_test(composite_observation, True, True, 20)
         self.observation_test(composite_observation, True, True, 21)
         self.observation_test(composite_observation, True, True, 22)
+        self.observation_test(composite_observation, True, True, 23)
 
         composite_observation = complete_composite(6, True, 22)
         self.observation_test(composite_observation, True, True, 20)
         self.observation_test(composite_observation, True, True, 21)
         self.observation_test(composite_observation, True, True, 22)
+        self.observation_test(composite_observation, True, True, 23)
 
     def observation_test(self, obs, validate, write_empty_collections, version):
         if version == 20:
@@ -255,6 +259,14 @@ class TestObservationReaderWriter(unittest.TestCase):
             writer = obs_reader_writer.ObservationWriter(
                 validate, write_empty_collections, "caom2",
                 obs_reader_writer.CAOM21_NAMESPACE)
+        elif version == 22:
+            writer = obs_reader_writer.ObservationWriter(
+                validate, write_empty_collections, "caom2",
+                obs_reader_writer.CAOM22_NAMESPACE)
+        elif version == 23:
+            writer = obs_reader_writer.ObservationWriter(
+                validate, write_empty_collections, "caom2",
+                obs_reader_writer.CAOM23_NAMESPACE)
         else:
             writer = obs_reader_writer.ObservationWriter(
                 validate, write_empty_collections)
@@ -286,10 +298,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(expected._id)
         self.assertIsNotNone(actual._id)
         self.assertEqual(expected._id, actual._id)
-
-#         self.assertIsNotNone(expected._last_modified)
-#         self.assertIsNotNone(actual._last_modified)
-#         self.assertEqual(expected._last_modified, actual._last_modified)
+        
+        self.compare_entity_attributes(expected, actual)
 
         self.assertIsNotNone(expected.algorithm)
         self.assertIsNotNone(actual.algorithm)
@@ -424,10 +434,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(expected_plane._id)
             self.assertIsNotNone(actual_plane._id)
             self.assertEqual(expected_plane._id, actual_plane._id)
-#             self.assertIsNotNone(expected_plane._last_modified)
-#             self.assertIsNotNone(actual_plane._last_modified)
-#             self.assertEqual(expected_plane._last_modified,
-#                              actual_plane._last_modified)
+            
+            self.compare_entity_attributes(expected_plane, actual_plane)
+
             self.assertEqual(expected_plane.meta_release,
                              actual_plane.meta_release)
             self.assertEqual(expected_plane.data_release,
@@ -510,10 +519,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(expected_artifact._id)
             self.assertIsNotNone(actual_artifact._id)
             self.assertEqual(expected_artifact._id, actual_artifact._id)
-#             self.assertIsNotNone(expected_artifact._last_modified)
-#             self.assertIsNotNone(actual_artifact._last_modified)
-#             self.assertEqual(expected_artifact._last_modified,
-#                              actual_artifact._last_modified)
+            
+            self.compare_entity_attributes(expected_artifact, actual_artifact)
+
             self.assertEqual(expected_artifact.uri, actual_artifact.uri)
             self.assertEqual(expected_artifact.content_type,
                              actual_artifact.content_type)
@@ -542,10 +550,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(expected_part._id)
             self.assertIsNotNone(actual_part._id)
             self.assertEqual(expected_part._id, actual_part._id)
-#             self.assertIsNotNone(expected_part._last_modified)
-#             self.assertIsNotNone(actual_part._last_modified)
-#             self.assertEqual(expected_part._last_modified,
-#                              actual_part._last_modified)
+            
+            self.compare_entity_attributes(expected_part, actual_part)
+
             self.assertEqual(expected_part.name, actual_part.name)
             self.assertEqual(expected_part.product_type, actual_part.product_type)
             self.compare_chunks(expected_part.chunks, actual_part.chunks)
@@ -562,10 +569,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(expected_chunk._id)
             self.assertIsNotNone(actual_chunk._id)
             self.assertEqual(expected_chunk._id, actual_chunk._id)
-#             self.assertIsNotNone(expected_chunk._last_modified)
-#             self.assertIsNotNone(actual_chunk._last_modified)
-#             self.assertEqual(expected_chunk._last_modified,
-#                              actual_chunk._last_modified)
+            
+            self.compare_entity_attributes(expected_chunk, actual_chunk)
+            
             self.assertEqual(expected_chunk.product_type,
                              actual_chunk.product_type)
             self.assertEqual(expected_chunk.naxis, actual_chunk.naxis)
@@ -833,7 +839,25 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(actual.cval2)
         self.assertEqual(expected.cval1, actual.cval1)
         self.assertEqual(expected.cval2, actual.cval2)
-
+        
+    def compare_entity_attributes(self, expected, actual):
+        if expected.last_modified is None:
+            self.assertIsNone(actual.last_modified)
+        else:
+            self.assertEqual(expected.last_modified, actual.last_modified, "last modified")
+        if expected.max_last_modified is None:
+            self.assertIsNone(actual.max_last_modified)
+        else:
+            print("comparing " + str(expected.max_last_modified) + " with " + str(actual.max_last_modified))
+            self.assertEqual(expected.max_last_modified, actual.max_last_modified, "max last modified")
+        if expected.meta_checksum is None:
+            self.assertIsNone(actual.meta_checksum)
+        else:
+            self.assertEqual(expected.meta_checksum, actual.meta_checksum, "meta checksum")    
+        if expected.acc_meta_checksum is None:
+            self.assertIsNone(actual.acc_meta_checksum)
+        else:
+            self.assertEqual(expected.acc_meta_checksum, actual.acc_meta_checksum, "acc_meta checksum")
 
 class TestRoundTrip(unittest.TestCase):
 
@@ -879,9 +903,13 @@ class TestRoundTrip(unittest.TestCase):
                 True, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
             writer21 = obs_reader_writer.ObservationWriter(
                 True, False, "caom2", obs_reader_writer.CAOM21_NAMESPACE)
-            writer22 = obs_reader_writer.ObservationWriter(True, False, "caom2")
+            writer22 = obs_reader_writer.ObservationWriter(
+                True, False, "caom2", obs_reader_writer.CAOM22_NAMESPACE)
+            writer23 = obs_reader_writer.ObservationWriter(True, False, "caom2")
             for filename in files:
-                if filename.endswith("CAOM-2.2.xml"):
+                if filename.endswith("CAOM-2.3.xml"):
+                    self.do_test(reader, writer23, filename)
+                elif filename.endswith("CAOM-2.2.xml"):
                     self.do_test(reader, writer22, filename)
                 elif filename.endswith("CAOM-2.1.xml"):
                     self.do_test(reader, writer21, filename)

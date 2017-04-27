@@ -67,6 +67,7 @@
 # ***********************************************************************
 #
 
+
 """ Defines ObservationReader class """
 
 from __future__ import (absolute_import, division, print_function,
@@ -87,20 +88,25 @@ from . import part
 from . import plane
 from . import shape
 from . import wcs
+from . import common
+
 
 DATA_PKG = 'data'
 
 CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
 CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
 CAOM22_SCHEMA_FILE = 'CAOM-2.2.xsd'
+CAOM23_SCHEMA_FILE = 'CAOM-2.3.xsd'
 
 CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
 CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
 CAOM22_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.2'
+CAOM23_NAMESPACE = 'http://www.opencadc.org/caom2/xml/v2.3'
 
 CAOM20 = "{%s}" % CAOM20_NAMESPACE
 CAOM21 = "{%s}" % CAOM21_NAMESPACE
 CAOM22 = "{%s}" % CAOM22_NAMESPACE
+CAOM23 = "{%s}" % CAOM23_NAMESPACE
 
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 XSI = "{%s}" % XSI_NAMESPACE
@@ -143,6 +149,12 @@ class ObservationReader(object):
                 namespace=CAOM22_NAMESPACE,
                 schemaLocation=CAOM22_SCHEMA_FILE)
             xsd.getroot().insert(2, caom22_schema)
+            
+            caom23_schema = etree.Element(
+                '{http://www.w3.org/2001/XMLSchema}import',
+                namespace=CAOM23_NAMESPACE,
+                schemaLocation=CAOM23_SCHEMA_FILE)
+            xsd.getroot().insert(3, caom23_schema)
 
             self._xmlschema = etree.XMLSchema(xsd)
 
@@ -153,6 +165,9 @@ class ObservationReader(object):
 
         element_id = element.get("{" + ns + "}id")
         element_last_modified = element.get("{" + ns + "}lastModified")
+        element_max_last_modified = element.get("{" + ns + "}maxLastModified")
+        element_meta_checksum = element.get("{" + ns + "}metaChecksum")
+        element_acc_meta_checksum = element.get("{" + ns + "}accMetaChecksum")
 
         if expect_uuid:
             uid = uuid.UUID(element_id)
@@ -162,6 +177,12 @@ class ObservationReader(object):
 
         if element_last_modified:
             caom2_entity._last_modified = caom_util.str2ivoa(element_last_modified)
+        if element_max_last_modified:
+            caom2_entity._max_last_modified = caom_util.str2ivoa(element_max_last_modified)
+        if element_meta_checksum:
+            caom2_entity._meta_checksum = common.ChecksumURI(element_meta_checksum)
+        if element_acc_meta_checksum:
+            caom2_entity._acc_meta_checksum = common.ChecksumURI(element_acc_meta_checksum)
 
     def _get_child_element(self, element_tag, parent, ns, required):
         for element in list(parent):
@@ -1386,7 +1407,11 @@ class ObservationWriter(object):
         if namespace_prefix is None or not namespace_prefix:
             raise RuntimeError('null or empty namespace_prefix not allowed')
 
-        if namespace is None or namespace == CAOM22_NAMESPACE:
+        if namespace is None or namespace == CAOM23_NAMESPACE:
+            self._output_version = 23
+            self._caom2_namespace = CAOM23
+            self._namespace = CAOM23_NAMESPACE
+        elif namespace == CAOM22_NAMESPACE:
             self._output_version = 22
             self._caom2_namespace = CAOM22
             self._namespace = CAOM22_NAMESPACE
@@ -1406,8 +1431,10 @@ class ObservationWriter(object):
                 schema_file = CAOM20_SCHEMA_FILE
             elif self._output_version == 21:
                 schema_file = CAOM21_SCHEMA_FILE
-            else:
+            elif self._output_version == 22:
                 schema_file = CAOM22_SCHEMA_FILE
+            else:
+                schema_file = CAOM23_SCHEMA_FILE
             schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
                                        schema_file)
             # schema_path = pkg_resources.resource_filename(
@@ -1427,7 +1454,7 @@ class ObservationWriter(object):
         else:
             obs_element.set(XSI + "type", "caom2:CompositeObservation")
 
-        self._add_enity_attributes(obs, obs_element)
+        self._add_entity_attributes(obs, obs_element)
 
         self._add_element("collection", obs.collection, obs_element)
         self._add_element("observationID", obs.observation_id, obs_element)
@@ -1457,7 +1484,7 @@ class ObservationWriter(object):
         out.write(etree.tostring(obs_element, encoding='unicode',
                                  pretty_print=True))
 
-    def _add_enity_attributes(self, entity, element):
+    def _add_entity_attributes(self, entity, element):
         if self._output_version == 20:
             uid = caom_util.uuid2long(entity._id)
             self._add_attribute("id", str(uid), element)
@@ -1467,6 +1494,17 @@ class ObservationWriter(object):
         if entity._last_modified is not None:
             self._add_attribute(
                 "lastModified", caom_util.date2ivoa(entity._last_modified), element)
+        
+        if self._output_version >= 23:
+            if entity._max_last_modified is not None:
+                self._add_attribute(
+                    "maxLastModified", caom_util.date2ivoa(entity._max_last_modified), element)
+            if entity._meta_checksum is not None:
+                self._add_attribute(
+                    "metaChecksum", entity._meta_checksum.uri, element)
+            if entity._acc_meta_checksum is not None:
+                self._add_attribute(
+                    "accMetaChecksum", entity._acc_meta_checksum.uri, element)
 
     def _add_algorithm_element(self, algorithm, parent):
         if algorithm is None:
@@ -1574,7 +1612,7 @@ class ObservationWriter(object):
         element = self._get_caom_element("planes", parent)
         for _plane in six.itervalues(planes):
             plane_element = self._get_caom_element("plane", element)
-            self._add_enity_attributes(_plane, plane_element)
+            self._add_entity_attributes(_plane, plane_element)
             self._add_element("productID", _plane.product_id, plane_element)
             self._add_datetime_element("metaRelease", _plane.meta_release,
                                        plane_element)
@@ -1647,7 +1685,7 @@ class ObservationWriter(object):
         element = self._get_caom_element("artifacts", parent)
         for _artifact in six.itervalues(artifacts):
             artifact_element = self._get_caom_element("artifact", element)
-            self._add_enity_attributes(_artifact, artifact_element)
+            self._add_entity_attributes(_artifact, artifact_element)
             self._add_element("uri", _artifact.uri, artifact_element)
             if self._output_version > 21:
                 self._add_element("productType", _artifact.product_type.value, artifact_element)
@@ -1665,7 +1703,7 @@ class ObservationWriter(object):
         element = self._get_caom_element("parts", parent)
         for _part in six.itervalues(parts):
             part_element = self._get_caom_element("part", element)
-            self._add_enity_attributes(_part, part_element)
+            self._add_entity_attributes(_part, part_element)
             self._add_element("name", _part.name, part_element)
             if _part.product_type is not None:
                 self._add_element("productType", _part.product_type.value, part_element)
@@ -1678,7 +1716,7 @@ class ObservationWriter(object):
         element = self._get_caom_element("chunks", parent)
         for _chunk in chunks:
             chunk_element = self._get_caom_element("chunk", element)
-            self._add_enity_attributes(_chunk, chunk_element)
+            self._add_entity_attributes(_chunk, chunk_element)
             if _chunk.product_type is not None:
                 self._add_element("productType",
                                   _chunk.product_type.value,

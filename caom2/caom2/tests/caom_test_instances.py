@@ -151,6 +151,10 @@ class Caom2TestInstances(object):
             simple_observation.instrument = self.get_instrument()
             simple_observation.environment = self.get_environment()
             simple_observation.last_modified = common.get_current_ivoa_time()
+            if self.caom_version >= 23:
+                simple_observation.max_last_modified = common.get_current_ivoa_time()
+                simple_observation.meta_checksum = common.ChecksumURI("md5:9882dbbf9cadc221019b712fd402bcbd")
+                simple_observation.acc_meta_checksum = common.ChecksumURI("md5:844ce247db0844ad9f721430c80e7a21")
         if self.depth > 1:
             simple_observation.planes.update(self.get_planes())
         return simple_observation
@@ -160,6 +164,7 @@ class Caom2TestInstances(object):
             observation.CompositeObservation(Caom2TestInstances._collection,
                                              Caom2TestInstances._observation_id,
                                              self.get_algorithm())
+        print("Creating test composite observation of version " + str(self.caom_version))
         if self.complete:
             composite_observation.sequence_number = int(10)
             composite_observation.obs_type = "filed"
@@ -174,6 +179,10 @@ class Caom2TestInstances(object):
             composite_observation.instrument = self.get_instrument()
             composite_observation.environment = self.get_environment()
             composite_observation.last_modified = common.get_current_ivoa_time()
+            if self.caom_version >= 23:
+                composite_observation.max_last_modified = common.get_current_ivoa_time()
+                composite_observation.meta_checksum = common.ChecksumURI("md5:9882dbbf9cadc221019b712fd402bcbd")
+                composite_observation.acc_meta_checksum = common.ChecksumURI("md5:844ce247db0844ad9f721430c80e7a21")
         if self.depth > 1:
             composite_observation.planes.update(self.get_planes())
             composite_observation.members.update(self.get_members())
@@ -246,6 +255,11 @@ class Caom2TestInstances(object):
             _plane.calibration_level = plane.CalibrationLevel.PRODUCT
             _plane.provenance = self.get_provenance()
             _plane.metrics = self.get_metrics()
+            _plane.last_modified = common.get_current_ivoa_time()
+            if self.caom_version >= 23:
+                _plane.max_last_modified = common.get_current_ivoa_time()
+                _plane.meta_checksum = common.ChecksumURI("md5:9882dbbf9cadc221019b712fd402bcbd")
+                _plane.acc_meta_checksum = common.ChecksumURI("md5:844ce247db0844ad9f721430c80e7a21")
             if self.caom_version == 21:
                 _plane.quality = self.get_quality()
 
@@ -292,6 +306,11 @@ class Caom2TestInstances(object):
         if self.complete:
             _artifact.content_type = "application/fits"
             _artifact.content_length = int(12345)
+            _artifact.last_modified = common.get_current_ivoa_time()
+            if self.caom_version >= 23:
+                _artifact.max_last_modified = common.get_current_ivoa_time()
+                _artifact.meta_checksum = common.ChecksumURI("md5:9882dbbf9cadc221019b712fd402bcbd")
+                _artifact.acc_meta_checksum = common.ChecksumURI("md5:844ce247db0844ad9f721430c80e7a21")
         if self.depth > 3:
             for k, v in six.iteritems(self.get_parts()):
                 _artifact.parts[k] = v
@@ -326,6 +345,11 @@ class Caom2TestInstances(object):
             _chunk.energy = self.get_spectral_wcs()
             _chunk.time = self.get_temporal_wcs()
             _chunk.polarization = self.get_polarization_wcs()
+            _chunk.last_modified = common.get_current_ivoa_time()
+            if self.caom_version >= 23:
+                _chunk.max_last_modified = common.get_current_ivoa_time()
+                _chunk.meta_checksum = common.ChecksumURI("md5:9882dbbf9cadc221019b712fd402bcbd")
+                _chunk.acc_meta_checksum = common.ChecksumURI("md5:844ce247db0844ad9f721430c80e7a21")
         chunks.append(_chunk)
         return chunks
 
