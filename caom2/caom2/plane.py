@@ -983,7 +983,6 @@ class Energy(CaomObject):
         Arguments:
         None
         """
-        self._value = None
         self._bounds = None
         self._dimension = None
         self._resolving_power = None
@@ -993,17 +992,6 @@ class Energy(CaomObject):
         self._transition = None
 
     # Properties
-    @property
-    def value(self):
-        """ Energy value """
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        if value is not None:
-            assert isinstance(value, float), (
-                "energy value is not a float: {0}".format(value))
-        self._value = value
 
     @property
     def bounds(self):
@@ -1126,7 +1114,6 @@ class Time(CaomObject):
     """ Time """
 
     def __init__(self,
-                 value=None,
                  bounds=None,
                  dimension=None,
                  resolution=None,
@@ -1138,7 +1125,6 @@ class Time(CaomObject):
         Arguments:
         None
         """
-        self.value = value
         self.bounds = bounds
         self.dimension = dimension
         self.resolution = resolution
@@ -1146,21 +1132,6 @@ class Time(CaomObject):
         self.exposure = exposure
 
     # Properties
-
-    @property
-    def value(self):
-        """ Actual time value, seconds since epoch.
-
-        quesion is, what epoch?
-
-        units: s
-        """
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        caom_util.type_check(value, float, 'value')
-        self._value = value
 
     @property
     def bounds(self):

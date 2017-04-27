@@ -476,9 +476,6 @@ class TestEnergy(unittest.TestCase):
 
     def test_all(self):
         energy = plane.Energy()
-        self.assertIsNone(energy.value, "Default energy value")
-        energy.value = 33.33
-        self.assertEqual(33.33, energy.value, "Energy value")
         self.assertIsNone(energy.bounds, "Default energy bounds")
         # TODO switch to Interval
         # energy.bounds = 22
@@ -548,15 +545,12 @@ class TestTime(unittest.TestCase):
 
     def test_all(self):
         time = plane.Time()
-        self.assertIsNone(time.value, "Default value")
         self.assertIsNone(time.bounds, "Default bounds")
         self.assertIsNone(time.dimension, "Default dimension")
         self.assertIsNone(time.resolution, "Default resolution")
         self.assertIsNone(time.sample_size, "Default sample size")
         self.assertIsNone(time.exposure, "Default exposure")
 
-        time.value = 34.34
-        self.assertEqual(34.34, time.value, "Value")
         time.dimension = 777
         self.assertEqual(777, time.dimension, "Dimension")
         time.resolution = 77.777
