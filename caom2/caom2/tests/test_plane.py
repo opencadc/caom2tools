@@ -80,6 +80,7 @@ from .. import observation
 from .. import plane
 from .. import chunk
 from .. import wcs
+from .. import shape
 
 
 class TestEnums(unittest.TestCase):
@@ -476,12 +477,10 @@ class TestEnergy(unittest.TestCase):
 
     def test_all(self):
         energy = plane.Energy()
-        self.assertIsNone(energy.value, "Default energy value")
-        energy.value = 33.33
-        self.assertEqual(33.33, energy.value, "Energy value")
         self.assertIsNone(energy.bounds, "Default energy bounds")
-        # TODO switch to Interval
-        # energy.bounds = 22
+        energy.bounds = shape.Interval(1.0, 2.0)
+        self.assertEqual(1.0, energy.bounds.lower, "Energy lower bounds")
+        self.assertEqual(2.0, energy.bounds.upper, "Energy upper bounds")
         self.assertIsNone(energy.dimension, "Default energy dimension")
         energy.dimension = 1000
         self.assertEqual(1000, energy.dimension, "Energy dimension")
@@ -500,8 +499,15 @@ class TestEnergy(unittest.TestCase):
         energy.em_band = plane.EnergyBand.OPTICAL
         self.assertEqual(plane.EnergyBand.OPTICAL, energy.em_band, "Energy band")
         self.assertIsNone(energy.transition, "Default energy transition")
-        # TODO replace with EnergyTransistion
-        # energy.transition = "BLAH"
+        energy.transition = wcs.EnergyTransition("aSpecies", "aTransition")
+        self.assertEqual("aSpecies", energy.transition.species, "Energy transition species")
+        self.assertEqual("aTransition", energy.transition.transition, "Energy transition transition")
+        self.assertIsNone(energy.freq_width, "Default energy frequency width")
+        energy.freq_width = 123.321
+        self.assertEqual(123.321, energy.freq_width, "Energy frequency width")
+        self.assertIsNone(energy.freq_sample_size, "Default energy frequency sample size")
+        energy.freq_sample_size = 123.321
+        self.assertEqual(123.321, energy.freq_sample_size, "Energy frequency sample size")
 
 
 class TestEnergyTransition(unittest.TestCase):
@@ -548,15 +554,12 @@ class TestTime(unittest.TestCase):
 
     def test_all(self):
         time = plane.Time()
-        self.assertIsNone(time.value, "Default value")
         self.assertIsNone(time.bounds, "Default bounds")
         self.assertIsNone(time.dimension, "Default dimension")
         self.assertIsNone(time.resolution, "Default resolution")
         self.assertIsNone(time.sample_size, "Default sample size")
         self.assertIsNone(time.exposure, "Default exposure")
 
-        time.value = 34.34
-        self.assertEqual(34.34, time.value, "Value")
         time.dimension = 777
         self.assertEqual(777, time.dimension, "Dimension")
         time.resolution = 77.777

@@ -1003,7 +1003,6 @@ class Energy(CaomObject):
         Arguments:
         None
         """
-        self._value = None
         self._bounds = None
         self._dimension = None
         self._resolving_power = None
@@ -1011,19 +1010,10 @@ class Energy(CaomObject):
         self._bandpass_name = None
         self._em_band = None
         self._transition = None
+        self._freq_width = None
+        self._freq_sample_size = None
 
     # Properties
-    @property
-    def value(self):
-        """ Energy value """
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        if value is not None:
-            assert isinstance(value, float), (
-                "energy value is not a float: {0}".format(value))
-        self._value = value
 
     @property
     def bounds(self):
@@ -1109,6 +1099,30 @@ class Energy(CaomObject):
                 "transition is not an EnergyTransition: {0}".format(value))
         self._transition = value
 
+    @property
+    def freq_width(self):
+        """ Energy frequence width """
+        return self._freq_width
+
+    @freq_width.setter
+    def freq_width(self, value):
+        if value is not None:
+            assert isinstance(value, float), (
+                "freq_width is not a float: {0}".format(value))
+        self._freq_width = value
+
+    @property
+    def freq_sample_size(self):
+        """ Energy frequencey sample size """
+        return self._freq_sample_size
+
+    @freq_sample_size.setter
+    def freq_sample_size(self, value):
+        if value is not None:
+            assert isinstance(value, float), (
+                "freq_sample_size is not a float: {0}".format(value))
+        self._freq_sample_size = value
+
 
 class Polarization(CaomObject):
     """ Polarization """
@@ -1146,7 +1160,6 @@ class Time(CaomObject):
     """ Time """
 
     def __init__(self,
-                 value=None,
                  bounds=None,
                  dimension=None,
                  resolution=None,
@@ -1158,7 +1171,6 @@ class Time(CaomObject):
         Arguments:
         None
         """
-        self.value = value
         self.bounds = bounds
         self.dimension = dimension
         self.resolution = resolution
@@ -1166,21 +1178,6 @@ class Time(CaomObject):
         self.exposure = exposure
 
     # Properties
-
-    @property
-    def value(self):
-        """ Actual time value, seconds since epoch.
-
-        quesion is, what epoch?
-
-        units: s
-        """
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        caom_util.type_check(value, float, 'value')
-        self._value = value
 
     @property
     def bounds(self):

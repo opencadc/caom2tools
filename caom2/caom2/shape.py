@@ -193,6 +193,55 @@ class Circle(common.CaomObject):
         self._radius = value
 
 
+class SubInterval(common.CaomObject):
+
+    CTOR_UTYPES = ["lower", "upper"]
+
+    def __init__(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+
+    # Properties
+
+    @property
+    def lower(self):
+        """
+        type: float
+        """
+        return self._lower
+
+    @lower.setter
+    def lower(self, value):
+        caom_util.type_check(value, float, 'lower', override=False)
+        has_upper = True
+        try:
+            self._upper
+        except AttributeError:
+            has_upper = False
+        if has_upper:
+            assert not self._upper < value, "SubInterval: attempt to set upper < lower for "  + str(self._upper) + "," + str(value)
+        self._lower = value
+
+    @property
+    def upper(self):
+        """
+        type: float
+        """
+        return self._upper
+
+    @upper.setter
+    def upper(self, value):
+        caom_util.type_check(value, float, 'upper', override=False)
+        has_lower = True
+        try:
+            self._lower
+        except AttributeError:
+            has_lower = False
+        if has_lower:
+            assert not value < self._lower, "SubInterval: attempt to set upper < lower for "  + str(value) + "," + str(self._lower)
+        self._upper = value
+
+
 class Interval(common.CaomObject):
 
     def __init__(self, lower, upper, samples=None):
@@ -206,13 +255,13 @@ class Interval(common.CaomObject):
 
 
     @classmethod
-    def intersection(i1, i2):
+    def intersection(cls, i1, i2):
         if i1.lower > i2.upper or i1.upper < i2.lower:
             return None
 
-        lb = math.max(i1.lower, i2.lower)
-        ub = math.min(i1.upper, i2.upper)
-        return Interval(lb, ub)
+        lb = max(i1.lower, i2.lower)
+        ub = min(i1.upper, i2.upper)
+        return cls(lb, ub)
 
     # Properties
 
@@ -305,11 +354,27 @@ class Polygon(common.CaomObject):
     def __init__(self):
         pass
 
+    # Properties
+    
+    @property
+    def vertices(self):
+        """
+        type: list of Vertices
+        """
+        return self._vertices
 
-class Vertex(common.CaomObject):
+    @vertices.setter
+    def vertices(self, value):
+        caom_util.type_check(value, list, 'vertices', override=False)
+        self._vertices = value
+
+
+class Vertex(Point):
+
+    CTOR_UTYPES = ["cval1", "cval2", "type"]
 
     def __init__(self, cval1, cval2, type):
-        super(Point, self).__init__(cval1, cval2)
+        super(Vertex, self).__init__(cval1, cval2)
         self.type = type
 
     # Properties
