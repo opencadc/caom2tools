@@ -1010,8 +1010,6 @@ class Energy(CaomObject):
         self._bandpass_name = None
         self._em_band = None
         self._transition = None
-        self._freq_width = None
-        self._freq_sample_size = None
 
     # Properties
 
@@ -1098,30 +1096,6 @@ class Energy(CaomObject):
             assert isinstance(value, wcs.EnergyTransition), (
                 "transition is not an EnergyTransition: {0}".format(value))
         self._transition = value
-
-    @property
-    def freq_width(self):
-        """ Energy frequence width """
-        return self._freq_width
-
-    @freq_width.setter
-    def freq_width(self, value):
-        if value is not None:
-            assert isinstance(value, float), (
-                "freq_width is not a float: {0}".format(value))
-        self._freq_width = value
-
-    @property
-    def freq_sample_size(self):
-        """ Energy frequencey sample size """
-        return self._freq_sample_size
-
-    @freq_sample_size.setter
-    def freq_sample_size(self, value):
-        if value is not None:
-            assert isinstance(value, float), (
-                "freq_sample_size is not a float: {0}".format(value))
-        self._freq_sample_size = value
 
 
 class Polarization(CaomObject):

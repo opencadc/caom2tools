@@ -502,12 +502,6 @@ class TestEnergy(unittest.TestCase):
         energy.transition = wcs.EnergyTransition("aSpecies", "aTransition")
         self.assertEqual("aSpecies", energy.transition.species, "Energy transition species")
         self.assertEqual("aTransition", energy.transition.transition, "Energy transition transition")
-        self.assertIsNone(energy.freq_width, "Default energy frequency width")
-        energy.freq_width = 123.321
-        self.assertEqual(123.321, energy.freq_width, "Energy frequency width")
-        self.assertIsNone(energy.freq_sample_size, "Default energy frequency sample size")
-        energy.freq_sample_size = 123.321
-        self.assertEqual(123.321, energy.freq_sample_size, "Energy frequency sample size")
 
 
 class TestEnergyTransition(unittest.TestCase):
