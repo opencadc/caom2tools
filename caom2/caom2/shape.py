@@ -351,8 +351,8 @@ class Point(common.CaomObject):
 
 class Polygon(common.CaomObject):
 
-    def __init__(self):
-        pass
+    def __init__(self, vertices=None):
+        self.vertices = vertices
 
     # Properties
     
@@ -365,7 +365,8 @@ class Polygon(common.CaomObject):
 
     @vertices.setter
     def vertices(self, value):
-        caom_util.type_check(value, list, 'vertices', override=False)
+        if value is not None:
+            caom_util.type_check(value, list, 'vertices', override=False)
         self._vertices = value
 
 

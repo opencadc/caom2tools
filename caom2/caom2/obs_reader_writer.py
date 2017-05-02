@@ -227,6 +227,13 @@ class ObservationReader(object):
             return None
         else:
             return float(child_element.text)
+        
+    def _get_child_text_as_boolean(self, element_tag, parent, ns, required):
+        child_element = self._get_child_element(element_tag, parent, ns, required)
+        if child_element is None:
+            return None
+        else:
+            return child_element.text.lower() == "true"
 
     def _get_algorithm(self, element_tag, parent, ns, required):
         """Build an Algorithm object from an XML representation
@@ -1165,6 +1172,65 @@ class ObservationReader(object):
         else:
             return chunk.PolarizationWCS(
                 self._get_coord_axis1d("axis", el, ns, False))
+            
+    def _get_position(self, element_tag, parent, ns, required):
+        """Build a Position object from an XML representation of a
+        polarization element.
+        
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a Position object or
+                 None if the document does not contain an polarization element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        pos = plane.Position()
+        pos.bounds = self._get_shape("bounds", el, ns, False)
+        pos.dimension = self._get_dimension2d("dimension", el, ns, False)
+        pos.resolution = self._get_child_text_as_float("resolution", el, ns, False)
+        pos.sample_size = self._get_child_text_as_float("sampleSize", el, ns, False)
+        pos.time_dependent = self._get_child_text_as_boolean("timeDependent", el, ns, False)
+        return pos
+    
+    def _get_energy(self, element_tag, parent, ns, required):
+        pass
+
+    def _get_time(self, element_tag, parent, ns, required):
+        pass
+
+    def _get_polarization(self, element_tag, parent, ns, required):
+        pass
+    
+    def _get_shape(self, element_tag, parent, ns, required):
+        _shape = self._get_child_element(element_tag, parent, ns, required)
+        if _shape is None:
+            return None
+        shape_type = _shape.get(XSI + "type")
+        if "caom2:Polygon" == shape_type:
+            _polygon = shape.Polygon(vertices=list())
+            self._add_vertices(_polygon.vertices, _shape, ns)
+            return _polygon
+        else:
+            raise TypeError("Unsupported shape type " + type)
+                
+    def _add_vertices(self, vertices, parent, ns):
+        _vertices_element = self._get_child_element("vertices", parent, ns, False)
+        if _vertices_element is None:
+            return None
+        else:
+            for _vertex_element in _vertices_element.iterchildren("{" + ns + "}vertex"):
+                cval1 = self._get_child_text_as_float("cval1", _vertex_element, ns, False)
+                cval2 = self._get_child_text_as_float("cval2", _vertex_element, ns, False)
+                seg_type_value = self._get_child_text_as_int("type", _vertex_element, ns, False)
+                seg_type = shape.SegmentType(seg_type_value)
+                _vertex = shape.Vertex(cval1, cval2, seg_type)
+                vertices.append(_vertex)
+        
 
     def _add_chunks(self, chunks, parent, ns):
         """Build Chunk objects from an XML representation of Chunk elements
@@ -1310,6 +1376,8 @@ class ObservationReader(object):
                 if data_product_type:
                     _plane.data_product_type = \
                         plane.DataProductType(data_product_type)
+                _plane.creator_id = \
+                    self._get_child_text("creatorID", plane_element, ns, False)
                 calibration_level = \
                     self._get_child_text("calibrationLevel", plane_element, ns, False)
                 if calibration_level:
@@ -1321,6 +1389,12 @@ class ObservationReader(object):
                     self._get_metrics("metrics", plane_element, ns, False)
                 _plane.quality = \
                     self._get_quality("quality", plane_element, ns, False)
+                    
+                _plane.position = self._get_position("position", plane_element, ns, False)
+                _plane.energy = self._get_energy("energy", plane_element, ns, False)
+                _plane.time = self._get_time("time", plane_element, ns, False)
+                _plane.polarization = self._get_polarization("polarization", plane_element, ns, False)
+                    
                 self._add_artifacts(_plane.artifacts, plane_element, ns)
                 self._set_entity_attributes(plane_element, ns, _plane)
                 planes[_plane.product_id] = _plane
@@ -1614,6 +1688,8 @@ class ObservationWriter(object):
             plane_element = self._get_caom_element("plane", element)
             self._add_entity_attributes(_plane, plane_element)
             self._add_element("productID", _plane.product_id, plane_element)
+            if self._output_version >= 23:
+                self._add_element("creatorID", _plane.creator_id, plane_element)
             self._add_datetime_element("metaRelease", _plane.meta_release,
                                        plane_element)
             self._add_datetime_element("dataRelease", _plane.data_release,
@@ -1629,7 +1705,51 @@ class ObservationWriter(object):
             self._add_provenance_element(_plane.provenance, plane_element)
             self._add_metrics_element(_plane.metrics, plane_element)
             self._add_quality_element(_plane.quality, plane_element)
+            
+            if self._output_version >= 22:
+                self._add_position_element(_plane.position, plane_element)
+                self._add_energy_element(_plane.energy, plane_element)
+                self._add_time_element(_plane.time, plane_element)
+                self._add_polarization_element(_plane.polarization, plane_element)
+            
             self._add_artifacts_element(_plane.artifacts, plane_element)
+            
+    def _add_position_element(self, position, parent):
+        if position is None:
+            return
+        
+        element = self._get_caom_element("position", parent)
+        self._add_shape_element("bounds", position.bounds, element)
+        self._add_dimension2d_element("dimension", position.dimension, element)
+        self._add_element("resolution", position.resolution, element)
+        self._add_element("sampleSize", position.sample_size, element)
+        self._add_element("timeDependent", str(position.time_dependent).lower(), element)
+        
+    def _add_energy_element(self, energy, parent):
+        pass
+        
+    def _add_time_element(self, time, parent):
+        pass
+        
+    def _add_polarization_element(self, polarization, parent):
+        pass
+    
+    def _add_shape_element(self, name, the_shape, parent):
+        if shape is None:
+            return
+        
+        if isinstance(the_shape, shape.Polygon):
+            _shape_element = self._get_caom_element(name, parent)
+            _shape_element.set(XSI + "type", "caom2:Polygon")
+            _vertices_element = self._get_caom_element("vertices", _shape_element)
+            for _vertex in the_shape.vertices:
+                _vertex_element = self._get_caom_element("vertex", _vertices_element)
+                self._add_element("cval1", _vertex.cval1, _vertex_element)
+                self._add_element("cval2", _vertex.cval2, _vertex_element)
+                self._add_element("type", _vertex.type.value, _vertex_element)
+        else:
+            raise TypeError("Unsupported shape type "
+                 + the_shape.__class__.__name__)
 
     def _add_provenance_element(self, provenance, parent):
         if provenance is None:

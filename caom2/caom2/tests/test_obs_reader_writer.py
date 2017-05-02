@@ -83,6 +83,7 @@ from . import caom_test_instances
 from .. import obs_reader_writer
 from .. import observation
 from .. import wcs
+from .. import shape
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -233,21 +234,43 @@ class TestObservationReaderWriter(unittest.TestCase):
     def test_versions(self):
         composite_observation = complete_composite(6, True, 20)
         print("comp obs max lst mod: " + str(composite_observation.max_last_modified))
+        print("check 2.0 schema with 2.0 doc")
         self.observation_test(composite_observation, True, True, 20)
+        print("check 2.1 schema with 2.0 doc")
         self.observation_test(composite_observation, True, True, 21)
+        print("check 2.2 schema with 2.0 doc")
         self.observation_test(composite_observation, True, True, 22)
+        print("check 2.3 schema with 2.0 doc")
         self.observation_test(composite_observation, True, True, 23)
 
         composite_observation = complete_composite(6, True, 21)
+        print("check 2.0 schema with 2.1 doc")
         self.observation_test(composite_observation, True, True, 20)
+        print("check 2.1 schema with 2.1 doc")
         self.observation_test(composite_observation, True, True, 21)
+        print("check 2.2 schema with 2.1 doc")
         self.observation_test(composite_observation, True, True, 22)
+        print("check 2.3 schema with 2.1 doc")
         self.observation_test(composite_observation, True, True, 23)
 
         composite_observation = complete_composite(6, True, 22)
+        print("check 2.0 schema with 2.2 doc")
         self.observation_test(composite_observation, True, True, 20)
+        print("check 2.1 schema with 2.2 doc")
         self.observation_test(composite_observation, True, True, 21)
+        print("check 2.2 schema with 2.2 doc")
         self.observation_test(composite_observation, True, True, 22)
+        print("check 2.3 schema with 2.2 doc")
+        self.observation_test(composite_observation, True, True, 23)
+        
+        composite_observation = complete_composite(6, True, 23)
+        print("check 2.0 schema with 2.3 doc")
+        self.observation_test(composite_observation, True, True, 20)
+        print("check 2.1 schema with 2.3 doc")
+        self.observation_test(composite_observation, True, True, 21)
+        print("check 2.2 schema with 2.3 doc")
+        self.observation_test(composite_observation, True, True, 22)
+        print("check 2.3 schema with 2.3 doc")
         self.observation_test(composite_observation, True, True, 23)
 
     def observation_test(self, obs, validate, write_empty_collections, version):
@@ -435,6 +458,10 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(actual_plane._id)
             self.assertEqual(expected_plane._id, actual_plane._id)
             
+            if version >= 23:
+                self.compare_none_or_equal(
+                    expected_plane.creator_id, actual_plane.creator_id, "creator_id")
+            
             self.compare_entity_attributes(expected_plane, actual_plane)
 
             self.assertEqual(expected_plane.meta_release,
@@ -454,10 +481,72 @@ class TestObservationReaderWriter(unittest.TestCase):
             if version == 21:
                 self.compare_quality(expected_plane.quality,
                                      actual_plane.quality)
+            
+            if version >= 22:
+                self.compare_position(expected_plane.position, actual_plane.position)
+                self.compare_energy(expected_plane.energy, actual_plane.energy)
+                self.compare_time(expected_plane.time, actual_plane.time)
+                self.compare_polarization(expected_plane.polarization, actual_plane.polarization)
 
             self.compare_artifacts(expected_plane.artifacts,
                                    actual_plane.artifacts, version)
-
+            
+    def compare_none_or_equal(self, expected, actual, field):
+        if expected is None:
+            self.assertIsNone(actual, field)
+        else:
+            self.assertEqual(expected, actual, field)
+            
+    def compare_position(self, expected, actual):
+        if expected is None:
+            self.assertIsNone(actual, "position")
+        else:
+            self.compare_shape(expected.bounds, actual.bounds)
+            self.compare_dimension2d(expected.dimension, actual.dimension)
+            if expected.resolution is None:
+                self.assertIsNone(actual.resolution, "resolution")
+            else:
+                self.assertEqual(expected.resolution, actual.resolution, "resolution")
+            if expected.sample_size is None:
+                self.assertIsNone(actual.sample_size, "sample_size")
+            else:
+                self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
+            if expected.time_dependent is None:
+                self.assertIsNone(actual.time_dependent, "time_dependent")
+            else:
+                self.assertEqual(expected.time_dependent, actual.time_dependent, "time_dependent")
+    
+    def compare_energy(self, expected, actual):
+        pass
+    
+    def compare_time(self, expected, actual):
+        pass
+    
+    def compare_polarization(self, expected, actual):
+        pass
+    
+    def compare_shape(self, expected, actual):
+        if expected is None:
+            self.assertIsNone(actual, "shape")
+        else:
+            if isinstance(expected, shape.Polygon):
+                self.assertIsNotNone(actual, "shape is None")
+                self.assertTrue(isinstance(actual, shape.Polygon), "mismatched shapes" + actual.__class__.__name__)
+                
+                expected_vertices = expected.vertices
+                actual_vertices = actual.vertices
+                self.assertEqual(len(expected_vertices), len(actual_vertices), "different number of vertices")
+                for index, vertex in enumerate(expected_vertices):
+                    self.compare_vertices(vertex, actual_vertices[index])
+            else:
+                raise TypeError("Unsupported shape type "
+                     + expected.__class__.__name__)
+    
+    def compare_vertices(self, expected, actual):
+        self.assertEqual(expected.cval1, actual.cval1)
+        self.assertEqual(expected.cval2, actual.cval2)
+        self.assertEqual(expected.type, actual.type)
+        
     def compare_provenance(self, expected, actual):
         if expected is None and actual is None:
             return
@@ -841,23 +930,17 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertEqual(expected.cval2, actual.cval2)
         
     def compare_entity_attributes(self, expected, actual):
-        if expected.last_modified is None:
-            self.assertIsNone(actual.last_modified)
-        else:
-            self.assertEqual(expected.last_modified, actual.last_modified, "last modified")
-        if expected.max_last_modified is None:
-            self.assertIsNone(actual.max_last_modified)
-        else:
-            print("comparing " + str(expected.max_last_modified) + " with " + str(actual.max_last_modified))
-            self.assertEqual(expected.max_last_modified, actual.max_last_modified, "max last modified")
-        if expected.meta_checksum is None:
-            self.assertIsNone(actual.meta_checksum)
-        else:
-            self.assertEqual(expected.meta_checksum, actual.meta_checksum, "meta checksum")    
-        if expected.acc_meta_checksum is None:
-            self.assertIsNone(actual.acc_meta_checksum)
-        else:
-            self.assertEqual(expected.acc_meta_checksum, actual.acc_meta_checksum, "acc_meta checksum")
+        if expected.last_modified is not None and actual.last_modified is not None:
+            self.assertEqual(expected.last_modified, actual.last_modified, "last_modified")
+            
+        if expected.max_last_modified is not None and actual.max_last_modified is not None:
+            self.assertEqual(expected.max_last_modified, actual.max_last_modified, "max_last_modified")
+
+        if expected.meta_checksum is not None and actual.meta_checksum is not None:
+            self.assertEqual(expected.meta_checksum, actual.meta_checksum, "meta_checksum")
+
+        if expected.acc_meta_checksum is not None and actual.acc_meta_checksum is not None:
+            self.assertEqual(expected.acc_meta_checksum, actual.acc_meta_checksum, "acc_meta_checksum")
 
 class TestRoundTrip(unittest.TestCase):
 

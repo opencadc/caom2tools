@@ -257,9 +257,15 @@ class Caom2TestInstances(object):
             _plane.metrics = self.get_metrics()
             _plane.last_modified = common.get_current_ivoa_time()
             if self.caom_version >= 23:
+                _plane.creator_id = "ivo://cadc.nrc.ca?testuser"
                 _plane.max_last_modified = common.get_current_ivoa_time()
                 _plane.meta_checksum = common.ChecksumURI("md5:9882dbbf9cadc221019b712fd402bcbd")
                 _plane.acc_meta_checksum = common.ChecksumURI("md5:844ce247db0844ad9f721430c80e7a21")
+            if self.caom_version >= 22:
+                _plane.position = self.get_position()
+                _plane.energy = self.get_energy()
+                _plane.time = self.get_time()
+                _plane.polarization = self.get_polarization()
             if self.caom_version == 21:
                 _plane.quality = self.get_quality()
 
@@ -268,6 +274,35 @@ class Caom2TestInstances(object):
                 _plane.artifacts[k] = v
         planes["productID"] = _plane
         return planes
+    
+    def get_position(self):
+        position = plane.Position()
+        
+        v1 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
+        v2 = shape.Vertex(2.0, 3.0, shape.SegmentType.LINE)
+        v3 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
+        v4 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
+        vl = [v1, v2, v3, v4]
+
+        polygon = shape.Polygon()
+        polygon.vertices = vl
+        
+        position.bounds = polygon
+        position.dimension = wcs.Dimension2D(10, 20)
+        position.resolution = 0.5
+        position.sample_size = 1.1
+        position.time_dependent = False
+        
+        return position
+    
+    def get_energy(self):
+        return None
+    
+    def get_time(self):
+        return None
+    
+    def get_polarization(self):
+        return None
 
     def get_provenance(self):
         provenance = plane.Provenance("name")
