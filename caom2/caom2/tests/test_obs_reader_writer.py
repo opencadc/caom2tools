@@ -476,8 +476,6 @@ class TestObservationReaderWriter(unittest.TestCase):
                                     actual_plane.provenance)
             self.compare_metrics(expected_plane.metrics, actual_plane.metrics)
             
-            self.compare_time(expected_plane.time, actual_plane.time)
-            
             if version == 21:
                 self.compare_quality(expected_plane.quality,
                                      actual_plane.quality)
@@ -485,7 +483,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             if version >= 22:
                 self.compare_position(expected_plane.position, actual_plane.position)
                 self.compare_energy(expected_plane.energy, actual_plane.energy)
+                print('comparing time')
                 self.compare_time(expected_plane.time, actual_plane.time)
+                print('compared time')
                 self.compare_polarization(expected_plane.polarization, actual_plane.polarization)
 
             self.compare_artifacts(expected_plane.artifacts,
@@ -517,6 +517,7 @@ class TestObservationReaderWriter(unittest.TestCase):
                 self.assertEqual(expected.time_dependent, actual.time_dependent, "time_dependent")
     
     def compare_energy(self, expected, actual):
+        print("comparing energy")
         if expected is None:
             self.assertIsNone(actual, "energy")
         else:
@@ -549,10 +550,41 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     
     def compare_time(self, expected, actual):
-        pass
+        if expected is None:
+            self.assertIsNone(actual, "time")
+        else:
+            self.compare_interval(expected.bounds, actual.bounds)
+            if expected.dimension is None:
+                self.assertIsNone(actual.dimension, "dimension")
+            else:
+                self.assertEqual(expected.dimension, actual.dimension, "dimension")
+            if expected.resolution is None:
+                self.assertIsNone(actual.resolution, "resolution")
+            else:
+                self.assertEqual(expected.resolution, actual.resolution, "resolution")
+            if expected.sample_size is None:
+                self.assertIsNone(actual.sample_size, "sample_size")
+            else:
+                self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
+            if expected.exposure is None:
+                self.assertIsNone(actual.exposure, "exposure")
+            else:
+                self.assertEqual(expected.exposure, actual.exposure, "exposure")
     
     def compare_polarization(self, expected, actual):
-        pass
+        if expected is None:
+            self.assertIsNone(expected, "polarization")
+        else:
+            if expected.dimension is None:
+                self.assertIsNone(actual.dimension, "dimension")
+            else:
+                self.assertEqual(expected.dimension, actual.dimension, "dimension")
+            if expected.polarization_states is None:
+                self.assertIsNone(actual.polarization_states, "polarization_states")
+            else:
+                self.assertEqual(len(expected.polarization_states), len(actual.polarization_states), "different number of polarization_states")
+                for index, state in enumerate(expected.polarization_states):
+                    self.assertEqual(state, actual.polarization_states[index], "polarization_state")
     
     def compare_shape(self, expected, actual):
         if expected is None:
@@ -643,11 +675,6 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertEqual(len(expected), len(actual))
         for expected_plane_uri, actual_plane_uri in zip(expected, actual):
             self.assertEqual(expected_plane_uri, actual_plane_uri)
-            
-    def compare_time(self, expected, actual):
-        if expected is None and actual is None:
-            return
-        
 
     def compare_artifacts(self, expected, actual, version):
         if expected is None and actual is None:

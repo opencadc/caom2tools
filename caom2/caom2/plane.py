@@ -1128,6 +1128,19 @@ class Polarization(CaomObject):
         caom_util.type_check(value, int, 'dimension')
         caom_util.value_check(value, 0, 1E10, 'dimension')
         self._dimension = value
+        
+    @property
+    def polarization_states(self):
+        """
+        type: list
+        """
+        return self._polarization_states
+
+    @polarization_states.setter
+    def polarization_states(self, value):
+        if value is not None:
+            caom_util.type_check(value, list, 'polarization_states', override=False)
+        self._polarization_states = value
 
 
 class Time(CaomObject):

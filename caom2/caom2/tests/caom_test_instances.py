@@ -306,7 +306,6 @@ class Caom2TestInstances(object):
         upper2 = 2.2
         samples = [shape.SubInterval(lower,upper), shape.SubInterval(lower1,upper1), shape.SubInterval(lower2,upper2)]
 
-        # test cannot set interval with upper < lower
         interval = shape.Interval(lower, upper, samples)
         
         energy.bounds = interval
@@ -320,10 +319,35 @@ class Caom2TestInstances(object):
         return energy
     
     def get_time(self):
-        return None
+        time = plane.Time()
+        
+        lower = 1.0
+        upper = 2.0
+        lower1 = 1.1
+        upper1 = 2.1
+        lower2 = 1.2
+        upper2 = 2.2
+        samples = [shape.SubInterval(lower,upper), shape.SubInterval(lower1,upper1), shape.SubInterval(lower2,upper2)]
+
+        interval = shape.Interval(lower, upper, samples)
+        
+        time.bounds = interval
+        time.dimension = 1
+        time.resolution = 2.1
+        time.sample_size = 3.0
+        time.exposure = 10.3
+        
+        return time
     
     def get_polarization(self):
-        return None
+        polarization = plane.Polarization()
+        
+        p_states = [plane.PolarizationState.LL, plane.PolarizationState.XY]
+        
+        polarization.dimension = 2
+        polarization.polarization_states = p_states
+        
+        return polarization
 
     def get_provenance(self):
         provenance = plane.Provenance("name")

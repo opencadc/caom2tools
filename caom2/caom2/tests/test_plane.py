@@ -537,9 +537,6 @@ class TestPolarizaton(unittest.TestCase):
 
         self.assertIsNone(polarization.dimension,
                           "Default polarization dimension")
-        energy = plane.Energy()
-        energy.bandpass_name = '123'
-        self.assertEqual('123', energy.bandpass_name, "Polarization dimension")
 
         # TODO add test for state
 

@@ -1231,10 +1231,58 @@ class ObservationReader(object):
         return energy
 
     def _get_time(self, element_tag, parent, ns, required):
-        pass
+        """Build a Time object from an XML representation of a
+        polarization element.
+        
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a Time object or
+                 None if the document does not contain a time element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        time = plane.Time()
+        time.bounds = self._get_interval("bounds", el, ns, False)
+        time.dimension = self._get_child_text_as_int("dimension", el, ns, False)
+        time.resolution = self._get_child_text_as_float("resolution", el, ns, False)
+        time.sample_size = self._get_child_text_as_float("sampleSize", el, ns, False)
+        time.exposure = self._get_child_text_as_float("exposure", el, ns, False)
+         
+        return time
 
     def _get_polarization(self, element_tag, parent, ns, required):
-        pass
+        """Build a Polarization object from an XML representation of a
+        polarization element.
+        
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a Polarization object or
+                 None if the document does not contain a polarization element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        polarization = plane.Polarization()
+        _pstates_el = self._get_child_element("states", el, ns, False)
+        if _pstates_el is not None:
+            _polarization_states = list()
+            for _pstate_el in _pstates_el.iterchildren("{" + ns + "}state"):
+                _pstate = _pstate_el.text
+                _polarization_state = plane.PolarizationState(_pstate)
+                _polarization_states.append(_polarization_state)
+            polarization.polarization_states = _polarization_states
+        polarization.dimension = self._get_child_text_as_int("dimension", el, ns, False)
+        
+        return polarization
     
     def _get_shape(self, element_tag, parent, ns, required):
         _shape = self._get_child_element(element_tag, parent, ns, required)
@@ -1800,10 +1848,31 @@ class ObservationWriter(object):
                 self._add_element("transition", energy.transition.transition, transition)          
         
     def _add_time_element(self, time, parent):
-        pass
+        if time is None:
+            return
+        
+        element = self._get_caom_element("time", parent)
+        self._add_interval_element("bounds", time.bounds, element)
+        if time.dimension:
+            self._add_element("dimension", time.dimension, element)
+        if time.resolution:
+            self._add_element("resolution", time.resolution, element)
+        if time.sample_size:
+            self._add_element("sampleSize", time.sample_size, element)
+        if time.exposure:
+            self._add_element("exposure", time.exposure, element)
         
     def _add_polarization_element(self, polarization, parent):
-        pass
+        if polarization is None:
+            return
+        
+        element = self._get_caom_element("polarization", parent)
+        if polarization.polarization_states:
+            _pstates_el = self._get_caom_element("states", element)
+            for _state in polarization.polarization_states:
+                self._add_element("state", _state.value, _pstates_el)   
+        if polarization.dimension:
+            self._add_element("dimension", polarization.dimension, element)     
     
     def _add_shape_element(self, name, the_shape, parent):
         if the_shape is None:
