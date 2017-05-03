@@ -1183,7 +1183,7 @@ class ObservationReader(object):
         ns : namespace of the document
         required : boolean indicating whether the element is required
         return : a Position object or
-                 None if the document does not contain an polarization element
+                 None if the document does not contain a polarization element
         raise : ObservationParsingException
         """
         el = self._get_child_element(element_tag, parent, ns, required)
@@ -1198,7 +1198,37 @@ class ObservationReader(object):
         return pos
     
     def _get_energy(self, element_tag, parent, ns, required):
-        pass
+        """Build an Energy object from an XML representation of a
+        polarization element.
+        
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : an Energy object or
+                 None if the document does not contain an energy element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        energy = plane.Energy()
+        energy.bounds = self._get_interval("bounds", el, ns, False)
+        energy.dimension = self._get_child_text_as_int("dimension", el, ns, False)
+        energy.resolving_power = self._get_child_text_as_float("resolvingPower", el, ns, False)
+        energy.sample_size = self._get_child_text_as_float("sampleSize", el, ns, False)
+        energy.bandpass_name = self._get_child_text("bandpassName", el, ns, False)
+        em_band = self._get_child_text("emBand", el, ns, False)
+        if em_band:
+            energy.em_band = plane.EnergyBand(em_band)
+        _transition_el = self._get_child_element("transition", el, ns, required)
+        if _transition_el:
+            species = self._get_child_text("species", _transition_el, ns, True)
+            transition = self._get_child_text("transition", _transition_el, ns, True)
+            energy.transition = wcs.EnergyTransition(species, transition)
+        
+        return energy
 
     def _get_time(self, element_tag, parent, ns, required):
         pass
@@ -1230,7 +1260,24 @@ class ObservationReader(object):
                 seg_type = shape.SegmentType(seg_type_value)
                 _vertex = shape.Vertex(cval1, cval2, seg_type)
                 vertices.append(_vertex)
-        
+                
+    def _get_interval(self, element_tag, parent, ns, required):
+        _interval_el = self._get_child_element(element_tag, parent, ns, required)
+        if _interval_el is None:
+            return None
+        _lower = self._get_child_text_as_float("lower", _interval_el, ns, True)
+        _upper = self._get_child_text_as_float("upper", _interval_el, ns, True)
+        _samples_el = self._get_child_element("samples", _interval_el, ns, required)
+        _interval = shape.Interval(_lower, _upper)
+        if _samples_el:
+            _samples = list()
+            for _sample_el in _samples_el.iterchildren("{" + ns + "}sample"):
+                _si_lower = self._get_child_text_as_float("lower", _sample_el, ns, required)
+                _si_upper = self._get_child_text_as_float("upper", _sample_el, ns, required)
+                _sub_interval = shape.SubInterval(_si_lower, _si_upper)
+                _samples.append(_sub_interval)
+            _interval.samples = _samples
+        return _interval
 
     def _add_chunks(self, chunks, parent, ns):
         """Build Chunk objects from an XML representation of Chunk elements
@@ -1720,13 +1767,37 @@ class ObservationWriter(object):
         
         element = self._get_caom_element("position", parent)
         self._add_shape_element("bounds", position.bounds, element)
-        self._add_dimension2d_element("dimension", position.dimension, element)
-        self._add_element("resolution", position.resolution, element)
-        self._add_element("sampleSize", position.sample_size, element)
-        self._add_element("timeDependent", str(position.time_dependent).lower(), element)
+        if position.dimension:
+            self._add_dimension2d_element("dimension", position.dimension, element)
+        if position.resolution:
+            self._add_element("resolution", position.resolution, element)
+        if position.sample_size:
+            self._add_element("sampleSize", position.sample_size, element)
+        if position.time_dependent is not None:
+            self._add_element("timeDependent", str(position.time_dependent).lower(), element)
         
     def _add_energy_element(self, energy, parent):
-        pass
+        if energy is None:
+            return
+        
+        element = self._get_caom_element("energy", parent)
+        self._add_interval_element("bounds", energy.bounds, element)
+        if energy.dimension:
+            self._add_element("dimension", energy.dimension, element)
+        if energy.resolving_power:
+            self._add_element("resolvingPower", energy.resolving_power, element)
+        if energy.sample_size:
+            self._add_element("sampleSize", energy.sample_size, element)
+        if energy.bandpass_name:
+            self._add_element("bandpassName", energy.bandpass_name, element)
+        if energy.em_band:
+            self._add_element("emBand", energy.em_band.value, element)
+        if energy.transition:
+            transition = self._get_caom_element("transition", element)
+            if energy.transition.species:
+                self._add_element("species", energy.transition.species, transition)
+            if energy.transition.transition:
+                self._add_element("transition", energy.transition.transition, transition)          
         
     def _add_time_element(self, time, parent):
         pass
@@ -1735,7 +1806,7 @@ class ObservationWriter(object):
         pass
     
     def _add_shape_element(self, name, the_shape, parent):
-        if shape is None:
+        if the_shape is None:
             return
         
         if isinstance(the_shape, shape.Polygon):
@@ -1750,7 +1821,21 @@ class ObservationWriter(object):
         else:
             raise TypeError("Unsupported shape type "
                  + the_shape.__class__.__name__)
-
+            
+    def _add_interval_element(self, name, interval, parent):
+        if interval is None:
+            return
+        else:
+            _interval_element = self._get_caom_element(name, parent)
+            self._add_element("lower", interval.lower, _interval_element)
+            self._add_element("upper", interval.upper, _interval_element)
+            if interval.samples:
+                _samples_element = self._get_caom_element("samples", _interval_element)
+                for _sample in interval.samples:
+                    _sample_element = self._get_caom_element("sample", _samples_element)
+                    self._add_element("lower", _sample.lower, _sample_element)
+                    self._add_element("upper", _sample.upper, _sample_element)
+        
     def _add_provenance_element(self, provenance, parent):
         if provenance is None:
             return

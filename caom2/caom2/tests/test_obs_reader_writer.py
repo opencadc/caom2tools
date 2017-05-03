@@ -517,7 +517,36 @@ class TestObservationReaderWriter(unittest.TestCase):
                 self.assertEqual(expected.time_dependent, actual.time_dependent, "time_dependent")
     
     def compare_energy(self, expected, actual):
-        pass
+        if expected is None:
+            self.assertIsNone(actual, "energy")
+        else:
+            self.compare_interval(expected.bounds, actual.bounds)
+            if expected.dimension is None:
+                self.assertIsNone(actual.dimension, "dimension")
+            else:
+                self.assertEqual(expected.dimension, actual.dimension, "dimension")
+            if expected.resolving_power is None:
+                self.assertIsNone(actual.resolving_power, "resolving_power")
+            else:
+                self.assertEqual(expected.resolving_power, actual.resolving_power, "resolving_power")
+            if expected.sample_size is None:
+                self.assertIsNone(actual.sample_size, "sample_size")
+            else:
+                self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
+            if expected.bandpass_name is None:
+                self.assertIsNone(actual.bandpass_name, "bandpass_name")
+            else:
+                self.assertEqual(expected.bandpass_name, actual.bandpass_name, "bandpass_name")
+            if expected.em_band is None:
+                self.assertIsNone(actual.em_band, "em_band")
+            else:
+                self.assertEqual(expected.em_band, actual.em_band, "em_band")
+            if expected.bandpass_name is None:
+                self.assertIsNone(actual.bandpass_name, "bandpass_name")
+            else:
+                self.assertEqual(expected.bandpass_name, actual.bandpass_name, "bandpass_name")
+            self.compare_wcs_energy_transition(expected.transition, actual.transition)
+
     
     def compare_time(self, expected, actual):
         pass
@@ -541,6 +570,33 @@ class TestObservationReaderWriter(unittest.TestCase):
             else:
                 raise TypeError("Unsupported shape type "
                      + expected.__class__.__name__)
+                
+    def compare_interval(self, expected, actual):
+        if expected is None:
+            self.assertIsNone(actual, "interval")
+        else:
+            self.assertEqual(expected.lower, actual.lower, "lower")
+            self.assertEqual(expected.upper, actual.upper, "upper")
+            if expected.samples is None:
+                self.assertIsNone(actual.samples, "samples")
+            else:
+                self.assertEqual(len(actual.samples), len(expected.samples), "samples")
+                for index, sample in enumerate(expected.samples):
+                    self.compare_sub_interval(sample, actual.samples[index])
+    
+    def compare_sub_interval(self, expected, actual):
+        if expected is None:
+            self.assertIsNone(actual, "sub_interval")
+        else:
+            self.assertEqual(expected.lower, actual.lower, "lower")
+            self.assertEqual(expected.upper, actual.upper, "upper")
+    
+    def compare_wcs_energy_transition(self, expected, actual):
+        if expected is None:
+            self.assertIsNone(actual, "wcs_energy_transition")
+        else:
+            self.assertEqual(expected.species, actual.species, "species")
+            self.assertEqual(expected.transition, actual.transition, "transition")
     
     def compare_vertices(self, expected, actual):
         self.assertEqual(expected.cval1, actual.cval1)

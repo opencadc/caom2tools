@@ -296,7 +296,28 @@ class Caom2TestInstances(object):
         return position
     
     def get_energy(self):
-        return None
+        energy = plane.Energy()
+        
+        lower = 1.0
+        upper = 2.0
+        lower1 = 1.1
+        upper1 = 2.1
+        lower2 = 1.2
+        upper2 = 2.2
+        samples = [shape.SubInterval(lower,upper), shape.SubInterval(lower1,upper1), shape.SubInterval(lower2,upper2)]
+
+        # test cannot set interval with upper < lower
+        interval = shape.Interval(lower, upper, samples)
+        
+        energy.bounds = interval
+        energy.dimension = 100
+        energy.resolving_power = 2.0
+        energy.sample_size = 1.1
+        energy.bandpass_name = "e"
+        energy.em_band = plane.EnergyBand.GAMMARAY
+        energy.transition = wcs.EnergyTransition("species", "transition")
+        
+        return energy
     
     def get_time(self):
         return None
