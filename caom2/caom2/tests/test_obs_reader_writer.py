@@ -459,7 +459,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertEqual(expected_plane._id, actual_plane._id)
             
             if version >= 23:
-                self.compare_none_or_equal(
+                self.assertEqual(
                     expected_plane.creator_id, actual_plane.creator_id, "creator_id")
             
             self.compare_entity_attributes(expected_plane, actual_plane)
@@ -491,30 +491,15 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.compare_artifacts(expected_plane.artifacts,
                                    actual_plane.artifacts, version)
             
-    def compare_none_or_equal(self, expected, actual, field):
-        if expected is None:
-            self.assertIsNone(actual, field)
-        else:
-            self.assertEqual(expected, actual, field)
-            
     def compare_position(self, expected, actual):
         if expected is None:
             self.assertIsNone(actual, "position")
         else:
             self.compare_shape(expected.bounds, actual.bounds)
             self.compare_dimension2d(expected.dimension, actual.dimension)
-            if expected.resolution is None:
-                self.assertIsNone(actual.resolution, "resolution")
-            else:
-                self.assertEqual(expected.resolution, actual.resolution, "resolution")
-            if expected.sample_size is None:
-                self.assertIsNone(actual.sample_size, "sample_size")
-            else:
-                self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
-            if expected.time_dependent is None:
-                self.assertIsNone(actual.time_dependent, "time_dependent")
-            else:
-                self.assertEqual(expected.time_dependent, actual.time_dependent, "time_dependent")
+            self.assertEqual(expected.resolution, actual.resolution, "resolution")
+            self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
+            self.assertEqual(expected.time_dependent, actual.time_dependent, "time_dependent")
     
     def compare_energy(self, expected, actual):
         print("comparing energy")
@@ -522,30 +507,12 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNone(actual, "energy")
         else:
             self.compare_interval(expected.bounds, actual.bounds)
-            if expected.dimension is None:
-                self.assertIsNone(actual.dimension, "dimension")
-            else:
-                self.assertEqual(expected.dimension, actual.dimension, "dimension")
-            if expected.resolving_power is None:
-                self.assertIsNone(actual.resolving_power, "resolving_power")
-            else:
-                self.assertEqual(expected.resolving_power, actual.resolving_power, "resolving_power")
-            if expected.sample_size is None:
-                self.assertIsNone(actual.sample_size, "sample_size")
-            else:
-                self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
-            if expected.bandpass_name is None:
-                self.assertIsNone(actual.bandpass_name, "bandpass_name")
-            else:
-                self.assertEqual(expected.bandpass_name, actual.bandpass_name, "bandpass_name")
-            if expected.em_band is None:
-                self.assertIsNone(actual.em_band, "em_band")
-            else:
-                self.assertEqual(expected.em_band, actual.em_band, "em_band")
-            if expected.bandpass_name is None:
-                self.assertIsNone(actual.bandpass_name, "bandpass_name")
-            else:
-                self.assertEqual(expected.bandpass_name, actual.bandpass_name, "bandpass_name")
+            self.assertEqual(expected.dimension, actual.dimension, "dimension")
+            self.assertEqual(expected.resolving_power, actual.resolving_power, "resolving_power")
+            self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
+            self.assertEqual(expected.bandpass_name, actual.bandpass_name, "bandpass_name")
+            self.assertEqual(expected.em_band, actual.em_band, "em_band")
+            self.assertEqual(expected.bandpass_name, actual.bandpass_name, "bandpass_name")
             self.compare_wcs_energy_transition(expected.transition, actual.transition)
 
     
@@ -554,31 +521,16 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNone(actual, "time")
         else:
             self.compare_interval(expected.bounds, actual.bounds)
-            if expected.dimension is None:
-                self.assertIsNone(actual.dimension, "dimension")
-            else:
-                self.assertEqual(expected.dimension, actual.dimension, "dimension")
-            if expected.resolution is None:
-                self.assertIsNone(actual.resolution, "resolution")
-            else:
-                self.assertEqual(expected.resolution, actual.resolution, "resolution")
-            if expected.sample_size is None:
-                self.assertIsNone(actual.sample_size, "sample_size")
-            else:
-                self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
-            if expected.exposure is None:
-                self.assertIsNone(actual.exposure, "exposure")
-            else:
-                self.assertEqual(expected.exposure, actual.exposure, "exposure")
+            self.assertEqual(expected.dimension, actual.dimension, "dimension")
+            self.assertEqual(expected.resolution, actual.resolution, "resolution")
+            self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
+            self.assertEqual(expected.exposure, actual.exposure, "exposure")
     
     def compare_polarization(self, expected, actual):
         if expected is None:
             self.assertIsNone(expected, "polarization")
         else:
-            if expected.dimension is None:
-                self.assertIsNone(actual.dimension, "dimension")
-            else:
-                self.assertEqual(expected.dimension, actual.dimension, "dimension")
+            self.assertEqual(expected.dimension, actual.dimension, "dimension")
             if expected.polarization_states is None:
                 self.assertIsNone(actual.polarization_states, "polarization_states")
             else:

@@ -1175,7 +1175,7 @@ class ObservationReader(object):
             
     def _get_position(self, element_tag, parent, ns, required):
         """Build a Position object from an XML representation of a
-        polarization element.
+        position element.
         
         Arguments:
         elTag : element tag which identifies the element
@@ -1198,8 +1198,8 @@ class ObservationReader(object):
         return pos
     
     def _get_energy(self, element_tag, parent, ns, required):
-        """Build an Energy object from an XML representation of a
-        polarization element.
+        """Build an Energy object from an XML representation of an
+        energy element.
         
         Arguments:
         elTag : element tag which identifies the element
@@ -1232,7 +1232,7 @@ class ObservationReader(object):
 
     def _get_time(self, element_tag, parent, ns, required):
         """Build a Time object from an XML representation of a
-        polarization element.
+        time element.
         
         Arguments:
         elTag : element tag which identifies the element
