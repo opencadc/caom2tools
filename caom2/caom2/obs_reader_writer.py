@@ -1815,14 +1815,10 @@ class ObservationWriter(object):
         
         element = self._get_caom_element("position", parent)
         self._add_shape_element("bounds", position.bounds, element)
-        if position.dimension:
-            self._add_dimension2d_element("dimension", position.dimension, element)
-        if position.resolution:
-            self._add_element("resolution", position.resolution, element)
-        if position.sample_size:
-            self._add_element("sampleSize", position.sample_size, element)
-        if position.time_dependent is not None:
-            self._add_element("timeDependent", str(position.time_dependent).lower(), element)
+        self._add_dimension2d_element("dimension", position.dimension, element)
+        self._add_element("resolution", position.resolution, element)
+        self._add_element("sampleSize", position.sample_size, element)
+        self._add_element("timeDependent", str(position.time_dependent).lower(), element)
         
     def _add_energy_element(self, energy, parent):
         if energy is None:
@@ -1830,22 +1826,15 @@ class ObservationWriter(object):
         
         element = self._get_caom_element("energy", parent)
         self._add_interval_element("bounds", energy.bounds, element)
-        if energy.dimension:
-            self._add_element("dimension", energy.dimension, element)
-        if energy.resolving_power:
-            self._add_element("resolvingPower", energy.resolving_power, element)
-        if energy.sample_size:
-            self._add_element("sampleSize", energy.sample_size, element)
-        if energy.bandpass_name:
-            self._add_element("bandpassName", energy.bandpass_name, element)
-        if energy.em_band:
-            self._add_element("emBand", energy.em_band.value, element)
+        self._add_element("dimension", energy.dimension, element)
+        self._add_element("resolvingPower", energy.resolving_power, element)
+        self._add_element("sampleSize", energy.sample_size, element)
+        self._add_element("bandpassName", energy.bandpass_name, element)
+        self._add_element("emBand", energy.em_band.value, element)
         if energy.transition:
             transition = self._get_caom_element("transition", element)
-            if energy.transition.species:
-                self._add_element("species", energy.transition.species, transition)
-            if energy.transition.transition:
-                self._add_element("transition", energy.transition.transition, transition)          
+            self._add_element("species", energy.transition.species, transition)
+            self._add_element("transition", energy.transition.transition, transition)          
         
     def _add_time_element(self, time, parent):
         if time is None:
@@ -1853,14 +1842,10 @@ class ObservationWriter(object):
         
         element = self._get_caom_element("time", parent)
         self._add_interval_element("bounds", time.bounds, element)
-        if time.dimension:
-            self._add_element("dimension", time.dimension, element)
-        if time.resolution:
-            self._add_element("resolution", time.resolution, element)
-        if time.sample_size:
-            self._add_element("sampleSize", time.sample_size, element)
-        if time.exposure:
-            self._add_element("exposure", time.exposure, element)
+        self._add_element("dimension", time.dimension, element)
+        self._add_element("resolution", time.resolution, element)
+        self._add_element("sampleSize", time.sample_size, element)
+        self._add_element("exposure", time.exposure, element)
         
     def _add_polarization_element(self, polarization, parent):
         if polarization is None:
@@ -1871,8 +1856,7 @@ class ObservationWriter(object):
             _pstates_el = self._get_caom_element("states", element)
             for _state in polarization.polarization_states:
                 self._add_element("state", _state.value, _pstates_el)   
-        if polarization.dimension:
-            self._add_element("dimension", polarization.dimension, element)     
+        self._add_element("dimension", polarization.dimension, element)     
     
     def _add_shape_element(self, name, the_shape, parent):
         if the_shape is None:
