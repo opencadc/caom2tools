@@ -718,7 +718,7 @@ class Environment(CaomObject):
     @tau.setter
     def tau(self, value):
         caom_util.type_check(value, float, 'tau')
-        caom_util.value_check(value, 0, 1, 'tau')
+        #Value must be >= 0, but has no upper limit
         self._tau = value
 
     @property
@@ -748,7 +748,6 @@ class Environment(CaomObject):
     @ambient_temp.setter
     def ambient_temp(self, value):
         caom_util.type_check(value, float, 'ambient_temp')
-        caom_util.value_check(value, -100, 100, 'ambient_temp')
         self._ambient_temp = value
 
     @property

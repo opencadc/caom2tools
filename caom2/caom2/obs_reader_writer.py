@@ -1441,6 +1441,9 @@ class ObservationReader(object):
                 _artifact.content_type = self._get_child_text("contentType", artifact_element, ns, False)
                 _artifact.content_length = (
                     self._get_child_text_as_long("contentLength", artifact_element, ns, False))
+                content_checksum = self._get_child_text("contentChecksum", artifact_element, ns, False)
+                if content_checksum:
+                    _artifact.content_checksum = common.ChecksumURI(content_checksum)
                 self._add_parts(_artifact.parts, artifact_element, ns)
                 self._set_entity_attributes(artifact_element, ns, _artifact)
                 artifacts[_artifact.uri] = _artifact
@@ -1650,8 +1653,10 @@ class ObservationWriter(object):
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(obs_element)
 
-        out.write(etree.tostring(obs_element, encoding='unicode',
+
+        out.write(etree.tostring(obs_element, encoding='UTF-8', method='xml', xml_declaration=True,
                                  pretty_print=True))
+        out.flush()
 
     def _add_entity_attributes(self, entity, element):
         if self._output_version == 20:
@@ -1950,6 +1955,9 @@ class ObservationWriter(object):
                 self._add_element("releaseType", _artifact.release_type.value, artifact_element)
             self._add_element("contentType", _artifact.content_type, artifact_element)
             self._add_element("contentLength", _artifact.content_length, artifact_element)
+            if self._output_version > 22:
+                if _artifact.content_checksum:
+                    self._add_element("contentChecksum", _artifact.content_checksum.uri, artifact_element)
             if self._output_version < 22:
                 self._add_element("productType", _artifact.product_type.value, artifact_element)
             self._add_parts_element(_artifact.parts, artifact_element)
