@@ -1654,7 +1654,7 @@ class ObservationWriter(object):
             self._xmlschema.assertValid(obs_element)
 
 
-        out.write(etree.tostring(obs_element, encoding='UTF-8', method='xml', xml_declaration=True,
+        out.write(etree.tostring(obs_element, encoding='UTF-8', xml_declaration=True,
                                  pretty_print=True))
         out.flush()
 
