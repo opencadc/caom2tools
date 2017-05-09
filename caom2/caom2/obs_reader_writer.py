@@ -73,7 +73,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from future.utils import bytes_to_native_str as byes2native
+from future.utils import bytes_to_native_str as bytes2native
 
 import os
 import uuid
@@ -1656,7 +1656,7 @@ class ObservationWriter(object):
             self._xmlschema.assertValid(obs_element)
 
         doc = etree.tostring(obs_element, encoding='UTF-8', xml_declaration=True, pretty_print=True)
-        out.write(byes2native(doc))
+        out.write(bytes2native(doc))
         out.flush()
 
     def _add_entity_attributes(self, entity, element):

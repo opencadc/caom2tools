@@ -998,7 +998,7 @@ class TestRoundTrip(unittest.TestCase):
         writer.write(obs, dest_file)
 
         source_dom = etree.parse(source_file_path).getroot()
-        dest_dom = etree.fromstring(dest_file.getvalue())
+        dest_dom = etree.fromstring(str(dest_file.getvalue()))
         self.assertTrue(xml_compare(source_dom, dest_dom, reporter=print),
                         'files are different')
 
