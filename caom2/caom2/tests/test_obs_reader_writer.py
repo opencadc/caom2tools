@@ -72,6 +72,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from future.utils import native_str_to_bytes as native2bytes
+
 from six import StringIO
 import os
 import unittest
@@ -998,7 +1000,7 @@ class TestRoundTrip(unittest.TestCase):
         writer.write(obs, dest_file)
 
         source_dom = etree.parse(source_file_path).getroot()
-        dest_dom = etree.fromstring(str(dest_file.getvalue()))
+        dest_dom = etree.fromstring(native2bytes(dest_file.getvalue()))
         self.assertTrue(xml_compare(source_dom, dest_dom, reporter=print),
                         'files are different')
 
