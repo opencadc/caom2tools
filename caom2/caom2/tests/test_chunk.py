@@ -320,6 +320,9 @@ class TestTemporalWCS(unittest.TestCase):
         time.exposure = float(1.0)
         self.assertEqual(time.exposure, float(1.0))
 
+        time.exposure = 1E20
+        self.assertEqual(time.exposure, 1E20)
+
         time.resolution = float(2.0)
         self.assertEqual(time.resolution, float(2.0))
 

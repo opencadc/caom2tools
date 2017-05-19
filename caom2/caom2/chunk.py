@@ -881,7 +881,7 @@ class TemporalWCS(CaomObject):
     @exposure.setter
     def exposure(self, value):
         caom_util.type_check(value, float, "exposure")
-        caom_util.value_check(value, 0, 30 * 24 * 3600.0, "exposure")
+        caom_util.value_check(value, 0, float("inf"), "exposure")
         self._exposure = value
 
     @property
