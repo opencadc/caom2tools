@@ -381,6 +381,7 @@ class TestCAOM2Repo(unittest.TestCase):
         with self.assertRaises(exceptions.HttpException):
             visitor.delete_observation(collection, observation_id)
 
+
     @patch('cadcutils.net.ws.WsCapabilities')
     def test_process(self, caps_mock):
         caps_mock.get_service_host.return_value = 'some.host.com'
@@ -391,13 +392,19 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor.post_observation = MagicMock()
         visitor._get_observations = MagicMock(side_effect=obs)
 
-        self.assertEquals((4, 4, 0, 0), visitor.visit(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht'))
+        (visited, updated, skipped, failed) = visitor.visit(os.path.join(THIS_DIR, 'passplugin.py'), 'cfht')
+        self.assertEqual(4, len(visited))
+        self.assertEqual(4, len(updated))
+        self.assertEqual(0, len(skipped))
+        self.assertEqual(0, len(failed))
 
         obs = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
         visitor._get_observations = MagicMock(side_effect=obs)
-        self.assertEquals((6, 6, 0, 0), visitor.visit(os.path.join(
-                THIS_DIR, 'passplugin.py'), 'cfht'))
+        (visited, updated, skipped, failed) = visitor.visit(os.path.join(THIS_DIR, 'passplugin.py'), 'cfht')
+        self.assertEqual(6, len(visited))
+        self.assertEqual(6, len(updated))
+        self.assertEqual(0, len(skipped))
+        self.assertEqual(0, len(failed))
 
         # make it return different status. errorplugin returns according to the
         # id of the observation: True for 'UPDATE', False for 'SKIP' and
@@ -408,8 +415,11 @@ class TestCAOM2Repo(unittest.TestCase):
                 SimpleObservation(collection='TEST', observation_id='ERROR')]
         visitor._get_observations = MagicMock(side_effect=obs_ids)
         visitor.get_observation = MagicMock(side_effect=obs)
-        self.assertEquals((3, 1, 1, 1), visitor.visit(os.path.join(
-            THIS_DIR, 'errorplugin.py'), 'cfht'))
+        (visited, updated, skipped, failed) = visitor.visit(os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht')
+        self.assertEqual(3, len(visited))
+        self.assertEqual(1, len(updated))
+        self.assertEqual(1, len(skipped))
+        self.assertEqual(1, len(failed))
 
         # repeat with other obs
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
@@ -420,8 +430,11 @@ class TestCAOM2Repo(unittest.TestCase):
                SimpleObservation(collection='TEST', observation_id='SKIP')]
         visitor._get_observations = MagicMock(side_effect=obs_ids)
         visitor.get_observation = MagicMock(side_effect=obs)
-        self.assertEquals((5, 2, 2, 1), visitor.visit(os.path.join(
-            THIS_DIR, 'errorplugin.py'), 'cfht'))
+        (visited, updated, skipped, failed) = visitor.visit(os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht')
+        self.assertEqual(5, len(visited))
+        self.assertEqual(2, len(updated))
+        self.assertEqual(2, len(skipped))
+        self.assertEqual(1, len(failed))
 
         # repeat but halt on first ERROR -> process only 3 observations
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
@@ -435,6 +448,28 @@ class TestCAOM2Repo(unittest.TestCase):
         with self.assertRaises(SystemError):
             visitor.visit(os.path.join(
                 THIS_DIR, 'errorplugin.py'), 'cfht', halt_on_error=True)
+
+
+    def test_shortcuts(self):
+        target = CAOM2RepoClient(auth.Subject())
+        obs = SimpleObservation('CFHT', 'abc')
+
+        target.put_observation = Mock()
+        target.create(obs)
+        target.put_observation.assert_called_with(obs)
+
+        target.get_observation = Mock()
+        target.read('CFHT', 'abc')
+        target.get_observation.assert_called_with('CFHT', 'abc')
+
+        target.post_observation = Mock()
+        target.update(obs)
+        target.post_observation.assert_called_with(obs)
+
+        target.delete_observation = Mock()
+        target.delete('CFHT', 'abc')
+        target.delete_observation.assert_called_with('CFHT', 'abc')
+
 
     @patch('caom2repo.core.CAOM2RepoClient')
     def test_main_app(self, client_mock):
@@ -484,7 +519,7 @@ class TestCAOM2Repo(unittest.TestCase):
         sys.argv = ["caom2tools", "visit", '--resource-id', 'ivo://ca.nrc.ca/resource',
                     "--plugin", plugin_file, "--start", "2012-01-01T11:22:33",
                     "--end", "2013-01-01T11:33:22", collection]
-        client_mock.return_value.visit.return_value = 1, 1, 0, 0
+        client_mock.return_value.visit.return_value = ['1'], ['1'], [], []
         with open(plugin_file, 'r') as infile:
             core.main_app()
             client_mock.return_value.visit.assert_called_with(
@@ -497,7 +532,7 @@ class TestCAOM2Repo(unittest.TestCase):
                     "--plugin", plugin_file,'--halt-on-error',
                     "--start", "2012-01-01T11:22:33",
                     "--end", "2013-01-01T11:33:22", collection]
-        client_mock.return_value.visit.return_value = 1, 1, 0, 0
+        client_mock.return_value.visit.return_value = ['1'], ['1'], [], []
         with open(plugin_file, 'r') as infile:
             core.main_app()
             client_mock.return_value.visit.assert_called_with(
@@ -534,12 +569,12 @@ optional arguments:
                            [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                            [--host HOST] [--resource-id RESOURCE_ID]
                            [-d | -q | -v]
-                           <new observation file in XML format>
+                           observation
 
 Create a new observation
 
 positional arguments:
-  <new observation file in XML format>
+  observation           XML file containing the observation
 
 optional arguments:
   --cert CERT           location of your X509 certificate to use for
@@ -603,7 +638,7 @@ optional arguments:
 Update an existing observation
 
 positional arguments:
-  observation
+  observation           XML file containing the observation
 
 optional arguments:
   --cert CERT           location of your X509 certificate to use for
@@ -673,7 +708,7 @@ optional arguments:
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
   -d, --debug           debug messages
-  --end END             earliest dataset to visit (UTC IVOA format: YYYY-mm-
+  --end END             latest observation to visit (UTC IVOA format: YYYY-mm-
                         ddTH:M:S)
   --halt-on-error       stop visitor on first update exception raised by
                         plugin
@@ -689,8 +724,8 @@ optional arguments:
                         resource identifier (default
                         ivo://cadc.nrc.ca/caom2repo)
   -s, --server SERVER   URL of the CAOM2 repo server
-  --start START         oldest dataset to visit (UTC IVOA format: YYYY-mm-
-                        ddTH:M:S)
+  --start START         earliest observation to visit (UTC IVOA format: YYYY-
+                        mm-ddTH:M:S)
   -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages

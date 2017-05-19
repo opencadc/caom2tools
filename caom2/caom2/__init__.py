@@ -73,7 +73,7 @@
 """
 This library implements the Common Archive Observation Model (CAOM), a general
 purpose data model for use as the core data model of an astronomical data centre.
-The details about the model and its componenets can be found at:
+The details about the model and its components can be found at:
 
 http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2/
 """

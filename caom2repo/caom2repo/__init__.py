@@ -44,12 +44,8 @@ to prevent the script from quiting. Method 3, while simple, must rely on inter
 processes communication to determine the result of running the command.
 """
 
-# Affiliated packages may add whatever they like to this file, but
-# should keep this content at the top.
-# ----------------------------------------------------------------------------
-from ._astropy_init import *
-# ----------------------------------------------------------------------------
-
-# For egg_info test builds to pass, put package imports here.
-if not _ASTROPY_SETUP_:
+try:
+      _PACKAGE_SETUP_
+except NameError:
+   # not in setup mode
    from .core import *
