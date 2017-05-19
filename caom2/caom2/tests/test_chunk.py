@@ -227,7 +227,8 @@ class TestSpatialWCS(unittest.TestCase):
         position.coordsys = "coordsys"
         self.assertEqual(position.coordsys, "coordsys")
 
-        self.assertRaises(ValueError, position.equinox, float(1.0))
+        with self.assertRaises(ValueError):
+            position.equinox = float(1.0)
         position.equinox = float(2000.0)
         self.assertEqual(position.equinox, float(2000.0))
 
