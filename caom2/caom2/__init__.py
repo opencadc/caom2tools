@@ -73,19 +73,14 @@
 """
 This library implements the Common Archive Observation Model (CAOM), a general
 purpose data model for use as the core data model of an astronomical data centre.
-The details about the model and its componenets can be found at:
+The details about the model and its components can be found at:
 
 http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2/
 """
-
-# Affiliated packages may add whatever they like to this file, but
-# should keep this content at the top.
-# ----------------------------------------------------------------------------
-from ._astropy_init import *
-# ----------------------------------------------------------------------------
-
-# For egg_info test builds to pass, put package imports here.
-if not _ASTROPY_SETUP_:
+try:
+    _PACKAGE_SETUP_
+except NameError:
+    # not in setup mode
     from .caom_util import *
     from .common import *
     from .wcs import *

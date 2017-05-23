@@ -126,6 +126,41 @@ class CAOM2RepoClient(object):
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host)
 
+    # shortcuts for the CRUD operations
+    def create(self, observation):
+        """
+        Creates an observation in the repo. 
+        :param observation: Observation to create
+        :return: Created observation
+        """
+        self.put_observation(observation)
+
+    def read(self, collection, observation_id):
+        """
+        Read an observation from the repo
+        :param collection: Name of the collection
+        :param observation_id: Observation identifier
+        :return: Observation
+        """
+        self.get_observation(collection, observation_id)
+
+    def update(self, observation):
+        """
+        Update an observation in the repo
+        :param observation: Observation to update
+        :return: Updated observation
+        """
+        self.post_observation(observation)
+
+    def delete(self, collection, observation_id):
+        """
+        Delete an observation from the repo
+        :param collection: Name of the collection
+        :param observation_id: Observation identifier
+        """
+        self.delete_observation(collection, observation_id)
+
+
     def visit(self, plugin, collection, start=None, end=None, halt_on_error=False):
         """
         Main processing function that iterates through the observations of
@@ -138,8 +173,8 @@ class CAOM2RepoClient(object):
         :param end: optional latest date-time of the targeted observation set
         :param halt_on_error if True halts the execution on the first exception raised by
                the plugin update function otherwise logs the error and continues
-        :return: tuple (number of visited observations, number of updates,
-                number of skipped observations, number errors)
+        :return: tuple (list of visited observations, list of updated observation,
+                list of skipped observations, list of failured observation)
         """
         if not os.path.isfile(plugin):
             raise Exception('Cannot find plugin file ' + plugin)
@@ -152,40 +187,40 @@ class CAOM2RepoClient(object):
 
         # this is updated by _get_observations with the timestamp of last observation in the batch
         self._start = start
-        count = 0
-        errors = 0
-        updates = 0
-        skipped = 0
+        visited = []
+        failed = []
+        updated = []
+        skipped = []
         observations = self._get_observations(collection, self._start, end)
         while len(observations) > 0:
             for observationID in observations:
+                self.logger.info('Process observation: ' + observationID)
                 observation = self.get_observation(collection, observationID)
-                self.logger.info('Process observation: ' + observation.observation_id)
                 try:
                     if self.plugin.update(observation) is False:
-                        self.logger.info('Skip observation {}'.format(observation.observation_id))
-                        skipped += 1
+                        self.logger.info('SKIP {}'.format(observation.observation_id))
+                        skipped.append(observation.observation_id)
                     else:
                         self.post_observation(observation)
-                        self.logger.debug('Updated observation {}'.format(observation.observation_id))
-                        updates += 1
+                        self.logger.debug('UPDATED {}'.format(observation.observation_id))
+                        updated.append(observation.observation_id)
                 except Exception as e:
-                    errors += 1
-                    self.logger.error('Observation {} not updated due to error: '.
+                    failed.append(observation.observation_id)
+                    self.logger.error('FAILED {} - Reason: '.
                                   format(observation.observation_id), e)
                     if halt_on_error:
                         raise e
-                count += 1
+                visited.append(observation.observation_id)
             if len(observations) == BATCH_SIZE:
                 observations = self._get_observations(collection)
             else:
                 # the last batch was smaller so it must have been the last
                 break
-        return count, updates, skipped, errors
+        return visited, updated, skipped, failed
 
     def _get_observations(self, collection, start=None, end=None):
         """
-        Returns a list of datasets from the collection
+        Returns a list of observations from the collection
         :param collection: name of the collection
         :param start: earliest observation
         :param end: latest observation
@@ -327,7 +362,7 @@ def main_app():
     subparsers = parser.add_subparsers(dest='cmd')
     create_parser = subparsers.add_parser('create', description='Create a new observation',
                                           help='Create a new observation')
-    create_parser.add_argument('observation', metavar='<new observation file in XML format>',
+    create_parser.add_argument('observation', help='XML file containing the observation',
                                type=argparse.FileType('r'))
 
     read_parser = subparsers.add_parser('read',
@@ -340,7 +375,8 @@ def main_app():
     update_parser = subparsers.add_parser('update',
                                           description='Update an existing observation',
                                           help='Update an existing observation')
-    update_parser.add_argument('observation', type=argparse.FileType('r'))
+    update_parser.add_argument('observation', help='XML file containing the observation',
+                               type=argparse.FileType('r'))
 
     delete_parser = subparsers.add_parser('delete',
                                           description='Delete an existing observation',
@@ -357,9 +393,9 @@ def main_app():
                               help='plugin class to update each observation')
     visit_parser.add_argument('--start', type=str2date,
 
-                        help='oldest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
+                        help='earliest observation to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
     visit_parser.add_argument('--end', type=str2date,
-                        help='earliest dataset to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
+                        help='latest observation to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
     visit_parser.add_argument('--halt-on-error', action='store_true',
                               help='stop visitor on first update exception raised by plugin')
     visit_parser.add_argument("-s", "--server", help='URL of the CAOM2 repo server')
@@ -391,13 +427,13 @@ Minimum plugin file format:
     client = CAOM2RepoClient(subject, args.resource_id, host=args.host)
     if args.cmd == 'visit':
         print ("Visit")
-        logging.debug("Call visitor with plugin={}, start={}, end={}, dataset={}".
+        logging.debug("Call visitor with plugin={}, start={}, end={}, collection={}".
                       format(args.plugin.name, args.start, args.end, args.collection))
-        (visited, updated, skipped, errors) = \
+        (visited, updated, skipped, failed) = \
             client.visit(args.plugin.name, args.collection, start=args.start, end=args.end,
                          halt_on_error=args.halt_on_error)
         logging.info('Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.format(
-                     visited, updated, skipped, errors))
+                     len(visited), len(updated), len(skipped), len(failed)))
 
     elif args.cmd == 'create':
         logging.info("Create")

@@ -113,7 +113,7 @@ __all__ = ['ObservationReader', 'ObservationWriter', 'ObservationParsingExceptio
 class ObservationReader(object):
     """ObservationReader """
 
-    def __init__(self, valididate=False):
+    def __init__(self, validate=False):
         """Constructor. XML Schema validation may be disabled, in which case
         the client is likely to fail in horrible ways if it received invalid
         documents. However, performance may be improved.
@@ -121,7 +121,7 @@ class ObservationReader(object):
         Arguments:
         validate : If True enable schema validation, False otherwise
         """
-        self._validate = valididate
+        self._validate = validate
 
         if self._validate:
             # caom20_schema_path = pkg_resources.resource_filename(
