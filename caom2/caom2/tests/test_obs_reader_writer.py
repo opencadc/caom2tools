@@ -72,9 +72,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from future.utils import native_str_to_bytes as native2bytes
-
-from six import StringIO
+from six import BytesIO
 import os
 import unittest
 
@@ -132,12 +130,12 @@ class TestObservationReaderWriter(unittest.TestCase):
         simple_observation = minimal_simple(1, False, 20)
         writer = obs_reader_writer.ObservationWriter(
             False, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
-        output = StringIO()
+        output = BytesIO()
         writer.write(simple_observation, output)
         xml = output.getvalue()
         output.close()
-        xml = xml.replace("caom2:id=\"", "caom2:id=\"x")
-        f = open('/tmp/test.xml', 'w')
+        xml = xml.replace(b"caom2:id=\"", b"caom2:id=\"x")
+        f = open('/tmp/test.xml', 'wb')
         f.write(xml)
         f.close()
         reader = obs_reader_writer.ObservationReader(False)
@@ -150,12 +148,12 @@ class TestObservationReaderWriter(unittest.TestCase):
     def test_invalid_uuid(self):
         simple_observation = minimal_simple(1, False, 21)
         writer = obs_reader_writer.ObservationWriter(False, False)  # default writer is 2.1
-        output = StringIO()
+        output = BytesIO()
         writer.write(simple_observation, output)
         xml = output.getvalue()
         output.close()
-        xml = xml.replace("0000", "xxxx", 1)
-        f = open('/tmp/test.xml', 'w')
+        xml = xml.replace(b"0000", b"xxxx", 1)
+        f = open('/tmp/test.xml', 'wb')
         f.write(xml)
         f.close()
         reader = obs_reader_writer.ObservationReader(False)
@@ -295,7 +293,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         else:
             writer = obs_reader_writer.ObservationWriter(
                 validate, write_empty_collections)
-        xml_file = open('/tmp/test.xml', 'w')
+        xml_file = open('/tmp/test.xml', 'wb')
         writer.write(obs, xml_file)
         xml_file.close()
         reader = obs_reader_writer.ObservationReader(True)
@@ -996,11 +994,11 @@ class TestRoundTrip(unittest.TestCase):
         source_xml_fp = open(source_file_path, 'r')
         obs = reader.read(source_file_path)
         source_xml_fp.close()
-        dest_file = StringIO()
+        dest_file = BytesIO()
         writer.write(obs, dest_file)
 
         source_dom = etree.parse(source_file_path).getroot()
-        dest_dom = etree.fromstring(native2bytes(dest_file.getvalue()))
+        dest_dom = etree.fromstring(dest_file.getvalue())
         self.assertTrue(xml_compare(source_dom, dest_dom, reporter=print),
                         'files are different')
 

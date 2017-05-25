@@ -73,8 +73,6 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from future.utils import bytes_to_native_str as bytes2native
-
 import os
 import uuid
 from builtins import str, int
@@ -1513,7 +1511,8 @@ class ObservationReader(object):
         return : an Observation object
         raise : ObservationParsingException
         """
-        doc = etree.parse(source)
+        
+        doc = etree.parse(source)    
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(doc)
         root = doc.getroot()
@@ -1656,7 +1655,7 @@ class ObservationWriter(object):
             self._xmlschema.assertValid(obs_element)
 
         doc = etree.tostring(obs_element, encoding='UTF-8', xml_declaration=True, pretty_print=True)
-        out.write(bytes2native(doc))
+        out.write(doc)
         out.flush()
 
     def _add_entity_attributes(self, entity, element):
