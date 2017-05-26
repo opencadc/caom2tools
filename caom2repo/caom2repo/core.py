@@ -76,7 +76,7 @@ import logging
 import os
 import os.path
 import sys
-from six import StringIO
+from six import BytesIO
 from datetime import datetime
 
 from cadcutils import net
@@ -286,7 +286,7 @@ class CAOM2RepoClient(object):
             logging.error(response.status_code)
             response.close()
             raise Exception('Got empty response for resource: {}'.format(path))
-        return obs_reader.read(StringIO(content))
+        return obs_reader.read(BytesIO(content))
 
     def post_observation(self, observation):
         """
@@ -299,7 +299,7 @@ class CAOM2RepoClient(object):
         path = '/{}/{}'.format(observation.collection, observation.observation_id)
         logging.debug('POST {}'.format(path))
 
-        ibuffer = StringIO()
+        ibuffer = BytesIO()
         ObservationWriter().write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
@@ -318,7 +318,7 @@ class CAOM2RepoClient(object):
         path = '/{}/{}'.format(observation.collection, observation.observation_id)
         logging.debug('PUT {}'.format(path))
 
-        ibuffer = StringIO()
+        ibuffer = BytesIO()
         ObservationWriter().write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
@@ -444,7 +444,7 @@ Minimum plugin file format:
         observation = client.get_observation(args.collection, args.observationID)
         observation_writer = ObservationWriter()
         if args.output:
-            with open(args.output, 'w') as obsfile:
+            with open(args.output, 'wb') as obsfile:
                 observation_writer.write(observation, obsfile)
         else:
             observation_writer.write(observation, sys.stdout)
