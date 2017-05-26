@@ -148,7 +148,7 @@ class Observation(AbstractCaomEntity):
     objects.  Information about the Spatial/Frequency/Time aspects of
     an Observation are expressed at the Chunk level.
 
-    The Chunk contains refernces to caom2 objects that fully describe
+    The Chunk contains references to caom2 objects that fully describe
     the circumstances of that chunk of observation.  Often a 'Chunk'
     is a single extension in a FITS image. But can also be a
     particular column of values from a FITS Table or some other data
@@ -545,9 +545,6 @@ class SimpleObservation(Observation):
         """
         if algorithm is None:
             algorithm = SimpleObservation._ALGORITHM
-        if algorithm != SimpleObservation._ALGORITHM:
-            raise ValueError(
-                "E{0} (required for SimpleObservation)".format(algorithm))
         super(SimpleObservation, self).__init__(collection,
                                                 observation_id,
                                                 algorithm,
@@ -577,7 +574,6 @@ class SimpleObservation(Observation):
         if isinstance(value, str):
             value = Algorithm(value)
         caom_util.type_check(value, Algorithm, 'algorithm', override=False)
-        caom_util.value_check(value, None, None, 'algorithm', override=self._ALGORITHM)
         self._algorithm = value
 
 
@@ -722,7 +718,7 @@ class Environment(CaomObject):
     @tau.setter
     def tau(self, value):
         caom_util.type_check(value, float, 'tau')
-        caom_util.value_check(value, 0, 1, 'tau')
+        #Value must be >= 0, but has no upper limit
         self._tau = value
 
     @property
@@ -752,7 +748,6 @@ class Environment(CaomObject):
     @ambient_temp.setter
     def ambient_temp(self, value):
         caom_util.type_check(value, float, 'ambient_temp')
-        caom_util.value_check(value, -100, 100, 'ambient_temp')
         self._ambient_temp = value
 
     @property

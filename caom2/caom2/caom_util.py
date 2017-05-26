@@ -384,6 +384,10 @@ class TypedOrderedDict(collections.OrderedDict):
         """Adds a new entry, value must be of type {0}"""
         self.__setitem__(value.key, value)
 
+    def pop(self, key):
+        """Removes an entry"""
+        return super(TypedOrderedDict, self).pop(key)
+
     def __setitem__(self, key, value):
         """Add an item."""
         self.check(key, value)

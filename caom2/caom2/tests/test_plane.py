@@ -80,6 +80,7 @@ from .. import observation
 from .. import plane
 from .. import chunk
 from .. import wcs
+from .. import shape
 
 
 class TestEnums(unittest.TestCase):
@@ -122,18 +123,20 @@ class TestEnums(unittest.TestCase):
             plane.Quality(1)
 
         # test that we can get the object for each enum by name
+        self.assertEqual(plane.CalibrationLevel.PLANNED.value, -1)
         self.assertEqual(plane.CalibrationLevel.RAW_INSTRUMENT.value, 0)
         self.assertEqual(plane.CalibrationLevel.RAW_STANDARD.value, 1)
         self.assertEqual(plane.CalibrationLevel.CALIBRATED.value, 2)
         self.assertEqual(plane.CalibrationLevel.PRODUCT.value, 3)
 
         self.assertEqual(plane.DataProductType.IMAGE.value, "image")
-        self.assertEqual(plane.DataProductType.CATALOG.value, "catalog")
         self.assertEqual(plane.DataProductType.CUBE.value, "cube")
         self.assertEqual(plane.DataProductType.EVENTLIST.value, "eventlist")
         self.assertEqual(plane.DataProductType.SPECTRUM.value, "spectrum")
         self.assertEqual(plane.DataProductType.TIMESERIES.value, "timeseries")
         self.assertEqual(plane.DataProductType.VISIBILITY.value, "visibility")
+        self.assertEqual(plane.DataProductType.MEASUREMENTS.value, "measurements")
+        self.assertEqual(plane.DataProductType.CATALOG.value, "http://www.opencadc.org/caom2/DataProductType#catalog")
 
         self.assertEqual(plane.EnergyBand['RADIO'].value, "Radio")
         self.assertEqual(plane.EnergyBand['MILLIMETER'].value, "Millimeter")
@@ -165,6 +168,9 @@ class TestPlane(unittest.TestCase):
     def test_all(self):
         test_plane = plane.Plane("ProdID")
         self.assertEqual("ProdID", test_plane.product_id, "Product ID")
+        self.assertEqual(None, test_plane.creator_id, "Creator ID")
+        test_plane.creator_id = "ivo://cadc.nrc.ca/users?tester"
+        self.assertEqual("ivo://cadc.nrc.ca/users?tester", test_plane.creator_id, "Creator ID")
         self.assertEqual(0, len(test_plane.artifacts),
                          "Default number of artifacts")
         self.assertIsNone(test_plane.meta_release, "Default meta release date")
@@ -471,12 +477,10 @@ class TestEnergy(unittest.TestCase):
 
     def test_all(self):
         energy = plane.Energy()
-        self.assertIsNone(energy.value, "Default energy value")
-        energy.value = 33.33
-        self.assertEqual(33.33, energy.value, "Energy value")
         self.assertIsNone(energy.bounds, "Default energy bounds")
-        # TODO switch to Interval
-        # energy.bounds = 22
+        energy.bounds = shape.Interval(1.0, 2.0)
+        self.assertEqual(1.0, energy.bounds.lower, "Energy lower bounds")
+        self.assertEqual(2.0, energy.bounds.upper, "Energy upper bounds")
         self.assertIsNone(energy.dimension, "Default energy dimension")
         energy.dimension = 1000
         self.assertEqual(1000, energy.dimension, "Energy dimension")
@@ -495,8 +499,9 @@ class TestEnergy(unittest.TestCase):
         energy.em_band = plane.EnergyBand.OPTICAL
         self.assertEqual(plane.EnergyBand.OPTICAL, energy.em_band, "Energy band")
         self.assertIsNone(energy.transition, "Default energy transition")
-        # TODO replace with EnergyTransistion
-        # energy.transition = "BLAH"
+        energy.transition = wcs.EnergyTransition("aSpecies", "aTransition")
+        self.assertEqual("aSpecies", energy.transition.species, "Energy transition species")
+        self.assertEqual("aTransition", energy.transition.transition, "Energy transition transition")
 
 
 class TestEnergyTransition(unittest.TestCase):
@@ -532,9 +537,6 @@ class TestPolarizaton(unittest.TestCase):
 
         self.assertIsNone(polarization.dimension,
                           "Default polarization dimension")
-        energy = plane.Energy()
-        energy.bandpass_name = '123'
-        self.assertEqual('123', energy.bandpass_name, "Polarization dimension")
 
         # TODO add test for state
 
@@ -543,15 +545,12 @@ class TestTime(unittest.TestCase):
 
     def test_all(self):
         time = plane.Time()
-        self.assertIsNone(time.value, "Default value")
         self.assertIsNone(time.bounds, "Default bounds")
         self.assertIsNone(time.dimension, "Default dimension")
         self.assertIsNone(time.resolution, "Default resolution")
         self.assertIsNone(time.sample_size, "Default sample size")
         self.assertIsNone(time.exposure, "Default exposure")
 
-        time.value = 34.34
-        self.assertEqual(34.34, time.value, "Value")
         time.dimension = 777
         self.assertEqual(777, time.dimension, "Dimension")
         time.resolution = 77.777

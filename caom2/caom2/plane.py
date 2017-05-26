@@ -85,26 +85,116 @@ from .common import AbstractCaomEntity
 from .common import CaomObject
 from .common import ObservationURI
 
-__all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand', "PolarizationState", "Quality",
-           'Plane', 'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 'Energy',
-           'Polarization', 'Time']
+__all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand', 
+           'VocabularyTerm', 'PolarizationState', 'Quality', 'Plane', 
+           'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 
+           'Energy', 'Polarization', 'Time']
 
 
 class CalibrationLevel(Enum):
     """
+    PLANNED: -1
     RAW_INSTRUMENT: 0
     RAW_STANDARD: 1
     CALIBRATED: 2
     PRODUCT: 3
     """
+    PLANNED = -1
     RAW_INSTRUMENT = 0
     RAW_STANDARD = 1
     CALIBRATED = 2
     PRODUCT = 3
 
 
+class VocabularyTerm(object):
+    """ VocabularyTerm """
+
+    def __init__(self, namespace, term, base=False):
+        """
+        Construct a VocabularyTerm instance. This creates a term in the
+        specified vocabulary namespace. If the value of base is False, 
+        the string value (from getvalue()) will just be the namespace URI
+        plus the term added as a fragment. If the value of base is True, 
+        this is a term in a base vocabulary and the value will just be the
+        term (without the namespace).
+
+        Arguments:
+        namespace : namespace of the vocabulary
+        term : a term in the base vocabulary
+        base : if True, getValue() returns term, otherwise getvalue() returns
+               namespace URI plus term
+        """
+        self.namespace = namespace
+        self.term = term
+        self.base = base
+
+    def get_value(self):
+        """ get_value """
+        if self.base:
+            return self._term
+        else:
+            return self._namespace + "#" + self._term
+
+    def __str__(self):
+        """ __str__ """
+        return self.get_value()
+
+    # Properties
+    @property
+    def namespace(self):
+        """ namespace """
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, value):
+        caom_util.type_check(value, str, "namespace")
+        tmp = urlsplit(value)
+        assert tmp.geturl() == value, "Invalid URI: " + value
+        self._namespace = value
+
+    @property
+    def term(self):
+        """ term """
+        return self._term
+
+    @term.setter
+    def term(self, value):
+        caom_util.type_check(value, str, "term")
+        self._term = value
+
+    @property
+    def base(self):
+        """ base """
+        return self._base
+
+    @base.setter
+    def base(self, value):
+        caom_util.type_check(value, bool, "base")
+        self._base = value
+
+
 class DataProductType(Enum):
+    """ DataproductType """
+
+    _OBSCORE = "http://www.ivoa.net/std/ObsCore"
+    _CAOM = "http://www.opencadc.org/caom2/DataProductType"
+
+    """ 
+    def __init__(self, value, namespace=None):
+        Initialize a DataProductType instance 
+
+        Arguments:
+        value : fragment to be appended to namespace
+        namespace : namespace the data product type belongs to,
+                    defaults to OBSCORE
+        if namespace == None:
+            super(DataProductType, self).__init__(DataProductType._OBSCORE, value, True)
+        else:
+            super(DataProductType, self).__init__(namespace, value)
     """
+
+    """
+    ObsCore-1.0
     IMAGE: "image"
     CATALOG: "catalog"
     CUBE: "cube"
@@ -112,14 +202,22 @@ class DataProductType(Enum):
     SPECTRUM: "spectrum"
     TIMESERIES: "timeseries"
     VISIBILITY: "visibility"
+
+    ObsCore-1.1
+    MEASUREMENTS: "measurements"
+
+    ObsCore-2.3
+    CATALOG: "http://www.opencadc.org/caom2#catalog"
     """
-    IMAGE = "image"
-    CATALOG = "catalog"
-    CUBE = "cube"
-    EVENTLIST = "eventlist"
-    SPECTRUM = "spectrum"
-    TIMESERIES = "timeseries"
-    VISIBILITY = "visibility"
+
+    IMAGE = VocabularyTerm(_OBSCORE, "image", True).get_value()
+    CUBE = VocabularyTerm(_OBSCORE, "cube", True).get_value()
+    EVENTLIST = VocabularyTerm(_OBSCORE, "eventlist", True).get_value()
+    SPECTRUM = VocabularyTerm(_OBSCORE, "spectrum", True).get_value()
+    TIMESERIES = VocabularyTerm(_OBSCORE, "timeseries", True).get_value()
+    VISIBILITY = VocabularyTerm(_OBSCORE, "visibility", True).get_value()
+    MEASUREMENTS = VocabularyTerm(_OBSCORE, "measurements", True).get_value()
+    CATALOG = VocabularyTerm(_CAOM, "catalog").get_value()
 
 
 class EnergyBand(Enum):
@@ -182,6 +280,7 @@ class Plane(AbstractCaomEntity):
     """ Plane class """
 
     def __init__(self, product_id,
+                 creator_id=None,
                  artifacts=None,
                  meta_release=None,
                  data_release=None,
@@ -200,6 +299,7 @@ class Plane(AbstractCaomEntity):
         self.product_id = product_id
         if artifacts is None:
             artifacts = caom_util.TypedOrderedDict(Artifact, )
+        self.creator_id = creator_id
         self.artifacts = artifacts
 
         self.meta_release = meta_release
@@ -243,6 +343,23 @@ class Plane(AbstractCaomEntity):
     def key(self):
         """ The dictionary key for a plane is product ID """
         return self._product_id
+
+    @property
+    def creator_id(self):
+        """A URI that identifies the creator of this plane.
+
+        eg: ivo://cadc.nrc.ca/users?tester
+        type: URI 
+        """
+        return self._creator_id
+
+    @creator_id.setter
+    def creator_id(self, value):
+        caom_util.type_check(value, str, 'creator_id')
+        if value is not None:
+            tmp = urlsplit(value)
+            assert tmp.geturl() == value, "Invalid URI: " + value
+        self._creator_id = value
 
     @property
     def artifacts(self):
@@ -337,7 +454,7 @@ class Plane(AbstractCaomEntity):
 
         Must be one of CalibrationLevel
 
-    """
+        """
         return self._calibration_level
 
     @calibration_level.setter
@@ -399,6 +516,11 @@ class Plane(AbstractCaomEntity):
         of the python module at this time.
         """
         return self._position
+    
+    @position.setter
+    def position(self, value):
+        caom_util.type_check(value, Position, "position")
+        self._position = value
 
     @property
     def energy(self):
@@ -411,6 +533,11 @@ class Plane(AbstractCaomEntity):
         """
         """ Energy """
         return self._energy
+    
+    @energy.setter
+    def energy(self, value):
+        caom_util.type_check(value, Energy, "energy")
+        self._energy = value
 
     @property
     def time(self):
@@ -423,7 +550,12 @@ class Plane(AbstractCaomEntity):
         """
         """ Time """
         return self._time
-
+    
+    @time.setter
+    def time(self, value):
+        caom_util.type_check(value, Time, "time")
+        self._time = value
+    
     @property
     def polarization(self):
         """A caom2 Polarization object that is developed from
@@ -434,6 +566,11 @@ class Plane(AbstractCaomEntity):
         of the python module at this time.
         """
         return self._polarization
+    
+    @polarization.setter
+    def polarization(self, value):
+        caom_util.type_check(value, Polarization, "polarization")
+        self._polarization = value
 
     # Compute derived fields
 
@@ -866,7 +1003,6 @@ class Energy(CaomObject):
         Arguments:
         None
         """
-        self._value = None
         self._bounds = None
         self._dimension = None
         self._resolving_power = None
@@ -876,17 +1012,6 @@ class Energy(CaomObject):
         self._transition = None
 
     # Properties
-    @property
-    def value(self):
-        """ Energy value """
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        if value is not None:
-            assert isinstance(value, float), (
-                "energy value is not a float: {0}".format(value))
-        self._value = value
 
     @property
     def bounds(self):
@@ -1003,13 +1128,25 @@ class Polarization(CaomObject):
         caom_util.type_check(value, int, 'dimension')
         caom_util.value_check(value, 0, 1E10, 'dimension')
         self._dimension = value
+        
+    @property
+    def polarization_states(self):
+        """
+        type: list
+        """
+        return self._polarization_states
+
+    @polarization_states.setter
+    def polarization_states(self, value):
+        if value is not None:
+            caom_util.type_check(value, list, 'polarization_states', override=False)
+        self._polarization_states = value
 
 
 class Time(CaomObject):
     """ Time """
 
     def __init__(self,
-                 value=None,
                  bounds=None,
                  dimension=None,
                  resolution=None,
@@ -1021,7 +1158,6 @@ class Time(CaomObject):
         Arguments:
         None
         """
-        self.value = value
         self.bounds = bounds
         self.dimension = dimension
         self.resolution = resolution
@@ -1029,21 +1165,6 @@ class Time(CaomObject):
         self.exposure = exposure
 
     # Properties
-
-    @property
-    def value(self):
-        """ Actual time value, seconds since epoch.
-
-        quesion is, what epoch?
-
-        units: s
-        """
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        caom_util.type_check(value, float, 'value')
-        self._value = value
 
     @property
     def bounds(self):

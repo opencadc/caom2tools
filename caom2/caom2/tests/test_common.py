@@ -73,6 +73,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
+import binascii
 
 from .. import common
 from .. import chunk
@@ -80,6 +81,7 @@ from .. import part
 from .. import plane
 from .. import artifact
 from .. import observation
+from datetime import datetime
 
 
 class TestCaom2IdGenerator(unittest.TestCase):
@@ -105,7 +107,33 @@ class TestCaom2IdGenerator(unittest.TestCase):
 
         test_plane = plane.Plane("prodid")
         print(test_plane._id, test_plane._last_modified)
+        
+        self.assertIsNone(test_plane.last_modified, "last_modified null")
+        self.assertIsNone(test_plane.max_last_modified, "max_last_modified null")
+        self.assertIsNone(test_plane.meta_checksum, "meta_checksum null")
+        self.assertIsNone(test_plane.acc_meta_checksum, "acc_meta_checksum null")
+        d1 = common.get_current_ivoa_time()
+        d2 = common.get_current_ivoa_time()
+        cs_uri_meta = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
+        cs_uri_acc = common.ChecksumURI("sha1:7e2b74edf8ff7ddfda5ee3917dc65946b515b1f7")
+        test_plane.last_modified = d1
+        test_plane.max_last_modified = d2
+        test_plane.meta_checksum = cs_uri_meta
+        test_plane.acc_meta_checksum = cs_uri_acc
+        self.assertEquals(test_plane.last_modified, d1, "last_modified")
+        self.assertEquals(test_plane.max_last_modified, d2, "max_last_modified")
+        self.assertEquals(test_plane.meta_checksum, cs_uri_meta, "meta_checksum")
+        self.assertEquals(test_plane.acc_meta_checksum, cs_uri_acc, "acc_meta_checksum")
 
+class TestMetadataChecksum(unittest.TestCase):
+    def test_all(self):
+        test_entity = common.AbstractCaomEntity()
+        print(test_entity._id, test_entity._last_modified)
+        test_artifact = artifact.Artifact("caom2:/blah/blah",
+                                          chunk.ProductType.SCIENCE,
+                                          artifact.ReleaseType.DATA)
+        with self.assertRaises(NotImplementedError):
+            test_artifact.compute_meta_checksum()
 
 class TestObservationURI(unittest.TestCase):
 
@@ -133,3 +161,12 @@ class TestObservationURI(unittest.TestCase):
         except TypeError:
             exception = True
         self.assertTrue(exception, "Missing exception")
+        
+class TestChecksumURI(unittest.TestCase):
+
+    def test_all(self):
+        cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
+        self.assertEqual("md5:e30580c1db513487f495fba09f64600e", cs_uri.uri, "Checksum URI")
+        self.assertEqual("md5", cs_uri.algorithm, "Algorithm")
+        self.assertEqual("e30580c1db513487f495fba09f64600e", cs_uri.checksum, "Checksum")
+        self.assertEqual(binascii.hexlify(bytearray.fromhex("e30580c1db513487f495fba09f64600e")), binascii.hexlify(cs_uri.get_bytes()), "Round trip")

@@ -67,6 +67,7 @@
 # ***********************************************************************
 #
 
+
 """ Defines ObservationReader class """
 
 from __future__ import (absolute_import, division, print_function,
@@ -87,20 +88,25 @@ from . import part
 from . import plane
 from . import shape
 from . import wcs
+from . import common
+
 
 DATA_PKG = 'data'
 
 CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
 CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
 CAOM22_SCHEMA_FILE = 'CAOM-2.2.xsd'
+CAOM23_SCHEMA_FILE = 'CAOM-2.3.xsd'
 
 CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
 CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
 CAOM22_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.2'
+CAOM23_NAMESPACE = 'http://www.opencadc.org/caom2/xml/v2.3'
 
 CAOM20 = "{%s}" % CAOM20_NAMESPACE
 CAOM21 = "{%s}" % CAOM21_NAMESPACE
 CAOM22 = "{%s}" % CAOM22_NAMESPACE
+CAOM23 = "{%s}" % CAOM23_NAMESPACE
 
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 XSI = "{%s}" % XSI_NAMESPACE
@@ -143,6 +149,12 @@ class ObservationReader(object):
                 namespace=CAOM22_NAMESPACE,
                 schemaLocation=CAOM22_SCHEMA_FILE)
             xsd.getroot().insert(2, caom22_schema)
+            
+            caom23_schema = etree.Element(
+                '{http://www.w3.org/2001/XMLSchema}import',
+                namespace=CAOM23_NAMESPACE,
+                schemaLocation=CAOM23_SCHEMA_FILE)
+            xsd.getroot().insert(3, caom23_schema)
 
             self._xmlschema = etree.XMLSchema(xsd)
 
@@ -153,6 +165,9 @@ class ObservationReader(object):
 
         element_id = element.get("{" + ns + "}id")
         element_last_modified = element.get("{" + ns + "}lastModified")
+        element_max_last_modified = element.get("{" + ns + "}maxLastModified")
+        element_meta_checksum = element.get("{" + ns + "}metaChecksum")
+        element_acc_meta_checksum = element.get("{" + ns + "}accMetaChecksum")
 
         if expect_uuid:
             uid = uuid.UUID(element_id)
@@ -162,6 +177,12 @@ class ObservationReader(object):
 
         if element_last_modified:
             caom2_entity._last_modified = caom_util.str2ivoa(element_last_modified)
+        if element_max_last_modified:
+            caom2_entity._max_last_modified = caom_util.str2ivoa(element_max_last_modified)
+        if element_meta_checksum:
+            caom2_entity._meta_checksum = common.ChecksumURI(element_meta_checksum)
+        if element_acc_meta_checksum:
+            caom2_entity._acc_meta_checksum = common.ChecksumURI(element_acc_meta_checksum)
 
     def _get_child_element(self, element_tag, parent, ns, required):
         for element in list(parent):
@@ -206,6 +227,13 @@ class ObservationReader(object):
             return None
         else:
             return float(child_element.text)
+        
+    def _get_child_text_as_boolean(self, element_tag, parent, ns, required):
+        child_element = self._get_child_element(element_tag, parent, ns, required)
+        if child_element is None:
+            return None
+        else:
+            return child_element.text.lower() == "true"
 
     def _get_algorithm(self, element_tag, parent, ns, required):
         """Build an Algorithm object from an XML representation
@@ -1144,6 +1172,160 @@ class ObservationReader(object):
         else:
             return chunk.PolarizationWCS(
                 self._get_coord_axis1d("axis", el, ns, False))
+            
+    def _get_position(self, element_tag, parent, ns, required):
+        """Build a Position object from an XML representation of a
+        position element.
+        
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a Position object or
+                 None if the document does not contain a polarization element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        pos = plane.Position()
+        pos.bounds = self._get_shape("bounds", el, ns, False)
+        pos.dimension = self._get_dimension2d("dimension", el, ns, False)
+        pos.resolution = self._get_child_text_as_float("resolution", el, ns, False)
+        pos.sample_size = self._get_child_text_as_float("sampleSize", el, ns, False)
+        pos.time_dependent = self._get_child_text_as_boolean("timeDependent", el, ns, False)
+        return pos
+    
+    def _get_energy(self, element_tag, parent, ns, required):
+        """Build an Energy object from an XML representation of an
+        energy element.
+        
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : an Energy object or
+                 None if the document does not contain an energy element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        energy = plane.Energy()
+        energy.bounds = self._get_interval("bounds", el, ns, False)
+        energy.dimension = self._get_child_text_as_int("dimension", el, ns, False)
+        energy.resolving_power = self._get_child_text_as_float("resolvingPower", el, ns, False)
+        energy.sample_size = self._get_child_text_as_float("sampleSize", el, ns, False)
+        energy.bandpass_name = self._get_child_text("bandpassName", el, ns, False)
+        em_band = self._get_child_text("emBand", el, ns, False)
+        if em_band:
+            energy.em_band = plane.EnergyBand(em_band)
+        _transition_el = self._get_child_element("transition", el, ns, required)
+        if _transition_el:
+            species = self._get_child_text("species", _transition_el, ns, True)
+            transition = self._get_child_text("transition", _transition_el, ns, True)
+            energy.transition = wcs.EnergyTransition(species, transition)
+        
+        return energy
+
+    def _get_time(self, element_tag, parent, ns, required):
+        """Build a Time object from an XML representation of a
+        time element.
+        
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a Time object or
+                 None if the document does not contain a time element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        time = plane.Time()
+        time.bounds = self._get_interval("bounds", el, ns, False)
+        time.dimension = self._get_child_text_as_int("dimension", el, ns, False)
+        time.resolution = self._get_child_text_as_float("resolution", el, ns, False)
+        time.sample_size = self._get_child_text_as_float("sampleSize", el, ns, False)
+        time.exposure = self._get_child_text_as_float("exposure", el, ns, False)
+         
+        return time
+
+    def _get_polarization(self, element_tag, parent, ns, required):
+        """Build a Polarization object from an XML representation of a
+        polarization element.
+        
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a Polarization object or
+                 None if the document does not contain a polarization element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        polarization = plane.Polarization()
+        _pstates_el = self._get_child_element("states", el, ns, False)
+        if _pstates_el is not None:
+            _polarization_states = list()
+            for _pstate_el in _pstates_el.iterchildren("{" + ns + "}state"):
+                _pstate = _pstate_el.text
+                _polarization_state = plane.PolarizationState(_pstate)
+                _polarization_states.append(_polarization_state)
+            polarization.polarization_states = _polarization_states
+        polarization.dimension = self._get_child_text_as_int("dimension", el, ns, False)
+        
+        return polarization
+    
+    def _get_shape(self, element_tag, parent, ns, required):
+        _shape = self._get_child_element(element_tag, parent, ns, required)
+        if _shape is None:
+            return None
+        shape_type = _shape.get(XSI + "type")
+        if "caom2:Polygon" == shape_type:
+            _polygon = shape.Polygon(vertices=list())
+            self._add_vertices(_polygon.vertices, _shape, ns)
+            return _polygon
+        else:
+            raise TypeError("Unsupported shape type " + type)
+                
+    def _add_vertices(self, vertices, parent, ns):
+        _vertices_element = self._get_child_element("vertices", parent, ns, False)
+        if _vertices_element is None:
+            return None
+        else:
+            for _vertex_element in _vertices_element.iterchildren("{" + ns + "}vertex"):
+                cval1 = self._get_child_text_as_float("cval1", _vertex_element, ns, False)
+                cval2 = self._get_child_text_as_float("cval2", _vertex_element, ns, False)
+                seg_type_value = self._get_child_text_as_int("type", _vertex_element, ns, False)
+                seg_type = shape.SegmentType(seg_type_value)
+                _vertex = shape.Vertex(cval1, cval2, seg_type)
+                vertices.append(_vertex)
+                
+    def _get_interval(self, element_tag, parent, ns, required):
+        _interval_el = self._get_child_element(element_tag, parent, ns, required)
+        if _interval_el is None:
+            return None
+        _lower = self._get_child_text_as_float("lower", _interval_el, ns, True)
+        _upper = self._get_child_text_as_float("upper", _interval_el, ns, True)
+        _samples_el = self._get_child_element("samples", _interval_el, ns, required)
+        _interval = shape.Interval(_lower, _upper)
+        if _samples_el:
+            _samples = list()
+            for _sample_el in _samples_el.iterchildren("{" + ns + "}sample"):
+                _si_lower = self._get_child_text_as_float("lower", _sample_el, ns, required)
+                _si_upper = self._get_child_text_as_float("upper", _sample_el, ns, required)
+                _sub_interval = shape.SubInterval(_si_lower, _si_upper)
+                _samples.append(_sub_interval)
+            _interval.samples = _samples
+        return _interval
 
     def _add_chunks(self, chunks, parent, ns):
         """Build Chunk objects from an XML representation of Chunk elements
@@ -1259,6 +1441,9 @@ class ObservationReader(object):
                 _artifact.content_type = self._get_child_text("contentType", artifact_element, ns, False)
                 _artifact.content_length = (
                     self._get_child_text_as_long("contentLength", artifact_element, ns, False))
+                content_checksum = self._get_child_text("contentChecksum", artifact_element, ns, False)
+                if content_checksum:
+                    _artifact.content_checksum = common.ChecksumURI(content_checksum)
                 self._add_parts(_artifact.parts, artifact_element, ns)
                 self._set_entity_attributes(artifact_element, ns, _artifact)
                 artifacts[_artifact.uri] = _artifact
@@ -1289,6 +1474,8 @@ class ObservationReader(object):
                 if data_product_type:
                     _plane.data_product_type = \
                         plane.DataProductType(data_product_type)
+                _plane.creator_id = \
+                    self._get_child_text("creatorID", plane_element, ns, False)
                 calibration_level = \
                     self._get_child_text("calibrationLevel", plane_element, ns, False)
                 if calibration_level:
@@ -1300,6 +1487,12 @@ class ObservationReader(object):
                     self._get_metrics("metrics", plane_element, ns, False)
                 _plane.quality = \
                     self._get_quality("quality", plane_element, ns, False)
+                    
+                _plane.position = self._get_position("position", plane_element, ns, False)
+                _plane.energy = self._get_energy("energy", plane_element, ns, False)
+                _plane.time = self._get_time("time", plane_element, ns, False)
+                _plane.polarization = self._get_polarization("polarization", plane_element, ns, False)
+                    
                 self._add_artifacts(_plane.artifacts, plane_element, ns)
                 self._set_entity_attributes(plane_element, ns, _plane)
                 planes[_plane.product_id] = _plane
@@ -1318,7 +1511,8 @@ class ObservationReader(object):
         return : an Observation object
         raise : ObservationParsingException
         """
-        doc = etree.parse(source)
+        
+        doc = etree.parse(source)    
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(doc)
         root = doc.getroot()
@@ -1386,7 +1580,11 @@ class ObservationWriter(object):
         if namespace_prefix is None or not namespace_prefix:
             raise RuntimeError('null or empty namespace_prefix not allowed')
 
-        if namespace is None or namespace == CAOM22_NAMESPACE:
+        if namespace is None or namespace == CAOM23_NAMESPACE:
+            self._output_version = 23
+            self._caom2_namespace = CAOM23
+            self._namespace = CAOM23_NAMESPACE
+        elif namespace == CAOM22_NAMESPACE:
             self._output_version = 22
             self._caom2_namespace = CAOM22
             self._namespace = CAOM22_NAMESPACE
@@ -1406,8 +1604,10 @@ class ObservationWriter(object):
                 schema_file = CAOM20_SCHEMA_FILE
             elif self._output_version == 21:
                 schema_file = CAOM21_SCHEMA_FILE
-            else:
+            elif self._output_version == 22:
                 schema_file = CAOM22_SCHEMA_FILE
+            else:
+                schema_file = CAOM23_SCHEMA_FILE
             schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
                                        schema_file)
             # schema_path = pkg_resources.resource_filename(
@@ -1427,7 +1627,7 @@ class ObservationWriter(object):
         else:
             obs_element.set(XSI + "type", "caom2:CompositeObservation")
 
-        self._add_enity_attributes(obs, obs_element)
+        self._add_entity_attributes(obs, obs_element)
 
         self._add_element("collection", obs.collection, obs_element)
         self._add_element("observationID", obs.observation_id, obs_element)
@@ -1454,10 +1654,11 @@ class ObservationWriter(object):
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(obs_element)
 
-        out.write(etree.tostring(obs_element, encoding='unicode',
-                                 pretty_print=True))
+        doc = etree.tostring(obs_element, encoding='UTF-8', xml_declaration=True, pretty_print=True)
+        out.write(doc)
+        out.flush()
 
-    def _add_enity_attributes(self, entity, element):
+    def _add_entity_attributes(self, entity, element):
         if self._output_version == 20:
             uid = caom_util.uuid2long(entity._id)
             self._add_attribute("id", str(uid), element)
@@ -1467,6 +1668,17 @@ class ObservationWriter(object):
         if entity._last_modified is not None:
             self._add_attribute(
                 "lastModified", caom_util.date2ivoa(entity._last_modified), element)
+        
+        if self._output_version >= 23:
+            if entity._max_last_modified is not None:
+                self._add_attribute(
+                    "maxLastModified", caom_util.date2ivoa(entity._max_last_modified), element)
+            if entity._meta_checksum is not None:
+                self._add_attribute(
+                    "metaChecksum", entity._meta_checksum.uri, element)
+            if entity._acc_meta_checksum is not None:
+                self._add_attribute(
+                    "accMetaChecksum", entity._acc_meta_checksum.uri, element)
 
     def _add_algorithm_element(self, algorithm, parent):
         if algorithm is None:
@@ -1574,8 +1786,10 @@ class ObservationWriter(object):
         element = self._get_caom_element("planes", parent)
         for _plane in six.itervalues(planes):
             plane_element = self._get_caom_element("plane", element)
-            self._add_enity_attributes(_plane, plane_element)
+            self._add_entity_attributes(_plane, plane_element)
             self._add_element("productID", _plane.product_id, plane_element)
+            if self._output_version >= 23:
+                self._add_element("creatorID", _plane.creator_id, plane_element)
             self._add_datetime_element("metaRelease", _plane.meta_release,
                                        plane_element)
             self._add_datetime_element("dataRelease", _plane.data_release,
@@ -1591,8 +1805,95 @@ class ObservationWriter(object):
             self._add_provenance_element(_plane.provenance, plane_element)
             self._add_metrics_element(_plane.metrics, plane_element)
             self._add_quality_element(_plane.quality, plane_element)
+            
+            if self._output_version >= 22:
+                self._add_position_element(_plane.position, plane_element)
+                self._add_energy_element(_plane.energy, plane_element)
+                self._add_time_element(_plane.time, plane_element)
+                self._add_polarization_element(_plane.polarization, plane_element)
+            
             self._add_artifacts_element(_plane.artifacts, plane_element)
-
+            
+    def _add_position_element(self, position, parent):
+        if position is None:
+            return
+        
+        element = self._get_caom_element("position", parent)
+        self._add_shape_element("bounds", position.bounds, element)
+        self._add_dimension2d_element("dimension", position.dimension, element)
+        self._add_element("resolution", position.resolution, element)
+        self._add_element("sampleSize", position.sample_size, element)
+        self._add_element("timeDependent", str(position.time_dependent).lower(), element)
+        
+    def _add_energy_element(self, energy, parent):
+        if energy is None:
+            return
+        
+        element = self._get_caom_element("energy", parent)
+        self._add_interval_element("bounds", energy.bounds, element)
+        self._add_element("dimension", energy.dimension, element)
+        self._add_element("resolvingPower", energy.resolving_power, element)
+        self._add_element("sampleSize", energy.sample_size, element)
+        self._add_element("bandpassName", energy.bandpass_name, element)
+        self._add_element("emBand", energy.em_band.value, element)
+        if energy.transition:
+            transition = self._get_caom_element("transition", element)
+            self._add_element("species", energy.transition.species, transition)
+            self._add_element("transition", energy.transition.transition, transition)          
+        
+    def _add_time_element(self, time, parent):
+        if time is None:
+            return
+        
+        element = self._get_caom_element("time", parent)
+        self._add_interval_element("bounds", time.bounds, element)
+        self._add_element("dimension", time.dimension, element)
+        self._add_element("resolution", time.resolution, element)
+        self._add_element("sampleSize", time.sample_size, element)
+        self._add_element("exposure", time.exposure, element)
+        
+    def _add_polarization_element(self, polarization, parent):
+        if polarization is None:
+            return
+        
+        element = self._get_caom_element("polarization", parent)
+        if polarization.polarization_states:
+            _pstates_el = self._get_caom_element("states", element)
+            for _state in polarization.polarization_states:
+                self._add_element("state", _state.value, _pstates_el)   
+        self._add_element("dimension", polarization.dimension, element)     
+    
+    def _add_shape_element(self, name, the_shape, parent):
+        if the_shape is None:
+            return
+        
+        if isinstance(the_shape, shape.Polygon):
+            _shape_element = self._get_caom_element(name, parent)
+            _shape_element.set(XSI + "type", "caom2:Polygon")
+            _vertices_element = self._get_caom_element("vertices", _shape_element)
+            for _vertex in the_shape.vertices:
+                _vertex_element = self._get_caom_element("vertex", _vertices_element)
+                self._add_element("cval1", _vertex.cval1, _vertex_element)
+                self._add_element("cval2", _vertex.cval2, _vertex_element)
+                self._add_element("type", _vertex.type.value, _vertex_element)
+        else:
+            raise TypeError("Unsupported shape type "
+                 + the_shape.__class__.__name__)
+            
+    def _add_interval_element(self, name, interval, parent):
+        if interval is None:
+            return
+        else:
+            _interval_element = self._get_caom_element(name, parent)
+            self._add_element("lower", interval.lower, _interval_element)
+            self._add_element("upper", interval.upper, _interval_element)
+            if interval.samples:
+                _samples_element = self._get_caom_element("samples", _interval_element)
+                for _sample in interval.samples:
+                    _sample_element = self._get_caom_element("sample", _samples_element)
+                    self._add_element("lower", _sample.lower, _sample_element)
+                    self._add_element("upper", _sample.upper, _sample_element)
+        
     def _add_provenance_element(self, provenance, parent):
         if provenance is None:
             return
@@ -1647,13 +1948,16 @@ class ObservationWriter(object):
         element = self._get_caom_element("artifacts", parent)
         for _artifact in six.itervalues(artifacts):
             artifact_element = self._get_caom_element("artifact", element)
-            self._add_enity_attributes(_artifact, artifact_element)
+            self._add_entity_attributes(_artifact, artifact_element)
             self._add_element("uri", _artifact.uri, artifact_element)
             if self._output_version > 21:
                 self._add_element("productType", _artifact.product_type.value, artifact_element)
                 self._add_element("releaseType", _artifact.release_type.value, artifact_element)
             self._add_element("contentType", _artifact.content_type, artifact_element)
             self._add_element("contentLength", _artifact.content_length, artifact_element)
+            if self._output_version > 22:
+                if _artifact.content_checksum:
+                    self._add_element("contentChecksum", _artifact.content_checksum.uri, artifact_element)
             if self._output_version < 22:
                 self._add_element("productType", _artifact.product_type.value, artifact_element)
             self._add_parts_element(_artifact.parts, artifact_element)
@@ -1665,7 +1969,7 @@ class ObservationWriter(object):
         element = self._get_caom_element("parts", parent)
         for _part in six.itervalues(parts):
             part_element = self._get_caom_element("part", element)
-            self._add_enity_attributes(_part, part_element)
+            self._add_entity_attributes(_part, part_element)
             self._add_element("name", _part.name, part_element)
             if _part.product_type is not None:
                 self._add_element("productType", _part.product_type.value, part_element)
@@ -1678,7 +1982,7 @@ class ObservationWriter(object):
         element = self._get_caom_element("chunks", parent)
         for _chunk in chunks:
             chunk_element = self._get_caom_element("chunk", element)
-            self._add_enity_attributes(_chunk, chunk_element)
+            self._add_entity_attributes(_chunk, chunk_element)
             if _chunk.product_type is not None:
                 self._add_element("productType",
                                   _chunk.product_type.value,

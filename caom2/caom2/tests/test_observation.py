@@ -238,7 +238,7 @@ class TestSimpleObservation(unittest.TestCase):
             obs.algorithm = observation.Algorithm("myAlg")
         except ValueError:
             exception = True
-        self.assertTrue(exception, "Missing exception")
+        self.assertFalse(exception, "Should not have thrown an exception")
 
         # run the rest of the Observation tests
         self.assertIsNone(obs.intent, "Default intent")

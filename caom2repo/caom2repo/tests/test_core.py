@@ -73,8 +73,8 @@ import copy
 import os
 import sys
 import unittest
-# TODO to be changed to io.StringIO when caom2 is prepared for python3
-from six import StringIO
+# TODO to be changed to io.BytesIO when caom2 is prepared for python3
+from six import BytesIO, StringIO
 from datetime import datetime
 
 import requests
@@ -145,7 +145,7 @@ class TestCAOM2Repo(unittest.TestCase):
         service_url = 'www.cadc.nrc.ca/caom2repo'
         obs = SimpleObservation(collection, observation_id)
         writer = ObservationWriter()
-        ibuffer = StringIO()
+        ibuffer = BytesIO()
         writer.write(obs, ibuffer)
         response = MagicMock()
         response.status_code = 200
@@ -241,7 +241,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
-        iobuffer = StringIO()
+        iobuffer = BytesIO()
         ObservationWriter().write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
@@ -297,7 +297,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
-        iobuffer = StringIO()
+        iobuffer = BytesIO()
         ObservationWriter().write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
@@ -481,7 +481,7 @@ class TestCAOM2Repo(unittest.TestCase):
         obs = SimpleObservation(collection, observation_id)
 
         # test create
-        with open(ifile, 'w') as infile:
+        with open(ifile, 'wb') as infile:
             ObservationWriter().write(obs, infile)
         sys.argv = ["caom2tools", "create", '--resource-id', 'ivo://ca.nrc.ca/resource', ifile]
         core.main_app()
