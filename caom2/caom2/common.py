@@ -74,7 +74,7 @@ import inspect
 import uuid
 from datetime import datetime
 from six.moves.urllib.parse import SplitResult, urlsplit
-from builtins import int, str
+from builtins import int, str, bytes
 
 from . import caom_util
 
@@ -152,10 +152,10 @@ class AbstractCaomEntity(CaomObject):
         else:
             return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
                                      gen_id.clock_seq_hi_variant, gen_id.clock_seq_low, gen_id.node))
-            
+
     def compute_meta_checksum(self):
         raise NotImplementedError("meta checksum calculation not yet implemented.")
-        
+
     @property
     def last_modified(self):
         return self._last_modified
@@ -255,13 +255,18 @@ class ObservationURI(CaomObject):
     def _key(self):
         return self.uri
 
-    def __eq__(self, y):
-        if isinstance(y, ObservationURI):
-            return self._key() == y._key()
-        return False
-
     def __hash__(self):
         return hash(self._key())
+
+    def __lt__(self, other):
+        if not isinstance(other, ObservationURI):
+            raise ValueError('Canot compare ObservationURI with {}'.format(type(other)))
+        return self.uri < other.uri
+
+    def __eq__(self, other):
+        if not isinstance(other, ObservationURI):
+            raise ValueError('Canot compare ObservationURI with {}'.format(type(other)))
+        return self.uri == other.uri
 
     @classmethod
     def get_observation_uri(cls, collection, observation_id):
@@ -366,3 +371,7 @@ class ChecksumURI(CaomObject):
     def checksum(self):
         """The checksum value"""
         return self._checksum
+
+
+
+

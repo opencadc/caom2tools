@@ -1222,8 +1222,9 @@ class ObservationReader(object):
         em_band = self._get_child_text("emBand", el, ns, False)
         if em_band:
             energy.em_band = plane.EnergyBand(em_band)
+        energy.restwav = self._get_child_text_as_float("restwav", el, ns, False)
         _transition_el = self._get_child_element("transition", el, ns, required)
-        if _transition_el:
+        if _transition_el is not None:
             species = self._get_child_text("species", _transition_el, ns, True)
             transition = self._get_child_text("transition", _transition_el, ns, True)
             energy.transition = wcs.EnergyTransition(species, transition)
@@ -1317,7 +1318,7 @@ class ObservationReader(object):
         _upper = self._get_child_text_as_float("upper", _interval_el, ns, True)
         _samples_el = self._get_child_element("samples", _interval_el, ns, required)
         _interval = shape.Interval(_lower, _upper)
-        if _samples_el:
+        if _samples_el is not None:
             _samples = list()
             for _sample_el in _samples_el.iterchildren("{" + ns + "}sample"):
                 _si_lower = self._get_child_text_as_float("lower", _sample_el, ns, required)
@@ -1533,7 +1534,7 @@ class ObservationReader(object):
         # Instantiate children of Observation
         obs.sequence_number = \
             self._get_child_text_as_int("sequenceNumber", root, ns, False)
-        obs.obs_type = \
+        obs.type = \
             self._get_child_text("type", root, ns, False)
         intent = self._get_child_text("intent", root, ns, False)
         if intent:
@@ -1634,7 +1635,7 @@ class ObservationWriter(object):
         self._add_datetime_element("metaRelease", obs.meta_release, obs_element)
         self._add_element("sequenceNumber", obs.sequence_number, obs_element)
         self._add_algorithm_element(obs.algorithm, obs_element)
-        self._add_element("type", obs.obs_type, obs_element)
+        self._add_element("type", obs.type, obs_element)
         if obs.intent is not None:
             self._add_element(
                 "intent",obs.intent.value, obs_element)
@@ -1692,7 +1693,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("proposal", parent)
-        self._add_element("id", proposal.proposal_id, element)
+        self._add_element("id", proposal.id, element)
         self._add_element("pi", proposal.pi_name, element)
         self._add_element("project", proposal.project, element)
         self._add_element("title", proposal.title, element)
@@ -1836,6 +1837,7 @@ class ObservationWriter(object):
         self._add_element("sampleSize", energy.sample_size, element)
         self._add_element("bandpassName", energy.bandpass_name, element)
         self._add_element("emBand", energy.em_band.value, element)
+        self._add_element("restwav", energy.restwav, element)
         if energy.transition:
             transition = self._get_caom_element("transition", element)
             self._add_element("species", energy.transition.species, transition)

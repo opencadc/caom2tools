@@ -83,6 +83,7 @@ from .common import CaomObject
 from .common import ObservationURI
 from .plane import Plane
 from .shape import Point
+from .caom_util import int_32
 
 __all__ = ['ObservationIntentType', 'Status', 'TargetType',
            'Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
@@ -159,6 +160,7 @@ class Observation(AbstractCaomEntity):
           -> SpectralWCS
           -> PolarizationWCS
           -> (Observable)
+          
     """
 
     def __init__(self,
@@ -167,7 +169,7 @@ class Observation(AbstractCaomEntity):
                  algorithm,
                  sequence_number=None,
                  intent=None,
-                 obs_type=None,
+                 type=None,
                  proposal=None,
                  telescope=None,
                  instrument=None,
@@ -196,12 +198,12 @@ class Observation(AbstractCaomEntity):
         self.observation_id = observation_id
         self.algorithm = algorithm
 
-        self.uri = ObservationURI.get_observation_uri(collection,
+        self._uri = ObservationURI.get_observation_uri(collection,
                                                       observation_id)
 
         self.sequence_number = sequence_number
         self.intent = intent
-        self.obs_type = obs_type
+        self.type = type
         self.proposal = proposal
         self.telescope = telescope
         self.instrument = instrument
@@ -244,19 +246,13 @@ class Observation(AbstractCaomEntity):
         caom_util.type_check(value, str, 'observation_id', override=False)
         self._observation_id = value
 
-    @property
-    def uri(self):
+    def get_uri(self):
         """A URI for this observation referenced in the caom system.
 
         This attribute is auto geneqrated from the other metadata.
         type: unicode string
         """
         return self._uri
-
-    @uri.setter
-    def uri(self, value):
-        caom_util.type_check(value, ObservationURI, 'uri')
-        self._uri = value
 
     @property
     def planes(self):
@@ -318,22 +314,23 @@ class Observation(AbstractCaomEntity):
 
     @sequence_number.setter
     def sequence_number(self, value):
-        caom_util.type_check(value, int, 'sequence_number')
-        self._sequence_number = value
+        caom_util.type_check(value, int_32, 'sequence_number')
+        self._sequence_number = int_32(value) if value is not None else None
+
 
     @property
-    def obs_type(self):
+    def type(self):
         """The OBSTYPE of the observation being recorded.
 
         eg. OBJECT, FLAT, BIAS
         type: unicode str
         """
-        return self._obs_type
+        return self._type
 
-    @obs_type.setter
-    def obs_type(self, value):
-        caom_util.type_check(value, str, 'obs_type')
-        self._obs_type = value
+    @type.setter
+    def type(self, value):
+        caom_util.type_check(value, str, 'type')
+        self._type = value
 
     @property
     def proposal(self):
@@ -481,7 +478,7 @@ class Algorithm(CaomObject):
                composite members or just 'composite' works too.
         """
         caom_util.type_check(name, six.text_type, 'name', override=False)
-        self._name = name
+        self._name = str(name)
 
     def _key(self):
         return self._name
@@ -527,7 +524,7 @@ class SimpleObservation(Observation):
                  algorithm=None,
                  sequence_number=None,
                  intent=None,
-                 obs_type=None,
+                 type=None,
                  proposal=None,
                  telescope=None,
                  instrument=None,
@@ -550,7 +547,7 @@ class SimpleObservation(Observation):
                                                 algorithm,
                                                 sequence_number,
                                                 intent,
-                                                obs_type,
+                                                type,
                                                 proposal,
                                                 telescope,
                                                 instrument,
@@ -592,7 +589,7 @@ class CompositeObservation(Observation):
                  algorithm,
                  sequence_number=None,
                  intent=None,
-                 obs_type=None,
+                 type=None,
                  proposal=None,
                  telescope=None,
                  instrument=None,
@@ -610,7 +607,7 @@ class CompositeObservation(Observation):
                                                    algorithm,
                                                    sequence_number,
                                                    intent,
-                                                   obs_type,
+                                                   type,
                                                    proposal,
                                                    telescope,
                                                    instrument,
@@ -819,7 +816,7 @@ class Proposal(CaomObject):
     """ Proposal """
 
     def __init__(self,
-                 proposal_id,
+                 id,
                  pi_name=None,
                  project=None,
                  title=None):
@@ -830,7 +827,7 @@ class Proposal(CaomObject):
         myId : id of the proposal
         """
 
-        self.proposal_id = proposal_id
+        self.id = id
         self.pi_name = pi_name
         self.project = project
         self.title = title
@@ -840,17 +837,17 @@ class Proposal(CaomObject):
     # Properties
 
     @property
-    def proposal_id(self):
+    def id(self):
         """The proposal ID.  Sometimes also called a RUNID.
 
         type: unicode string
         """
-        return self._proposal_id
+        return self._id
 
-    @proposal_id.setter
-    def proposal_id(self, value):
+    @id.setter
+    def id(self, value):
         caom_util.type_check(value, str, 'id')
-        self._proposal_id = value
+        self._id = value
 
     @property
     def keywords(self):
