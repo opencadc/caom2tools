@@ -1224,7 +1224,7 @@ class ObservationReader(object):
             energy.em_band = plane.EnergyBand(em_band)
         energy.restwav = self._get_child_text_as_float("restwav", el, ns, False)
         _transition_el = self._get_child_element("transition", el, ns, required)
-        if _transition_el:
+        if _transition_el is not None:
             species = self._get_child_text("species", _transition_el, ns, True)
             transition = self._get_child_text("transition", _transition_el, ns, True)
             energy.transition = wcs.EnergyTransition(species, transition)
@@ -1318,7 +1318,7 @@ class ObservationReader(object):
         _upper = self._get_child_text_as_float("upper", _interval_el, ns, True)
         _samples_el = self._get_child_element("samples", _interval_el, ns, required)
         _interval = shape.Interval(_lower, _upper)
-        if _samples_el:
+        if _samples_el is not None:
             _samples = list()
             for _sample_el in _samples_el.iterchildren("{" + ns + "}sample"):
                 _si_lower = self._get_child_text_as_float("lower", _sample_el, ns, required)

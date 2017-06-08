@@ -254,10 +254,6 @@ class Observation(AbstractCaomEntity):
         """
         return self._uri
 
-    def set_uri(self, value):
-        caom_util.type_check(value, ObservationURI, 'uri')
-        self._uri = value
-
     @property
     def planes(self):
         """A typed ordered dictionary containing plane objects associated with
