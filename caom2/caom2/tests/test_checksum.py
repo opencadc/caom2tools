@@ -134,7 +134,7 @@ def test_compatibility():
     # tests loads a previously generated observation and checks the checksums against the previously
     # calculated (in Java) checksums
 
-    source_file_path = os.path.join(THIS_DIR, TEST_DATA, 'sample-composite-caom23.xml')
+    source_file_path = os.path.join(THIS_DIR, TEST_DATA, 'SampleComposite-CAOM-2.3.xml')
     reader = obs_reader_writer.ObservationReader(True)
     with open(source_file_path, 'r') as f:
         obs = reader.read(source_file_path)
@@ -156,9 +156,137 @@ def test_compatibility():
     # check observation
     assert obs.meta_checksum == get_meta_checksum(obs)
     assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
-    acc_meta_checksum = get_acc_meta_checksum(obs)
-    assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
 
+    # now change some attributes and see how the checksums start to diverge
+    old_val = obs.collection
+    obs.collection = 'OTHER'
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    assert chunk.meta_checksum == get_meta_checksum(chunk)
+                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(chunk)
+                assert part.meta_checksum == get_meta_checksum(part)
+                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
+            assert artifact.meta_checksum == get_meta_checksum(artifact)
+            assert artifact.acc_meta_checksum == get_acc_meta_checksum(artifact)
+        assert plane.meta_checksum == get_meta_checksum(plane)
+        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    assert obs.meta_checksum != get_meta_checksum(obs)
+    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
+    obs.collection = old_val
 
+    # now change a plane
+    aplane = obs.planes.values()[0]
+    old_val = aplane.product_id
+    aplane.product_id = 'TESTPRODID'
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    assert chunk.meta_checksum == get_meta_checksum(chunk)
+                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(chunk)
+                assert part.meta_checksum == get_meta_checksum(part)
+                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
+            assert artifact.meta_checksum == get_meta_checksum(artifact)
+            assert artifact.acc_meta_checksum == get_acc_meta_checksum(artifact)
+        if plane._id == aplane._id:
+            assert plane.meta_checksum != get_meta_checksum(plane)
+            assert plane.acc_meta_checksum != get_acc_meta_checksum(plane)
+        else:
+            assert plane.meta_checksum == get_meta_checksum(plane)
+            assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    assert obs.meta_checksum == get_meta_checksum(obs)
+    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
+    aplane.product_id = old_val
 
+    # change an artifact
+    anartifact = aplane.artifacts.values()[0]
+    old_val = anartifact.content_length
+    anartifact.content_length = 3344
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    assert chunk.meta_checksum == get_meta_checksum(chunk)
+                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(chunk)
+                assert part.meta_checksum == get_meta_checksum(part)
+                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
+            if artifact._id == anartifact._id:
+                assert artifact.meta_checksum != get_meta_checksum(artifact)
+                assert artifact.acc_meta_checksum != get_acc_meta_checksum(artifact)
+            else:
+                assert artifact.meta_checksum == get_meta_checksum(artifact)
+                assert artifact.acc_meta_checksum == get_acc_meta_checksum(artifact)
+        assert plane.meta_checksum == get_meta_checksum(plane)
+        if plane._id == aplane._id:
+            assert plane.acc_meta_checksum != get_acc_meta_checksum(plane)
+        else:
+            assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    assert obs.meta_checksum == get_meta_checksum(obs)
+    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
+    anartifact.content_length = old_val
 
+    apart = anartifact.parts.values()[0]
+    old_val = apart.name
+    apart.name = 'therealpart'
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    assert chunk.meta_checksum == get_meta_checksum(chunk)
+                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(chunk)
+                if part._id == apart._id:
+                    assert part.meta_checksum != get_meta_checksum(part)
+                    assert part.acc_meta_checksum != get_acc_meta_checksum(part)
+                else:
+                    assert part.meta_checksum == get_meta_checksum(part)
+                    assert part.acc_meta_checksum == get_acc_meta_checksum(part)
+            assert artifact.meta_checksum == get_meta_checksum(artifact)
+            if artifact._id == anartifact._id:
+                assert artifact.acc_meta_checksum != get_acc_meta_checksum(artifact)
+            else:
+                assert artifact.acc_meta_checksum == get_acc_meta_checksum(artifact)
+        assert plane.meta_checksum == get_meta_checksum(plane)
+        if plane._id == aplane._id:
+            assert plane.acc_meta_checksum != get_acc_meta_checksum(plane)
+        else:
+            assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    assert obs.meta_checksum == get_meta_checksum(obs)
+    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
+    apart.name = old_val
+
+    achunk = apart.chunks[0]
+    old_val = chunk.naxis
+    if old_val == 5:
+        achunk.naxis = 4
+    else:
+        achunk.naxis = old_val + 1
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    if chunk._id == achunk._id:
+                        assert chunk.meta_checksum != get_meta_checksum(chunk)
+                        assert chunk.acc_meta_checksum != get_acc_meta_checksum(chunk)
+                    else:
+                        assert chunk.meta_checksum == get_meta_checksum(chunk)
+                        assert chunk.acc_meta_checksum == get_acc_meta_checksum(chunk)
+                assert part.meta_checksum == get_meta_checksum(part)
+                if part._id == apart._id:
+                    assert part.acc_meta_checksum != get_acc_meta_checksum(part)
+                else:
+                    assert part.acc_meta_checksum == get_acc_meta_checksum(part)
+            assert artifact.meta_checksum == get_meta_checksum(artifact)
+            if artifact._id == anartifact._id:
+                assert artifact.acc_meta_checksum != get_acc_meta_checksum(artifact)
+            else:
+                assert artifact.acc_meta_checksum == get_acc_meta_checksum(artifact)
+        assert plane.meta_checksum == get_meta_checksum(plane)
+        if plane._id == aplane._id:
+            assert plane.acc_meta_checksum != get_acc_meta_checksum(plane)
+        else:
+            assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    assert obs.meta_checksum == get_meta_checksum(obs)
+    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
+    achunk.naxis = old_val

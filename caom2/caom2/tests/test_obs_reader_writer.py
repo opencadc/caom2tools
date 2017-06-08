@@ -1030,8 +1030,6 @@ class TestRoundTrip(unittest.TestCase):
                     self.do_test(reader, writer22, filename)
                 elif filename.endswith("CAOM-2.1.xml"):
                     self.do_test(reader, writer21, filename)
-                elif filename.startswith('sample'):
-                    pass
                 else:
                     self.do_test(reader, writer20, filename)
 
