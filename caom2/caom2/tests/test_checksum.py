@@ -177,7 +177,7 @@ def test_compatibility():
     obs.collection = old_val
 
     # now change a plane
-    aplane = obs.planes.values()[0]
+    aplane = list(obs.planes.values())[0]
     old_val = aplane.product_id
     aplane.product_id = 'TESTPRODID'
     for plane in obs.planes.values():
@@ -201,7 +201,7 @@ def test_compatibility():
     aplane.product_id = old_val
 
     # change an artifact
-    anartifact = aplane.artifacts.values()[0]
+    anartifact = list(aplane.artifacts.values())[0]
     old_val = anartifact.content_length
     anartifact.content_length = 3344
     for plane in obs.planes.values():
@@ -227,7 +227,7 @@ def test_compatibility():
     assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
     anartifact.content_length = old_val
 
-    apart = anartifact.parts.values()[0]
+    apart = list(anartifact.parts.values())[0]
     old_val = apart.name
     apart.name = 'therealpart'
     for plane in obs.planes.values():
@@ -256,7 +256,7 @@ def test_compatibility():
     assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
     apart.name = old_val
 
-    achunk = apart.chunks[0]
+    achunk = list(apart.chunks)[0]
     old_val = chunk.naxis
     if old_val == 5:
         achunk.naxis = 4
