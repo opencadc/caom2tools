@@ -134,10 +134,10 @@ class TestObservation(unittest.TestCase):
         self.assertEqual(observation.ObservationIntentType.CALIBRATION,
                          obs.intent, "Observation intent")
 
-        self.assertIsNone(obs.obs_type, "Default obs_type")
-        obs.obs_type = "obstype1"
+        self.assertIsNone(obs.type, "Default obs_type")
+        obs.type = "obstype1"
         self.assertEqual("obstype1",
-                         obs.obs_type, "obs type")
+                         obs.type, "obs type")
 
         self.assertIsNone(obs.proposal, "Default proposal")
         proposal = observation.Proposal("ABC")
@@ -210,7 +210,7 @@ class TestObservation(unittest.TestCase):
             planes=obs.planes,
             sequence_number=obs.sequence_number,
             intent=obs.intent,
-            obs_type=obs.obs_type,
+            type=obs.type,
             proposal=obs.proposal,
             telescope=obs.telescope,
             instrument=obs.instrument,
@@ -246,10 +246,10 @@ class TestSimpleObservation(unittest.TestCase):
         self.assertEqual(observation.ObservationIntentType.CALIBRATION,
                          obs.intent, "Observation intent")
 
-        self.assertIsNone(obs.obs_type, "Default obs_type")
-        obs.obs_type = "obstype1"
+        self.assertIsNone(obs.type, "Default obs_type")
+        obs.type = "obstype1"
         self.assertEqual("obstype1",
-                         obs.obs_type, "obs type")
+                         obs.type, "obs type")
 
         self.assertIsNone(obs.proposal, "Default proposal")
         proposal = observation.Proposal("ABC")
@@ -341,8 +341,8 @@ class TestSimpleObservation(unittest.TestCase):
         self.assertIsNotNone(obs.intent, "Observation intent")
         self.assertEqual(intent, obs.intent, "Observation intent")
 
-        self.assertIsNotNone(obs.obs_type, "obs type")
-        self.assertEqual(obs_type, obs.obs_type, "obs type")
+        self.assertIsNotNone(obs.type, "obs type")
+        self.assertEqual(obs_type, obs.type, "obs type")
 
         self.assertIsNotNone(obs.proposal, "Proposal")
         self.assertEqual(proposal, obs.proposal, "Proposal")
@@ -418,10 +418,10 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertEqual(observation.ObservationIntentType.CALIBRATION,
                          obs.intent, "Observation intent")
 
-        self.assertIsNone(obs.obs_type, "Default obs_type")
-        obs.obs_type = "obstype1"
+        self.assertIsNone(obs.type, "Default obs_type")
+        obs.type = "obstype1"
         self.assertEqual("obstype1",
-                         obs.obs_type, "obs type")
+                         obs.type, "obs type")
 
         self.assertIsNone(obs.proposal, "Default proposal")
         proposal = observation.Proposal("ABC")
@@ -515,8 +515,8 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertIsNotNone(obs.intent, "Observation intent")
         self.assertEqual(intent, obs.intent, "Observation intent")
 
-        self.assertIsNotNone(obs.obs_type, "obs type")
-        self.assertEqual(obs_type, obs.obs_type, "obs type")
+        self.assertIsNotNone(obs.type, "obs type")
+        self.assertEqual(obs_type, obs.type, "obs type")
 
         self.assertIsNotNone(obs.proposal, "Proposal")
         self.assertEqual(proposal, obs.proposal, "Proposal")
@@ -608,7 +608,7 @@ class TestProposal(unittest.TestCase):
 
     def test_all(self):
         proposal = observation.Proposal("myProposal")
-        self.assertEqual("myProposal", proposal.proposal_id, "Proposal ID")
+        self.assertEqual("myProposal", proposal.id, "Proposal ID")
         self.assertEqual(0, len(proposal.keywords), "Default number of keywords")
         proposal.keywords.add("optical")
         self.assertEqual(1, len(proposal.keywords), "Number of keywords")

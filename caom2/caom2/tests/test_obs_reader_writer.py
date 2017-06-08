@@ -352,7 +352,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             return
         self.assertIsNotNone(expected)
         self.assertIsNotNone(actual)
-        self.assertEqual(expected.proposal_id, actual.proposal_id)
+        self.assertEqual(expected.id, actual.id)
         self.assertEqual(expected.pi_name, actual.pi_name)
         self.assertEqual(expected.project, actual.project)
         self.assertEqual(expected.title, actual.title)
@@ -996,7 +996,6 @@ class TestRoundTrip(unittest.TestCase):
         source_xml_fp.close()
         dest_file = BytesIO()
         writer.write(obs, dest_file)
-
         source_dom = etree.parse(source_file_path).getroot()
         dest_dom = etree.fromstring(dest_file.getvalue())
         self.assertTrue(xml_compare(source_dom, dest_dom, reporter=print),
@@ -1031,6 +1030,8 @@ class TestRoundTrip(unittest.TestCase):
                     self.do_test(reader, writer22, filename)
                 elif filename.endswith("CAOM-2.1.xml"):
                     self.do_test(reader, writer21, filename)
+                elif filename.startswith('sample'):
+                    pass
                 else:
                     self.do_test(reader, writer20, filename)
 

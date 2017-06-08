@@ -91,3 +91,4 @@ except NameError:
     from .plane import *
     from .observation import *
     from .obs_reader_writer import *
+    from .checksum import *

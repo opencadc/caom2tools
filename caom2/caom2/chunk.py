@@ -80,6 +80,7 @@ from .common import AbstractCaomEntity
 from .common import CaomObject
 from . import caom_util
 from . import wcs
+from caom2.caom_util import int_32
 
 
 class ProductType(Enum):
@@ -182,7 +183,7 @@ class Chunk(AbstractCaomEntity):
     def naxis(self):
         """There number of dimensions in this chunk.
 
-        type: int
+        type: int_32
         eg: 2
 
         """
@@ -190,9 +191,9 @@ class Chunk(AbstractCaomEntity):
 
     @naxis.setter
     def naxis(self, value):
-        caom_util.type_check(value, int, 'naxis')
+        caom_util.type_check(value, int_32, 'naxis')
         caom_util.value_check(value, 0, 5, 'naxis')
-        self._naxis = value
+        self._naxis = int_32(value) if value is not None else None
 
     @property
     def position_axis_1(self):
@@ -201,16 +202,16 @@ class Chunk(AbstractCaomEntity):
         This is the spatial axis whose WCS is connected to CRPIX1, CD1_1, CD2_1
 
         eg: position_axis_1 = 1
-        type: int
+        type: int_32
 
         """
         return self._position_axis_1
 
     @position_axis_1.setter
     def position_axis_1(self, value):
-        caom_util.type_check(value, int, 'position_axis_1')
+        caom_util.type_check(value, int_32, 'position_axis_1')
 #         util.valueCheck(value, 0, self.naxis, 'position_axis_1')
-        self._position_axis_1 = value
+        self._position_axis_1 = int_32(value) if value is not None else None
 
     @property
     def position_axis_2(self):
@@ -220,16 +221,16 @@ class Chunk(AbstractCaomEntity):
         CD2_2, CD1_2
 
         eg: position_axis_2 = 2
-        type: int
+        type: int_32
 
         """
         return self._position_axis_2
 
     @position_axis_2.setter
     def position_axis_2(self, value):
-        caom_util.type_check(value, int, 'position_axis_2')
+        caom_util.type_check(value, int_32, 'position_axis_2')
 #         util.valueCheck(value, 0, self.naxis, 'position_axis_2')
-        self._position_axis_2 = value
+        self._position_axis_2 = int_32(value) if value is not None else None
 
     @property
     def energy_axis(self):
@@ -240,16 +241,16 @@ class Chunk(AbstractCaomEntity):
         single pixel.
 
         eg: energy_axis = 3
-        type: int
+        type: int_32
 
         """
         return self._energy_axis
 
     @energy_axis.setter
     def energy_axis(self, value):
-        caom_util.type_check(value, int, 'energy_axis')
+        caom_util.type_check(value, int_32, 'energy_axis')
 #         util.valueCheck(value, 0, self.naxis, 'energy_axis')
-        self._energy_axis = value
+        self._energy_axis = int_32(value) if value is not None else None
 
     @property
     def time_axis(self):
@@ -258,16 +259,16 @@ class Chunk(AbstractCaomEntity):
         Can and should be None if no time sampling axis exist.
 
         eg. time_axis = None
-        type: int
+        type: int_32
 
         """
         return self._time_axis
 
     @time_axis.setter
     def time_axis(self, value):
-        caom_util.type_check(value, int, 'polarization_axis')
+        caom_util.type_check(value, int_32, 'polarization_axis')
 #         util.valueCheck(value, 0, self._naxis, 'polarization_axis')
-        self._time_axis = value
+        self._time_axis = int_32(value) if value is not None else None
 
     @property
     def polarization_axis(self):
@@ -276,31 +277,31 @@ class Chunk(AbstractCaomEntity):
         Likely None...
 
         eg. polarization_axis = None
-        type: int
+        type: int_32
 
         """
         return self._polarization_axis
 
     @polarization_axis.setter
     def polarization_axis(self, value):
-        caom_util.type_check(value, int, 'polarization_axis')
-#         util.valueCheck(value, 0, self._naxis, 'polariztion_axis')
-        self._polarization_axis = value
+        caom_util.type_check(value, int_32, 'polarization_axis')
+        caom_util.value_check(value, 0, 2**32, 'polariztion_axis')
+        self._polarization_axis = int_32(value) if value is not None else None
 
     @property
     def observable_axis(self):
         """Used when on of the dimensions of the file contains?? ?
 
-        type: int
+        type: int_32
 
         """
         return self._observable_axis
 
     @observable_axis.setter
     def observable_axis(self, value):
-        caom_util.type_check(value, int, 'obserable_axis')
+        caom_util.type_check(value, int_32, 'obserable_axis')
 #         util.valueCheck(value, 0, 1E10, 'observable_axis')
-        self._observable_axis = value
+        self._observable_axis = int_32(value) if value is not None else None
 
     @property
     def observable(self):

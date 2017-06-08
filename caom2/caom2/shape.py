@@ -73,6 +73,7 @@ from __future__ import (absolute_import, division, print_function,
 from enum import Enum
 from . import common
 from . import caom_util
+from caom2.caom_util import int_32
 import math
 
 __all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point', 'Polygon', 'Vertex']
@@ -84,9 +85,9 @@ class SegmentType(Enum):
     LINE: 1
     MOVE: 2
     """
-    CLOSE = 0
-    LINE = 1
-    MOVE = 2
+    CLOSE = int_32(0)
+    LINE = int_32(1)
+    MOVE = int_32(2)
 
 
 class Box(common.CaomObject):
@@ -194,8 +195,6 @@ class Circle(common.CaomObject):
 
 
 class SubInterval(common.CaomObject):
-
-    CTOR_UTYPES = ["lower", "upper"]
 
     def __init__(self, lower, upper):
         self.lower = lower
@@ -371,8 +370,6 @@ class Polygon(common.CaomObject):
 
 
 class Vertex(Point):
-
-    CTOR_UTYPES = ["cval1", "cval2", "type"]
 
     def __init__(self, cval1, cval2, type):
         super(Vertex, self).__init__(cval1, cval2)

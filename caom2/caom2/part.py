@@ -137,11 +137,6 @@ class Part(AbstractCaomEntity):
         self._name = value
 
     @property
-    def key(self):
-        """Dictionary key for a part is the name, this is an alias property"""
-        return self._name
-
-    @property
     def chunks(self):
         """A list of chunks that this part contains"""
         return self._chunks

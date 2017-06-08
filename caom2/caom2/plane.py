@@ -84,6 +84,7 @@ from .artifact import Artifact
 from .common import AbstractCaomEntity
 from .common import CaomObject
 from .common import ObservationURI
+from caom2.caom_util import int_32
 
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand', 
            'VocabularyTerm', 'PolarizationState', 'Quality', 'Plane', 
@@ -99,11 +100,12 @@ class CalibrationLevel(Enum):
     CALIBRATED: 2
     PRODUCT: 3
     """
-    PLANNED = -1
-    RAW_INSTRUMENT = 0
-    RAW_STANDARD = 1
-    CALIBRATED = 2
-    PRODUCT = 3
+    PLANNED = int_32(-1)
+    RAW_INSTRUMENT = int_32(0)
+    RAW_STANDARD = int_32(1)
+    CALIBRATED = int_32(2)
+    PRODUCT = int_32(3)
+    ANALYSIS_PRODUCT = int_32(4)
 
 
 class VocabularyTerm(object):
@@ -338,11 +340,6 @@ class Plane(AbstractCaomEntity):
     def product_id(self, value):
         caom_util.type_check(value, str, 'product_id', override=False)
         self._product_id = value
-
-    @property
-    def key(self):
-        """ The dictionary key for a plane is product ID """
-        return self._product_id
 
     @property
     def creator_id(self):
@@ -617,6 +614,16 @@ class PlaneURI(CaomObject):
     def __hash__(self):
         return hash(self._key())
 
+    def __lt__(self, other):
+        if not isinstance(other, PlaneURI):
+            raise ValueError('Canot compare PlaneURI with {}'.format(type(other)))
+        return self.uri < other.uri
+
+    def __eq__(self, other):
+        if not isinstance(other, PlaneURI):
+            raise ValueError('Canot compare PlaneURI with {}'.format(type(other)))
+        return self.uri == other.uri
+
     @classmethod
     def get_plane_uri(cls, observation_uri, product_id):
         """
@@ -664,14 +671,12 @@ class PlaneURI(CaomObject):
             ObservationURI.get_observation_uri(collection, observation_id)
         self._uri = value
 
-    @property
-    def product_id(self):
-        """the product_id associated with this plane"""
+    def get_product_id(self):
+        """return the product_id associated with this plane"""
         return self._product_id
 
-    @property
-    def observation_uri(self):
-        """The uri that can be used to find the caom2 observation object that
+    def get_observation_uri(self):
+        """Return the uri that can be used to find the caom2 observation object that
         this plane belongs to"""
         return self._observation_uri
 
@@ -1010,6 +1015,7 @@ class Energy(CaomObject):
         self._bandpass_name = None
         self._em_band = None
         self._transition = None
+        self._restwav = None
 
     # Properties
 
@@ -1096,6 +1102,18 @@ class Energy(CaomObject):
             assert isinstance(value, wcs.EnergyTransition), (
                 "transition is not an EnergyTransition: {0}".format(value))
         self._transition = value
+
+    @property
+    def restwav(self):
+        """ rest wavelength of the target energy transition """
+        return self._restwav
+
+    @restwav.setter
+    def restwav(self, value):
+        if value is not None:
+            assert isinstance(value, float), (
+                "restwav is not a float: {0}".format(value))
+        self._restwav = value
 
 
 class Polarization(CaomObject):
