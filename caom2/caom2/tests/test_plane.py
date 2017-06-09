@@ -288,21 +288,21 @@ class TestPlaneURI(unittest.TestCase):
         plane_uri = plane.PlaneURI("caom:GEMINI/12345/3333")
         self.assertEqual("caom:GEMINI/12345/3333", plane_uri.uri,
                          "Plane URI")
-        self.assertEqual("GEMINI", plane_uri.observation_uri.collection,
+        self.assertEqual("GEMINI", plane_uri.get_observation_uri().collection,
                          "Collection")
-        self.assertEqual("12345", plane_uri.observation_uri.observation_id,
+        self.assertEqual("12345", plane_uri.get_observation_uri().observation_id,
                          "Observation ID")
-        self.assertEqual("3333", plane_uri.product_id, "Product ID")
+        self.assertEqual("3333", plane_uri.get_product_id(), "Product ID")
 
         plane_uri = plane.PlaneURI.get_plane_uri(observation.ObservationURI("caom:CFHT/654321"),
                                                  "555")
         self.assertEqual("caom:CFHT/654321/555", plane_uri.uri,
                          "Observation URI")
-        self.assertEqual("CFHT", plane_uri.observation_uri.collection,
+        self.assertEqual("CFHT", plane_uri.get_observation_uri().collection,
                          "Collection")
-        self.assertEqual("654321", plane_uri.observation_uri.observation_id,
+        self.assertEqual("654321", plane_uri.get_observation_uri().observation_id,
                          "Observation ID")
-        self.assertEqual("555", plane_uri.product_id, "Product ID")
+        self.assertEqual("555", plane_uri.get_product_id(), "Product ID")
 
         exception = False
         try:

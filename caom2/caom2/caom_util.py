@@ -93,6 +93,16 @@ __all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
 IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 
+class int_32(int):
+    """
+    The checksum algorithm must distinguished between 32 bit integers and 64 bit
+    integers. This subtype of int is used to tell the algorithm to use only 4 bytes
+    in the checksum of an attribute of this type.
+    """
+    def __new__(cls, *args, **kwargs):
+        return int.__new__(cls, *args, **kwargs)
+
+
 def validate_path_component(caller, name, test):
     """
     Function to validate a URI path component. Component is invalid
@@ -172,16 +182,21 @@ def type_check(value, value_type, variable, override=None):
     """Check value is of type value_type, or is override"""
 
     sys.tracebacklimit = None
-    if not isinstance(value, value_type) and value is not override:
+    # int_32 is an internal type so for the purpose of this external checking
+    # it's OK to use the parent type (int).
+    vtype = value_type
+    if value_type == int_32:
+        vtype = int
+    if not isinstance(value, vtype) and value is not override:
         if override is not False:
             raise TypeError(
-                "Expected {} or {} for {}, received {}".format(value_type,
+                "Expected {} or {} for {}, received {}".format(vtype,
                                                                override,
                                                                variable,
                                                                type(value)))
         else:
             raise TypeError(
-                "Expected {} for {}, received {}".format(value_type,
+                "Expected {} for {}, received {}".format(vtype,
                                                          variable,
                                                          type(value)))
     return True
@@ -261,6 +276,11 @@ class TypedList(collections.MutableSequence):
         self.check(v)
         self.list.insert(i, v)
 
+    @property
+    def key_type(self):
+        """ Returns the type of the elements of this list"""
+        return self._oktypes
+
 
 class TypedSet(collections.MutableSet):
     """
@@ -310,6 +330,11 @@ class TypedSet(collections.MutableSet):
         """Remove an element. Do not raise an exception if absent."""
         self._set.discard(v)
 
+    @property
+    def key_type(self):
+        """ Returns the type of the elements of this set"""
+        return self._oktypes
+
     def __iter__(self):
         return iter(self._set)
 
@@ -354,7 +379,7 @@ class TypedOrderedDict(collections.OrderedDict):
         is not the same as keyType.
         """
         super(TypedOrderedDict, self).__init__(self)
-        self._keyType = key_type
+        self._oktypes = key_type
         for arg in args:
             self.__setitem__(arg[0], arg[1])
 
@@ -363,7 +388,7 @@ class TypedOrderedDict(collections.OrderedDict):
                           for k, v in six.iteritems(self)])
 
     def __repr__(self):
-        return "TypeOrderedDict((%r))," % self._keyType + (
+        return "TypeOrderedDict((%r))," % self._oktypes + (
             "(".join(["(%r,%r)" % (k, v) for k, v in six.iteritems(self)]) + ")")
 
     def check(self, key, value):
@@ -373,16 +398,21 @@ class TypedOrderedDict(collections.OrderedDict):
         passed to check
         """
 
-        if not isinstance(value, self._keyType):
+        if not isinstance(value, self._oktypes):
             raise TypeError("Wrong type in dictionary. Key Type: {0}"
-                            .format(self._keyType))
-        if not value.key == key:
+                            .format(self._oktypes))
+        if not value._key() == key:
             raise ValueError("Key mismatch, key in object: {0}"
-                             .format(value.key))
+                             .format(value._key()))
+
+    @property
+    def key_type(self):
+        """ Returns the type of the elements of this dictionary"""
+        return self._oktypes
 
     def add(self, value):
         """Adds a new entry, value must be of type {0}"""
-        self.__setitem__(value.key, value)
+        self.__setitem__(value._key(), value)
 
     def pop(self, key):
         """Removes an entry"""
@@ -398,3 +428,4 @@ class ClassProperty(property):
     """ """
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()
+

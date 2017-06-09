@@ -145,12 +145,6 @@ class Artifact(AbstractCaomEntity):
         return hash(self._key())
 
     @property
-    def key(self):
-        """Dictionary key for artifact is its URI
-        """
-        return self._uri
-
-    @property
     def uri(self):
         """The URI corresponding to the Artifact.
 

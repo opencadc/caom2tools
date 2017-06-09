@@ -312,7 +312,3 @@ class TestVertex(unittest.TestCase):
         self.assertEqual(vertex.cval2, 2.0)
         self.assertEqual(vertex.type, shape.SegmentType.LINE)
 
-        utypes = shape.Vertex.CTOR_UTYPES
-        self.assertEqual(utypes[0], "cval1")
-        self.assertEqual(utypes[1], "cval2")
-        self.assertEqual(utypes[2], "type")
