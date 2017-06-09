@@ -94,11 +94,9 @@ from caom2repo import version
 __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
-DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f" #IVOA dateformat
 
 CAOM2REPO_OBS_CAPABILITY_ID = 'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0'
-# IVOA dateformat
-DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+
 # resource ID for info
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 APP_NAME = 'caom2repo'
@@ -230,9 +228,9 @@ class CAOM2RepoClient(object):
         observations = []
         params = {'MAXREC': BATCH_SIZE}
         if start is not None:
-            params['START'] = start.strftime(DATE_FORMAT)
+            params['START'] = util.utils.date2ivoa(start)
         if end is not None:
-            params['END'] = end.strftime(DATE_FORMAT)
+            params['END'] = util.utils.date2ivoa(end)
 
         response = self._repo_client.get((CAOM2REPO_OBS_CAPABILITY_ID, collection),
                                          params=params)
@@ -241,7 +239,7 @@ class CAOM2RepoClient(object):
             (obs, last_datetime) = line.split(',')
             observations.append(obs)
         if last_datetime is not None:
-            self._start = datetime.strptime(last_datetime, DATE_FORMAT)
+            self._start = util.utils.str2ivoa(last_datetime)
         return observations
 
     def _load_plugin_class(self, filepath):
@@ -357,6 +355,9 @@ def main_app():
     parser.description = ('Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) '
                           'operations it also implements a visitor operation that allows for updating '
                           'multiple observations in a collection')
+    
+    parser.add_argument("-s", "--server", help='URL of the CAOM2 repo server')
+    
     parser.formatter_class = argparse.RawTextHelpFormatter
 
     subparsers = parser.add_subparsers(dest='cmd')
@@ -398,7 +399,6 @@ def main_app():
                         help='latest observation to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
     visit_parser.add_argument('--halt-on-error', action='store_true',
                               help='stop visitor on first update exception raised by plugin')
-    visit_parser.add_argument("-s", "--server", help='URL of the CAOM2 repo server')
     visit_parser.add_argument('collection', help='data collection in CAOM2 repo')
     
     visit_parser.epilog =\
@@ -424,7 +424,11 @@ Minimum plugin file format:
         logging.basicConfig(level=logging.WARN, stream=sys.stdout)
 
     subject = net.Subject.from_cmd_line_args(args)
-    client = CAOM2RepoClient(subject, args.resource_id, host=args.host)
+    server = None
+    if args.server:
+        server = args.server
+    
+    client = CAOM2RepoClient(subject, args.resource_id, host=server)
     if args.cmd == 'visit':
         print ("Visit")
         logging.debug("Call visitor with plugin={}, start={}, end={}, collection={}".
