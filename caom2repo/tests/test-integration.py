@@ -95,32 +95,35 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 class TestCaom2Integration(unittest.TestCase):
             
     def test_create_and_visit(self):
-        env_a = os.environ['A']
-        cert_file = env_a + '/test-certificates/x509_CADCAuthtest1.pem'
-        subject = auth.Subject(certificate=cert_file)
-        client = CAOM2RepoClient(subject)
-        #client = CAOM2RepoClient(subject, host='rc.cadc-ccda.hia-iha.nrc-cnrc.gc.ca')
         
         start = datetime.now()
-        
-        # create one observation for today
-        algorithm = observation.SimpleObservation._ALGORITHM
         name = obs_name = 'caom2pyinttest{}'.format(start.microsecond)
-        print("test obs name {}".format(name))
-        obs = observation.SimpleObservation("TEST", obs_name)
-        obs.algorithm = algorithm
-        client.put_observation(obs)
-        
-        plugin = os.path.join(THIS_DIR, 'visitor-plugin.py')
-        (visited, updated, skipped, failed) = client.visit(plugin, 'TEST', start=start, halt_on_error=True)
-        print("visit count: {}".format(visited))
         
         try:
-            client.delete_observation("TEST", name)
-        except:
-            print('Failed to delete test observation, continuing')
+            env_a = os.environ['A']
+            cert_file = env_a + '/test-certificates/x509_CADCAuthtest1.pem'
+            subject = auth.Subject(certificate=cert_file)
+            client = CAOM2RepoClient(subject)
+            
+            # create one observation for today
+            algorithm = observation.SimpleObservation._ALGORITHM
+            
+            print("test obs name {}".format(name))
+            obs = observation.SimpleObservation("TEST", obs_name)
+            obs.algorithm = algorithm
+            client.put_observation(obs)
+            
+            plugin = os.path.join(THIS_DIR, 'visitor-plugin.py')
+            (visited, updated, skipped, failed) = client.visit(plugin, 'TEST', start=start, halt_on_error=True)
+            print("observations visited: {}".format(len(visited)))
+            
+            self.assertGreater(visited, 0, msg="No Observations Visited")
         
-        self.assertGreater(visited, 0, msg="No Observations Visited")
+        finally:
+            try:
+                client.delete_observation("TEST", name)
+            except:
+                print('Failed to delete test observation, continuing')
         
 
 if __name__ == '__main__':
