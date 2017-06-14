@@ -76,25 +76,25 @@ import unittest
 import binascii
 import os
 import sys
+import logging
 
 from cadcutils.net import auth
-from cadcutils.util import utils
-from caom2repo import CAOM2RepoClient
-from io import BytesIO
-from caom2 import common
-from caom2 import chunk
-from caom2 import part
-from caom2 import plane
-from caom2 import artifact
+from caom2repo.core import CAOM2RepoClient
 from caom2 import observation
-from caom2 import ObservationReader
 from datetime import datetime
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 class TestCaom2Integration(unittest.TestCase):
+    
+    logger = logging.getLogger('TestCaom2Integration')
+    
+    def runTest(self):
+        self.test_create_and_visit()
             
     def test_create_and_visit(self):
+        
+        print ('-- START: test_create_and_visit --')
         
         start = datetime.now()
         name = obs_name = 'caom2pyinttest{}'.format(start.microsecond)
@@ -118,12 +118,16 @@ class TestCaom2Integration(unittest.TestCase):
             print("observations visited: {}".format(len(visited)))
             
             self.assertGreater(visited, 0, msg="No Observations Visited")
+            
+        except Exception as e:
+            self.logger.exception("unexpected")
         
         finally:
             try:
                 client.delete_observation("TEST", name)
             except:
                 print('Failed to delete test observation, continuing')
+            print ('-- END :test_create_and_visit --')
         
 
 if __name__ == '__main__':

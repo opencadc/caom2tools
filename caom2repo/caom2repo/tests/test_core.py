@@ -194,8 +194,8 @@ class TestCAOM2Repo(unittest.TestCase):
         response = MagicMock()
         response.status_code = 200
         last_datetime = '2000-10-10T12:30:00.333'
-        response.content = '700000o,2000-10-10T12:20:11.123\n700001o,' +\
-            last_datetime
+        response.content = 'CFHT\t700000o\t2000-10-10T12:20:11.123\t3e00ca6129dc8358315015204ab9fe15\nCFHT\t700001o\t' +\
+            last_datetime + '\t3e00ca6129dc8358315015204ab9fe15'
         mock_get.return_value = response
         
         visitor = CAOM2RepoClient(auth.Subject())
@@ -205,13 +205,13 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEquals(expect_observations, visitor._get_observations('cfht'))
         self.assertEquals(end_date, visitor._start)
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0', 'cfht'),
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1', 'cfht'),
             params={'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11', '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0', 'cfht'),
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1', 'cfht'),
             params={'END': '2000-11-11T00:00:00.000', 'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
@@ -219,7 +219,7 @@ class TestCAOM2Repo(unittest.TestCase):
                                   start=datetime.strptime('2000-11-11', '%Y-%m-%d'),
                                   end=datetime.strptime('2000-11-12', '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0', 'cfht')
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1', 'cfht')
             , params={'START': '2000-11-11T00:00:00.000',
             'END': '2000-11-12T00:00:00.000', 'MAXREC': core.BATCH_SIZE})
 

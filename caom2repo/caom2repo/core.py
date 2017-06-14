@@ -95,7 +95,7 @@ __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
 
-CAOM2REPO_OBS_CAPABILITY_ID = 'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0'
+CAOM2REPO_OBS_CAPABILITY_ID = 'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1'
 
 # resource ID for info
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
@@ -236,8 +236,13 @@ class CAOM2RepoClient(object):
                                          params=params)
         last_datetime = None
         for line in response.content.splitlines():
-            (obs, last_datetime) = line.split(',')
-            observations.append(obs)
+            columns = line.split('\t')
+            if len(columns) >= 3:
+                obs = columns[1]
+                last_datetime = columns[2]
+                observations.append(obs)
+            else:
+                self.logger.warn('Incomplete listing line: {}'.format(line))
         if last_datetime is not None:
             self._start = util.utils.str2ivoa(last_datetime)
         return observations
