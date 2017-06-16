@@ -94,7 +94,7 @@ class TestCaom2Integration(unittest.TestCase):
             
     def test_create_and_visit(self):
         
-        print ('-- START: test_create_and_visit --')
+        self.logger.info('-- START: test_create_and_visit --')
         
         start = datetime.now()
         name = obs_name = 'caom2pyinttest{}'.format(start.microsecond)
@@ -108,14 +108,14 @@ class TestCaom2Integration(unittest.TestCase):
             # create one observation for today
             algorithm = observation.SimpleObservation._ALGORITHM
             
-            print("test obs name {}".format(name))
+            self.logger.debug("test obs name {}".format(name))
             obs = observation.SimpleObservation("TEST", obs_name)
             obs.algorithm = algorithm
             client.put_observation(obs)
             
             plugin = os.path.join(THIS_DIR, 'visitor-plugin.py')
             (visited, updated, skipped, failed) = client.visit(plugin, 'TEST', start=start, halt_on_error=True)
-            print("observations visited: {}".format(len(visited)))
+            self.logger.debug("observations visited: {}".format(len(visited)))
             
             self.assertGreater(visited, 0, msg="No Observations Visited")
             
@@ -126,8 +126,8 @@ class TestCaom2Integration(unittest.TestCase):
             try:
                 client.delete_observation("TEST", name)
             except:
-                print('Failed to delete test observation, continuing')
-            print ('-- END :test_create_and_visit --')
+                self.logger.warn('Failed to delete test observation, continuing')
+            self.logger.info('-- END :test_create_and_visit --')
         
 
 if __name__ == '__main__':
