@@ -83,7 +83,7 @@ class PyTest(TestCommand):
 class IntTestCommand(distutils.cmd.Command):
   """A custom command to run integration tests."""
 
-  description = 'run integration tests'
+  description = 'Integration tests for caom2repo'
   user_options = []
   
   def initialize_options(self):

@@ -69,12 +69,16 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import logging
+
 from caom2.observation import Observation
 
 class ObservationUpdater(object):
+
+    logger = logging.getLogger('TestCaom2Integration')
         
     def update(self, observation):
-        print('in update of observation: ' + observation.observation_id)
+        self.logger.debug('in update of observation: ' + observation.observation_id)
         return False
     
     
