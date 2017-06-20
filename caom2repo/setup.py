@@ -4,10 +4,15 @@
 import glob
 import os
 import sys
+import imp
 from setuptools.command.test import test as TestCommand
 from setuptools import find_packages
 
 from setuptools import setup
+
+import distutils.cmd
+import distutils.log
+import subprocess
 
 # A dirty hack to get around some early import/configurations ambiguities
 if sys.version_info[0] >= 3:
@@ -74,6 +79,29 @@ class PyTest(TestCommand):
         import pytest
         err_no = pytest.main(self.pytest_args)
         sys.exit(err_no)
+        
+class IntTestCommand(distutils.cmd.Command):
+  """A custom command to run integration tests."""
+
+  description = 'Integration tests for caom2repo'
+  user_options = []
+  
+  def initialize_options(self):
+    """Set default values for options."""
+    # Each user option must be listed here with their default value.
+
+  def finalize_options(self):
+    """Post-process options."""
+
+  def run(self):
+    """Run command."""
+    testfile = os.getcwd() + '/tests/test-integration.py'
+    inttests = imp.load_source("tests", testfile)
+    inttestattr = getattr(inttests, "TestCaom2Integration")()
+    self.announce(
+        'Running inttests: {}'.format(testfile),
+        level=distutils.log.INFO)
+    inttestattr.runTest()
 
 # Note that requires and provides should not be included in the call to
 # ``setup``, since these are now deprecated. See this link for more details:
@@ -95,5 +123,8 @@ setup(name=PACKAGENAME,
       entry_points=entry_points,
       packages=find_packages(),
       package_data={PACKAGENAME: ['data/*', 'tests/data/*', '*/data/*', '*/tests/data/*']},
-      cmdclass = {'coverage': PyTest}
+      cmdclass = {
+          'coverage': PyTest,
+          'inttest': IntTestCommand
+      }
 )

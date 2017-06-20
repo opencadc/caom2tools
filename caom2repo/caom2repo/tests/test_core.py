@@ -85,7 +85,7 @@ from caom2.observation import SimpleObservation
 from mock import Mock, patch, MagicMock, ANY
 
 from caom2repo import core
-from caom2repo.core import CAOM2RepoClient, DATE_FORMAT
+from caom2repo.core import CAOM2RepoClient
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -194,34 +194,34 @@ class TestCAOM2Repo(unittest.TestCase):
         response = MagicMock()
         response.status_code = 200
         last_datetime = '2000-10-10T12:30:00.333'
-        response.content = '700000o,2000-10-10T12:20:11.123\n700001o,' +\
-            last_datetime
+        response.content = 'CFHT\t700000o\t2000-10-10T12:20:11.123\t3e00ca6129dc8358315015204ab9fe15\nCFHT\t700001o\t' +\
+            last_datetime + '\t3e00ca6129dc8358315015204ab9fe15'
         mock_get.return_value = response
         
         visitor = CAOM2RepoClient(auth.Subject())
-        end_date = datetime.strptime(last_datetime, DATE_FORMAT)
+        end_date = util.utils.str2ivoa(last_datetime)
         
         expect_observations = ['700000o', '700001o']
         self.assertEquals(expect_observations, visitor._get_observations('cfht'))
         self.assertEquals(end_date, visitor._start)
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0', 'cfht'),
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1', 'cfht'),
             params={'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11', '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0', 'cfht'),
-            params={'END': '2000-11-11T00:00:00.000000', 'MAXREC': core.BATCH_SIZE})
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1', 'cfht'),
+            params={'END': '2000-11-11T00:00:00.000', 'MAXREC': core.BATCH_SIZE})
 
         mock_get.reset_mock()
         visitor._get_observations('cfht',
                                   start=datetime.strptime('2000-11-11', '%Y-%m-%d'),
                                   end=datetime.strptime('2000-11-12', '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.0', 'cfht')
-            , params={'START': '2000-11-11T00:00:00.000000',
-            'END': '2000-11-12T00:00:00.000000', 'MAXREC': core.BATCH_SIZE})
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1', 'cfht')
+            , params={'START': '2000-11-11T00:00:00.000',
+            'END': '2000-11-12T00:00:00.000', 'MAXREC': core.BATCH_SIZE})
 
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadcutils.net.ws.WsCapabilities')
@@ -547,7 +547,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # expected helper messages
         usage =\
-"""usage: caom2-client [-h] [-V] {create,read,update,delete,visit} ...
+"""usage: caom2-client [-h] [-V] [-s SERVER]
+                    {create,read,update,delete,visit} ...
 
 Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) operations it also implements a visitor operation that allows for updating multiple observations in a collection
 
@@ -562,6 +563,8 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -V, --version         show program's version number and exit
+  -s SERVER, --server SERVER
+                        URL of the CAOM2 repo server
 """
 
         create_usage =\
@@ -696,7 +699,7 @@ optional arguments:
                           [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                           [--host HOST] [--resource-id RESOURCE_ID]
                           [-d | -q | -v] --plugin PLUGIN [--start START]
-                          [--end END] [--halt-on-error] [-s SERVER]
+                          [--end END] [--halt-on-error]
                           collection
 
 Visit observations in a collection
@@ -723,7 +726,6 @@ optional arguments:
   --resource-id RESOURCE_ID
                         resource identifier (default
                         ivo://cadc.nrc.ca/caom2repo)
-  -s, --server SERVER   URL of the CAOM2 repo server
   --start START         earliest observation to visit (UTC IVOA format: YYYY-
                         mm-ddTH:M:S)
   -u, --user USER       name of user to authenticate. Note: application
