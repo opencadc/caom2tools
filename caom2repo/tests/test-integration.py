@@ -85,20 +85,22 @@ from datetime import datetime
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
+logger = logging.getLogger('TestCaom2Integration')
+
 class TestCaom2Integration(unittest.TestCase):
-    
-    logger = logging.getLogger('TestCaom2Integration')
-    
+
+
     def runTest(self):
         self.test_create_and_visit()
             
     def test_create_and_visit(self):
-        
-        self.logger.info('-- START: test_create_and_visit --')
-        
+
+        #logger.setLevel(logging.DEBUG)
+        logger.info('-- START: test_create_and_visit --')
+
         start = datetime.now()
         name = obs_name = 'caom2pyinttest{}'.format(start.microsecond)
-        
+
         try:
             env_a = os.environ['A']
             cert_file = env_a + '/test-certificates/x509_CADCAuthtest1.pem'
@@ -107,27 +109,24 @@ class TestCaom2Integration(unittest.TestCase):
             
             # create one observation for today
             algorithm = observation.SimpleObservation._ALGORITHM
-            
-            self.logger.debug("test obs name {}".format(name))
+
+            logger.debug("test obs name {}".format(name))
             obs = observation.SimpleObservation("TEST", obs_name)
             obs.algorithm = algorithm
             client.put_observation(obs)
-            
+
             plugin = os.path.join(THIS_DIR, 'visitor-plugin.py')
             (visited, updated, skipped, failed) = client.visit(plugin, 'TEST', start=start, halt_on_error=True)
-            self.logger.debug("observations visited: {}".format(len(visited)))
+            logger.debug("observations visited: {}".format(len(visited)))
             
-            self.assertGreater(visited, 0, msg="No Observations Visited")
+            self.assertGreater(len(visited), 0, msg="No Observations Visited")
             
-        except Exception as e:
-            self.logger.exception("unexpected")
-        
         finally:
             try:
                 client.delete_observation("TEST", name)
             except:
-                self.logger.warn('Failed to delete test observation, continuing')
-            self.logger.info('-- END :test_create_and_visit --')
+                logger.warning('Failed to delete test observation, continuing')
+            logger.info('-- END :test_create_and_visit --')
         
 
 if __name__ == '__main__':
