@@ -210,7 +210,7 @@ class CAOM2RepoClient(object):
                         raise e
                 visited.append(observation.observation_id)
             if len(observations) == BATCH_SIZE:
-                observations = self._get_observations(collection)
+                observations = self._get_observations(collection, self._start, end)
             else:
                 # the last batch was smaller so it must have been the last
                 break
@@ -235,7 +235,7 @@ class CAOM2RepoClient(object):
         response = self._repo_client.get((CAOM2REPO_OBS_CAPABILITY_ID, collection),
                                          params=params)
         last_datetime = None
-        for line in response.content.splitlines():
+        for line in response.text.splitlines():
             columns = line.split('\t')
             if len(columns) >= 3:
                 obs = columns[1]
