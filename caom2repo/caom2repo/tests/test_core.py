@@ -82,7 +82,10 @@ from cadcutils import util, exceptions
 from cadcutils.net import auth
 from caom2.obs_reader_writer import ObservationWriter
 from caom2.observation import SimpleObservation
-from mock import Mock, patch, MagicMock, ANY
+from mock import Mock, patch, MagicMock, ANY, call
+
+# The following is a temporary workaround for Python issue 25532 (https://bugs.python.org/issue25532)
+call.__wrapped__ = None
 
 from caom2repo import core
 from caom2repo.core import CAOM2RepoClient
@@ -194,7 +197,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response = MagicMock()
         response.status_code = 200
         last_datetime = '2000-10-10T12:30:00.333'
-        response.content = 'CFHT\t700000o\t2000-10-10T12:20:11.123\t3e00ca6129dc8358315015204ab9fe15\nCFHT\t700001o\t' +\
+        response.text = 'CFHT\t700000o\t2000-10-10T12:20:11.123\t3e00ca6129dc8358315015204ab9fe15\nCFHT\t700001o\t' +\
             last_datetime + '\t3e00ca6129dc8358315015204ab9fe15'
         mock_get.return_value = response
         
@@ -449,6 +452,37 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.visit(os.path.join(
                 THIS_DIR, 'errorplugin.py'), 'cfht', halt_on_error=True)
 
+        # test with time boundaries
+        caps_mock.get_service_host.return_value = 'some.host.com'
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        response = MagicMock()
+        response.text = """ARCHIVE\ta\t2011-01-01T11:00:00.000
+                           ARCHIVE\tb\t211-01-01T11:00:10.000
+                           ARCHIVE\tc\t2011-01-01T12:00:00.000"""
+        response2 = MagicMock()
+        response2.text = """ARCHIVE\td\t2011-02-02T11:00:00.000"""
+        visitor = CAOM2RepoClient(auth.Subject())
+        visitor.get_observation = MagicMock(return_value=MagicMock(spec=SimpleObservation))
+        visitor.post_observation = MagicMock()
+        visitor._repo_client.get = MagicMock(side_effect=[response, response2])
+
+        start = '2010-10-10T12:00:00.000'
+        end = '2012-12-12T11:11:11.000'
+        (visited, updated, skipped, failed) = visitor.visit(os.path.join(THIS_DIR, 'passplugin.py'), 'cfht',
+                                                            start=util.str2ivoa(start),
+                                                            end=util.str2ivoa(end))
+
+        self.assertEqual(4, len(visited))
+        self.assertEqual(4, len(updated))
+        self.assertEqual(0, len(skipped))
+        self.assertEqual(0, len(failed))
+        calls = [call((core.CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
+                      params={'START': start, 'END': end, 'MAXREC' :3}),
+                 call((core.CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
+                      params={'START': '2011-01-01T12:00:00.000', # datetime of the last record in the batch
+                              'END': end,
+                              'MAXREC': 3})]
+        visitor._repo_client.get.assert_has_calls(calls)
 
     def test_shortcuts(self):
         target = CAOM2RepoClient(auth.Subject())
