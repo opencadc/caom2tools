@@ -70,7 +70,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from enum import Enum
+from aenum import Enum
 from . import common
 from . import caom_util
 from caom2.caom_util import int_32

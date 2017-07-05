@@ -75,7 +75,7 @@ from __future__ import (absolute_import, division, print_function,
 from datetime import datetime
 from six.moves.urllib.parse import SplitResult, urlsplit
 from builtins import str, int
-from enum import Enum
+from aenum import Enum, extend_enum
 
 from . import caom_util
 from . import shape
@@ -220,6 +220,15 @@ class DataProductType(Enum):
     VISIBILITY = VocabularyTerm(_OBSCORE, "visibility", True).get_value()
     MEASUREMENTS = VocabularyTerm(_OBSCORE, "measurements", True).get_value()
     CATALOG = VocabularyTerm(_CAOM, "catalog").get_value()
+
+    @staticmethod
+    def extend(namespace, name):
+        """
+        Extends the DataProductType with a new, user-defined, entry
+        :param namespace: Namespace for the new data product type
+        :param name: Name of the new data product type
+        """
+        extend_enum(DataProductType, name.upper(), VocabularyTerm(namespace, name).get_value())
 
 
 class EnergyBand(Enum):

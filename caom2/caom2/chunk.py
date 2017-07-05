@@ -75,7 +75,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from builtins import str, int
 
-from enum import Enum
+from aenum import Enum
 from .common import AbstractCaomEntity
 from .common import CaomObject
 from . import caom_util

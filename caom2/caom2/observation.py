@@ -74,7 +74,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from datetime import datetime
 from builtins import str, int
-from enum import Enum
+from aenum import Enum
 import six
 
 from . import caom_util
