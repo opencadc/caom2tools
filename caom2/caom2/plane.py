@@ -91,6 +91,8 @@ __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 
            'Energy', 'Polarization', 'Time']
 
+_OBSCORE = "http://www.ivoa.net/std/ObsCore"
+_CAOM = "http://www.opencadc.org/caom2/DataProductType"
 
 class CalibrationLevel(Enum):
     """
@@ -176,41 +178,7 @@ class VocabularyTerm(object):
 
 
 class DataProductType(Enum):
-    """ DataproductType """
-
-    _OBSCORE = "http://www.ivoa.net/std/ObsCore"
-    _CAOM = "http://www.opencadc.org/caom2/DataProductType"
-
-    """ 
-    def __init__(self, value, namespace=None):
-        Initialize a DataProductType instance 
-
-        Arguments:
-        value : fragment to be appended to namespace
-        namespace : namespace the data product type belongs to,
-                    defaults to OBSCORE
-        if namespace == None:
-            super(DataProductType, self).__init__(DataProductType._OBSCORE, value, True)
-        else:
-            super(DataProductType, self).__init__(namespace, value)
-    """
-
-    """
-    ObsCore-1.0
-    IMAGE: "image"
-    CATALOG: "catalog"
-    CUBE: "cube"
-    EVENTLIST: "eventlist"
-    SPECTRUM: "spectrum"
-    TIMESERIES: "timeseries"
-    VISIBILITY: "visibility"
-
-    ObsCore-1.1
-    MEASUREMENTS: "measurements"
-
-    ObsCore-2.3
-    CATALOG: "http://www.opencadc.org/caom2#catalog"
-    """
+    """ DataproductType - enum of data product types"""
 
     IMAGE = VocabularyTerm(_OBSCORE, "image", True).get_value()
     CUBE = VocabularyTerm(_OBSCORE, "cube", True).get_value()

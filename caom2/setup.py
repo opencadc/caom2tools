@@ -4,18 +4,20 @@
 import glob
 import os
 import sys
+import imp
 from setuptools.command.test import test as TestCommand
 from setuptools import find_packages
 
 from setuptools import setup
 
-# A dirty hack to get around some early import/configurations ambiguities
-if sys.version_info[0] >= 3:
-    import builtins
-else:
-    import __builtin__ as builtins
-if sys.argv[1] not in ['test', 'coverage']:
-    builtins._PACKAGE_SETUP_ = True
+import distutils.cmd
+import distutils.log
+import subprocess
+
+# read the README.rst file and return as string.
+def readme():
+    with open('README.rst') as r_obj:
+        return r_obj.read()
 
 # Get some values from the setup.cfg
 try:
@@ -33,11 +35,6 @@ AUTHOR = metadata.get('author', 'CADC')
 AUTHOR_EMAIL = metadata.get('author_email', 'cadc@nrc.gc.ca')
 LICENSE = metadata.get('license', 'unknown')
 URL = metadata.get('url', 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca')
-
-# Get the long description from the package's docstring
-__import__(PACKAGENAME)
-package = sys.modules[PACKAGENAME]
-LONG_DESCRIPTION = package.__doc__
 
 # VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
 VERSION = metadata.get('version', 'none')
@@ -74,7 +71,7 @@ class PyTest(TestCommand):
         import pytest
         err_no = pytest.main(self.pytest_args)
         sys.exit(err_no)
-
+        
 # Note that requires and provides should not be included in the call to
 # ``setup``, since these are now deprecated. See this link for more details:
 # https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
@@ -88,12 +85,25 @@ setup(name=PACKAGENAME,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,
       url=URL,
-      long_description=LONG_DESCRIPTION,
+      long_description=readme(),
       zip_safe=False,
       use_2to3=False,
       setup_requires=['pytest-runner'],
       entry_points=entry_points,
       packages=find_packages(),
       package_data={PACKAGENAME: ['data/*', 'tests/data/*', '*/data/*', '*/tests/data/*']},
-      cmdclass = {'coverage': PyTest}
+      classifiers=(
+        'Natural Language :: English',
+        'License :: OSI Approved :: GNU AFFERO License version 3 (AGPL-3.0)',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5'
+      ),
+      cmdclass = {
+          'coverage': PyTest,
+      }
 )

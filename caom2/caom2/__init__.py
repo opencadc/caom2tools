@@ -77,18 +77,14 @@ The details about the model and its components can be found at:
 
 http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2/
 """
-try:
-    _PACKAGE_SETUP_
-except NameError:
-    # not in setup mode
-    from .caom_util import *
-    from .common import *
-    from .wcs import *
-    from .shape import *
-    from .chunk import *
-    from .part import *
-    from .artifact import *
-    from .plane import *
-    from .observation import *
-    from .obs_reader_writer import *
-    from .checksum import *
+from .caom_util import *
+from .common import *
+from .wcs import *
+from .shape import *
+from .chunk import *
+from .part import *
+from .artifact import *
+from .plane import *
+from .observation import *
+from .obs_reader_writer import *
+from .checksum import *

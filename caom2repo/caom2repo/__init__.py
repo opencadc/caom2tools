@@ -44,8 +44,4 @@ to prevent the script from quiting. Method 3, while simple, must rely on inter
 processes communication to determine the result of running the command.
 """
 
-try:
-      _PACKAGE_SETUP_
-except NameError:
-   # not in setup mode
-   from .core import *
+from .core import *
