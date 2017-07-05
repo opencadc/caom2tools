@@ -80,6 +80,7 @@ To create a minimal Simple Observation
 --------------------------------------
 
 .. code:: python
+
     import caom2
 
     observation = SimpleObservation('collection', 'observationID')
