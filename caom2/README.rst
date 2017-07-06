@@ -1,7 +1,7 @@
 caom2
 =====
 
-.. image:: https://img.shields.io/pypi/v/caom2.svg   
+.. image:: https://img.shields.io/testpypi/v/caom2.svg   
     :target: 
 
 Common Archive Observation Model - data engineering tools
