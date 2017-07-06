@@ -76,10 +76,11 @@ To create a minimal Simple Observation
       </caom2:planes>
     </caom2:Observation>
 
-To create a minimal Simple Observation
+To create a complete Observation
 --------------------------------------
 
 .. code:: python
+
     import caom2
 
     observation = SimpleObservation('collection', 'observationID')
