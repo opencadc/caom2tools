@@ -1022,7 +1022,8 @@ class TestRoundTrip(unittest.TestCase):
                 True, False, "caom2", obs_reader_writer.CAOM21_NAMESPACE)
             writer22 = obs_reader_writer.ObservationWriter(
                 True, False, "caom2", obs_reader_writer.CAOM22_NAMESPACE)
-            writer23 = obs_reader_writer.ObservationWriter(True, False, "caom2")
+            writer23 = obs_reader_writer.ObservationWriter(
+                True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
             for filename in files:
                 if filename.endswith("CAOM-2.3.xml"):
                     self.do_test(reader, writer23, filename)

@@ -77,6 +77,8 @@ import os
 import uuid
 from builtins import str, int
 import six
+from six.moves.urllib.parse import urlparse
+
 
 from lxml import etree
 
@@ -102,6 +104,12 @@ CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
 CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
 CAOM22_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.2'
 CAOM23_NAMESPACE = 'http://www.opencadc.org/caom2/xml/v2.3'
+
+CAOM_VERSION = {CAOM20_NAMESPACE: 20,
+                CAOM21_NAMESPACE: 21,
+                CAOM22_NAMESPACE: 22,
+                CAOM23_NAMESPACE: 23
+                }
 
 CAOM20 = "{%s}" % CAOM20_NAMESPACE
 CAOM21 = "{%s}" % CAOM21_NAMESPACE
@@ -157,6 +165,7 @@ class ObservationReader(object):
             xsd.getroot().insert(3, caom23_schema)
 
             self._xmlschema = etree.XMLSchema(xsd)
+            self.version = None
 
     def _set_entity_attributes(self, element, ns, caom2_entity):
         expect_uuid = True
@@ -1473,8 +1482,14 @@ class ObservationReader(object):
                 data_product_type = \
                     self._get_child_text("dataProductType", plane_element, ns, False)
                 if data_product_type:
-                    _plane.data_product_type = \
-                        plane.DataProductType(data_product_type)
+                    if (data_product_type == 'catalog') and (self.version < 23):
+                        # TODO backawards compatibility. To be removed when 2.2
+                        # and older version no longer supported
+                        _plane.data_product_type = \
+                            plane.DataProductType('{}#{}'.format(plane._CAOM, data_product_type))
+                    else:
+                        _plane.data_product_type = \
+                            plane.DataProductType(data_product_type)
                 _plane.creator_id = \
                     self._get_child_text("creatorID", plane_element, ns, False)
                 calibration_level = \
@@ -1518,6 +1533,7 @@ class ObservationReader(object):
             self._xmlschema.assertValid(doc)
         root = doc.getroot()
         ns = root.nsmap["caom2"]
+        self.version = CAOM_VERSION[ns]
         collection = str(self._get_child_element("collection", root, ns, True).text)
         observation_id = \
             str(self._get_child_element("observationID", root, ns, True).text)
@@ -1796,9 +1812,19 @@ class ObservationWriter(object):
             self._add_datetime_element("dataRelease", _plane.data_release,
                                        plane_element)
             if _plane.data_product_type is not None:
-                self._add_element("dataProductType",
-                                  _plane.data_product_type.value,
-                                  plane_element)
+                if self._output_version < 23:
+                    dpt = urlparse(_plane.data_product_type.value)
+                    if dpt.fragment != '':
+                        dpt = dpt.fragment
+                    else:
+                        dpt = _plane.data_product_type.value
+                    self._add_element("dataProductType",
+                                      dpt,
+                                      plane_element)
+                else:
+                    self._add_element("dataProductType",
+                                      _plane.data_product_type.value,
+                                      plane_element)
             if _plane.calibration_level is not None:
                 self._add_element("calibrationLevel",
                                   _plane.calibration_level.value,

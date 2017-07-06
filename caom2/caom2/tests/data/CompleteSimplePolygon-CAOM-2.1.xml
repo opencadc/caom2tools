@@ -56,7 +56,7 @@
       <caom2:productID>productID</caom2:productID>
       <caom2:metaRelease>2012-07-11T13:26:37.000</caom2:metaRelease>
       <caom2:dataRelease>2012-07-11T13:26:37.000</caom2:dataRelease>
-      <caom2:dataProductType>image</caom2:dataProductType>
+      <caom2:dataProductType>catalog</caom2:dataProductType>
       <caom2:calibrationLevel>3</caom2:calibrationLevel>
       <caom2:provenance>
         <caom2:name>name</caom2:name>
