@@ -1486,7 +1486,7 @@ class ObservationReader(object):
                         # TODO backawards compatibility. To be removed when 2.2
                         # and older version no longer supported
                         _plane.data_product_type = \
-                            plane.DataProductType('{}#{}'.format(plane._CAOM, data_product_type))
+                            plane.DataProductType('{}#{}'.format(plane._CAOM_VOCAB_NS, data_product_type))
                     else:
                         _plane.data_product_type = \
                             plane.DataProductType(data_product_type)

@@ -91,8 +91,8 @@ __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 
            'Energy', 'Polarization', 'Time']
 
-_OBSCORE = "http://www.ivoa.net/std/ObsCore"
-_CAOM = "http://www.opencadc.org/caom2/DataProductType"
+_OBSCORE_VOCAB_NS = "http://www.ivoa.net/std/ObsCore"
+_CAOM_VOCAB_NS = "http://www.opencadc.org/caom2/DataProductType"
 
 class CalibrationLevel(Enum):
     """
@@ -180,14 +180,14 @@ class VocabularyTerm(object):
 class DataProductType(Enum):
     """ DataproductType - enum of data product types"""
 
-    IMAGE = VocabularyTerm(_OBSCORE, "image", True).get_value()
-    CUBE = VocabularyTerm(_OBSCORE, "cube", True).get_value()
-    EVENTLIST = VocabularyTerm(_OBSCORE, "eventlist", True).get_value()
-    SPECTRUM = VocabularyTerm(_OBSCORE, "spectrum", True).get_value()
-    TIMESERIES = VocabularyTerm(_OBSCORE, "timeseries", True).get_value()
-    VISIBILITY = VocabularyTerm(_OBSCORE, "visibility", True).get_value()
-    MEASUREMENTS = VocabularyTerm(_OBSCORE, "measurements", True).get_value()
-    CATALOG = VocabularyTerm(_CAOM, "catalog").get_value()
+    IMAGE = VocabularyTerm(_OBSCORE_VOCAB_NS, "image", True).get_value()
+    CUBE = VocabularyTerm(_OBSCORE_VOCAB_NS, "cube", True).get_value()
+    EVENTLIST = VocabularyTerm(_OBSCORE_VOCAB_NS, "eventlist", True).get_value()
+    SPECTRUM = VocabularyTerm(_OBSCORE_VOCAB_NS, "spectrum", True).get_value()
+    TIMESERIES = VocabularyTerm(_OBSCORE_VOCAB_NS, "timeseries", True).get_value()
+    VISIBILITY = VocabularyTerm(_OBSCORE_VOCAB_NS, "visibility", True).get_value()
+    MEASUREMENTS = VocabularyTerm(_OBSCORE_VOCAB_NS, "measurements", True).get_value()
+    CATALOG = VocabularyTerm(_CAOM_VOCAB_NS, "catalog").get_value()
 
     @staticmethod
     def extend(namespace, name):

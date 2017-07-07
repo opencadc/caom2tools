@@ -9,7 +9,7 @@ Common Archive Observation Model - data engineering tools
 caom2 module
 
 The caom2 module is a library implementing the Common Archive
-Observation Model (CAOM-2.2) for manipulating CAOM observations and
+Observation Model (CAOM-2.3) for manipulating CAOM observations and
 reading and writing XML documents.
 
 http://www.opencadc.org/caom2/
@@ -48,7 +48,7 @@ To create a minimal Simple Observation
 .. code:: xml
 
     <?xml version='1.0' encoding='UTF-8'?>
-    <caom2:Observation xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-3d6a-420eab45bf2e" caom2:lastModified="2016-11-24T08:40:54.003">
+    <caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-3d6a-420eab45bf2e" caom2:lastModified="2016-11-24T08:40:54.003">
       <caom2:collection>collection</caom2:collection>
       <caom2:observationID>observationID</caom2:observationID>
       <caom2:algorithm>
@@ -213,7 +213,7 @@ To create a complete Observation
 .. code:: xml
 
 	<?xml version='1.0' encoding='UTF-8'?>
-	<caom2:Observation xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-21ae-41feaaab49f6" caom2:lastModified="2016-11-23T13:35:24.404">
+	<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-21ae-41feaaab49f6" caom2:lastModified="2016-11-23T13:35:24.404">
 	  <caom2:collection>collection</caom2:collection>
 	  <caom2:observationID>observationID</caom2:observationID>
 	  <caom2:metaRelease>2016-11-22T11:53:44.000</caom2:metaRelease>
