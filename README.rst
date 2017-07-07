@@ -4,7 +4,7 @@ Common Archive Observation Model - data engineering tools
 .. image:: https://img.shields.io/pypi/pyversions/caom2.svg
 
 .. image:: https://img.shields.io/travis/opencadc/caom2tools/master.svg   
-    :target: https://travis-ci.org/opencadc/caom2tools.svg?branch=master 
+    :target: https://travis-ci.org/opencadc/caom2tools?branch=master 
 
 .. image:: https://img.shields.io/coveralls/opencadc/caom2tools/master.svg   
     :target: https://coveralls.io/github/opencadc/caom2tools?branch=master 
