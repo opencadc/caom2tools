@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xsi:type="caom2:CompositeObservation" caom2:id="1209390c-683f-4d70-80bf-7113b0b26bf8" caom2:lastModified="2012-07-16T15:22:28.157">
+  <caom2:collection>collection</caom2:collection>
+  <caom2:observationID>observationID</caom2:observationID>
+  <caom2:algorithm>
+    <caom2:name>algorithmName</caom2:name>
+  </caom2:algorithm>
+  <caom2:planes>
+    <caom2:plane caom2:id="cf76dd4d-1c35-4949-b304-d9983dba69d6" caom2:lastModified="2012-07-16T15:22:28.157">
+      <caom2:productID>productID</caom2:productID>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="db92628c-fd2c-40e6-8d22-8ed6894349f7" caom2:lastModified="2012-07-16T15:22:28.157">
+          <caom2:uri>ad:foo/bar1</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:releaseType>meta</caom2:releaseType>
+          <caom2:parts>
+            <caom2:part caom2:id="084e54f8-7624-4490-a769-82ed22e3a238" caom2:lastModified="2012-07-16T15:22:28.157">
+              <caom2:name>x</caom2:name>
+              <caom2:chunks/>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+  <caom2:members>
+    <caom2:observationURI>caom:foo/bar</caom2:observationURI>
+  </caom2:members>
+</caom2:Observation>

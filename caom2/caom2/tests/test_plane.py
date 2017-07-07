@@ -137,6 +137,9 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(plane.DataProductType.VISIBILITY.value, "visibility")
         self.assertEqual(plane.DataProductType.MEASUREMENTS.value, "measurements")
         self.assertEqual(plane.DataProductType.CATALOG.value, "http://www.opencadc.org/caom2/DataProductType#catalog")
+        # extend data product type
+        plane.DataProductType.extend('http://www.myorg/std', 'mytype')
+        self.assertEqual(plane.DataProductType.MYTYPE.value, 'http://www.myorg/std#mytype')
 
         self.assertEqual(plane.EnergyBand['RADIO'].value, "Radio")
         self.assertEqual(plane.EnergyBand['MILLIMETER'].value, "Millimeter")
@@ -185,6 +188,10 @@ class TestPlane(unittest.TestCase):
         test_plane.data_product_type = plane.DataProductType.IMAGE
         self.assertEqual(plane.DataProductType.IMAGE, test_plane.data_product_type,
                          "Data product type")
+        plane.DataProductType.extend('http://www.myorg/std', 'mytype')
+        test_plane.data_product_type = plane.DataProductType.MYTYPE
+        self.assertEqual(plane.DataProductType.MYTYPE, test_plane.data_product_type,
+                         "Mytype product type")
         self.assertIsNone(test_plane.calibration_level,
                           "Default calibration level")
         test_plane.calibration_level = plane.CalibrationLevel.CALIBRATED

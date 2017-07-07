@@ -75,7 +75,7 @@ from __future__ import (absolute_import, division, print_function,
 from datetime import datetime
 from six.moves.urllib.parse import SplitResult, urlsplit
 from builtins import str, int
-from enum import Enum
+from aenum import Enum, extend_enum
 
 from . import caom_util
 from . import shape
@@ -91,6 +91,8 @@ __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 
            'Energy', 'Polarization', 'Time']
 
+_OBSCORE_VOCAB_NS = "http://www.ivoa.net/std/ObsCore"
+_CAOM_VOCAB_NS = "http://www.opencadc.org/caom2/DataProductType"
 
 class CalibrationLevel(Enum):
     """
@@ -176,50 +178,25 @@ class VocabularyTerm(object):
 
 
 class DataProductType(Enum):
-    """ DataproductType """
+    """ DataproductType - enum of data product types"""
 
-    _OBSCORE = "http://www.ivoa.net/std/ObsCore"
-    _CAOM = "http://www.opencadc.org/caom2/DataProductType"
+    IMAGE = VocabularyTerm(_OBSCORE_VOCAB_NS, "image", True).get_value()
+    CUBE = VocabularyTerm(_OBSCORE_VOCAB_NS, "cube", True).get_value()
+    EVENTLIST = VocabularyTerm(_OBSCORE_VOCAB_NS, "eventlist", True).get_value()
+    SPECTRUM = VocabularyTerm(_OBSCORE_VOCAB_NS, "spectrum", True).get_value()
+    TIMESERIES = VocabularyTerm(_OBSCORE_VOCAB_NS, "timeseries", True).get_value()
+    VISIBILITY = VocabularyTerm(_OBSCORE_VOCAB_NS, "visibility", True).get_value()
+    MEASUREMENTS = VocabularyTerm(_OBSCORE_VOCAB_NS, "measurements", True).get_value()
+    CATALOG = VocabularyTerm(_CAOM_VOCAB_NS, "catalog").get_value()
 
-    """ 
-    def __init__(self, value, namespace=None):
-        Initialize a DataProductType instance 
-
-        Arguments:
-        value : fragment to be appended to namespace
-        namespace : namespace the data product type belongs to,
-                    defaults to OBSCORE
-        if namespace == None:
-            super(DataProductType, self).__init__(DataProductType._OBSCORE, value, True)
-        else:
-            super(DataProductType, self).__init__(namespace, value)
-    """
-
-    """
-    ObsCore-1.0
-    IMAGE: "image"
-    CATALOG: "catalog"
-    CUBE: "cube"
-    EVENTLIST: "eventlist"
-    SPECTRUM: "spectrum"
-    TIMESERIES: "timeseries"
-    VISIBILITY: "visibility"
-
-    ObsCore-1.1
-    MEASUREMENTS: "measurements"
-
-    ObsCore-2.3
-    CATALOG: "http://www.opencadc.org/caom2#catalog"
-    """
-
-    IMAGE = VocabularyTerm(_OBSCORE, "image", True).get_value()
-    CUBE = VocabularyTerm(_OBSCORE, "cube", True).get_value()
-    EVENTLIST = VocabularyTerm(_OBSCORE, "eventlist", True).get_value()
-    SPECTRUM = VocabularyTerm(_OBSCORE, "spectrum", True).get_value()
-    TIMESERIES = VocabularyTerm(_OBSCORE, "timeseries", True).get_value()
-    VISIBILITY = VocabularyTerm(_OBSCORE, "visibility", True).get_value()
-    MEASUREMENTS = VocabularyTerm(_OBSCORE, "measurements", True).get_value()
-    CATALOG = VocabularyTerm(_CAOM, "catalog").get_value()
+    @staticmethod
+    def extend(namespace, name):
+        """
+        Extends the DataProductType with a new, user-defined, entry
+        :param namespace: Namespace for the new data product type
+        :param name: Name of the new data product type
+        """
+        extend_enum(DataProductType, name.upper(), VocabularyTerm(namespace, name).get_value())
 
 
 class EnergyBand(Enum):

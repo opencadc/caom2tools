@@ -53,15 +53,19 @@ matrix:
         #  env: SETUP_CMD='test'
           
 install:
+   - pip install -U pip
    - cd caom2; pip install -r dev_requirements.txt; cd ..;
    - cd caom2repo; pip install -r dev_requirements.txt; cd ..;
+   - pip install coveralls
 
 script:
-   - cd caom2; python setup.py $SETUP_CMD || exit -1; cd ..
-   - cd caom2repo; python setup.py $SETUP_CMD || exit -1
+    #- cd caom2; python setup.py $SETUP_CMD || exit -1; cd ..
+    #- cd caom2repo; python setup.py $SETUP_CMD || exit -1
+   - cd caom2; pytest --cov caom2 || exit 1; cd ..
+   - cd caom2repo; pytest --cov caom2repo || exit 1; cd ..
 
 after_success:
     # If coveralls.io is set up for this package, uncomment the line
     # below and replace "packagename" with the name of your package.
     # The coveragerc file may be customized as needed for your package.
-    - if [[ $SETUP_CMD == 'coverage' ]]; then coveralls; fi
+    - if [[ $SETUP_CMD == 'coverage' ]]; then coverage combine caom2/.coverage caom2repo/.coverage || exit 1; coveralls; fi

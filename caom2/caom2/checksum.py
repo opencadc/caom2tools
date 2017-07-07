@@ -74,7 +74,7 @@ import uuid
 from datetime import datetime
 import struct
 import hashlib
-from enum import Enum
+from aenum import Enum
 import logging
 
 from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI, ChecksumURI

@@ -77,7 +77,7 @@ from __future__ import (absolute_import, division, print_function,
 from six.moves.urllib.parse import urlparse
 from builtins import str, int
 
-from enum import Enum
+from aenum import Enum
 
 from . import caom_util
 from .chunk import ProductType
