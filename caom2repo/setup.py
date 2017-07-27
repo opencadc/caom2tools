@@ -26,6 +26,7 @@ except ImportError:
     from configparser import ConfigParser
 
 conf = ConfigParser()
+conf.optionxform=str
 conf.read(['setup.cfg'])
 metadata = dict(conf.items('metadata'))
 
@@ -125,7 +126,8 @@ setup(name=PACKAGENAME,
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5'
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6'
       ),
       cmdclass = {
           'coverage': PyTest,
