@@ -204,8 +204,8 @@ class CAOM2RepoClient(object):
                         updated.append(observation.observation_id)
                 except Exception as e:
                     failed.append(observation.observation_id)
-                    self.logger.error('FAILED {} - Reason: '.
-                                  format(observation.observation_id), e)
+                    self.logger.error('FAILED {} - Reason: {}'.
+                                  format(observation.observation_id, e))
                     if halt_on_error:
                         raise e
                 visited.append(observation.observation_id)
