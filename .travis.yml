@@ -6,6 +6,7 @@ python:
     - 3.3
     - 3.4
     - 3.5
+    - 3.6
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
@@ -54,18 +55,14 @@ matrix:
           
 install:
    - pip install -U pip
-   - cd caom2; pip install -r dev_requirements.txt; cd ..;
-   - cd caom2repo; pip install -r dev_requirements.txt; cd ..;
+   - for i in $(ls -d */); do cd $i; pip install -r dev_requirements.txt; cd ..; done
    - pip install coveralls
 
 script:
-    #- cd caom2; python setup.py $SETUP_CMD || exit -1; cd ..
-    #- cd caom2repo; python setup.py $SETUP_CMD || exit -1
-   - cd caom2; pytest --cov caom2 || exit 1; cd ..
-   - cd caom2repo; pytest --cov caom2repo || exit 1; cd ..
+   - for i in $(ls -d */); do cd $i; pytest --cov $i || exit 1; cd ..; done
 
 after_success:
     # If coveralls.io is set up for this package, uncomment the line
     # below and replace "packagename" with the name of your package.
     # The coveragerc file may be customized as needed for your package.
-    - if [[ $SETUP_CMD == 'coverage' ]]; then coverage combine caom2/.coverage caom2repo/.coverage || exit 1; coveralls; fi
+    - if [[ $SETUP_CMD == 'coverage' ]]; then coverage combine $(ls -d */.coverage) || exit 1; coveralls; fi
