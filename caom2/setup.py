@@ -93,7 +93,7 @@ setup(name=PACKAGENAME,
       python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, <4',
       packages=find_packages(),
       package_data={PACKAGENAME: ['data/*', 'tests/data/*', '*/data/*', '*/tests/data/*']},
-      classifiers=(
+      classifiers=[
         'Natural Language :: English',
         'License :: OSI Approved :: GNU Affero General Public License v3',
         'Programming Language :: Python',
@@ -102,7 +102,7 @@ setup(name=PACKAGENAME,
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5'
-      ),
+      ],
       cmdclass = {
           'coverage': PyTest,
       }
