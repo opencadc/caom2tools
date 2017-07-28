@@ -118,7 +118,7 @@ setup(name=PACKAGENAME,
       entry_points=entry_points,
       packages=find_packages(),
       package_data={PACKAGENAME: ['data/*', 'tests/data/*', '*/data/*', '*/tests/data/*']},
-      classifiers=(
+      classifiers=[
         'Natural Language :: English',
         'License :: OSI Approved :: GNU AFFERO License version 3 (AGPL-3.0)',
         'Programming Language :: Python',
@@ -128,7 +128,7 @@ setup(name=PACKAGENAME,
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6'
-      ),
+      ],
       cmdclass = {
           'coverage': PyTest,
           'inttest': IntTestCommand
