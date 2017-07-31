@@ -1,7 +1,8 @@
 Common Archive Observation Model - data engineering tools
 
 
-.. image:: https://img.shields.io/pypi/pyversions/caom2.svg
+.. image:: https://img.shields.io/pypi/pyversions/caom2repo.svg
+    :target: https://pypi.python.org/pypi/caom2repo
 
 .. image:: https://img.shields.io/travis/opencadc/caom2tools/master.svg   
     :target: https://travis-ci.org/opencadc/caom2tools?branch=master 
