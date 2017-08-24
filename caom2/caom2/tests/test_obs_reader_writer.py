@@ -639,8 +639,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(expected)
         self.assertIsNotNone(actual)
         self.assertEqual(len(expected), len(actual))
-        for expected_plane_uri, actual_plane_uri in zip(expected, actual):
-            self.assertEqual(expected_plane_uri, actual_plane_uri)
+        for expected_plane_uri in expected:
+            self.assertTrue(expected_plane_uri in actual)
 
     def compare_artifacts(self, expected, actual, version):
         if expected is None and actual is None:

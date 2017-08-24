@@ -260,7 +260,7 @@ class ObservationReader(object):
                 for keyword in keywords.split():
                     keywords_list.add(keyword)
         else:
-            keywords_element = self._get_child_element("keywords", element, ns, True)
+            keywords_element = self._get_child_element("keywords", element, ns, required)
             for keyword in keywords_element.iterchildren(tag=("{" + ns + "}keyword")):
                 keywords_list.add(keyword.text)
 

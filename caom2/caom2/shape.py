@@ -351,7 +351,10 @@ class Point(common.CaomObject):
 class Polygon(common.CaomObject):
 
     def __init__(self, points=None, samples=None):
-        self.points = points
+        if not points:
+            self._points = []
+        else:
+            self._points = points
         self.samples = samples
 
     # Properties
@@ -363,11 +366,6 @@ class Polygon(common.CaomObject):
         """
         return self._points
 
-    @points.setter
-    def points(self, value):
-        if value is not None:
-            caom_util.type_check(value, list, 'points', override=False)
-        self._points = value
 
     @property
     def samples(self):
@@ -386,7 +384,10 @@ class Polygon(common.CaomObject):
 class MultiPolygon(common.CaomObject):
 
     def __init__(self, vertices=None):
-        self.vertices = vertices
+        if not vertices:
+            self._vertices = []
+        else:
+            self._vertices = vertices
 
     # Properties
     
@@ -397,16 +398,6 @@ class MultiPolygon(common.CaomObject):
         """
         return self._vertices
 
-    @vertices.setter
-    def vertices(self, value):
-        """
-        Sets multi polygon vertices to point to value
-        :param value:
-        """
-        if value is not None:
-            caom_util.type_check(value, list, 'vertices', override=False)
-        self._vertices = value
-
     def validate(self):
         """
         Performs a basic calidation of the current object.
@@ -415,10 +406,12 @@ class MultiPolygon(common.CaomObject):
 
         An AssertionError is thrown when the object does not represent a multi polygon
         """
+        if not self.vertices:
+            raise AssertionError('invalid polygon: no vertices')
         lines = 0
         if len(self._vertices) < 4:
             # triangle
-            raise AssertionError('invalid polygon: {} vertices'.format(len(self._vertices)))
+            raise AssertionError('invalid polygon: {} vertices (min 4)'.format(len(self._vertices)))
 
         open_loop = False
         for v in self._vertices:

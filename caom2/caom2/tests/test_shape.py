@@ -352,6 +352,9 @@ class TestMultiPolygon(unittest.TestCase):
         with self.assertRaises(AssertionError):
             mp.validate()
 
+        del mp.vertices[:]
+        with self.assertRaises(AssertionError):
+            mp.validate()
 
 class TestVertex(unittest.TestCase):
 
