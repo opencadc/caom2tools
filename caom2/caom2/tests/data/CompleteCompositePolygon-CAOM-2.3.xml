@@ -14,7 +14,9 @@
     <caom2:pi>proposalPi</caom2:pi>
     <caom2:project>proposalProject</caom2:project>
     <caom2:title>proposalTitle</caom2:title>
-    <caom2:keywords>keyword</caom2:keywords>
+    <caom2:keywords>
+      <caom2:keyword>keyword</caom2:keyword>
+    </caom2:keywords>  
   </caom2:proposal>
   <caom2:target>
     <caom2:name>targetName</caom2:name>
@@ -22,7 +24,9 @@
     <caom2:standard>false</caom2:standard>
     <caom2:redshift>1.5</caom2:redshift>
     <caom2:moving>false</caom2:moving>
-    <caom2:keywords>keyword</caom2:keywords>
+    <caom2:keywords>
+      <caom2:keyword>keyword</caom2:keyword>
+    </caom2:keywords>  
   </caom2:target>
   <caom2:targetPosition>
     <caom2:coordsys>coordsys</caom2:coordsys>
@@ -37,7 +41,9 @@
     <caom2:geoLocationX>1.0</caom2:geoLocationX>
     <caom2:geoLocationY>2.0</caom2:geoLocationY>
     <caom2:geoLocationZ>3.0</caom2:geoLocationZ>
-    <caom2:keywords>keyword</caom2:keywords>
+    <caom2:keywords>
+      <caom2:keyword>keyword</caom2:keyword>
+    </caom2:keywords>  
   </caom2:telescope>
   <caom2:environment>
     <caom2:seeing>0.08</caom2:seeing>
@@ -62,7 +68,9 @@
         <caom2:runID>run_id</caom2:runID>
         <caom2:reference>http://foo/bar</caom2:reference>
         <caom2:lastExecuted>2012-07-11T13:26:37.000</caom2:lastExecuted>
-        <caom2:keywords>keyword</caom2:keywords>
+        <caom2:keywords>
+          <caom2:keyword>keyword</caom2:keyword>
+        </caom2:keywords>  
         <caom2:inputs>
           <caom2:planeURI>caom:foo/bar/plane2</caom2:planeURI>
           <caom2:planeURI>caom:foo/bar/plane1</caom2:planeURI>

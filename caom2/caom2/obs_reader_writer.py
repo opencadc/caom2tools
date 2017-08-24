@@ -244,6 +244,27 @@ class ObservationReader(object):
         else:
             return child_element.text.lower() == "true"
 
+
+    def _add_keywords(self, keywords_list, element, ns, required):
+        """
+        Parses keywords sub-elements and adds them to a list
+
+        :param keywords_list: list to add the keywords to
+        :param element: xml element
+        :param ns: name space
+        :param required: keywords sub-element required or not
+        """
+        if self.version < 23:
+            keywords = self._get_child_text("keywords", element, ns, required)
+            if keywords is not None:
+                for keyword in keywords.split():
+                    keywords_list.add(keyword)
+        else:
+            keywords_element = self._get_child_element("keywords", element, ns, True)
+            for keyword in keywords_element.iterchildren(tag=("{" + ns + "}keyword")):
+                keywords_list.add(keyword.text)
+
+
     def _get_algorithm(self, element_tag, parent, ns, required):
         """Build an Algorithm object from an XML representation
 
@@ -302,10 +323,7 @@ class ObservationReader(object):
             proposal.pi_name = self._get_child_text("pi", el, ns, False)
             proposal.project = self._get_child_text("project", el, ns, False)
             proposal.title = self._get_child_text("title", el, ns, False)
-            keywords = self._get_child_text("keywords", el, ns, False)
-            if keywords is not None:
-                for keyword in keywords.split():
-                    proposal.keywords.add(keyword)
+            self._add_keywords(proposal.keywords, el, ns, False)
             return proposal
 
     def _get_target(self, element_tag, parent, ns, required):
@@ -334,10 +352,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("redshift", el, ns, False))
             target.moving = ("true" ==
                              self._get_child_text("moving", el, ns, False))
-            keywords = self._get_child_text("keywords", el, ns, False)
-            if keywords is not None:
-                for keyword in keywords.split():
-                    target.keywords.add(keyword)
+            self._add_keywords(target.keywords, el, ns, False)
             return target
 
     def _get_target_position(self, element_tag, parent, ns, required):
@@ -356,8 +371,9 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
+            coords_element = self._get_child_element("coordinates", el, ns, required)
             target_position = observation.TargetPosition(
-                self._get_point("coordinates", el, ns, True),
+                self._get_point(coords_element, ns, True),
                 self._get_child_text("coordsys", el, ns, True))
             target_position.equinox = (
                 self._get_child_text_as_float("equinox", el, ns, False))
@@ -406,10 +422,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("geoLocationY", el, ns, False))
             telescope.geo_location_z = (
                 self._get_child_text_as_float("geoLocationZ", el, ns, False))
-            keywords = self._get_child_text("keywords", el, ns, False)
-            if keywords is not None:
-                for keyword in keywords.split():
-                    telescope.keywords.add(keyword)
+            self._add_keywords(telescope.keywords, el, ns, False)
             return telescope
 
     def _get_instrument(self, element_tag, parent, ns, required):
@@ -429,10 +442,7 @@ class ObservationReader(object):
             return None
         else:
             instrument = observation.Instrument(self._get_child_text("name", el, ns, True))
-            keywords = self._get_child_text("keywords", el, ns, False)
-            if keywords is not None:
-                for keyword in keywords.split():
-                    instrument.keywords.add(keyword)
+            self._add_keywords(instrument.keywords, el, ns, False)
             return instrument
 
     def _get_environment(self, element_tag, parent, ns, required):
@@ -536,10 +546,7 @@ class ObservationReader(object):
                 prov.reference = reference
             prov.last_executed = caom_util.str2ivoa(
                 self._get_child_text("lastExecuted", el, ns, False))
-            keywords = self._get_child_text("keywords", el, ns, False)
-            if keywords is not None:
-                for keyword in keywords.split():
-                    prov.keywords.add(keyword)
+            self._add_keywords(prov.keywords, el, ns, False)
             self._add_inputs(prov.inputs, el, ns)
             return prov
 
@@ -593,25 +600,19 @@ class ObservationReader(object):
             data_quality = plane.DataQuality(plane.Quality(flag))
             return data_quality
 
-    def _get_point(self, element_tag, parent, ns, required):
+    def _get_point(self, point, ns, required):
         """Build an Point object from an XML representation
         of an Point element.
 
         Arguments:
-        elTag : element tag which identifies the element
-        parent : element containing the Point element
+        point : the point element element
         ns : namespace of the document
         required : indicate whether the element is required
-        return : an Point object or
-                 None if the document does not contain an Point element
+        return : an Point object
         raise : ObservationParsingException
         """
-        el = self._get_child_element(element_tag, parent, ns, required)
-        if el is None:
-            return None
-        else:
-            return shape.Point(self._get_child_text_as_float("cval1", el, ns, True),
-                               self._get_child_text_as_float("cval2", el, ns, True))
+        return shape.Point(self._get_child_text_as_float("cval1", point, ns, True),
+                           self._get_child_text_as_float("cval2", point, ns, True))
 
     def _get_axis(self, element_tag, parent, ns, required):
         """Build an Axis object from an XML representation of an Axis element.
@@ -1295,16 +1296,23 @@ class ObservationReader(object):
         return polarization
     
     def _get_shape(self, element_tag, parent, ns, required):
-        _shape = self._get_child_element(element_tag, parent, ns, required)
-        if _shape is None:
+        shape_element = self._get_child_element(element_tag, parent, ns, required)
+        if shape_element is None:
             return None
-        shape_type = _shape.get(XSI + "type")
+        shape_type = shape_element.get(XSI + "type")
         if "caom2:Polygon" == shape_type:
-            _polygon = shape.Polygon(vertices=list())
-            self._add_vertices(_polygon.vertices, _shape, ns)
-            return _polygon
+            if self.version < 23:
+                raise TypeError("Polygon element not supported for CAOM releases prior to 2.3")
+            points_element = self._get_child_element("points", shape_element, ns, True)
+            points = list()
+            for point in points_element.iterchildren(tag=("{" + ns + "}point")):
+                points.append(self._get_point(point, ns, True))
+            samples_element = self._get_child_element("samples", shape_element, ns, True)
+            vertices = list()
+            self._add_vertices(vertices, samples_element, ns)
+            return shape.Polygon(points=points, samples=shape.MultiPolygon(vertices=vertices))
         else:
-            raise TypeError("Unsupported shape type " + type)
+            raise TypeError("Unsupported shape type " + shape_type)
                 
     def _add_vertices(self, vertices, parent, ns):
         _vertices_element = self._get_child_element("vertices", parent, ns, False)
@@ -1713,7 +1721,7 @@ class ObservationWriter(object):
         self._add_element("pi", proposal.pi_name, element)
         self._add_element("project", proposal.project, element)
         self._add_element("title", proposal.title, element)
-        self._add_list_element("keywords", proposal.keywords, element)
+        self._add_keywords_element(proposal.keywords, element)
 
     def _add_target_element(self, target, parent):
         if target is None:
@@ -1728,7 +1736,7 @@ class ObservationWriter(object):
         self._add_element("redshift", target.redshift, element)
         if target.moving is not None:
             self._add_element("moving", str(target.moving).lower(), element)
-        self._add_list_element("keywords", target.keywords, element)
+        self._add_keywords_element(target.keywords, element)
 
     def _add_target_position_element(self, target_position, parent):
         if target_position is None:
@@ -1760,7 +1768,7 @@ class ObservationWriter(object):
         self._add_element("geoLocationX", telescope.geo_location_x, element)
         self._add_element("geoLocationY", telescope.geo_location_y, element)
         self._add_element("geoLocationZ", telescope.geo_location_z, element)
-        self._add_list_element("keywords", telescope.keywords, element)
+        self._add_keywords_element(telescope.keywords, element)
 
     def _add_instrument_element(self, instrument, parent):
         if instrument is None:
@@ -1768,7 +1776,7 @@ class ObservationWriter(object):
 
         element = self._get_caom_element("instrument", parent)
         self._add_element("name", instrument.name, element)
-        self._add_list_element("keywords", instrument.keywords, element)
+        self._add_keywords_element(instrument.keywords, element)
 
     def _add_environment_element(self, environment, parent):
         if environment is None:
@@ -1838,7 +1846,7 @@ class ObservationWriter(object):
                 self._add_energy_element(_plane.energy, plane_element)
                 self._add_time_element(_plane.time, plane_element)
                 self._add_polarization_element(_plane.polarization, plane_element)
-            
+
             self._add_artifacts_element(_plane.artifacts, plane_element)
             
     def _add_position_element(self, position, parent):
@@ -1894,16 +1902,22 @@ class ObservationWriter(object):
     def _add_shape_element(self, name, the_shape, parent):
         if the_shape is None:
             return
+        if self._output_version < 23:
+            raise TypeError('Polygon shape not supported in CAOM2 previous to v2.3')
         
         if isinstance(the_shape, shape.Polygon):
-            _shape_element = self._get_caom_element(name, parent)
-            _shape_element.set(XSI + "type", "caom2:Polygon")
-            _vertices_element = self._get_caom_element("vertices", _shape_element)
-            for _vertex in the_shape.vertices:
-                _vertex_element = self._get_caom_element("vertex", _vertices_element)
-                self._add_element("cval1", _vertex.cval1, _vertex_element)
-                self._add_element("cval2", _vertex.cval2, _vertex_element)
-                self._add_element("type", _vertex.type.value, _vertex_element)
+            shape_element = self._get_caom_element(name, parent)
+            shape_element.set(XSI + "type", "caom2:Polygon")
+            points_element = self._get_caom_element("points", shape_element)
+            for point in the_shape.points:
+                self._add_point_element("point", point, points_element)
+            samples_element = self._get_caom_element("samples", shape_element)
+            vertices_element = self._get_caom_element("vertices", samples_element)
+            for vertex in the_shape.samples.vertices:
+                vertex_element = self._get_caom_element("vertex", vertices_element)
+                self._add_element("cval1", vertex.cval1, vertex_element)
+                self._add_element("cval2", vertex.cval2, vertex_element)
+                self._add_element("type", vertex.type.value, vertex_element)
         else:
             raise TypeError("Unsupported shape type "
                  + the_shape.__class__.__name__)
@@ -1935,7 +1949,7 @@ class ObservationWriter(object):
         self._add_element("reference", provenance.reference, element)
         self._add_datetime_element("lastExecuted", provenance.last_executed,
                                    element)
-        self._add_list_element("keywords", provenance.keywords, element)
+        self._add_keywords_element(provenance.keywords, element)
         self._add_inputs_element("inputs", provenance.inputs, element)
 
     def _add_metrics_element(self, metrics, parent):
@@ -2321,12 +2335,16 @@ class ObservationWriter(object):
         element = self._get_caom_element(name, parent)
         element.text = caom_util.date2ivoa(value)
 
-    def _add_list_element(self, name, collection, parent):
+    def _add_keywords_element(self, collection, parent):
         if collection is None or \
                 (len(collection) == 0 and not self._write_empty_collections):
             return
-        element = self._get_caom_element(name, parent)
-        element.text = ' '.join(collection)
+        element = self._get_caom_element("keywords", parent)
+        if self._output_version < 23:
+            element.text = ' '.join(collection)
+        else:
+            for keyword in collection:
+                self._get_caom_element("keyword", element).text = keyword
 
     def _add_coord_range_1d_list_element(self, name, values, parent):
         if values is None:

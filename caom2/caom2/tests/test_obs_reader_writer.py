@@ -269,9 +269,14 @@ class TestObservationReaderWriter(unittest.TestCase):
         print("check 2.1 schema with 2.3 doc")
         self.observation_test(composite_observation, True, True, 21)
         print("check 2.2 schema with 2.3 doc")
-        self.observation_test(composite_observation, True, True, 22)
+        with self.assertRaises(TypeError):
+            # shape cannot be serialized in v22.
+            self.observation_test(composite_observation, True, True, 22)
         print("check 2.3 schema with 2.3 doc")
         self.observation_test(composite_observation, True, True, 23)
+        # remove shape and retest with v22
+        composite_observation.planes['productID'].position.bounds = None
+        self.observation_test(composite_observation, True, True, 22)
 
     def observation_test(self, obs, validate, write_empty_collections, version):
         if version == 20:
@@ -545,9 +550,18 @@ class TestObservationReaderWriter(unittest.TestCase):
             if isinstance(expected, shape.Polygon):
                 self.assertIsNotNone(actual, "shape is None")
                 self.assertTrue(isinstance(actual, shape.Polygon), "mismatched shapes" + actual.__class__.__name__)
-                
-                expected_vertices = expected.vertices
-                actual_vertices = actual.vertices
+                expected_points = expected.points
+                actual_points = actual.points
+                self.assertEqual(len(expected_points), len(actual_points), "different number of points")
+                for index, point in enumerate(expected_points):
+                    self.compare_point(point, actual_points[index])
+                actual_samples = actual.samples
+                self.assertIsNotNone(actual_samples, "shape is None")
+                self.assertTrue(isinstance(actual_samples, shape.MultiPolygon),
+                                "mismatched shapes" + actual.__class__.__name__)
+                expected_samples = expected.samples
+                expected_vertices = expected_samples.vertices
+                actual_vertices = actual_samples.vertices
                 self.assertEqual(len(expected_vertices), len(actual_vertices), "different number of vertices")
                 for index, vertex in enumerate(expected_vertices):
                     self.compare_vertices(vertex, actual_vertices[index])
@@ -1026,6 +1040,7 @@ class TestRoundTrip(unittest.TestCase):
                 True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
             for filename in files:
                 if filename.endswith("CAOM-2.3.xml"):
+                    print("test: {}".format(filename))
                     self.do_test(reader, writer23, filename)
                 elif filename.endswith("CAOM-2.2.xml"):
                     self.do_test(reader, writer22, filename)
