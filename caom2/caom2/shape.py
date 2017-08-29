@@ -350,8 +350,44 @@ class Point(common.CaomObject):
 
 class Polygon(common.CaomObject):
 
+    def __init__(self, points=None, samples=None):
+        if not points:
+            self._points = []
+        else:
+            self._points = points
+        self.samples = samples
+
+    # Properties
+
+    @property
+    def points(self):
+        """
+        return: list of points
+        """
+        return self._points
+
+
+    @property
+    def samples(self):
+        """
+        return: sample multipolygon associated with this simple polygon
+        """
+        return self._samples
+
+    @samples.setter
+    def samples(self, value):
+        if value is not None:
+            caom_util.type_check(value, MultiPolygon, 'multipolygon', override=False)
+        self._samples = value
+
+
+class MultiPolygon(common.CaomObject):
+
     def __init__(self, vertices=None):
-        self.vertices = vertices
+        if not vertices:
+            self._vertices = []
+        else:
+            self._vertices = vertices
 
     # Properties
     
@@ -362,11 +398,39 @@ class Polygon(common.CaomObject):
         """
         return self._vertices
 
-    @vertices.setter
-    def vertices(self, value):
-        if value is not None:
-            caom_util.type_check(value, list, 'vertices', override=False)
-        self._vertices = value
+    def validate(self):
+        """
+        Performs a basic calidation of the current object.
+
+        TODO: check the clockwise direction
+
+        An AssertionError is thrown when the object does not represent a multi polygon
+        """
+        if not self.vertices:
+            raise AssertionError('invalid polygon: no vertices')
+        lines = 0
+        if len(self._vertices) < 4:
+            # triangle
+            raise AssertionError('invalid polygon: {} vertices (min 4)'.format(len(self._vertices)))
+
+        open_loop = False
+        for v in self._vertices:
+            if v.type == SegmentType.MOVE:
+                if open_loop:
+                    raise AssertionError('invalid polygon: MOVE vertex when loop open')
+                lines = 0
+                open_loop = True
+            elif v.type == SegmentType.CLOSE:
+                if not open_loop:
+                    raise AssertionError('invalid polygon: CLOSE vertex when loop close')
+                if lines < 2:
+                    raise AssertionError('invalid polygon: minimum 2 lines required')
+                open_loop = False
+            else:
+                if not open_loop:
+                    raise AssertionError('invalid polygon: LINE vertex when loop close')
+                lines += 1
+
 
 
 class Vertex(Point):

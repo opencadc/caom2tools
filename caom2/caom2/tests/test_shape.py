@@ -269,28 +269,92 @@ class TestPolygon(unittest.TestCase):
 
     def test_all(self):
 
+        p1 = shape.Point(1.0, 2.0)
+        p2 = shape.Point(2.0, 3.0)
+        p3 = shape.Point(3.0, 4.0)
+        p4 = shape.Point(0.0, 0.0)
+        points = [p1, p2, p3, p4]
+
+        v0 = shape.Vertex(1.0, 2.0, shape.SegmentType.MOVE)
         v1 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
         v2 = shape.Vertex(2.0, 3.0, shape.SegmentType.LINE)
         v3 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
         v4 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-        vl = [v1, v2, v3, v4]
+        vl = [v0, v1, v2, v3, v4]
+        mp = shape.MultiPolygon(vl)
 
-        polygon = shape.Polygon()
-        polygon.vertices = vl
-        actual_vertices = polygon.vertices
+        p = shape.Polygon(points=points, samples=mp)
+        actual_points = p.points
+        self.assertEqual(actual_points[0].cval1, 1.0)
+        self.assertEqual(actual_points[0].cval2, 2.0)
+        self.assertEqual(actual_points[1].cval1, 2.0)
+        self.assertEqual(actual_points[1].cval2, 3.0)
+        self.assertEqual(actual_points[2].cval1, 3.0)
+        self.assertEqual(actual_points[2].cval2, 4.0)
+        self.assertEqual(actual_points[3].cval1, 0.0)
+        self.assertEqual(actual_points[3].cval2, 0.0)
+
+        self.assertTrue(mp is p.samples)
+
+
+class TestMultiPolygon(unittest.TestCase):
+
+    def test_all(self):
+        v0 = shape.Vertex(1.0, 2.0, shape.SegmentType.MOVE)
+        v1 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
+        v2 = shape.Vertex(2.0, 3.0, shape.SegmentType.LINE)
+        v3 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
+        v4 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
+        vl = [v0, v1, v2, v3, v4]
+
+        mp = shape.MultiPolygon(vl)
+        actual_vertices = mp.vertices
         self.assertEqual(actual_vertices[0].cval1, 1.0)
         self.assertEqual(actual_vertices[0].cval2, 2.0)
-        self.assertEqual(actual_vertices[0].type, shape.SegmentType.LINE)
-        self.assertEqual(actual_vertices[1].cval1, 2.0)
-        self.assertEqual(actual_vertices[1].cval2, 3.0)
+        self.assertEqual(actual_vertices[0].type, shape.SegmentType.MOVE)
+        self.assertEqual(actual_vertices[1].cval1, 1.0)
+        self.assertEqual(actual_vertices[1].cval2, 2.0)
         self.assertEqual(actual_vertices[1].type, shape.SegmentType.LINE)
-        self.assertEqual(actual_vertices[2].cval1, 3.0)
-        self.assertEqual(actual_vertices[2].cval2, 4.0)
+        self.assertEqual(actual_vertices[2].cval1, 2.0)
+        self.assertEqual(actual_vertices[2].cval2, 3.0)
         self.assertEqual(actual_vertices[2].type, shape.SegmentType.LINE)
-        self.assertEqual(actual_vertices[3].cval1, 0.0)
-        self.assertEqual(actual_vertices[3].cval2, 0.0)
-        self.assertEqual(actual_vertices[3].type, shape.SegmentType.CLOSE)
+        self.assertEqual(actual_vertices[3].cval1, 3.0)
+        self.assertEqual(actual_vertices[3].cval2, 4.0)
+        self.assertEqual(actual_vertices[3].type, shape.SegmentType.LINE)
+        self.assertEqual(actual_vertices[4].cval1, 0.0)
+        self.assertEqual(actual_vertices[4].cval2, 0.0)
+        self.assertEqual(actual_vertices[4].type, shape.SegmentType.CLOSE)
 
+        # test validate method
+        mp.validate()
+        mp.vertices[0].type = shape.SegmentType.CLOSE
+        with self.assertRaises(AssertionError):
+            mp.validate()
+        mp.vertices[0].type = shape.SegmentType.LINE
+        with self.assertRaises(AssertionError):
+            mp.validate()
+        mp.vertices[0].type = shape.SegmentType.MOVE
+        mp.vertices[1].type = shape.SegmentType.MOVE
+        with self.assertRaises(AssertionError):
+            mp.validate()
+        mp.vertices[1].type = shape.SegmentType.CLOSE
+        with self.assertRaises(AssertionError):
+            mp.validate()
+        mp.vertices[1].type = shape.SegmentType.LINE
+        mp.vertices[3].type = shape.SegmentType.CLOSE
+        with self.assertRaises(AssertionError):
+            mp.validate()
+        del mp.vertices[3]
+        # still works with 2 lines
+        mp.validate()
+        # but not with 1 single line
+        del mp.vertices[2]
+        with self.assertRaises(AssertionError):
+            mp.validate()
+
+        del mp.vertices[:]
+        with self.assertRaises(AssertionError):
+            mp.validate()
 
 class TestVertex(unittest.TestCase):
 
