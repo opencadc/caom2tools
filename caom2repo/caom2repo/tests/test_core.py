@@ -101,9 +101,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
     """Test the Caom2Visitor class"""
 
-    @patch('cadcutils.net.ws.WsCapabilities')
-    def test_plugin_class(self, caps_mock):
-        caps_mock.get_service_host.return_value = 'some.host.com'
+    @patch('caom2repo.core.net.BaseWsClient', Mock())
+    def test_plugin_class(self):
         # plugin class does not change the observation
         collection = 'cfht'
         observation_id = '7000000o'
@@ -385,9 +384,8 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.delete_observation(collection, observation_id)
 
 
-    @patch('cadcutils.net.ws.WsCapabilities')
-    def test_process(self, caps_mock):
-        caps_mock.get_service_host.return_value = 'some.host.com'
+    @patch('caom2repo.core.net.BaseWsClient', Mock())
+    def test_process(self):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
         visitor = CAOM2RepoClient(auth.Subject())
@@ -453,7 +451,6 @@ class TestCAOM2Repo(unittest.TestCase):
                 THIS_DIR, 'errorplugin.py'), 'cfht', halt_on_error=True)
 
         # test with time boundaries
-        caps_mock.get_service_host.return_value = 'some.host.com'
         core.BATCH_SIZE = 3  # size of the batch is 3
         response = MagicMock()
         response.text = """ARCHIVE\ta\t2011-01-01T11:00:00.000
