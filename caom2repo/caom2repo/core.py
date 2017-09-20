@@ -421,6 +421,10 @@ Minimum plugin file format:
 ----
 """
     args = parser.parse_args()
+    if len(sys.argv) < 2:
+        parser.print_usage(file=sys.stderr)
+        sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
+        sys.exit(-1)
     if args.verbose:
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     elif args.debug:
