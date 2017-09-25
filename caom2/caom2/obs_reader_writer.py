@@ -261,8 +261,9 @@ class ObservationReader(object):
                     keywords_list.add(keyword)
         else:
             keywords_element = self._get_child_element("keywords", element, ns, required)
-            for keyword in keywords_element.iterchildren(tag=("{" + ns + "}keyword")):
-                keywords_list.add(keyword.text)
+            if keywords_element is not None:
+                for keyword in keywords_element.iterchildren(tag=("{" + ns + "}keyword")):
+                    keywords_list.add(keyword.text)
 
 
     def _get_algorithm(self, element_tag, parent, ns, required):
