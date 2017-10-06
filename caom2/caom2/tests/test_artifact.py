@@ -73,22 +73,21 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
+
 from six.moves.urllib.parse import urlparse
 
 from .. import artifact
-from .. import part
 from .. import common
+from .. import part
 
 
 class TestEnums(unittest.TestCase):
-
     def test_all(self):
         self.assertEqual(artifact.ReleaseType.DATA.value, "data")
         self.assertEqual(artifact.ReleaseType.META.value, "meta")
 
 
 class TestArtifact(unittest.TestCase):
-
     def test_all(self):
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345")
@@ -130,18 +129,20 @@ class TestArtifact(unittest.TestCase):
         self.assertEquals(artifact.ProductType.PREVIEW,
                           test_artifact.product_type,
                           "Product type")
-        
-        self.assertIsNone(test_artifact.content_checksum, "Default content checksum")
+
+        self.assertIsNone(test_artifact.content_checksum,
+                          "Default content checksum")
         cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
         test_artifact.content_checksum = cs_uri
-        self.assertEquals(test_artifact.content_checksum, cs_uri, "Content checksum")
-        
+        self.assertEquals(test_artifact.content_checksum, cs_uri,
+                          "Content checksum")
+
         self.assertEquals(0, len(test_artifact.parts), "Default parts")
         part1 = part.Part("1")
         test_artifact.parts["1"] = part1
         self.assertEquals(1, len(test_artifact.parts), "Parts")
         self.assertTrue("1" in test_artifact.parts.keys())
-        #add same part again
+        # add same part again
         part2 = part.Part("2")
         test_artifact.parts["2"] = part2
         self.assertEquals(2, len(test_artifact.parts), "Parts")
@@ -161,7 +162,7 @@ class TestArtifact(unittest.TestCase):
         self.assertTrue("1" in test_artifact.parts.keys())
         self.assertTrue("2" in test_artifact.parts.keys())
 
-        #incorrect URI
+        # incorrect URI
         exception = False
         try:
             test_artifact = artifact.Artifact(

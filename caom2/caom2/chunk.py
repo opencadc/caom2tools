@@ -73,14 +73,15 @@
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from builtins import str, int
 
 from aenum import Enum
-from .common import AbstractCaomEntity
-from .common import CaomObject
+from builtins import str
+
+from caom2.caom_util import int_32
 from . import caom_util
 from . import wcs
-from caom2.caom_util import int_32
+from .common import AbstractCaomEntity
+from .common import CaomObject
 
 
 class ProductType(Enum):
@@ -102,6 +103,7 @@ class ProductType(Enum):
     WEIGHT = "weight"
     AUXILIARY = "auxiliary"
     THUMBNAIL = "thumbnail"
+
 
 __all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',
            'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
@@ -142,7 +144,6 @@ class Chunk(AbstractCaomEntity):
                  observable_axis=None,
                  observable=None,
                  ):
-
         super(Chunk, self).__init__()
         self.product_type = product_type
         self.naxis = naxis
@@ -210,7 +211,7 @@ class Chunk(AbstractCaomEntity):
     @position_axis_1.setter
     def position_axis_1(self, value):
         caom_util.type_check(value, int_32, 'position_axis_1')
-#         util.valueCheck(value, 0, self.naxis, 'position_axis_1')
+        #         util.valueCheck(value, 0, self.naxis, 'position_axis_1')
         self._position_axis_1 = int_32(value) if value is not None else None
 
     @property
@@ -229,7 +230,7 @@ class Chunk(AbstractCaomEntity):
     @position_axis_2.setter
     def position_axis_2(self, value):
         caom_util.type_check(value, int_32, 'position_axis_2')
-#         util.valueCheck(value, 0, self.naxis, 'position_axis_2')
+        #         util.valueCheck(value, 0, self.naxis, 'position_axis_2')
         self._position_axis_2 = int_32(value) if value is not None else None
 
     @property
@@ -249,7 +250,7 @@ class Chunk(AbstractCaomEntity):
     @energy_axis.setter
     def energy_axis(self, value):
         caom_util.type_check(value, int_32, 'energy_axis')
-#         util.valueCheck(value, 0, self.naxis, 'energy_axis')
+        #         util.valueCheck(value, 0, self.naxis, 'energy_axis')
         self._energy_axis = int_32(value) if value is not None else None
 
     @property
@@ -267,7 +268,7 @@ class Chunk(AbstractCaomEntity):
     @time_axis.setter
     def time_axis(self, value):
         caom_util.type_check(value, int_32, 'polarization_axis')
-#         util.valueCheck(value, 0, self._naxis, 'polarization_axis')
+        #         util.valueCheck(value, 0, self._naxis, 'polarization_axis')
         self._time_axis = int_32(value) if value is not None else None
 
     @property
@@ -285,7 +286,7 @@ class Chunk(AbstractCaomEntity):
     @polarization_axis.setter
     def polarization_axis(self, value):
         caom_util.type_check(value, int_32, 'polarization_axis')
-        caom_util.value_check(value, 0, 2**32, 'polariztion_axis')
+        caom_util.value_check(value, 0, 2 ** 32, 'polariztion_axis')
         self._polarization_axis = int_32(value) if value is not None else None
 
     @property
@@ -300,7 +301,7 @@ class Chunk(AbstractCaomEntity):
     @observable_axis.setter
     def observable_axis(self, value):
         caom_util.type_check(value, int_32, 'obserable_axis')
-#         util.valueCheck(value, 0, 1E10, 'observable_axis')
+        #         util.valueCheck(value, 0, 1E10, 'observable_axis')
         self._observable_axis = int_32(value) if value is not None else None
 
     @property
@@ -425,8 +426,8 @@ class ObservableAxis(CaomObject):
 
 
     """
-    def __init__(self, dependent, independent=None):
 
+    def __init__(self, dependent, independent=None):
         self.dependent = dependent
         self.independent = independent
 
@@ -474,7 +475,6 @@ class SpatialWCS(CaomObject):
                  coordsys=None,
                  equinox=None,
                  resolution=None):
-
         self.axis = axis
         self.coordsys = coordsys
         self.equinox = equinox
@@ -794,7 +794,6 @@ class TemporalWCS(CaomObject):
                  exposure=None,
                  resolution=None
                  ):
-
         self.axis = axis
         self.timesys = timesys
         self.trefpos = trefpos

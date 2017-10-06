@@ -72,6 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import unittest
 import uuid
+
 from builtins import str, int
 
 from .. import artifact
@@ -82,7 +83,6 @@ from .. import plane
 
 
 class TestCaomUtil(unittest.TestCase):
-
     def test_typed_list(self):
         my_list1 = caom_util.TypedList(str, "Test1")
         self.assertEquals(1, len(my_list1), "list1 length")
@@ -150,44 +150,49 @@ class TestCaomUtil(unittest.TestCase):
         self.assertEqual("Test3", my_list1[3], "Non matching elements")
         self.assertEqual("Test4", my_list1[4], "Non matching elements")
 
-        my_list2 = caom_util.TypedList(plane.Energy,)
+        my_list2 = caom_util.TypedList(plane.Energy, )
         self.assertEquals(0, len(my_list2), "list2 length")
 
     def test_validate_path_component(self):
         energy = plane.Energy()
-        caom_util.validate_path_component(energy, "something", "some:test\\path")
+        caom_util.validate_path_component(energy, "something",
+                                          "some:test\\path")
 
         exception = False
         try:
-            caom_util.validate_path_component(energy, "energyfield", "some:test path")
+            caom_util.validate_path_component(energy, "energyfield",
+                                              "some:test path")
         except AssertionError:
             exception = True
         self.assertTrue(exception, "Missing exception")
 
         exception = False
         try:
-            caom_util.validate_path_component(energy, "energyfield", "some:test/path")
+            caom_util.validate_path_component(energy, "energyfield",
+                                              "some:test/path")
         except AssertionError:
             exception = True
         self.assertTrue(exception, "Missing exception")
 
         exception = False
         try:
-            caom_util.validate_path_component(energy, "energyfield", "some:test||path")
+            caom_util.validate_path_component(energy, "energyfield",
+                                              "some:test||path")
         except AssertionError:
             exception = True
         self.assertTrue(exception, "Missing exception")
 
         exception = False
         try:
-            caom_util.validate_path_component(energy, "energyfield", "some:test %path")
+            caom_util.validate_path_component(energy, "energyfield",
+                                              "some:test %path")
         except AssertionError:
             exception = True
         self.assertTrue(exception, "Missing exception")
 
     def test_typed_set(self):
 
-        my_set = caom_util.TypedSet(str,)
+        my_set = caom_util.TypedSet(str, )
         with self.assertRaises(AssertionError):
             my_set.add(float(1.0))
             my_set.add(int(1))
@@ -208,7 +213,7 @@ class TestCaomUtil(unittest.TestCase):
             my_set.add(bool(1))
             my_set.add("Test1")
 
-        my_set = caom_util.TypedSet(str,)
+        my_set = caom_util.TypedSet(str, )
         my_set.add("Test1")
         my_set.add("Test1")
         self.assertTrue(len(my_set) == 1)
@@ -222,16 +227,16 @@ class TestCaomUtil(unittest.TestCase):
                                             artifact.ReleaseType.DATA)
         test_part10 = part.Part("10")
         test_plane_uri = plane.PlaneURI('caom:CFHT/55/66')
-        my_dict_plane = caom_util.TypedOrderedDict(plane.Plane,)
+        my_dict_plane = caom_util.TypedOrderedDict(plane.Plane, )
         with self.assertRaises(ValueError):
             my_dict_plane['key11'] = test_plane10
-        my_dict_artifact = caom_util.TypedOrderedDict(artifact.Artifact,)
+        my_dict_artifact = caom_util.TypedOrderedDict(artifact.Artifact, )
         with self.assertRaises(ValueError):
             my_dict_artifact['caom:CFHT/55/6'] = test_artifact66
-        my_dict_part = caom_util.TypedOrderedDict(part.Part,)
+        my_dict_part = caom_util.TypedOrderedDict(part.Part, )
         with self.assertRaises(ValueError):
             my_dict_part['11'] = test_part10
-        my_dict_wrong_type = caom_util.TypedOrderedDict(plane.PlaneURI,)
+        my_dict_wrong_type = caom_util.TypedOrderedDict(plane.PlaneURI, )
         with self.assertRaises(ValueError):
             my_dict_wrong_type['caom:CFHT/55/67'] = test_plane_uri
         with self.assertRaises(TypeError):
@@ -239,12 +244,13 @@ class TestCaomUtil(unittest.TestCase):
         with self.assertRaises(TypeError):
             my_dict_plane['key1'] = float(2.0)
         # test assignment
-        my_dict = caom_util.TypedOrderedDict(plane.Plane,)
+        my_dict = caom_util.TypedOrderedDict(plane.Plane, )
         test_plane2 = plane.Plane('key2')
         test_plane1 = plane.Plane('key1')
         my_dict['key2'] = test_plane2
         my_dict['key1'] = test_plane1
-        # need to cast to list in order to make it work with both python 2 and 3
+        # need to cast to list in order to make it work with both python
+        # 2 and 3
         self.assertEqual(2, len(my_dict),
                          'mismatch in the number of entries in dictionary.')
         self.assertEqual('key2', list(my_dict.keys())[0],
@@ -258,7 +264,8 @@ class TestCaomUtil(unittest.TestCase):
         # test constructor with non-empty dictionary
         test_plane1 = plane.Plane('key1')
         test_plane2 = plane.Plane('key2')
-        my_dict1 = caom_util.TypedOrderedDict(plane.Plane, ('key1', test_plane1),
+        my_dict1 = caom_util.TypedOrderedDict(plane.Plane,
+                                              ('key1', test_plane1),
                                               ('key2', test_plane2))
         self.assertEqual(2, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')

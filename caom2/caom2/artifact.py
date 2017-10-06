@@ -74,10 +74,9 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from six.moves.urllib.parse import urlparse
-from builtins import str, int
-
 from aenum import Enum
+from builtins import str, int
+from six.moves.urllib.parse import urlparse
 
 from . import caom_util
 from .chunk import ProductType
@@ -135,7 +134,7 @@ class Artifact(AbstractCaomEntity):
         self.content_length = content_length
         self.content_checksum = content_checksum
         if parts is None:
-            parts = caom_util.TypedOrderedDict(Part,)
+            parts = caom_util.TypedOrderedDict(Part, )
         self.parts = parts
 
     def _key(self):
@@ -225,16 +224,16 @@ class Artifact(AbstractCaomEntity):
         caom_util.type_check(value, int, "content_length")
         caom_util.value_check(value, 0, 1E10, "content_length")
         self._content_length = value
-        
+
     @property
     def content_checksum(self):
         """the checksum value for the artifact data
-        
+
         type: ChecksumURI
-        
+
         """
         return self._content_checksum
-            
+
     @content_checksum.setter
     def content_checksum(self, value):
         if value is None:

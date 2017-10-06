@@ -72,18 +72,18 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from six import BytesIO
 import os
 import unittest
 
 from lxml import etree
-from .xml_compare import xml_compare
+from six import BytesIO
 
 from . import caom_test_instances
+from .xml_compare import xml_compare
 from .. import obs_reader_writer
 from .. import observation
-from .. import wcs
 from .. import shape
+from .. import wcs
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -125,7 +125,6 @@ def complete_composite(depth, bounds_is_circle, version):
 
 
 class TestObservationReaderWriter(unittest.TestCase):
-
     def test_invalid_long_id(self):
         simple_observation = minimal_simple(1, False, 20)
         writer = obs_reader_writer.ObservationWriter(
@@ -147,7 +146,8 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_invalid_uuid(self):
         simple_observation = minimal_simple(1, False, 21)
-        writer = obs_reader_writer.ObservationWriter(False, False)  # default writer is 2.1
+        writer = obs_reader_writer.ObservationWriter(False,
+                                                     False)  # default is 2.1
         output = BytesIO()
         writer.write(simple_observation, output)
         xml = output.getvalue()
@@ -200,40 +200,51 @@ class TestObservationReaderWriter(unittest.TestCase):
     def test_minimal_composite(self):
         for version in (20, 21, 22, 23):
             for i in range(1, 6):
-                print("Test Minimal Composite {} version {}".format(i, version))
+                print(
+                    "Test Minimal Composite {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
                 composite_observation = minimal_composite(i, True, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True, version)
+                self.observation_test(composite_observation, True, True,
+                                      version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False, version)
+                self.observation_test(composite_observation, True, False,
+                                      version)
                 # CoordBounds2D as CoordPolygon2D
                 composite_observation = minimal_composite(i, False, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True, version)
+                self.observation_test(composite_observation, True, True,
+                                      version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False, version)
+                self.observation_test(composite_observation, True, False,
+                                      version)
 
     def test_complete_composite(self):
         for version in (20, 21, 22, 23):
             for i in range(1, 6):
-                print("Test Complete Composite {} version {}".format(i, version))
+                print(
+                    "Test Complete Composite {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
                 composite_observation = complete_composite(i, True, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True, version)
+                self.observation_test(composite_observation, True, True,
+                                      version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False, version)
+                self.observation_test(composite_observation, True, False,
+                                      version)
                 # CoordBounds2D as CoordPolygon2D
                 composite_observation = complete_composite(i, False, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True, version)
+                self.observation_test(composite_observation, True, True,
+                                      version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False, version)
+                self.observation_test(composite_observation, True, False,
+                                      version)
 
     def test_versions(self):
         composite_observation = complete_composite(6, True, 20)
-        print("comp obs max lst mod: " + str(composite_observation.max_last_modified))
+        print("comp obs max lst mod: " + str(
+            composite_observation.max_last_modified))
         print("check 2.0 schema with 2.0 doc")
         self.observation_test(composite_observation, True, True, 20)
         print("check 2.1 schema with 2.0 doc")
@@ -262,7 +273,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.observation_test(composite_observation, True, True, 22)
         print("check 2.3 schema with 2.2 doc")
         self.observation_test(composite_observation, True, True, 23)
-        
+
         composite_observation = complete_composite(6, True, 23)
         print("check 2.0 schema with 2.3 doc")
         self.observation_test(composite_observation, True, True, 20)
@@ -278,7 +289,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         composite_observation.planes['productID'].position.bounds = None
         self.observation_test(composite_observation, True, True, 22)
 
-    def observation_test(self, obs, validate, write_empty_collections, version):
+    def observation_test(self, obs, validate, write_empty_collections,
+                         version):
         if version == 20:
             writer = obs_reader_writer.ObservationWriter(
                 validate, write_empty_collections, "caom2",
@@ -308,10 +320,10 @@ class TestObservationReaderWriter(unittest.TestCase):
     def compare_observations(self, expected, actual, version):
 
         assert ((isinstance(expected, observation.SimpleObservation) and
-                isinstance(actual, observation.SimpleObservation)) or
+                 isinstance(actual, observation.SimpleObservation)) or
                 (isinstance(expected, observation.CompositeObservation) and
-                isinstance(actual, observation.CompositeObservation))), (
-                    "Observation types do not match 0 vs 1".
+                 isinstance(actual, observation.CompositeObservation))), \
+                ("Observation types do not match 0 vs 1".
                     format(expected.__class__.__name__,
                            actual.__class__.__name__))
 
@@ -326,7 +338,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(expected._id)
         self.assertIsNotNone(actual._id)
         self.assertEqual(expected._id, actual._id)
-        
+
         self.compare_entity_attributes(expected, actual)
 
         self.assertIsNotNone(expected.algorithm)
@@ -344,7 +356,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.compare_instrument(expected.instrument, actual.instrument)
         self.compare_environment(expected.environment, actual.environment)
         if version == 21:
-            self.compare_requirements(expected.requirements, actual.requirements)
+            self.compare_requirements(expected.requirements,
+                                      actual.requirements)
 
         self.compare_planes(expected.planes, actual.planes, version)
 
@@ -458,15 +471,17 @@ class TestObservationReaderWriter(unittest.TestCase):
             actual_plane = actual[key]
             self.assertIsNotNone(expected_plane)
             self.assertIsNotNone(actual_plane)
-            self.assertEqual(expected_plane.product_id, actual_plane.product_id)
+            self.assertEqual(expected_plane.product_id,
+                             actual_plane.product_id)
             self.assertIsNotNone(expected_plane._id)
             self.assertIsNotNone(actual_plane._id)
             self.assertEqual(expected_plane._id, actual_plane._id)
-            
+
             if version >= 23:
                 self.assertEqual(
-                    expected_plane.creator_id, actual_plane.creator_id, "creator_id")
-            
+                    expected_plane.creator_id, actual_plane.creator_id,
+                    "creator_id")
+
             self.compare_entity_attributes(expected_plane, actual_plane)
 
             self.assertEqual(expected_plane.meta_release,
@@ -480,32 +495,37 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.compare_provenance(expected_plane.provenance,
                                     actual_plane.provenance)
             self.compare_metrics(expected_plane.metrics, actual_plane.metrics)
-            
+
             if version == 21:
                 self.compare_quality(expected_plane.quality,
                                      actual_plane.quality)
-            
+
             if version >= 22:
-                self.compare_position(expected_plane.position, actual_plane.position)
+                self.compare_position(expected_plane.position,
+                                      actual_plane.position)
                 self.compare_energy(expected_plane.energy, actual_plane.energy)
                 print('comparing time')
                 self.compare_time(expected_plane.time, actual_plane.time)
                 print('compared time')
-                self.compare_polarization(expected_plane.polarization, actual_plane.polarization)
+                self.compare_polarization(expected_plane.polarization,
+                                          actual_plane.polarization)
 
             self.compare_artifacts(expected_plane.artifacts,
                                    actual_plane.artifacts, version)
-            
+
     def compare_position(self, expected, actual):
         if expected is None:
             self.assertIsNone(actual, "position")
         else:
             self.compare_shape(expected.bounds, actual.bounds)
             self.compare_dimension2d(expected.dimension, actual.dimension)
-            self.assertEqual(expected.resolution, actual.resolution, "resolution")
-            self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
-            self.assertEqual(expected.time_dependent, actual.time_dependent, "time_dependent")
-    
+            self.assertEqual(expected.resolution, actual.resolution,
+                             "resolution")
+            self.assertEqual(expected.sample_size, actual.sample_size,
+                             "sample_size")
+            self.assertEqual(expected.time_dependent, actual.time_dependent,
+                             "time_dependent")
+
     def compare_energy(self, expected, actual):
         print("comparing energy")
         if expected is None:
@@ -513,62 +533,77 @@ class TestObservationReaderWriter(unittest.TestCase):
         else:
             self.compare_interval(expected.bounds, actual.bounds)
             self.assertEqual(expected.dimension, actual.dimension, "dimension")
-            self.assertEqual(expected.resolving_power, actual.resolving_power, "resolving_power")
-            self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
-            self.assertEqual(expected.bandpass_name, actual.bandpass_name, "bandpass_name")
+            self.assertEqual(expected.resolving_power, actual.resolving_power,
+                             "resolving_power")
+            self.assertEqual(expected.sample_size, actual.sample_size,
+                             "sample_size")
+            self.assertEqual(expected.bandpass_name, actual.bandpass_name,
+                             "bandpass_name")
             self.assertEqual(expected.em_band, actual.em_band, "em_band")
-            self.assertEqual(expected.bandpass_name, actual.bandpass_name, "bandpass_name")
-            self.compare_wcs_energy_transition(expected.transition, actual.transition)
+            self.assertEqual(expected.bandpass_name, actual.bandpass_name,
+                             "bandpass_name")
+            self.compare_wcs_energy_transition(expected.transition,
+                                               actual.transition)
 
-    
     def compare_time(self, expected, actual):
         if expected is None:
             self.assertIsNone(actual, "time")
         else:
             self.compare_interval(expected.bounds, actual.bounds)
             self.assertEqual(expected.dimension, actual.dimension, "dimension")
-            self.assertEqual(expected.resolution, actual.resolution, "resolution")
-            self.assertEqual(expected.sample_size, actual.sample_size, "sample_size")
+            self.assertEqual(expected.resolution, actual.resolution,
+                             "resolution")
+            self.assertEqual(expected.sample_size, actual.sample_size,
+                             "sample_size")
             self.assertEqual(expected.exposure, actual.exposure, "exposure")
-    
+
     def compare_polarization(self, expected, actual):
         if expected is None:
             self.assertIsNone(expected, "polarization")
         else:
             self.assertEqual(expected.dimension, actual.dimension, "dimension")
             if expected.polarization_states is None:
-                self.assertIsNone(actual.polarization_states, "polarization_states")
+                self.assertIsNone(actual.polarization_states,
+                                  "polarization_states")
             else:
-                self.assertEqual(len(expected.polarization_states), len(actual.polarization_states), "different number of polarization_states")
+                self.assertEqual(len(expected.polarization_states),
+                                 len(actual.polarization_states),
+                                 "different number of polarization_states")
                 for index, state in enumerate(expected.polarization_states):
-                    self.assertEqual(state, actual.polarization_states[index], "polarization_state")
-    
+                    self.assertEqual(state, actual.polarization_states[index],
+                                     "polarization_state")
+
     def compare_shape(self, expected, actual):
         if expected is None:
             self.assertIsNone(actual, "shape")
         else:
             if isinstance(expected, shape.Polygon):
                 self.assertIsNotNone(actual, "shape is None")
-                self.assertTrue(isinstance(actual, shape.Polygon), "mismatched shapes" + actual.__class__.__name__)
+                self.assertTrue(isinstance(actual, shape.Polygon),
+                                "mismatched shapes" +
+                                actual.__class__.__name__)
                 expected_points = expected.points
                 actual_points = actual.points
-                self.assertEqual(len(expected_points), len(actual_points), "different number of points")
+                self.assertEqual(len(expected_points), len(actual_points),
+                                 "different number of points")
                 for index, point in enumerate(expected_points):
                     self.compare_point(point, actual_points[index])
                 actual_samples = actual.samples
                 self.assertIsNotNone(actual_samples, "shape is None")
                 self.assertTrue(isinstance(actual_samples, shape.MultiPolygon),
-                                "mismatched shapes" + actual.__class__.__name__)
+                                "mismatched shapes" +
+                                actual.__class__.__name__)
                 expected_samples = expected.samples
                 expected_vertices = expected_samples.vertices
                 actual_vertices = actual_samples.vertices
-                self.assertEqual(len(expected_vertices), len(actual_vertices), "different number of vertices")
+                self.assertEqual(len(expected_vertices), len(actual_vertices),
+                                 "different number of vertices")
                 for index, vertex in enumerate(expected_vertices):
                     self.compare_vertices(vertex, actual_vertices[index])
             else:
                 raise TypeError("Unsupported shape type "
-                     + expected.__class__.__name__)
-                
+                                + expected.__class__.__name__)
+
     def compare_interval(self, expected, actual):
         if expected is None:
             self.assertIsNone(actual, "interval")
@@ -578,29 +613,31 @@ class TestObservationReaderWriter(unittest.TestCase):
             if expected.samples is None:
                 self.assertIsNone(actual.samples, "samples")
             else:
-                self.assertEqual(len(actual.samples), len(expected.samples), "samples")
+                self.assertEqual(len(actual.samples), len(expected.samples),
+                                 "samples")
                 for index, sample in enumerate(expected.samples):
                     self.compare_sub_interval(sample, actual.samples[index])
-    
+
     def compare_sub_interval(self, expected, actual):
         if expected is None:
             self.assertIsNone(actual, "sub_interval")
         else:
             self.assertEqual(expected.lower, actual.lower, "lower")
             self.assertEqual(expected.upper, actual.upper, "upper")
-    
+
     def compare_wcs_energy_transition(self, expected, actual):
         if expected is None:
             self.assertIsNone(actual, "wcs_energy_transition")
         else:
             self.assertEqual(expected.species, actual.species, "species")
-            self.assertEqual(expected.transition, actual.transition, "transition")
-    
+            self.assertEqual(expected.transition, actual.transition,
+                             "transition")
+
     def compare_vertices(self, expected, actual):
         self.assertEqual(expected.cval1, actual.cval1)
         self.assertEqual(expected.cval2, actual.cval2)
         self.assertEqual(expected.type, actual.type)
-        
+
     def compare_provenance(self, expected, actual):
         if expected is None and actual is None:
             return
@@ -622,8 +659,10 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertEqual(expected.source_number_density,
                          actual.source_number_density)
         self.assertEqual(expected.background, actual.background)
-        self.assertEqual(expected.background_std_dev, actual.background_std_dev)
-        self.assertEqual(expected.flux_density_limit, actual.flux_density_limit)
+        self.assertEqual(expected.background_std_dev,
+                         actual.background_std_dev)
+        self.assertEqual(expected.flux_density_limit,
+                         actual.flux_density_limit)
         self.assertEqual(expected.mag_limit, actual.mag_limit)
 
     def compare_quality(self, expected, actual):
@@ -657,7 +696,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(expected_artifact._id)
             self.assertIsNotNone(actual_artifact._id)
             self.assertEqual(expected_artifact._id, actual_artifact._id)
-            
+
             self.compare_entity_attributes(expected_artifact, actual_artifact)
 
             self.assertEqual(expected_artifact.uri, actual_artifact.uri)
@@ -688,11 +727,12 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(expected_part._id)
             self.assertIsNotNone(actual_part._id)
             self.assertEqual(expected_part._id, actual_part._id)
-            
+
             self.compare_entity_attributes(expected_part, actual_part)
 
             self.assertEqual(expected_part.name, actual_part.name)
-            self.assertEqual(expected_part.product_type, actual_part.product_type)
+            self.assertEqual(expected_part.product_type,
+                             actual_part.product_type)
             self.compare_chunks(expected_part.chunks, actual_part.chunks)
 
     def compare_chunks(self, expected, actual):
@@ -707,9 +747,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(expected_chunk._id)
             self.assertIsNotNone(actual_chunk._id)
             self.assertEqual(expected_chunk._id, actual_chunk._id)
-            
+
             self.compare_entity_attributes(expected_chunk, actual_chunk)
-            
+
             self.assertEqual(expected_chunk.product_type,
                              actual_chunk.product_type)
             self.assertEqual(expected_chunk.naxis, actual_chunk.naxis)
@@ -719,7 +759,8 @@ class TestObservationReaderWriter(unittest.TestCase):
                              actual_chunk.position_axis_1)
             self.assertEqual(expected_chunk.position_axis_2,
                              actual_chunk.position_axis_2)
-            self.assertEqual(expected_chunk.energy_axis, actual_chunk.energy_axis)
+            self.assertEqual(expected_chunk.energy_axis,
+                             actual_chunk.energy_axis)
             self.assertEqual(expected_chunk.time_axis, actual_chunk.time_axis)
             self.assertEqual(expected_chunk.polarization_axis,
                              actual_chunk.polarization_axis)
@@ -727,7 +768,8 @@ class TestObservationReaderWriter(unittest.TestCase):
                                          actual_chunk.observable)
             self.compare_spatial_wcs(expected_chunk.position,
                                      actual_chunk.position)
-            self.compare_spectral_wcs(expected_chunk.energy, actual_chunk.energy)
+            self.compare_spectral_wcs(expected_chunk.energy,
+                                      actual_chunk.energy)
             self.compare_temporal_wcs(expected_chunk.time, actual_chunk.time)
             self.compare_polarization_wcs(expected_chunk.polarization,
                                           actual_chunk.polarization)
@@ -845,7 +887,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(expected.samples)
         self.assertIsNotNone(actual.samples)
         self.assertEqual(len(expected.samples), len(actual.samples))
-        for expected_range, actual_range in zip(expected.samples, actual.samples):
+        for expected_range, actual_range in zip(expected.samples,
+                                                actual.samples):
             self.compare_coord_range1d(expected_range, actual_range)
 
     def compare_coord_bounds2d(self, expected, actual):
@@ -977,22 +1020,30 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(actual.cval2)
         self.assertEqual(expected.cval1, actual.cval1)
         self.assertEqual(expected.cval2, actual.cval2)
-        
+
     def compare_entity_attributes(self, expected, actual):
-        if expected.last_modified is not None and actual.last_modified is not None:
-            self.assertEqual(expected.last_modified, actual.last_modified, "last_modified")
-            
-        if expected.max_last_modified is not None and actual.max_last_modified is not None:
-            self.assertEqual(expected.max_last_modified, actual.max_last_modified, "max_last_modified")
+        if expected.last_modified is not None and\
+           actual.last_modified is not None:
+                self.assertEqual(expected.last_modified, actual.last_modified,
+                                 "last_modified")
 
-        if expected.meta_checksum is not None and actual.meta_checksum is not None:
-            self.assertEqual(expected.meta_checksum, actual.meta_checksum, "meta_checksum")
+        if expected.max_last_modified is not None and\
+           actual.max_last_modified is not None:
+                self.assertEqual(expected.max_last_modified,
+                                 actual.max_last_modified, "max_last_modified")
 
-        if expected.acc_meta_checksum is not None and actual.acc_meta_checksum is not None:
-            self.assertEqual(expected.acc_meta_checksum, actual.acc_meta_checksum, "acc_meta_checksum")
+        if expected.meta_checksum is not None and\
+           actual.meta_checksum is not None:
+                self.assertEqual(expected.meta_checksum, actual.meta_checksum,
+                                 "meta_checksum")
+
+        if expected.acc_meta_checksum is not None and\
+           actual.acc_meta_checksum is not None:
+                self.assertEqual(expected.acc_meta_checksum,
+                                 actual.acc_meta_checksum, "acc_meta_checksum")
+
 
 class TestRoundTrip(unittest.TestCase):
-
     TEST_DATA = 'data'
 
     def init(self):
@@ -1003,8 +1054,8 @@ class TestRoundTrip(unittest.TestCase):
                 if f.endswith('.xml')]
 
     def do_test(self, reader, writer, filename):
-        source_file_path = os.path.join(THIS_DIR + "/" +
-                                        TestRoundTrip.TEST_DATA + "/" + filename)
+        source_file_path = os.path.join(
+            THIS_DIR + "/" + TestRoundTrip.TEST_DATA + "/" + filename)
         source_xml_fp = open(source_file_path, 'r')
         obs = reader.read(source_file_path)
         source_xml_fp.close()
@@ -1027,7 +1078,8 @@ class TestRoundTrip(unittest.TestCase):
         try:
             self.init()
             files = self.get_file_list()
-            self.assertTrue(len(files) > 0, 'No XML files in test data directory')
+            self.assertTrue(len(files) > 0,
+                            'No XML files in test data directory')
 
             reader = obs_reader_writer.ObservationReader(True)
             writer20 = obs_reader_writer.ObservationWriter(

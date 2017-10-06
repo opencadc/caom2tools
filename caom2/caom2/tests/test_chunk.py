@@ -79,7 +79,6 @@ from .. import wcs
 
 
 class TestEnums(unittest.TestCase):
-
     def test_all(self):
         # test for invalid value
         with self.assertRaises(ValueError):
@@ -92,10 +91,10 @@ class TestEnums(unittest.TestCase):
         # test that we can get the object for each enum by name
         self.assertEqual(chunk.ProductType.SCIENCE.name, "SCIENCE")
         self.assertEqual(chunk.ProductType[
-            chunk.ProductType.SCIENCE.name].name, "SCIENCE")
+                             chunk.ProductType.SCIENCE.name].name, "SCIENCE")
         self.assertEqual(chunk.ProductType['SCIENCE'].value, "science")
         self.assertEqual(chunk.ProductType[
-            chunk.ProductType.SCIENCE.name].value, "science")
+                             chunk.ProductType.SCIENCE.name].value, "science")
 
         self.assertEqual(chunk.ProductType.SCIENCE.value, "science")
         self.assertEqual(chunk.ProductType.CALIBRATION.value, "calibration")
@@ -108,9 +107,7 @@ class TestEnums(unittest.TestCase):
 
 
 class TestChunk(unittest.TestCase):
-
     def test_init(self):
-
         test_chunk = chunk.Chunk()
         self.assertIsNone(test_chunk.product_type)
         self.assertIsNone(test_chunk.naxis)
@@ -126,7 +123,6 @@ class TestChunk(unittest.TestCase):
         self.assertIsNone(test_chunk.polarization)
 
     def test_attributes(self):
-
         test_chunk = chunk.Chunk()
         with self.assertRaises(TypeError):
             test_chunk.product_type = float(1.0)
@@ -143,7 +139,8 @@ class TestChunk(unittest.TestCase):
             test_chunk.polarization = float(1.0)
 
         test_chunk.product_type = chunk.ProductType.SCIENCE
-        self.assertEqual(chunk.ProductType.SCIENCE.name, test_chunk.product_type.name)
+        self.assertEqual(chunk.ProductType.SCIENCE.name,
+                         test_chunk.product_type.name)
 
         test_chunk.naxis = int(5)
         self.assertEqual(int(5), test_chunk.naxis)
@@ -185,15 +182,14 @@ class TestChunk(unittest.TestCase):
         test_chunk.time = time
         self.assertEqual(time, test_chunk.time)
 
-        polarization = chunk.PolarizationWCS(wcs.CoordAxis1D(wcs.Axis('STOKES')))
+        polarization = chunk.PolarizationWCS(
+            wcs.CoordAxis1D(wcs.Axis('STOKES')))
         test_chunk.polarization = polarization
         self.assertEqual(polarization, test_chunk.polarization)
 
 
 class TestObservableAxis(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, chunk.ObservableAxis, None)
         self.assertRaises(TypeError, chunk.ObservableAxis, int(1))
 
@@ -208,9 +204,7 @@ class TestObservableAxis(unittest.TestCase):
 
 
 class TestSpatialWCS(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, chunk.SpatialWCS, None)
         self.assertRaises(TypeError, chunk.SpatialWCS, int(1))
 
@@ -237,9 +231,7 @@ class TestSpatialWCS(unittest.TestCase):
 
 
 class TestSpectralWCS(unittest.TestCase):
-
     def test_init(self):
-
         axis = wcs.Axis("ctype", "cunit")
         axis_1d = wcs.CoordAxis1D(axis)
 
@@ -303,9 +295,7 @@ class TestSpectralWCS(unittest.TestCase):
 
 
 class TestTemporalWCS(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, chunk.TemporalWCS, None)
         self.assertRaises(TypeError, chunk.TemporalWCS, int(1))
 
@@ -337,9 +327,7 @@ class TestTemporalWCS(unittest.TestCase):
 
 
 class TestPolarizationWCS(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, chunk.PolarizationWCS, None)
         self.assertRaises(TypeError, chunk.PolarizationWCS, int(1))
 

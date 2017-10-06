@@ -70,13 +70,16 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from aenum import Enum
-from . import common
-from . import caom_util
-from caom2.caom_util import int_32
 import math
 
-__all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point', 'Polygon', 'Vertex']
+from aenum import Enum
+
+from caom2.caom_util import int_32
+from . import caom_util
+from . import common
+
+__all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point',
+           'Polygon', 'Vertex']
 
 
 class SegmentType(Enum):
@@ -91,7 +94,6 @@ class SegmentType(Enum):
 
 
 class Box(common.CaomObject):
-
     def __init__(self, center,
                  width, height):
         """
@@ -106,7 +108,8 @@ class Box(common.CaomObject):
         return self._width * self._height
 
     def get_size(self):
-        return math.sqrt(self._width * self._width + self._height * self._height)
+        return math.sqrt(self._width * self._width +
+                         self._height * self._height)
 
     # Properties
 
@@ -150,7 +153,6 @@ class Box(common.CaomObject):
 
 
 class Circle(common.CaomObject):
-
     def __init__(self, center,
                  radius):
         """
@@ -195,7 +197,6 @@ class Circle(common.CaomObject):
 
 
 class SubInterval(common.CaomObject):
-
     def __init__(self, lower, upper):
         self.lower = lower
         self.upper = upper
@@ -218,7 +219,9 @@ class SubInterval(common.CaomObject):
         except AttributeError:
             has_upper = False
         if has_upper:
-            assert not self._upper < value, "SubInterval: attempt to set upper < lower for "  + str(self._upper) + "," + str(value)
+            assert not self._upper < value, \
+                "SubInterval: attempt to set upper < lower for {}, {}".\
+                format(str(value, str(self._lower)))
         self._lower = value
 
     @property
@@ -237,12 +240,13 @@ class SubInterval(common.CaomObject):
         except AttributeError:
             has_lower = False
         if has_lower:
-            assert not value < self._lower, "SubInterval: attempt to set upper < lower for "  + str(value) + "," + str(self._lower)
+            assert not value < self._lower, \
+                "SubInterval: attempt to set upper < lower for {}, {}".\
+                format(value, self._lower)
         self._upper = value
 
 
 class Interval(common.CaomObject):
-
     def __init__(self, lower, upper, samples=None):
 
         self.lower = lower
@@ -251,7 +255,6 @@ class Interval(common.CaomObject):
 
     def get_width(self):
         return self._upper - self._lower
-
 
     @classmethod
     def intersection(cls, i1, i2):
@@ -280,7 +283,9 @@ class Interval(common.CaomObject):
         except AttributeError:
             has_upper = False
         if has_upper:
-            assert not self._upper < value, "Interval: attempt to set upper < lower for "  + str(self._upper) + "," + str(value)
+            assert not self._upper < value, \
+                "Interval: attempt to set upper < lower for {], {}".\
+                format(self._upper, value)
         self._lower = value
 
     @property
@@ -299,7 +304,9 @@ class Interval(common.CaomObject):
         except AttributeError:
             has_lower = False
         if has_lower:
-            assert not value < self._lower, "Interval: attempt to set upper < lower for "  + str(value) + "," + str(self._lower)
+            assert not value < self._lower, \
+                "Interval: attempt to set upper < lower for {}, {}".\
+                format(value, self._lower)
         self._upper = value
 
     @property
@@ -317,9 +324,7 @@ class Interval(common.CaomObject):
 
 
 class Point(common.CaomObject):
-
     def __init__(self, cval1, cval2):
-
         self.cval1 = cval1
         self.cval2 = cval2
 
@@ -349,7 +354,6 @@ class Point(common.CaomObject):
 
 
 class Polygon(common.CaomObject):
-
     def __init__(self, points=None, samples=None):
         if not points:
             self._points = []
@@ -366,7 +370,6 @@ class Polygon(common.CaomObject):
         """
         return self._points
 
-
     @property
     def samples(self):
         """
@@ -377,12 +380,12 @@ class Polygon(common.CaomObject):
     @samples.setter
     def samples(self, value):
         if value is not None:
-            caom_util.type_check(value, MultiPolygon, 'multipolygon', override=False)
+            caom_util.type_check(value, MultiPolygon, 'multipolygon',
+                                 override=False)
         self._samples = value
 
 
 class MultiPolygon(common.CaomObject):
-
     def __init__(self, vertices=None):
         if not vertices:
             self._vertices = []
@@ -390,7 +393,7 @@ class MultiPolygon(common.CaomObject):
             self._vertices = vertices
 
     # Properties
-    
+
     @property
     def vertices(self):
         """
@@ -404,37 +407,41 @@ class MultiPolygon(common.CaomObject):
 
         TODO: check the clockwise direction
 
-        An AssertionError is thrown when the object does not represent a multi polygon
+        An AssertionError is thrown when the object does not represent a
+        multi polygon
         """
         if not self.vertices:
             raise AssertionError('invalid polygon: no vertices')
         lines = 0
         if len(self._vertices) < 4:
             # triangle
-            raise AssertionError('invalid polygon: {} vertices (min 4)'.format(len(self._vertices)))
+            raise AssertionError('invalid polygon: {} vertices (min 4)'.format(
+                len(self._vertices)))
 
         open_loop = False
         for v in self._vertices:
             if v.type == SegmentType.MOVE:
                 if open_loop:
-                    raise AssertionError('invalid polygon: MOVE vertex when loop open')
+                    raise AssertionError(
+                        'invalid polygon: MOVE vertex when loop open')
                 lines = 0
                 open_loop = True
             elif v.type == SegmentType.CLOSE:
                 if not open_loop:
-                    raise AssertionError('invalid polygon: CLOSE vertex when loop close')
+                    raise AssertionError(
+                        'invalid polygon: CLOSE vertex when loop close')
                 if lines < 2:
-                    raise AssertionError('invalid polygon: minimum 2 lines required')
+                    raise AssertionError(
+                        'invalid polygon: minimum 2 lines required')
                 open_loop = False
             else:
                 if not open_loop:
-                    raise AssertionError('invalid polygon: LINE vertex when loop close')
+                    raise AssertionError(
+                        'invalid polygon: LINE vertex when loop close')
                 lines += 1
 
 
-
 class Vertex(Point):
-
     def __init__(self, cval1, cval2, type):
         super(Vertex, self).__init__(cval1, cval2)
         self.type = type
@@ -452,4 +459,3 @@ class Vertex(Point):
     def type(self, value):
         caom_util.type_check(value, SegmentType, 'type', override=False)
         self._type = value
-

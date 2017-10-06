@@ -73,17 +73,18 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from datetime import datetime
-from builtins import str, int
-from aenum import Enum
+
 import six
+from aenum import Enum
+from builtins import str
 
 from . import caom_util
+from .caom_util import int_32
 from .common import AbstractCaomEntity
 from .common import CaomObject
 from .common import ObservationURI
 from .plane import Plane
 from .shape import Point
-from .caom_util import int_32
 
 __all__ = ['ObservationIntentType', 'Status', 'TargetType',
            'Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
@@ -160,7 +161,7 @@ class Observation(AbstractCaomEntity):
           -> SpectralWCS
           -> PolarizationWCS
           -> (Observable)
-          
+
     """
 
     def __init__(self,
@@ -199,7 +200,7 @@ class Observation(AbstractCaomEntity):
         self.algorithm = algorithm
 
         self._uri = ObservationURI.get_observation_uri(collection,
-                                                      observation_id)
+                                                       observation_id)
 
         self.sequence_number = sequence_number
         self.intent = intent
@@ -213,7 +214,7 @@ class Observation(AbstractCaomEntity):
         self.requirements = requirements
         self.meta_release = meta_release
         if planes is None:
-            self.planes = caom_util.TypedOrderedDict(Plane,)
+            self.planes = caom_util.TypedOrderedDict(Plane, )
         else:
             self.planes = planes
 
@@ -316,7 +317,6 @@ class Observation(AbstractCaomEntity):
     def sequence_number(self, value):
         caom_util.type_check(value, int_32, 'sequence_number')
         self._sequence_number = int_32(value) if value is not None else None
-
 
     @property
     def type(self):
@@ -715,7 +715,7 @@ class Environment(CaomObject):
     @tau.setter
     def tau(self, value):
         caom_util.type_check(value, float, 'tau')
-        #Value must be >= 0, but has no upper limit
+        # Value must be >= 0, but has no upper limit
         self._tau = value
 
     @property
