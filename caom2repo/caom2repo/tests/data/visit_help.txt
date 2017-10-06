@@ -1,0 +1,49 @@
+usage: caom2-repo visit [-h]
+                        [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
+                        [--host HOST] [--resource-id RESOURCE_ID]
+                        [-d | -q | -v] --plugin PLUGIN [--start START]
+                        [--end END] [--halt-on-error]
+                        collection
+
+Visit observations in a collection
+
+positional arguments:
+  collection            data collection in CAOM2 repo
+
+optional arguments:
+  --cert CERT           location of your X509 certificate to use for
+                        authentication (unencrypted, in PEM format)
+  -d, --debug           debug messages
+  --end END             latest observation to visit (UTC IVOA format: YYYY-mm-
+                        ddTH:M:S)
+  --halt-on-error       stop visitor on first update exception raised by
+                        plugin
+  -h, --help            show this help message and exit
+  --host HOST           base hostname for services - used mainly for testing
+                        (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
+  -n                    use .netrc in $HOME for authentication
+  --netrc-file NETRC_FILE
+                        netrc file to use for authentication
+  --plugin PLUGIN       plugin class to update each observation
+  -q, --quiet           run quietly
+  --resource-id RESOURCE_ID
+                        resource identifier (default
+                        ivo://cadc.nrc.ca/caom2repo)
+  --start START         earliest observation to visit (UTC IVOA format: YYYY-
+                        mm-ddTH:M:S)
+  -u, --user USER       name of user to authenticate. Note: application
+                        prompts for the corresponding password!
+  -v, --verbose         verbose messages
+
+        Minimum plugin file format:
+        ----
+           from caom2 import Observation
+
+           class ObservationUpdater:
+
+            def update(self, observation):
+                assert isinstance(observation, Observation), (
+                    'observation {} is not an Observation'.format(observation))
+                # custom code to update the observation
+        ----
+        
