@@ -70,14 +70,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import unittest
 import math
+import unittest
 
 from .. import shape
 
 
 class TestEnums(unittest.TestCase):
-
     def test_all(self):
         # test for invalid value
         with self.assertRaises(KeyError):
@@ -99,9 +98,7 @@ class TestEnums(unittest.TestCase):
 
 
 class TestBox(unittest.TestCase):
-
     def test_all(self):
-
         self.assertRaises(TypeError, shape.Box, None, None, None)
         self.assertRaises(TypeError, shape.Box, None, None, 1.0)
         self.assertRaises(TypeError, shape.Box, None, 1.0, None)
@@ -118,16 +115,14 @@ class TestBox(unittest.TestCase):
         self.assertEqual(box.height, 4.0)
         self.assertEqual(box.center.cval1, 1.0)
         self.assertEqual(box.center.cval2, 2.0)
-        area = width * height 
+        area = width * height
         self.assertEqual(box.get_area(), area)
         size = math.sqrt(width * width + height * height)
         self.assertEqual(box.get_size(), size)
 
 
 class TestCircle(unittest.TestCase):
-
     def test_all(self):
-
         self.assertRaises(TypeError, shape.Circle, None, None)
         self.assertRaises(TypeError, shape.Circle, None, 1.0)
         self.assertRaises(TypeError, shape.Circle, 1.0, None)
@@ -141,13 +136,12 @@ class TestCircle(unittest.TestCase):
         self.assertEqual(circle.radius, radius)
         self.assertEqual(circle.center.cval1, val1)
         self.assertEqual(circle.center.cval2, val2)
-        area = math.pi * radius * radius  
+        area = math.pi * radius * radius
         self.assertEqual(circle.get_area(), area)
         self.assertEqual(circle.get_size(), 2.0 * radius)
 
 
 class TestInterval(unittest.TestCase):
-
     def test_all(self):
 
         lower = 1.0
@@ -156,7 +150,9 @@ class TestInterval(unittest.TestCase):
         upper1 = 2.1
         lower2 = 1.2
         upper2 = 2.2
-        samples = [shape.SubInterval(lower,upper), shape.SubInterval(lower1,upper1), shape.SubInterval(lower2,upper2)]
+        samples = [shape.SubInterval(lower, upper),
+                   shape.SubInterval(lower1, upper1),
+                   shape.SubInterval(lower2, upper2)]
 
         self.assertRaises(TypeError, shape.Interval, None, None, None)
         self.assertRaises(TypeError, shape.Interval, None, None, 1.0)
@@ -167,7 +163,8 @@ class TestInterval(unittest.TestCase):
         self.assertRaises(TypeError, shape.Interval, int(1), None, samples)
         self.assertRaises(TypeError, shape.Interval, None, "string", samples)
         self.assertRaises(TypeError, shape.Interval, "string", None, samples)
-        self.assertRaises(TypeError, shape.Interval, "string1", "string2", int(1))
+        self.assertRaises(TypeError, shape.Interval, "string1", "string2",
+                          int(1))
         self.assertRaises(AssertionError, shape.Interval, 2.0, 1.0, None)
 
         # test cannot set interval with upper < lower
@@ -225,12 +222,10 @@ class TestInterval(unittest.TestCase):
         ub = min(i1.upper, i3.upper)
         intersec3 = shape.Interval.intersection(i1, i3)
         self.assertEqual(intersec3, shape.Interval(lb, ub))
-        
+
 
 class TestPoint(unittest.TestCase):
-
     def test_all(self):
-
         self.assertRaises(TypeError, shape.Point, None, None)
         self.assertRaises(TypeError, shape.Point, None, 1.0)
         self.assertRaises(TypeError, shape.Point, 1.0, None)
@@ -240,10 +235,9 @@ class TestPoint(unittest.TestCase):
         point = shape.Point(1.0, 2.0)
         self.assertEqual(point.cval1, 1.0)
         self.assertEqual(point.cval2, 2.0)
-        
+
 
 class TestSubInterval(unittest.TestCase):
-
     def test_all(self):
 
         self.assertRaises(TypeError, shape.SubInterval, None, None)
@@ -262,13 +256,11 @@ class TestSubInterval(unittest.TestCase):
         self.assertEqual(has_assertionError, True)
 
         # test construction method
-        i1 = shape.SubInterval(10.0, 15.0)
+        shape.SubInterval(10.0, 15.0)
 
 
 class TestPolygon(unittest.TestCase):
-
     def test_all(self):
-
         p1 = shape.Point(1.0, 2.0)
         p2 = shape.Point(2.0, 3.0)
         p3 = shape.Point(3.0, 4.0)
@@ -298,7 +290,6 @@ class TestPolygon(unittest.TestCase):
 
 
 class TestMultiPolygon(unittest.TestCase):
-
     def test_all(self):
         v0 = shape.Vertex(1.0, 2.0, shape.SegmentType.MOVE)
         v1 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
@@ -356,23 +347,28 @@ class TestMultiPolygon(unittest.TestCase):
         with self.assertRaises(AssertionError):
             mp.validate()
 
+
 class TestVertex(unittest.TestCase):
-
     def test_all(self):
-
         self.assertRaises(TypeError, shape.Vertex, None, None, None)
         self.assertRaises(TypeError, shape.Vertex, 1.0, 2.0, None)
         self.assertRaises(TypeError, shape.Vertex, 1.0, 2.0, 1.0)
-        self.assertRaises(TypeError, shape.Vertex, None, None, shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, None, 2.0, shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, 1.0, None, shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, None, "string", shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, "string", None, shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, None, int(1), shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, int(1), None, shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, None, None,
+                          shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, None, 2.0,
+                          shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, 1.0, None,
+                          shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, None, "string",
+                          shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, "string", None,
+                          shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, None, int(1),
+                          shape.SegmentType.LINE)
+        self.assertRaises(TypeError, shape.Vertex, int(1), None,
+                          shape.SegmentType.LINE)
 
         vertex = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
         self.assertEqual(vertex.cval1, 1.0)
         self.assertEqual(vertex.cval2, 2.0)
         self.assertEqual(vertex.type, shape.SegmentType.LINE)
-

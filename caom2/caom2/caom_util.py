@@ -78,16 +78,17 @@ engineer get the correct meta data more quickly.
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from builtins import bytes, int
-import six
+
 import collections
 import struct
 import sys
 import uuid
 from datetime import datetime
 
-__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
+import six
+from builtins import bytes, int
 
+__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
 
 # TODO both these are very bad, implement more sensibly
 IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
@@ -95,10 +96,11 @@ IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 class int_32(int):
     """
-    The checksum algorithm must distinguished between 32 bit integers and 64 bit
-    integers. This subtype of int is used to tell the algorithm to use only 4 bytes
-    in the checksum of an attribute of this type.
+    The checksum algorithm must distinguished between 32 bit integers and 64
+    bit integers. This subtype of int is used to tell the algorithm to use
+    only 4 bytes in the checksum of an attribute of this type.
     """
+
     def __new__(cls, *args, **kwargs):
         return int.__new__(cls, *args, **kwargs)
 
@@ -174,7 +176,7 @@ def long2uuid(l):
     if l.bit_length() > 63:
         raise ValueError("expected 64 bit long {}".format(l))
     if l < 0:
-        l = (1<<64) + l
+        l = (1 << 64) + l
     return uuid.UUID(int=l)
 
 
@@ -206,8 +208,9 @@ def value_check(value, min_value, max_value, variable, override=None):
     """Check if value is inside allowed range, or override"""
 
     sys.tracebacklimit = None
-    if value != override and not ((min_value is not None) and (min_value <= value) and
-                                  (max_value is not None) and (value <= max_value)):
+    if value != override and not (
+                (min_value is not None) and (min_value <= value) and
+            (max_value is not None) and (value <= max_value)):
         if override is not False:
             raise ValueError(
                 "Expected {} <= {} <= {} or {}, received {}".format(
@@ -389,7 +392,8 @@ class TypedOrderedDict(collections.OrderedDict):
 
     def __repr__(self):
         return "TypeOrderedDict((%r))," % self._oktypes + (
-            "(".join(["(%r,%r)" % (k, v) for k, v in six.iteritems(self)]) + ")")
+            "(".join(
+                ["(%r,%r)" % (k, v) for k, v in six.iteritems(self)]) + ")")
 
     def check(self, key, value):
         """
@@ -426,6 +430,6 @@ class TypedOrderedDict(collections.OrderedDict):
 
 class ClassProperty(property):
     """ """
+
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()
-

@@ -69,48 +69,51 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import bytes, int, str
+import hashlib
+import logging
+import struct
 import uuid
 from datetime import datetime
-import struct
-import hashlib
-from aenum import Enum
-import logging
 
-from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI, ChecksumURI
+from aenum import Enum
+from builtins import bytes, int, str
+
 from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict, int_32
+from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI, \
+    ChecksumURI
 
 __all__ = ['get_meta_checksum', 'get_acc_meta_checksum']
 
-
 """
-This modules contains the functionality for calculating the checksums corresponding
-to entites in CAOM2. Two types of checksums are available:
-    get_meta_checksum - returns the checksum of the entity attributes except its
-                        CAOM2 children
+This modules contains the functionality for calculating the checksums
+corresponding to entites in CAOM2. Two types of checksums are available:
+    get_meta_checksum - returns the checksum of the entity attributes except
+                        its CAOM2 children
     get_acc_meta_checksum - returns the accumulated checksum of the entity
                         attributes including those of the CAOM2 children
 
 The checksums can be used to get the state of the entity: the metachecksum
-represents the state the entity itself while the accumulated metachecksum represents
-the state of the entity and all the children below. These states can be saved
-and later compared to quickly detect state changes.
+represents the state the entity itself while the accumulated metachecksum
+represents the state of the entity and all the children below. These states
+can be saved and later compared to quickly detect state changes.
 
-IMPORTANT NODE: The checksum algorithms use introspection to automatically find the
-attributes that are part of the model. It is therefore very important that attributes
-that are not part of the CAOM model (http://www.opencadc.org/caom2) be prefixed with an '_'
-so that the checksum algorithms ignore them in their computations. Equally important
-is to use the names of the attributes from the model (with the Python syntax) as
-the algorithms parses them in alphabetical order.
+IMPORTANT NODE: The checksum algorithms use introspection to automatically
+find the attributes that are part of the model. It is therefore very important
+that attributes that are not part of the CAOM model
+(http://www.opencadc.org/caom2) be prefixed with an '_' so that the checksum
+algorithms ignore them in their computations. Equally important
+is to use the names of the attributes from the model (with the Python syntax)
+as the algorithms parses them in alphabetical order.
 
 Gotchas to look for when calculating the checksum:
-- There are two types of integers in the model: int (32 bit) and long (64 bit). In this
-implementation the corresponding types are int_32 and int.
-- Sets are ordered alphabetical. Therefore their members have to implement, at the minimum, 
-__eq__ and __lt__ that will result in proper sorting
+- There are two types of integers in the model: int (32 bit) and long (64 bit).
+In this implementation the corresponding types are int_32 and int.
+- Sets are ordered alphabetical. Therefore their members have to implement,
+at the minimum, __eq__ and __lt__ that will result in proper sorting
 
 """
 logger = logging.getLogger('checksum')
+
 
 def get_meta_checksum(entity):
     """
@@ -118,7 +121,8 @@ def get_meta_checksum(entity):
     excluding its CAOM2 children.
     calculation order:
     1. id for entities
-    2.state fields in alphabetic order; depth - first recursion so foo.abc.x comes before foo.def
+    2.state fields in alphabetic order; depth - first recursion so foo.abc.x
+    comes before foo.def
 
     value handling:
     - Date: truncate time to whole number of seconds and treat as a long
@@ -128,11 +132,11 @@ def get_meta_checksum(entity):
     - byte: as- is (1 byte)
     - integer: 9(8 bytes, network byte order == big endian)
     - unrecognized classes: encode their string representation
-    
+
     :param entity: CAOM2 entity
     :return: md5 checksum corresponding to the entity metadata
     """
-    assert(isinstance(entity, AbstractCaomEntity))
+    assert (isinstance(entity, AbstractCaomEntity))
     md5 = hashlib.md5()
     update_caom_checksum(md5, entity)
     return ChecksumURI('md5:{}'.format(md5.hexdigest()))
@@ -142,7 +146,7 @@ def get_acc_meta_checksum(entity):
     """
     Similar to get_meta_checksum except that the accumulated checksum of
     the CAOM2 children are also included in alphabetical order of their ids
-    
+
     :param entity: CAOM2 entity
     :return: md5 checksum corresponding to the entity metadata
     """
@@ -154,11 +158,11 @@ def get_acc_meta_checksum(entity):
 
 def update_acc_checksum(checksum, entity):
     """
-    Updates the checksum alogrithm with the bytes corresponding to the entity. It first generates
-    the corresponding bytes for the meta checksum of the entity. To that, it then adds the
-    bytes corresponding to the accumulated meta checksum of each child listed in alphabetical 
-    order of their id.
-    
+    Updates the checksum alogrithm with the bytes corresponding to the entity.
+    It first generates the corresponding bytes for the meta checksum of the
+    entity. To that, it then adds the bytes corresponding to the accumulated
+    meta checksum of each child listed in alphabeticals order of their id.
+
     :param checksum: checksum algorithm that consumes the bytes (md5)
     :param entity: entity to generate the bytes for and consume them
     """
@@ -171,8 +175,10 @@ def update_acc_checksum(checksum, entity):
     for i in dir(entity):
         if not callable(getattr(entity, i)) and not i.startswith('_'):
             attrib = getattr(entity, i)
-            if (isinstance(attrib, TypedOrderedDict) or isinstance(attrib, TypedList) or
-                 isinstance(attrib, TypedSet)) and (issubclass(attrib.key_type, AbstractCaomEntity)):
+            if (isinstance(attrib, TypedOrderedDict) or
+                    isinstance(attrib, TypedList) or
+                    isinstance(attrib, TypedSet)) and (
+                    issubclass(attrib.key_type, AbstractCaomEntity)):
                 if (isinstance(attrib, TypedOrderedDict)):
                     values = attrib.values()
                 else:
@@ -187,11 +193,13 @@ def update_acc_checksum(checksum, entity):
 
 def update_checksum(checksum, value, attribute=''):
     """
-    Updates the checksum algorithm (md5) of (mostly) native types with corresponding bytes 
-    (network byte order == big endian)
+    Updates the checksum algorithm (md5) of (mostly) native types with
+    corresponding bytes (network byte order == big endian)
     :param checksum: the checksum algorithm to update (md5)
-    :param value: value to translate into bytes in order to update the checksum algorithm
-    :param attribute: name of the attribute this value belongs to (used for debugging only)
+    :param value: value to translate into bytes in order to update the
+    checksum algorithm
+    :param attribute: name of the attribute this value belongs to
+    (used for debugging only)
     """
 
     if type(value) is None:
@@ -205,20 +213,23 @@ def update_checksum(checksum, value, attribute=''):
         logger.debug('Encoded attribute {}'.format(attribute))
         update_caom_checksum(checksum, value, attribute)
     elif isinstance(value, bytes):
-        logger.debug('Encoded attribute bytes {} = {}'.format(attribute, value))
+        logger.debug(
+            'Encoded attribute bytes {} = {}'.format(attribute, value))
         checksum.update(value)
     elif isinstance(value, bool):
         logger.debug('Encoded attribute bool {} = {}'.format(attribute, value))
         checksum.update(struct.pack('!?', value))
-    #elif isinstance(value, float_32):
+        # elif isinstance(value, float_32):
         # must be before float
-        #checksum.update(struct.pack('!f', value))
+        # checksum.update(struct.pack('!f', value))
     elif isinstance(value, float):
-        logger.debug('Encoded attribute float {} = {}'.format(attribute, value))
+        logger.debug(
+            'Encoded attribute float {} = {}'.format(attribute, value))
         checksum.update(struct.pack('!d', value))
     elif isinstance(value, int_32):
         # must be before int
-        logger.debug('Encoded attribute int_32 {} = {}'.format(attribute, value))
+        logger.debug(
+            'Encoded attribute int_32 {} = {}'.format(attribute, value))
         checksum.update(struct.pack('!l', value))
     elif isinstance(value, int):
         logger.debug('Encoded attribute int {} = {}'.format(attribute, value))
@@ -227,10 +238,13 @@ def update_checksum(checksum, value, attribute=''):
         logger.debug('Encoded attribute str {} = {}'.format(attribute, value))
         checksum.update(value.encode('utf-8'))
     elif isinstance(value, datetime):
-        logger.debug('Encoded attribute datetime {} = {}'.format(attribute, value))
-        checksum.update(struct.pack('!q', int((value - datetime(1970, 1, 1)).total_seconds())))
+        logger.debug(
+            'Encoded attribute datetime {} = {}'.format(attribute, value))
+        checksum.update(struct.pack('!q', int(
+            (value - datetime(1970, 1, 1)).total_seconds())))
     elif isinstance(value, set) or \
-            (isinstance(value, TypedSet) and not isinstance(value.key_type, AbstractCaomEntity)):
+            (isinstance(value, TypedSet) and not
+                isinstance(value.key_type, AbstractCaomEntity)):
         for i in sorted(value):
             update_checksum(checksum, i, attribute)
     elif isinstance(value, list) or isinstance(value, TypedList):
@@ -243,7 +257,8 @@ def update_checksum(checksum, value, attribute=''):
         logger.debug('Encoded attribute uuid {} = {}'.format(attribute, value))
         checksum.update(value.bytes)
     elif isinstance(value, TypedOrderedDict):
-        # calculate the checksum of each component and add them in alphabetical order of their ids
+        # calculate the checksum of each component and add them in
+        # alphabetical order of their ids
         # Note: ignore dictionaries of AbstractCaomEntity types
         checksums = []
         for i in value:
@@ -252,12 +267,14 @@ def update_checksum(checksum, value, attribute=''):
         for i in sorted(checksums):
             update_checksum(checksum, checksum[i], attribute)
     else:
-        raise ValueError('Cannot transform in bytes: {}({})'.format(value, type(value)))
+        raise ValueError(
+            'Cannot transform in bytes: {}({})'.format(value, type(value)))
 
 
-def update_caom_checksum(checksum, entity, parent = None):
+def update_caom_checksum(checksum, entity, parent=None):
     """
-    Method to go through the attributes of a CAOM class and update the checksum of each of them.
+    Method to go through the attributes of a CAOM class and update the
+    checksum of each of them.
     Uses introspection and goes through the attributes in alphabetical order.
     :param checksum: checksum algorithm to update (md5)
     :param entity: entity to go through
@@ -272,12 +289,14 @@ def update_caom_checksum(checksum, entity, parent = None):
     if not hasattr(update_caom_checksum, "checksum_excluded_fields"):
         # this is a way to do it statically
         checksum_excluded_fields = [i for i in dir(AbstractCaomEntity)
-                                    if not callable(getattr(AbstractCaomEntity, i))
+                                    if not callable(
+                getattr(AbstractCaomEntity, i))
                                     and not i.startswith('_')]
-        # get the fields in alphabetical order, depth first recursion but remove the
+        # get the fields in alphabetical order, depth first recursion
+        # but remove the
     for i in sorted(dir(entity)):
-        if not callable(getattr(entity, i)) and not i.startswith('_') and\
-            i not in checksum_excluded_fields:
+        if not callable(getattr(entity, i)) and not i.startswith('_') and \
+                        i not in checksum_excluded_fields:
             if getattr(entity, i) is not None:
                 atrib = '{}.{}'.format(parent, i) if parent is not None else i
                 update_checksum(checksum, getattr(entity, i), atrib)

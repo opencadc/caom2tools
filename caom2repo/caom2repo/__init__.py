@@ -1,4 +1,3 @@
-
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 """
@@ -10,9 +9,9 @@ command it installs.
 1. Instantiate CAOM2RepoClient and use it to access the caom2repo WS.
 
 The only mandatory argument that the CadcDataClient constructor takes is
-a cadcutils.net.Subject that holds the user credentials. The client interacts with
-the caom2repo WS through the get_observation, put_observation, post_observation,
- delete_observation and visit functions of the client.
+a cadcutils.net.Subject that holds the user credentials. The client interacts
+with the caom2repo WS through the get_observation, put_observation,
+post_observation, delete_observation and visit functions of the client.
 
 Example (appropriate credentials required):
    from caom2repo import CAOM2RepoClient
@@ -37,11 +36,12 @@ Example:
    import os
    os.system('caom2-repo-client read -n --collection CFHT 700000')
 
-Method 1. is the recommended method as it does not required forking external processes
-and also allows trapping the exceptions and reacting according to the type of the
-error. Method 2 also works but the sys.exit needs to be trapped in order
-to prevent the script from quiting. Method 3, while simple, must rely on inter
-processes communication to determine the result of running the command.
+Method 1. is the recommended method as it does not required forking external
+processes and also allows trapping the exceptions and reacting according to
+the type of the error. Method 2 also works but the sys.exit needs to be
+trapped in order to prevent the script from quiting. Method 3, while simple,
+must rely on inter processes communication to determine the result of
+running the command.
 """
 
-from .core import *
+from .core import *  # noqa

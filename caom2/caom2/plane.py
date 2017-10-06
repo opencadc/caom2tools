@@ -73,10 +73,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from datetime import datetime
-from six.moves.urllib.parse import SplitResult, urlsplit
-from builtins import str, int
-from aenum import Enum, extend_enum
 
+from aenum import Enum, extend_enum
+from builtins import str, int
+from six.moves.urllib.parse import SplitResult, urlsplit
+
+from caom2.caom_util import int_32
 from . import caom_util
 from . import shape
 from . import wcs
@@ -84,15 +86,15 @@ from .artifact import Artifact
 from .common import AbstractCaomEntity
 from .common import CaomObject
 from .common import ObservationURI
-from caom2.caom_util import int_32
 
-__all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand', 
-           'VocabularyTerm', 'PolarizationState', 'Quality', 'Plane', 
-           'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position', 
+__all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
+           'VocabularyTerm', 'PolarizationState', 'Quality', 'Plane',
+           'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position',
            'Energy', 'Polarization', 'Time']
 
 _OBSCORE_VOCAB_NS = "http://www.ivoa.net/std/ObsCore"
 _CAOM_VOCAB_NS = "http://www.opencadc.org/caom2/DataProductType"
+
 
 class CalibrationLevel(Enum):
     """
@@ -116,9 +118,9 @@ class VocabularyTerm(object):
     def __init__(self, namespace, term, base=False):
         """
         Construct a VocabularyTerm instance. This creates a term in the
-        specified vocabulary namespace. If the value of base is False, 
+        specified vocabulary namespace. If the value of base is False,
         the string value (from getvalue()) will just be the namespace URI
-        plus the term added as a fragment. If the value of base is True, 
+        plus the term added as a fragment. If the value of base is True,
         this is a term in a base vocabulary and the value will just be the
         term (without the namespace).
 
@@ -182,11 +184,15 @@ class DataProductType(Enum):
 
     IMAGE = VocabularyTerm(_OBSCORE_VOCAB_NS, "image", True).get_value()
     CUBE = VocabularyTerm(_OBSCORE_VOCAB_NS, "cube", True).get_value()
-    EVENTLIST = VocabularyTerm(_OBSCORE_VOCAB_NS, "eventlist", True).get_value()
+    EVENTLIST = VocabularyTerm(_OBSCORE_VOCAB_NS, "eventlist",
+                               True).get_value()
     SPECTRUM = VocabularyTerm(_OBSCORE_VOCAB_NS, "spectrum", True).get_value()
-    TIMESERIES = VocabularyTerm(_OBSCORE_VOCAB_NS, "timeseries", True).get_value()
-    VISIBILITY = VocabularyTerm(_OBSCORE_VOCAB_NS, "visibility", True).get_value()
-    MEASUREMENTS = VocabularyTerm(_OBSCORE_VOCAB_NS, "measurements", True).get_value()
+    TIMESERIES = VocabularyTerm(_OBSCORE_VOCAB_NS, "timeseries",
+                                True).get_value()
+    VISIBILITY = VocabularyTerm(_OBSCORE_VOCAB_NS, "visibility",
+                                True).get_value()
+    MEASUREMENTS = VocabularyTerm(_OBSCORE_VOCAB_NS, "measurements",
+                                  True).get_value()
     CATALOG = VocabularyTerm(_CAOM_VOCAB_NS, "catalog").get_value()
 
     @staticmethod
@@ -196,7 +202,8 @@ class DataProductType(Enum):
         :param namespace: Namespace for the new data product type
         :param name: Name of the new data product type
         """
-        extend_enum(DataProductType, name.upper(), VocabularyTerm(namespace, name).get_value())
+        extend_enum(DataProductType, name.upper(),
+                    VocabularyTerm(namespace, name).get_value())
 
 
 class EnergyBand(Enum):
@@ -323,7 +330,7 @@ class Plane(AbstractCaomEntity):
         """A URI that identifies the creator of this plane.
 
         eg: ivo://cadc.nrc.ca/users?tester
-        type: URI 
+        type: URI
         """
         return self._creator_id
 
@@ -348,7 +355,8 @@ class Plane(AbstractCaomEntity):
 
     @artifacts.setter
     def artifacts(self, value):
-        caom_util.type_check(value, caom_util.TypedOrderedDict, 'artifacts', override=False)
+        caom_util.type_check(value, caom_util.TypedOrderedDict, 'artifacts',
+                             override=False)
         self._artifacts = value
 
     @property
@@ -490,7 +498,7 @@ class Plane(AbstractCaomEntity):
         of the python module at this time.
         """
         return self._position
-    
+
     @position.setter
     def position(self, value):
         caom_util.type_check(value, Position, "position")
@@ -507,7 +515,7 @@ class Plane(AbstractCaomEntity):
         """
         """ Energy """
         return self._energy
-    
+
     @energy.setter
     def energy(self, value):
         caom_util.type_check(value, Energy, "energy")
@@ -524,12 +532,12 @@ class Plane(AbstractCaomEntity):
         """
         """ Time """
         return self._time
-    
+
     @time.setter
     def time(self, value):
         caom_util.type_check(value, Time, "time")
         self._time = value
-    
+
     @property
     def polarization(self):
         """A caom2 Polarization object that is developed from
@@ -540,7 +548,7 @@ class Plane(AbstractCaomEntity):
         of the python module at this time.
         """
         return self._polarization
-    
+
     @polarization.setter
     def polarization(self, value):
         caom_util.type_check(value, Polarization, "polarization")
@@ -593,12 +601,14 @@ class PlaneURI(CaomObject):
 
     def __lt__(self, other):
         if not isinstance(other, PlaneURI):
-            raise ValueError('Canot compare PlaneURI with {}'.format(type(other)))
+            raise ValueError(
+                'Canot compare PlaneURI with {}'.format(type(other)))
         return self.uri < other.uri
 
     def __eq__(self, other):
         if not isinstance(other, PlaneURI):
-            raise ValueError('Canot compare PlaneURI with {}'.format(type(other)))
+            raise ValueError(
+                'Canot compare PlaneURI with {}'.format(type(other)))
         return self.uri == other.uri
 
     @classmethod
@@ -610,9 +620,11 @@ class PlaneURI(CaomObject):
         observation_uri : the uri of the observation
         product_id : ID of the product
         """
-        caom_util.type_check(observation_uri, ObservationURI, "observation_uri",
+        caom_util.type_check(observation_uri, ObservationURI,
+                             "observation_uri",
                              override=False)
-        caom_util.type_check(product_id, str, "observation_uri", override=False)
+        caom_util.type_check(product_id, str, "observation_uri",
+                             override=False)
         caom_util.validate_path_component(cls, "product_id", product_id)
 
         path = urlsplit(observation_uri.uri).path
@@ -797,7 +809,9 @@ class Provenance(CaomObject):
         """
 
         assert name is not None, "No name provided"
-        assert isinstance(name, str), "name is not a unicode string: {0}".format(name)
+        assert isinstance(name,
+                          str), "name is not a unicode string: {0}".format(
+            name)
         self._name = name
 
         self.version = version
@@ -922,7 +936,8 @@ class Position(CaomObject):
     @bounds.setter
     def bounds(self, value):
         if value is not None:
-            assert isinstance(value, (shape.Box, shape.Circle, shape.Polygon)), (
+            assert isinstance(value,
+                              (shape.Box, shape.Circle, shape.Polygon)), (
                 "bounds is not a Shape: {0}".format(value))
         self._bounds = value
 
@@ -1123,7 +1138,7 @@ class Polarization(CaomObject):
         caom_util.type_check(value, int, 'dimension')
         caom_util.value_check(value, 0, 1E10, 'dimension')
         self._dimension = value
-        
+
     @property
     def polarization_states(self):
         """
@@ -1134,7 +1149,8 @@ class Polarization(CaomObject):
     @polarization_states.setter
     def polarization_states(self, value):
         if value is not None:
-            caom_util.type_check(value, list, 'polarization_states', override=False)
+            caom_util.type_check(value, list, 'polarization_states',
+                                 override=False)
         self._polarization_states = value
 
 

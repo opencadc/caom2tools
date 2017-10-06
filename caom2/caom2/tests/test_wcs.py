@@ -69,17 +69,16 @@
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from builtins import int
 
 import unittest
+
+from builtins import int
 
 from .. import wcs
 
 
 class TestAxis(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, wcs.Axis, None, None)
         self.assertRaises(TypeError, wcs.Axis, None, "cunit")
         self.assertRaises(TypeError, wcs.Axis, "ctype", int(1))
@@ -91,9 +90,7 @@ class TestAxis(unittest.TestCase):
 
 
 class TestCoord2D(unittest.TestCase):
-
     def test_init(self):
-
         coord1 = wcs.RefCoord(float(1.0), float(2.0))
         coord2 = wcs.RefCoord(float(3.0), float(4.0))
 
@@ -109,9 +106,7 @@ class TestCoord2D(unittest.TestCase):
 
 
 class TestCoordAxis1D(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, wcs.CoordAxis1D, None)
         self.assertRaises(TypeError, wcs.CoordAxis1D, int(1))
 
@@ -147,9 +142,7 @@ class TestCoordAxis1D(unittest.TestCase):
 
 
 class TestCoordAxis2D(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, wcs.CoordAxis2D, None, None)
         self.assertRaises(TypeError, wcs.CoordAxis2D, None, int(1))
         self.assertRaises(TypeError, wcs.CoordAxis2D, int(1), None)
@@ -206,9 +199,7 @@ class TestCoordAxis2D(unittest.TestCase):
 
 
 class TestCoordBounds1D(unittest.TestCase):
-
     def test_init(self):
-
         start = wcs.RefCoord(float(1.0), float(2.0))
         end = wcs.RefCoord(float(3.0), float(4.0))
         coord_range = wcs.CoordRange1D(start, end)
@@ -223,9 +214,7 @@ class TestCoordBounds1D(unittest.TestCase):
 
 
 class TestCoordBounds2D(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, wcs.CoordBounds2D, None)
         self.assertRaises(TypeError, wcs.CoordBounds2D, float(1.0))
 
@@ -244,9 +233,7 @@ class TestCoordBounds2D(unittest.TestCase):
 
 
 class TestCoordCircle2D(unittest.TestCase):
-
     def test_init(self):
-
         center = wcs.ValueCoord2D(float(1.0), float(2.0))
         radius = float(1.5)
 
@@ -262,7 +249,6 @@ class TestCoordCircle2D(unittest.TestCase):
 
 
 class TestCoordError(unittest.TestCase):
-
     def test_init(self):
         self.assertRaises(TypeError, wcs.CoordError, None, None)
         self.assertRaises(TypeError, wcs.CoordError, None, float(1.0))
@@ -277,9 +263,7 @@ class TestCoordError(unittest.TestCase):
 
 
 class TestCoordFunction1D(unittest.TestCase):
-
     def test_init(self):
-
         naxis = int(1)
         delta = float(2.5)
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
@@ -306,9 +290,7 @@ class TestCoordFunction1D(unittest.TestCase):
 
 
 class TestCoordFunction2D(unittest.TestCase):
-
     def test_init(self):
-
         dimension = wcs.Dimension2D(int(1), int(2))
         ref_coord = wcs.Coord2D(wcs.RefCoord(float(9.0), float(10.0)),
                                 wcs.RefCoord(float(11.0), float(12.0)))
@@ -341,9 +323,7 @@ class TestCoordFunction2D(unittest.TestCase):
 
 
 class TestCoordPolygon2D(unittest.TestCase):
-
     def test_init(self):
-
         value_coord2d = wcs.ValueCoord2D(float(1.0), float(2.0))
 
         polygon = wcs.CoordPolygon2D()
@@ -356,9 +336,7 @@ class TestCoordPolygon2D(unittest.TestCase):
 
 
 class TestCoordRange1D(unittest.TestCase):
-
     def test_init(self):
-
         start = wcs.RefCoord(float(1.0), float(2.0))
         end = wcs.RefCoord(float(3.0), float(4.0))
 
@@ -374,9 +352,7 @@ class TestCoordRange1D(unittest.TestCase):
 
 
 class TestCoordRange2D(unittest.TestCase):
-
     def test_init(self):
-
         start = wcs.Coord2D(wcs.RefCoord(float(1.0), float(2.0)),
                             wcs.RefCoord(float(3.0), float(4.0)))
         end = wcs.Coord2D(wcs.RefCoord(float(5.0), float(6.0)),
@@ -394,9 +370,7 @@ class TestCoordRange2D(unittest.TestCase):
 
 
 class TestDimension2D(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, wcs.Dimension2D, None, None)
         self.assertRaises(TypeError, wcs.Dimension2D, int(1), None)
         self.assertRaises(TypeError, wcs.Dimension2D, None, int(1))
@@ -409,9 +383,7 @@ class TestDimension2D(unittest.TestCase):
 
 
 class TestRefCoord(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, wcs.RefCoord, None, None)
         self.assertRaises(TypeError, wcs.RefCoord, None, float(1.0))
         self.assertRaises(TypeError, wcs.RefCoord, float(1.0), None)
@@ -425,9 +397,7 @@ class TestRefCoord(unittest.TestCase):
 
 
 class TestSlice(unittest.TestCase):
-
     def test_init(self):
-
         axis = wcs.Axis("ctype", "cunit")
         my_bin = int(1)
 
@@ -443,9 +413,7 @@ class TestSlice(unittest.TestCase):
 
 
 class TestValueCoord2d(unittest.TestCase):
-
     def test_init(self):
-
         self.assertRaises(TypeError, wcs.ValueCoord2D, None, None)
         self.assertRaises(TypeError, wcs.ValueCoord2D, None, float(1.0))
         self.assertRaises(TypeError, wcs.ValueCoord2D, float(1.0), None)

@@ -82,7 +82,6 @@ from .. import shape
 
 
 class TestEnums(unittest.TestCase):
-
     def test_all(self):
         # test for invalid value
         with self.assertRaises(KeyError):
@@ -107,8 +106,10 @@ class TestEnums(unittest.TestCase):
             observation.TargetType(1)
 
         # test that we can get the object for each enum by name
-        self.assertEqual(observation.ObservationIntentType.CALIBRATION.value, "calibration")
-        self.assertEqual(observation.ObservationIntentType.SCIENCE.value, "science")
+        self.assertEqual(observation.ObservationIntentType.CALIBRATION.value,
+                         "calibration")
+        self.assertEqual(observation.ObservationIntentType.SCIENCE.value,
+                         "science")
 
         self.assertEqual(observation.Status.FAIL.value, "fail")
 
@@ -117,7 +118,6 @@ class TestEnums(unittest.TestCase):
 
 
 class TestObservation(unittest.TestCase):
-
     def test_all(self):
         algorithm = observation.Algorithm("myAlg")
         obs = observation.Observation("GSA", "A12345", algorithm)
@@ -161,7 +161,8 @@ class TestObservation(unittest.TestCase):
         self.assertEqual(target, obs.target, "Target")
 
         self.assertIsNone(obs.target_position, "Default target position")
-        target_position = observation.TargetPosition(shape.Point(1.0, 2.0), "coordsys")
+        target_position = observation.TargetPosition(shape.Point(1.0, 2.0),
+                                                     "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
@@ -203,7 +204,7 @@ class TestObservation(unittest.TestCase):
         self.assertTrue("myPlaneID" in obs.planes)
         self.assertTrue("myPlaneID2" in obs.planes.keys())
 
-        obs2 = observation.Observation(
+        observation.Observation(
             obs.collection,
             obs.observation_id,
             obs.algorithm,
@@ -221,7 +222,6 @@ class TestObservation(unittest.TestCase):
 
 
 class TestSimpleObservation(unittest.TestCase):
-
     def test_all(self):
         algorithm = observation.SimpleObservation._ALGORITHM
         obs = observation.SimpleObservation("GSA", "A12345")
@@ -282,7 +282,8 @@ class TestSimpleObservation(unittest.TestCase):
                          obs.environment, "Environment")
 
         self.assertIsNone(obs.target_position, "Default target position")
-        target_position = observation.TargetPosition(shape.Point(1.0, 2.0), "coordsys")
+        target_position = observation.TargetPosition(shape.Point(1.0, 2.0),
+                                                     "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
@@ -311,7 +312,7 @@ class TestSimpleObservation(unittest.TestCase):
         instrument = observation.Instrument("INST")
         target = observation.Target("LMC")
         meta_release = datetime.now()
-        planes = caom_util.TypedOrderedDict(plane.Plane,)
+        planes = caom_util.TypedOrderedDict(plane.Plane, )
         environment = observation.Environment()
 
         obs = observation.SimpleObservation(
@@ -367,7 +368,6 @@ class TestSimpleObservation(unittest.TestCase):
 
 
 class TestCompositeObservation(unittest.TestCase):
-
     def test_all(self):
         algorithm = observation.Algorithm("mozaic")
         obs = observation.CompositeObservation("GSA", "A12345", algorithm)
@@ -454,7 +454,8 @@ class TestCompositeObservation(unittest.TestCase):
                          obs.environment, "Environment")
 
         self.assertIsNone(obs.target_position, "Default target position")
-        target_position = observation.TargetPosition(shape.Point(1.0, 2.0), "coordsys")
+        target_position = observation.TargetPosition(shape.Point(1.0, 2.0),
+                                                     "coordsys")
         obs.target_position = target_position
         self.assertEqual(target_position,
                          obs.target_position, "TargetPosition")
@@ -483,9 +484,10 @@ class TestCompositeObservation(unittest.TestCase):
         instrument = observation.Instrument("INST")
         target = observation.Target("LMC")
         meta_release = datetime.now()
-        planes = caom_util.TypedOrderedDict(plane.Plane,)
+        planes = caom_util.TypedOrderedDict(plane.Plane, )
         environment = observation.Environment()
-        target_position = observation.TargetPosition(shape.Point(1.0, 2.0), "coordsys")
+        target_position = observation.TargetPosition(shape.Point(1.0, 2.0),
+                                                     "coordsys")
 
         obs = observation.CompositeObservation(
             collection,
@@ -552,14 +554,12 @@ class TestCompositeObservation(unittest.TestCase):
 
 
 class TestAlgorithm(unittest.TestCase):
-
     def test_all(self):
         algorithm = observation.Algorithm("myAlgorithm")
         self.assertEqual("myAlgorithm", algorithm.name, "Algorithm name")
 
 
 class TestEnvironment(unittest.TestCase):
-
     def test_all(self):
         environment = observation.Environment()
 
@@ -589,11 +589,11 @@ class TestEnvironment(unittest.TestCase):
 
 
 class TestIntrument(unittest.TestCase):
-
     def test_all(self):
         instrument = observation.Instrument("myInstrument")
         self.assertEqual("myInstrument", instrument.name, "Instrument name")
-        self.assertEqual(0, len(instrument.keywords), "Default number of keywords")
+        self.assertEqual(0, len(instrument.keywords),
+                         "Default number of keywords")
 
         instrument.keywords.add("optical")
         self.assertEqual(1, len(instrument.keywords), "Number of keywords")
@@ -605,11 +605,11 @@ class TestIntrument(unittest.TestCase):
 
 
 class TestProposal(unittest.TestCase):
-
     def test_all(self):
         proposal = observation.Proposal("myProposal")
         self.assertEqual("myProposal", proposal.id, "Proposal ID")
-        self.assertEqual(0, len(proposal.keywords), "Default number of keywords")
+        self.assertEqual(0, len(proposal.keywords),
+                         "Default number of keywords")
         proposal.keywords.add("optical")
         self.assertEqual(1, len(proposal.keywords), "Number of keywords")
         self.assertTrue("optical" in proposal.keywords, "Keyword not found")
@@ -625,7 +625,6 @@ class TestProposal(unittest.TestCase):
 
 
 class TestRequirements(unittest.TestCase):
-
     def test_all(self):
         self.assertRaises(TypeError, observation.Requirements, "string")
         requirements = observation.Requirements(observation.Status.FAIL)
@@ -634,13 +633,13 @@ class TestRequirements(unittest.TestCase):
 
 
 class TestTarget(unittest.TestCase):
-
     def test_all(self):
         target = observation.Target("myTarget")
         self.assertEqual("myTarget", target.name, "target name")
 
         target.target_type = observation.TargetType.FIELD
-        self.assertEqual(observation.TargetType.FIELD.name, target.target_type.name, "target type")
+        self.assertEqual(observation.TargetType.FIELD.name,
+                         target.target_type.name, "target type")
 
         self.assertEqual(0, len(target.keywords), "Default number of keywords")
         target.keywords.add("optical")
@@ -659,9 +658,12 @@ class TestTarget(unittest.TestCase):
         target.moving = True
         self.assertTrue(target.moving, "Moving")
 
-        target = observation.Target("myOtherTarget", observation.TargetType.OBJECT, False, 1.2, {"radio"}, False)
+        target = observation.Target("myOtherTarget",
+                                    observation.TargetType.OBJECT, False, 1.2,
+                                    {"radio"}, False)
         self.assertEquals("myOtherTarget", target.name, "target name")
-        self.assertEquals(observation.TargetType.OBJECT, target.target_type, "target type")
+        self.assertEquals(observation.TargetType.OBJECT, target.target_type,
+                          "target type")
         self.assertFalse(target.standard, "Standard")
         self.assertEquals(1.2, target.redshift, "Redshift")
         self.assertEquals(1, len(target.keywords), "Keywords")
@@ -670,7 +672,6 @@ class TestTarget(unittest.TestCase):
 
 
 class TestTargetPosition(unittest.TestCase):
-
     def test_all(self):
         self.assertRaises(TypeError, observation.TargetPosition, "string")
         point = shape.Point(1.0, 2.0)
@@ -695,11 +696,11 @@ class TestTargetPosition(unittest.TestCase):
 
 
 class TestTelescope(unittest.TestCase):
-
     def test_all(self):
         telescope = observation.Telescope("myTelescope")
         self.assertEqual("myTelescope", telescope.name, "telescope name")
-        self.assertEqual(0, len(telescope.keywords), "Default number of keywords")
+        self.assertEqual(0, len(telescope.keywords),
+                         "Default number of keywords")
 
         telescope.keywords.add("optical")
         self.assertEqual(1, len(telescope.keywords), "Number of keywords")

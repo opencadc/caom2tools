@@ -71,19 +71,21 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from builtins import str, int
-from . import common
-from . import caom_util
 
-__all__ = ['Axis', 'Coord2D', 'CoordAxis1D', 'CoordAxis2D', 'CoordBounds1D', 'CoordBounds2D', 'CoordCircle2D',
-           'CoordError', 'CoordFunction1D', 'CoordFunction2D', 'CoordPolygon2D', 'CoordRange1D', 'CoordRange2D',
-           'Dimension2D', 'EnergyTransition', 'RefCoord', 'Slice', 'ValueCoord2D']
+from . import caom_util
+from . import common
+
+__all__ = ['Axis', 'Coord2D', 'CoordAxis1D', 'CoordAxis2D', 'CoordBounds1D',
+           'CoordBounds2D', 'CoordCircle2D', 'CoordError', 'CoordFunction1D',
+           'CoordFunction2D', 'CoordPolygon2D', 'CoordRange1D', 'CoordRange2D',
+           'Dimension2D', 'EnergyTransition', 'RefCoord', 'Slice',
+           'ValueCoord2D']
 
 
 class Axis(common.CaomObject):
     """the Axis class holds the definition of the axis type and units"""
 
     def __init__(self, ctype, cunit=None):
-
         self.ctype = ctype
         self.cunit = cunit
 
@@ -163,7 +165,6 @@ class CoordAxis1D(common.CaomObject):
 
     def __init__(self, axis, error=None, range=None,
                  bounds=None, function=None):
-
         self.axis = axis
         self.error = error
         self.range = range
@@ -260,7 +261,6 @@ class CoordAxis2D(common.CaomObject):
                  error1=None, error2=None,
                  range=None, bounds=None,
                  function=None):
-
         self.axis1 = axis1
         self.axis2 = axis2
         self.error1 = error1
@@ -378,9 +378,8 @@ class CoordBounds1D(common.CaomObject):
     """
 
     def __init__(self, samples=None):
-
         if samples is None:
-            samples = caom_util.TypedList(CoordRange1D,)
+            samples = caom_util.TypedList(CoordRange1D, )
         self.samples = samples
 
     @property
@@ -398,7 +397,8 @@ class CoordBounds1D(common.CaomObject):
 
     @samples.setter
     def samples(self, value):
-        caom_util.type_check(value, caom_util.TypedList, 'samples', override=False)
+        caom_util.type_check(value, caom_util.TypedList, 'samples',
+                             override=False)
         self._samples = value
 
 
@@ -414,7 +414,7 @@ class CoordBounds2D(common.CaomObject):
         else:
             raise TypeError(
                 "Expected CoordCircle2D or CoordPolygon2D, received {}"
-                    .format(type(bounds)))
+                .format(type(bounds)))
 
     @property
     def bounds(self):
@@ -490,7 +490,6 @@ class CoordError(common.CaomObject):
     """
 
     def __init__(self, syser, rnder):
-
         self.syser = syser
         self.rnder = rnder
 
@@ -709,7 +708,7 @@ class CoordPolygon2D(common.CaomObject):
 
     def __init__(self, vertices=None):
         if vertices is None:
-            vertices = caom_util.TypedList(ValueCoord2D,)
+            vertices = caom_util.TypedList(ValueCoord2D, )
         self.vertices = vertices
 
     @property
@@ -730,7 +729,8 @@ class CoordPolygon2D(common.CaomObject):
 
     @vertices.setter
     def vertices(self, value):
-        caom_util.type_check(value, caom_util.TypedList, 'vertices', override=False)
+        caom_util.type_check(value, caom_util.TypedList, 'vertices',
+                             override=False)
         self._vertices = value
 
 
@@ -940,6 +940,7 @@ class Slice(common.CaomObject):
     values are stored in the bins
 
     """
+
     def __init__(self, axis, bin_):
         self.axis = axis
         self.bin = bin_
