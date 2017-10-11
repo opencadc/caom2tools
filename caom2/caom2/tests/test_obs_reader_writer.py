@@ -317,6 +317,13 @@ class TestObservationReaderWriter(unittest.TestCase):
         returned = reader.read('/tmp/test.xml')
         self.compare_observations(obs, returned, version)
 
+        # same test when passing file name
+        writer.write(obs, '/tmp/test1.xml')
+        xml_file.close()
+        reader = obs_reader_writer.ObservationReader(True)
+        returned = reader.read('/tmp/test.xml')
+        self.compare_observations(obs, returned, version)
+
     def compare_observations(self, expected, actual, version):
 
         assert ((isinstance(expected, observation.SimpleObservation) and
