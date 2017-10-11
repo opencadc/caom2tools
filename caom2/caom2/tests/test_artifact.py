@@ -123,8 +123,9 @@ class TestArtifact(unittest.TestCase):
         self.assertEquals("FITS", test_artifact.content_type, "Content type")
         self.assertIsNone(test_artifact.content_length,
                           "Default content length")
-        test_artifact.content_length = 23
-        self.assertEquals(23, test_artifact.content_length, "Content length")
+        test_artifact.content_length = 23000000000000
+        self.assertEquals(23000000000000,
+                          test_artifact.content_length, "Content length")
         test_artifact.product_type = artifact.ProductType.PREVIEW
         self.assertEquals(artifact.ProductType.PREVIEW,
                           test_artifact.product_type,

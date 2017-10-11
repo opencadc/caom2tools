@@ -222,7 +222,7 @@ class Artifact(AbstractCaomEntity):
     @content_length.setter
     def content_length(self, value):
         caom_util.type_check(value, int, "content_length")
-        caom_util.value_check(value, 0, 1E10, "content_length")
+        caom_util.value_check(value, 0, 1E32, "content_length")
         self._content_length = value
 
     @property
