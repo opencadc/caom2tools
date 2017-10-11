@@ -18,16 +18,18 @@ To create a minimal Simple Observation
 --------------------------------------
 
 .. code:: python
+        # make it compatible with Python 2 and 3
+        from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+        import sys
+        from caom2 import SimpleObservation, TypedOrderedDict, Plane, Artifact,\
+                          Part, Chunk, ObservationWriter, ProductType,\
+                          ReleaseType, TypedList
 
-        import caom2
-        
-        # WARNING: unicode string parameters are required, no simple strings.
-        # If you run python2 be aware of this.
-        
-        observation = caom2.SimpleObservation(u'collection', u'observationID')
+        observation = SimpleObservation('collection', 'observationID')
 
-        observation.planes = caom2.TypedOrderedDict(Plane)
-        plane = caom2.Plane(u'productID')
+        observation.planes = TypedOrderedDict(Plane)
+        plane = Plane('productID')
         observation.planes['productID'] = plane
 
         plane.artifacts = TypedOrderedDict(Artifact)
@@ -80,8 +82,20 @@ To create a complete Observation
 --------------------------------------
 
 .. code:: python
-
-    import caom2
+    # make it compatible with Python 2 and 3
+    from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+    import datetime
+    import sys
+    from caom2 import SimpleObservation, Plane, Artifact, Part, Chunk,\
+                      TypedOrderedDict, ObservationWriter, ProductType, \
+                      ReleaseType, TypedList, Target, TargetPosition, \
+                      TargetType, ObservationIntentType, Instrument, \
+                      Telescope, Environment, DataProductType, Provenance, \
+                      CalibrationLevel, Metrics, Proposal, Point, Slice, Axis,\
+                      ObservableAxis, CoordAxis1D, CoordAxis2D, SpatialWCS,\
+                      SpectralWCS, EnergyTransition, TemporalWCS, CoordFunction1D,\
+                      RefCoord, PolarizationWCS
 
     observation = SimpleObservation('collection', 'observationID')
     observation.obs_type = 'flat'

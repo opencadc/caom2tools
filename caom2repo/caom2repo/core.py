@@ -484,8 +484,7 @@ def main_app():
                                              args.observationID)
         observation_writer = ObservationWriter()
         if args.output:
-            with open(args.output, 'wb') as obsfile:
-                observation_writer.write(observation, obsfile)
+            observation_writer.write(observation, args.output)
         else:
             observation_writer.write(observation, sys.stdout)
     elif args.cmd == 'update':

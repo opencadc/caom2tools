@@ -1735,6 +1735,12 @@ class ObservationWriter(object):
         self._nsmap = {namespace_prefix: self._namespace, "xsi": XSI_NAMESPACE}
 
     def write(self, obs, out):
+        """
+        Writes an observation to an output stream
+        :param obs: observation to write
+        :param out: stream or file name to write to
+        :return:
+        """
         assert isinstance(obs, observation.Observation), (
             "observation is not an Observation")
 
@@ -1773,10 +1779,16 @@ class ObservationWriter(object):
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(obs_element)
 
-        doc = etree.tostring(obs_element, encoding='UTF-8',
-                             xml_declaration=True, pretty_print=True)
-        out.write(doc)
-        out.flush()
+        tree = etree.ElementTree(obs_element)
+        try:
+            if 'b' not in out.mode:
+                out.write(etree.tostring(tree, encoding='unicode',
+                                         pretty_print=True))
+                return
+        except AttributeError:
+            pass  # nothing to do
+        tree.write(out, encoding='utf-8',
+                   xml_declaration=True, pretty_print=True)
 
     def _add_entity_attributes(self, entity, element):
         if self._output_version == 20:

@@ -391,7 +391,7 @@ class TypedOrderedDict(collections.OrderedDict):
                           for k, v in six.iteritems(self)])
 
     def __repr__(self):
-        return "TypeOrderedDict((%r))," % self._oktypes + (
+        return "TypedOrderedDict((%r))," % self._oktypes + (
             "(".join(
                 ["(%r,%r)" % (k, v) for k, v in six.iteritems(self)]) + ")")
 
