@@ -1358,6 +1358,12 @@ class ObservationReader(object):
             self._add_vertices(vertices, samples_element, ns)
             return shape.Polygon(points=points,
                                  samples=shape.MultiPolygon(vertices=vertices))
+        elif "caom2:Circle" == shape_type:
+            center = self._get_child_element("center", shape_element, ns, True)
+            center_point = self._get_point(center, ns, True)
+            radius = self._get_child_text_as_float(
+                "radius", shape_element, ns, True)
+            return shape.Circle(center=center_point, radius=radius)
         else:
             raise TypeError("Unsupported shape type " + shape_type)
 
@@ -2035,6 +2041,11 @@ class ObservationWriter(object):
                 self._add_element("cval1", vertex.cval1, vertex_element)
                 self._add_element("cval2", vertex.cval2, vertex_element)
                 self._add_element("type", vertex.type.value, vertex_element)
+        elif isinstance(the_shape, shape.Circle):
+            shape_element = self._get_caom_element(name, parent)
+            shape_element.set(XSI + "type", "caom2:Circle")
+            self._add_point_element("center", the_shape.center, shape_element)
+            self._add_element("radius", the_shape.radius, shape_element)
         else:
             raise TypeError("Unsupported shape type "
                             + the_shape.__class__.__name__)

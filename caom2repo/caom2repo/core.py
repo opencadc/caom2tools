@@ -113,6 +113,7 @@ class CAOM2RepoClient(object):
         """
         agent = '{}/{}'.format(APP_NAME, version.version)
         self.host = host
+        self._subject = subject
         self._repo_client = net.BaseWsClient(resource_id, subject, agent,
                                              retry=True, host=host)
 
@@ -197,7 +198,8 @@ class CAOM2RepoClient(object):
                 self.logger.info('Process observation: ' + observationID)
                 observation = self.get_observation(collection, observationID)
                 try:
-                    if self.plugin.update(observation) is False:
+                    if self.plugin.update(observation=observation,
+                                          subject=self._subject) is False:
                         self.logger.info(
                             'SKIP {}'.format(observation.observation_id))
                         skipped.append(observation.observation_id)
@@ -206,6 +208,12 @@ class CAOM2RepoClient(object):
                         self.logger.debug(
                             'UPDATED {}'.format(observation.observation_id))
                         updated.append(observation.observation_id)
+                except TypeError as e:
+                    if "unexpected keyword argument" in str(e):
+                        raise RuntimeError(
+                            "{} - To fix the problem, please add the **kwargs "
+                            "argument to the list of arguments for the update"
+                            " method of your plugin.".format(str(e)))
                 except Exception as e:
                     failed.append(observation.observation_id)
                     self.logger.error('FAILED {} - Reason: {}'.

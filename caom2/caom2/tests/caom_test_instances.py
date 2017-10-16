@@ -260,37 +260,49 @@ class Caom2TestInstances(object):
 
     def get_planes(self):
         planes = collections.OrderedDict()
-        _plane = plane.Plane("productID")
-        if self.complete:
-            _plane.meta_release = Caom2TestInstances._ivoa_date
-            _plane.data_release = Caom2TestInstances._ivoa_date
-            _plane.data_product_type = plane.DataProductType.IMAGE
-            _plane.calibration_level = plane.CalibrationLevel.PRODUCT
-            _plane.provenance = self.get_provenance()
-            _plane.metrics = self.get_metrics()
-            _plane.last_modified = common.get_current_ivoa_time()
-            if self.caom_version >= 23:
-                _plane.creator_id = "ivo://cadc.nrc.ca?testuser"
-                _plane.max_last_modified = common.get_current_ivoa_time()
-                _plane.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                _plane.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
-            if self.caom_version >= 22:
-                _plane.position = self.get_position()
-                _plane.energy = self.get_energy()
-                _plane.time = self.get_time()
-                _plane.polarization = self.get_polarization()
-            if self.caom_version == 21:
-                _plane.quality = self.get_quality()
+        if self.caom_version < 22:
+            shapes = ['']
+        elif self.caom_version >=23:
+            shapes = ['polygon', 'circle']
+        else:
+            shapes = ['polygon']
 
-        if self.depth > 2:
-            for k, v in six.iteritems(self.get_artifacts()):
-                _plane.artifacts[k] = v
-        planes["productID"] = _plane
+        for shape in shapes:
+            prod_id = "productID{}".format(shape)
+            _plane = plane.Plane(prod_id)
+            if self.complete:
+                _plane.meta_release = Caom2TestInstances._ivoa_date
+                _plane.data_release = Caom2TestInstances._ivoa_date
+                _plane.data_product_type = plane.DataProductType.IMAGE
+                _plane.calibration_level = plane.CalibrationLevel.PRODUCT
+                _plane.provenance = self.get_provenance()
+                _plane.metrics = self.get_metrics()
+                _plane.last_modified = common.get_current_ivoa_time()
+                if self.caom_version >= 23:
+                    _plane.creator_id = "ivo://cadc.nrc.ca?testuser"
+                    _plane.max_last_modified = common.get_current_ivoa_time()
+                    _plane.meta_checksum = common.ChecksumURI(
+                        "md5:9882dbbf9cadc221019b712fd402bcbd")
+                    _plane.acc_meta_checksum = common.ChecksumURI(
+                        "md5:844ce247db0844ad9f721430c80e7a21")
+                if shape == 'polygon':
+                    _plane.position = self.get_poly_position()
+                if shape == 'circle':
+                    _plane.position = self.get_circle_position()
+                if self.caom_version >= 22:
+                    _plane.energy = self.get_energy()
+                    _plane.time = self.get_time()
+                    _plane.polarization = self.get_polarization()
+                if self.caom_version == 21:
+                    _plane.quality = self.get_quality()
+
+            if self.depth > 2:
+                for k, v in six.iteritems(self.get_artifacts()):
+                    _plane.artifacts[k] = v
+            planes[prod_id] = _plane
         return planes
 
-    def get_position(self):
+    def get_poly_position(self):
         position = plane.Position()
 
         if self.caom_version >= 23:
@@ -318,6 +330,18 @@ class Caom2TestInstances(object):
         position.time_dependent = False
 
         return position
+
+
+    def get_circle_position(self):
+        position = plane.Position()
+        position.bounds = shape.Circle(shape.Point(1.1, 2.2), 3.0)
+        position.dimension = wcs.Dimension2D(10, 20)
+        position.resolution = 0.5
+        position.sample_size = 1.1
+        position.time_dependent = False
+
+        return position
+
 
     def get_energy(self):
         energy = plane.Energy()
