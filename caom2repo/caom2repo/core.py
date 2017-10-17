@@ -444,10 +444,14 @@ def main_app():
 
            class ObservationUpdater:
 
-            def update(self, observation):
+            def update(self, observation, **kwargs):
                 assert isinstance(observation, Observation), (
                     'observation {} is not an Observation'.format(observation))
                 # custom code to update the observation
+                # other arguments passed by the calling code to the update
+                # method:
+                #   kwargs['subject'] - user authentication that caom2repo was
+                #                       invoked with
         ----
         """
     args = parser.parse_args()

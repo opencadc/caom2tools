@@ -68,7 +68,11 @@
 # ***********************************************************************
 #
 
-from caom2.observation import Observation
+from caom2 import Observation, ChecksumURI
+from six.moves.urllib.parse import urlparse
+from cadcdata import CadcDataClient
+from cadcutils import net
+from builtins import str
 
 
 class ObservationUpdater(object):
@@ -80,9 +84,36 @@ class ObservationUpdater(object):
         """
         assert isinstance(observation, Observation), (
             "observation %s is not an Observation".format(observation))
-        if observation.observation_id == 'UPDATE':
-            return True
-        elif observation.observation_id == 'SKIP':
-            return False
-        else:
-            raise SystemError('Something went wrong')
+
+        for plane in observation.planes.values():
+            for artifact in plane.artifacts.values():
+                url = urlparse(artifact.uri)
+                if url.scheme != 'ad':
+                    raise ValueError(
+                        'Unsupported schema in uri: {}'.fomat(artifact.uri))
+                [archive, file] = url.path.split('/')
+
+                # create cadc data web service client
+                if 'subject' in kwargs:
+                    client = CadcDataClient(kwargs['subject'])
+                else:
+                    client = CadcDataClient(net.Subject())
+
+                metadata = client.get_file_info(archive, file)
+                uri = artifact.uri.replace('/{}'.format(file), '/{}'.
+                                           format(metadata['name']))
+                checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
+                print("old - uri({}), encoding({}), size({}), type({})".
+                      format(artifact.uri,
+                             artifact.content_checksum,
+                             artifact.content_length,
+                             artifact.content_type))
+                artifact.uri = uri
+                artifact.content_checksum = checksum
+                artifact.content_length = int(metadata['size'])
+                artifact.content_type = str(metadata['type'])
+                print("updated - uri({}), encoding({}), size({}), type({})".
+                      format(artifact.uri,
+                             artifact.content_checksum,
+                             artifact.content_length,
+                             artifact.content_type))
