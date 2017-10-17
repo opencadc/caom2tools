@@ -221,7 +221,7 @@ class SubInterval(common.CaomObject):
         if has_upper:
             assert not self._upper < value, \
                 "SubInterval: attempt to set upper < lower for {}, {}".\
-                format(str(value, str(self._lower)))
+                format(str(value), str(self._lower))
         self._lower = value
 
     @property
