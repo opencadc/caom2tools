@@ -2462,19 +2462,19 @@ class ObservationWriter(object):
     def _add_attribute(self, name, value, element):
         element.set(self._caom2_namespace + name, value)
 
-    def _add_element(self, name, text, parent):
-        if text is None:
+    def _add_element(self, name, value, parent):
+        if value is None:
             return
         element = self._get_caom_element(name, parent)
-        if isinstance(text, str):
-            element.text = text
+        if isinstance(value, str):
+            element.text = value
         else:
-            if isinstance(text, float):
+            if isinstance(value, float):
                 # in Python 2.7 str(float) might alter precision of float
                 # therefore call repr instead
-                element.text = repr(text)
+                element.text = repr(value)
             else:
-                element.text = str(text)
+                element.text = str(value)
 
     def _add_datetime_element(self, name, value, parent):
         if value is None:
