@@ -1003,13 +1003,13 @@ class Energy(CaomObject):
         None
         """
         self.bounds = bounds
-        self._dimension = dimension
-        self._resolving_power = resolving_power
-        self._sample_size = sample_size
-        self._bandpass_name = bandpass_name
-        self._em_band = em_band
-        self._transition = transition
-        self._restwav = restwav
+        self.dimension = dimension
+        self.resolving_power = resolving_power
+        self.sample_size = sample_size
+        self.bandpass_name = bandpass_name
+        self.em_band = em_band
+        self.transition = transition
+        self.restwav = restwav
 
     # Properties
 
