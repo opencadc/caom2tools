@@ -77,6 +77,7 @@ import unittest
 
 from lxml import etree
 from six import BytesIO
+import tempfile
 
 from . import caom_test_instances
 from .xml_compare import xml_compare
@@ -286,7 +287,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         print("check 2.3 schema with 2.3 doc")
         self.observation_test(composite_observation, True, True, 23)
         # remove shape and retest with v22
-        composite_observation.planes['productID'].position.bounds = None
+        for plane in composite_observation.planes.values():
+            plane.position.bounds = None
         self.observation_test(composite_observation, True, True, 22)
 
     def observation_test(self, obs, validate, write_empty_collections,
@@ -607,6 +609,17 @@ class TestObservationReaderWriter(unittest.TestCase):
                                  "different number of vertices")
                 for index, vertex in enumerate(expected_vertices):
                     self.compare_vertices(vertex, actual_vertices[index])
+            elif isinstance(expected, shape.Circle):
+                self.assertIsNotNone(actual, "shape is None")
+                self.assertTrue(isinstance(actual, shape.Circle),
+                                "mismatched shapes" +
+                                actual.__class__.__name__)
+                self.assertEqual(expected.center.cval1, actual.center.cval1,
+                                 "mismatched centers (cval1)")
+                self.assertEqual(expected.center.cval2, actual.center.cval2,
+                                 "mismatched centers (cval2)")
+                self.assertEqual(expected.radius, actual.radius,
+                                 "mismatched radius")
             else:
                 raise TypeError("Unsupported shape type "
                                 + expected.__class__.__name__)
@@ -1048,6 +1061,28 @@ class TestObservationReaderWriter(unittest.TestCase):
            actual.acc_meta_checksum is not None:
                 self.assertEqual(expected.acc_meta_checksum,
                                  actual.acc_meta_checksum, "acc_meta_checksum")
+
+    def test_roundtrip_floats(self):
+        """
+        Tests floats precission in a round trip
+        """
+
+        expected_obs = observation.SimpleObservation(
+            "TEST_COLLECTION", "33", "ALG")
+        writer = obs_reader_writer.ObservationWriter(
+            True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
+
+        # create float elements
+        expected_obs.target_position = observation.TargetPosition(
+            shape.Point(-0.00518884856598203, -0.00518884856598), 'test')
+
+        tmpfile = tempfile.TemporaryFile()
+        writer.write(expected_obs, tmpfile)
+        # go back to the beginning of the file
+        tmpfile.seek(0)
+        reader = obs_reader_writer.ObservationReader(True)
+        actual_obs = reader.read(tmpfile)
+        self.compare_observations(expected_obs, actual_obs, 23)
 
 
 class TestRoundTrip(unittest.TestCase):

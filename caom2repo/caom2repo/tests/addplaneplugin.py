@@ -77,7 +77,7 @@ from caom2.plane import Plane
 class ObservationUpdater(object):
     """ObservationUpdater that adds a plane to the observation."""
 
-    def update(self, observation):
+    def update(self, observation, **kwargs):
         """
         Processes an observation and updates it
         """

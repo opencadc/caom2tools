@@ -85,7 +85,7 @@ To create a complete Observation
     # make it compatible with Python 2 and 3
     from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-    import datetime
+    from datetime import datetime
     import sys
     from caom2 import SimpleObservation, Plane, Artifact, Part, Chunk,\
                       TypedOrderedDict, ObservationWriter, ProductType, \

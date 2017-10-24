@@ -168,16 +168,16 @@ def uuid2long(uid):
     return longs[1]
 
 
-def long2uuid(l):
+def long2uuid(lng):
     """
     Takes a long and creates a UUID using the 16 byte long
     as the least significant bytes in the 32 byte UUID.
     """
-    if l.bit_length() > 63:
-        raise ValueError("expected 64 bit long {}".format(l))
-    if l < 0:
-        l = (1 << 64) + l
-    return uuid.UUID(int=l)
+    if lng.bit_length() > 63:
+        raise ValueError("expected 64 bit long {}".format(lng))
+    if lng < 0:
+        lng = (1 << 64) + lng
+    return uuid.UUID(int=lng)
 
 
 def type_check(value, value_type, variable, override=None):

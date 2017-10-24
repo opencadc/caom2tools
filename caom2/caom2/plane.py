@@ -241,7 +241,7 @@ class PolarizationState(Enum):
     YX: "YX"
     YY: "YY"
     """
-    I = "I"
+    I = "I"  # noqa
     Q = "Q"
     U = "U"
     V = "V"

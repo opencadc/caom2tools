@@ -81,6 +81,7 @@ from builtins import int, str
 from caom2 import obs_reader_writer, get_meta_checksum, get_acc_meta_checksum
 from caom2.caom_util import str2ivoa
 from caom2.checksum import update_checksum, int_32
+import tempfile
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA = 'data'
@@ -310,3 +311,38 @@ def test_compatibility():
     assert obs.meta_checksum == get_meta_checksum(obs)
     assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
     achunk.naxis = old_val
+
+
+def test_rountrip():
+    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
+                                    'SampleComposite-CAOM-2.3.xml')
+    reader = obs_reader_writer.ObservationReader(True)
+    with open(source_file_path, 'r'):
+        obs = reader.read(source_file_path)
+
+    filename = tempfile.TemporaryFile()
+    writer = obs_reader_writer.ObservationWriter(True)
+    writer.write(obs, filename)
+
+    # go back to the beginning of the file
+    filename.seek(0)
+    obs = reader.read(filename)
+
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    assert chunk.meta_checksum == get_meta_checksum(chunk)
+                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
+                        chunk)
+                assert part.meta_checksum == get_meta_checksum(part)
+                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
+            assert artifact.meta_checksum == get_meta_checksum(artifact)
+            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
+                artifact)
+        assert plane.meta_checksum == get_meta_checksum(plane)
+        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+
+    # check observation
+    assert obs.meta_checksum == get_meta_checksum(obs)
+    assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
