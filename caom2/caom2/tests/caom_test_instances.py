@@ -262,13 +262,13 @@ class Caom2TestInstances(object):
         planes = collections.OrderedDict()
         if self.caom_version < 22:
             shapes = ['']
-        elif self.caom_version >=23:
+        elif self.caom_version >= 23:
             shapes = ['polygon', 'circle']
         else:
             shapes = ['polygon']
 
-        for shape in shapes:
-            prod_id = "productID{}".format(shape)
+        for s in shapes:
+            prod_id = "productID{}".format(s)
             _plane = plane.Plane(prod_id)
             if self.complete:
                 _plane.meta_release = Caom2TestInstances._ivoa_date
@@ -285,9 +285,9 @@ class Caom2TestInstances(object):
                         "md5:9882dbbf9cadc221019b712fd402bcbd")
                     _plane.acc_meta_checksum = common.ChecksumURI(
                         "md5:844ce247db0844ad9f721430c80e7a21")
-                if shape == 'polygon':
+                if s == 'polygon':
                     _plane.position = self.get_poly_position()
-                if shape == 'circle':
+                if s == 'circle':
                     _plane.position = self.get_circle_position()
                 if self.caom_version >= 22:
                     _plane.energy = self.get_energy()
@@ -331,7 +331,6 @@ class Caom2TestInstances(object):
 
         return position
 
-
     def get_circle_position(self):
         position = plane.Position()
         position.bounds = shape.Circle(shape.Point(1.1, 2.2), 3.0)
@@ -341,7 +340,6 @@ class Caom2TestInstances(object):
         position.time_dependent = False
 
         return position
-
 
     def get_energy(self):
         energy = plane.Energy()

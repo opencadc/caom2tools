@@ -340,22 +340,22 @@ class TestCaomUtil(unittest.TestCase):
             pass
 
         u = uuid.UUID('00000000-0000-0000-0000-000000000001')
-        l = caom_util.uuid2long(u)
-        self.assertEqual(int(1), l)
+        lng = caom_util.uuid2long(u)
+        self.assertEqual(int(1), lng)
 
         u = uuid.UUID('00000000-0000-0000-0000-000000bc614e')
-        l = caom_util.uuid2long(u)
-        self.assertEqual(int(12345678), l)
+        lng = caom_util.uuid2long(u)
+        self.assertEqual(int(12345678), lng)
 
     def test_long2uuid(self):
         # > 64 bit int
-        l = int(123456781234567812345678)
+        lng = int(123456781234567812345678)
         try:
-            caom_util.long2uuid(l)
+            caom_util.long2uuid(lng)
             self.fail("> 64 bit int should raise ValueError")
         except ValueError:
             pass
 
-        l = 3296038095975885829
-        uid = caom_util.long2uuid(l)
+        lng = 3296038095975885829
+        uid = caom_util.long2uuid(lng)
         self.assertEqual('00000000-0000-0000-2dbd-e12f64cc2c05', str(uid))

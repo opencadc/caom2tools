@@ -77,11 +77,13 @@ import unittest
 
 from lxml import etree
 from six import BytesIO
+import tempfile
 
 from . import caom_test_instances
 from .xml_compare import xml_compare
 from .. import obs_reader_writer
 from .. import observation
+from .. import plane
 from .. import shape
 from .. import wcs
 
@@ -1060,6 +1062,33 @@ class TestObservationReaderWriter(unittest.TestCase):
            actual.acc_meta_checksum is not None:
                 self.assertEqual(expected.acc_meta_checksum,
                                  actual.acc_meta_checksum, "acc_meta_checksum")
+
+    def test_roundtrip_floats(self):
+        """
+        Tests floats precission in a round trip
+        """
+
+        expected_obs = observation.SimpleObservation(
+            "TEST_COLLECTION", "33", "ALG")
+        writer = obs_reader_writer.ObservationWriter(
+            True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
+
+        # create float elements
+        expected_obs.target_position = observation.TargetPosition(
+            shape.Point(-0.00518884856598203, -0.00518884856598), 'test')
+
+        # create empty energy
+        pl = plane.Plane('productID')
+        pl.energy = plane.Energy(sample_size=2.0)
+        expected_obs.planes['productID'] = pl
+
+        tmpfile = tempfile.TemporaryFile()
+        writer.write(expected_obs, tmpfile)
+        # go back to the beginning of the file
+        tmpfile.seek(0)
+        reader = obs_reader_writer.ObservationReader(True)
+        actual_obs = reader.read(tmpfile)
+        self.compare_observations(expected_obs, actual_obs, 23)
 
 
 class TestRoundTrip(unittest.TestCase):

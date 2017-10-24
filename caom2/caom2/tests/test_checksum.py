@@ -324,7 +324,9 @@ def test_rountrip():
     writer = obs_reader_writer.ObservationWriter(True)
     writer.write(obs, filename)
 
-    obs = reader.read(source_file_path)
+    # go back to the beginning of the file
+    filename.seek(0)
+    obs = reader.read(filename)
 
     for plane in obs.planes.values():
         for artifact in plane.artifacts.values():
