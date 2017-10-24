@@ -993,21 +993,23 @@ class Position(CaomObject):
 class Energy(CaomObject):
     """ Energy """
 
-    def __init__(self):
+    def __init__(self, bounds=None, dimension=None, resolving_power=None,
+                 sample_size=None, bandpass_name=None, em_band=None,
+                 transition=None, restwav=None):
         """
         Initialize an Energy instance.
 
         Arguments:
         None
         """
-        self._bounds = None
-        self._dimension = None
-        self._resolving_power = None
-        self._sample_size = None
-        self._bandpass_name = None
-        self._em_band = None
-        self._transition = None
-        self._restwav = None
+        self.bounds = bounds
+        self._dimension = dimension
+        self._resolving_power = resolving_power
+        self._sample_size = sample_size
+        self._bandpass_name = bandpass_name
+        self._em_band = em_band
+        self._transition = transition
+        self._restwav = restwav
 
     # Properties
 

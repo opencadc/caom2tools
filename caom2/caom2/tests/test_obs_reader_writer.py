@@ -83,6 +83,7 @@ from . import caom_test_instances
 from .xml_compare import xml_compare
 from .. import obs_reader_writer
 from .. import observation
+from .. import plane
 from .. import shape
 from .. import wcs
 
@@ -1075,6 +1076,11 @@ class TestObservationReaderWriter(unittest.TestCase):
         # create float elements
         expected_obs.target_position = observation.TargetPosition(
             shape.Point(-0.00518884856598203, -0.00518884856598), 'test')
+
+        # create empty energy
+        pl = plane.Plane('productID')
+        pl.energy = plane.Energy(sample_size=2)
+        expected_obs.planes['productID'] = pl
 
         tmpfile = tempfile.TemporaryFile()
         writer.write(expected_obs, tmpfile)

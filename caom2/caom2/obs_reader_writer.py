@@ -1989,7 +1989,8 @@ class ObservationWriter(object):
         self._add_element("resolvingPower", energy.resolving_power, element)
         self._add_element("sampleSize", energy.sample_size, element)
         self._add_element("bandpassName", energy.bandpass_name, element)
-        self._add_element("emBand", energy.em_band.value, element)
+        if energy.em_band:
+            self._add_element("emBand", energy.em_band.value, element)
         self._add_element("restwav", energy.restwav, element)
         if energy.transition:
             transition = self._get_caom_element("transition", element)
@@ -2468,7 +2469,12 @@ class ObservationWriter(object):
         if isinstance(text, str):
             element.text = text
         else:
-            element.text = repr(text)
+            if isinstance(text, float):
+                # in Python 2.7 str(float) might alter precision of float
+                # therefore call repr instead
+                element.text = repr(text)
+            else:
+                element.text = str(text)
 
     def _add_datetime_element(self, name, value, parent):
         if value is None:
