@@ -1079,7 +1079,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
         # create empty energy
         pl = plane.Plane('productID')
-        pl.energy = plane.Energy(sample_size=2)
+        pl.energy = plane.Energy(sample_size=2.0)
         expected_obs.planes['productID'] = pl
 
         tmpfile = tempfile.TemporaryFile()
