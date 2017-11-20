@@ -123,7 +123,7 @@ class TestEnums(unittest.TestCase):
 
         # test that we can get the object for each enum by name
         self.assertEqual(plane.CalibrationLevel.PLANNED.value, -1)
-        self.assertEqual(plane.CalibrationLevel.RAW_INSTRUMENT.value, 0)
+        self.assertEqual(plane.CalibrationLevel.RAW_INSTRUMENTAL.value, 0)
         self.assertEqual(plane.CalibrationLevel.RAW_STANDARD.value, 1)
         self.assertEqual(plane.CalibrationLevel.CALIBRATED.value, 2)
         self.assertEqual(plane.CalibrationLevel.PRODUCT.value, 3)

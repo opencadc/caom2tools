@@ -94,6 +94,10 @@ class ProductType(Enum):
     WEIGHT: "weight"
     AUXILIARY: "auxiliary"
     THUMBNAIL: "thumbnail"
+    BIAS: "bias"
+    DARK: "dark"
+    FLAT: "flat"
+    WAVECAL: "wavecal"
     """
     SCIENCE = "science"
     CALIBRATION = "calibration"
@@ -103,6 +107,10 @@ class ProductType(Enum):
     WEIGHT = "weight"
     AUXILIARY = "auxiliary"
     THUMBNAIL = "thumbnail"
+    BIAS = "bias"
+    DARK = "dark"
+    FLAT = "flat"
+    WAVECAL = "wavecal"
 
 
 __all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',
