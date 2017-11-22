@@ -199,7 +199,8 @@ class ObservationReader(object):
     def _get_child_element(self, element_tag, parent, ns, required):
         for element in list(parent):
             if element.tag == "{" + ns + "}" + element_tag:
-                if not element.keys() and not element.text:
+                if list(element) == 0 and not element.keys() and\
+                   (not element.text or not element.text.strip()):
                     # element is empty, return None
                     return None
                 else:
@@ -512,10 +513,6 @@ class ObservationReader(object):
             for member_element in el.iterchildren(
                                     "{" + ns + "}observationURI"):
                 members.add(observation.ObservationURI(member_element.text))
-
-            if not members:
-                error = "No observationURI element found in members"
-                raise ObservationParsingException(error)
 
     def _add_inputs(self, inputs, parent, ns):
         """Create PlaneURI objects from an XML representation of the planeURI
@@ -1617,10 +1614,6 @@ class ObservationReader(object):
                 self._set_entity_attributes(plane_element, ns, _plane)
                 planes[_plane.product_id] = _plane
 
-            if not planes:
-                error = "No plane element found in planes"
-                raise ObservationParsingException(error)
-
     def read(self, source):
         """Build an Observation object from an XML document located in source.
         Source an be a file name/path, a file object, a file-like object or a
@@ -1635,6 +1628,7 @@ class ObservationReader(object):
         doc = etree.parse(source)
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(doc)
+        print(doc)
         root = doc.getroot()
         ns = root.nsmap["caom2"]
         self.version = CAOM_VERSION[ns]
