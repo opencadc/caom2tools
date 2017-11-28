@@ -1628,7 +1628,6 @@ class ObservationReader(object):
         doc = etree.parse(source)
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(doc)
-        print(doc)
         root = doc.getroot()
         ns = root.nsmap["caom2"]
         self.version = CAOM_VERSION[ns]
