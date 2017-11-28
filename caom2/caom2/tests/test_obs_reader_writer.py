@@ -288,8 +288,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         print("check 2.3 schema with 2.3 doc")
         self.observation_test(composite_observation, True, True, 23)
         # remove shape and retest with v22
-        for plane in composite_observation.planes.values():
-            plane.position.bounds = None
+        for p in composite_observation.planes.values():
+            p.position.bounds = None
         self.observation_test(composite_observation, True, True, 22)
 
     def observation_test(self, obs, validate, write_empty_collections,
