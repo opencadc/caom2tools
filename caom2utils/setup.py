@@ -91,22 +91,18 @@ class IntTestCommand(distutils.cmd.Command):
     import pytest
     testfile = os.getcwd() + '/tests/test-integration.py'
     pytest.main(['-s', '--capture=no','-x', testfile])
-    #inttests = imp.load_source("tests", testfile)
-    #inttestattr = getattr(inttests, "TestCaom2Integration")()
-    #self.announce(
-    #    'Running inttests: {}'.format(testfile),
-    #    level=distutils.log.INFO)
-    #inttestattr.runTest()
 
-# Note that requires and provides should not be included in the call to
-# ``setup``, since these are now deprecated. See this link for more details:
-# https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
+#TODO numpy1.9 is the last version supported on Python3.3, so
+# make sure that it's the installed version.
+install_requires=metadata.get('install_requires', '').strip().split()
+if (sys.version_info[0] == 3) and (sys.version_info[1] == 3):
+    install_requires.insert(0, 'numpy==1.9')
 
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
       scripts=scripts,
-      install_requires=metadata.get('install_requires', '').strip().split(),
+      install_requires=install_requires,
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,

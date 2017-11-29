@@ -4,4 +4,4 @@
 TODO
 """
 
-from .fits import *  # noqa
+from .core import *  # noqa
