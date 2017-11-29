@@ -77,5 +77,5 @@ TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
 
 def test_augment_artifact():
-    gemini_file = os.path.join(TESTDATA_DIR, 'GN2009BQ070-01.fits')
+    gemini_file = os.path.join(TESTDATA_DIR, '../../data/CGPS_MA1_HI_line_image.fits')
     augment_artifact(None, gemini_file)

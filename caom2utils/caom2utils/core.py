@@ -72,11 +72,110 @@ from __future__ import (absolute_import, division, print_function,
 
 """ Defines utilities for working with fits files """
 
+ENERGY_KEYWORDS = [
+    'FREQ',
+    'ENER',
+    'WAVN',
+    'VRAD',
+    'WAVE',
+    'VOPT',
+    'ZOPT',
+    'AWAV',
+    'VELO',
+    'BETA']
+
 
 from astropy.io import fits
+from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk
+from caom2 import SpectralWCS, CoordAxis1D
 
 
-def augment_artifact(artifact, file):
+def augment_artifact(artifact, file, collection=None):
     hdulist = fits.open(file)
     hdulist.close()
-    print(hdulist.info())
+    parts = len(hdulist)
+    print(repr(hdulist[0].header))
+
+    if not artifact:
+        assert not collection
+        artifact = Artifact('ad:{}/{}'.format(collection, file),
+                            ProductType.SCIENCE, ReleaseType.DATA) #TODO
+
+    for p in range(parts):
+        if str(p) not in artifact.parts.keys():
+            artifact.parts.add(Part(str(p)))
+        part = artifact.parts[str(p)]
+        if not part.chunks:
+            part.chunks.append(Chunk())
+        chunk = part.chunks[0]
+        augment_energy(chunk, hdulist[0].header)
+        print('*******Chunk - {}'.format(chunk))
+
+
+def augment_energy(chunk, header):
+    specsys = header.get('SPECSYS', None)
+    naxis = header.get('NAXIS', 0) or header.get('ZAXIS', 0)
+    if not chunk.energy:
+        chunk.energy = SpectralWCS(naxis, specsys)
+
+
+    # determine the index of energy axis
+    index = None
+    for i in range(1, naxis + 1):
+        if header['CTYPE{}'.format(i)] is not None:
+           if header['CTYPE{}'.format(i)].split('-')[0].strip() in ENERGY_KEYWORDS:
+               index = i
+               break
+
+    if not index:
+        return
+
+    chunk.ctype = header['CTYPE{}'.format(index).split('-')[0].strip()]
+    #chunk.naxis = header['NAXIS{}'.format(index)]
+
+
+    # Artifact.productType = artifact.productType
+    # Artifact.releaseType = artifact.releaseType
+    #
+    # Part.name = part.name
+    # Part.productType = part.productType
+    #
+    # Chunk.naxis = ZNAXIS, NAXIS
+    # Chunk.observableAxis = chunk.observableAxis
+    # Chunk.positionAxis1 = getPositionAxis()
+    # Chunk.positionAxis2 = getPositionAxis()
+    # Chunk.energyAxis = getEnergyAxis()
+    # Chunk.timeAxis = getTimeAxis()
+    # Chunk.polarizationAxis = getPolarizationAxis()
+    #
+    # Chunk.observable.dependent.bin = observable.dependent.bin
+    # Chunk.observable.dependent.axis.ctype = observable.dependent.ctype
+    # Chunk.observable.dependent.axis.cunit = observable.dependent.cunit
+    # Chunk.observable.independent.bin = observable.independent.bin
+    # Chunk.observable.independent.axis.ctype = observable.independent.ctype
+    # Chunk.observable.independent.axis.cunit = observable.independent.cunit
+    # Chunk.energy.specsys = SPECSYS
+    # Chunk.energy.ssysobs = SSYSOBS
+    # Chunk.energy.restfrq = RESTFRQ
+    # Chunk.energy.restwav = RESTWAV
+    # Chunk.energy.velosys = VELOSYS
+    # Chunk.energy.zsource = ZSOURCE
+    # Chunk.energy.ssyssrc = SSYSSRC
+    # Chunk.energy.velang = VELANG
+    # Chunk.energy.bandpassName = bandpassName
+    # Chunk.energy.resolvingPower = resolvingPower
+    # Chunk.energy.transition.species = energy.transition.species
+    # Chunk.energy.transition.transition = energy.transition.transition
+    # Chunk.energy.axis.axis.ctype = CTYPE{energyAxis}
+    # Chunk.energy.axis.axis.cunit = CUNIT{energyAxis}
+    # Chunk.energy.axis.bounds.samples = energy.samples
+    # Chunk.energy.axis.error.syser = CSYER{energyAxis}
+    # Chunk.energy.axis.error.rnder = CRDER{energyAxis}
+    # Chunk.energy.axis.function.naxis = NAXIS{energyAxis}
+    # Chunk.energy.axis.function.delta = CDELT{energyAxis}
+    # Chunk.energy.axis.function.refCoord.pix = CRPIX{energyAxis}
+    # Chunk.energy.axis.function.refCoord.val = CRVAL{energyAxis}
+    # Chunk.energy.axis.range.start.pix = energy.range.start.pix
+    # Chunk.energy.axis.range.start.val = energy.range.start.val
+    # Chunk.energy.axis.range.end.pix = energy.range.end.pix
+    # Chunk.energy.axis.range.end.val = energy.range.end.val
