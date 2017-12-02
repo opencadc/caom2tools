@@ -70,94 +70,101 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from astropy.io import fits
+from astropy.wcs import WCS as awcs
 from caom2utils import augment_artifact
-from caom2utils import get_axis_value
-from caom2utils import get_choice_value
+from caom2utils import avoid_nan
 
 from caom2 import ObservationWriter
 from lxml import etree
 
 import os
+import sys
 
 import pytest
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
+# note - added significant digits for the values of coord1 val, coord2 val cd11, cd22
+#
 EXPECTED_CGPS_POSITION_XML = \
-    '<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">\n' +\
-    '  <caom2:position>\n' + \
-    '    <caom2:axis>\n' + \
-    '      <caom2:axis1>\n' + \
-    '        <caom2:ctype>GLON-CAR</caom2:ctype>\n' + \
-    '        <caom2:cunit>deg</caom2:cunit>\n' + \
-    '      </caom2:axis1>\n' + \
-    '      <caom2:axis2>\n' + \
-    '        <caom2:ctype>GLAT-CAR</caom2:ctype>\n' + \
-    '        <caom2:cunit>deg</caom2:cunit>\n' + \
-    '      </caom2:axis2>\n' + \
-    '      <caom2:function>\n' + \
-    '        <caom2:dimension>\n' + \
-    '          <caom2:naxis1>1024</caom2:naxis1>\n' + \
-    '          <caom2:naxis2>1024</caom2:naxis2>\n' + \
-    '        </caom2:dimension>\n' + \
-    '        <caom2:refCoord>\n' + \
-    '          <caom2:coord1>\n' + \
-    '            <caom2:pix>513.0</caom2:pix>\n' + \
-    '            <caom2:val>128.7499990027</caom2:val>\n' + \
-    '          </caom2:coord1>\n' + \
-    '          <caom2:coord2>\n' + \
-    '            <caom2:pix>513.0</caom2:pix>\n' + \
-    '            <caom2:val>-0.9999999922536</caom2:val>\n' + \
-    '          </caom2:coord2>\n' + \
-    '        </caom2:refCoord>\n' + \
-    '        <caom2:cd11>-0.004999999</caom2:cd11>\n' + \
-    '        <caom2:cd12>0.0</caom2:cd12>\n' + \
-    '        <caom2:cd21>0.0</caom2:cd21>\n' + \
-    '        <caom2:cd22>0.004999999</caom2:cd22>\n' + \
-    '      </caom2:function>\n' + \
-    '    </caom2:axis>\n' + \
-    '  </caom2:position>\n' + \
-    '</caom2:import>\n'
+    """<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:position>
+    <caom2:axis>
+      <caom2:axis1>
+        <caom2:ctype>GLON-CAR</caom2:ctype>
+        <caom2:cunit>deg</caom2:cunit>
+      </caom2:axis1>
+      <caom2:axis2>
+        <caom2:ctype>GLAT-CAR</caom2:ctype>
+        <caom2:cunit>deg</caom2:cunit>
+      </caom2:axis2>
+      <caom2:function>
+        <caom2:dimension>
+          <caom2:naxis1>1024</caom2:naxis1>
+          <caom2:naxis2>1024</caom2:naxis2>
+        </caom2:dimension>
+        <caom2:refCoord>
+          <caom2:coord1>
+            <caom2:pix>513.0</caom2:pix>
+            <caom2:val>128.74999900270001</caom2:val>
+          </caom2:coord1>
+          <caom2:coord2>
+            <caom2:pix>513.0</caom2:pix>
+            <caom2:val>-0.99999999225360003</caom2:val>
+          </caom2:coord2>
+        </caom2:refCoord>
+        <caom2:cd11>-0.0049999989999999998</caom2:cd11>
+        <caom2:cd12>0.0</caom2:cd12>
+        <caom2:cd21>0.0</caom2:cd21>
+        <caom2:cd22>0.0049999989999999998</caom2:cd22>
+      </caom2:function>
+    </caom2:axis>
+  </caom2:position>
+</caom2:import>
+"""
+
 
 @pytest.mark.parametrize('test_input', ['CGPS_MA1_HI_line_image.fits'])
 def test_augment_artifact(test_input):
     test_file = os.path.join(TESTDATA_DIR, test_input)
     test_artifact = augment_artifact(None, test_file)
-    assert test_artifact != None
-    assert test_artifact.parts != None
+    assert test_artifact is not None
+    assert test_artifact.parts is not None
     assert len(test_artifact.parts) == 1
     test_part = test_artifact.parts['0']
     test_chunk = test_part.chunks.pop()
-    assert test_chunk != None
-    assert test_chunk.position != None
+    assert test_chunk is not None
+    assert test_chunk.position is not None
 
-    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3' )
+    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
     parent_element = etree.Element('{http://www.opencadc.org/caom2/xml/v2.3}import')
     ow = ObservationWriter()
     ow._add_spatial_wcs_element(test_chunk.position, parent_element)
     tree = etree.ElementTree(parent_element)
     result = etree.tostring(tree, encoding='unicode', pretty_print=True)
-    assert result ==  EXPECTED_CGPS_POSITION_XML
+    assert result == EXPECTED_CGPS_POSITION_XML, result
 
 
 @pytest.mark.parametrize('test_file', ['CGPS_MA1_HI_line_image.fits'])
-def test_get_values(test_file):
-    test_header = get_test_header(test_file)
-    result = get_axis_value(test_header, 'csyer', 1)
-    assert result == None
-    result = get_axis_value(test_header, 'crder', 2, 'deg')
-    assert result == 'deg'
-    result = get_axis_value(test_header, 'ctype', 2)
-    assert result == 'GLAT-CAR'
-    result = get_choice_value(test_header, ['naxis', 'zaxis'], 1)
+def test_get_wcs_values(test_file):
+    w = get_test_wcs(test_file)
+    result = avoid_nan(w.wcs, 'equinox')
+    assert result is None
+    result = getattr(w, '_naxis1')
     assert result == 1024
-    result = get_choice_value(test_header, ['zaxis', 'naxis'], 3)
-    assert result == 272
+    assert w.wcs.has_cd() is False
+
 
 def get_test_header(test_file):
     test_input = os.path.join(TESTDATA_DIR, test_file)
     hdulist = fits.open(test_input)
-    #print(repr(hdulist[0].header))
+    # print(repr(hdulist[0].header))
     hdulist.close();
-    return hdulist[0].header
+    return hdulist
+
+
+def get_test_wcs(test_file):
+    hdu = get_test_header(test_file)
+    wcs = awcs(hdu[0])
+    return wcs

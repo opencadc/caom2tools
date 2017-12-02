@@ -72,8 +72,16 @@ from __future__ import (absolute_import, division, print_function,
 
 """ Defines utilities for working with fits files """
 
-# TODO
+import logging
 
+from astropy.io import fits
+from astropy.wcs import WCS as AWCS
+from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk
+from caom2 import Axis, SpatialWCS, SpectralWCS, CoordAxis2D, Coord2D, CoordError, CoordFunction2D, Dimension2D
+from caom2 import RefCoord
+
+# TODO - check defaults
+#
 # defaults are based on test observation
 # http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2ui/view/CGPS/MA1_DRAO-ST
 #
@@ -101,30 +109,9 @@ from __future__ import (absolute_import, division, print_function,
 #
 BOUNDS_DEFAULT = None
 COORDSYS_DEFAULT = None
-CTYPE_DEFAULT = None
-CUNIT_DEFAULT = 'deg'
 EQUINOX_DEFAULT = None
 RANGE_DEFAULT = None
 RESOLUTION_DEFAULT = None
-
-# from ca.nrc.cadc.caom2.fits.Ctypes.java
-#
-POSITION_CTYPES = [
-    'RA-',
-    'DEC-',
-    'GLON-',
-    'GLAT-',
-    'ELON-',
-    'ELAT-',
-    'HLON-',
-    'HLAT-',
-    'SLON-',
-    'SLAT-',
-    'CUBEFACE-']
-
-POSITION_NAXES = [
-    'ZAXIS',
-    'NAXIS']
 
 ENERGY_KEYWORDS = [
     'FREQ',
@@ -138,15 +125,8 @@ ENERGY_KEYWORDS = [
     'VELO',
     'BETA']
 
-import logging
-
-from astropy.io import fits
-from astropy.wcs import WCS as awcs
-from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk
-from caom2 import Axis, SpatialWCS, SpectralWCS, CoordAxis1D, CoordAxis2D, Coord2D, CoordError, CoordFunction2D, Dimension2D
-from caom2 import RefCoord
-
 logger = logging.getLogger()
+
 
 def augment_artifact(artifact, file, collection=None):
     hdulist = fits.open(file)
@@ -156,7 +136,7 @@ def augment_artifact(artifact, file, collection=None):
     if not artifact:
         assert not collection
         artifact = Artifact('ad:{}/{}'.format(collection, file),
-                            ProductType.SCIENCE, ReleaseType.DATA) #TODO
+                            ProductType.SCIENCE, ReleaseType.DATA)  # TODO
 
     # there is one part per extension, the name is the extension number,
     # and each part has one chunk
@@ -168,38 +148,37 @@ def augment_artifact(artifact, file, collection=None):
         if not part.chunks:
             part.chunks.append(Chunk())
         chunk = part.chunks[p]
-        #augment_energy(chunk, hdulist[0].header)
-        augment_position(chunk, hdulist[p].header, awcs(hdulist[p]))
-        #print('*******Chunk - {}'.format(chunk))
+        # augment_energy(chunk, hdulist[0].header)
+        augment_position(chunk, hdulist[p].header, AWCS(hdulist[p]), file)
+        # print('*******Chunk - {}'.format(chunk))
 
     return artifact
 
 
-def augment_position(aug_chunk, header, w):
+def augment_position(aug_chunk, header, w, file):
 
     if aug_chunk.position:
         raise NotImplementedError
 
     else:
-        # Chunk.position.coordsys = RADECSYS,RADESYS
-        # Chunk.position.equinox = EQUINOX,EPOCH
-        # Chunk.position.resolution = position.resolution
 
-        print(w.wcs.axis_types)
+        if w.has_celestial:
 
-        #naxis = get_axis_value(header, 'naxis')
-        #xtension = get_axis_value(header, 'xtension')
-        if((naxis >=2) and (xtension == None)):
+            aug_chunk.positionAxis1, aug_chunk.positionAxis2 = get_position_axis(w)
 
-            logger.debug('Assuming position WCS exists in this HDU {}', 0)
+            # Chunk.position.coordsys = RADECSYS,RADESYS
+            # Chunk.position.equinox = EQUINOX,EPOCH
+            # Chunk.position.resolution = position.resolution
 
-            aug_chunk.positionAxis1 = 1
-            aug_chunk.positionAxis2 = 2
-            aug_chunk.position = SpatialWCS(get_axis(None, header, aug_chunk.positionAxis1, aug_chunk.positionAxis2),
-                                            get_choice_value(header, ['RADECSYS', 'RADESYS'], default = COORDSYS_DEFAULT),
-                                            get_choice_value(header, ['EQUINOX', 'EPOCH'], default = EQUINOX_DEFAULT),
+            aug_chunk.position = SpatialWCS(get_axis(None,
+                                                     w.celestial,
+                                                     aug_chunk.positionAxis1 - 1,
+                                                     aug_chunk.positionAxis2 - 1),
+                                            avoid_nan(w.celestial.wcs, 'radsys', COORDSYS_DEFAULT),
+                                            avoid_nan(w.celestial.wcs, 'equinox', EQUINOX_DEFAULT),
                                             RESOLUTION_DEFAULT)
         else:
+            logger.error('No celestial metadata for %s', file)
             raise NotImplementedError
 
     return
@@ -218,7 +197,25 @@ def augment_position(aug_chunk, header, w):
 # Chunk.position.axis.range.end.coord2.val = position.range.end.coord2.val
 
 
-def get_axis(aug_axis, header, x_index, y_index):
+def avoid_nan(wcs, keyword, default=None):
+    """astropy sets values to 'nan' if they're undefined in the fits file. caom2 types don't understand this."""
+    x = getattr(wcs, keyword, default)
+    if str(x) == 'nan':
+        x = default
+    return x
+
+
+def avoid_nan_axis(wcs, keyword, index, default=None):
+    """astropy sets values to 'nan' if they're undefined in the fits file. caom2 types don't understand this,
+    so make the value into None when looking up by array index."""
+    x = getattr(wcs, keyword, default)[index]
+    if str(x) == 'nan':
+        x = default
+    return x
+
+
+def get_axis(aug_axis, wcs, xindex, yindex):
+    """Assemble the bits to make the axis parameter needed for SpatialWCS construction."""
 
     if aug_axis:
         raise NotImplementedError
@@ -230,57 +227,51 @@ def get_axis(aug_axis, header, x_index, y_index):
         # Chunk.position.axis.axis2.ctype = CTYPE{positionAxis2}
         # Chunk.position.axis.axis2.cunit = CUNIT{positionAxis2}
 
-        aug_axis1 = Axis(get_axis_value(header, 'ctype', x_index),
-                         get_axis_value(header, 'cunit', x_index, CUNIT_DEFAULT))
-        aug_axis2 = Axis(get_axis_value(header, 'ctype', y_index),
-                         get_axis_value(header, 'cunit', y_index, CUNIT_DEFAULT))
+        aug_axis1 = Axis(getattr(wcs.wcs, 'ctype')[xindex], getattr(wcs.wcs, 'cunit')[xindex].name)
+        aug_axis2 = Axis(getattr(wcs.wcs, 'ctype')[yindex], getattr(wcs.wcs, 'cunit')[yindex].name)
 
-        aug_error1 = get_coord_error(None, header, x_index)
-        aug_error2 = get_coord_error(None, header, y_index)
+        aug_error1 = get_coord_error(None, wcs.wcs, xindex)
+        aug_error2 = get_coord_error(None, wcs.wcs, yindex)
         aug_range = RANGE_DEFAULT
         aug_bounds = BOUNDS_DEFAULT
 
         # Chunk.position.axis.function.dimension.naxis1 = ZNAXIS{positionAxis1},NAXIS{positionAxis1}
         # Chunk.position.axis.function.dimension.naxis2 = ZNAXIS{positionAxis2},NAXIS{positionAxis2}
 
-        aug_dimension = Dimension2D(get_choice_value(header, POSITION_NAXES, x_index),
-                                    get_choice_value(header, POSITION_NAXES, y_index))
+        aug_dimension = Dimension2D(getattr(wcs, '_naxis' + str(xindex + 1)), getattr(wcs, '_naxis' + str(yindex + 1)))
 
-        aug_ref_coord = Coord2D(get_ref_coord(None, header, x_index),
-                                get_ref_coord(None, header, y_index))
+        aug_ref_coord = Coord2D(get_ref_coord(None, wcs.wcs, xindex), get_ref_coord(None, wcs.wcs, yindex))
 
-        # Chunk.position.axis.function.cd11 = CD{positionAxis1}_{positionAxis1}
-        # Chunk.position.axis.function.cd12 = CD{positionAxis1}_{positionAxis2}
-        # Chunk.position.axis.function.cd21 = CD{positionAxis2}_{positionAxis1}
-        # Chunk.position.axis.function.cd22 = CD{positionAxis2}_{positionAxis2}
+        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = get_cd(wcs.wcs, xindex, yindex);
 
-        aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
-                                       get_axis_value(header, 'cdelt', x_index),
-                                       get_axis_value(header, 'crota', x_index),
-                                       get_axis_value(header, 'crota', y_index),
-                                       get_axis_value(header, 'cdelt', y_index))
+        aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21, aug_cd22)
 
         aug_axis = CoordAxis2D(aug_axis1, aug_axis2, aug_error1, aug_error2, aug_range, aug_bounds, aug_function)
 
     return aug_axis
 
 
-def get_choice_value(header, choices, axis = '', default = None):
-    lookup = default
+def get_cd(wcs, x_index, y_index):
 
-    for ii in choices:
-        try:
-            lookup = header[ii + str(axis)]
-            logger.debug('Found {} with value {}', ii + str(axis), lookup)
-            break
+    # Chunk.position.axis.function.cd11 = CD{positionAxis1}_{positionAxis1}
+    # Chunk.position.axis.function.cd12 = CD{positionAxis1}_{positionAxis2}
+    # Chunk.position.axis.function.cd21 = CD{positionAxis2}_{positionAxis1}
+    # Chunk.position.axis.function.cd22 = CD{positionAxis2}_{positionAxis2}
 
-        except KeyError:
-            pass
+    if wcs.has_cd():
+        cd11 = getattr(wcs, 'cd')[x_index][x_index]
+        cd12 = getattr(wcs, 'cd')[x_index][y_index]
+        cd21 = getattr(wcs, 'cd')[y_index][x_index]
+        cd22 = getattr(wcs, 'cd')[y_index][y_index]
+    else:
+        cd11 = getattr(wcs, 'cdelt')[x_index]
+        cd12 = getattr(wcs, 'crota')[x_index]
+        cd21 = getattr(wcs, 'crota')[y_index]
+        cd22 = getattr(wcs, 'cdelt')[y_index]
+    return cd11, cd12, cd21, cd22
 
-    return lookup
 
-
-def get_coord_error(aug_coord_error, header, axis):
+def get_coord_error(aug_coord_error, wcs, index):
     if aug_coord_error:
         raise NotImplementedError
 
@@ -290,28 +281,21 @@ def get_coord_error(aug_coord_error, header, axis):
         # Chunk.position.axis.error2.syser = CSYER{positionAxis2}
         # Chunk.position.axis.error2.rnder = CRDER{positionAxis2}
 
-        aug_csyer = get_axis_value(header, 'csyer', axis)
-        aug_crder = get_axis_value(header, 'crder', axis)
+        aug_csyer = avoid_nan_axis(wcs, 'csyer', index)
+        aug_crder = avoid_nan_axis(wcs, 'crder', index)
+
         if aug_csyer and aug_crder:
             aug_coord_error = CoordError(aug_csyer, aug_crder)
 
     return aug_coord_error
 
 
-def get_axis_value(header, keyword, axis = '', default = None):
-    lookup = default
-
-    try:
-        lookup = header[keyword + str(axis)]
-        logger.debug('Found {} with value {}', keyword, lookup)
-    except KeyError:
-        logger.debug('Could not find a value for {}. Using the default of {}', keyword, default)
-        lookup = default
-
-    return lookup
+def get_position_axis(wcs):
+    axis_types = wcs.get_axis_types()
+    return int(axis_types[0]['number']) + 1, int(axis_types[1]['number']) + 1
 
 
-def get_ref_coord(aug_ref_coord, header, axis):
+def get_ref_coord(aug_ref_coord, wcs, index):
     if aug_ref_coord:
         raise NotImplementedError
     else:
@@ -320,8 +304,7 @@ def get_ref_coord(aug_ref_coord, header, axis):
         # Chunk.position.axis.function.refCoord.coord2.pix = CRPIX{positionAxis2}
         # Chunk.position.axis.function.refCoord.coord2.val = CRVAL{positionAxis2}
 
-        aug_ref_coord = RefCoord(get_axis_value(header, 'crpix', axis),
-                                 get_axis_value(header, 'crval', axis))
+        aug_ref_coord = RefCoord(getattr(wcs, 'crpix')[index], getattr(wcs, 'crval')[index])
     return aug_ref_coord
 
 
