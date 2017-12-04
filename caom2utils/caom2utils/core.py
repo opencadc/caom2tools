@@ -73,11 +73,11 @@ from __future__ import (absolute_import, division, print_function,
 import math
 from astropy.wcs import WCS
 from astropy.io import fits
-from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk
+from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
-
-
-""" Defines utilities for working with fits files """
+from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
+from caom2 import CoordAxis2D
+import logging
 
 ENERGY_KEYWORDS = [
     'FREQ',
@@ -91,17 +91,21 @@ ENERGY_KEYWORDS = [
     'VELO',
     'BETA']
 
+logger = logging.getLogger()
+
 
 def augment_artifact(artifact, file, collection=None):
     hdulist = fits.open(file, memmap=True)
     hdulist.close()
     parts = len(hdulist)
-    print(repr(hdulist[0].header))
 
     if not artifact:
         assert not collection
         artifact = Artifact('ad:{}/{}'.format(collection, file),
-                            ProductType.SCIENCE, ReleaseType.DATA) #TODO
+                            ProductType.SCIENCE, ReleaseType.DATA)  # TODO
+
+    # there is one part per extension, the name is the extension number,
+    # and each part has one chunk
 
     for i in range(parts):
         hdu = hdulist[i]
@@ -111,17 +115,18 @@ def augment_artifact(artifact, file, collection=None):
         part = artifact.parts[str(i)]
         if not part.chunks:
             part.chunks.append(Chunk())
+
         chunk = part.chunks[i]
         header = hdulist[i].header
-        header['RESTFRQ'] = header['OBSFREQ']
-        header['VELREF'] = 256
+        header['RESTFRQ'] = header['OBSFREQ'] #TODO remove
+        header['VELREF'] = 256 #TODO remove
         wcs = WCS(header)
-        augment_energy(chunk, wcs)
-        #print('******* {}'.format(chunk))
+        augment_position(chunk, wcs, file)
+        augment_energy(chunk, wcs, file)
     return artifact
 
 
-def augment_energy(chunk, wcs):
+def augment_energy(chunk, wcs, file):
     # get the energy axis
     energy_axis = None
     for i, elem in enumerate(wcs.axis_type_names):
@@ -130,10 +135,11 @@ def augment_energy(chunk, wcs):
             break
 
     if energy_axis is None:
-        # no energy axis
+        logger.debug('No WCS Energy info for {}'.format(file))
         return
 
-    specsys = wcs.wcs.specsys
+    chunk.energy_axis = energy_axis
+
     naxis = CoordAxis1D(Axis(wcs.wcs.ctype[energy_axis],
                              wcs.wcs.cunit[energy_axis].to_string()))
     naxis.function = \
@@ -141,8 +147,12 @@ def augment_energy(chunk, wcs):
                         fix_value(wcs.wcs.cdelt[energy_axis]),
                         RefCoord(fix_value(wcs.wcs.crpix[energy_axis]),
                                  fix_value(wcs.wcs.crval[energy_axis])))
+    specsys = wcs.wcs.specsys
     if not chunk.energy:
         chunk.energy = SpectralWCS(naxis, specsys)
+    else:
+        chunk.energy.naxis = naxis
+        chunk.energy.specsys = specsys
 
     chunk.energy.ssysobs = fix_value(wcs.wcs.ssysobs)
     chunk.energy.restfrq = fix_value(wcs.wcs.restfrq)
@@ -153,55 +163,124 @@ def augment_energy(chunk, wcs):
     chunk.energy.velang = fix_value(wcs.wcs.velangl)
 
 
+def augment_position(chunk, wcs, file):
+    if wcs.has_celestial:
+        chunk.positionAxis1, chunk.positionAxis2 = get_position_axis(wcs)
+        axis = get_axis(None, wcs.celestial, chunk.positionAxis1 - 1,
+            chunk.positionAxis2 - 1)
+        # Chunk.position.coordsys = RADECSYS,RADESYS
+        # Chunk.position.equinox = EQUINOX,EPOCH
+        # Chunk.position.resolution = position.resolution
+
+        if not chunk.position:
+            chunk.position = SpatialWCS(axis)
+        else:
+            chunk.position.axis = axis
+
+        chunk.position.coordsys = fix_value(wcs.celestial.wcs.radesys)
+        chunk.position.equinox = fix_value(wcs.celestial.wcs.equinox)
+
+    else:
+        logger.debug('No celestial metadata for {}'.format(file))
+
+
+def get_axis(aug_axis, wcs, xindex, yindex):
+    """Assemble the bits to make the axis parameter needed for SpatialWCS construction."""
+
+    if aug_axis:
+        raise NotImplementedError
+
+    else:
+
+        # Chunk.position.axis.axis1.ctype = CTYPE{positionAxis1}
+        # Chunk.position.axis.axis1.cunit = CUNIT{positionAxis1}
+        # Chunk.position.axis.axis2.ctype = CTYPE{positionAxis2}
+        # Chunk.position.axis.axis2.cunit = CUNIT{positionAxis2}
+
+        aug_axis1 = Axis(getattr(wcs.wcs, 'ctype')[xindex], getattr(wcs.wcs, 'cunit')[xindex].name)
+        aug_axis2 = Axis(getattr(wcs.wcs, 'ctype')[yindex], getattr(wcs.wcs, 'cunit')[yindex].name)
+
+        aug_error1 = get_coord_error(None, wcs.wcs, xindex)
+        aug_error2 = get_coord_error(None, wcs.wcs, yindex)
+
+        # Chunk.position.axis.function.dimension.naxis1 = ZNAXIS{positionAxis1},NAXIS{positionAxis1}
+        # Chunk.position.axis.function.dimension.naxis2 = ZNAXIS{positionAxis2},NAXIS{positionAxis2}
+
+        aug_dimension = Dimension2D(getattr(wcs, '_naxis' + str(xindex + 1)), getattr(wcs, '_naxis' + str(yindex + 1)))
+
+        aug_ref_coord = Coord2D(get_ref_coord(None, wcs.wcs, xindex), get_ref_coord(None, wcs.wcs, yindex))
+
+        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = get_cd(wcs.wcs, xindex, yindex)
+
+        aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21, aug_cd22)
+
+        aug_axis = CoordAxis2D(aug_axis1, aug_axis2, aug_error1, aug_error2, None, None, aug_function)
+
+    return aug_axis
+
+
+def get_cd(wcs, x_index, y_index):
+
+    # Chunk.position.axis.function.cd11 = CD{positionAxis1}_{positionAxis1}
+    # Chunk.position.axis.function.cd12 = CD{positionAxis1}_{positionAxis2}
+    # Chunk.position.axis.function.cd21 = CD{positionAxis2}_{positionAxis1}
+    # Chunk.position.axis.function.cd22 = CD{positionAxis2}_{positionAxis2}
+
+    if wcs.has_cd():
+        cd11 = getattr(wcs, 'cd')[x_index][x_index]
+        cd12 = getattr(wcs, 'cd')[x_index][y_index]
+        cd21 = getattr(wcs, 'cd')[y_index][x_index]
+        cd22 = getattr(wcs, 'cd')[y_index][y_index]
+    else:
+        cd11 = getattr(wcs, 'cdelt')[x_index]
+        cd12 = getattr(wcs, 'crota')[x_index]
+        cd21 = getattr(wcs, 'crota')[y_index]
+        cd22 = getattr(wcs, 'cdelt')[y_index]
+    return cd11, cd12, cd21, cd22
+
+
+def get_coord_error(aug_coord_error, wcs, index):
+    if aug_coord_error:
+        raise NotImplementedError
+
+    else:
+        # Chunk.position.axis.error1.syser = CSYER{positionAxis1}
+        # Chunk.position.axis.error1.rnder = CRDER{positionAxis1}
+        # Chunk.position.axis.error2.syser = CSYER{positionAxis2}
+        # Chunk.position.axis.error2.rnder = CRDER{positionAxis2}
+
+        aug_csyer = fix_value(wcs.csyer[index])
+        aug_crder = fix_value(wcs.crder[index])
+
+        if aug_csyer and aug_crder:
+            aug_coord_error = CoordError(aug_csyer, aug_crder)
+
+    return aug_coord_error
+
+
+def get_position_axis(wcs):
+    axis_types = wcs.get_axis_types()
+    return int(axis_types[0]['number']) + 1, int(axis_types[1]['number']) + 1
+
+
+def get_ref_coord(aug_ref_coord, wcs, index):
+    if aug_ref_coord:
+        raise NotImplementedError
+    else:
+        # Chunk.position.axis.function.refCoord.coord1.pix = CRPIX{positionAxis1}
+        # Chunk.position.axis.function.refCoord.coord1.val = CRVAL{positionAxis1}
+        # Chunk.position.axis.function.refCoord.coord2.pix = CRPIX{positionAxis2}
+        # Chunk.position.axis.function.refCoord.coord2.val = CRVAL{positionAxis2}
+
+        aug_ref_coord = RefCoord(getattr(wcs, 'crpix')[index], getattr(wcs, 'crval')[index])
+    return aug_ref_coord
+
+
+
 def fix_value(value):
     if isinstance(value, float) and math.isnan(value):
         return None
+    elif not str(value):
+        return None # empyt string
     else:
         return value
-
-
-    # Artifact.productType = artifact.productType
-    # Artifact.releaseType = artifact.releaseType
-    #
-    # Part.name = part.name
-    # Part.productType = part.productType
-    #
-    # Chunk.naxis = ZNAXIS, NAXIS
-    # Chunk.observableAxis = chunk.observableAxis
-    # Chunk.positionAxis1 = getPositionAxis()
-    # Chunk.positionAxis2 = getPositionAxis()
-    # Chunk.energyAxis = getEnergyAxis()
-    # Chunk.timeAxis = getTimeAxis()
-    # Chunk.polarizationAxis = getPolarizationAxis()
-    #
-    # Chunk.observable.dependent.bin = observable.dependent.bin
-    # Chunk.observable.dependent.axis.ctype = observable.dependent.ctype
-    # Chunk.observable.dependent.axis.cunit = observable.dependent.cunit
-    # Chunk.observable.independent.bin = observable.independent.bin
-    # Chunk.observable.independent.axis.ctype = observable.independent.ctype
-    # Chunk.observable.independent.axis.cunit = observable.independent.cunit
-    # Chunk.energy.specsys = SPECSYS
-    # Chunk.energy.ssysobs = SSYSOBS
-    # Chunk.energy.restfrq = RESTFRQ
-    # Chunk.energy.restwav = RESTWAV
-    # Chunk.energy.velosys = VELOSYS
-    # Chunk.energy.zsource = ZSOURCE
-    # Chunk.energy.ssyssrc = SSYSSRC
-    # Chunk.energy.velang = VELANG
-    # Chunk.energy.bandpassName = bandpassName
-    # Chunk.energy.resolvingPower = resolvingPower
-    # Chunk.energy.transition.species = energy.transition.species
-    # Chunk.energy.transition.transition = energy.transition.transition
-    # Chunk.energy.axis.axis.ctype = CTYPE{energyAxis}
-    # Chunk.energy.axis.axis.cunit = CUNIT{energyAxis}
-    # Chunk.energy.axis.bounds.samples = energy.samples
-    # Chunk.energy.axis.error.syser = CSYER{energyAxis}
-    # Chunk.energy.axis.error.rnder = CRDER{energyAxis}
-    # Chunk.energy.axis.function.naxis = NAXIS{energyAxis}
-    # Chunk.energy.axis.function.delta = CDELT{energyAxis}
-    # Chunk.energy.axis.function.refCoord.pix = CRPIX{energyAxis}
-    # Chunk.energy.axis.function.refCoord.val = CRVAL{energyAxis}
-    # Chunk.energy.axis.range.start.pix = energy.range.start.pix
-    # Chunk.energy.axis.range.start.val = energy.range.start.val
-    # Chunk.energy.axis.range.end.pix = energy.range.end.pix
-    # Chunk.energy.axis.range.end.val = energy.range.end.val

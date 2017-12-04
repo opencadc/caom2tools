@@ -69,13 +69,21 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from caom2utils import augment_artifact
-import os
-from lxml import etree
+from astropy.io import fits
+from astropy.wcs import WCS as awcs
+from caom2utils import augment_artifact, fix_value
+
 from caom2 import ObservationWriter
+from lxml import etree
+
+import os
+
+import pytest
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
+
 
 EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:energy>
@@ -94,8 +102,6 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
       </caom2:function>
     </caom2:axis>
     <caom2:specsys>LSRK</caom2:specsys>
-    <caom2:ssysobs></caom2:ssysobs>
-    <caom2:ssyssrc></caom2:ssyssrc>
     <caom2:restfrq>1420406000.0</caom2:restfrq>
     <caom2:restwav>0.0</caom2:restwav>
   </caom2:energy>
@@ -103,10 +109,9 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 '''
 
 
-def test_augment_artifact():
-
-    gemini_file = os.path.join(TESTDATA_DIR, '4axes.fits')
-    artifact = augment_artifact(None, gemini_file)
+@pytest.mark.parametrize('test_file', [sample_file_4axes])
+def test_augment_energy(test_file):
+    artifact = augment_artifact(None, test_file)
     energy = artifact.parts['0'].chunks[0].energy
     energy.bandpassName = '21 cm' # user set attribute
 
@@ -118,3 +123,84 @@ def test_augment_artifact():
     tree = etree.ElementTree(parent_element)
     result = etree.tostring(tree, encoding='unicode', pretty_print=True)
     assert EXPECTED_ENERGY_XML == result
+
+
+EXPECTED_POSITION_XML = \
+"""<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:position>
+    <caom2:axis>
+      <caom2:axis1>
+        <caom2:ctype>GLON-CAR</caom2:ctype>
+        <caom2:cunit>deg</caom2:cunit>
+      </caom2:axis1>
+      <caom2:axis2>
+        <caom2:ctype>GLAT-CAR</caom2:ctype>
+        <caom2:cunit>deg</caom2:cunit>
+      </caom2:axis2>
+      <caom2:function>
+        <caom2:dimension>
+          <caom2:naxis1>1</caom2:naxis1>
+          <caom2:naxis2>1</caom2:naxis2>
+        </caom2:dimension>
+        <caom2:refCoord>
+          <caom2:coord1>
+            <caom2:pix>513.0</caom2:pix>
+            <caom2:val>128.74999900270001</caom2:val>
+          </caom2:coord1>
+          <caom2:coord2>
+            <caom2:pix>513.0</caom2:pix>
+            <caom2:val>-0.99999999225360003</caom2:val>
+          </caom2:coord2>
+        </caom2:refCoord>
+        <caom2:cd11>-0.0049999989999999998</caom2:cd11>
+        <caom2:cd12>0.0</caom2:cd12>
+        <caom2:cd21>0.0</caom2:cd21>
+        <caom2:cd22>0.0049999989999999998</caom2:cd22>
+      </caom2:function>
+    </caom2:axis>
+  </caom2:position>
+</caom2:import>
+"""
+
+
+@pytest.mark.parametrize('test_file', [sample_file_4axes])
+def test_augment_artifact(test_file):
+    test_artifact = augment_artifact(None, test_file)
+    assert test_artifact is not None
+    assert test_artifact.parts is not None
+    assert len(test_artifact.parts) == 1
+    test_part = test_artifact.parts['0']
+    test_chunk = test_part.chunks.pop()
+    assert test_chunk is not None
+    assert test_chunk.position is not None
+
+    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
+    parent_element = etree.Element('{http://www.opencadc.org/caom2/xml/v2.3}import')
+    ow = ObservationWriter()
+    ow._add_spatial_wcs_element(test_chunk.position, parent_element)
+    tree = etree.ElementTree(parent_element)
+    result = etree.tostring(tree, encoding='unicode', pretty_print=True)
+    assert EXPECTED_POSITION_XML == result
+
+
+@pytest.mark.parametrize('test_file', [sample_file_4axes])
+def test_get_wcs_values(test_file):
+    w = get_test_wcs(test_file)
+    result = fix_value(w.wcs.equinox)
+    assert result is None
+    result = getattr(w, '_naxis1')
+    assert result == 1
+    assert w.wcs.has_cd() is False
+
+
+def get_test_header(test_file):
+    test_input = os.path.join(TESTDATA_DIR, test_file)
+    hdulist = fits.open(test_input)
+    hdulist.close()
+    return hdulist
+
+
+def get_test_wcs(test_file):
+    hdu = get_test_header(test_file)
+    wcs = awcs(hdu[0])
+    return wcs
