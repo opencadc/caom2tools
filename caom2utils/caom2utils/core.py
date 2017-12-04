@@ -70,6 +70,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import math
+from astropy.wcs import WCS
+from astropy.io import fits
+from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk
+from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
+
+
 """ Defines utilities for working with fits files """
 
 ENERGY_KEYWORDS = [
@@ -85,13 +92,8 @@ ENERGY_KEYWORDS = [
     'BETA']
 
 
-from astropy.io import fits
-from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk
-from caom2 import SpectralWCS, CoordAxis1D
-
-
 def augment_artifact(artifact, file, collection=None):
-    hdulist = fits.open(file)
+    hdulist = fits.open(file, memmap=True)
     hdulist.close()
     parts = len(hdulist)
     print(repr(hdulist[0].header))
@@ -101,37 +103,61 @@ def augment_artifact(artifact, file, collection=None):
         artifact = Artifact('ad:{}/{}'.format(collection, file),
                             ProductType.SCIENCE, ReleaseType.DATA) #TODO
 
-    for p in range(parts):
-        if str(p) not in artifact.parts.keys():
-            artifact.parts.add(Part(str(p)))
-        part = artifact.parts[str(p)]
+    for i in range(parts):
+        hdu = hdulist[i]
+        if hdu.size:
+            if str(i) not in artifact.parts.keys():
+                artifact.parts.add(Part(str(i))) #TODO use extension name
+        part = artifact.parts[str(i)]
         if not part.chunks:
             part.chunks.append(Chunk())
-        chunk = part.chunks[0]
-        augment_energy(chunk, hdulist[0].header)
-        print('*******Chunk - {}'.format(chunk))
+        chunk = part.chunks[i]
+        header = hdulist[i].header
+        header['RESTFRQ'] = header['OBSFREQ']
+        header['VELREF'] = 256
+        wcs = WCS(header)
+        augment_energy(chunk, wcs)
+        #print('******* {}'.format(chunk))
+    return artifact
 
 
-def augment_energy(chunk, header):
-    specsys = header.get('SPECSYS', None)
-    naxis = header.get('NAXIS', 0) or header.get('ZAXIS', 0)
+def augment_energy(chunk, wcs):
+    # get the energy axis
+    energy_axis = None
+    for i, elem in enumerate(wcs.axis_type_names):
+        if elem in ENERGY_KEYWORDS:
+            energy_axis = i
+            break
+
+    if energy_axis is None:
+        # no energy axis
+        return
+
+    specsys = wcs.wcs.specsys
+    naxis = CoordAxis1D(Axis(wcs.wcs.ctype[energy_axis],
+                             wcs.wcs.cunit[energy_axis].to_string()))
+    naxis.function = \
+        CoordFunction1D(fix_value(wcs._naxis[energy_axis]), #TODO
+                        fix_value(wcs.wcs.cdelt[energy_axis]),
+                        RefCoord(fix_value(wcs.wcs.crpix[energy_axis]),
+                                 fix_value(wcs.wcs.crval[energy_axis])))
     if not chunk.energy:
         chunk.energy = SpectralWCS(naxis, specsys)
 
+    chunk.energy.ssysobs = fix_value(wcs.wcs.ssysobs)
+    chunk.energy.restfrq = fix_value(wcs.wcs.restfrq)
+    chunk.energy.restwav = fix_value(wcs.wcs.restwav)
+    chunk.energy.velosys = fix_value(wcs.wcs.velosys)
+    chunk.energy.zsource = fix_value(wcs.wcs.zsource)
+    chunk.energy.ssyssrc = fix_value(wcs.wcs.ssyssrc)
+    chunk.energy.velang = fix_value(wcs.wcs.velangl)
 
-    # determine the index of energy axis
-    index = None
-    for i in range(1, naxis + 1):
-        if header['CTYPE{}'.format(i)] is not None:
-           if header['CTYPE{}'.format(i)].split('-')[0].strip() in ENERGY_KEYWORDS:
-               index = i
-               break
 
-    if not index:
-        return
-
-    chunk.ctype = header['CTYPE{}'.format(index).split('-')[0].strip()]
-    #chunk.naxis = header['NAXIS{}'.format(index)]
+def fix_value(value):
+    if isinstance(value, float) and math.isnan(value):
+        return None
+    else:
+        return value
 
 
     # Artifact.productType = artifact.productType

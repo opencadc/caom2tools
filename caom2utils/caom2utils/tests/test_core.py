@@ -71,11 +71,50 @@ from __future__ import (absolute_import, division, print_function,
 
 from caom2utils import augment_artifact
 import os
+from lxml import etree
+from caom2 import ObservationWriter
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
+EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:energy>
+    <caom2:axis>
+      <caom2:axis>
+        <caom2:ctype>VRAD</caom2:ctype>
+        <caom2:cunit>m / s</caom2:cunit>
+      </caom2:axis>
+      <caom2:function>
+        <caom2:naxis>1</caom2:naxis>
+        <caom2:delta>-824.46001999999999</caom2:delta>
+        <caom2:refCoord>
+          <caom2:pix>145.0</caom2:pix>
+          <caom2:val>-60000.0</caom2:val>
+        </caom2:refCoord>
+      </caom2:function>
+    </caom2:axis>
+    <caom2:specsys>LSRK</caom2:specsys>
+    <caom2:ssysobs></caom2:ssysobs>
+    <caom2:ssyssrc></caom2:ssyssrc>
+    <caom2:restfrq>1420406000.0</caom2:restfrq>
+    <caom2:restwav>0.0</caom2:restwav>
+  </caom2:energy>
+</caom2:import>
+'''
+
 
 def test_augment_artifact():
-    gemini_file = os.path.join(TESTDATA_DIR, '../../data/CGPS_MA1_HI_line_image.fits')
-    augment_artifact(None, gemini_file)
+
+    gemini_file = os.path.join(TESTDATA_DIR, '4axes.fits')
+    artifact = augment_artifact(None, gemini_file)
+    energy = artifact.parts['0'].chunks[0].energy
+    energy.bandpassName = '21 cm' # user set attribute
+
+    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
+    parent_element = etree.Element(
+        '{http://www.opencadc.org/caom2/xml/v2.3}import')
+    ow = ObservationWriter()
+    ow._add_spectral_wcs_element(energy, parent_element)
+    tree = etree.ElementTree(parent_element)
+    result = etree.tostring(tree, encoding='unicode', pretty_print=True)
+    assert EXPECTED_ENERGY_XML == result
