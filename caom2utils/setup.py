@@ -92,6 +92,8 @@ class IntTestCommand(distutils.cmd.Command):
     testfile = os.getcwd() + '/tests/test-integration.py'
     pytest.main(['-s', '--capture=no','-x', testfile])
 
+install_requires=metadata.get('install_requires', '').strip().split()
+
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
