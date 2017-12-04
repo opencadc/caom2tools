@@ -92,12 +92,6 @@ class IntTestCommand(distutils.cmd.Command):
     testfile = os.getcwd() + '/tests/test-integration.py'
     pytest.main(['-s', '--capture=no','-x', testfile])
 
-#TODO numpy1.9 is the last version supported on Python3.3, so
-# make sure that it's the installed version.
-install_requires=metadata.get('install_requires', '').strip().split()
-if (sys.version_info[0] == 3) and (sys.version_info[1] == 3):
-    install_requires.insert(0, 'numpy==1.9')
-
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
@@ -120,7 +114,6 @@ setup(name=PACKAGENAME,
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6'

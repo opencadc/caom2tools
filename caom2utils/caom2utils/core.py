@@ -206,7 +206,7 @@ def get_axis(aug_axis, wcs, xindex, yindex):
         # Chunk.position.axis.function.dimension.naxis1 = ZNAXIS{positionAxis1},NAXIS{positionAxis1}
         # Chunk.position.axis.function.dimension.naxis2 = ZNAXIS{positionAxis2},NAXIS{positionAxis2}
 
-        aug_dimension = Dimension2D(getattr(wcs, '_naxis' + str(xindex + 1)), getattr(wcs, '_naxis' + str(yindex + 1)))
+        aug_dimension = Dimension2D(getattr(wcs, '_naxis{}'.format(xindex + 1)), getattr(wcs, '_naxis{}'.format(yindex + 1)))
 
         aug_ref_coord = Coord2D(get_ref_coord(None, wcs.wcs, xindex), get_ref_coord(None, wcs.wcs, yindex))
 

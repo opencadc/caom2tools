@@ -111,7 +111,7 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
-    artifact = augment_artifact(None, test_file)
+    artifact = augment_artifact(None, str(test_file))
     energy = artifact.parts['0'].chunks[0].energy
     energy.bandpassName = '21 cm' # user set attribute
 
