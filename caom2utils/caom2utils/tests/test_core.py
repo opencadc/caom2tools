@@ -71,7 +71,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
-from caom2utils import augment_artifact, fix_value
+from caom2utils import FitsParser
 
 from caom2 import ObservationWriter
 from lxml import etree
@@ -111,7 +111,8 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
-    artifact = augment_artifact(None, str(test_file))
+    test_fitsparser = FitsParser(test_file)
+    artifact = test_fitsparser.augment_artifact()
     energy = artifact.parts['0'].chunks[0].energy
     energy.bandpassName = '21 cm' # user set attribute
 
@@ -165,7 +166,8 @@ EXPECTED_POSITION_XML = \
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
-    test_artifact = augment_artifact(None, test_file)
+    test_fitsparser = FitsParser(test_file)
+    test_artifact = test_fitsparser.augment_artifact()
     assert test_artifact is not None
     assert test_artifact.parts is not None
     assert len(test_artifact.parts) == 1
@@ -186,7 +188,8 @@ def test_augment_artifact(test_file):
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
-    result = fix_value(w.wcs.equinox)
+    test_fitsparser = FitsParser(test_file)
+    result = test_fitsparser.fix_value(w.wcs.equinox)
     assert result is None
     result = getattr(w, '_naxis1')
     assert result == 1
