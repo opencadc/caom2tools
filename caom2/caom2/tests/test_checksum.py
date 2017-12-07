@@ -160,6 +160,10 @@ def test_compatibility():
     assert obs.meta_checksum == get_meta_checksum(obs)
     assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
 
+    # white spaces around strings should not affect the checksum
+    obs.algorithm = ' {}\t\n'.format(obs.algorithm.name)
+    assert obs.meta_checksum == get_meta_checksum(obs)
+
     # now change some attributes and see how the checksums start to diverge
     old_val = obs.collection
     obs.collection = 'OTHER'
