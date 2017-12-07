@@ -136,7 +136,7 @@ def test_compatibility():
     # against the previously calculated (in Java) checksums
 
     source_file_path = os.path.join(THIS_DIR, TEST_DATA,
-                                    'SampleComposite-CAOM-2.3.xml')
+                                    '/tmp/z2co0102t.xml')
     reader = obs_reader_writer.ObservationReader(True)
     with open(source_file_path, 'r'):
         obs = reader.read(source_file_path)

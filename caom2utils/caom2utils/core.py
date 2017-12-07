@@ -104,8 +104,8 @@ class FitsParser(object):
     """
 
     def __init__(self, filename,
-                 defaults=None,
                  artifact=None,
+                 defaults=None,
                  collection=None):
         self.filename = filename
         self.defaults = defaults
@@ -125,6 +125,7 @@ class FitsParser(object):
             self.artifact = Artifact('ad:{}/{}'.format(collection, self.filename),
                                 ProductType.SCIENCE, ReleaseType.DATA)  # TODO
 
+
     def augment_artifact(self):
 
         # there is one part per extension, the name is the extension number,
@@ -141,12 +142,11 @@ class FitsParser(object):
 
             self.chunk = part.chunks[i]
             header = self.hdulist[i].header
-            header['RESTFRQ'] = header['OBSFREQ']  # TODO remove
-            header['VELREF'] = 256  # TODO remove
             self.wcs = WCS(header)
             self.augment_position()
             self.augment_energy()
         return self.artifact
+
 
     def augment_energy(self):
         # get the energy axis
@@ -184,6 +184,7 @@ class FitsParser(object):
         self.chunk.energy.ssyssrc = self.fix_value(self.wcs.wcs.ssyssrc)
         self.chunk.energy.velang = self.fix_value(self.wcs.wcs.velangl)
 
+
     def augment_position(self):
         if self.wcs.has_celestial:
             self.chunk.positionAxis1, self.chunk.positionAxis2 = self.get_position_axis()
@@ -203,6 +204,7 @@ class FitsParser(object):
 
         else:
             self.logger.debug('No celestial metadata for {}'.format(self.filename))
+
 
     def get_axis(self, aug_axis, xindex, yindex):
         """Assemble the bits to make the axis parameter needed for SpatialWCS construction."""
@@ -238,6 +240,7 @@ class FitsParser(object):
 
         return aug_axis
 
+
     def get_cd(self, x_index, y_index):
 
         # Chunk.position.axis.function.cd11 = CD{positionAxis1}_{positionAxis1}
@@ -257,6 +260,7 @@ class FitsParser(object):
             cd22 = self.wcs.wcs.cdelt[y_index]
         return cd11, cd12, cd21, cd22
 
+
     def get_coord_error(self, aug_coord_error, index):
         if aug_coord_error:
             raise NotImplementedError
@@ -274,6 +278,7 @@ class FitsParser(object):
                 aug_coord_error = CoordError(aug_csyer, aug_crder)
 
         return aug_coord_error
+
 
     def get_position_axis(self):
 
@@ -295,6 +300,7 @@ class FitsParser(object):
 
         return xaxis, yaxis
 
+
     def get_ref_coord(self, aug_ref_coord, index):
         if aug_ref_coord:
             raise NotImplementedError
@@ -306,6 +312,7 @@ class FitsParser(object):
 
             aug_ref_coord = RefCoord(self.wcs.wcs.crpix[index], self.wcs.wcs.crval[index])
         return aug_ref_coord
+
 
     def fix_value(self, value):
         if isinstance(value, float) and math.isnan(value):
