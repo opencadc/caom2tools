@@ -236,7 +236,7 @@ def update_checksum(checksum, value, attribute=''):
         checksum.update(struct.pack('!q', value))
     elif isinstance(value, str):
         logger.debug('Encoded attribute str {} = {}'.format(attribute, value))
-        checksum.update(value.encode('utf-8'))
+        checksum.update(value.strip().encode('utf-8'))
     elif isinstance(value, datetime):
         logger.debug(
             'Encoded attribute datetime {} = {}'.format(attribute, value))
