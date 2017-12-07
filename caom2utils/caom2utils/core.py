@@ -70,6 +70,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from builtins import str
+
 import math
 from astropy.wcs import WCS
 from astropy.io import fits
@@ -133,10 +135,11 @@ class FitsParser(object):
 
         for i in range(self.parts):
             hdu = self.hdulist[i]
+            ii = str(i)
             if hdu.size:
-                if str(i) not in self.artifact.parts.keys():
-                    self.artifact.parts.add(Part(str(i)))  # TODO use extension name
-            part = self.artifact.parts[str(i)]
+                if ii not in self.artifact.parts.keys():
+                    self.artifact.parts.add(Part(ii))  # TODO use extension name
+            part = self.artifact.parts[ii]
             if not part.chunks:
                 part.chunks.append(Chunk())
 
@@ -162,14 +165,14 @@ class FitsParser(object):
 
         self.chunk.energy_axis = energy_axis
 
-        naxis = CoordAxis1D(Axis(self.wcs.wcs.ctype[energy_axis],
-                                 self.wcs.wcs.cunit[energy_axis].to_string()))
+        naxis = CoordAxis1D(Axis(str(self.wcs.wcs.ctype[energy_axis]),
+                                 str(self.wcs.wcs.cunit[energy_axis])))
         naxis.function = \
             CoordFunction1D(self.fix_value(self.wcs._naxis[energy_axis]),  # TODO
                             self.fix_value(self.wcs.wcs.cdelt[energy_axis]),
                             RefCoord(self.fix_value(self.wcs.wcs.crpix[energy_axis]),
                                      self.fix_value(self.wcs.wcs.crval[energy_axis])))
-        specsys = self.wcs.wcs.specsys
+        specsys = str(self.wcs.wcs.specsys)
         if not self.chunk.energy:
             self.chunk.energy = SpectralWCS(naxis, specsys)
         else:
@@ -219,8 +222,8 @@ class FitsParser(object):
             # Chunk.position.axis.axis2.ctype = CTYPE{positionAxis2}
             # Chunk.position.axis.axis2.cunit = CUNIT{positionAxis2}
 
-            aug_axis1 = Axis(self.wcs.wcs.ctype[xindex], self.wcs.wcs.cunit[xindex].name)
-            aug_axis2 = Axis(self.wcs.wcs.ctype[yindex], self.wcs.wcs.cunit[yindex].name)
+            aug_axis1 = Axis(str(self.wcs.wcs.ctype[xindex]), str(self.wcs.wcs.cunit[xindex].name))
+            aug_axis2 = Axis(str(self.wcs.wcs.ctype[yindex]), str(self.wcs.wcs.cunit[yindex].name))
 
             aug_error1 = self.get_coord_error(None, xindex)
             aug_error2 = self.get_coord_error(None, yindex)
