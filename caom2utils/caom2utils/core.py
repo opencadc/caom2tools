@@ -72,10 +72,13 @@ from __future__ import (absolute_import, division, print_function,
 
 """ Defines utilities for working with fits files """
 
+from argparse import ArgumentParser
 import logging
+import sys
 
 from astropy.io import fits
 from astropy.wcs import WCS as AWCS
+from cadcutils import util, version
 from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk
 from caom2 import Axis, SpatialWCS, SpectralWCS, CoordAxis2D, Coord2D, CoordError, CoordFunction2D, Dimension2D
 from caom2 import RefCoord
@@ -107,6 +110,7 @@ from caom2 import RefCoord
 # process.version         = 1
 # process.out.version     = 1
 #
+APP_NAME = 'fits2caom2'
 BOUNDS_DEFAULT = None
 COORDSYS_DEFAULT = None
 EQUINOX_DEFAULT = None
@@ -375,3 +379,57 @@ def augment_energy(chunk, header):
     # Chunk.energy.axis.range.start.val = energy.range.start.val
     # Chunk.energy.axis.range.end.pix = energy.range.end.pix
     # Chunk.energy.axis.range.end.val = energy.range.end.val
+
+
+def main_app():
+    parser = ArgumentParser()
+
+    parser.description = (
+        'Augments an observation with information in one or more fits files.')
+
+    if version.version is not None:
+        parser.add_argument('-V', '--version', action='version', version=version)
+
+    log_group = parser.add_mutually_exclusive_group()
+    log_group.add_argument('-d', '--debug', action='store_true',
+                           help='debug messages')
+    log_group.add_argument('-q', '--quiet', action='store_true',
+                           help='run quietly')
+    log_group.add_argument('-v', '--verbose', action='store_true',
+                           help='verbose messages')
+
+    parser.add_argument('-o', '--out', dest='out_obs_xml', help='output of augmented observation in XML', required=False)
+    parser.add_argument('productID', help='product ID of the plane in the observation')
+    parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
+
+    in_group = parser.add_mutually_exclusive_group(required=True)
+    in_group.add_argument('-i', '--in', dest='in_obs_xml', help='input of observation to be augmented in XML')
+    in_group.add_argument('--observation', nargs=2, help='observation in a collection',
+                          metavar=('collection', 'observationID'))
+
+    args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    else:
+        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+
+    if args.out_obs_xml:
+        outObsXml = args.out_obs_xml
+
+    if args.in_obs_xml:
+        inObsXml = args.in_obs_xml
+    else:
+        collection = args.observation[0]
+        observationID = args.observation[1]
+
+    fileURIs = args.fileURI
+
+    # invoke the appropriate function based on the inputs
+
+
+    logging.info("DONE")
+
+if __name__ == '__main__':
+    main_app()

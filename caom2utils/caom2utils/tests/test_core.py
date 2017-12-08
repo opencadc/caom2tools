@@ -73,9 +73,13 @@ from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import augment_artifact
 from caom2utils import avoid_nan
+from caom2utils import core
 
 from caom2 import ObservationWriter
 from lxml import etree
+
+from mock import Mock, patch
+from six import StringIO
 
 import os
 import sys
@@ -84,6 +88,9 @@ import pytest
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+
+class MyExitError(Exception):
+    pass
 
 # note - added significant digits for the values of coord1 val, coord2 val cd11, cd22
 #
@@ -168,3 +175,79 @@ def get_test_wcs(test_file):
     hdu = get_test_header(test_file)
     wcs = awcs(hdu[0])
     return wcs
+
+
+@patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
+                                     MyExitError, MyExitError,
+                                     MyExitError]))
+def test_help():
+    """ Tests the helper displays for commands in main"""
+
+    # expected helper messages
+    with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
+        usage = myfile.read()
+    with open(os.path.join(TESTDATA_DIR, 'missing_observation.txt'), 'r') as myfile:
+        missing_observation_usage = myfile.read()
+    with open(os.path.join(TESTDATA_DIR, 'missing_positional_argument.txt'), 'r') as myfile:
+        missing_positional_argument_usage = myfile.read()
+
+    # --help
+    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+        sys.argv = ["fits2caom2", "-h"]
+        with pytest.raises(MyExitError):
+            core.main_app()
+        help_out = stdout_mock.getvalue()
+        assert(usage == stdout_mock.getvalue())
+
+    # missing required --observation
+    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+        sys.argv = ["fits2caom2", "testProductID", "testpathto/testFileURI"]
+        with pytest.raises(MyExitError):
+            core.main_app()
+        help_out = stdout_mock.getvalue()
+        assert(missing_observation_usage == stdout_mock.getvalue())
+
+    # missing positional argument
+    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+        sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "testPathTo/testFileURI"]
+        with pytest.raises(MyExitError):
+            core.main_app()
+        help_out = stdout_mock.getvalue()
+        assert(missing_positional_argument_usage == stdout_mock.getvalue())
+
+
+def test_valid_arguments():
+    """ Tests the parser with valid commands in main"""
+
+    # --in
+    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+        sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML",
+                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+        core.main_app()
+        help_out = stdout_mock.getvalue()
+        assert(not stdout_mock.getvalue())
+
+    # --in and --out
+    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+        sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML", "--out", "pathTo/outObsXML",
+                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+        core.main_app()
+        help_out = stdout_mock.getvalue()
+        assert(not stdout_mock.getvalue())
+
+    # --observation
+    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+        sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID",
+                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+        core.main_app()
+        help_out = stdout_mock.getvalue()
+        assert(not stdout_mock.getvalue())
+
+    # --observation and --out
+    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+        sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "--out", "pathTo/outObsXML"
+                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+        core.main_app()
+        help_out = stdout_mock.getvalue()
+        assert(not stdout_mock.getvalue())
+
