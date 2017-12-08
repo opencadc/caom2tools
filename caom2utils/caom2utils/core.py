@@ -79,7 +79,10 @@ from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
 from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
 from caom2 import CoordAxis2D
+from caom2 import TemporalWCS
 import logging
+import os
+import sys
 
 ENERGY_KEYWORDS = [
     'FREQ',
@@ -93,62 +96,121 @@ ENERGY_KEYWORDS = [
     'VELO',
     'BETA']
 
+# From http://hea-www.cfa.harvard.edu/~arots/TimeWCS/
+TIME_KEYWORDS = [
+    'TIME',
+    'TAI',
+    'TT',
+    'TDT',
+    'ET',
+    'IAT',
+    'UT1',
+    'UTC',
+    'GMT',
+    'GPS',
+    'TCG',
+    'TCB',
+    'TDB',
+    'LOCAL']
+
+
+class LoggingFilter(logging.Filter):
+    """Add the HDU number to logging messages as a default."""
+
+    def __init__(self):
+        super(LoggingFilter, self).__init__()
+        self._hdu_for_log = -1
+
+    def filter(self, record):
+        record.hdu = self._hdu_for_log
+        return True
+
+    def hdu_for_log(self, value):
+        self._hdu_for_log = value
+
 
 class FitsParser(object):
     """
-    Augments a CAOM2 Artifact object with the content of a FITS file.
+    Creates a CAOM2 Artifact object based on the content of the in-coming map,
+    which is currently assumed to be the hdulist returned by astropy.
 
     Assumes an existing observation + plane construct.
-
-    May add to an existing artifact or create a new artifact from the FITS file.
-
-    May override artifact content with default values.
     """
 
-    def __init__(self, filename,
+    def __init__(self,
                  defaults=None,
                  artifact=None,
                  collection=None):
-        self.filename = filename
         self.defaults = defaults
         self.artifact = artifact
         self.collection = collection
         self.wcs = None
         self.chunk = None
         self.header_hdu = None
-        self.logger = logging.getLogger()
 
-        self.hdulist = fits.open(filename, memmap=True)
+        # configure logging
+
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s %(name)-12s %(levelname)-8s HDU:%(hdu)-2d %(message)s')
+        handler.setFormatter(formatter)
+        self.logger = logging.getLogger()
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
+
+        self.logfilter = LoggingFilter()
+        self.logger.addFilter(self.logfilter)
+        logging.getLogger('astropy').addFilter(self.logfilter)
+
+        self.filename = None
+        self.parts = None
+        self.hdulist = None
+        self.header = None
+
+    def augment_artifact(self, file):
+        self.filename = os.path.basename(file)
+        self.hdulist = fits.open(file, memmap=True, lazy_load_hdus=False)
         self.hdulist.close()
         self.parts = len(self.hdulist)
 
+        self.logger.debug('Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(file, self.parts))
+
         if not self.artifact:
             assert not self.collection
-            self.artifact = Artifact('ad:{}/{}'.format(collection, self.filename),
-                                ProductType.SCIENCE, ReleaseType.DATA)  # TODO
-
-    def augment_artifact(self):
-
-        # there is one part per extension, the name is the extension number,
-        # and each part has one chunk
+            self.artifact = Artifact('ad:{}/{}'.format(self.collection, self.filename),
+                                     ProductType.SCIENCE, ReleaseType.DATA)  # TODO
 
         for i in range(self.parts):
             hdu = self.hdulist[i]
+            # print(repr(hdu.header))
             ii = str(i)
+            self.logfilter.hdu_for_log(i)
+
+            # there is one Part per extension, the name is the extension number
             if hdu.size:
                 if ii not in self.artifact.parts.keys():
                     self.artifact.parts.add(Part(ii))  # TODO use extension name
+                    self.logger.debug('Part created for HDU {}.'.format(ii))
+            else:
+                self.artifact.parts.add(Part(ii))
+                self.logger.debug('Create empty part for HDU {}'.format(ii))
+                continue
             part = self.artifact.parts[ii]
+
+            # each Part has one Chunk
             if not part.chunks:
                 part.chunks.append(Chunk())
+            self.chunk = part.chunks[0]
 
-            self.chunk = part.chunks[i]
-            header = self.hdulist[i].header
-            header['RESTFRQ'] = header['OBSFREQ']  # TODO remove
-            header['VELREF'] = 256  # TODO remove
-            self.wcs = WCS(header)
+            self.header = hdu.header
+            self.wcs = WCS(self.header)
+            # print(repr(header))
+            # self.wcs.wcs.print_contents()
             self.augment_position()
             self.augment_energy()
+            self.augment_temporal()
+
+        self.logger.debug('End CAOM2 artifact augmentation for {}'.format(self.filename))
         return self.artifact
 
     def augment_energy(self):
@@ -164,9 +226,7 @@ class FitsParser(object):
             return
 
         self.chunk.energy_axis = energy_axis
-
-        naxis = CoordAxis1D(Axis(str(self.wcs.wcs.ctype[energy_axis]),
-                                 str(self.wcs.wcs.cunit[energy_axis])))
+        naxis = CoordAxis1D(self.get_axis(energy_axis))
         naxis.function = \
             CoordFunction1D(self.fix_value(self.wcs._naxis[energy_axis]),  # TODO
                             self.fix_value(self.wcs.wcs.cdelt[energy_axis]),
@@ -188,9 +248,11 @@ class FitsParser(object):
         self.chunk.energy.velang = self.fix_value(self.wcs.wcs.velangl)
 
     def augment_position(self):
+        self.logger.debug('Begin Spatial WCS augmentation.')
+
         if self.wcs.has_celestial:
             self.chunk.positionAxis1, self.chunk.positionAxis2 = self.get_position_axis()
-            axis = self.get_axis(None, self.chunk.positionAxis1 - 1, self.chunk.positionAxis2 - 1)
+            axis = self.get_spatial_axis(None, self.chunk.positionAxis1 - 1, self.chunk.positionAxis2 - 1)
 
             # Chunk.position.coordsys = RADECSYS,RADESYS
             # Chunk.position.equinox = EQUINOX,EPOCH
@@ -201,13 +263,53 @@ class FitsParser(object):
             else:
                 self.chunk.position.axis = axis
 
-            self.chunk.position.coordsys = self.fix_value(self.wcs.celestial.wcs.radesys)
+            radesys = self.fix_value(self.wcs.celestial.wcs.radesys)
+            self.chunk.position.coordsys = None if radesys is None else str(radesys)
             self.chunk.position.equinox = self.fix_value(self.wcs.celestial.wcs.equinox)
 
+            self.logger.debug('End Spatial WCS augmentation.')
         else:
-            self.logger.debug('No celestial metadata for {}'.format(self.filename))
+            self.logger.warning('No celestial metadata for {}'.format(self.filename))
 
-    def get_axis(self, aug_axis, xindex, yindex):
+    def augment_temporal(self):
+
+        if self.chunk.time:
+            raise NotImplementedError
+
+        else:
+            self.logger.debug('Begin TemporalWCS augmentation.')
+            time_axis = self.get_time_axis()
+
+            if time_axis is None:
+                self.logger.warning('No WCS Time for {}'.format(self.filename))
+                return
+
+            self.chunk.timeAxis = time_axis
+            # set self.chunk.time
+            self.get_temporal_axis(time_axis)
+
+            # Chunk.time.exposure = EXPTIME,INTTIME
+            # Chunk.time.resolution = time.resolution
+            # Chunk.time.timesys = TIMESYS
+            # Chunk.time.trefpos = TREFPOS
+            # Chunk.time.mjdref = MJDREF
+
+            # TODO need to set the values for the keywords in the test file headers
+            self.chunk.time.exposure = self.header.get('EXPTIME', 0.02)
+            self.chunk.time.resolution = self.header.get('TODO', 0.02)
+            self.chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
+            self.chunk.time.trefpos = self.header.get('TREFPOS', None)
+            self.chunk.time.mjdref = self.header.get('MJDREF', self.header.get('MJDDATE'))
+
+            self.logger.debug('End TemporalWCS augmentation.')
+
+    def get_axis(self, index, over_ctype=None, over_cunit=None):
+        aug_ctype = over_ctype if over_ctype is not None else str(self.wcs.wcs.ctype[index])
+        aug_cunit = over_cunit if over_cunit is not None else str(self.wcs.wcs.cunit[index])
+        aug_axis = Axis(aug_ctype, aug_cunit)
+        return aug_axis
+
+    def get_spatial_axis(self, aug_axis, xindex, yindex):
         """Assemble the bits to make the axis parameter needed for SpatialWCS construction."""
 
         if aug_axis:
@@ -219,17 +321,10 @@ class FitsParser(object):
             # Chunk.position.axis.axis1.cunit = CUNIT{positionAxis1}
             # Chunk.position.axis.axis2.ctype = CTYPE{positionAxis2}
             # Chunk.position.axis.axis2.cunit = CUNIT{positionAxis2}
-
-            aug_axis1 = Axis(str(self.wcs.wcs.ctype[xindex]), str(self.wcs.wcs.cunit[xindex].name))
-            aug_axis2 = Axis(str(self.wcs.wcs.ctype[yindex]), str(self.wcs.wcs.cunit[yindex].name))
-
-            aug_error1 = self.get_coord_error(None, xindex)
-            aug_error2 = self.get_coord_error(None, yindex)
-
             # Chunk.position.axis.function.dimension.naxis1 = ZNAXIS{positionAxis1},NAXIS{positionAxis1}
             # Chunk.position.axis.function.dimension.naxis2 = ZNAXIS{positionAxis2},NAXIS{positionAxis2}
 
-            aug_dimension = Dimension2D(self.wcs._naxis[xindex + 1], self.wcs._naxis[yindex + 1])
+            aug_dimension = self.get_dimension(None, xindex, yindex)
 
             aug_ref_coord = Coord2D(self.get_ref_coord(None, xindex), self.get_ref_coord(None, yindex))
 
@@ -237,7 +332,11 @@ class FitsParser(object):
 
             aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21, aug_cd22)
 
-            aug_axis = CoordAxis2D(aug_axis1, aug_axis2, aug_error1, aug_error2, None, None, aug_function)
+            aug_axis = CoordAxis2D(self.get_axis(xindex),
+                                   self.get_axis(yindex),
+                                   self.get_coord_error(None, xindex),
+                                   self.get_coord_error(None, yindex),
+                                   None, None, aug_function)
 
         return aug_axis
 
@@ -248,19 +347,27 @@ class FitsParser(object):
         # Chunk.position.axis.function.cd21 = CD{positionAxis2}_{positionAxis1}
         # Chunk.position.axis.function.cd22 = CD{positionAxis2}_{positionAxis2}
 
-        if self.wcs.wcs.has_cd():
-            cd11 = self.wcs.wcs.cd[x_index][x_index]
-            cd12 = self.wcs.wcs.cd[x_index][y_index]
-            cd21 = self.wcs.wcs.cd[y_index][x_index]
-            cd22 = self.wcs.wcs.cd[y_index][y_index]
-        else:
-            cd11 = self.wcs.wcs.cdelt[x_index]
-            cd12 = self.wcs.wcs.crota[x_index]
-            cd21 = self.wcs.wcs.crota[y_index]
-            cd22 = self.wcs.wcs.cdelt[y_index]
+        try:
+            if self.wcs.wcs.has_cd():
+                cd11 = self.wcs.wcs.cd[x_index][x_index]
+                cd12 = self.wcs.wcs.cd[x_index][y_index]
+                cd21 = self.wcs.wcs.cd[y_index][x_index]
+                cd22 = self.wcs.wcs.cd[y_index][y_index]
+            else:
+                cd11 = self.wcs.wcs.cdelt[x_index]
+                cd12 = self.wcs.wcs.crota[x_index]
+                cd21 = self.wcs.wcs.crota[y_index]
+                cd22 = self.wcs.wcs.cdelt[y_index]
+        except AttributeError:
+            self.logger.warning('Error searching for CD* values {}'.format(sys.exc_info()[1]))
+            cd11 = -1.0  # TODO what if neither of these are defined?
+            cd12 = -1.0
+            cd21 = -1.0
+            cd22 = -1.0
+
         return cd11, cd12, cd21, cd22
 
-    def get_coord_error(self, aug_coord_error, index):
+    def get_coord_error(self, aug_coord_error, index, over_csyer=None, over_crder=None):
         if aug_coord_error:
             raise NotImplementedError
 
@@ -270,13 +377,22 @@ class FitsParser(object):
             # Chunk.position.axis.error2.syser = CSYER{positionAxis2}
             # Chunk.position.axis.error2.rnder = CRDER{positionAxis2}
 
-            aug_csyer = self.fix_value(self.wcs.wcs.csyer[index])
-            aug_crder = self.fix_value(self.wcs.wcs.crder[index])
+            aug_csyer = over_csyer if over_csyer is not None else self.fix_value(self.wcs.wcs.csyer[index])
+            aug_crder = over_crder if over_crder is not None else self.fix_value(self.wcs.wcs.crder[index])
 
             if aug_csyer and aug_crder:
                 aug_coord_error = CoordError(aug_csyer, aug_crder)
 
         return aug_coord_error
+
+    def get_dimension(self, aug_dimension, xindex, yindex):
+
+        if aug_dimension:
+            raise NotImplementedError
+        else:
+            aug_dimension = Dimension2D(self.wcs._naxis[xindex], self.wcs._naxis[yindex])
+
+        return aug_dimension
 
     def get_position_axis(self):
 
@@ -296,9 +412,60 @@ class FitsParser(object):
         xaxis = -1 if xindex is None else int(axis_types[xindex]['number']) + 1
         yaxis = -1 if yindex is None else int(axis_types[yindex]['number']) + 1
 
+        self.logger.debug('Setting positionAxis1 to {}, positionAxis2 to {}'.format(xaxis, yaxis))
+
         return xaxis, yaxis
 
-    def get_ref_coord(self, aug_ref_coord, index):
+    def get_temporal_axis(self, index):
+        self.logger.debug('Begin temporal axis augmentation.')
+
+        # Chunk.time.axis.axis.ctype = CTYPE{timeAxis}
+        # Chunk.time.axis.axis.cunit = CUNIT{timeAxis}
+
+        # TODO - need to change headers in test file
+        aug_naxis = self.get_axis(index, over_ctype='TIME', over_cunit='d')
+
+        # Chunk.time.axis.bounds.samples = time.samples
+
+        # Chunk.time.axis.error.syser = CSYER{timeAxis}
+        # Chunk.time.axis.error.rnder = CRDER{timeAxis}
+        # TODO - need to change headers in test file
+        aug_error = self.get_coord_error(None, index, over_csyer=1e-07, over_crder=1e-07)
+
+        # Chunk.time.axis.function.naxis = NAXIS{timeAxis}
+        # Chunk.time.axis.function.delta = CDELT{timeAxis}
+        # Chunk.time.axis.function.refCoord.pix = CRPIX{timeAxis}
+        # Chunk.time.axis.function.refCoord.val = CRVAL{timeAxis}
+        # TODO - need to change headers in test file
+        over_cdelt = 2.31481e-07
+        aug_ref_coord = self.get_ref_coord(None, index, over_crpix=0.5, over_crval=56789.4298069)
+        aug_cdelt = over_cdelt if not None else self.wcs.wcs.cdelt[index]
+        aug_function = CoordFunction1D(self.wcs._naxis[index], aug_cdelt, aug_ref_coord)
+
+        # Chunk.time.axis.range.start.pix = time.range.start.pix
+        # Chunk.time.axis.range.start.val = time.range.start.val
+        # Chunk.time.axis.range.end.pix = time.range.end.pix
+        # Chunk.time.axis.range.end.val = time.range.end.val
+
+        self.chunk.time = TemporalWCS(CoordAxis1D(aug_naxis, aug_error, None, None, aug_function))
+        self.logger.debug('End temporal axis augmentation.')
+
+
+    def get_time_axis(self):
+        axis_types = self.wcs.axis_type_names
+        if(len(axis_types) >= 3) and (axis_types[2] == ''):
+            # TODO - set the metadata so axis_types[2] == 'TIME', in this case
+            # what axis_types looks like in this case: ['RA', 'DEC', '']
+            return 2
+        else:
+            index = None
+            for i, elem in enumerate(self.wcs.axis_type_names):
+                if elem in TIME_KEYWORDS:
+                    index = i
+                    break
+            return index
+
+    def get_ref_coord(self, aug_ref_coord, index, over_crpix=None, over_crval=None):
         if aug_ref_coord:
             raise NotImplementedError
         else:
@@ -307,7 +474,9 @@ class FitsParser(object):
             # Chunk.position.axis.function.refCoord.coord2.pix = CRPIX{positionAxis2}
             # Chunk.position.axis.function.refCoord.coord2.val = CRVAL{positionAxis2}
 
-            aug_ref_coord = RefCoord(self.wcs.wcs.crpix[index], self.wcs.wcs.crval[index])
+            aug_crpix = over_crpix if over_crpix is not None else self.wcs.wcs.crpix[index]
+            aug_crval = over_crval if over_crval is not None else self.wcs.wcs.crval[index]
+            aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
 
     def fix_value(self, value):

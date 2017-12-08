@@ -69,6 +69,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from builtins import str
+
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser
@@ -84,6 +86,7 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
 
+test_fitsparser = FitsParser()
 
 EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:energy>
@@ -111,23 +114,14 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
-    test_fitsparser = FitsParser(test_file)
-    artifact = test_fitsparser.augment_artifact()
+    artifact = test_fitsparser.augment_artifact(test_file)
     energy = artifact.parts['0'].chunks[0].energy
     energy.bandpassName = '21 cm' # user set attribute
-
-    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
-    parent_element = etree.Element(
-        '{http://www.opencadc.org/caom2/xml/v2.3}import')
-    ow = ObservationWriter()
-    ow._add_spectral_wcs_element(energy, parent_element)
-    tree = etree.ElementTree(parent_element)
-    result = etree.tostring(tree, encoding='unicode', pretty_print=True)
-    assert EXPECTED_ENERGY_XML == result
+    check_xml(ObservationWriter()._add_spectral_wcs_element, energy, EXPECTED_ENERGY_XML)
 
 
 EXPECTED_POSITION_XML = \
-"""<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+    """<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:position>
     <caom2:axis>
       <caom2:axis1>
@@ -166,8 +160,7 @@ EXPECTED_POSITION_XML = \
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
-    test_fitsparser = FitsParser(test_file)
-    test_artifact = test_fitsparser.augment_artifact()
+    test_artifact = test_fitsparser.augment_artifact(test_file)
     assert test_artifact is not None
     assert test_artifact.parts is not None
     assert len(test_artifact.parts) == 1
@@ -175,20 +168,68 @@ def test_augment_artifact(test_file):
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.position is not None
+    check_xml(ObservationWriter()._add_spatial_wcs_element, test_chunk.position, EXPECTED_POSITION_XML)
 
-    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
-    parent_element = etree.Element('{http://www.opencadc.org/caom2/xml/v2.3}import')
-    ow = ObservationWriter()
-    ow._add_spatial_wcs_element(test_chunk.position, parent_element)
-    tree = etree.ElementTree(parent_element)
-    result = etree.tostring(tree, encoding='unicode', pretty_print=True)
-    assert EXPECTED_POSITION_XML == result
+
+EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
+    """<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:time>
+    <caom2:axis>
+      <caom2:axis>
+        <caom2:ctype>TIME</caom2:ctype>
+        <caom2:cunit>d</caom2:cunit>
+      </caom2:axis>
+      <caom2:error>
+        <caom2:syser>1e-07</caom2:syser>
+        <caom2:rnder>1e-07</caom2:rnder>
+      </caom2:error>
+      <caom2:function>
+        <caom2:naxis>1964</caom2:naxis>
+        <caom2:delta>2.31481e-07</caom2:delta>
+        <caom2:refCoord>
+          <caom2:pix>0.5</caom2:pix>
+          <caom2:val>56789.4298069</caom2:val>
+        </caom2:refCoord>
+      </caom2:function>
+    </caom2:axis>
+    <caom2:timesys>UTC</caom2:timesys>
+    <caom2:exposure>0.02</caom2:exposure>
+    <caom2:resolution>0.02</caom2:resolution>
+  </caom2:time>
+</caom2:import>
+"""
+
+
+# @pytest.mark.parametrize('test_file, expected', [(os.path.join(TESTDATA_DIR, '1709071g.fits'), EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME_XML),
+#                                                  (os.path.join(TESTDATA_DIR, '1916216i.fits'), EXPECTED_CFHT_TIME_XML),
+#                                                  (os.path.join(TESTDATA_DIR, '1916216o.fits'), EXPECTED_CFHT_TIME_XML),
+#                                                  (os.path.join(TESTDATA_DIR, '1916216p.fits'), EXPECTED_CFHT_TIME_XML),
+#                                                  (os.path.join(TESTDATA_DIR, '2136164p.fits'), EXPECTED_CFHT_TIME_XML)])
+
+# @pytest.mark.parametrize('test_file, expected', [(os.path.join(TESTDATA_DIR, '1709071g.fits'),
+#                                                   EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME),
+#                                                  (os.path.join(TESTDATA_DIR, 'oc6n01010_x1d.fits'),
+#                                                    EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME),
+#                                                  (os.path.join(TESTDATA_DIR, 'jcmth20100515_00048_02_rimg_pro_000.fits'),
+#                                                   EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
+
+@pytest.mark.parametrize('test_file, expected', [(os.path.join(TESTDATA_DIR, '1709071g.fits'),
+                                                  EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
+def test_augment_artifact_time(test_file, expected):
+    test_artifact = test_fitsparser.augment_artifact(test_file)
+    assert test_artifact is not None
+    assert test_artifact.parts is not None
+    assert len(test_artifact.parts) == 6
+    test_part = test_artifact.parts['1']
+    test_chunk = test_part.chunks.pop()
+    assert test_chunk is not None
+    assert test_chunk.position is not None
+    check_xml(ObservationWriter()._add_temporal_wcs_element, test_chunk.time, expected)
 
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
-    test_fitsparser = FitsParser(test_file)
     result = test_fitsparser.fix_value(w.wcs.equinox)
     assert result is None
     result = getattr(w, '_naxis1')
@@ -207,3 +248,12 @@ def get_test_wcs(test_file):
     hdu = get_test_header(test_file)
     wcs = awcs(hdu[0])
     return wcs
+
+
+def check_xml(xml_func, test_wcs, expected):
+    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
+    parent_element = etree.Element('{http://www.opencadc.org/caom2/xml/v2.3}import')
+    xml_func(test_wcs, parent_element)
+    tree = etree.ElementTree(parent_element)
+    result = etree.tostring(tree, encoding='unicode', pretty_print=True)
+    assert result == expected, result
