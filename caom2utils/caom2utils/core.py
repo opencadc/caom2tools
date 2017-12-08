@@ -78,10 +78,10 @@ from astropy.io import fits
 from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
 from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
-from caom2 import CoordAxis2D
+from caom2 import CoordAxis2D, PolarizationWCS
 import logging
 
-ENERGY_KEYWORDS = [
+ENERGY_CTYPES = [
     'FREQ',
     'ENER',
     'WAVN',
@@ -93,6 +93,7 @@ ENERGY_KEYWORDS = [
     'VELO',
     'BETA']
 
+POLARIZATION_CTYPES = ['STOKES']
 
 class FitsParser(object):
     """
@@ -104,6 +105,10 @@ class FitsParser(object):
 
     May override artifact content with default values.
     """
+
+    ENERGY_AXIS = 'energy'
+    POLARIZATION_AXIS = 'polarization'
+    TIME_AXIS = 'time'
 
     def __init__(self, filename,
                  artifact=None,
@@ -148,16 +153,20 @@ class FitsParser(object):
             self.wcs = WCS(header)
             self.augment_position()
             self.augment_energy()
+            self.augment_polarization()
         return self.artifact
 
+    def _get_axis(self, keywords):
+        axis = None
+        for i, elem in enumerate(self.wcs.axis_type_names):
+            if elem in keywords:
+                axis = i
+                break
+        return axis
 
     def augment_energy(self):
         # get the energy axis
-        energy_axis = None
-        for i, elem in enumerate(self.wcs.axis_type_names):
-            if elem in ENERGY_KEYWORDS:
-                energy_axis = i
-                break
+        energy_axis = self._get_axis(ENERGY_CTYPES)
 
         if energy_axis is None:
             self.logger.debug('No WCS Energy info for {}'.format(self.filename))
@@ -207,6 +216,28 @@ class FitsParser(object):
 
         else:
             self.logger.debug('No celestial metadata for {}'.format(self.filename))
+
+
+    def augment_polarization(self):
+        polarization_axis = self._get_axis(POLARIZATION_CTYPES)
+        if polarization_axis is None:
+            self.logger.debug('No WCS Polarization info for {}'.format(self.filename))
+            return
+
+        self.chunk.polarization_axis = polarization_axis
+
+        naxis = CoordAxis1D(Axis(str(self.wcs.wcs.ctype[polarization_axis]),
+                                 str(self.wcs.wcs.cunit[polarization_axis])))
+        naxis.function = \
+            CoordFunction1D(self.fix_value(self.wcs._naxis[polarization_axis]),  # TODO
+                            self.fix_value(self.wcs.wcs.cdelt[polarization_axis]),
+                            RefCoord(self.fix_value(self.wcs.wcs.crpix[polarization_axis]),
+                                     self.fix_value(self.wcs.wcs.crval[polarization_axis])))
+
+        if not self.chunk.polarization:
+            self.chunk.polarization = PolarizationWCS(naxis)
+        else:
+            self.chunk.polarization.naxis = naxis
 
 
     def get_axis(self, aug_axis, xindex, yindex):

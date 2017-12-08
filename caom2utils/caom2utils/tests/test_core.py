@@ -85,6 +85,11 @@ TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
 
 
+@pytest.mark.parametrize('test_file', [sample_file_4axes])
+def test_augment_plarization(test_file):
+    test_fitsparser = FitsParser(test_file)
+    artifact = test_fitsparser.augment_artifact()
+
 EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:energy>
     <caom2:axis>
@@ -124,6 +129,43 @@ def test_augment_energy(test_file):
     tree = etree.ElementTree(parent_element)
     result = etree.tostring(tree, encoding='unicode', pretty_print=True)
     assert EXPECTED_ENERGY_XML == result
+
+
+EXPECTED_POLARIZATION_XML = \
+"""<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:polarization>
+    <caom2:axis>
+      <caom2:axis>
+        <caom2:ctype>STOKES</caom2:ctype>
+      </caom2:axis>
+      <caom2:function>
+        <caom2:naxis>1</caom2:naxis>
+        <caom2:delta>1.0</caom2:delta>
+        <caom2:refCoord>
+          <caom2:pix>1.0</caom2:pix>
+          <caom2:val>1.0</caom2:val>
+        </caom2:refCoord>
+      </caom2:function>
+    </caom2:axis>
+  </caom2:polarization>
+</caom2:import>
+"""
+
+
+@pytest.mark.parametrize('test_file', [sample_file_4axes])
+def test_augment_polarization(test_file):
+    test_fitsparser = FitsParser(test_file)
+    artifact = test_fitsparser.augment_artifact()
+    polarization = artifact.parts['0'].chunks[0].polarization
+
+    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
+    parent_element = etree.Element(
+        '{http://www.opencadc.org/caom2/xml/v2.3}import')
+    ow = ObservationWriter()
+    ow._add_polarization_wcs_element(polarization, parent_element)
+    tree = etree.ElementTree(parent_element)
+    result = etree.tostring(tree, encoding='unicode', pretty_print=True)
+    assert EXPECTED_POLARIZATION_XML == result
 
 
 EXPECTED_POSITION_XML = \
