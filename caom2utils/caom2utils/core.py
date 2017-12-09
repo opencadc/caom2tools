@@ -78,13 +78,13 @@ from astropy.io import fits
 from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
 from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
-from caom2 import CoordAxis2D
+from caom2 import CoordAxis2D, PolarizationWCS, TemporalWCS
 from caom2 import TemporalWCS
 import logging
 import os
 import sys
 
-ENERGY_KEYWORDS = [
+ENERGY_CTYPES = [
     'FREQ',
     'ENER',
     'WAVN',
@@ -113,6 +113,7 @@ TIME_KEYWORDS = [
     'TDB',
     'LOCAL']
 
+POLARIZATION_CTYPES = ['STOKES']
 
 class LoggingFilter(logging.Filter):
     """Add the HDU number to logging messages as a default."""
@@ -136,6 +137,10 @@ class FitsParser(object):
 
     Assumes an existing observation + plane construct.
     """
+
+    ENERGY_AXIS = 'energy'
+    POLARIZATION_AXIS = 'polarization'
+    TIME_AXIS = 'time'
 
     def __init__(self,
                  defaults=None,
@@ -166,6 +171,7 @@ class FitsParser(object):
         self.parts = None
         self.hdulist = None
         self.header = None
+        self.artifact = None
 
     def augment_artifact(self, file):
         self.filename = os.path.basename(file)
@@ -209,17 +215,22 @@ class FitsParser(object):
             self.augment_position()
             self.augment_energy()
             self.augment_temporal()
+            self.augment_polarization()
 
         self.logger.debug('End CAOM2 artifact augmentation for {}'.format(self.filename))
         return self.artifact
 
+    def _get_axis(self, keywords):
+        axis = None
+        for i, elem in enumerate(self.wcs.axis_type_names):
+            if elem in keywords:
+                axis = i
+                break
+        return axis
+
     def augment_energy(self):
         # get the energy axis
-        energy_axis = None
-        for i, elem in enumerate(self.wcs.axis_type_names):
-            if elem in ENERGY_KEYWORDS:
-                energy_axis = i
-                break
+        energy_axis = self._get_axis(ENERGY_CTYPES)
 
         if energy_axis is None:
             self.logger.debug('No WCS Energy info for {}'.format(self.filename))
@@ -247,6 +258,7 @@ class FitsParser(object):
         self.chunk.energy.ssyssrc = self.fix_value(self.wcs.wcs.ssyssrc)
         self.chunk.energy.velang = self.fix_value(self.wcs.wcs.velangl)
 
+
     def augment_position(self):
         self.logger.debug('Begin Spatial WCS augmentation.')
 
@@ -272,7 +284,6 @@ class FitsParser(object):
             self.logger.warning('No celestial metadata for {}'.format(self.filename))
 
     def augment_temporal(self):
-
         if self.chunk.time:
             raise NotImplementedError
 
@@ -302,6 +313,27 @@ class FitsParser(object):
             self.chunk.time.mjdref = self.header.get('MJDREF', self.header.get('MJDDATE'))
 
             self.logger.debug('End TemporalWCS augmentation.')
+
+    def augment_polarization(self):
+        polarization_axis = self._get_axis(POLARIZATION_CTYPES)
+        if polarization_axis is None:
+            self.logger.debug('No WCS Polarization info for {}'.format(self.filename))
+            return
+
+        self.chunk.polarization_axis = polarization_axis
+
+        naxis = CoordAxis1D(Axis(str(self.wcs.wcs.ctype[polarization_axis]),
+                                 str(self.wcs.wcs.cunit[polarization_axis])))
+        naxis.function = \
+            CoordFunction1D(self.fix_value(self.wcs._naxis[polarization_axis]),  # TODO
+                            self.fix_value(self.wcs.wcs.cdelt[polarization_axis]),
+                            RefCoord(self.fix_value(self.wcs.wcs.crpix[polarization_axis]),
+                                     self.fix_value(self.wcs.wcs.crval[polarization_axis])))
+
+        if not self.chunk.polarization:
+            self.chunk.polarization = PolarizationWCS(naxis)
+        else:
+            self.chunk.polarization.naxis = naxis
 
     def get_axis(self, index, over_ctype=None, over_cunit=None):
         aug_ctype = over_ctype if over_ctype is not None else str(self.wcs.wcs.ctype[index])
@@ -339,6 +371,7 @@ class FitsParser(object):
                                    None, None, aug_function)
 
         return aug_axis
+
 
     def get_cd(self, x_index, y_index):
 
