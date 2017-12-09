@@ -70,54 +70,23 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-""" Defines utilities for working with fits files """
-
 from argparse import ArgumentParser
+from builtins import str
+
+import math
+from astropy.wcs import WCS
+from astropy.io import fits
+from cadcutils import util, version
+from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk, CoordError
+from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
+from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
+from caom2 import CoordAxis2D, PolarizationWCS
 import logging
 import sys
 
-from astropy.io import fits
-from astropy.wcs import WCS as AWCS
-from cadcutils import util, version
-from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk
-from caom2 import Axis, SpatialWCS, SpectralWCS, CoordAxis2D, Coord2D, CoordError, CoordFunction2D, Dimension2D
-from caom2 import RefCoord
-
-# TODO - check defaults
-#
-# defaults are based on test observation
-# http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2ui/view/CGPS/MA1_DRAO-ST
-#
-# plus this:
-#
-# from cgps.config in git repo wcaom2archive
-#
-# DATE-OBS                             = NO_RELIABLE_DATE_IN_HEADER
-# Plane.provenance.lastExecuted        = DATE-FTS
-# Chunk.polarization.axis.axis.cunit   = THIS_HAS_NO_VALID_VALUE
-#
-# from cgps.default
-#
-# target.type             = field
-# provenance.project      = CGPS
-# CUNIT1                  = deg
-# CUNIT2                  = deg
-# obs.intent              = science
-#
-# from cgps.defaults
-#
-# target.classification   = FIELD
-# process.version         = 1
-# process.out.version     = 1
-#
 APP_NAME = 'fits2caom2'
-BOUNDS_DEFAULT = None
-COORDSYS_DEFAULT = None
-EQUINOX_DEFAULT = None
-RANGE_DEFAULT = None
-RESOLUTION_DEFAULT = None
 
-ENERGY_KEYWORDS = [
+ENERGY_CTYPES = [
     'FREQ',
     'ENER',
     'WAVN',
@@ -129,307 +98,318 @@ ENERGY_KEYWORDS = [
     'VELO',
     'BETA']
 
-logger = logging.getLogger()
+POLARIZATION_CTYPES = ['STOKES']
+
+class FitsParser(object):
+    """
+    Augments a CAOM2 Artifact object with the content of a FITS file.
+
+    Assumes an existing observation + plane construct.
+
+    May add to an existing artifact or create a new artifact from the FITS file.
+
+    May override artifact content with default values.
+    """
+
+    ENERGY_AXIS = 'energy'
+    POLARIZATION_AXIS = 'polarization'
+    TIME_AXIS = 'time'
+
+    def __init__(self, filename,
+                 artifact=None,
+                 defaults=None,
+                 collection=None):
+        self.filename = filename
+        self.defaults = defaults
+        self.artifact = artifact
+        self.collection = collection
+        self.wcs = None
+        self.chunk = None
+        self.header_hdu = None
+        self.logger = logging.getLogger()
+
+        self.hdulist = fits.open(filename, memmap=True)
+        self.hdulist.close()
+        self.parts = len(self.hdulist)
+
+        if not self.artifact:
+            assert not self.collection
+            self.artifact = Artifact('ad:{}/{}'.format(collection, self.filename),
+                                ProductType.SCIENCE, ReleaseType.DATA)  # TODO
 
 
-def augment_artifact(artifact, file, collection=None):
-    hdulist = fits.open(file)
-    hdulist.close()
-    parts = len(hdulist)
+    def augment_artifact(self):
 
-    if not artifact:
-        assert not collection
-        artifact = Artifact('ad:{}/{}'.format(collection, file),
-                            ProductType.SCIENCE, ReleaseType.DATA)  # TODO
+        # there is one part per extension, the name is the extension number,
+        # and each part has one chunk
 
-    # there is one part per extension, the name is the extension number,
-    # and each part has one chunk
+        for i in range(self.parts):
+            hdu = self.hdulist[i]
+            ii = str(i)
+            if hdu.size:
+                if ii not in self.artifact.parts.keys():
+                    self.artifact.parts.add(Part(ii))  # TODO use extension name
+            part = self.artifact.parts[ii]
+            if not part.chunks:
+                part.chunks.append(Chunk())
 
-    for p in range(parts):
-        if str(p) not in artifact.parts.keys():
-            artifact.parts.add(Part(str(p)))
-        part = artifact.parts[str(p)]
-        if not part.chunks:
-            part.chunks.append(Chunk())
-        chunk = part.chunks[p]
-        # augment_energy(chunk, hdulist[0].header)
-        augment_position(chunk, hdulist[p].header, AWCS(hdulist[p]), file)
-        # print('*******Chunk - {}'.format(chunk))
+            self.chunk = part.chunks[i]
+            header = self.hdulist[i].header
+            self.wcs = WCS(header)
+            self.augment_position()
+            self.augment_energy()
+            self.augment_polarization()
+        return self.artifact
 
-    return artifact
+    def _get_axis(self, keywords):
+        axis = None
+        for i, elem in enumerate(self.wcs.axis_type_names):
+            if elem in keywords:
+                axis = i
+                break
+        return axis
+
+    def augment_energy(self):
+        # get the energy axis
+        energy_axis = self._get_axis(ENERGY_CTYPES)
+
+        if energy_axis is None:
+            self.logger.debug('No WCS Energy info for {}'.format(self.filename))
+            return
+
+        self.chunk.energy_axis = energy_axis
+
+        naxis = CoordAxis1D(Axis(str(self.wcs.wcs.ctype[energy_axis]),
+                                 str(self.wcs.wcs.cunit[energy_axis])))
+        naxis.function = \
+            CoordFunction1D(self.fix_value(self.wcs._naxis[energy_axis]),  # TODO
+                            self.fix_value(self.wcs.wcs.cdelt[energy_axis]),
+                            RefCoord(self.fix_value(self.wcs.wcs.crpix[energy_axis]),
+                                     self.fix_value(self.wcs.wcs.crval[energy_axis])))
+        specsys = str(self.wcs.wcs.specsys)
+        if not self.chunk.energy:
+            self.chunk.energy = SpectralWCS(naxis, specsys)
+        else:
+            self.chunk.energy.naxis = naxis
+            self.chunk.energy.specsys = specsys
+
+        self.chunk.energy.ssysobs = self.fix_value(self.wcs.wcs.ssysobs)
+        self.chunk.energy.restfrq = self.fix_value(self.wcs.wcs.restfrq)
+        self.chunk.energy.restwav = self.fix_value(self.wcs.wcs.restwav)
+        self.chunk.energy.velosys = self.fix_value(self.wcs.wcs.velosys)
+        self.chunk.energy.zsource = self.fix_value(self.wcs.wcs.zsource)
+        self.chunk.energy.ssyssrc = self.fix_value(self.wcs.wcs.ssyssrc)
+        self.chunk.energy.velang = self.fix_value(self.wcs.wcs.velangl)
 
 
-def augment_position(aug_chunk, header, w, file):
-
-    if aug_chunk.position:
-        raise NotImplementedError
-
-    else:
-
-        if w.has_celestial:
-
-            aug_chunk.positionAxis1, aug_chunk.positionAxis2 = get_position_axis(w)
+    def augment_position(self):
+        if self.wcs.has_celestial:
+            self.chunk.positionAxis1, self.chunk.positionAxis2 = self.get_position_axis()
+            axis = self.get_axis(None, self.chunk.positionAxis1 - 1, self.chunk.positionAxis2 - 1)
 
             # Chunk.position.coordsys = RADECSYS,RADESYS
             # Chunk.position.equinox = EQUINOX,EPOCH
             # Chunk.position.resolution = position.resolution
 
-            aug_chunk.position = SpatialWCS(get_axis(None,
-                                                     w.celestial,
-                                                     aug_chunk.positionAxis1 - 1,
-                                                     aug_chunk.positionAxis2 - 1),
-                                            avoid_nan(w.celestial.wcs, 'radsys', COORDSYS_DEFAULT),
-                                            avoid_nan(w.celestial.wcs, 'equinox', EQUINOX_DEFAULT),
-                                            RESOLUTION_DEFAULT)
+            if not self.chunk.position:
+                self.chunk.position = SpatialWCS(axis)
+            else:
+                self.chunk.position.axis = axis
+
+            self.chunk.position.coordsys = self.fix_value(self.wcs.celestial.wcs.radesys)
+            self.chunk.position.equinox = self.fix_value(self.wcs.celestial.wcs.equinox)
+
         else:
-            logger.error('No celestial metadata for %s', file)
+            self.logger.debug('No celestial metadata for {}'.format(self.filename))
+
+
+    def augment_polarization(self):
+        polarization_axis = self._get_axis(POLARIZATION_CTYPES)
+        if polarization_axis is None:
+            self.logger.debug('No WCS Polarization info for {}'.format(self.filename))
+            return
+
+        self.chunk.polarization_axis = polarization_axis
+
+        naxis = CoordAxis1D(Axis(str(self.wcs.wcs.ctype[polarization_axis]),
+                                 str(self.wcs.wcs.cunit[polarization_axis])))
+        naxis.function = \
+            CoordFunction1D(self.fix_value(self.wcs._naxis[polarization_axis]),  # TODO
+                            self.fix_value(self.wcs.wcs.cdelt[polarization_axis]),
+                            RefCoord(self.fix_value(self.wcs.wcs.crpix[polarization_axis]),
+                                     self.fix_value(self.wcs.wcs.crval[polarization_axis])))
+
+        if not self.chunk.polarization:
+            self.chunk.polarization = PolarizationWCS(naxis)
+        else:
+            self.chunk.polarization.naxis = naxis
+
+
+    def get_axis(self, aug_axis, xindex, yindex):
+        """Assemble the bits to make the axis parameter needed for SpatialWCS construction."""
+
+        if aug_axis:
             raise NotImplementedError
 
-    return
+        else:
 
-# from https://github.com/opencadc/caom2/blob/master/fits2caom2/src/main/resources/fits2caom2.config
-#
-# {positionAxis1} is the index of the positional axis
-#
-# Chunk.position.axis.range.start.coord1.pix = position.range.start.coord1.pix
-# Chunk.position.axis.range.start.coord1.val = position.range.start.coord1.val
-# Chunk.position.axis.range.start.coord2.pix = position.range.start.coord2.pix
-# Chunk.position.axis.range.start.coord2.val = position.range.start.coord2.val
-# Chunk.position.axis.range.end.coord1.pix = position.range.end.coord1.pix
-# Chunk.position.axis.range.end.coord1.val = position.range.end.coord1.val
-# Chunk.position.axis.range.end.coord2.pix = position.range.end.coord2.pix
-# Chunk.position.axis.range.end.coord2.val = position.range.end.coord2.val
+            # Chunk.position.axis.axis1.ctype = CTYPE{positionAxis1}
+            # Chunk.position.axis.axis1.cunit = CUNIT{positionAxis1}
+            # Chunk.position.axis.axis2.ctype = CTYPE{positionAxis2}
+            # Chunk.position.axis.axis2.cunit = CUNIT{positionAxis2}
 
+            aug_axis1 = Axis(str(self.wcs.wcs.ctype[xindex]), str(self.wcs.wcs.cunit[xindex].name))
+            aug_axis2 = Axis(str(self.wcs.wcs.ctype[yindex]), str(self.wcs.wcs.cunit[yindex].name))
 
-def avoid_nan(wcs, keyword, default=None):
-    """astropy sets values to 'nan' if they're undefined in the fits file. caom2 types don't understand this."""
-    x = getattr(wcs, keyword, default)
-    if str(x) == 'nan':
-        x = default
-    return x
+            aug_error1 = self.get_coord_error(None, xindex)
+            aug_error2 = self.get_coord_error(None, yindex)
 
+            # Chunk.position.axis.function.dimension.naxis1 = ZNAXIS{positionAxis1},NAXIS{positionAxis1}
+            # Chunk.position.axis.function.dimension.naxis2 = ZNAXIS{positionAxis2},NAXIS{positionAxis2}
 
-def avoid_nan_axis(wcs, keyword, index, default=None):
-    """astropy sets values to 'nan' if they're undefined in the fits file. caom2 types don't understand this,
-    so make the value into None when looking up by array index."""
-    x = getattr(wcs, keyword, default)[index]
-    if str(x) == 'nan':
-        x = default
-    return x
+            aug_dimension = Dimension2D(self.wcs._naxis[xindex + 1], self.wcs._naxis[yindex + 1])
+
+            aug_ref_coord = Coord2D(self.get_ref_coord(None, xindex), self.get_ref_coord(None, yindex))
+
+            aug_cd11, aug_cd12, aug_cd21, aug_cd22 = self.get_cd(xindex, yindex)
+
+            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21, aug_cd22)
+
+            aug_axis = CoordAxis2D(aug_axis1, aug_axis2, aug_error1, aug_error2, None, None, aug_function)
+
+        return aug_axis
 
 
-def get_axis(aug_axis, wcs, xindex, yindex):
-    """Assemble the bits to make the axis parameter needed for SpatialWCS construction."""
+    def get_cd(self, x_index, y_index):
 
-    if aug_axis:
-        raise NotImplementedError
+        # Chunk.position.axis.function.cd11 = CD{positionAxis1}_{positionAxis1}
+        # Chunk.position.axis.function.cd12 = CD{positionAxis1}_{positionAxis2}
+        # Chunk.position.axis.function.cd21 = CD{positionAxis2}_{positionAxis1}
+        # Chunk.position.axis.function.cd22 = CD{positionAxis2}_{positionAxis2}
 
-    else:
-
-        # Chunk.position.axis.axis1.ctype = CTYPE{positionAxis1}
-        # Chunk.position.axis.axis1.cunit = CUNIT{positionAxis1}
-        # Chunk.position.axis.axis2.ctype = CTYPE{positionAxis2}
-        # Chunk.position.axis.axis2.cunit = CUNIT{positionAxis2}
-
-        aug_axis1 = Axis(getattr(wcs.wcs, 'ctype')[xindex], getattr(wcs.wcs, 'cunit')[xindex].name)
-        aug_axis2 = Axis(getattr(wcs.wcs, 'ctype')[yindex], getattr(wcs.wcs, 'cunit')[yindex].name)
-
-        aug_error1 = get_coord_error(None, wcs.wcs, xindex)
-        aug_error2 = get_coord_error(None, wcs.wcs, yindex)
-        aug_range = RANGE_DEFAULT
-        aug_bounds = BOUNDS_DEFAULT
-
-        # Chunk.position.axis.function.dimension.naxis1 = ZNAXIS{positionAxis1},NAXIS{positionAxis1}
-        # Chunk.position.axis.function.dimension.naxis2 = ZNAXIS{positionAxis2},NAXIS{positionAxis2}
-
-        aug_dimension = Dimension2D(getattr(wcs, '_naxis' + str(xindex + 1)), getattr(wcs, '_naxis' + str(yindex + 1)))
-
-        aug_ref_coord = Coord2D(get_ref_coord(None, wcs.wcs, xindex), get_ref_coord(None, wcs.wcs, yindex))
-
-        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = get_cd(wcs.wcs, xindex, yindex);
-
-        aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21, aug_cd22)
-
-        aug_axis = CoordAxis2D(aug_axis1, aug_axis2, aug_error1, aug_error2, aug_range, aug_bounds, aug_function)
-
-    return aug_axis
+        if self.wcs.wcs.has_cd():
+            cd11 = self.wcs.wcs.cd[x_index][x_index]
+            cd12 = self.wcs.wcs.cd[x_index][y_index]
+            cd21 = self.wcs.wcs.cd[y_index][x_index]
+            cd22 = self.wcs.wcs.cd[y_index][y_index]
+        else:
+            cd11 = self.wcs.wcs.cdelt[x_index]
+            cd12 = self.wcs.wcs.crota[x_index]
+            cd21 = self.wcs.wcs.crota[y_index]
+            cd22 = self.wcs.wcs.cdelt[y_index]
+        return cd11, cd12, cd21, cd22
 
 
-def get_cd(wcs, x_index, y_index):
+    def get_coord_error(self, aug_coord_error, index):
+        if aug_coord_error:
+            raise NotImplementedError
 
-    # Chunk.position.axis.function.cd11 = CD{positionAxis1}_{positionAxis1}
-    # Chunk.position.axis.function.cd12 = CD{positionAxis1}_{positionAxis2}
-    # Chunk.position.axis.function.cd21 = CD{positionAxis2}_{positionAxis1}
-    # Chunk.position.axis.function.cd22 = CD{positionAxis2}_{positionAxis2}
+        else:
+            # Chunk.position.axis.error1.syser = CSYER{positionAxis1}
+            # Chunk.position.axis.error1.rnder = CRDER{positionAxis1}
+            # Chunk.position.axis.error2.syser = CSYER{positionAxis2}
+            # Chunk.position.axis.error2.rnder = CRDER{positionAxis2}
 
-    if wcs.has_cd():
-        cd11 = getattr(wcs, 'cd')[x_index][x_index]
-        cd12 = getattr(wcs, 'cd')[x_index][y_index]
-        cd21 = getattr(wcs, 'cd')[y_index][x_index]
-        cd22 = getattr(wcs, 'cd')[y_index][y_index]
-    else:
-        cd11 = getattr(wcs, 'cdelt')[x_index]
-        cd12 = getattr(wcs, 'crota')[x_index]
-        cd21 = getattr(wcs, 'crota')[y_index]
-        cd22 = getattr(wcs, 'cdelt')[y_index]
-    return cd11, cd12, cd21, cd22
+            aug_csyer = self.fix_value(self.wcs.wcs.csyer[index])
+            aug_crder = self.fix_value(self.wcs.wcs.crder[index])
 
+            if aug_csyer and aug_crder:
+                aug_coord_error = CoordError(aug_csyer, aug_crder)
 
-def get_coord_error(aug_coord_error, wcs, index):
-    if aug_coord_error:
-        raise NotImplementedError
-
-    else:
-        # Chunk.position.axis.error1.syser = CSYER{positionAxis1}
-        # Chunk.position.axis.error1.rnder = CRDER{positionAxis1}
-        # Chunk.position.axis.error2.syser = CSYER{positionAxis2}
-        # Chunk.position.axis.error2.rnder = CRDER{positionAxis2}
-
-        aug_csyer = avoid_nan_axis(wcs, 'csyer', index)
-        aug_crder = avoid_nan_axis(wcs, 'crder', index)
-
-        if aug_csyer and aug_crder:
-            aug_coord_error = CoordError(aug_csyer, aug_crder)
-
-    return aug_coord_error
+        return aug_coord_error
 
 
-def get_position_axis(wcs):
-    axis_types = wcs.get_axis_types()
-    return int(axis_types[0]['number']) + 1, int(axis_types[1]['number']) + 1
+    def get_position_axis(self):
+
+        # there are two celestial axes, get the applicable indices from the axis_types
+        xindex = None
+        yindex = None
+        axis_types = self.wcs.get_axis_types()
+
+        for ii in axis_types:
+            if ii['coordinate_type'] == 'celestial':
+                if xindex is None:
+                    xindex = axis_types.index(ii)
+                else:
+                    yindex = axis_types.index(ii)
+
+        # TODO determine what value to return if there is no index for an axis
+        xaxis = -1 if xindex is None else int(axis_types[xindex]['number']) + 1
+        yaxis = -1 if yindex is None else int(axis_types[yindex]['number']) + 1
+
+        return xaxis, yaxis
 
 
-def get_ref_coord(aug_ref_coord, wcs, index):
-    if aug_ref_coord:
-        raise NotImplementedError
-    else:
-        # Chunk.position.axis.function.refCoord.coord1.pix = CRPIX{positionAxis1}
-        # Chunk.position.axis.function.refCoord.coord1.val = CRVAL{positionAxis1}
-        # Chunk.position.axis.function.refCoord.coord2.pix = CRPIX{positionAxis2}
-        # Chunk.position.axis.function.refCoord.coord2.val = CRVAL{positionAxis2}
+    def get_ref_coord(self, aug_ref_coord, index):
+        if aug_ref_coord:
+            raise NotImplementedError
+        else:
+            # Chunk.position.axis.function.refCoord.coord1.pix = CRPIX{positionAxis1}
+            # Chunk.position.axis.function.refCoord.coord1.val = CRVAL{positionAxis1}
+            # Chunk.position.axis.function.refCoord.coord2.pix = CRPIX{positionAxis2}
+            # Chunk.position.axis.function.refCoord.coord2.val = CRVAL{positionAxis2}
 
-        aug_ref_coord = RefCoord(getattr(wcs, 'crpix')[index], getattr(wcs, 'crval')[index])
-    return aug_ref_coord
-
-
-def augment_energy(chunk, header):
-    specsys = header.get('SPECSYS', None)
-    naxis = header.get('NAXIS', 0) or header.get('ZAXIS', 0)
-    if not chunk.energy:
-        chunk.energy = SpectralWCS(naxis, specsys)
+            aug_ref_coord = RefCoord(self.wcs.wcs.crpix[index], self.wcs.wcs.crval[index])
+        return aug_ref_coord
 
 
-    # determine the index of energy axis
-    index = None
-    for i in range(1, naxis + 1):
-        if header['CTYPE{}'.format(i)] is not None:
-           if header['CTYPE{}'.format(i)].split('-')[0].strip() in ENERGY_KEYWORDS:
-               index = i
-               break
+    def fix_value(self, value):
+        if isinstance(value, float) and math.isnan(value):
+            return None
+        elif not str(value):
+            return None  # empty string
+        else:
+            return value
 
-    if not index:
-        return
+    def main_app(self):
+        parser = ArgumentParser()
 
-    chunk.ctype = header['CTYPE{}'.format(index).split('-')[0].strip()]
-    #chunk.naxis = header['NAXIS{}'.format(index)]
+        parser.description = (
+            'Augments an observation with information in one or more fits files.')
 
+        if version.version is not None:
+            parser.add_argument('-V', '--version', action='version', version=version)
 
-    # Artifact.productType = artifact.productType
-    # Artifact.releaseType = artifact.releaseType
-    #
-    # Part.name = part.name
-    # Part.productType = part.productType
-    #
-    # Chunk.naxis = ZNAXIS, NAXIS
-    # Chunk.observableAxis = chunk.observableAxis
-    # Chunk.positionAxis1 = getPositionAxis()
-    # Chunk.positionAxis2 = getPositionAxis()
-    # Chunk.energyAxis = getEnergyAxis()
-    # Chunk.timeAxis = getTimeAxis()
-    # Chunk.polarizationAxis = getPolarizationAxis()
-    #
-    # Chunk.observable.dependent.bin = observable.dependent.bin
-    # Chunk.observable.dependent.axis.ctype = observable.dependent.ctype
-    # Chunk.observable.dependent.axis.cunit = observable.dependent.cunit
-    # Chunk.observable.independent.bin = observable.independent.bin
-    # Chunk.observable.independent.axis.ctype = observable.independent.ctype
-    # Chunk.observable.independent.axis.cunit = observable.independent.cunit
-    # Chunk.energy.specsys = SPECSYS
-    # Chunk.energy.ssysobs = SSYSOBS
-    # Chunk.energy.restfrq = RESTFRQ
-    # Chunk.energy.restwav = RESTWAV
-    # Chunk.energy.velosys = VELOSYS
-    # Chunk.energy.zsource = ZSOURCE
-    # Chunk.energy.ssyssrc = SSYSSRC
-    # Chunk.energy.velang = VELANG
-    # Chunk.energy.bandpassName = bandpassName
-    # Chunk.energy.resolvingPower = resolvingPower
-    # Chunk.energy.transition.species = energy.transition.species
-    # Chunk.energy.transition.transition = energy.transition.transition
-    # Chunk.energy.axis.axis.ctype = CTYPE{energyAxis}
-    # Chunk.energy.axis.axis.cunit = CUNIT{energyAxis}
-    # Chunk.energy.axis.bounds.samples = energy.samples
-    # Chunk.energy.axis.error.syser = CSYER{energyAxis}
-    # Chunk.energy.axis.error.rnder = CRDER{energyAxis}
-    # Chunk.energy.axis.function.naxis = NAXIS{energyAxis}
-    # Chunk.energy.axis.function.delta = CDELT{energyAxis}
-    # Chunk.energy.axis.function.refCoord.pix = CRPIX{energyAxis}
-    # Chunk.energy.axis.function.refCoord.val = CRVAL{energyAxis}
-    # Chunk.energy.axis.range.start.pix = energy.range.start.pix
-    # Chunk.energy.axis.range.start.val = energy.range.start.val
-    # Chunk.energy.axis.range.end.pix = energy.range.end.pix
-    # Chunk.energy.axis.range.end.val = energy.range.end.val
+        log_group = parser.add_mutually_exclusive_group()
+        log_group.add_argument('-d', '--debug', action='store_true',
+                               help='debug messages')
+        log_group.add_argument('-q', '--quiet', action='store_true',
+                               help='run quietly')
+        log_group.add_argument('-v', '--verbose', action='store_true',
+                               help='verbose messages')
+
+        parser.add_argument('-o', '--out', dest='out_obs_xml', help='output of augmented observation in XML',
+                            required=False)
+        parser.add_argument('productID', help='product ID of the plane in the observation')
+        parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
+
+        in_group = parser.add_mutually_exclusive_group(required=True)
+        in_group.add_argument('-i', '--in', dest='in_obs_xml', help='input of observation to be augmented in XML')
+        in_group.add_argument('--observation', nargs=2, help='observation in a collection',
+                              metavar=('collection', 'observationID'))
+
+        args = parser.parse_args()
+        if args.verbose:
+            logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+        if args.debug:
+            logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        else:
+            logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+
+        if args.out_obs_xml:
+            outObsXml = args.out_obs_xml
+
+        if args.in_obs_xml:
+            inObsXml = args.in_obs_xml
+        else:
+            collection = args.observation[0]
+            observationID = args.observation[1]
+
+        fileURIs = args.fileURI
+
+        # invoke the appropriate function based on the inputs
 
 
-def main_app():
-    parser = ArgumentParser()
-
-    parser.description = (
-        'Augments an observation with information in one or more fits files.')
-
-    if version.version is not None:
-        parser.add_argument('-V', '--version', action='version', version=version)
-
-    log_group = parser.add_mutually_exclusive_group()
-    log_group.add_argument('-d', '--debug', action='store_true',
-                           help='debug messages')
-    log_group.add_argument('-q', '--quiet', action='store_true',
-                           help='run quietly')
-    log_group.add_argument('-v', '--verbose', action='store_true',
-                           help='verbose messages')
-
-    parser.add_argument('-o', '--out', dest='out_obs_xml', help='output of augmented observation in XML', required=False)
-    parser.add_argument('productID', help='product ID of the plane in the observation')
-    parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
-
-    in_group = parser.add_mutually_exclusive_group(required=True)
-    in_group.add_argument('-i', '--in', dest='in_obs_xml', help='input of observation to be augmented in XML')
-    in_group.add_argument('--observation', nargs=2, help='observation in a collection',
-                          metavar=('collection', 'observationID'))
-
-    args = parser.parse_args()
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    else:
-        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
-
-    if args.out_obs_xml:
-        outObsXml = args.out_obs_xml
-
-    if args.in_obs_xml:
-        inObsXml = args.in_obs_xml
-    else:
-        collection = args.observation[0]
-        observationID = args.observation[1]
-
-    fileURIs = args.fileURI
-
-    # invoke the appropriate function based on the inputs
+        logging.info("DONE")
 
 
-    logging.info("DONE")
-
-if __name__ == '__main__':
-    main_app()
