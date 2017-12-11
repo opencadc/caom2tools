@@ -70,11 +70,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from argparse import ArgumentParser
 from builtins import str
 
 import math
 from astropy.wcs import WCS
 from astropy.io import fits
+from cadcutils import util, version
 from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
 from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
@@ -83,6 +85,8 @@ from caom2 import TemporalWCS
 import logging
 import os
 import sys
+
+APP_NAME = 'fits2caom2'
 
 ENERGY_CTYPES = [
     'FREQ',
@@ -519,3 +523,56 @@ class FitsParser(object):
             return None  # empty string
         else:
             return value
+
+    def main_app(self):
+        parser = ArgumentParser()
+
+        parser.description = (
+            'Augments an observation with information in one or more fits files.')
+
+        if version.version is not None:
+            parser.add_argument('-V', '--version', action='version', version=version)
+
+        log_group = parser.add_mutually_exclusive_group()
+        log_group.add_argument('-d', '--debug', action='store_true',
+                               help='debug messages')
+        log_group.add_argument('-q', '--quiet', action='store_true',
+                               help='run quietly')
+        log_group.add_argument('-v', '--verbose', action='store_true',
+                               help='verbose messages')
+
+        parser.add_argument('-o', '--out', dest='out_obs_xml', help='output of augmented observation in XML',
+                            required=False)
+        parser.add_argument('productID', help='product ID of the plane in the observation')
+        parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
+
+        in_group = parser.add_mutually_exclusive_group(required=True)
+        in_group.add_argument('-i', '--in', dest='in_obs_xml', help='input of observation to be augmented in XML')
+        in_group.add_argument('--observation', nargs=2, help='observation in a collection',
+                              metavar=('collection', 'observationID'))
+
+        args = parser.parse_args()
+        if args.verbose:
+            logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+        if args.debug:
+            logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        else:
+            logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+
+        if args.out_obs_xml:
+            outObsXml = args.out_obs_xml
+
+        if args.in_obs_xml:
+            inObsXml = args.in_obs_xml
+        else:
+            collection = args.observation[0]
+            observationID = args.observation[1]
+
+        fileURIs = args.fileURI
+
+        # invoke the appropriate function based on the inputs
+
+
+        logging.info("DONE")
+
+
