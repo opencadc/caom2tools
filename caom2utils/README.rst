@@ -29,3 +29,33 @@ Design Decisions
 
 
 Ran a test with the first JCMT file and the first HSTCA file on mach37 (2GB RAM) with no OOM issue.
+
+Tests
+=====
+
+CFHT
+----
+
+* 2087482o  MegaPrime raw
+
+* 2087482p  MegaPrime processed
+
+* 1916216o Espadons raw
+
+* 1916216i  Espadons processed  - weird format
+
+* 1916216p Espadons polarization composite  - weird format
+
+* 2216850f  Espadons flat  - calibration, not on-sky
+
+* 2216860b Espadons bias   - calibration, not on-sky
+
+* 1709071o  WIRCam raw
+
+* 1709071g  WIRCam raw guide cube - little time-series cutouts around some stars
+
+* 1709071p  WIRCam processed
+
+* 2136164o SITELLE raw
+
+* 2136164p SITELLE processed spectral cube
