@@ -315,6 +315,8 @@ def test_help(test_file):
     """ Tests the helper displays for commands in main"""
 
     # expected helper messages
+    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt'), 'r') as myfile:
+        too_few_arguments_usage = myfile.read()
     with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
         usage = myfile.read()
     with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r') as myfile:
@@ -322,13 +324,21 @@ def test_help(test_file):
     with open(os.path.join(TESTDATA_DIR, 'missing_positional_argument_help.txt'), 'r') as myfile:
         missing_positional_argument_usage = myfile.read()
 
+    # too few arguments error message when running python3
+    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+        sys.argv = ["fits2caom2"]
+        with pytest.raises(MyExitError):
+            test_fitsparser = FitsParser(test_file)
+            test_fitsparser.main_app()
+        if stdout_mock.getvalue():
+            assert(too_few_arguments_usage == stdout_mock.getvalue())
+
     # --help
     with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "-h"]
         with pytest.raises(MyExitError):
             test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
-        help_out = stdout_mock.getvalue()
         assert(usage == stdout_mock.getvalue())
 
     # missing required --observation
@@ -337,7 +347,6 @@ def test_help(test_file):
         with pytest.raises(MyExitError):
             test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
-        help_out = stdout_mock.getvalue()
         assert(missing_observation_usage == stdout_mock.getvalue())
 
     # missing positional argument
@@ -346,7 +355,6 @@ def test_help(test_file):
         with pytest.raises(MyExitError):
             test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
-        help_out = stdout_mock.getvalue()
         assert(missing_positional_argument_usage == stdout_mock.getvalue())
 
 
@@ -355,37 +363,33 @@ def test_valid_arguments(test_file):
     """ Tests the parser with valid commands in main"""
 
     # --in
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
-        help_out = stdout_mock.getvalue()
-        assert(not stdout_mock.getvalue())
+        assert(not "error" in stderr_mock.getvalue())
 
     # --in and --out
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML", "--out", "pathTo/outObsXML",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
-        help_out = stdout_mock.getvalue()
-        assert(not stdout_mock.getvalue())
+        assert(not "error" in stderr_mock.getvalue())
 
     # --observation
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
-        help_out = stdout_mock.getvalue()
-        assert(not stdout_mock.getvalue())
+        assert(not "error" in stderr_mock.getvalue())
 
     # --observation and --out
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "--out", "pathTo/outObsXML"
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
-        help_out = stdout_mock.getvalue()
-        assert(not stdout_mock.getvalue())
+        assert(not "error" in stderr_mock.getvalue())

@@ -552,6 +552,11 @@ class FitsParser(object):
                               metavar=('collection', 'observationID'))
 
         args = parser.parse_args()
+        if len(sys.argv) < 2:
+            # correct error message when running python3
+            parser.print_usage(file=sys.stderr)
+            sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
+            sys.exit(-1)
         if args.verbose:
             logging.basicConfig(level=logging.INFO, stream=sys.stdout)
         if args.debug:
