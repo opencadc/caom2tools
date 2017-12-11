@@ -92,12 +92,15 @@ sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
 
 test_fitsparser = FitsParser()
 
+
 class MyExitError(Exception):
     pass
+
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_plarization(test_file):
     artifact = test_fitsparser.augment_artifact(test_file)
+
 
 EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:energy>
@@ -132,7 +135,7 @@ def test_augment_energy(test_file):
 
 
 EXPECTED_POLARIZATION_XML = \
-"""<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+    """<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:polarization>
     <caom2:axis>
       <caom2:axis>
@@ -158,18 +161,9 @@ def test_augment_polarization(test_file):
     polarization = artifact.parts['0'].chunks[0].polarization
     check_xml(ObservationWriter()._add_polarization_wcs_element, polarization, EXPECTED_POLARIZATION_XML)
 
-    # etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
-    # parent_element = etree.Element(
-    #     '{http://www.opencadc.org/caom2/xml/v2.3}import')
-    # ow = ObservationWriter()
-    # ow._add_polarization_wcs_element(polarization, parent_element)
-    # tree = etree.ElementTree(parent_element)
-    # result = etree.tostring(tree, encoding='unicode', pretty_print=True)
-    # assert EXPECTED_POLARIZATION_XML == result
-
 
 EXPECTED_POSITION_XML = \
-"""<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+    """<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:position>
     <caom2:axis>
       <caom2:axis1>
@@ -326,7 +320,6 @@ def test_help(test_file):
     with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "-h"]
         with pytest.raises(MyExitError):
-            test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(usage == stdout_mock.getvalue())
@@ -335,7 +328,6 @@ def test_help(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "testProductID", "testpathto/testFileURI"]
         with pytest.raises(MyExitError):
-            test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(missing_observation_usage == stdout_mock.getvalue())
@@ -344,7 +336,6 @@ def test_help(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "testPathTo/testFileURI"]
         with pytest.raises(MyExitError):
-            test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(missing_positional_argument_usage == stdout_mock.getvalue())
@@ -358,7 +349,6 @@ def test_valid_arguments(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())
@@ -367,7 +357,6 @@ def test_valid_arguments(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML", "--out", "pathTo/outObsXML",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())
@@ -376,7 +365,6 @@ def test_valid_arguments(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())
@@ -385,7 +373,6 @@ def test_valid_arguments(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "--out", "pathTo/outObsXML"
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())

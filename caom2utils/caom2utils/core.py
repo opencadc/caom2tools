@@ -119,6 +119,7 @@ TIME_KEYWORDS = [
 
 POLARIZATION_CTYPES = ['STOKES']
 
+
 class LoggingFilter(logging.Filter):
     """Add the HDU number to logging messages as a default."""
 
@@ -375,7 +376,6 @@ class FitsParser(object):
                                    None, None, aug_function)
 
         return aug_axis
-
 
     def get_cd(self, x_index, y_index):
 
