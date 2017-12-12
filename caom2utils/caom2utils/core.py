@@ -148,6 +148,7 @@ class FitsParser(object):
     TIME_AXIS = 'time'
 
     def __init__(self,
+                 file,
                  defaults=None,
                  artifact=None,
                  collection=None):
@@ -156,35 +157,18 @@ class FitsParser(object):
         self.collection = collection
         self.wcs = None
         self.chunk = None
-        self.header_hdu = None
-
-        # configure logging
-
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(asctime)s %(name)-12s %(levelname)-8s HDU:%(hdu)-2d %(message)s')
-        handler.setFormatter(formatter)
-        self.logger = logging.getLogger()
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.DEBUG)
-
-        self.logfilter = LoggingFilter()
-        self.logger.addFilter(self.logfilter)
-        logging.getLogger('astropy').addFilter(self.logfilter)
-
-        self.filename = None
-        self.parts = None
-        self.hdulist = None
         self.header = None
-        self.artifact = None
 
-    def augment_artifact(self, file):
+        self._configure_logging()
+
+        self.file = file
         self.filename = os.path.basename(file)
         self.hdulist = fits.open(file, memmap=True, lazy_load_hdus=False)
         self.hdulist.close()
         self.parts = len(self.hdulist)
 
-        self.logger.debug('Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(file, self.parts))
+    def augment_artifact(self):
+        self.logger.debug('Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(self.file, self.parts))
 
         if not self.artifact:
             assert not self.collection
@@ -195,7 +179,7 @@ class FitsParser(object):
             hdu = self.hdulist[i]
             # print(repr(hdu.header))
             ii = str(i)
-            self.logfilter.hdu_for_log(i)
+            self.log_filter.hdu_for_log(i)
 
             # there is one Part per extension, the name is the extension number
             if hdu.size:
@@ -262,7 +246,6 @@ class FitsParser(object):
         self.chunk.energy.zsource = self.fix_value(self.wcs.wcs.zsource)
         self.chunk.energy.ssyssrc = self.fix_value(self.wcs.wcs.ssyssrc)
         self.chunk.energy.velang = self.fix_value(self.wcs.wcs.velangl)
-
 
     def augment_position(self):
         self.logger.debug('Begin Spatial WCS augmentation.')
@@ -487,7 +470,6 @@ class FitsParser(object):
         self.chunk.time = TemporalWCS(CoordAxis1D(aug_naxis, aug_error, None, None, aug_function))
         self.logger.debug('End temporal axis augmentation.')
 
-
     def get_time_axis(self):
         axis_types = self.wcs.axis_type_names
         if(len(axis_types) >= 3) and (axis_types[2] == ''):
@@ -573,6 +555,19 @@ class FitsParser(object):
         # invoke the appropriate function based on the inputs
 
 
+
         logging.info("DONE")
 
+    def _configure_logging(self):
+        self.logger = logging.getLogger(__name__)
+        if not len(self.logger.handlers):
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                '%(asctime)s %(name)-12s %(levelname)-8s HDU:%(hdu)-2d %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
 
+        self.logger.setLevel(logging.DEBUG)
+        self.log_filter = LoggingFilter()
+        self.logger.addFilter(self.log_filter)
+        logging.getLogger('astropy').addFilter(self.log_filter)

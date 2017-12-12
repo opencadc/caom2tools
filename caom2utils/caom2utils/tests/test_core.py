@@ -89,8 +89,7 @@ import pytest
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
-
-test_fitsparser = FitsParser()
+sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
 
 
 class MyExitError(Exception):
@@ -99,7 +98,8 @@ class MyExitError(Exception):
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_plarization(test_file):
-    artifact = test_fitsparser.augment_artifact(test_file)
+    test_fitsparser = FitsParser(test_file)
+    artifact = test_fitsparser.augment_artifact()
 
 
 EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
@@ -128,7 +128,8 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
-    artifact = test_fitsparser.augment_artifact(test_file)
+    test_fitsparser = FitsParser(test_file)
+    artifact = test_fitsparser.augment_artifact()
     energy = artifact.parts['0'].chunks[0].energy
     energy.bandpassName = '21 cm' # user set attribute
     check_xml(ObservationWriter()._add_spectral_wcs_element, energy, EXPECTED_ENERGY_XML)
@@ -157,7 +158,8 @@ EXPECTED_POLARIZATION_XML = \
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_polarization(test_file):
-    artifact = test_fitsparser.augment_artifact(test_file)
+    test_fitsparser = FitsParser(test_file)
+    artifact = test_fitsparser.augment_artifact()
     polarization = artifact.parts['0'].chunks[0].polarization
     check_xml(ObservationWriter()._add_polarization_wcs_element, polarization, EXPECTED_POLARIZATION_XML)
 
@@ -202,7 +204,8 @@ EXPECTED_POSITION_XML = \
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
-    test_artifact = test_fitsparser.augment_artifact(test_file)
+    test_fitsparser = FitsParser(test_file)
+    test_artifact = test_fitsparser.augment_artifact()
     assert test_artifact is not None
     assert test_artifact.parts is not None
     assert len(test_artifact.parts) == 1
@@ -226,7 +229,7 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
         <caom2:rnder>1e-07</caom2:rnder>
       </caom2:error>
       <caom2:function>
-        <caom2:naxis>1964</caom2:naxis>
+        <caom2:naxis>1</caom2:naxis>
         <caom2:delta>2.31481e-07</caom2:delta>
         <caom2:refCoord>
           <caom2:pix>0.5</caom2:pix>
@@ -255,10 +258,11 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
 #                                                  (os.path.join(TESTDATA_DIR, 'jcmth20100515_00048_02_rimg_pro_000.fits'),
 #                                                   EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
 
-@pytest.mark.parametrize('test_file, expected', [(os.path.join(TESTDATA_DIR, '1709071g.fits'),
+@pytest.mark.parametrize('test_file, expected', [(sample_file_time_axes,
                                                   EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
 def test_augment_artifact_time(test_file, expected):
-    test_artifact = test_fitsparser.augment_artifact(test_file)
+    test_fitsparser = FitsParser(test_file)
+    test_artifact = test_fitsparser.augment_artifact()
     assert test_artifact is not None
     assert test_artifact.parts is not None
     assert len(test_artifact.parts) == 6
@@ -272,6 +276,7 @@ def test_augment_artifact_time(test_file, expected):
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
+    test_fitsparser = FitsParser(test_file)
     result = test_fitsparser.fix_value(w.wcs.equinox)
     assert result is None
     result = getattr(w, '_naxis1')
@@ -320,6 +325,7 @@ def test_help(test_file):
     with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "-h"]
         with pytest.raises(MyExitError):
+            test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(usage == stdout_mock.getvalue())
@@ -328,6 +334,7 @@ def test_help(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "testProductID", "testpathto/testFileURI"]
         with pytest.raises(MyExitError):
+            test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(missing_observation_usage == stdout_mock.getvalue())
@@ -336,6 +343,7 @@ def test_help(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "testPathTo/testFileURI"]
         with pytest.raises(MyExitError):
+            test_fitsparser = FitsParser(test_file)
             test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(missing_positional_argument_usage == stdout_mock.getvalue())
@@ -349,6 +357,7 @@ def test_valid_arguments(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+        test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())
@@ -357,6 +366,7 @@ def test_valid_arguments(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML", "--out", "pathTo/outObsXML",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+        test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())
@@ -365,6 +375,7 @@ def test_valid_arguments(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+        test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())
@@ -373,6 +384,9 @@ def test_valid_arguments(test_file):
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "--out", "pathTo/outObsXML"
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+        test_fitsparser = FitsParser(test_file)
         test_fitsparser.main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())
+
+
