@@ -442,25 +442,21 @@ class FitsParser(object):
         # Chunk.time.axis.axis.ctype = CTYPE{timeAxis}
         # Chunk.time.axis.axis.cunit = CUNIT{timeAxis}
 
-        # TODO - need to change headers in test file
-        aug_naxis = self.get_axis(index, over_ctype='TIME', over_cunit='d')
+
+        aug_naxis = self.get_axis(index)
 
         # Chunk.time.axis.bounds.samples = time.samples
 
         # Chunk.time.axis.error.syser = CSYER{timeAxis}
         # Chunk.time.axis.error.rnder = CRDER{timeAxis}
-        # TODO - need to change headers in test file
-        aug_error = self.get_coord_error(None, index, over_csyer=1e-07, over_crder=1e-07)
+        aug_error = self.get_coord_error(None, index)
 
         # Chunk.time.axis.function.naxis = NAXIS{timeAxis}
         # Chunk.time.axis.function.delta = CDELT{timeAxis}
         # Chunk.time.axis.function.refCoord.pix = CRPIX{timeAxis}
         # Chunk.time.axis.function.refCoord.val = CRVAL{timeAxis}
-        # TODO - need to change headers in test file
-        over_cdelt = 2.31481e-07
-        aug_ref_coord = self.get_ref_coord(None, index, over_crpix=0.5, over_crval=56789.4298069)
-        aug_cdelt = over_cdelt if not None else self.wcs.wcs.cdelt[index]
-        aug_function = CoordFunction1D(self.wcs._naxis[index], aug_cdelt, aug_ref_coord)
+        aug_ref_coord = self.get_ref_coord(None, index)
+        aug_function = CoordFunction1D(self.wcs._naxis[index], self.wcs.wcs.cdelt[index], aug_ref_coord)
 
         # Chunk.time.axis.range.start.pix = time.range.start.pix
         # Chunk.time.axis.range.start.val = time.range.start.val
