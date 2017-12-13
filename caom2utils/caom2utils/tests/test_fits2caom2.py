@@ -352,38 +352,3 @@ def test_help(test_file):
         assert(missing_positional_argument_usage == stdout_mock.getvalue())
     """
 
-
-@pytest.mark.parametrize('test_file', [sample_file_4axes])
-def test_valid_arguments(test_file):
-    """ Tests the parser with valid commands in main"""
-
-    # --in
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
-        sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML",
-                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        main_app()
-        assert(not "error" in stderr_mock.getvalue())
-
-    # --in and --out
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
-        sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML", "--out",
-                    "pathTo/outObsXML",
-                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        main_app()
-        assert(not "error" in stderr_mock.getvalue())
-
-    # --observation
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection",
-                    "testObservationID",
-                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        main_app()
-        assert(not "error" in stderr_mock.getvalue())
-
-    # --observation and --out
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection",
-                    "testObservationID", "--out", "pathTo/outObsXML"
-                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        main_app()
-        assert(not "error" in stderr_mock.getvalue())
