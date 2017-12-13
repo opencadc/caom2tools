@@ -69,8 +69,6 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import str
-
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app
@@ -128,8 +126,9 @@ def test_augment_energy(test_file):
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     energy = artifact.parts['0'].chunks[0].energy
-    energy.bandpassName = '21 cm' # user set attribute
-    check_xml(ObservationWriter()._add_spectral_wcs_element, energy, EXPECTED_ENERGY_XML)
+    energy.bandpassName = '21 cm'  # user set attribute
+    check_xml(ObservationWriter()._add_spectral_wcs_element, energy,
+              EXPECTED_ENERGY_XML)
 
 
 EXPECTED_POLARIZATION_XML = \
@@ -160,7 +159,8 @@ def test_augment_polarization(test_file):
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     polarization = artifact.parts['0'].chunks[0].polarization
-    check_xml(ObservationWriter()._add_polarization_wcs_element, polarization, EXPECTED_POLARIZATION_XML)
+    check_xml(ObservationWriter()._add_polarization_wcs_element, polarization,
+              EXPECTED_POLARIZATION_XML)
 
 
 EXPECTED_POSITION_XML = \
@@ -213,7 +213,8 @@ def test_augment_artifact(test_file):
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.position is not None
-    check_xml(ObservationWriter()._add_spatial_wcs_element, test_chunk.position, EXPECTED_POSITION_XML)
+    check_xml(ObservationWriter()._add_spatial_wcs_element,
+              test_chunk.position, EXPECTED_POSITION_XML)
 
 
 EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
@@ -245,21 +246,9 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
 """
 
 
-# @pytest.mark.parametrize('test_file, expected', [(os.path.join(TESTDATA_DIR, '1709071g.fits'), EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME_XML),
-#                                                  (os.path.join(TESTDATA_DIR, '1916216i.fits'), EXPECTED_CFHT_TIME_XML),
-#                                                  (os.path.join(TESTDATA_DIR, '1916216o.fits'), EXPECTED_CFHT_TIME_XML),
-#                                                  (os.path.join(TESTDATA_DIR, '1916216p.fits'), EXPECTED_CFHT_TIME_XML),
-#                                                  (os.path.join(TESTDATA_DIR, '2136164p.fits'), EXPECTED_CFHT_TIME_XML)])
-
-# @pytest.mark.parametrize('test_file, expected', [(os.path.join(TESTDATA_DIR, '1709071g.fits'),
-#                                                   EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME),
-#                                                  (os.path.join(TESTDATA_DIR, 'oc6n01010_x1d.fits'),
-#                                                    EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME),
-#                                                  (os.path.join(TESTDATA_DIR, 'jcmth20100515_00048_02_rimg_pro_000.fits'),
-#                                                   EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
-
-@pytest.mark.parametrize('test_file, expected', [(sample_file_time_axes,
-                                                  EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
+@pytest.mark.parametrize('test_file, expected',
+                         [(sample_file_time_axes,
+                           EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
 def test_augment_artifact_time(test_file, expected):
     test_fitsparser = FitsParser(test_file)
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
@@ -271,14 +260,15 @@ def test_augment_artifact_time(test_file, expected):
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.position is not None
-    check_xml(ObservationWriter()._add_temporal_wcs_element, test_chunk.time, expected)
+    check_xml(ObservationWriter()._add_temporal_wcs_element, test_chunk.time,
+              expected)
 
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
     test_parser = WcsParser(get_test_header(test_file)[0], test_file)
-    result = test_parser.fix_value(w.wcs.equinox)
+    result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
     result = getattr(w, '_naxis1')
     assert result == 1
@@ -299,8 +289,10 @@ def get_test_wcs(test_file):
 
 
 def check_xml(xml_func, test_wcs, expected):
-    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
-    parent_element = etree.Element('{http://www.opencadc.org/caom2/xml/v2.3}import')
+    etree.register_namespace(
+        'caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
+    parent_element = etree.Element(
+        '{http://www.opencadc.org/caom2/xml/v2.3}import')
     xml_func(test_wcs, parent_element)
     tree = etree.ElementTree(parent_element)
     result = etree.tostring(tree, encoding='unicode', pretty_print=True)
@@ -317,9 +309,12 @@ def test_help(test_file):
     # expected helper messages
     with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
         usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r') as myfile:
+    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r')\
+            as myfile:
         missing_observation_usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_positional_argument_help.txt'), 'r') as myfile:
+    with open(os.path.join(TESTDATA_DIR,
+                           'missing_positional_argument_help.txt'), 'r') \
+            as myfile:
         missing_positional_argument_usage = myfile.read()
 
     # --help
@@ -340,7 +335,8 @@ def test_help(test_file):
 
     # missing positional argument
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "testPathTo/testFileURI"]
+        sys.argv = ["fits2caom2", "--observation", "testCollection",
+                    "testObservationID", "testPathTo/testFileURI"]
         with pytest.raises(MyExitError):
             main_app()
         help_out = stdout_mock.getvalue()
@@ -361,7 +357,8 @@ def test_valid_arguments(test_file):
 
     # --in and --out
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML", "--out", "pathTo/outObsXML",
+        sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML", "--out",
+                    "pathTo/outObsXML",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         main_app()
         help_out = stdout_mock.getvalue()
@@ -369,7 +366,8 @@ def test_valid_arguments(test_file):
 
     # --observation
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID",
+        sys.argv = ["fits2caom2", "--observation", "testCollection",
+                    "testObservationID",
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         main_app()
         help_out = stdout_mock.getvalue()
@@ -377,10 +375,9 @@ def test_valid_arguments(test_file):
 
     # --observation and --out
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection", "testObservationID", "--out", "pathTo/outObsXML"
+        sys.argv = ["fits2caom2", "--observation", "testCollection",
+                    "testObservationID", "--out", "pathTo/outObsXML"
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         main_app()
         help_out = stdout_mock.getvalue()
         assert(not stdout_mock.getvalue())
-
-
