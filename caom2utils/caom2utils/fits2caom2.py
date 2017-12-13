@@ -237,7 +237,11 @@ class FitsParser(object):
 class WcsParser(object):
     """
     Parser to augment chunks with positional, temporal, energy and polarization
-    information based on the WCS keywords in an extension of a FITS header
+    information based on the WCS keywords in an extension of a FITS header.
+
+    Note: Under the hood, this class uses the astropy.wcs package to parse the
+    header and any inconsistencies or missing keywords are reported back as
+    warnings.
     """
 
     ENERGY_AXIS = 'energy'
