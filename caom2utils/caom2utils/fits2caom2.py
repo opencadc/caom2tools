@@ -332,6 +332,15 @@ class WcsParser(object):
     def augment_temporal(self, chunk):
         """
         Augments a chunk with temporal WCS information
+
+        The expected caom2 - FITS keywords mapping is:
+
+            time.exposure = EXPTIME
+            time.resolution = TIMEDEL
+            time.timesys = TIMESYS default UTC
+            time.trefpos = TREFPOS
+            time.mjdref = MJDREF | MJDDATE
+
         :param chunk:
         :return:
         """
@@ -361,11 +370,10 @@ class WcsParser(object):
         else:
             chunk.time.naxis = naxis
 
-        # TODO need to set the values for the keywords in the test file headers
-        chunk.time.exposure = self.header.get('EXPTIME', 0.02)
-        chunk.time.resolution = self.header.get('TODO', 0.02)
+        chunk.time.exposure = self.header.get('EXPTIME')
+        chunk.time.resolution = self.header.get('TIMEDEL')
         chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
-        chunk.time.trefpos = self.header.get('TREFPOS', None)
+        chunk.time.trefpos = self.header.get('TREFPOS')
         chunk.time.mjdref = self.header.get('MJDREF',
                                             self.header.get('MJDDATE'))
         self.logger.debug('End TemporalWCS augmentation.')
