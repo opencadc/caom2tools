@@ -225,12 +225,12 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
         <caom2:cunit>d</caom2:cunit>
       </caom2:axis>
       <caom2:error>
-        <caom2:syser>1e-07</caom2:syser>
-        <caom2:rnder>1e-07</caom2:rnder>
+        <caom2:syser>9.9999999999999995e-08</caom2:syser>
+        <caom2:rnder>9.9999999999999995e-08</caom2:rnder>
       </caom2:error>
       <caom2:function>
         <caom2:naxis>1</caom2:naxis>
-        <caom2:delta>2.31481e-07</caom2:delta>
+        <caom2:delta>2.3148100000000001e-07</caom2:delta>
         <caom2:refCoord>
           <caom2:pix>0.5</caom2:pix>
           <caom2:val>56789.4298069</caom2:val>
