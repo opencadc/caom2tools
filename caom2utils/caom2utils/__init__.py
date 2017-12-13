@@ -4,7 +4,7 @@
 TODO
 """
 
-from .core import *  # noqa
+from .fits2caom2 import *  # noqa
 
 import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())

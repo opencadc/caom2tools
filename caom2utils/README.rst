@@ -29,3 +29,56 @@ Design Decisions
 
 
 Ran a test with the first JCMT file and the first HSTCA file on mach37 (2GB RAM) with no OOM issue.
+
+Tests
+=====
+
+CFHT
+----
+
+* 2087482o  MegaPrime raw
+
+* 2087482p  MegaPrime processed
+
+* 1916216o Espadons raw
+
+* 1916216i  Espadons processed  - weird format
+
+* 1916216p Espadons polarization composite  - weird format
+
+* 2216850f  Espadons flat  - calibration, not on-sky
+
+* 2216860b Espadons bias   - calibration, not on-sky
+
+* 1709071o  WIRCam raw
+
+* 1709071g  WIRCam raw guide cube - little time-series cutouts around some stars::
+
+   curl --location-trusted -g -o 1709071g.fits 'http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/data/pub/CFHT/1709071g.fits?cutout=[0][1:1,1:1,1:1]&cutout=[1][1:1,1:1,1:1]&cutout=[2][1:1,1:1,1:1]&cutout=[3][1:1,1:1,1:1]&cutout=[4][1:1,1:1,1:1]&cutout=[5][1:1,1:1,1:1]'
+
+   def test_update():
+      hdulist = fits.open(sample_file_time_axes)
+      header = hdulist[0].header
+
+      for ii in range(6):
+          print(ii)
+          if ii == 5:
+              break
+          header = hdulist[ii+1].header
+          header['CTYPE3'] = 'TIME'
+          header['CUNIT3'] = 'd'
+          header['CSYER3'] = 1e-07
+          header['CRDER3'] = 1e-07
+          header['CRPIX3'] = 0.5
+          header['CRVAL3'] = 56789.4298069
+          header['CDELT3'] = 2.31481e-07
+          header['NAXIS3'] = 1
+
+      hdulist.writeto(sample_file_time_axes, overwrite=True)
+
+
+* 1709071p  WIRCam processed
+
+* 2136164o SITELLE raw
+
+* 2136164p SITELLE processed spectral cube
