@@ -524,6 +524,11 @@ class FitsParser(object):
         else:
             return value
 
+    def convert_argv(self):
+        convertedArgv = []
+        for arg in sys.argv:
+            tempArg = arg.split("=")
+
     def main_app(self):
         parser = ArgumentParser()
 
@@ -541,17 +546,34 @@ class FitsParser(object):
         log_group.add_argument('-v', '--verbose', action='store_true',
                                help='verbose messages')
 
+        parser.add_argument('--dumpconfig', help='output the utype to keyword mapping to the console',
+                            action='store_true')
+        parser.add_argument('--ignorePartialWCS', help='do not stop and exit upon finding partial WCS',
+                            action='store_true')
+
         parser.add_argument('-o', '--out', dest='out_obs_xml', help='output of augmented observation in XML',
                             required=False)
-        parser.add_argument('productID', help='product ID of the plane in the observation')
-        parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
-
         in_group = parser.add_mutually_exclusive_group(required=True)
         in_group.add_argument('-i', '--in', dest='in_obs_xml', help='input of observation to be augmented in XML')
         in_group.add_argument('--observation', nargs=2, help='observation in a collection',
                               metavar=('collection', 'observationID'))
 
-        args = parser.parse_args()
+        parser.add_argument('--config',
+                            help='optional CAOM2 utype to keyword config file to merge with the internal configuration',
+                            required=False)
+        parser.add_argument('--default', help='file with default values for keywords')
+        parser.add_argument('--override', help='file with override values for keywords')
+        parser.add_argument('--local', help='list of files in local filesystem (same order as uri)', nargs='+')
+        parser.add_argument('--log', help='log file name > (instead of console)')
+        parser.add_argument('--keep', help='keep the locally stored files after ingestion', action='store_true')
+        parser.add_argument('--test', help='test mode, do not persist to database', action='store_true')
+        parser.add_argument('--cert', help='Cert File or Proxy Cert&Key PEM file')
+
+        parser.add_argument('productID', help='product ID of the plane in the observation')
+        parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
+
+        myArgv = self.convert_argv()
+        args = parser.parse_args(myArgv)
         if len(sys.argv) < 2:
             # correct error message when running python3
             parser.print_usage(file=sys.stderr)
