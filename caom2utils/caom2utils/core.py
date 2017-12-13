@@ -137,10 +137,44 @@ class LoggingFilter(logging.Filter):
 
 class FitsParser(object):
     """
-    Creates a CAOM2 Artifact object based on the content of the in-coming map,
-    which is currently assumed to be the hdulist returned by astropy.
+    Parses a FITS file and extracts the CAOM2 related information which can
+    be used to augment an existing CAOM2 observation, plane or artifact. If
+    the FITS file is not provided, a list of dictionaries (FITS keyword=value)
+    with a dictionary for each "extension" need to be provided instead.
 
-    Assumes an existing observation + plane construct.
+    The WCS-related keywords of the FITS file are consumed by the astropy.wcs
+    package which might display warnings with regards to compliance.
+
+    Example 1:
+    parser = FitsParser(file = '/staging/700000o.fits.gz')
+    ...
+    # customize parser.hdulist by deleting, changing or adding attributes
+
+    obs = Observation(collection='TEST', observation_id='700000',
+                      algorithm='exposure')
+    plane = Plane(plane_id='700000-1')
+    obs.plane.add(plane)
+
+    artifact = Artifact(uri='ad:CFHT/700000o.fits.gz', product_type='science',
+                        release_type='data')
+    plane.artifacts.add(artifact)
+
+    parser.augment_observation(obs)
+
+    # further update obs
+
+
+    Example 2:
+    parser = FitsParser()
+
+    headers = [] # list of dictionaries headers
+    # populate headers
+
+    parser.hdulist = headers
+
+    parser.augment_observation(obs)
+    ...
+
     """
 
     ENERGY_AXIS = 'energy'
@@ -148,18 +182,13 @@ class FitsParser(object):
     TIME_AXIS = 'time'
 
     def __init__(self,
-                 file,
-                 defaults=None,
-                 artifact=None,
-                 collection=None):
-        self.defaults = defaults
-        self.artifact = artifact
-        self.collection = collection
-        self.wcs = None
-        self.chunk = None
-        self.header = None
+                 file):
+        """
+        Ctor
+        :param file: FITS file
+        """
 
-        self._configure_logging()
+        _configure_logging(self)
 
         self.file = file
         self.filename = os.path.basename(file)
@@ -167,49 +196,72 @@ class FitsParser(object):
         self.hdulist.close()
         self.parts = len(self.hdulist)
 
-    def augment_artifact(self):
-        self.logger.debug('Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(self.file, self.parts))
+    def augment_artifact(self, artifact):
+        """
+        Augments a given CAOM2 artifact with available FITS information
+        :param artifact: existing CAOM2 artifact to be augmented
+        """
+        self.logger.debug(
+            'Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(
+                self.file, self.parts))
 
-        if not self.artifact:
-            assert not self.collection
-            self.artifact = Artifact('ad:{}/{}'.format(self.collection, self.filename),
-                                     ProductType.SCIENCE, ReleaseType.DATA)  # TODO
+        assert artifact
+        assert isinstance(artifact, Artifact)
 
         for i in range(self.parts):
             hdu = self.hdulist[i]
-            # print(repr(hdu.header))
             ii = str(i)
             self.log_filter.hdu_for_log(i)
 
             # there is one Part per extension, the name is the extension number
             if hdu.size:
-                if ii not in self.artifact.parts.keys():
-                    self.artifact.parts.add(Part(ii))  # TODO use extension name
+                if ii not in artifact.parts.keys():
+                    artifact.parts.add(Part(ii))  #TODO use extension name
                     self.logger.debug('Part created for HDU {}.'.format(ii))
             else:
-                self.artifact.parts.add(Part(ii))
+                artifact.parts.add(Part(ii))
                 self.logger.debug('Create empty part for HDU {}'.format(ii))
                 continue
-            part = self.artifact.parts[ii]
+            part = artifact.parts[ii]
 
             # each Part has one Chunk
             if not part.chunks:
                 part.chunks.append(Chunk())
-            self.chunk = part.chunks[0]
+            chunk = part.chunks[0]
 
-            self.header = hdu.header
-            self.wcs = WCS(self.header)
-            # print(repr(header))
-            # self.wcs.wcs.print_contents()
-            self.augment_position()
-            self.augment_energy()
-            self.augment_temporal()
-            self.augment_polarization()
+            wcs_parser = WcsParser(hdu.header, self.filename)
+            wcs_parser.augment_position(chunk)
+            wcs_parser.augment_energy(chunk)
+            wcs_parser.augment_temporal(chunk)
+            wcs_parser.augment_polarization(chunk)
 
-        self.logger.debug('End CAOM2 artifact augmentation for {}'.format(self.filename))
-        return self.artifact
+        self.logger.debug(
+            'End CAOM2 artifact augmentation for {}'.format(self.filename))
 
-    def _get_axis(self, keywords):
+
+class WcsParser(object):
+    """
+    Parser to augment chunks with positional, temporal, energy and polarization
+    information based on the WCS keywords in an extension of a FITS header
+    """
+
+    def __init__(self, header, filename):
+        """
+
+        :param header: FITS extension header
+        :param filename: name of FITS file
+        """
+        _configure_logging(self)
+        self.wcs = WCS(header)
+        self.header = header
+        self.filename = filename
+
+    def _get_axis_index(self, keywords):
+        """
+        Return the index of a specific axis type or None of it doesn't exist
+        :param keywords:
+        :return:
+        """
         axis = None
         for i, elem in enumerate(self.wcs.axis_type_names):
             if elem in keywords:
@@ -217,75 +269,94 @@ class FitsParser(object):
                 break
         return axis
 
-    def augment_energy(self):
+    def augment_energy(self, chunk):
+        """
+        Augments the energy information in a chunk
+        :param chunk:
+        """
+        assert chunk
+        assert isinstance(chunk, Chunk)
+
         # get the energy axis
-        energy_axis = self._get_axis(ENERGY_CTYPES)
+        energy_axis = self._get_axis_index(ENERGY_CTYPES)
 
         if energy_axis is None:
             self.logger.debug('No WCS Energy info for {}'.format(self.filename))
             return
 
-        self.chunk.energy_axis = energy_axis
-        naxis = CoordAxis1D(self.get_axis(energy_axis))
-        naxis.function = \
-            CoordFunction1D(self.fix_value(self.wcs._naxis[energy_axis]),  # TODO
-                            self.fix_value(self.wcs.wcs.cdelt[energy_axis]),
-                            RefCoord(self.fix_value(self.wcs.wcs.crpix[energy_axis]),
-                                     self.fix_value(self.wcs.wcs.crval[energy_axis])))
+        chunk.energy_axis = energy_axis
+        naxis = CoordAxis1D(self._get_axis(energy_axis))
+
+        # Note - could not avoid using _naxis private attributes...
+        naxis.function = CoordFunction1D(
+            self.fix_value(self.wcs._naxis[energy_axis]),
+            self.fix_value(self.wcs.wcs.cdelt[energy_axis]),
+            RefCoord(self.fix_value(self.wcs.wcs.crpix[energy_axis]),
+                     self.fix_value(self.wcs.wcs.crval[energy_axis])))
         specsys = str(self.wcs.wcs.specsys)
-        if not self.chunk.energy:
-            self.chunk.energy = SpectralWCS(naxis, specsys)
+        if not chunk.energy:
+            chunk.energy = SpectralWCS(naxis, specsys)
         else:
-            self.chunk.energy.naxis = naxis
-            self.chunk.energy.specsys = specsys
+            chunk.energy.naxis = naxis
+            chunk.energy.specsys = specsys
 
-        self.chunk.energy.ssysobs = self.fix_value(self.wcs.wcs.ssysobs)
-        self.chunk.energy.restfrq = self.fix_value(self.wcs.wcs.restfrq)
-        self.chunk.energy.restwav = self.fix_value(self.wcs.wcs.restwav)
-        self.chunk.energy.velosys = self.fix_value(self.wcs.wcs.velosys)
-        self.chunk.energy.zsource = self.fix_value(self.wcs.wcs.zsource)
-        self.chunk.energy.ssyssrc = self.fix_value(self.wcs.wcs.ssyssrc)
-        self.chunk.energy.velang = self.fix_value(self.wcs.wcs.velangl)
+        chunk.energy.ssysobs = self.fix_value(self.wcs.wcs.ssysobs)
+        chunk.energy.restfrq = self.fix_value(self.wcs.wcs.restfrq)
+        chunk.energy.restwav = self.fix_value(self.wcs.wcs.restwav)
+        chunk.energy.velosys = self.fix_value(self.wcs.wcs.velosys)
+        chunk.energy.zsource = self.fix_value(self.wcs.wcs.zsource)
+        chunk.energy.ssyssrc = self.fix_value(self.wcs.wcs.ssyssrc)
+        chunk.energy.velang = self.fix_value(self.wcs.wcs.velangl)
 
-    def augment_position(self):
+    def augment_position(self, chunk):
+        """
+        Augments a chunk with spatial WCS information
+        :param chunk:
+        :return:
+        """
         self.logger.debug('Begin Spatial WCS augmentation.')
 
+        assert chunk
+        assert isinstance(chunk, Chunk)
+
         if self.wcs.has_celestial:
-            self.chunk.positionAxis1, self.chunk.positionAxis2 = self.get_position_axis()
-            axis = self.get_spatial_axis(None, self.chunk.positionAxis1 - 1, self.chunk.positionAxis2 - 1)
-
-            # Chunk.position.coordsys = RADECSYS,RADESYS
-            # Chunk.position.equinox = EQUINOX,EPOCH
-            # Chunk.position.resolution = position.resolution
-
-            if not self.chunk.position:
-                self.chunk.position = SpatialWCS(axis)
+            chunk.positionAxis1, chunk.positionAxis2 = self.get_position_axis()
+            axis = self._get_spatial_axis(None, chunk.positionAxis1 - 1,
+                                         chunk.positionAxis2 - 1)
+            if not chunk.position:
+                chunk.position = SpatialWCS(axis)
             else:
-                self.chunk.position.axis = axis
+                chunk.position.axis = axis
 
             radesys = self.fix_value(self.wcs.celestial.wcs.radesys)
-            self.chunk.position.coordsys = None if radesys is None else str(radesys)
-            self.chunk.position.equinox = self.fix_value(self.wcs.celestial.wcs.equinox)
-
+            chunk.position.coordsys = None if radesys is None else str(radesys)
+            chunk.position.equinox = self.fix_value(self.wcs.celestial.wcs.equinox)
             self.logger.debug('End Spatial WCS augmentation.')
         else:
             self.logger.warning('No celestial metadata for {}'.format(self.filename))
 
-    def augment_temporal(self):
-        if self.chunk.time:
-            raise NotImplementedError
+    def augment_temporal(self, chunk):
+        """
+        Augments a chunk with temporal WCS information
+        :param chunk:
+        :return:
+        """
+        self.logger.debug('Begin TemporalWCS augmentation.')
+        assert chunk
+        assert isinstance(chunk, Chunk)
 
+        if chunk.time:
+            raise NotImplementedError
         else:
-            self.logger.debug('Begin TemporalWCS augmentation.')
             time_axis = self.get_time_axis()
 
             if time_axis is None:
                 self.logger.warning('No WCS Time for {}'.format(self.filename))
                 return
 
-            self.chunk.timeAxis = time_axis
-            # set self.chunk.time
-            self.get_temporal_axis(time_axis)
+            chunk.timeAxis = time_axis
+            # set chunk.time
+            self.get_temporal_axis(time_axis, chunk)
 
             # Chunk.time.exposure = EXPTIME,INTTIME
             # Chunk.time.resolution = time.resolution
@@ -294,47 +365,59 @@ class FitsParser(object):
             # Chunk.time.mjdref = MJDREF
 
             # TODO need to set the values for the keywords in the test file headers
-            self.chunk.time.exposure = self.header.get('EXPTIME', 0.02)
-            self.chunk.time.resolution = self.header.get('TODO', 0.02)
-            self.chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
-            self.chunk.time.trefpos = self.header.get('TREFPOS', None)
-            self.chunk.time.mjdref = self.header.get('MJDREF', self.header.get('MJDDATE'))
+            chunk.time.exposure = self.header.get('EXPTIME', 0.02)
+            chunk.time.resolution = self.header.get('TODO', 0.02)
+            chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
+            chunk.time.trefpos = self.header.get('TREFPOS', None)
+            chunk.time.mjdref = self.header.get('MJDREF', self.header.get('MJDDATE'))
 
             self.logger.debug('End TemporalWCS augmentation.')
 
-    def augment_polarization(self):
-        polarization_axis = self._get_axis(POLARIZATION_CTYPES)
+    def augment_polarization(self, chunk):
+        """
+        Augments a chunk with polarization WCS information
+        :param chunk:
+        :return:
+        """
+        self.logger.debug('Begin TemporalWCS augmentation.')
+        assert chunk
+        assert isinstance(chunk, Chunk)
+
+        polarization_axis = self._get_axis_index(POLARIZATION_CTYPES)
         if polarization_axis is None:
-            self.logger.debug('No WCS Polarization info for {}'.format(self.filename))
+            self.logger.debug(
+                'No WCS Polarization info for {}'.format(self.filename))
             return
 
-        self.chunk.polarization_axis = polarization_axis
+        chunk.polarization_axis = polarization_axis
 
         naxis = CoordAxis1D(Axis(str(self.wcs.wcs.ctype[polarization_axis]),
                                  str(self.wcs.wcs.cunit[polarization_axis])))
-        naxis.function = \
-            CoordFunction1D(self.fix_value(self.wcs._naxis[polarization_axis]),  # TODO
-                            self.fix_value(self.wcs.wcs.cdelt[polarization_axis]),
-                            RefCoord(self.fix_value(self.wcs.wcs.crpix[polarization_axis]),
-                                     self.fix_value(self.wcs.wcs.crval[polarization_axis])))
-
-        if not self.chunk.polarization:
-            self.chunk.polarization = PolarizationWCS(naxis)
+        naxis.function = CoordFunction1D(
+            self.fix_value(self.wcs._naxis[polarization_axis]),
+            self.fix_value(self.wcs.wcs.cdelt[polarization_axis]),
+            RefCoord(self.fix_value(self.wcs.wcs.crpix[polarization_axis]),
+                     self.fix_value(self.wcs.wcs.crval[polarization_axis])))
+        if not chunk.polarization:
+            chunk.polarization = PolarizationWCS(naxis)
         else:
-            self.chunk.polarization.naxis = naxis
+            chunk.polarization.naxis = naxis
 
-    def get_axis(self, index, over_ctype=None, over_cunit=None):
-        aug_ctype = over_ctype if over_ctype is not None else str(self.wcs.wcs.ctype[index])
-        aug_cunit = over_cunit if over_cunit is not None else str(self.wcs.wcs.cunit[index])
+    def _get_axis(self, index, over_ctype=None, over_cunit=None):
+        """ Assemble a generic axis """
+        aug_ctype = over_ctype if over_ctype is not None \
+            else str(self.wcs.wcs.ctype[index])
+        aug_cunit = over_cunit if over_cunit is not None \
+            else str(self.wcs.wcs.cunit[index])
         aug_axis = Axis(aug_ctype, aug_cunit)
         return aug_axis
 
-    def get_spatial_axis(self, aug_axis, xindex, yindex):
-        """Assemble the bits to make the axis parameter needed for SpatialWCS construction."""
+    def _get_spatial_axis(self, aug_axis, xindex, yindex):
+        """Assemble the bits to make the axis parameter needed for
+        SpatialWCS construction."""
 
         if aug_axis:
             raise NotImplementedError
-
         else:
 
             # Chunk.position.axis.axis1.ctype = CTYPE{positionAxis1}
@@ -346,21 +429,25 @@ class FitsParser(object):
 
             aug_dimension = self.get_dimension(None, xindex, yindex)
 
-            aug_ref_coord = Coord2D(self.get_ref_coord(None, xindex), self.get_ref_coord(None, yindex))
+            aug_ref_coord = Coord2D(self.get_ref_coord(None, xindex),
+                                    self.get_ref_coord(None, yindex))
 
-            aug_cd11, aug_cd12, aug_cd21, aug_cd22 = self.get_cd(xindex, yindex)
+            aug_cd11, aug_cd12, aug_cd21, aug_cd22 = self._get_cd(xindex, yindex)
 
-            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21, aug_cd22)
+            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
+                                           aug_cd11, aug_cd12,
+                                           aug_cd21, aug_cd22)
 
-            aug_axis = CoordAxis2D(self.get_axis(xindex),
-                                   self.get_axis(yindex),
+            aug_axis = CoordAxis2D(self._get_axis(xindex),
+                                   self._get_axis(yindex),
                                    self.get_coord_error(None, xindex),
                                    self.get_coord_error(None, yindex),
                                    None, None, aug_function)
 
         return aug_axis
 
-    def get_cd(self, x_index, y_index):
+    def _get_cd(self, x_index, y_index):
+        """ returns cd info"""
 
         # Chunk.position.axis.function.cd11 = CD{positionAxis1}_{positionAxis1}
         # Chunk.position.axis.function.cd12 = CD{positionAxis1}_{positionAxis2}
@@ -379,7 +466,8 @@ class FitsParser(object):
                 cd21 = self.wcs.wcs.crota[y_index]
                 cd22 = self.wcs.wcs.cdelt[y_index]
         except AttributeError:
-            self.logger.warning('Error searching for CD* values {}'.format(sys.exc_info()[1]))
+            self.logger.warning(
+                'Error searching for CD* values {}'.format(sys.exc_info()[1]))
             cd11 = -1.0  # TODO what if neither of these are defined?
             cd12 = -1.0
             cd21 = -1.0
@@ -387,7 +475,8 @@ class FitsParser(object):
 
         return cd11, cd12, cd21, cd22
 
-    def get_coord_error(self, aug_coord_error, index, over_csyer=None, over_crder=None):
+    def get_coord_error(self, aug_coord_error, index, over_csyer=None,
+                        over_crder=None):
         if aug_coord_error:
             raise NotImplementedError
 
@@ -397,8 +486,10 @@ class FitsParser(object):
             # Chunk.position.axis.error2.syser = CSYER{positionAxis2}
             # Chunk.position.axis.error2.rnder = CRDER{positionAxis2}
 
-            aug_csyer = over_csyer if over_csyer is not None else self.fix_value(self.wcs.wcs.csyer[index])
-            aug_crder = over_crder if over_crder is not None else self.fix_value(self.wcs.wcs.crder[index])
+            aug_csyer = over_csyer if over_csyer is not None \
+                else self.fix_value(self.wcs.wcs.csyer[index])
+            aug_crder = over_crder if over_crder is not None \
+                else self.fix_value(self.wcs.wcs.crder[index])
 
             if aug_csyer and aug_crder:
                 aug_coord_error = CoordError(aug_csyer, aug_crder)
@@ -410,13 +501,15 @@ class FitsParser(object):
         if aug_dimension:
             raise NotImplementedError
         else:
-            aug_dimension = Dimension2D(self.wcs._naxis[xindex], self.wcs._naxis[yindex])
+            aug_dimension = Dimension2D(self.wcs._naxis[xindex],
+                                        self.wcs._naxis[yindex])
 
         return aug_dimension
 
     def get_position_axis(self):
 
-        # there are two celestial axes, get the applicable indices from the axis_types
+        # there are two celestial axes, get the applicable indices from
+        # the axis_types
         xindex = None
         yindex = None
         axis_types = self.wcs.get_axis_types()
@@ -432,25 +525,28 @@ class FitsParser(object):
         xaxis = -1 if xindex is None else int(axis_types[xindex]['number']) + 1
         yaxis = -1 if yindex is None else int(axis_types[yindex]['number']) + 1
 
-        self.logger.debug('Setting positionAxis1 to {}, positionAxis2 to {}'.format(xaxis, yaxis))
+        self.logger.debug(
+            'Setting positionAxis1 to {}, positionAxis2 to {}'.format(xaxis,
+                                                                      yaxis))
 
         return xaxis, yaxis
 
-    def get_temporal_axis(self, index):
+    def get_temporal_axis(self, index, chunk):
         self.logger.debug('Begin temporal axis augmentation.')
 
         # Chunk.time.axis.axis.ctype = CTYPE{timeAxis}
         # Chunk.time.axis.axis.cunit = CUNIT{timeAxis}
 
         # TODO - need to change headers in test file
-        aug_naxis = self.get_axis(index, over_ctype='TIME', over_cunit='d')
+        aug_naxis = self._get_axis(index, over_ctype='TIME', over_cunit='d')
 
         # Chunk.time.axis.bounds.samples = time.samples
 
         # Chunk.time.axis.error.syser = CSYER{timeAxis}
         # Chunk.time.axis.error.rnder = CRDER{timeAxis}
         # TODO - need to change headers in test file
-        aug_error = self.get_coord_error(None, index, over_csyer=1e-07, over_crder=1e-07)
+        aug_error = self.get_coord_error(None, index, over_csyer=1e-07,
+                                         over_crder=1e-07)
 
         # Chunk.time.axis.function.naxis = NAXIS{timeAxis}
         # Chunk.time.axis.function.delta = CDELT{timeAxis}
@@ -458,16 +554,19 @@ class FitsParser(object):
         # Chunk.time.axis.function.refCoord.val = CRVAL{timeAxis}
         # TODO - need to change headers in test file
         over_cdelt = 2.31481e-07
-        aug_ref_coord = self.get_ref_coord(None, index, over_crpix=0.5, over_crval=56789.4298069)
+        aug_ref_coord = self.get_ref_coord(None, index, over_crpix=0.5,
+                                           over_crval=56789.4298069)
         aug_cdelt = over_cdelt if not None else self.wcs.wcs.cdelt[index]
-        aug_function = CoordFunction1D(self.wcs._naxis[index], aug_cdelt, aug_ref_coord)
+        aug_function = CoordFunction1D(self.wcs._naxis[index], aug_cdelt,
+                                       aug_ref_coord)
 
         # Chunk.time.axis.range.start.pix = time.range.start.pix
         # Chunk.time.axis.range.start.val = time.range.start.val
         # Chunk.time.axis.range.end.pix = time.range.end.pix
         # Chunk.time.axis.range.end.val = time.range.end.val
 
-        self.chunk.time = TemporalWCS(CoordAxis1D(aug_naxis, aug_error, None, None, aug_function))
+        chunk.time = TemporalWCS(CoordAxis1D(aug_naxis, aug_error, None, None,
+                                             aug_function))
         self.logger.debug('End temporal axis augmentation.')
 
     def get_time_axis(self):
@@ -484,7 +583,8 @@ class FitsParser(object):
                     break
             return index
 
-    def get_ref_coord(self, aug_ref_coord, index, over_crpix=None, over_crval=None):
+    def get_ref_coord(self, aug_ref_coord, index, over_crpix=None,
+                      over_crval=None):
         if aug_ref_coord:
             raise NotImplementedError
         else:
@@ -493,8 +593,10 @@ class FitsParser(object):
             # Chunk.position.axis.function.refCoord.coord2.pix = CRPIX{positionAxis2}
             # Chunk.position.axis.function.refCoord.coord2.val = CRVAL{positionAxis2}
 
-            aug_crpix = over_crpix if over_crpix is not None else self.wcs.wcs.crpix[index]
-            aug_crval = over_crval if over_crval is not None else self.wcs.wcs.crval[index]
+            aug_crpix = over_crpix if over_crpix is not None \
+                else self.wcs.wcs.crpix[index]
+            aug_crval = over_crval if over_crval is not None \
+                else self.wcs.wcs.crval[index]
             aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
 
@@ -506,68 +608,79 @@ class FitsParser(object):
         else:
             return value
 
-    def main_app(self):
-        parser = ArgumentParser()
 
-        parser.description = (
-            'Augments an observation with information in one or more fits files.')
+def _configure_logging(obj):
+    obj.logger = logging.getLogger(__name__)
+    if not len(obj.logger.handlers):
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s %(name)-12s %(levelname)-8s HDU:%(hdu)-2d %(message)s')
+        handler.setFormatter(formatter)
+        obj.logger.addHandler(handler)
 
-        if version.version is not None:
-            parser.add_argument('-V', '--version', action='version', version=version)
-
-        log_group = parser.add_mutually_exclusive_group()
-        log_group.add_argument('-d', '--debug', action='store_true',
-                               help='debug messages')
-        log_group.add_argument('-q', '--quiet', action='store_true',
-                               help='run quietly')
-        log_group.add_argument('-v', '--verbose', action='store_true',
-                               help='verbose messages')
-
-        parser.add_argument('-o', '--out', dest='out_obs_xml', help='output of augmented observation in XML',
-                            required=False)
-        parser.add_argument('productID', help='product ID of the plane in the observation')
-        parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
-
-        in_group = parser.add_mutually_exclusive_group(required=True)
-        in_group.add_argument('-i', '--in', dest='in_obs_xml', help='input of observation to be augmented in XML')
-        in_group.add_argument('--observation', nargs=2, help='observation in a collection',
-                              metavar=('collection', 'observationID'))
-
-        args = parser.parse_args()
-        if args.verbose:
-            logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-        if args.debug:
-            logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-        else:
-            logging.basicConfig(level=logging.WARN, stream=sys.stdout)
-
-        if args.out_obs_xml:
-            outObsXml = args.out_obs_xml
-
-        if args.in_obs_xml:
-            inObsXml = args.in_obs_xml
-        else:
-            collection = args.observation[0]
-            observationID = args.observation[1]
-
-        fileURIs = args.fileURI
-
-        # invoke the appropriate function based on the inputs
+    obj.logger.setLevel(logging.DEBUG)
+    obj.log_filter = LoggingFilter()
+    obj.logger.addFilter(obj.log_filter)
+    logging.getLogger('astropy').addFilter(obj.log_filter)
 
 
+def main_app():
+    parser = ArgumentParser()
 
-        logging.info("DONE")
+    parser.description = (
+        'Augments an observation with information in one or more fits files.')
 
-    def _configure_logging(self):
-        self.logger = logging.getLogger(__name__)
-        if not len(self.logger.handlers):
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                '%(asctime)s %(name)-12s %(levelname)-8s HDU:%(hdu)-2d %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
+    if version.version is not None:
+        parser.add_argument('-V', '--version', action='version',
+                            version=version)
 
-        self.logger.setLevel(logging.DEBUG)
-        self.log_filter = LoggingFilter()
-        self.logger.addFilter(self.log_filter)
-        logging.getLogger('astropy').addFilter(self.log_filter)
+    log_group = parser.add_mutually_exclusive_group()
+    log_group.add_argument('-d', '--debug', action='store_true',
+                           help='debug messages')
+    log_group.add_argument('-q', '--quiet', action='store_true',
+                           help='run quietly')
+    log_group.add_argument('-v', '--verbose', action='store_true',
+                           help='verbose messages')
+
+    parser.add_argument('-o', '--out', dest='out_obs_xml',
+                        help='output of augmented observation in XML',
+                        required=False)
+    parser.add_argument('productID',
+                        help='product ID of the plane in the observation')
+    parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
+
+    in_group = parser.add_mutually_exclusive_group(required=True)
+    in_group.add_argument('-i', '--in', dest='in_obs_xml',
+                          help='input of observation to be augmented in XML')
+    in_group.add_argument('--observation', nargs=2,
+                          help='observation in a collection',
+                          metavar=('collection', 'observationID'))
+
+    if len(sys.argv) < 2:
+        parser.print_usage(file=sys.stderr)
+        sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
+        sys.exit(-1)
+    args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    else:
+        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+
+    if args.out_obs_xml:
+        outObsXml = args.out_obs_xml
+
+    if args.in_obs_xml:
+        inObsXml = args.in_obs_xml
+    else:
+        collection = args.observation[0]
+        observationID = args.observation[1]
+
+    fileURIs = args.fileURI
+
+    # invoke the appropriate function based on the inputs
+
+
+
+    logging.info("DONE")
