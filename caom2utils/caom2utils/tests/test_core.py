@@ -73,16 +73,17 @@ from builtins import str
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
-from caom2utils import FitsParser
+from caom2utils import FitsParser # , ConfigMapping
 
-from caom2 import ObservationWriter
+from caom2 import ObservationWriter, ObservationIntentType, obs_reader_writer
 from lxml import etree
 
 from mock import Mock, patch
-from six import StringIO
+from six import StringIO, BytesIO
 
 import os
 import sys
+import uuid
 
 import pytest
 
@@ -90,6 +91,12 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
 sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
+sample_file_4axes_uri = 'caom:CGPS/TEST/4axes.fits'
+java_config_file = os.path.join(TESTDATA_DIR, 'java.config')
+
+CAOM2_IMPORT_START_XML='''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">'''
+CAOM2_IMPORT_END_XML='''</caom2:import>
+'''
 
 
 class MyExitError(Exception):
@@ -99,10 +106,10 @@ class MyExitError(Exception):
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_plarization(test_file):
     test_fitsparser = FitsParser(test_file)
-    artifact = test_fitsparser.augment_artifact()
+    artifact = test_fitsparser.augment_artifact('ad:{}/{}'.format('CGPS', test_file))
 
 
-EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+EXPECTED_ENERGY_ELEMENT = '''
   <caom2:energy>
     <caom2:axis>
       <caom2:axis>
@@ -122,21 +129,22 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
     <caom2:restfrq>1420406000.0</caom2:restfrq>
     <caom2:restwav>0.0</caom2:restwav>
   </caom2:energy>
-</caom2:import>
 '''
+EXPECTED_ENERGY_XML = CAOM2_IMPORT_START_XML + \
+                      EXPECTED_ENERGY_ELEMENT + \
+                      CAOM2_IMPORT_END_XML
 
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
     test_fitsparser = FitsParser(test_file)
-    artifact = test_fitsparser.augment_artifact()
+    artifact = test_fitsparser.augment_artifact('ad:{}/{}'.format('CGPS', test_file))
     energy = artifact.parts['0'].chunks[0].energy
     energy.bandpassName = '21 cm' # user set attribute
     check_xml(ObservationWriter()._add_spectral_wcs_element, energy, EXPECTED_ENERGY_XML)
 
 
-EXPECTED_POLARIZATION_XML = \
-    """<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+EXPECTED_POLARIZATION_ELEMENT = '''
   <caom2:polarization>
     <caom2:axis>
       <caom2:axis>
@@ -152,20 +160,21 @@ EXPECTED_POLARIZATION_XML = \
       </caom2:function>
     </caom2:axis>
   </caom2:polarization>
-</caom2:import>
-"""
+'''
+EXPECTED_POLARIZATION_XML = CAOM2_IMPORT_START_XML + \
+                            EXPECTED_POLARIZATION_ELEMENT + \
+                            CAOM2_IMPORT_END_XML
 
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_polarization(test_file):
     test_fitsparser = FitsParser(test_file)
-    artifact = test_fitsparser.augment_artifact()
+    artifact = test_fitsparser.augment_artifact('ad:{}/{}'.format('CGPS', test_file))
     polarization = artifact.parts['0'].chunks[0].polarization
     check_xml(ObservationWriter()._add_polarization_wcs_element, polarization, EXPECTED_POLARIZATION_XML)
 
 
-EXPECTED_POSITION_XML = \
-    """<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+EXPECTED_POSITION_ELEMENT = '''
   <caom2:position>
     <caom2:axis>
       <caom2:axis1>
@@ -198,14 +207,16 @@ EXPECTED_POSITION_XML = \
       </caom2:function>
     </caom2:axis>
   </caom2:position>
-</caom2:import>
-"""
+'''
+EXPECTED_POSITION_XML = CAOM2_IMPORT_START_XML + \
+                        EXPECTED_POSITION_ELEMENT + \
+                        CAOM2_IMPORT_END_XML
 
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
     test_fitsparser = FitsParser(test_file)
-    test_artifact = test_fitsparser.augment_artifact()
+    test_artifact = test_fitsparser.augment_artifact('ad:{}/{}'.format('CGPS', test_file))
     assert test_artifact is not None
     assert test_artifact.parts is not None
     assert len(test_artifact.parts) == 1
@@ -216,8 +227,7 @@ def test_augment_artifact(test_file):
     check_xml(ObservationWriter()._add_spatial_wcs_element, test_chunk.position, EXPECTED_POSITION_XML)
 
 
-EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
-    """<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME_ELEMENT = '''
   <caom2:time>
     <caom2:axis>
       <caom2:axis>
@@ -241,8 +251,10 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
     <caom2:exposure>0.02</caom2:exposure>
     <caom2:resolution>0.02</caom2:resolution>
   </caom2:time>
-</caom2:import>
-"""
+'''
+EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = CAOM2_IMPORT_START_XML + \
+                                           EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME_ELEMENT + \
+                                           CAOM2_IMPORT_END_XML
 
 
 # @pytest.mark.parametrize('test_file, expected', [(os.path.join(TESTDATA_DIR, '1709071g.fits'), EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME_XML),
@@ -262,7 +274,7 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
                                                   EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
 def test_augment_artifact_time(test_file, expected):
     test_fitsparser = FitsParser(test_file)
-    test_artifact = test_fitsparser.augment_artifact()
+    test_artifact = test_fitsparser.augment_artifact('ad:{}/{}'.format('CGPS', test_file))
     assert test_artifact is not None
     assert test_artifact.parts is not None
     assert len(test_artifact.parts) == 6
@@ -390,3 +402,113 @@ def test_valid_arguments(test_file):
         assert(not stdout_mock.getvalue())
 
 
+#EXPECTED_OBS_XML = """<?xml version=\'1.0\' encoding=\'UTF-8\'?>
+EXPECTED_OBS_XML = """<caom2:Observation xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="1311768465173141112">
+  <caom2:collection>UNKNOWN</caom2:collection>
+  <caom2:observationID>UNKNOWN</caom2:observationID>
+  <caom2:metaRelease>1990-01-01T12:12:12.000</caom2:metaRelease>
+  <caom2:sequenceNumber>-1</caom2:sequenceNumber>
+  <caom2:algorithm>
+    <caom2:name>DEFAULT</caom2:name>
+  </caom2:algorithm>
+  <caom2:type>UNKNOWN</caom2:type>
+  <caom2:intent>science</caom2:intent>
+  <caom2:proposal>
+    <caom2:id>UNKNOWN</caom2:id>
+    <caom2:pi>UNKNOWN</caom2:pi>
+    <caom2:project>UNKNOWN</caom2:project>
+    <caom2:title>UNKNOWN</caom2:title>
+  </caom2:proposal>
+  <caom2:target>
+    <caom2:name>CGPS Mosaic MA1</caom2:name>
+    <caom2:type>object</caom2:type>
+    <caom2:standard>false</caom2:standard>
+    <caom2:redshift>-0.5</caom2:redshift>
+    <caom2:moving>false</caom2:moving>
+    <caom2:keywords>K U W O N</caom2:keywords>
+  </caom2:target>
+  <caom2:telescope>
+    <caom2:name>UNKNOWN</caom2:name>
+    <caom2:geoLocationX>-1.0</caom2:geoLocationX>
+    <caom2:geoLocationY>-1.0</caom2:geoLocationY>
+    <caom2:geoLocationZ>-1.0</caom2:geoLocationZ>
+    <caom2:keywords>K U W O N</caom2:keywords>
+  </caom2:telescope>
+  <caom2:instrument>
+    <caom2:name>DRAO ST</caom2:name>
+  </caom2:instrument>
+  <caom2:environment/>
+  <caom2:planes>
+    <caom2:plane caom2:id="1311768465173141112">
+      <caom2:productID>None</caom2:productID>
+      <caom2:dataProductType>image</caom2:dataProductType>
+      <caom2:calibrationLevel>-1</caom2:calibrationLevel>
+      <caom2:provenance>
+        <caom2:name>DEFAULT</caom2:name>
+        <caom2:version>DEFAULT</caom2:version>
+        <caom2:project>DEFAULT</caom2:project>
+        <caom2:producer>DEFAULT</caom2:producer>
+        <caom2:runID>DEFAULT</caom2:runID>
+        <caom2:reference>DEFAULT</caom2:reference>
+        <caom2:lastExecuted>1990-01-01T12:12:12.000</caom2:lastExecuted>
+      </caom2:provenance>
+      <caom2:metrics>
+        <caom2:sourceNumberDensity>1.0</caom2:sourceNumberDensity>
+        <caom2:background>1.0</caom2:background>
+        <caom2:backgroundStddev>1.0</caom2:backgroundStddev>
+        <caom2:fluxDensityLimit>1.0</caom2:fluxDensityLimit>
+        <caom2:magLimit>1.0</caom2:magLimit>
+      </caom2:metrics>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="1311768465173141112">
+          <caom2:uri>caom:CGPS/TEST/4axes.fits</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:parts>
+            <caom2:part caom2:id="1311768465173141112">
+              <caom2:name>0</caom2:name>
+              <caom2:chunks/>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>
+"""
+
+
+@pytest.mark.parametrize('test_file, test_file_uri', [(sample_file_4axes, sample_file_4axes_uri)])
+def test_augment_observation(test_file, test_file_uri):
+    test_fitsparser = FitsParser(test_file)
+    test_obs = test_fitsparser.augment_observation(None, test_file_uri)
+    assert test_obs is not None
+    assert test_obs.planes is not None
+    assert len(test_obs.planes) == 1
+    test_plane = test_obs.planes['None']
+    assert test_plane.artifacts is not None
+    assert len(test_plane.artifacts) == 1
+    test_artifact = test_plane.artifacts[test_file_uri]
+    assert test_artifact is not None
+    test_part = test_artifact.parts['0']
+    # remove the chunk bit, as its part of other tests - results in <caom2:chunks/> xml output
+    test_part.chunks.pop()
+    # set the ids to expected values
+    test_obs._id = uuid.UUID('00000000000000001234567812345678')
+    test_plane._id = uuid.UUID('00000000000000001234567812345678')
+    test_artifact._id = uuid.UUID('00000000000000001234567812345678')
+    test_part._id = uuid.UUID('00000000000000001234567812345678')
+    output = BytesIO()
+    ow = ObservationWriter(False, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
+    ow.write(test_obs, output)
+    # '==' has trouble with the line <?xml version=\'1.0\' encoding=\'UTF-8\'?>, so remove it for the comparison
+    result = output.getvalue().split('<caom2:Observation')[1]
+    result = '<caom2:Observation' + result
+    output.close()
+    assert result == EXPECTED_OBS_XML, result
+
+
+@pytest.mark.parametrize('test_file', [sample_file_4axes])
+def test_get_from_list(test_file):
+    test_fitsparser = FitsParser(test_file)
+    result = test_fitsparser.get_from_list('Observation.intent', 0, ObservationIntentType.SCIENCE)
+    assert result == ObservationIntentType.SCIENCE

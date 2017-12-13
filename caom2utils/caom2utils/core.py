@@ -73,6 +73,8 @@ from __future__ import (absolute_import, division, print_function,
 from argparse import ArgumentParser
 from builtins import str
 
+from datetime import datetime
+
 import math
 from astropy.wcs import WCS
 from astropy.io import fits
@@ -80,8 +82,11 @@ from cadcutils import util, version
 from caom2 import Artifact, Part, ProductType, ReleaseType, Chunk, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
 from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
-from caom2 import CoordAxis2D, PolarizationWCS, TemporalWCS
+from caom2 import CoordAxis2D, PolarizationWCS
 from caom2 import TemporalWCS
+from caom2 import Observation, Plane, Proposal, Telescope, Instrument, Target, TargetPosition, Environment, Algorithm
+from caom2 import Requirements, ObservationIntentType, Status, TargetType, Provenance, Metrics, Quality
+from caom2 import DataProductType, CalibrationLevel, PlaneURI, DataQuality
 import logging
 import os
 import sys
@@ -167,13 +172,15 @@ class FitsParser(object):
         self.hdulist.close()
         self.parts = len(self.hdulist)
 
-    def augment_artifact(self):
+    def augment_artifact(self, artifact_uri):
         self.logger.debug('Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(self.file, self.parts))
 
         if not self.artifact:
             assert not self.collection
-            self.artifact = Artifact('ad:{}/{}'.format(self.collection, self.filename),
+            self.artifact = Artifact(artifact_uri,
                                      ProductType.SCIENCE, ReleaseType.DATA)  # TODO
+            # self.artifact = Artifact('ad:{}/{}'.format(self.collection, self.filename),
+            #                          ProductType.SCIENCE, ReleaseType.DATA)  # TODO
 
         for i in range(self.parts):
             hdu = self.hdulist[i]
@@ -441,8 +448,6 @@ class FitsParser(object):
 
         # Chunk.time.axis.axis.ctype = CTYPE{timeAxis}
         # Chunk.time.axis.axis.cunit = CUNIT{timeAxis}
-
-
         aug_naxis = self.get_axis(index)
 
         # Chunk.time.axis.bounds.samples = time.samples
@@ -567,3 +572,278 @@ class FitsParser(object):
         self.log_filter = LoggingFilter()
         self.logger.addFilter(self.log_filter)
         logging.getLogger('astropy').addFilter(self.log_filter)
+
+    def augment_observation(self, aug_obs, artifact_uri):
+        self.logger.debug('Begin CAOM2 observation augmentation for {} based on URI {}.'.format(self.file, artifact_uri))
+        if aug_obs:
+            raise NotImplementedError
+        else:
+            aug_collection = self.get_from_list('Observation.collection', 0, 'UNKNOWN')  # TODO default value
+            aug_observation_id = self.get_from_list('Observation.observation_id', 0, 'UNKNOWN')  # TODO default value
+            aug_algorithm = self.get_algorithm()
+            aug_obs = Observation(aug_collection, aug_observation_id, aug_algorithm)
+
+            # TODO default values for the following fields
+            aug_obs.sequence_number = self.get_from_list('Observation.sequence_number', 0, -1)
+            aug_obs.intent = self.get_from_list('Observation.intent', 0, ObservationIntentType.SCIENCE)
+            aug_obs.type = self.get_from_list('Observation.type', 0, 'UNKNOWN')
+            aug_obs.meta_release = self.get_datetime(self.get_from_list('Observation.meta_release', 0, datetime.now()))
+            aug_obs.requirements = self.get_requirements()
+            aug_obs.instrument = self.get_instrument()
+            aug_obs.proposal = self.get_proposal()
+            aug_obs.target = self.get_target()
+            aug_obs.target_position = self.get_target_position()
+            aug_obs.telescope = self.get_telescope()
+            aug_obs.environment = self.get_environment()
+
+            if aug_obs.planes:
+                raise NotImplementedError
+            else:
+                prod_id = self.get_from_list('Plane.product_id', index=0, default='None')
+                aug_obs.planes[prod_id] = Plane(prod_id)
+                aug_plane = aug_obs.planes[prod_id]
+
+            self.augment_plane(aug_plane, artifact_uri)
+
+        self.logger.debug('End CAOM2 observation augmentation for {}.'.format(self.file))
+        return aug_obs
+
+    def augment_plane(self, aug_plane, artifact_uri):
+        self.logger.debug('Begin CAOM2 plane augmentation.')
+        if aug_plane:
+            aug_plane.creator = self.get_from_list('Plane.creator_id', index=0, default='UNKNOWN')
+            aug_plane.meta_release = self.get_from_list('Plane.meta_release', index=0, default=None)
+            aug_plane.data_release = self.get_from_list('Plane.data_release', index=0, default=None)
+            aug_plane.data_product_type = self.get_from_list('Plane.data_product_type', index=0,
+                                                             default=DataProductType.IMAGE)
+            aug_plane.calibration_level = self.get_from_list('Plane.calibration_level', index=0,
+                                                             default=CalibrationLevel.PLANNED)
+            aug_plane.provenance = self.get_provenance()
+            aug_plane.metrics = self.get_metrics()
+            aug_plane.quality = self.get_quality()
+
+            for ii in aug_plane.artifacts:
+                aug_artifact = aug_plane[ii]
+                if aug_artifact.uri == artifact_uri:
+                    self.artifact = aug_artifact
+                    break
+
+            self.augment_artifact(artifact_uri)
+            aug_plane.artifacts[artifact_uri] = self.artifact
+
+        else:
+            raise NotImplementedError
+
+        self.logger.debug('End CAOM2 plane augmentation.')
+
+    def get_algorithm(self):
+        self.logger.debug('Begin CAOM2 Algorithm augmentation.')
+        name = self.get_from_list('Observation.algorithm.name', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        self.logger.debug('End CAOM2 Algorithm augmentation.')
+        if name:
+            return Algorithm(name)
+        else:
+            return None
+
+    def get_instrument(self):
+        self.logger.debug('Begin CAOM2 Instrument augmentation.')
+        name = self.get_from_list('Observation.instrument.name', index=0, default='UNKNOWN')  # TODO DEFAULT VALUE
+        keywords = self.get_from_list('Observation.instrument.keywords', index=0, default=['UNKNOWN'])  # TODO
+        self.logger.debug('End CAOM2 Instrument augmentation.')
+        if name:
+            instr = Instrument(str(name))
+            instr.keywords.union(keywords)
+            return instr
+        else:
+            return None
+
+    def get_proposal(self):
+        self.logger.debug('Begin CAOM2 Proposal augmentation.')
+        id = self.get_from_list('Observation.proposal.id', index=0, default='UNKNOWN')  # TODO
+        pi = self.get_from_list('Observation.proposal.pi_name', index=0, default='UNKNOWN')  # TODO
+        project = self.get_from_list('Observation.proposal.project', index=0, default='UNKNOWN')  # TODO
+        title = self.get_from_list('Observation.proposal.title', index=0, default='UNKNOWN')  # TODO
+        self.logger.debug('End CAOM2 Proposal augmentation.')
+        if id:
+            return Proposal(id, pi, project, title)
+        else:
+            return None
+
+    def get_target(self):
+        self.logger.debug('Begin CAOM2 Target augmentation.')
+        name = self.get_from_list('Observation.target.name', index=0, default='UNKNOWN')  # TODO
+        target_type = self.get_from_list('Observation.target.target_type', index=0, default=TargetType.OBJECT)  # TODO
+        standard = self.get_from_list('Observation.target.standard', index=0, default=False)  # TODO
+        redshift = self.get_from_list('Observation.target.redshift', index=0, default=-0.5)  # TODO
+        keywords = self.get_from_list('Observation.target.keywords', index=0, default=set('UNKNOWN'))  # TODO
+        moving = self.get_from_list('Observation.target.moving', index=0, default=False)  # TODO
+        self.logger.debug('End CAOM2 Target augmentation.')
+        if name:
+            return Target(str(name), target_type, standard, redshift, keywords, moving)
+        else:
+            return None
+
+    def get_target_position(self):
+        self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
+        # TODO don't know what to do here, since config file says this is Chunk-level metadata
+        self.logger.debug('End CAOM2 TargetPosition augmentation.')
+        return None
+
+    def get_telescope(self):
+        self.logger.debug('Begin CAOM2 Telescope augmentation.')
+        name = self.get_from_list('Observation.telescope.name', index=0, default='UNKNOWN')  # TODO
+        geo_x = self.get_from_list('Observation.telescope.geo_location_x', index=0, default=-1.0)  # TODO
+        geo_y = self.get_from_list('Observation.telescope.geo_location_y', index=0, default=-1.0)  # TODO
+        geo_z = self.get_from_list('Observation.telescope.geo_location_z', index=0, default=-1.0)  # TODO
+        keywords = self.get_from_list('Observation.telescope.keywords', index=0, default=set('UNKNOWN'))  # TODO
+        self.logger.debug('End CAOM2 Telescope augmentation.')
+        if name:
+            return Telescope(name, geo_x, geo_y, geo_z, keywords)
+        else:
+            return None
+
+    def get_environment(self):
+        self.logger.debug('Begin CAOM2 Environment augmentation.')
+        seeing = self.get_from_list('Observation.environment.seeing', index=0, default=None)  # TODO
+        humidity = self.get_from_list('Observation.environment.humidity', index=0, default=None)  # TODO
+        elevation = self.get_from_list('Observation.environment.elevation', index=0, default=None)  # TODO
+        tau = self.get_from_list('Observation.environment.tau', index=0, default=None)  # TODO
+        wavelength_tau = self.get_from_list('Observation.environment.wavelengthTau', index=0, default=None)  # TODO
+        ambient = self.get_from_list('Observation.environment.ambientTemp', index=0, default=None)  # TODO
+        photometric = self.get_from_list('Observation.environment.photometric', index=0, default=None)  # TODO
+        enviro = Environment()
+        enviro.seeing = seeing
+        enviro.humidity = humidity
+        enviro.elevation = elevation
+        enviro.tau = tau
+        enviro.wavelength_tau = wavelength_tau
+        enviro.ambient_temp = ambient
+        enviro.photometric = photometric
+        self.logger.debug('End CAOM2 Environment augmentation.')
+        return enviro
+
+    def get_requirements(self):
+        self.logger.debug('Begin CAOM2 Requirement augmentation.')
+        flag = self.get_from_list('Observation.requirements.flag', index=0, default=Status.FAIL)  # TODO DEFAULT VALUE
+        self.logger.debug('End CAOM2 Requirement augmentation.')
+        if flag:
+            return Requirements(flag)
+        else:
+            return None
+
+    def get_from_list(self, lookup, index, default=None):
+        value = default
+        try:
+            keywords = CONFIG[lookup]
+        except KeyError:
+            self.logger.debug('Could not find lookup value \'{}\' in fits2caom2 configuration.'.format(lookup))
+            return value
+
+        for ii in keywords:
+            value = self.hdulist[index].header.get(ii, default)
+            self.logger.debug('Assigned value {} based on keyword {}'.format(value, ii))
+            if value is not default:
+                break
+
+        return value
+
+    def get_provenance(self):
+        self.logger.debug('Begin CAOM2 Provenance augmentation.')
+        name = self.get_from_list('Plane.provenance.name', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        version = self.get_from_list('Plane.provenance.version', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        project = self.get_from_list('Plane.provenance.project', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        producer = self.get_from_list('Plane.provenance.producer', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        run_id = self.get_from_list('Plane.provenance.runID', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        reference = self.get_from_list('Plane.provenance.reference', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        last_executed = self.get_datetime(self.get_from_list('Plane.provenance.lastExecuted', index=0))  # TODO DEFAULT VALUE
+        keywords = self.get_from_list('Plane.provenance.keywords', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        #inputs = self.get_from_list('Plane.provenance.inputs', index=0, default=set(PlaneURI('caom:UNKNOWN/UNKNOWN/UNKNOWN')))  # TODO DEFAULT VALUE
+        inputs = self.get_from_list('Plane.provenance.inputs', index=0, default=None)  # TODO DEFAULT VALUE
+        self.logger.debug('End CAOM2 Provenance augmentation.')
+        if name:
+            prov = Provenance(name, version, project, producer, run_id, reference, last_executed)
+            prov.keywords.union(keywords)
+            if inputs:
+                prov.inputs.add(inputs)
+            return prov
+        else:
+            return None
+
+    def get_metrics(self):
+        self.logger.debug('Begin CAOM2 Metrics augmentation.')
+        source_number_density = self.get_from_list('Plane.metrics.sourceNumberDensity', index=0, default=1.0)  # TODO DEFAULT VALUE
+        background = self.get_from_list('Plane.metrics.background', index=0, default=1.0)  # TODO DEFAULT VALUE
+        background_stddev = self.get_from_list('Plane.metrics.backgroundStddev', index=0, default=1.0)  # TODO DEFAULT VALUE
+        flux_density_limit = self.get_from_list('Plane.metrics.fluxDensityLimit', index=0, default=1.0)  # TODO DEFAULT VALUE
+        mag_limit = self.get_from_list('Plane.metrics.magLimit', index=0, default=1.0)  # TODO DEFAULT VALUE
+        metrics = Metrics()
+        metrics.source_number_density = source_number_density
+        metrics.background = background
+        metrics.background_std_dev = background_stddev
+        metrics.flux_density_limit = flux_density_limit
+        metrics.mag_limit = mag_limit
+        self.logger.debug('End CAOM2 Metrics augmentation.')
+        return metrics
+
+    def get_quality(self):
+        self.logger.debug('Begin CAOM2 Quality augmentation.')
+        flag = self.get_from_list('Plane.dataQuality', index=0, default=Quality.JUNK)  # TODO DEFAULT VALUE
+        self.logger.debug('End CAOM2 Quality augmentation.')
+        if flag:
+            return DataQuality(flag)
+        else:
+            return None
+
+    def get_datetime(self, from_value):
+        return datetime(1990, 1, 1, 12, 12, 12)
+
+
+CONFIG = {'Observation.meta_release': ['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE', 'UTC-DATE', 'MJDOBS', 'MJD_OBS'],
+          'Observation.instrument.name': ['INSTRUME'],
+          'Observation.target.name': ['OBJECT'],
+          'Observation.type': ['OBSTYPE'],
+          'Observation.telescope.name': ['TELESCOP'],
+          'Observation.environment.ambientTemp': ['TEMPERAT'],
+          'Observation.algorithm.name': [],  # TODO
+          'Observation.intent': [],
+          'Observation.sequenceNumber': [],
+          'Observation.instrument.keywords': ['INSTMODE'],
+          'Observation.proposal.id': ['RUNID'],
+          'Observation.proposal.pi': [],
+          'Observation.proposal.project': [],
+          'Observation.proposal.title': [],
+          'Observation.proposal.keywords': [],
+          'Observation.target.type': [],
+          'Observation.target.standard': [],
+          'Observation.target.redshift': [],
+          'Observation.target.keywords': [],
+          'Observation.telescope.geoLocationX': [],
+          'Observation.telescope.geoLocationY': [],
+          'Observation.telescope.geoLocationZ': [],
+          'Observation.telescope.keywords': [],
+          'Observation.environment.seeing': [],
+          'Observation.environment.humidity': [],
+          'Observation.environment.elevation': [],
+          'Observation.environment.tau': [],
+          'Observation.environment.wavelengthTau': [],
+          'Observation.environment.photometric': [],
+          'Plane.meta_release': ['RELEASE', 'REL_DATE'],
+          'Plane.data_release': ['RELEASE', 'REL_DATE'],
+          'Plane.dataProductType': [],
+          'Plane.calibrationLevel': [],
+          'Plane.provenance.name': [],
+          'Plane.provenance.version': [],
+          'Plane.provenance.project': [],
+          'Plane.provenance.producer': [],
+          'Plane.provenance.runID': [],
+          'Plane.provenance.reference': [],
+          'Plane.provenance.lastExecuted': [],
+          'Plane.provenance.keywords': [],
+          'Plane.provenance.inputs': [],
+          'Plane.metrics.sourceNumberDensity': [],
+          'Plane.metrics.background': [],
+          'Plane.metrics.backgroundStddev': [],
+          'Plane.metrics.fluxDensityLimit': [],
+          'Plane.metrics.magLimit': []
+          }
+#          '': [],

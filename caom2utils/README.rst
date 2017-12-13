@@ -73,6 +73,9 @@ CFHT
           header['CRVAL3'] = 56789.4298069
           header['CDELT3'] = 2.31481e-07
           header['NAXIS3'] = 1
+          header['EXPTIME'] = 0.02
+          header['TIMEDEL'] = 0.02
+          header['TIMESYS'] = 'UTC'
 
       hdulist.writeto(sample_file_time_axes, overwrite=True)
 
