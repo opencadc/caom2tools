@@ -300,7 +300,7 @@ class FitsParser(object):
         assert isinstance(observation, Observation)
 
         observation.collection = self._get_from_list('Observation.collection', 0, 'UNKNOWN')  # TODO default value
-        observation.observation_id = self._get_from_list('Observation.observation_id', 0)
+        observation.observation_id = str(self._get_from_list('Observation.observation_id', 0))
         observation.algorithm = self._get_algorithm()
 
         # TODO default values for the following fields
@@ -323,7 +323,7 @@ class FitsParser(object):
                 plane = observation.planes[prod_id]
                 break
         if plane is None:
-            plane = Plane(prod_id)
+            plane = Plane(str(prod_id))
             observation.planes[prod_id] = plane
 
         self.augment_plane(plane, artifact_uri)
@@ -347,7 +347,7 @@ class FitsParser(object):
                                                       default=DataProductType.CUBE)
         plane.calibration_level = self._get_from_list('Plane.calibration_level', index=0,
                                                       default=CalibrationLevel.CALIBRATED)
-        plane.product_id = self._get_from_list('Plane.product_id', index=0)
+        plane.product_id = str(self._get_from_list('Plane.product_id', index=0))
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
         plane.quality = self._get_quality()
@@ -375,7 +375,7 @@ class FitsParser(object):
         name = self._get_from_list('Observation.algorithm.name', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
         self.logger.debug('End CAOM2 Algorithm augmentation.')
         if name:
-            return Algorithm(name)
+            return Algorithm(str(name))
         else:
             return None
 
@@ -407,7 +407,7 @@ class FitsParser(object):
         title = self._get_from_list('Observation.proposal.title', index=0)  # TODO
         self.logger.debug('End CAOM2 Proposal augmentation.')
         if id:
-            return Proposal(id, pi, project, title)
+            return Proposal(str(id), pi, project, title)
         else:
             return None
 
@@ -446,19 +446,13 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Telescope augmentation.')
         name = self._get_from_list('Observation.telescope.name', index=0)
-        print('')
-        print('')
-        print('')
-        print('name is ' + str(name))
-        print('')
-
         geo_x = self._get_from_list('Observation.telescope.geo_location_x', index=0)
         geo_y = self._get_from_list('Observation.telescope.geo_location_y', index=0)
         geo_z = self._get_from_list('Observation.telescope.geo_location_z', index=0)
         keywords = self._get_set_from_list('Observation.telescope.keywords', index=0)  # TODO
         if name:
             self.logger.debug('End CAOM2 Telescope augmentation.')
-            return Telescope(name, geo_x, geo_y, geo_z, keywords)
+            return Telescope(str(name), geo_x, geo_y, geo_z, keywords)
         else:
             return None
 
@@ -553,7 +547,7 @@ class FitsParser(object):
         inputs = self._get_from_list('Plane.provenance.inputs', index=0, default=None)  # TODO DEFAULT VALUE
         self.logger.debug('End CAOM2 Provenance augmentation.')
         if name:
-            prov = Provenance(name, version, project, producer, run_id, reference, last_executed)
+            prov = Provenance(str(name), str(version), str(project), str(producer), run_id, str(reference), last_executed)
             prov.keywords.union(keywords)
             if inputs:
                 prov.inputs.add(inputs)
