@@ -184,9 +184,9 @@ class FitsParser(object):
               'Observation.instrument.name': ['INSTRUME'],
               'Observation.target.name': ['OBJECT'],
               'Observation.type': ['OBSTYPE'],
-              'Observation.telescope.name': ['TELESCOP'],
+              'Observation.telescope.name': ['INSTRUME'],
               'Observation.environment.ambientTemp': ['TEMPERAT'],
-              'Observation.algorithm.name': [],  # TODO
+              'Observation.algorithm.name': ['PROCNAME'],
               'Observation.intent': [],
               'Observation.sequenceNumber': [],
               'Observation.instrument.keywords': ['INSTMODE'],
@@ -199,9 +199,9 @@ class FitsParser(object):
               'Observation.target.standard': [],
               'Observation.target.redshift': [],
               'Observation.target.keywords': [],
-              'Observation.telescope.geoLocationX': [],
-              'Observation.telescope.geoLocationY': [],
-              'Observation.telescope.geoLocationZ': [],
+              'Observation.telescope.geo_location_x': ['OBSGEO-X'],
+              'Observation.telescope.geo_location_y': ['OBSGEO-Y'],
+              'Observation.telescope.geo_location_z': ['OBSGEO-Z'],
               'Observation.telescope.keywords': [],
               'Observation.environment.seeing': [],
               'Observation.environment.humidity': [],
@@ -209,17 +209,19 @@ class FitsParser(object):
               'Observation.environment.tau': [],
               'Observation.environment.wavelengthTau': [],
               'Observation.environment.photometric': [],
+              'Observation.observation_id': ['OBSID'],
               'Plane.meta_release': ['RELEASE', 'REL_DATE'],
               'Plane.data_release': ['RELEASE', 'REL_DATE'],
               'Plane.dataProductType': [],
+              'Plane.product_id': ['RUNID'],
               'Plane.calibrationLevel': [],
-              'Plane.provenance.name': [],
+              'Plane.provenance.name': ['XPRVNAME'],
               'Plane.provenance.version': [],
-              'Plane.provenance.project': [],
-              'Plane.provenance.producer': [],
+              'Plane.provenance.project': ['ADC_ARCH'],
+              'Plane.provenance.producer': ['ORIGIN'],
               'Plane.provenance.runID': [],
-              'Plane.provenance.reference': [],
-              'Plane.provenance.lastExecuted': [],
+              'Plane.provenance.reference': ['XREFER'],
+              'Plane.provenance.lastExecuted': ['DATE-FTS'],
               'Plane.provenance.keywords': [],
               'Plane.provenance.inputs': [],
               'Plane.metrics.sourceNumberDensity': [],
@@ -298,13 +300,13 @@ class FitsParser(object):
         assert isinstance(observation, Observation)
 
         observation.collection = self._get_from_list('Observation.collection', 0, 'UNKNOWN')  # TODO default value
-        observation.observation_id = self._get_from_list('Observation.observation_id', 0, 'UNKNOWN')  # TODO default value
+        observation.observation_id = self._get_from_list('Observation.observation_id', 0)
         observation.algorithm = self._get_algorithm()
 
         # TODO default values for the following fields
         observation.sequence_number = self._get_from_list('Observation.sequence_number', 0, -1)
         observation.intent = self._get_from_list('Observation.intent', 0, ObservationIntentType.SCIENCE)
-        observation.type = self._get_from_list('Observation.type', 0, 'UNKNOWN')
+        observation.type = self._get_from_list('Observation.type', 0)
         observation.meta_release = self._get_datetime(self._get_from_list('Observation.meta_release', 0, datetime.now()))
         observation.requirements = self._get_requirements()
         observation.instrument = self._get_instrument()
@@ -342,9 +344,10 @@ class FitsParser(object):
         plane.meta_release = self._get_from_list('Plane.meta_release', index=0, default=None)
         plane.data_release = self._get_from_list('Plane.data_release', index=0, default=None)
         plane.data_product_type = self._get_from_list('Plane.data_product_type', index=0,
-                                                      default=DataProductType.IMAGE)
+                                                      default=DataProductType.CUBE)
         plane.calibration_level = self._get_from_list('Plane.calibration_level', index=0,
-                                                      default=CalibrationLevel.PLANNED)
+                                                      default=CalibrationLevel.CALIBRATED)
+        plane.product_id = self._get_from_list('Plane.product_id', index=0)
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
         plane.quality = self._get_quality()
@@ -398,10 +401,10 @@ class FitsParser(object):
         :return: Proposal
         """
         self.logger.debug('Begin CAOM2 Proposal augmentation.')
-        id = self._get_from_list('Observation.proposal.id', index=0, default='UNKNOWN')  # TODO
-        pi = self._get_from_list('Observation.proposal.pi_name', index=0, default='UNKNOWN')  # TODO
-        project = self._get_from_list('Observation.proposal.project', index=0, default='UNKNOWN')  # TODO
-        title = self._get_from_list('Observation.proposal.title', index=0, default='UNKNOWN')  # TODO
+        id = self._get_from_list('Observation.proposal.id', index=0)  # TODO
+        pi = self._get_from_list('Observation.proposal.pi_name', index=0)  # TODO
+        project = self._get_from_list('Observation.proposal.project', index=0)  # TODO
+        title = self._get_from_list('Observation.proposal.title', index=0)  # TODO
         self.logger.debug('End CAOM2 Proposal augmentation.')
         if id:
             return Proposal(id, pi, project, title)
@@ -415,10 +418,10 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Target augmentation.')
         name = self._get_from_list('Observation.target.name', index=0, default='UNKNOWN')  # TODO
-        target_type = self._get_from_list('Observation.target.target_type', index=0, default=TargetType.OBJECT)  # TODO
+        target_type = self._get_from_list('Observation.target.target_type', index=0, default=TargetType.FIELD)
         standard = self._get_from_list('Observation.target.standard', index=0, default=False)  # TODO
-        redshift = self._get_from_list('Observation.target.redshift', index=0, default=-0.5)  # TODO
-        keywords = self._get_set_from_list('Observation.target.keywords', index=0, default={'UNKNOWN'})  # TODO
+        redshift = self._get_from_list('Observation.target.redshift', index=0)
+        keywords = self._get_set_from_list('Observation.target.keywords', index=0)  # TODO
         moving = self._get_from_list('Observation.target.moving', index=0, default=False)  # TODO
         self.logger.debug('End CAOM2 Target augmentation.')
         if name:
@@ -442,13 +445,19 @@ class FitsParser(object):
         :return: Telescope
         """
         self.logger.debug('Begin CAOM2 Telescope augmentation.')
-        name = self._get_from_list('Observation.telescope.name', index=0, default='UNKNOWN')  # TODO
-        geo_x = self._get_from_list('Observation.telescope.geo_location_x', index=0, default=-1.0)  # TODO
-        geo_y = self._get_from_list('Observation.telescope.geo_location_y', index=0, default=-1.0)  # TODO
-        geo_z = self._get_from_list('Observation.telescope.geo_location_z', index=0, default=-1.0)  # TODO
-        keywords = self._get_set_from_list('Observation.telescope.keywords', index=0, default={'UNKNOWN'})  # TODO
-        self.logger.debug('End CAOM2 Telescope augmentation.')
+        name = self._get_from_list('Observation.telescope.name', index=0)
+        print('')
+        print('')
+        print('')
+        print('name is ' + str(name))
+        print('')
+
+        geo_x = self._get_from_list('Observation.telescope.geo_location_x', index=0)
+        geo_y = self._get_from_list('Observation.telescope.geo_location_y', index=0)
+        geo_z = self._get_from_list('Observation.telescope.geo_location_z', index=0)
+        keywords = self._get_set_from_list('Observation.telescope.keywords', index=0)  # TODO
         if name:
+            self.logger.debug('End CAOM2 Telescope augmentation.')
             return Telescope(name, geo_x, geo_y, geo_z, keywords)
         else:
             return None
@@ -499,9 +508,9 @@ class FitsParser(object):
             return value
 
         for ii in keywords:
-            temp = self.hdulist[index].header.get(ii, default)
-            self.logger.debug('Assigned value {} based on keyword {}'.format(temp, ii))
-            if temp is not default:
+            value = self.hdulist[index].header.get(ii, default)
+            self.logger.debug('Assigned value {} based on keyword {}'.format(value, ii))
+            if value is not default:
                 break
 
         return value
@@ -532,12 +541,12 @@ class FitsParser(object):
         :return: Provenance
         """
         self.logger.debug('Begin CAOM2 Provenance augmentation.')
-        name = self._get_from_list('Plane.provenance.name', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
-        version = self._get_from_list('Plane.provenance.version', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
-        project = self._get_from_list('Plane.provenance.project', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
-        producer = self._get_from_list('Plane.provenance.producer', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
-        run_id = self._get_from_list('Plane.provenance.runID', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
-        reference = self._get_from_list('Plane.provenance.reference', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
+        name = self._get_from_list('Plane.provenance.name', index=0)
+        version = self._get_from_list('Plane.provenance.version', index=0)  # TODO DEFAULT VALUE
+        project = self._get_from_list('Plane.provenance.project', index=0)
+        producer = self._get_from_list('Plane.provenance.producer', index=0)
+        run_id = self._get_from_list('Plane.provenance.runID', index=0)
+        reference = self._get_from_list('Plane.provenance.reference', index=0)
         last_executed = self._get_datetime(self._get_from_list('Plane.provenance.lastExecuted', index=0))  # TODO DEFAULT VALUE
         keywords = self._get_from_list('Plane.provenance.keywords', index=0, default='DEFAULT')  # TODO DEFAULT VALUE
         #inputs = self._get_from_list('Plane.provenance.inputs', index=0, default=set(PlaneURI('caom:UNKNOWN/UNKNOWN/UNKNOWN')))  # TODO DEFAULT VALUE
@@ -558,11 +567,11 @@ class FitsParser(object):
         :return: Metrics
         """
         self.logger.debug('Begin CAOM2 Metrics augmentation.')
-        source_number_density = self._get_from_list('Plane.metrics.sourceNumberDensity', index=0, default=1.0)  # TODO DEFAULT VALUE
-        background = self._get_from_list('Plane.metrics.background', index=0, default=1.0)  # TODO DEFAULT VALUE
-        background_stddev = self._get_from_list('Plane.metrics.backgroundStddev', index=0, default=1.0)  # TODO DEFAULT VALUE
-        flux_density_limit = self._get_from_list('Plane.metrics.fluxDensityLimit', index=0, default=1.0)  # TODO DEFAULT VALUE
-        mag_limit = self._get_from_list('Plane.metrics.magLimit', index=0, default=1.0)  # TODO DEFAULT VALUE
+        source_number_density = self._get_from_list('Plane.metrics.sourceNumberDensity', index=0)  # TODO DEFAULT VALUE
+        background = self._get_from_list('Plane.metrics.background', index=0)  # TODO DEFAULT VALUE
+        background_stddev = self._get_from_list('Plane.metrics.backgroundStddev', index=0)  # TODO DEFAULT VALUE
+        flux_density_limit = self._get_from_list('Plane.metrics.fluxDensityLimit', index=0)  # TODO DEFAULT VALUE
+        mag_limit = self._get_from_list('Plane.metrics.magLimit', index=0)  # TODO DEFAULT VALUE
         metrics = Metrics()
         metrics.source_number_density = source_number_density
         metrics.background = background
@@ -591,7 +600,11 @@ class FitsParser(object):
         :param from_value:
         :return:
         """
-        return datetime(1990, 1, 1, 12, 12, 12)
+        units = self.hdulist[0].header.get('TIMEUNIT', 'd')
+        if units == 'd':
+            return datetime.strptime(from_value, '%Y-%m-%d')
+        else:
+            return datetime(1990, 1, 1, 12, 12, 12)
 
 
 class WcsParser(object):
