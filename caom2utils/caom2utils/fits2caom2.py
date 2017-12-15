@@ -1165,13 +1165,14 @@ def main_app():
                     Artifact(uri=uri,
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            artifact = plane.artifacts[uri]
             parser = FitsParser()
             parser.headers = headers
             parser.augment_observation(observation=obs, artifact_uri=uri)
 
+    writer = ObservationWriter()
     if args.out_obs_xml:
-        writer = ObservationWriter()
         writer.write(obs, args.out_obs_xml)
+    else:
+        writer.write(obs, sys.stdout)
 
     logging.info("DONE")
