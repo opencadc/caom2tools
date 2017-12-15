@@ -986,13 +986,17 @@ def main_app():
     log_group.add_argument('-v', '--verbose', action='store_true',
                            help='verbose messages')
 
+    parser.add_argument('--dumpconfig', action='store_true',
+                        help=('output the utype to keyword mapping to '
+                              'the console'))
+
+    parser.add_argument('--ignorePartialWCS', action='store_true',
+                        help='do not stop and exit upon finding partial WCS')
+
+
     parser.add_argument('-o', '--out', dest='out_obs_xml',
                         help='output of augmented observation in XML',
                         required=False)
-    parser.add_argument('productID',
-                        help='product ID of the plane in the observation')
-    parser.add_argument('fileURI',
-                        help='URI of a fits file', nargs='+')
 
     in_group = parser.add_mutually_exclusive_group(required=True)
     in_group.add_argument('-i', '--in', dest='in_obs_xml',
@@ -1002,13 +1006,35 @@ def main_app():
                           help='observation in a collection',
                           metavar=('collection', 'observationID'))
 
+    parser.add_argument('--config', required=False,
+                        help=('optional CAOM2 utype to keyword config file to '
+                              'merge with the internal configuration'))
+
+    parser.add_argument('--default',
+                        help='file with default values for keywords')
+    parser.add_argument('--override',
+                        help='file with override values for keywords')
+    parser.add_argument('--local', nargs='+',
+                        help=('list of files in local filesystem (same order '
+                              'as uri)'))
+    parser.add_argument('--log', help='log file name > (instead of console)')
+    parser.add_argument('--keep', action='store_true',
+                        help='keep the locally stored files after ingestion')
+    parser.add_argument('--test', action='store_true',
+                        help='test mode, do not persist to database')
+    parser.add_argument('--cert', help='Cert File or Proxy Cert&Key PEM file')
+
+    parser.add_argument('productID',
+                        help='product ID of the plane in the observation')
+    parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
+
     if len(sys.argv) < 2:
+        # correct error message when running python3
         parser.print_usage(file=sys.stderr)
         sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
         sys.exit(-1)
+
     args = parser.parse_args()
-    args.local = False  # TODO remove
-    args.cert = None  # TODO remove
     if args.verbose:
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     if args.debug:
@@ -1077,8 +1103,5 @@ def main_app():
     if args.out_obs_xml:
         writer = ObservationWriter()
         writer.write(obs, args.out_obs_xml)
-
-
-
 
     logging.info("DONE")
