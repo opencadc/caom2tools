@@ -735,7 +735,6 @@ class WcsParser(object):
             '%(levelname)s:%(name)-12s:HDU:%(hdu)-2d:%(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        # logging.getLogger('astropy').addFilter(self.log_filter)
         self.logger.propagate = False
 
         self.wcs = WCS(header)
