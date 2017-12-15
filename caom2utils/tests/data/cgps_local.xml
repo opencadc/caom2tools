@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-9b95-d331dc5f6f4d">
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-bbe6-9b1c50c6a1ff">
   <caom2:collection>UNKNOWN</caom2:collection>
   <caom2:observationID>None</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
@@ -25,7 +25,7 @@
   </caom2:instrument>
   <caom2:environment/>
   <caom2:planes>
-    <caom2:plane caom2:id="00000000-0000-0000-a4ca-2a98226fb6d4">
+    <caom2:plane caom2:id="00000000-0000-0000-9459-ed8c0cc1bebe">
       <caom2:productID>myplane</caom2:productID>
       <caom2:dataProductType>cube</caom2:dataProductType>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
@@ -34,15 +34,15 @@
         <caom2:flag>junk</caom2:flag>
       </caom2:quality>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="00000000-0000-0000-8e40-c0df798b56fe">
+        <caom2:artifact caom2:id="00000000-0000-0000-b790-01307755c31a">
           <caom2:uri>ad:CGPS/CGPS_MA1_HI_line_image</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:parts>
-            <caom2:part caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+            <caom2:part caom2:id="00000000-0000-0000-aa77-b774fce2e297">
               <caom2:name>0</caom2:name>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-94d7-ed401aa1586f">
+                <caom2:chunk caom2:id="00000000-0000-0000-aeed-9f3742d3722b">
                   <caom2:energyAxis>2</caom2:energyAxis>
                   <caom2:polarizationAxis>3</caom2:polarizationAxis>
                   <caom2:position>
@@ -57,8 +57,8 @@
                       </caom2:axis2>
                       <caom2:function>
                         <caom2:dimension>
-                          <caom2:naxis1>1024</caom2:naxis1>
-                          <caom2:naxis2>1024</caom2:naxis2>
+                          <caom2:naxis1>1</caom2:naxis1>
+                          <caom2:naxis2>1</caom2:naxis2>
                         </caom2:dimension>
                         <caom2:refCoord>
                           <caom2:coord1>
@@ -80,11 +80,11 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>VOPT</caom2:ctype>
+                        <caom2:ctype>VRAD</caom2:ctype>
                         <caom2:cunit>m / s</caom2:cunit>
                       </caom2:axis>
                       <caom2:function>
-                        <caom2:naxis>272</caom2:naxis>
+                        <caom2:naxis>1</caom2:naxis>
                         <caom2:delta>-824.46001999999999</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>145.0</caom2:pix>
@@ -93,7 +93,7 @@
                       </caom2:function>
                     </caom2:axis>
                     <caom2:specsys>LSRK</caom2:specsys>
-                    <caom2:restfrq>0.0</caom2:restfrq>
+                    <caom2:restfrq>1420406000.0</caom2:restfrq>
                     <caom2:restwav>0.0</caom2:restwav>
                   </caom2:energy>
                   <caom2:polarization>
