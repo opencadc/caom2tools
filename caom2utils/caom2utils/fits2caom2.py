@@ -70,20 +70,26 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from argparse import ArgumentParser
+import argparse
 from builtins import str
 
 import math
 from astropy.wcs import WCS
 from astropy.io import fits
 from cadcutils import version
-from caom2 import Artifact, Part, Chunk, CoordError
+from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
 from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
 from caom2 import CoordAxis2D, PolarizationWCS, TemporalWCS
+from caom2 import ObservationReader, ObservationWriter, Algorithm
+from caom2 import ReleaseType, ProductType
 import logging
 import os
 import sys
+from six.moves.urllib.parse import urlparse
+from cadcutils import net
+from cadcdata import CadcDataClient
+from io import BytesIO
 
 APP_NAME = 'fits2caom2'
 
@@ -169,7 +175,7 @@ class FitsParser(object):
     headers = [] # list of dictionaries headers
     # populate headers
 
-    parser.hdulist = headers
+    parser.headers = headers
 
     parser.augment_observation(obs)
     ...
@@ -177,19 +183,35 @@ class FitsParser(object):
     """
 
     def __init__(self,
-                 file):
+                 file=None):
         """
         Ctor
         :param file: FITS file
         """
-
+        self.logger = None
         _configure_logging(self)
+        self._headers = []
+        self.parts = 0
+        self.file = ''
+        if file:
+            self.file = file
+            hdulist = fits.open(file, memmap=True, lazy_load_hdus=False)
+            hdulist.close()
+            for h in hdulist:
+                self._headers.append(h.header)
 
-        self.file = file
-        self.filename = os.path.basename(file)
-        self.hdulist = fits.open(file, memmap=True, lazy_load_hdus=False)
-        self.hdulist.close()
-        self.parts = len(self.hdulist)
+    @property
+    def headers(self):
+        """
+        List of headers where each header should allow dictionary like
+        access to the FITS attribute in that header
+        :return:
+        """
+        return self._headers
+
+    @headers.setter
+    def headers(self, headers):
+        self._headers = headers
 
     def augment_artifact(self, artifact):
         """
@@ -198,25 +220,31 @@ class FitsParser(object):
         """
         self.logger.debug(
             'Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(
-                self.file, self.parts))
+                self.file, len(self.headers)))
 
         assert artifact
         assert isinstance(artifact, Artifact)
 
-        for i in range(self.parts):
-            hdu = self.hdulist[i]
-            ii = str(i)
+        for i, header in enumerate(self.headers):
             self.log_filter.hdu_for_log(i)
+            ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            if hdu.size:
+            # Only primary headers for 1 extension files or the extensions
+            # for multiple extension files can have data and therefore
+            # can have corresponding parts
+            if not bool(len(self.headers) - 1 > 0) != bool(i):
                 if ii not in artifact.parts.keys():
-                    artifact.parts.add(Part(ii))  # TODO use extension name
+                    artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
             else:
                 artifact.parts.add(Part(ii))
                 self.logger.debug('Create empty part for HDU {}'.format(ii))
                 continue
+
+            if ii not in artifact.parts.keys():
+                return
+
             part = artifact.parts[ii]
 
             # each Part has one Chunk
@@ -224,14 +252,14 @@ class FitsParser(object):
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
 
-            wcs_parser = WcsParser(hdu.header, self.filename)
+            wcs_parser = WcsParser(header, self.file)
             wcs_parser.augment_position(chunk)
             wcs_parser.augment_energy(chunk)
             wcs_parser.augment_temporal(chunk)
             wcs_parser.augment_polarization(chunk)
 
         self.logger.debug(
-            'End CAOM2 artifact augmentation for {}'.format(self.filename))
+            'End CAOM2 artifact augmentation for {}'.format(self.file))
 
 
 class WcsParser(object):
@@ -248,16 +276,17 @@ class WcsParser(object):
     POLARIZATION_AXIS = 'polarization'
     TIME_AXIS = 'time'
 
-    def __init__(self, header, filename):
+    def __init__(self, header, file):
         """
 
         :param header: FITS extension header
-        :param filename: name of FITS file
+        :param file: name of FITS file
         """
+        self.logger = None
         _configure_logging(self)
         self.wcs = WCS(header)
         self.header = header
-        self.filename = filename
+        self.file = file
 
     def augment_energy(self, chunk):
         """
@@ -272,7 +301,7 @@ class WcsParser(object):
 
         if energy_axis is None:
             self.logger.debug(
-                'No WCS Energy info for {}'.format(self.filename))
+                'No WCS Energy info for {}'.format(self.file))
             return
 
         chunk.energy_axis = energy_axis
@@ -327,7 +356,7 @@ class WcsParser(object):
             self.logger.debug('End Spatial WCS augmentation.')
         else:
             self.logger.warning(
-                'No celestial metadata for {}'.format(self.filename))
+                'No celestial metadata for {}'.format(self.file))
 
     def augment_temporal(self, chunk):
         """
@@ -351,7 +380,7 @@ class WcsParser(object):
         time_axis = self._get_axis_index(TIME_KEYWORDS)
 
         if time_axis is None:
-            self.logger.warning('No WCS Time for {}'.format(self.filename))
+            self.logger.warning('No WCS Time for {}'.format(self.file))
             return
 
         chunk.timeAxis = time_axis
@@ -391,7 +420,7 @@ class WcsParser(object):
         polarization_axis = self._get_axis_index(POLARIZATION_CTYPES)
         if polarization_axis is None:
             self.logger.debug(
-                'No WCS Polarization info for {}'.format(self.filename))
+                'No WCS Polarization info for {}'.format(self.file))
             return
 
         chunk.polarization_axis = polarization_axis
@@ -574,7 +603,7 @@ def _configure_logging(obj):
 
 
 def main_app():
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
 
     parser.description = (
         'Augments an observation with information in one or more fits files.')
@@ -596,10 +625,12 @@ def main_app():
                         required=False)
     parser.add_argument('productID',
                         help='product ID of the plane in the observation')
-    parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
+    parser.add_argument('fileURI',
+                        help='URI of a fits file', nargs='+')
 
     in_group = parser.add_mutually_exclusive_group(required=True)
     in_group.add_argument('-i', '--in', dest='in_obs_xml',
+                          type=argparse.FileType('r'),
                           help='input of observation to be augmented in XML')
     in_group.add_argument('--observation', nargs=2,
                           help='observation in a collection',
@@ -610,6 +641,8 @@ def main_app():
         sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
         sys.exit(-1)
     args = parser.parse_args()
+    args.local = False  # TODO remove
+    args.cert = None  # TODO remove
     if args.verbose:
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     if args.debug:
@@ -617,17 +650,69 @@ def main_app():
     else:
         logging.basicConfig(level=logging.WARN, stream=sys.stdout)
 
-    if args.out_obs_xml:
-        outObsXml = args.out_obs_xml
-
-    if args.in_obs_xml:
-        inObsXml = args.in_obs_xml
-    else:
         collection = args.observation[0]
-        observationID = args.observation[1]
-
-    fileURIs = args.fileURI
+        observation_id = args.observation[1]
 
     # invoke the appropriate function based on the inputs
+    if args.in_obs_xml:
+        # append to existing observation
+        reader = ObservationReader(validate=True)
+        obs = reader.read(args.in_obs_xml)
+    else:
+        obs = Observation(collection=args.observation[0],
+                          observation_id=args.observation[1],
+                          algorithm=Algorithm('blah'))  # TODO
+
+    if args.productID not in obs.planes.keys():
+        obs.planes.add(Plane(product_id=args.productID))
+
+    plane = obs.planes[args.productID]
+    for i, uri in enumerate(args.fileURI):
+        if args.local:
+            file = args.local[i]
+            if uri not in plane.artifacts.keys():
+                plane.artifacts.add(
+                    Artifact(uri=uri,
+                             product_type=ProductType.SCIENCE,
+                             release_type=ReleaseType.DATA))
+            artifact = plane.artifacts[uri]
+            parser = FitsParser(file)
+            parser.augment_artifact(artifact)
+        else:
+            file_url = urlparse(uri)
+            if file_url.scheme != 'ad':
+                # TODO add hook to support other service providers
+                raise NotImplementedError('Only ad type URIs supported')
+            # create possible types of subjects
+            subject = net.Subject(args.cert)
+            client = CadcDataClient(subject)
+            # do a fhead on the file
+            archive, file_id = file_url.path.split('/')
+            b = BytesIO()
+            b.name = uri
+            client.get_file(archive, file_id, b, fhead=True)
+            fits_header = b.getvalue().decode('ascii')
+            b.close()
+            delim = '\nEND'
+            extensions = \
+                [e+delim for e in fits_header.split(delim) if e.strip()]
+            headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+
+            if uri not in plane.artifacts.keys():
+                plane.artifacts.add(
+                    Artifact(uri=uri,
+                             product_type=ProductType.SCIENCE,
+                             release_type=ReleaseType.DATA))
+            artifact = plane.artifacts[uri]
+            parser = FitsParser()
+            parser.headers = headers
+            parser.augment_artifact(artifact)
+
+    if args.out_obs_xml:
+        writer = ObservationWriter()
+        writer.write(obs, args.out_obs_xml)
+
+
+
 
     logging.info("DONE")
