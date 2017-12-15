@@ -268,7 +268,7 @@ def test_augment_artifact_time(test_file, expected):
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
-    test_parser = WcsParser(get_test_header(test_file)[0], test_file)
+    test_parser = WcsParser(get_test_header(test_file)[0], test_file, 0)
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
     result = getattr(w, '_naxis1')

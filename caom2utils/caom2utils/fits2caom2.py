@@ -133,14 +133,14 @@ class LoggingFilter(logging.Filter):
 
     def __init__(self):
         super(LoggingFilter, self).__init__()
-        self._hdu_for_log = -1
+        self._extension = -1
 
     def filter(self, record):
-        record.hdu = self._hdu_for_log
+        record.hdu = self._extension
         return True
 
-    def hdu_for_log(self, value):
-        self._hdu_for_log = value
+    def extension(self, value):
+        self._extension = value
 
 
 class FitsParser(object):
@@ -244,8 +244,7 @@ class FitsParser(object):
         Ctor
         :param file: FITS file
         """
-        self.logger = None
-        _configure_logging(self)
+        self.logger = logging.getLogger(__name__)
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -273,15 +272,15 @@ class FitsParser(object):
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        self.logger.debug(
-            'Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(
-                self.file, len(self.headers)))
 
         assert artifact
         assert isinstance(artifact, Artifact)
 
+        self.logger.debug(
+            'Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(
+                artifact.uri, len(self.headers)))
+
         for i, header in enumerate(self.headers):
-            self.log_filter.hdu_for_log(i)
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
@@ -307,14 +306,14 @@ class FitsParser(object):
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
 
-            wcs_parser = WcsParser(header, self.file)
+            wcs_parser = WcsParser(header, self.file, i)
             wcs_parser.augment_position(chunk)
             wcs_parser.augment_energy(chunk)
             wcs_parser.augment_temporal(chunk)
             wcs_parser.augment_polarization(chunk)
 
         self.logger.debug(
-            'End CAOM2 artifact augmentation for {}'.format(self.file))
+            'End CAOM2 artifact augmentation for {}.'.format(artifact.uri))
 
     def augment_observation(self, observation, artifact_uri):
         """
@@ -323,8 +322,8 @@ class FitsParser(object):
         :param artifact_uri:
         """
         self.logger.debug(
-            'Begin CAOM2 observation augmentation for {} for URI {}.'.format(
-                self.file, artifact_uri))
+            'Begin CAOM2 observation augmentation for URI {}.'.format(
+                artifact_uri))
 
         assert observation
         assert isinstance(observation, Observation)
@@ -366,7 +365,7 @@ class FitsParser(object):
 
         self.augment_plane(plane, artifact_uri)
         self.logger.debug(
-            'End CAOM2 observation augmentation for {}.'.format(self.file))
+            'End CAOM2 observation augmentation for {}.'.format(artifact_uri))
 
     def augment_plane(self, plane, artifact_uri):
         """
@@ -374,7 +373,8 @@ class FitsParser(object):
         :param plane: existing CAOM2 plane to be augmented.
         :param artifact_uri:
         """
-        self.logger.debug('Begin CAOM2 plane augmentation.')
+        self.logger.debug(
+            'Begin CAOM2 plane augmentation for {}.'.format(artifact_uri))
 
         assert plane
         assert isinstance(plane, Plane)
@@ -412,7 +412,8 @@ class FitsParser(object):
         self.augment_artifact(artifact)
         plane.artifacts[artifact_uri] = artifact
 
-        self.logger.debug('End CAOM2 plane augmentation.')
+        self.logger.debug(
+            'End CAOM2 plane augmentation for {}.'.format(artifact_uri))
 
     def _get_algorithm(self):
         """
@@ -715,14 +716,26 @@ class WcsParser(object):
     POLARIZATION_AXIS = 'polarization'
     TIME_AXIS = 'time'
 
-    def __init__(self, header, file):
+    def __init__(self, header, file, extension):
         """
 
         :param header: FITS extension header
         :param file: name of FITS file
         """
-        self.logger = None
-        _configure_logging(self)
+
+        # all to be able to add the HDU extension to every logging message
+        self.logger = logging.getLogger(__name__ + '.fitsparser')
+        self.log_filter = LoggingFilter()
+        self.logger.addFilter(self.log_filter)
+        self.log_filter.extension(extension)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2d:%(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        logging.getLogger('astropy').addFilter(self.log_filter)
+        self.logger.propagate = False
+
         self.wcs = WCS(header)
         self.header = header
         self.file = file
@@ -739,8 +752,7 @@ class WcsParser(object):
         energy_axis = self._get_axis_index(ENERGY_CTYPES)
 
         if energy_axis is None:
-            self.logger.debug(
-                'No WCS Energy info for {}'.format(self.file))
+            self.logger.debug('No WCS Energy info.')
             return
 
         chunk.energy_axis = energy_axis
@@ -794,8 +806,7 @@ class WcsParser(object):
                 self._sanitize(self.wcs.celestial.wcs.equinox)
             self.logger.debug('End Spatial WCS augmentation.')
         else:
-            self.logger.warning(
-                'No celestial metadata for {}'.format(self.file))
+            self.logger.warning('No celestial metadata')
 
     def augment_temporal(self, chunk):
         """
@@ -819,7 +830,7 @@ class WcsParser(object):
         time_axis = self._get_axis_index(TIME_KEYWORDS)
 
         if time_axis is None:
-            self.logger.warning('No WCS Time for {}'.format(self.file))
+            self.logger.warning('No WCS Time info.')
             return
 
         chunk.timeAxis = time_axis
@@ -858,8 +869,7 @@ class WcsParser(object):
 
         polarization_axis = self._get_axis_index(POLARIZATION_CTYPES)
         if polarization_axis is None:
-            self.logger.debug(
-                'No WCS Polarization info for {}'.format(self.file))
+            self.logger.debug('No WCS Polarization info')
             return
 
         chunk.polarization_axis = polarization_axis
@@ -1025,21 +1035,6 @@ class WcsParser(object):
             return value
 
 
-def _configure_logging(obj):
-    obj.logger = logging.getLogger(__name__)
-    if not len(obj.logger.handlers):
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            ('%(asctime)s %(name)-12s '
-             '%(levelname)-8s HDU:%(hdu)-2d %(message)s'))
-        handler.setFormatter(formatter)
-        obj.logger.addHandler(handler)
-
-    obj.log_filter = LoggingFilter()
-    obj.logger.addFilter(obj.log_filter)
-    logging.getLogger('astropy').addFilter(obj.log_filter)
-
-
 def main_app():
     parser = argparse.ArgumentParser()
 
@@ -1064,7 +1059,6 @@ def main_app():
 
     parser.add_argument('--ignorePartialWCS', action='store_true',
                         help='do not stop and exit upon finding partial WCS')
-
 
     parser.add_argument('-o', '--out', dest='out_obs_xml',
                         help='output of augmented observation in XML',
