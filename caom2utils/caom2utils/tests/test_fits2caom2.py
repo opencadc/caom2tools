@@ -385,7 +385,10 @@ def test_valid_arguments(test_file):
 
 
 EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
-<caom2:Observation xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="1311768465173141112">
+<caom2:Observation""" + \
+    """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ +\
+    """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ +\
+    """xsi:type="caom2:CompositeObservation" caom2:id="1311768465173141112">
   <caom2:collection>UNKNOWN</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
@@ -445,10 +448,12 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 """
 
 
-@pytest.mark.parametrize('test_file, test_file_uri', [(sample_file_4axes_obs, sample_file_4axes_uri)])
+@pytest.mark.parametrize('test_file, test_file_uri',
+                         [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
     test_fitsparser = FitsParser(test_file)
-    test_obs = Observation('collection', 'observation_id', Algorithm('algorithm'))
+    test_obs = Observation('collection', 'observation_id',
+                           Algorithm('algorithm'))
     test_fitsparser.augment_observation(test_obs, test_file_uri)
     assert test_obs is not None
     assert test_obs.planes is not None
@@ -459,7 +464,8 @@ def test_augment_observation(test_file, test_file_uri):
     test_artifact = test_plane.artifacts[test_file_uri]
     assert test_artifact is not None
     test_part = test_artifact.parts['0']
-    # remove the chunk bit, as it's part of other tests - results in <caom2:chunks/> xml output
+    # remove the chunk bit, as it's part of other tests -
+    # results in <caom2:chunks/> xml output
     test_part.chunks.pop()
     # set the ids to expected values
     test_obs._id = uuid.UUID('00000000000000001234567812345678')
@@ -467,7 +473,8 @@ def test_augment_observation(test_file, test_file_uri):
     test_artifact._id = uuid.UUID('00000000000000001234567812345678')
     test_part._id = uuid.UUID('00000000000000001234567812345678')
     output = BytesIO()
-    ow = ObservationWriter(False, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
+    ow = ObservationWriter(False, False, "caom2",
+                           obs_reader_writer.CAOM20_NAMESPACE)
     ow.write(test_obs, output)
     result = output.getvalue().decode('UTF-8')
     output.close()
@@ -477,5 +484,6 @@ def test_augment_observation(test_file, test_file_uri):
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_from_list(test_file):
     test_fitsparser = FitsParser(test_file)
-    result = test_fitsparser._get_from_list('Observation.intent', 0, ObservationIntentType.SCIENCE)
+    result = test_fitsparser._get_from_list('Observation.intent', 0,
+                                            ObservationIntentType.SCIENCE)
     assert result == ObservationIntentType.SCIENCE
