@@ -89,7 +89,7 @@ class IntTestCommand(distutils.cmd.Command):
   def run(self):
     """Run command."""
     import pytest
-    testfile = os.getcwd() + '/tests/test-integration.py'
+    testfile = os.getcwd() + '/tests/test_integration.py'
     pytest.main(['-s', '--capture=no','-x', testfile])
 
 install_requires=metadata.get('install_requires', '').strip().split()

@@ -96,6 +96,8 @@ from io import BytesIO
 
 APP_NAME = 'fits2caom2'
 
+__all__ = ['FitsParser', 'WcsParser', 'get_cadc_headers', 'main_app']
+
 ENERGY_CTYPES = [
     'FREQ',
     'ENER',
@@ -1040,6 +1042,37 @@ def _configure_logging(obj):
     logging.getLogger('astropy').addFilter(obj.log_filter)
 
 
+def get_cadc_headers(uri, cert=None):
+    """
+    Fetches the FITS headers of a CADC file. The function takes advantage
+    of the fhead feature of the CADC storage service and retrieves just the
+    headers and no data, minimizing the transfer time.
+    :param uri: CADC (AD like) file URI
+    :param cert: X509 certificate for accessing proprietary files
+    :return: List of headers corresponding to each extension. Each header is
+    of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
+    """
+    file_url = urlparse(uri)
+    if file_url.scheme != 'ad':
+        # TODO add hook to support other service providers
+        raise NotImplementedError('Only ad type URIs supported')
+    # create possible types of subjects
+    subject = net.Subject(cert)
+    client = CadcDataClient(subject)
+    # do a fhead on the file
+    archive, file_id = file_url.path.split('/')
+    b = BytesIO()
+    b.name = uri
+    client.get_file(archive, file_id, b, fhead=True)
+    fits_header = b.getvalue().decode('ascii')
+    b.close()
+    delim = '\nEND'
+    extensions = \
+        [e + delim for e in fits_header.split(delim) if e.strip()]
+    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    return headers
+
+
 def main_app():
     parser = argparse.ArgumentParser()
 
@@ -1094,7 +1127,7 @@ def main_app():
                         help='keep the locally stored files after ingestion')
     parser.add_argument('--test', action='store_true',
                         help='test mode, do not persist to database')
-    parser.add_argument('--cert', help='Cert File or Proxy Cert&Key PEM file')
+    parser.add_argument('--cert', help='Proxy Cert&Key PEM file')
 
     parser.add_argument('productID',
                         help='product ID of the plane in the observation')
@@ -1113,6 +1146,12 @@ def main_app():
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     else:
         logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+
+    if args.local and (len(args.local) != len(args.fileURI)):
+        sys.stderr.write(('number of local arguments not the same with file '
+                          'URIs ({} vs {})').format(len(args.local),
+                                                    args.fileURI))
+        sys.exit(-1)
 
     # invoke the appropriate function based on the inputs
     if args.in_obs_xml:
@@ -1140,24 +1179,7 @@ def main_app():
             parser = FitsParser(file)
             parser.augment_artifact(artifact)
         else:
-            file_url = urlparse(uri)
-            if file_url.scheme != 'ad':
-                # TODO add hook to support other service providers
-                raise NotImplementedError('Only ad type URIs supported')
-            # create possible types of subjects
-            subject = net.Subject(args.cert)
-            client = CadcDataClient(subject)
-            # do a fhead on the file
-            archive, file_id = file_url.path.split('/')
-            b = BytesIO()
-            b.name = uri
-            client.get_file(archive, file_id, b, fhead=True)
-            fits_header = b.getvalue().decode('ascii')
-            b.close()
-            delim = '\nEND'
-            extensions = \
-                [e+delim for e in fits_header.split(delim) if e.strip()]
-            headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+            headers = get_cadc_headers(uri, args.cert)
 
             if uri not in plane.artifacts.keys():
                 plane.artifacts.add(
@@ -1175,3 +1197,4 @@ def main_app():
         writer.write(obs, sys.stdout)
 
     logging.info("DONE")
+
