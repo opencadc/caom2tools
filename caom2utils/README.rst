@@ -73,6 +73,9 @@ CFHT
           header['CRVAL3'] = 56789.4298069
           header['CDELT3'] = 2.31481e-07
           header['NAXIS3'] = 1
+          header['EXPTIME'] = 0.02
+          header['TIMEDEL'] = 0.02
+          header['TIMESYS'] = 'UTC'
 
       hdulist.writeto(sample_file_time_axes, overwrite=True)
 
@@ -82,3 +85,25 @@ CFHT
 * 2136164o SITELLE raw
 
 * 2136164p SITELLE processed spectral cube
+
+CGPS
+----
+
+* CGPS_MA1_HI_line_image.fits
+
+    def test_update():
+        hdulist = fits.open(sample_file_4axes_obs)
+        header = hdulist[0].header
+        header['RUNID'] = 'HI-line'
+        header['PROCNAME'] = 'exposure'
+        header['INSTRUME'] = 'DRAO-ST'
+        header['OBSGEO-X'] = -2100330.87517
+        header['OBSGEO-Y'] = -3694247.82445
+        header['OBSGEO-Z'] = 4741018.33097
+        header['DATE-FTS'] = '2000-10-16'
+        header['OBSID'] = 'MA1_DRAO-ST'
+        header['XREFER'] = 'http://dx.doi.org/10.1086/375301'
+        header['XPRVNAME'] = 'CGPS MOSAIC'
+        hdulist.writeto(sample_file_4axes_obs, overwrite=True)
+
+
