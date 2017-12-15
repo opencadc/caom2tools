@@ -35,4 +35,4 @@ optional arguments:
   --log LOG             log file name > (instead of console)
   --keep                keep the locally stored files after ingestion
   --test                test mode, do not persist to database
-  --cert CERT           Cert File or Proxy Cert&Key PEM file
+  --cert CERT           Proxy Cert&Key PEM file
