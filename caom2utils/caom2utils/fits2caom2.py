@@ -1035,7 +1035,6 @@ def _configure_logging(obj):
         handler.setFormatter(formatter)
         obj.logger.addHandler(handler)
 
-    obj.logger.setLevel(logging.DEBUG)
     obj.log_filter = LoggingFilter()
     obj.logger.addFilter(obj.log_filter)
     logging.getLogger('astropy').addFilter(obj.log_filter)
