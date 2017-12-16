@@ -148,15 +148,15 @@ class LoggingFilter(logging.Filter):
 class FitsParser(object):
     """
     Parses a FITS file and extracts the CAOM2 related information which can
-    be used to augment an existing CAOM2 observation, plane or artifact. If
-    the FITS file is not provided, a list of dictionaries (FITS keyword=value)
-    with a dictionary for each "extension" need to be provided instead.
+    be used to augment an existing CAOM2 observation, plane or artifact. The
+    constructor takes either a FITS file as argument or a list of dictionaries
+    (FITS keyword=value) corresponding to each extension.
 
     The WCS-related keywords of the FITS file are consumed by the astropy.wcs
     package which might display warnings with regards to compliance.
 
     Example 1:
-    parser = FitsParser(file = '/staging/700000o.fits.gz')
+    parser = FitsParser(input = '/staging/700000o.fits.gz')
     ...
     # customize parser.headers by deleting, changing or adding attributes
 
@@ -175,12 +175,10 @@ class FitsParser(object):
 
 
     Example 2:
-    parser = FitsParser()
 
     headers = [] # list of dictionaries headers
     # populate headers
-
-    parser.headers = headers
+    parser = FitsParser(input=headers)
 
     parser.augment_observation(obs)
     ...
@@ -240,19 +238,23 @@ class FitsParser(object):
               'Plane.metrics.magLimit': []
               }
 
-    def __init__(self,
-                 file=None):
+    def __init__(self, src):
         """
         Ctor
-        :param file: FITS file
+        :param src: List of headers (dictionary of FITS keywords:value) with
+        one header for each extension or a FITS input file.
         """
         self.logger = logging.getLogger(__name__)
         self._headers = []
         self.parts = 0
         self.file = ''
-        if file:
-            self.file = file
-            hdulist = fits.open(file, memmap=True, lazy_load_hdus=False)
+        if isinstance(src, list):
+            # assume this is the list of headers
+            self._headers = src
+        else:
+            # assume file
+            self.file = src
+            hdulist = fits.open(self.file, memmap=True, lazy_load_hdus=False)
             hdulist.close()
             self._headers = [h.header for h in hdulist]
 
@@ -264,10 +266,6 @@ class FitsParser(object):
         :return:
         """
         return self._headers
-
-    @headers.setter
-    def headers(self, headers):
-        self._headers = headers
 
     def augment_artifact(self, artifact):
         """
@@ -1179,8 +1177,7 @@ def main_app():
                     Artifact(uri=uri,
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            parser = FitsParser()
-            parser.headers = headers
+            parser = FitsParser(headers)
 
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
