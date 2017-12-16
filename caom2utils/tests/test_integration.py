@@ -92,6 +92,7 @@ import pytest
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 expected_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps.xml')
+expected_local_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps_local.xml')
 sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
 sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
 
@@ -111,9 +112,11 @@ def test_fits2caom2():
                 'ad:CGPS/CGPS_MA1_HI_line_image'.format(temp.name)).split()
     fits2caom2.main_app()
 
-    _cmp(expected_cgps_obs, temp.name)
+    actual = open(temp.name).read()
+    _cmp(expected, actual)
 
     # test fits2caom2 on a known existing but now local CGPS file
+    expected = open(expected_local_cgps_obs).read()
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
         sys.argv = ('fits2caom2 --local {} --observation TEST myOBS myplane '
                     'ad:CGPS/CGPS_MA1_HI_line_image').format(
@@ -129,6 +132,10 @@ def test_fits2caom2():
         sample_file_4axes, temp.name)).split()
     fits2caom2.main_app()
 
+    actual = open(temp.name).read()
+    _cmp(expected, actual)
+
+
 def _cmp(expected_obs_xml, actual_obs_xml):
     """
     Textual comparison of the xml representation of 2 observations ignoring
@@ -137,7 +144,7 @@ def _cmp(expected_obs_xml, actual_obs_xml):
     :param actual_obs_xml:
     :return:
     """
-    expected = re.sub(r'caom2:id=".*"', 'caom2:id=""', expected_cgps_obs)
+    expected = re.sub(r'caom2:id=".*"', 'caom2:id=""', expected_obs_xml)
     actual = re.sub(r'caom2:id=".*"', 'caom2:id=""', actual_obs_xml)
 
-    assert expected, actual
+    assert expected == actual

@@ -274,7 +274,6 @@ class FitsParser(object):
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-
         assert artifact
         assert isinstance(artifact, Artifact)
 
@@ -286,10 +285,11 @@ class FitsParser(object):
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            # Only primary headers for 1 extension files or the extensions
+            # Assumption:
+            #    Only primary headers for 1 extension files or the extensions
             # for multiple extension files can have data and therefore
-            # can have corresponding parts
-            if not bool(len(self.headers) - 1 > 0) != bool(i):
+            # corresponding parts
+            if (i > 0) or (len(self.headers) == 1) :
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
@@ -297,9 +297,6 @@ class FitsParser(object):
                 artifact.parts.add(Part(ii))
                 self.logger.debug('Create empty part for HDU {}'.format(ii))
                 continue
-
-            if ii not in artifact.parts.keys():
-                return
 
             part = artifact.parts[ii]
 
@@ -317,7 +314,7 @@ class FitsParser(object):
         self.logger.debug(
             'End CAOM2 artifact augmentation for {}.'.format(artifact.uri))
 
-    def augment_observation(self, observation, artifact_uri):
+    def augment_observation(self, observation, artifact_uri, product_id=None):
         """
         Augments a given observation with available FITS information.
         :param observation: existing CAOM2 observation to be augmented.
@@ -355,15 +352,18 @@ class FitsParser(object):
         observation.environment = self._get_environment()
 
         plane = None
-        prod_id = self._get_from_list('Plane.product_id', index=0,
-                                      default='None')
+        if not product_id:
+            product_id = self._get_from_list('Plane.product_id', index=0,
+                                             default=None)
+        assert product_id, 'product ID required'
+
         for ii in observation.planes:
-            if observation.planes[ii].product_id == prod_id:
-                plane = observation.planes[prod_id]
+            if observation.planes[ii].product_id == product_id:
+                plane = observation.planes[product_id]
                 break
         if plane is None:
-            plane = Plane(str(prod_id))
-            observation.planes[prod_id] = plane
+            plane = Plane(str(product_id))
+            observation.planes[product_id] = plane
 
         self.augment_plane(plane, artifact_uri)
         self.logger.debug(
@@ -395,24 +395,22 @@ class FitsParser(object):
             self._get_from_list('Plane.calibration_level',
                                 index=0,
                                 default=CalibrationLevel.CALIBRATED)
-        plane.product_id = \
-            str(self._get_from_list('Plane.product_id', index=0))
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
         plane.quality = self._get_quality()
 
         artifact = None
         for ii in plane.artifacts:
-            artifact = plane[ii]
+            artifact = plane.artifacts[ii]
             if artifact.uri == artifact_uri:
                 break
 
         if artifact is None:
             artifact = Artifact(artifact_uri, ProductType.SCIENCE,
                                 ReleaseType.DATA)  # TODO
+            plane.artifacts[artifact_uri] = artifact
 
         self.augment_artifact(artifact)
-        plane.artifacts[artifact_uri] = artifact
 
         self.logger.debug(
             'End CAOM2 plane augmentation for {}.'.format(artifact_uri))
@@ -1170,7 +1168,6 @@ def main_app():
                              release_type=ReleaseType.DATA))
             artifact = plane.artifacts[uri]
             parser = FitsParser(file)
-            parser.augment_artifact(artifact)
         else:
             headers = get_cadc_headers(uri, args.cert)
 
@@ -1181,7 +1178,9 @@ def main_app():
                              release_type=ReleaseType.DATA))
             parser = FitsParser()
             parser.headers = headers
-            parser.augment_observation(observation=obs, artifact_uri=uri)
+
+        parser.augment_observation(observation=obs, artifact_uri=uri,
+                                   product_id=plane.product_id)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
