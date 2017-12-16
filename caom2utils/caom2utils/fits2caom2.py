@@ -873,8 +873,7 @@ class WcsParser(object):
 
         chunk.polarization_axis = polarization_axis
 
-        naxis = CoordAxis1D(Axis(str(self.wcs.wcs.ctype[polarization_axis]),
-                                 str(self.wcs.wcs.cunit[polarization_axis])))
+        naxis = CoordAxis1D(self._get_axis(polarization_axis))
         naxis.function = CoordFunction1D(
             self._sanitize(self.wcs._naxis[polarization_axis]),
             self._sanitize(self.wcs.wcs.cdelt[polarization_axis]),
@@ -896,6 +895,10 @@ class WcsParser(object):
             if elem in keywords:
                 axis = i
                 break
+            elif len(elem) == 0:
+                check = self.wcs.wcs.ctype[i]
+                if check in keywords:
+                    axis = i
         return axis
 
     def _get_axis(self, index, over_ctype=None, over_cunit=None):
