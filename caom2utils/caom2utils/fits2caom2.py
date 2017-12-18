@@ -303,7 +303,7 @@ class FitsParser(object):
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
 
-            wcs_parser = WcsParser(header, self.file, i)
+            wcs_parser = WcsParser(header, self.file, ii)
             wcs_parser.augment_position(chunk)
             wcs_parser.augment_energy(chunk)
             wcs_parser.augment_temporal(chunk)
@@ -721,17 +721,20 @@ class WcsParser(object):
         :param file: name of FITS file
         """
 
-        # add the HDU extension to every logging message
-        self.logger = logging.getLogger(__name__ + '.fitsparser')
+        # add the HDU extension to logging messages from this class
+        self.logger = logging.getLogger(__name__)
         self.log_filter = LoggingFilter()
         self.logger.addFilter(self.log_filter)
         self.log_filter.extension(extension)
         handler = logging.StreamHandler()
         formatter = logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2d:%(message)s')
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.logger.propagate = False
+        logastro = logging.getLogger('astropy')
+        logastro.addFilter(self.log_filter)
+        logastro.propagate = False
 
         self.wcs = WCS(header)
         self.header = header
