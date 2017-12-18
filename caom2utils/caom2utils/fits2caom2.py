@@ -726,12 +726,8 @@ class WcsParser(object):
         self.log_filter = LoggingFilter()
         self.logger.addFilter(self.log_filter)
         self.log_filter.extension(extension)
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        self.logger.propagate = False
+        logging.basicConfig(
+            format='%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
         logastro = logging.getLogger('astropy')
         logastro.addFilter(self.log_filter)
         logastro.propagate = False
