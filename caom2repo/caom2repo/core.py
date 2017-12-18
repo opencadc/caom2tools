@@ -157,7 +157,7 @@ class CAOM2RepoClient(object):
         """
         self.delete_observation(collection, observation_id)
 
-    def visit(self, plugin, collection, start=None, end=None,
+    def visit(self, plugin, collection, start=None, end=None, obs_file=None,
               halt_on_error=False):
         """
         Main processing function that iterates through the observations of
@@ -183,6 +183,7 @@ class CAOM2RepoClient(object):
             assert type(start) is datetime
         if end is not None:
             assert type(end) is datetime
+
         self._load_plugin_class(plugin)
 
         # this is updated by _get_observations with the timestamp of last
@@ -192,7 +193,14 @@ class CAOM2RepoClient(object):
         failed = []
         updated = []
         skipped = []
-        observations = self._get_observations(collection, self._start, end)
+        observations = []
+        if obs_file is not None:
+            # get observation IDs from file, no batching
+            observations = self._get_obs_from_file(obs_file, start, end, halt_on_error)
+        else:
+            # get observation IDs from caomrepo
+            observations = self._get_observations(collection, self._start, end)
+
         while len(observations) > 0:
             for observationID in observations:
                 self.logger.info('Process observation: ' + observationID)
@@ -221,7 +229,8 @@ class CAOM2RepoClient(object):
                     if halt_on_error:
                         raise e
                 visited.append(observation.observation_id)
-            if len(observations) == BATCH_SIZE:
+            if obs_file is None and len(observations) == BATCH_SIZE:
+                # get observation IDs from caomrepo
                 observations = self._get_observations(collection, self._start,
                                                       end)
             else:
@@ -229,7 +238,52 @@ class CAOM2RepoClient(object):
                 break
         return visited, updated, skipped, failed
 
-    def _get_observations(self, collection, start=None, end=None):
+    def _get_obs_from_file(self, obs_file, start, end, halt_on_error):
+        start_datetime = util.utils.str2ivoa(start)
+        end_datetime = util.utils.str2ivoa(end)
+        obs = []
+        failed = []
+        with open(obs_file) as fp:
+            for l in fp:
+                line = l.rstrip('\n').strip()
+                if len(line) > 0:
+                    if ' ' in line:
+                        # we have at least two tokens in line
+                        obs_id, last_modified_date = line.split(' ', 1)
+                        try:
+                            last_mod_datetime = util.utils.str2ivoa(last_modified_date)
+                            if start_datetime is not None:
+                                if start_datetime<= last_mod_datetime:
+                                    # last_modified_date is same or later than start date
+                                    if self._matches_end_date(obs_id, end_datetime, last_mod_datetime):
+                                        obs.append(obs_id)
+                            elif self._matches_end_date(obs_id, end_datetime, last_mod_datetime):
+                                obs.append(obs_id)
+                        except Exception as e:
+                            failed.append(obs_id)
+                            self.logger.error('FAILED {} - Reason: {}'.
+                                              format(obs_id, e))
+                            if halt_on_error:
+                                raise e
+                    else:
+                        # only one token in line, so assume line contains observationID only
+                        obs.append(line)
+
+        return obs
+
+    def _matches_end_date(self, obs_id, end_datetime, last_mod_datetime):
+        matches_end_date = False
+        if end_datetime is not None:
+            if last_mod_datetime <= end_datetime:
+                # and last_modified_date is earlier than end date
+                matches_end_date = True
+        else:
+            # but not end date
+            matches_end_date = True
+
+        return matches_end_date
+
+    def _get_observations(self, collection, start=None, end=None, obs_file=None):
         """
         Returns a list of observations from the collection
         :param collection: name of the collection
@@ -430,6 +484,7 @@ def main_app():
     visit_parser.add_argument(
         '--end', type=str2date,
         help='latest observation to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
+    visit_parser.add_argument('--obs_file', help='file containing observations to be visited', type=argparse.FileType('r'))
     visit_parser.add_argument(
         '--halt-on-error', action='store_true',
         help='stop visitor on first update exception raised by plugin')
@@ -475,12 +530,12 @@ def main_app():
     if args.cmd == 'visit':
         print("Visit")
         logging.debug(
-            "Call visitor with plugin={}, start={}, end={}, collection={}".
+            "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}".
             format(args.plugin.name, args.start, args.end,
-                   args.collection))
+                   args.collection, args.obs_file))
         (visited, updated, skipped, failed) = \
             client.visit(args.plugin.name, args.collection, start=args.start,
-                         end=args.end,
+                         end=args.end, obs_file=args.obs_file,
                          halt_on_error=args.halt_on_error)
         logging.info(
             'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.

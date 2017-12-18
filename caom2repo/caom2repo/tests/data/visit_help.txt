@@ -2,7 +2,7 @@ usage: caom2-repo visit [-h]
                         [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                         [--host HOST] [--resource-id RESOURCE_ID]
                         [-d | -q | -v] --plugin PLUGIN [--start START]
-                        [--end END] [--halt-on-error]
+                        [--end END] [--obs_file OBS_FILE] [--halt-on-error]
                         collection
 
 Visit observations in a collection
@@ -24,6 +24,7 @@ optional arguments:
   -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
+  --obs_file OBS_FILE   file containing observations to be visited
   --plugin PLUGIN       plugin class to update each observation
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID

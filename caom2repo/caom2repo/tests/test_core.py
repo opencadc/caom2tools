@@ -105,6 +105,33 @@ class MyExitError(Exception):
 class TestCAOM2Repo(unittest.TestCase):
     """Test the Caom2Visitor class"""
 
+    def test_get_obs_from_file(self):
+        visitor = CAOM2RepoClient(auth.Subject())
+        # no start or end
+        obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id.txt'), None, None, False)
+        self.assertEquals('obs_id_1', obs_id_list[0])
+        self.assertEquals('obs_id_2', obs_id_list[1])
+        self.assertEquals('obs_id_3', obs_id_list[2])
+        # last_modified_date is earlier than start
+        obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id.txt'), '2000-10-11T12:30:00.333',
+                                                 None, False)
+        self.assertEquals('obs_id_1', obs_id_list[0])
+        # last_modified_date is between start and end
+        obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id.txt'), '2000-10-9T12:30:00.333',
+                                                 '2016-10-11T12:30:00.333', False)
+        self.assertEquals('obs_id_1', obs_id_list[0])
+        self.assertEquals('obs_id_2', obs_id_list[1])
+        # last_modified_date is after end
+        obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id.txt'), '2000-10-9T12:30:00.333',
+                                                 '2017-10-11T12:30:00.333', False)
+        self.assertEquals('obs_id_1', obs_id_list[0])
+        self.assertEquals('obs_id_2', obs_id_list[1])
+        self.assertEquals('obs_id_3', obs_id_list[2])
+        # error in file
+        with self.assertRaises(Exception):
+            obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id_error.txt'), '2000-10-9T12:30:00.333',
+                                                     '2016-10-11T12:30:00.333', True)
+
     @patch('caom2repo.core.net.BaseWsClient', Mock())
     def test_plugin_class(self):
         # plugin class does not change the observation
@@ -684,4 +711,4 @@ class TestCAOM2Repo(unittest.TestCase):
             with self.assertRaises(MyExitError):
                 core.main_app()
             self.assertEqual(visit_usage, stdout_mock.getvalue())
-            # print(stdout_mock.getvalue())
+        # print(stdout_mock.getvalue())
