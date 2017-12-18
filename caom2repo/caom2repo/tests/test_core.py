@@ -624,7 +624,7 @@ class TestCAOM2Repo(unittest.TestCase):
         with open(plugin_file, 'r') as infile:
             core.main_app()
             client_mock.return_value.visit.assert_called_with(
-                ANY, collection, halt_on_error=False,
+                ANY, collection, halt_on_error=False, obs_file=None,
                 start=core.str2date("2012-01-01T11:22:33"),
                 end=core.str2date("2013-01-01T11:33:22"))
 
@@ -638,7 +638,7 @@ class TestCAOM2Repo(unittest.TestCase):
         with open(plugin_file, 'r') as infile:
             core.main_app()
             client_mock.return_value.visit.assert_called_with(
-                ANY, collection, halt_on_error=True,
+                ANY, collection, halt_on_error=True, obs_file=None,
                 start=core.str2date("2012-01-01T11:22:33"),
                 end=core.str2date("2013-01-01T11:33:22"))
 
