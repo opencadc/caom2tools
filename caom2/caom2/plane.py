@@ -99,13 +99,13 @@ _CAOM_VOCAB_NS = "http://www.opencadc.org/caom2/DataProductType"
 class CalibrationLevel(Enum):
     """
     PLANNED: -1
-    RAW_INSTRUMENT: 0
+    RAW_INSTRUMENTAL: 0
     RAW_STANDARD: 1
     CALIBRATED: 2
     PRODUCT: 3
     """
     PLANNED = int_32(-1)
-    RAW_INSTRUMENT = int_32(0)
+    RAW_INSTRUMENTAL = int_32(0)
     RAW_STANDARD = int_32(1)
     CALIBRATED = int_32(2)
     PRODUCT = int_32(3)

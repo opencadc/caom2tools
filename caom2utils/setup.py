@@ -76,7 +76,7 @@ class PyTest(TestCommand):
 class IntTestCommand(distutils.cmd.Command):
   """A custom command to run integration tests."""
 
-  description = 'Integration tests for caom2repo'
+  description = 'Integration tests'
   user_options = []
   
   def initialize_options(self):
@@ -89,24 +89,16 @@ class IntTestCommand(distutils.cmd.Command):
   def run(self):
     """Run command."""
     import pytest
-    testfile = os.getcwd() + '/tests/test-integration.py'
+    testfile = os.getcwd() + '/tests/test_integration.py'
     pytest.main(['-s', '--capture=no','-x', testfile])
-    #inttests = imp.load_source("tests", testfile)
-    #inttestattr = getattr(inttests, "TestCaom2Integration")()
-    #self.announce(
-    #    'Running inttests: {}'.format(testfile),
-    #    level=distutils.log.INFO)
-    #inttestattr.runTest()
 
-# Note that requires and provides should not be included in the call to
-# ``setup``, since these are now deprecated. See this link for more details:
-# https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
+install_requires=metadata.get('install_requires', '').strip().split()
 
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
       scripts=scripts,
-      install_requires=metadata.get('install_requires', '').strip().split(),
+      install_requires=install_requires,
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,

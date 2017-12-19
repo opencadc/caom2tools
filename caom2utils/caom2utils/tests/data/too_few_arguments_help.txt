@@ -1,0 +1,4 @@
+usage: fits2caom2 [-h] [-V] [-d | -q | -v] [-o OUT_OBS_XML]
+                  (-i IN_OBS_XML | --observation collection observationID)
+                  productID fileURI [fileURI ...]
+fits2caom2: error: too few arguments
