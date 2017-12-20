@@ -158,7 +158,7 @@ class CAOM2RepoClient(object):
         self.delete_observation(collection, observation_id)
 
     def visit(self, plugin, collection, start=None, end=None, obs_file=None,
-              halt_on_error=False):
+              nthreads=None, halt_on_error=False):
         """
         Main processing function that iterates through the observations of
         the collection and updates them according to the algorithm
@@ -266,7 +266,7 @@ class CAOM2RepoClient(object):
                             if halt_on_error:
                                 raise e
                     else:
-                        # only one token in line, so assume line contains observationID only
+                        # only one token in line, line should contain observationID only
                         obs.append(line)
 
         return obs
@@ -484,7 +484,11 @@ def main_app():
     visit_parser.add_argument(
         '--end', type=str2date,
         help='latest observation to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
-    visit_parser.add_argument('--obs_file', help='file containing observations to be visited', type=argparse.FileType('r'))
+    visit_parser.add_argument('--obs_file', help='file containing observations to be visited',
+                              type=argparse.FileType('r'))
+    visit_parser.add_argument(
+        '--threads', type=int,
+        help='number of threads the visitor will spawn when getting observations, range is 2 to 10')
     visit_parser.add_argument(
         '--halt-on-error', action='store_true',
         help='stop visitor on first update exception raised by plugin')
@@ -530,12 +534,25 @@ def main_app():
     if args.cmd == 'visit':
         print("Visit")
         logging.debug(
-            "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}".
+            "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}, threads={}".
             format(args.plugin.name, args.start, args.end,
-                   args.collection, args.obs_file))
+                   args.collection, args.obs_file, args.threads))
+        if args.threads is not None:
+            if args.threads < 2:
+                parser.print_usage(file=sys.stderr)
+                sys.stderr.write("{}: error: too few threads specified for visitor\n".format(APP_NAME))
+                sys.exit(-1)
+                #raise ValueError(
+                #    "{}: error: too few threads specified for visitor\n".format(APP_NAME))
+            elif args.threads > 10:
+                parser.print_usage(file=sys.stderr)
+                sys.stderr.write("{}: error: too many threads specified for visitor\n".format(APP_NAME))
+                sys.exit(-1)
+                #raise ValueError(
+                #    "{}: error: too many threads specified for visitor\n".format(APP_NAME))
         (visited, updated, skipped, failed) = \
             client.visit(args.plugin.name, args.collection, start=args.start,
-                         end=args.end, obs_file=args.obs_file,
+                         end=args.end, obs_file=args.obs_file, threads=args.threads,
                          halt_on_error=args.halt_on_error)
         logging.info(
             'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.

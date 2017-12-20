@@ -626,7 +626,7 @@ class TestCAOM2Repo(unittest.TestCase):
             client_mock.return_value.visit.assert_called_with(
                 ANY, collection, halt_on_error=False, obs_file=None,
                 start=core.str2date("2012-01-01T11:22:33"),
-                end=core.str2date("2013-01-01T11:33:22"))
+                end=core.str2date("2013-01-01T11:33:22"), threads=None)
 
         # repeat visit test with halt-on-error
         sys.argv = ["caom2tools", "visit", '--resource-id',
@@ -640,7 +640,7 @@ class TestCAOM2Repo(unittest.TestCase):
             client_mock.return_value.visit.assert_called_with(
                 ANY, collection, halt_on_error=True, obs_file=None,
                 start=core.str2date("2012-01-01T11:22:33"),
-                end=core.str2date("2013-01-01T11:33:22"))
+                end=core.str2date("2013-01-01T11:33:22"), threads=None)
 
     @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                          MyExitError, MyExitError,
@@ -712,3 +712,23 @@ class TestCAOM2Repo(unittest.TestCase):
                 core.main_app()
             self.assertEqual(visit_usage, stdout_mock.getvalue())
         # print(stdout_mock.getvalue())
+
+        # visit too few number of threads
+        with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+            sys.argv = ["caom2-repo", "visit", "--threads", "1",
+                        "--obs_file", os.path.join(THIS_DIR, 'data/obs_id.txt'),
+                        "--plugin", os.path.join(THIS_DIR, 'passplugin.py'), "TEST"]
+            with self.assertRaises(MyExitError):
+                core.main_app()
+            self.assertTrue(stderr_mock.getvalue().contains('too few threads'))
+        # print(stderr_mock.getvalue())
+
+        # visit too many number of threads
+        with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+            sys.argv = ["caom2-repo", "visit", "--threads", "11",
+                        "--obs_file", os.path.join(THIS_DIR, 'data/obs_id.txt'),
+                        "--plugin", os.path.join(THIS_DIR, 'passplugin.py'), "TEST"]
+            with self.assertRaises(MyExitError):
+                core.main_app()
+            self.assertTrue(stderr_mock.getvalue().contains('too many threads'))
+        # print(stderr_mock.getvalue())
