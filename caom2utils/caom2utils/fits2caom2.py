@@ -1150,12 +1150,21 @@ def main_app():
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
     else:
+<<<<<<< HEAD
         obs = Observation(collection=str(args.observation[0]),
                           observation_id=str(args.observation[1]),
                           algorithm=Algorithm(str('EXPOSURE')))  # TODO
 
     if args.productID not in obs.planes.keys():
         obs.planes.add(Plane(product_id=str(args.productID)))
+=======
+        obs = Observation(collection=args.observation[0],
+                          observation_id=args.observation[1],
+                          algorithm=Algorithm('blah'))  # TODO
+
+    if args.productID not in obs.planes.keys():
+        obs.planes.add(Plane(product_id=args.productID))
+>>>>>>> e04a670c5aaa04cbad6abbb69782ef5a05bddcbc
 
     plane = obs.planes[args.productID]
     for i, uri in enumerate(args.fileURI):
@@ -1173,7 +1182,11 @@ def main_app():
 
             if uri not in plane.artifacts.keys():
                 plane.artifacts.add(
+<<<<<<< HEAD
                     Artifact(uri=str(uri),
+=======
+                    Artifact(uri=uri,
+>>>>>>> e04a670c5aaa04cbad6abbb69782ef5a05bddcbc
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers)
