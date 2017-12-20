@@ -73,6 +73,8 @@ from __future__ import (absolute_import, division, print_function,
 import argparse
 import imp
 import logging
+import multiprocessing
+from multiprocessing import Lock, Pool
 import os
 import os.path
 import sys
@@ -202,33 +204,37 @@ class CAOM2RepoClient(object):
             observations = self._get_observations(collection, self._start, end)
 
         while len(observations) > 0:
-            for observationID in observations:
-                self.logger.info('Process observation: ' + observationID)
-                observation = self.get_observation(collection, observationID)
-                try:
-                    if self.plugin.update(observation=observation,
-                                          subject=self._subject) is False:
-                        self.logger.info(
-                            'SKIP {}'.format(observation.observation_id))
-                        skipped.append(observation.observation_id)
-                    else:
-                        self.post_observation(observation)
-                        self.logger.debug(
-                            'UPDATED {}'.format(observation.observation_id))
-                        updated.append(observation.observation_id)
-                except TypeError as e:
-                    if "unexpected keyword argument" in str(e):
-                        raise RuntimeError(
-                            "{} - To fix the problem, please add the **kwargs "
-                            "argument to the list of arguments for the update"
-                            " method of your plugin.".format(str(e)))
-                except Exception as e:
-                    failed.append(observation.observation_id)
-                    self.logger.error('FAILED {} - Reason: {}'.
-                                      format(observation.observation_id, e))
-                    if halt_on_error:
-                        raise e
-                visited.append(observation.observation_id)
+            if nthreads is None:
+                for observationID in observations:
+                    v, u, s, f= self._process_observation_id(collection, observationID, halt_on_error)
+                    if v:
+                        visited.append(v)
+                    if u:
+                        updated.append(u)
+                    if s:
+                        skipped.append(s)
+                    if f:
+                        failed.append(f)
+
+            else:
+                mutex = Lock()
+                p = Pool(nthreads)
+                results = [p.apply_async(
+                    self.multiprocess_observation_id,
+                    [collection, observationID, self.get_observation, self.post_observation, halt_on_error,
+                     self.logger, self.plugin, mutex])
+                    for observationID in observations]
+                for r in results:
+                    v, u, s, f= r.get()
+                    if v:
+                        visited.append(v)
+                    if u:
+                        updated.append(u)
+                    if s:
+                        skipped.append(s)
+                    if f:
+                        failed.append(f)
+
             if obs_file is None and len(observations) == BATCH_SIZE:
                 # get observation IDs from caomrepo
                 observations = self._get_observations(collection, self._start,
@@ -236,6 +242,93 @@ class CAOM2RepoClient(object):
             else:
                 # the last batch was smaller so it must have been the last
                 break
+        return visited, updated, skipped, failed
+
+    def _process_observation_id(self, collection, observationID, halt_on_error):
+        visited = []
+        failed = []
+        updated = []
+        skipped = []
+        self.logger.info('Process observation: ' + observationID)
+        observation = self.get_observation(collection, observationID)
+        try:
+            if self.plugin.update(observation=observation,
+                             subject=self._subject) is False:
+                self.logger.info(
+                    'SKIP {}'.format(observation.observation_id))
+                skipped.append(observation.observation_id)
+            else:
+                self.post_observation(observation)
+                self.logger.debug(
+                    'UPDATED {}'.format(observation.observation_id))
+                updated.append(observation.observation_id)
+        except TypeError as e:
+            if "unexpected keyword argument" in str(e):
+                raise RuntimeError(
+                    "{} - To fix the problem, please add the **kwargs "
+                    "argument to the list of arguments for the update"
+                    " method of your plugin.".format(str(e)))
+        except Exception as e:
+            failed.append(observation.observation_id)
+            self.logger.error('FAILED {} - Reason: {}'.
+                         format(observation.observation_id, e))
+            if halt_on_error:
+                raise e
+
+        visited.append(observation.observation_id)
+
+        return visited, updated, skipped, failed
+
+    def multiprocess_observation_id(self, collection, observationID, get_observation, post_observation, halt_on_error,
+                                    logger, plugin, mutex):
+        visited = []
+        failed = []
+        updated = []
+        skipped = []
+        mutex.acquire()
+        logger.info('Process observation: ' + observationID)
+        mutex.release
+        observation = get_observation(collection, observationID)
+        try:
+            if plugin.update(observation=observation,
+                                  subject=self._subject) is False:
+                mutex.acquire()
+                logger.info(
+                    'SKIP {}'.format(observation.observation_id))
+                mutex.release
+                skipped.append(observation.observation_id)
+            else:
+                post_observation(observation)
+                mutex.acquire()
+                logger.debug(
+                    'UPDATED {}'.format(observation.observation_id))
+                mutex.release
+                updated.append(observation.observation_id)
+        except TypeError as e:
+            if "unexpected keyword argument" in str(e):
+                raise RuntimeError(
+                    "{} - To fix the problem, please add the **kwargs "
+                    "argument to the list of arguments for the update"
+                    " method of your plugin.".format(str(e)))
+        except Exception as e:
+            failed.append(observation.observation_id)
+            mutex.acquire()
+            logger.error('FAILED {} - Reason: {}'.
+                              format(observation.observation_id, e))
+            mutex.release
+            if halt_on_error:
+                raise e
+        except KeyboardInterrupt as e:
+            # user pressed Control-C or Delete
+            mutex.acquire()
+            logger.error('FAILED {} - Reason: {}'.
+                              format(observation.observation_id, e))
+            mutex.release
+            raise e
+            sys.exit(-2)
+
+        visited.append(observation.observation_id)
+
         return visited, updated, skipped, failed
 
     def _get_obs_from_file(self, obs_file, start, end, halt_on_error):

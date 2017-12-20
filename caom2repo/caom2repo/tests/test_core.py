@@ -543,6 +543,23 @@ class TestCAOM2Repo(unittest.TestCase):
                               'MAXREC': 3})]
         visitor._repo_client.get.assert_has_calls(calls)
 
+    @patch('caom2repo.core.net.BaseWsClient', Mock())
+    def test_multiprocess(self):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        obs = [['a', 'b', 'c'], ['d'], []]
+        visitor = CAOM2RepoClient(auth.Subject())
+        visitor.get_observation = MagicMock(
+            return_value=MagicMock(spec=SimpleObservation))
+        visitor.post_observation = MagicMock()
+        visitor._get_observations = MagicMock(side_effect=obs)
+
+        (visited, updated, skipped, failed) = visitor.visit(
+            os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+        self.assertEqual(4, len(visited))
+        self.assertEqual(4, len(updated))
+        self.assertEqual(0, len(skipped))
+        self.assertEqual(0, len(failed))
+
     def test_shortcuts(self):
         target = CAOM2RepoClient(auth.Subject())
         obs = SimpleObservation('CFHT', 'abc')
