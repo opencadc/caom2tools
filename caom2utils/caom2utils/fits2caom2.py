@@ -87,6 +87,7 @@ from caom2 import ReleaseType, ProductType, ObservationIntentType
 from caom2 import DataProductType, TargetType, Telescope, Environment
 from caom2 import Instrument, Proposal, Target, Provenance, Metrics, Quality
 from caom2 import CalibrationLevel, Status, Requirements, DataQuality
+from caom2 import SimpleObservation
 import logging
 import sys
 from six.moves.urllib.parse import urlparse
@@ -185,13 +186,19 @@ class FitsParser(object):
 
     """
 
+    """There are three phases this configuration participates in, and it
+    serves a unique purpose for each phase:
+    1) Merge this configuration with the configuration obtained from the 
+     config and default files provided as input. Use this configuration to 
+     update the FITS headers
+    2) Augment the WCS.
+    3) Update this configuration with over-ride information, and apply
+     that to the headers."""
     CONFIG = {'Observation.meta_release':
               ['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
                'UTC-DATE', 'MJDOBS', 'MJD_OBS'],
               'Observation.instrument.name': ['INSTRUME'],
-              'Observation.target.name': ['OBJECT'],
               'Observation.type': ['OBSTYPE'],
-              'Observation.telescope.name': ['INSTRUME'],
               'Observation.environment.ambientTemp': ['TEMPERAT'],
               'Observation.algorithm.name': ['PROCNAME'],
               'Observation.intent': [],
@@ -202,13 +209,15 @@ class FitsParser(object):
               'Observation.proposal.project': [],
               'Observation.proposal.title': [],
               'Observation.proposal.keywords': [],
+              'Observation.target.name': ['OBJECT'],
               'Observation.target.type': [],
               'Observation.target.standard': [],
               'Observation.target.redshift': [],
               'Observation.target.keywords': [],
-              'Observation.telescope.geo_location_x': ['OBSGEO-X'],
-              'Observation.telescope.geo_location_y': ['OBSGEO-Y'],
-              'Observation.telescope.geo_location_z': ['OBSGEO-Z'],
+              'Observation.telescope.name': ['INSTRUME'],
+              'Observation.telescope.geoLocationX': ['OBSGEO-X'],
+              'Observation.telescope.geoLocationY': ['OBSGEO-Y'],
+              'Observation.telescope.geoLocationZ': ['OBSGEO-Z'],
               'Observation.telescope.keywords': [],
               'Observation.environment.seeing': [],
               'Observation.environment.humidity': [],
@@ -245,6 +254,7 @@ class FitsParser(object):
         one header for each extension or a FITS input file.
         """
         self.logger = logging.getLogger(__name__)
+        self.config = {}
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -266,6 +276,9 @@ class FitsParser(object):
         :return:
         """
         return self._headers
+
+    def set_config(self, _config):
+        self.config = _config
 
     def augment_artifact(self, artifact):
         """
@@ -325,17 +338,14 @@ class FitsParser(object):
         assert observation
         assert isinstance(observation, Observation)
 
-        # TODO default value
         observation.collection = self._get_from_list('Observation.collection',
-                                                     0,
-                                                     'UNKNOWN')
+                                                     index=0)
         observation.observation_id = str(
-            self._get_from_list('Observation.observation_id', 0))
+            self._get_from_list('Observation.observation_id', index=0))
         observation.algorithm = self._get_algorithm()
 
-        # TODO default values for the following fields
-        observation.sequence_number = self._get_from_list(
-            'Observation.sequence_number', 0, -1)
+        observation.sequence_number = int(self._get_from_list(
+            'Observation.sequenceNumber', 0))
         observation.intent = self._get_from_list('Observation.intent', 0,
                                                  ObservationIntentType.SCIENCE)
         observation.type = self._get_from_list('Observation.type', 0)
@@ -348,6 +358,8 @@ class FitsParser(object):
         observation.target_position = self._get_target_position()
         observation.telescope = self._get_telescope()
         observation.environment = self._get_environment()
+
+        self.logger.warning('telescope name is {}'.format(observation.telescope.name))
 
         plane = None
         if not product_id:
@@ -452,16 +464,14 @@ class FitsParser(object):
         :return: Proposal
         """
         self.logger.debug('Begin CAOM2 Proposal augmentation.')
-        id = self._get_from_list('Observation.proposal.id', index=0)  # TODO
-        pi = self._get_from_list('Observation.proposal.pi_name',
-                                 index=0)  # TODO
-        project = self._get_from_list('Observation.proposal.project',
-                                      index=0)  # TODO
-        title = self._get_from_list('Observation.proposal.title',
-                                    index=0)  # TODO
+        prop_id = self._get_from_list('Observation.proposal.id', index=0)
+        pi = self._get_from_list('Observation.proposal.pi', index=0)
+        project = self._get_from_list(
+            'Observation.proposal.project', index=0)
+        title = self._get_from_list('Observation.proposal.title', index=0)
         self.logger.debug('End CAOM2 Proposal augmentation.')
-        if id:
-            return Proposal(str(id), pi, project, title)
+        if prop_id:
+            return Proposal(str(prop_id), pi, project, title)
         else:
             return None
 
@@ -474,9 +484,9 @@ class FitsParser(object):
         name = self._get_from_list('Observation.target.name', index=0,
                                    default='UNKNOWN')  # TODO
         target_type = self._get_from_list('Observation.target.target_type',
-                                          index=0, default=TargetType.FIELD)
-        standard = self._get_from_list('Observation.target.standard', index=0,
-                                       default=False)  # TODO
+                                          index=0)
+        standard = self._cast_as_bool(self._get_from_list(
+            'Observation.target.standard', index=0))
         redshift = self._get_from_list('Observation.target.redshift', index=0)
         keywords = self._get_set_from_list('Observation.target.keywords',
                                            index=0)  # TODO
@@ -508,16 +518,17 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Telescope augmentation.')
         name = self._get_from_list('Observation.telescope.name', index=0)
-        geo_x = self._get_from_list('Observation.telescope.geo_location_x',
-                                    index=0)
-        geo_y = self._get_from_list('Observation.telescope.geo_location_y',
-                                    index=0)
-        geo_z = self._get_from_list('Observation.telescope.geo_location_z',
-                                    index=0)
+        geo_x = float(self._get_from_list('Observation.telescope.geoLocationX',
+                                          index=0))
+        geo_y = float(self._get_from_list('Observation.telescope.geoLocationY',
+                                          index=0))
+        geo_z = float(self._get_from_list('Observation.telescope.geoLocationZ',
+                                          index=0))
         keywords = self._get_set_from_list('Observation.telescope.keywords',
                                            index=0)  # TODO
+        self.logger.debug('End CAOM2 Telescope augmentation.')
         if name:
-            self.logger.debug('End CAOM2 Telescope augmentation.')
+            self.logger.warning('name is {}'.format(name))
             return Telescope(str(name), geo_x, geo_y, geo_z, keywords)
         else:
             return None
@@ -563,37 +574,47 @@ class FitsParser(object):
         :return: Requirements
         """
         self.logger.debug('Begin CAOM2 Requirement augmentation.')
-        flag = self._get_from_list('Observation.requirements.flag', index=0,
-                                   default=Status.FAIL)  # TODO DEFAULT VALUE
+        flag = self._get_from_list('Observation.requirements.flag', index=0)
         self.logger.debug('End CAOM2 Requirement augmentation.')
         if flag:
             return Requirements(flag)
         else:
             return None
 
-    def _get_from_list(self, lookup, index, default=None):
+    def _get_from_list(self, lookup, index, default=None, current=None):
         value = default
         try:
-            keywords = self.CONFIG[lookup]
+            keywords = self.config[lookup]
         except KeyError:
             self.logger.debug(
                 'Could not find \'{}\' in fits2caom2 configuration.'.format(
                     lookup))
             return value
 
-        for ii in keywords:
-            value = self.headers[index].get(ii, default)
-            self.logger.debug(
-                'Assigned value {} based on keyword {}'.format(value, ii))
-            if value is not default:
-                break
+        if type(keywords) == list:
+            for ii in keywords:
+                value = self.headers[index].get(ii, default)
+                self.logger.warning(
+                    '{}: assigned value {} based on keyword {}.'.format(
+                        lookup, value, ii))
+                if value is not default:
+                    break
+        else:
+            # the original list has been over-ridden or provided with a default
+            value = keywords
+
+        self.logger.warning('value is {} for lookup {}'.format(value, lookup))
+
+        if current and not value:
+            self.logger.warning('Using current value {}'.format(current))
+            value = current
 
         return value
 
     def _get_set_from_list(self, lookup, index, default=None):
         value = default
         try:
-            keywords = self.CONFIG[lookup]
+            keywords = self.config[lookup]
         except KeyError:
             self.logger.debug(
                 'Could not find \'{}\' in fits2caom2 configuration.'.format(
@@ -693,11 +714,38 @@ class FitsParser(object):
         :param from_value:
         :return:
         """
-        units = self.headers[0].get('TIMEUNIT', 'd')
-        if units == 'd':
-            return datetime.strptime(from_value, '%Y-%m-%d')
-        else:
-            return datetime(1990, 1, 1, 12, 12, 12)
+
+        # FITS Time Paper is the source for defaults
+        # http://hea-www.cfa.harvard.edu/~arots/TimeWCS/WCSPaperV0.90.pdf
+        units = self.headers[0].get('TIMEUNIT', 's')
+        try:
+            if from_value:
+                if units == 'd':
+                    return datetime.strptime(from_value, '%Y-%m-%d')
+                elif units == 's':
+                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
+                else:
+                    return datetime(1990, 1, 1, 12, 12, 12)  # TODO better
+            else:
+                return datetime(1990, 1, 1, 12, 12, 12)  # TODO better
+        except ValueError:
+            self.logger.warning('{}'.format(sys.exc_info()[1]))
+            return datetime(1990, 1, 1, 12, 12, 12)  # TODO better
+
+    def _cast_as_bool(self, from_value):
+        """
+        Make lower case Java booleans into capitalized python booleans.
+        :param from_value: Something that represents a boolean value
+        :return: a python boolean value
+        """
+        result = False
+        # so far, these are the only options that are coming in from the
+        # config files - may need to add more as more types are experienced
+        if from_value == 'false':
+            result = False
+        elif from_value == 'true':
+            result = True
+        return result
 
 
 class WcsParser(object):
@@ -1034,6 +1082,24 @@ class WcsParser(object):
             return value
 
 
+def load_config(file_name):
+    """
+    Override CONFIG with externally-supplied values.
+
+    :param file_name Name of the configuration file to load.
+    :return: dict representation of file content.
+    """
+    d = {}
+    with open(file_name) as file:
+        for line in file:
+            if line.find('=') == -1 or line.startswith('#'):
+                continue
+            else:
+                key, value = line.split('=')
+                d[key.strip()] = value.strip()
+    return d
+
+
 def get_cadc_headers(uri, cert=None):
     """
     Fetches the FITS headers of a CADC file. The function takes advantage
@@ -1063,6 +1129,216 @@ def get_cadc_headers(uri, cert=None):
         [e + delim for e in fits_header.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
+
+
+def update_fits_headers(parser, config=None, defaults=None, overrides=None):
+    """
+    Update the in-memory representation of FITS headers according to defaults
+    and/or overrides as configured by the user.
+    :param parser: access to FITS keywords as type astropy.wcs.Header - a
+    dictionary of FITS keywords, as well as the default parser CONFIG
+    :param config: Input configuration in a dict.
+    :param defaults: FITS header default values in a dict.
+    :param overrides: FITS header keyword overrides in a dict.
+    :return: updated headers
+    """
+
+    this_config = _merge_configs(parser.CONFIG, config)
+    parser.set_config(this_config)
+
+    # for lack of better criteria, anything that's all upper case is assumed
+    # to be a FITS keyword - I'm sure that will bite somewhere in the future :)
+
+    if defaults:
+        for ii in defaults.keys():
+            logging.warning(ii)
+
+            if ii.isupper() and ii.find('.') == -1:
+                # header key
+                for jj, header in enumerate(parser.headers):
+                    # logging.warning(jj)
+                    # logging.warning(header)
+                    # logging.warning(parser.headers[jj])
+                    logging.warning('defaults found something')
+                    break
+
+            else:
+                # config key, add as a default if it's not found in the
+                # configuration
+                keywords = _find_fits_keyword_in_config(this_config, ii)
+                if len(keywords) > 0:
+
+                    for jj, value in enumerate(keywords):
+                        if value.find('.') == -1:
+                            # this will set a FITS header keyword
+                            _set_default_keyword_value_in_header(
+                                parser.headers, keywords, defaults[ii])
+                        else:
+                            _set_default_value_in_config(
+                                this_config, ii, defaults[ii])
+                        break
+                else:
+                    # this will set a lookup value in the config
+                    _set_default_value_in_config(this_config, ii, defaults[ii])
+
+    if overrides:
+        for ii in overrides.keys():
+            logging.warning(ii)
+
+            if ii.isupper() and ii.find('.') == -1:
+                logging.warning('overrides found something')
+                logging.warning(ii)
+                # header key
+                for jj, header in enumerate(parser.headers):
+                    break
+
+            else:
+                # config key, add as a default if it's not found in the
+                # configuration
+                keywords = _find_fits_keyword_in_config(this_config, ii)
+                if len(keywords) > 0:
+                    _set_override_keyword_value_in_header(
+                        parser.headers, keywords, overrides[ii])
+                else:
+                    _set_override_value_in_config(
+                        this_config, ii, overrides[ii])
+
+    # for ii in this_config.keys():
+    #     logging.warning('{} {}'.format(ii, this_config[ii]))
+
+    return parser
+
+
+def _set_default_value_in_config(_config, _key, _value):
+    for ii in _config.keys():
+        # if ii.endswith(_key) and len(_config[ii]) == 0:
+        if ii.endswith(_key):
+            logging.warning('{}: Set {} to default value of {}'.format(
+                ii, _config[ii], _value))
+            _config[ii] = _value
+            break
+    return
+
+
+def _set_override_value_in_config(_config, _key, _value):
+    for ii in _config.keys():
+        if ii.endswith(_key):
+            logging.warning('{}: Set {} to override value of {}'.format(
+                ii, _config[ii], _value))
+            if len(_value) == 0:
+                _config[ii] = None
+            else:
+                _config[ii] = _value
+            break
+    return
+
+
+def _find_fits_keyword_in_config(_config, _key):
+    keywords = []
+    for ii in _config.keys():
+        if ii.endswith(_key):
+            if len(_config[ii]) > 0:
+                keywords = _config[ii]
+            break
+    return keywords
+
+
+def _set_default_keyword_value_in_header(_headers, _keys, _value):
+
+    # set will append if the keyword doesn't exist, or update an existing value
+
+    if _value.find('{') == -1:
+        # the default value does not contain index markup, add the
+        # default value only to the first header
+        logging.warning('Set header {} to default value of {} in HDU 0.'.format(
+            _keys[0], _value))
+        _headers[0].set(_keys[0], _value, 'fits2caom2 set value')
+    else:
+        # the default value contains index markup, add the default value
+        # to all the headers
+        for ii, header in enumerate(_headers):
+            logging.warning(
+                'Set header {} to default value of {} in extension {}'.format(
+                    _keys[0], _value, ii))
+            header.set(_keys[0], _value, 'fits2caom2 set value')
+
+    # found = False
+    # for key in _keys:
+    #     logging.warning('finding key {}'.format(key))
+    #     if _value.find('{') == -1:
+    #         # the default value does not contain index markup, check only the
+    #         # first header
+    #         if key in _headers[0].keys():
+    #             found = True
+    #             break
+    #     else:
+    #         # the default value contains index markup, check all the headers
+    #         for ii, header in enumerate(_headers):
+    #             if key in header.keys():
+    #                 found = True
+    #                 break
+    # if found:
+    #     logging.warning('found key')
+    #     return
+    # else:
+    #     # add the default value
+    #     if _value.find('{') == -1:
+    #         # the default value does not contain index markup, add the
+    #         # default value only to the first header
+    #         logging.warning('Set header {} to default value of {} in HDU 0.'.format(
+    #             _keys[0], _value))
+    #         _headers[0].append((_keys[0], _value, 'Added value'))
+    #     else:
+    #         # the default value contains index markup, add the default value
+    #         # to all the headers
+    #         for ii, header in enumerate(_headers):
+    #             logging.warning(
+    #                 'Set header {} to default value of {} in extension {}'.format(
+    #                 _keys[0], _value, ii))
+    #             header.append((_keys[0], _value, 'Added value'))
+
+
+def _set_override_keyword_value_in_header(_headers, _keys, _value):
+    for key in _keys:
+        if _value.find('{') == -1:
+            # the default value does not contain index markup, check only the
+            # first header
+            if key in _headers[0].keys():
+                logging.warning(
+                    'Set {} to override value of {} in HDU 0.'.format(
+                        _keys[0], _value))
+                _headers[0].set(_keys[0], _value, 'Updated value')
+                break
+        else:
+            # the default value contains index markup, check all the headers
+            for ii, header in enumerate(_headers):
+                if key in header.keys():
+                    logging.warning(
+                        'Set {} to override value of {} in extension {}'.format(
+                            _keys[0], _value, ii))
+                    header.set(_keys[0], _value, 'Updated value')
+                    break
+
+
+def _merge_configs(default_config, input_config):
+    # if there was only a need to support python 3.5+, do it like this:
+    # return {**x, **y}
+
+    # input_config takes precedence
+
+    merged = default_config.copy()
+
+    # make the input config values into lists, because that's how the default
+    # config is done, that's why
+    # and also because of the default value of 'ZNAXIS, NAXIS' for Chunk.naxis
+
+    for ii in input_config.keys():
+        values = input_config[ii].split(',')
+        input_config[ii] = values
+        logging.warning('{} {}'.format(ii, input_config[ii]))
+
+    merged.update(input_config)
+    return merged
 
 
 def main_app():
@@ -1135,8 +1411,8 @@ def main_app():
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    else:
-        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+    # else:
+    #     logging.basicConfig(level=logging.WARN, stream=sys.stdout)
 
     if args.local and (len(args.local) != len(args.fileURI)):
         sys.stderr.write(('number of local arguments not the same with file '
@@ -1144,15 +1420,30 @@ def main_app():
                                                     args.fileURI))
         sys.exit(-1)
 
+    config = None
+    if args.config:
+        config = load_config(args.config)
+        logging.debug('Apply configuration from {}.'.format(args.config))
+
+    defaults = None
+    if args.default:
+        defaults = load_config(args.default)
+        logging.debug('Apply defaults from {}.'.format(args.default))
+
+    overrides = None
+    if args.override:
+        overrides = load_config(args.override)
+        logging.debug('Apply overrides from {}.'.format(args.override))
+
     # invoke the appropriate function based on the inputs
     if args.in_obs_xml:
         # append to existing observation
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
     else:
-        obs = Observation(collection=args.observation[0],
-                          observation_id=args.observation[1],
-                          algorithm=Algorithm('blah'))  # TODO
+        obs = SimpleObservation(collection=args.observation[0],
+                                observation_id=args.observation[1],
+                                algorithm=Algorithm('blah'))  # TODO
 
     if args.productID not in obs.planes.keys():
         obs.planes.add(Plane(product_id=args.productID))
@@ -1178,6 +1469,7 @@ def main_app():
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers)
 
+        update_fits_headers(parser, config, defaults, overrides)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 
