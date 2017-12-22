@@ -1,0 +1,12 @@
+# SVN keyword properties
+# $Date: 2010-06-02 11:49:37 -0700 (Wed, 02 Jun 2010) $
+# $Revision: 74 $
+# $Author: redman $
+
+target.type             = field
+provenance.project      = CGPS
+CUNIT1                  = deg
+CUNIT2                  = deg
+obs.intent              = science
+
+

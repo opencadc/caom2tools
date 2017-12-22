@@ -97,7 +97,8 @@ from io import BytesIO
 
 APP_NAME = 'fits2caom2'
 
-__all__ = ['FitsParser', 'WcsParser', 'get_cadc_headers', 'main_app']
+__all__ = ['FitsParser', 'WcsParser', 'get_cadc_headers', 'main_app',
+           'update_fits_headers', 'load_config']
 
 ENERGY_CTYPES = [
     'FREQ',
@@ -254,7 +255,7 @@ class FitsParser(object):
         one header for each extension or a FITS input file.
         """
         self.logger = logging.getLogger(__name__)
-        self.config = {}
+        self.config = self.CONFIG
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -329,7 +330,8 @@ class FitsParser(object):
         """
         Augments a given observation with available FITS information.
         :param observation: existing CAOM2 observation to be augmented.
-        :param artifact_uri:
+        :param artifact_uri: the key for finding the artifact to augment
+        :param product_id: the key for finding for the plane to augment
         """
         self.logger.debug(
             'Begin CAOM2 observation augmentation for URI {}.'.format(
@@ -338,14 +340,18 @@ class FitsParser(object):
         assert observation
         assert isinstance(observation, Observation)
 
-        observation.collection = self._get_from_list('Observation.collection',
-                                                     index=0)
+        self.logger.warning('collection value {}'.format(observation.collection))
+        observation.collection = self._get_from_list(
+            'Observation.collection', index=0, current=observation.collection)
+        # TODO there is no OBSID in 1709071g.fits, which the
+        # defaults/overrides/config says there should be
         observation.observation_id = str(
-            self._get_from_list('Observation.observation_id', index=0))
+            self._get_from_list('Observation.observation_id', index=0,
+                                current=observation.observation_id))
         observation.algorithm = self._get_algorithm()
 
         observation.sequence_number = int(self._get_from_list(
-            'Observation.sequenceNumber', 0))
+            'Observation.sequenceNumber', index=0))
         observation.intent = self._get_from_list('Observation.intent', 0,
                                                  ObservationIntentType.SCIENCE)
         observation.type = self._get_from_list('Observation.type', 0)
@@ -586,28 +592,33 @@ class FitsParser(object):
         try:
             keywords = self.config[lookup]
         except KeyError:
-            self.logger.debug(
+            self.logger.warning(
                 'Could not find \'{}\' in fits2caom2 configuration.'.format(
                     lookup))
+            if current:
+                self.logger.warning(
+                    '{}: using current value of {}.'.format(lookup, current))
+                value = current
             return value
 
         if type(keywords) == list:
             for ii in keywords:
                 value = self.headers[index].get(ii, default)
-                self.logger.warning(
-                    '{}: assigned value {} based on keyword {}.'.format(
-                        lookup, value, ii))
+                if value is None and current:
+                    value = current
+                    self.logger.warning(
+                        '{}: used current value {}.'.format(
+                            lookup, value))
+                else:
+                    self.logger.warning(
+                        '{}: assigned value {} based on keyword {}.'.format(
+                            lookup, value, ii))
                 if value is not default:
                     break
         else:
             # the original list has been over-ridden or provided with a default
+            self.logger.warning('{}: value is {}'.format(lookup, value))
             value = keywords
-
-        self.logger.warning('value is {} for lookup {}'.format(value, lookup))
-
-        if current and not value:
-            self.logger.warning('Using current value {}'.format(current))
-            value = current
 
         return value
 
@@ -1086,17 +1097,42 @@ def load_config(file_name):
     """
     Override CONFIG with externally-supplied values.
 
+    The override file can contain information for more than one input file,
+    as well as providing information for different headers.
+
     :param file_name Name of the configuration file to load.
     :return: dict representation of file content.
     """
     d = {}
+    extension = 0
+    artifact = ''
+    ptr = d
     with open(file_name) as file:
         for line in file:
-            if line.find('=') == -1 or line.startswith('#'):
+            if line.startswith('?'):
+                # file, extension-specific content
+                if line.find('#[') == -1:
+                    artifact = line.split('?')[1].strip()
+                    extension = 0
+                    if 'artifacts' not in d.keys():
+                        d['artifacts'] = {}
+                else:
+                    artifact = line.split('?')[1].split('#[')[0].strip()
+                    extension = \
+                        int(line.split('#[')[1].split(']')[0].strip())
+                    logging.debug(
+                        'Adding overrides for artifact {} in extension {}'
+                            .format(artifact, extension))
+                if artifact not in d['artifacts'].keys():
+                    d['artifacts'][artifact] = {}
+                if extension not in d['artifacts'][artifact].keys():
+                    d['artifacts'][artifact][extension] = {}
+                ptr = d['artifacts'][artifact][extension]
+            elif line.find('=') == -1 or line.startswith('#'):
                 continue
             else:
                 key, value = line.split('=')
-                d[key.strip()] = value.strip()
+                ptr[key.strip()] = value.strip()
     return d
 
 
@@ -1154,12 +1190,38 @@ def update_fits_headers(parser, config=None, defaults=None, overrides=None):
             logging.warning(ii)
 
             if ii.isupper() and ii.find('.') == -1:
+                _set_default_keyword_value_in_header(
+                    parser.headers, [ii], defaults[ii])
+            else:
+                # config key, add as a default if it's not found in the
+                # configuration
+                keywords = _find_fits_keyword_in_config(this_config, ii)
+                if len(keywords) > 0:
+
+                    for jj, value in enumerate(keywords):
+                        if value.find('.') == -1:
+                            # set a FITS header keyword
+                            _set_default_keyword_value_in_header(
+                                parser.headers, keywords, defaults[ii])
+                        else:
+                            # set a lookup value in the config
+                            _set_default_value_in_config(
+                                this_config, ii, defaults[ii])
+                        break
+                else:
+                    # set a value in the config
+                    _set_default_value_in_config(this_config, ii, defaults[ii])
+
+    if overrides:
+        for ii in overrides.keys():
+            logging.warning('override key {}'.format(ii))
+
+            if ii.isupper() and ii.find('.') == -1:
+                logging.warning(
+                    'overrides found something that looks FITS-ish {}'.format(
+                        ii))
                 # header key
                 for jj, header in enumerate(parser.headers):
-                    # logging.warning(jj)
-                    # logging.warning(header)
-                    # logging.warning(parser.headers[jj])
-                    logging.warning('defaults found something')
                     break
 
             else:
@@ -1169,39 +1231,18 @@ def update_fits_headers(parser, config=None, defaults=None, overrides=None):
                 if len(keywords) > 0:
 
                     for jj, value in enumerate(keywords):
-                        if value.find('.') == -1:
-                            # this will set a FITS header keyword
-                            _set_default_keyword_value_in_header(
-                                parser.headers, keywords, defaults[ii])
+                        if value.find('.') == -1 and value.isupper():
+                            logging.warning('setting fits keyword header value')
+                            _set_override_keyword_value_in_header(
+                                parser.headers, keywords, overrides[ii])
                         else:
-                            _set_default_value_in_config(
-                                this_config, ii, defaults[ii])
+                            logging.warning('setting override value')
+                            _set_override_value_in_config(
+                                this_config, ii, overrides[ii])
                         break
                 else:
-                    # this will set a lookup value in the config
-                    _set_default_value_in_config(this_config, ii, defaults[ii])
-
-    if overrides:
-        for ii in overrides.keys():
-            logging.warning(ii)
-
-            if ii.isupper() and ii.find('.') == -1:
-                logging.warning('overrides found something')
-                logging.warning(ii)
-                # header key
-                for jj, header in enumerate(parser.headers):
-                    break
-
-            else:
-                # config key, add as a default if it's not found in the
-                # configuration
-                keywords = _find_fits_keyword_in_config(this_config, ii)
-                if len(keywords) > 0:
-                    _set_override_keyword_value_in_header(
-                        parser.headers, keywords, overrides[ii])
-                else:
-                    _set_override_value_in_config(
-                        this_config, ii, overrides[ii])
+                    _set_override_value_in_config(this_config, ii,
+                                                  overrides[ii])
 
     # for ii in this_config.keys():
     #     logging.warning('{} {}'.format(ii, this_config[ii]))
@@ -1212,7 +1253,8 @@ def update_fits_headers(parser, config=None, defaults=None, overrides=None):
 def _set_default_value_in_config(_config, _key, _value):
     for ii in _config.keys():
         # if ii.endswith(_key) and len(_config[ii]) == 0:
-        if ii.endswith(_key):
+        # if ii.endswith(_key):
+        if _find(ii, _key):
             logging.warning('{}: Set {} to default value of {}'.format(
                 ii, _config[ii], _value))
             _config[ii] = _value
@@ -1222,7 +1264,7 @@ def _set_default_value_in_config(_config, _key, _value):
 
 def _set_override_value_in_config(_config, _key, _value):
     for ii in _config.keys():
-        if ii.endswith(_key):
+        if _find(ii, _key):
             logging.warning('{}: Set {} to override value of {}'.format(
                 ii, _config[ii], _value))
             if len(_value) == 0:
@@ -1236,22 +1278,37 @@ def _set_override_value_in_config(_config, _key, _value):
 def _find_fits_keyword_in_config(_config, _key):
     keywords = []
     for ii in _config.keys():
-        if ii.endswith(_key):
+        if _find(ii, _key):
             if len(_config[ii]) > 0:
                 keywords = _config[ii]
             break
     return keywords
 
 
+def _find(match_this, to_this):
+    # the second clause is for the case where plane.dataProductType is part of
+    # the defaults
+    return match_this.endswith(to_this) or match_this.lower() == to_this.lower()
+
+
 def _set_default_keyword_value_in_header(_headers, _keys, _value):
+    """
+    The configuration provides a FITS keyword, so modify the headers to have
+    the default value for the keyword.
+    :param _headers: Metadata from the FITS files.
+    :param _keys: The FITS keyword list.
+    :param _value: What value to give to the keyword.
+    :return:
+    """
 
     # set will append if the keyword doesn't exist, or update an existing value
 
     if _value.find('{') == -1:
         # the default value does not contain index markup, add the
         # default value only to the first header
-        logging.warning('Set header {} to default value of {} in HDU 0.'.format(
-            _keys[0], _value))
+        logging.warning(
+            'Set header {} to default value of {} in extension 0.'.format(
+                _keys[0], _value))
         _headers[0].set(_keys[0], _value, 'fits2caom2 set value')
     else:
         # the default value contains index markup, add the default value

@@ -2,7 +2,7 @@
 <caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-bbe6-9b1c50c6a1ff">
   <caom2:collection>UNKNOWN</caom2:collection>
   <caom2:observationID>None</caom2:observationID>
-  <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
+  <caom2:metaRelease>1999-01-01T12:12:12.000</caom2:metaRelease>
   <caom2:sequenceNumber>-1</caom2:sequenceNumber>
   <caom2:algorithm>
     <caom2:name>DEFAULT</caom2:name>
