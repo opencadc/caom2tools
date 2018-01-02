@@ -1167,15 +1167,18 @@ def get_cadc_headers(uri, cert=None):
     return headers
 
 
-def update_fits_headers(parser, config=None, defaults=None, overrides=None):
+def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None, overrides=None):
     """
     Update the in-memory representation of FITS headers according to defaults
     and/or overrides as configured by the user.
     :param parser: access to FITS keywords as type astropy.wcs.Header - a
     dictionary of FITS keywords, as well as the default parser CONFIG
+    :param artifact_uri: Where the overrides come from, and where
+    to apply them.
     :param config: Input configuration in a dict.
-    :param defaults: FITS header default values in a dict.
-    :param overrides: FITS header keyword overrides in a dict.
+    :param defaults: FITS header and configuration default values in a dict.
+    :param overrides: FITS header keyword and configuration default overrides
+    in a dict.
     :return: updated headers
     """
 
@@ -1212,42 +1215,46 @@ def update_fits_headers(parser, config=None, defaults=None, overrides=None):
                     # set a value in the config
                     _set_default_value_in_config(this_config, ii, defaults[ii])
 
+    logging.warning('Defaults set for {}. Start overrides.'.format(artifact_uri))
+
     if overrides:
-        for ii in overrides.keys():
-            logging.warning('override key {}'.format(ii))
-
-            if ii.isupper() and ii.find('.') == -1:
-                logging.warning(
-                    'overrides found something that looks FITS-ish {}'.format(
-                        ii))
-                # header key
-                for jj, header in enumerate(parser.headers):
-                    break
-
-            else:
-                # config key, add as a default if it's not found in the
-                # configuration
-                keywords = _find_fits_keyword_in_config(this_config, ii)
-                if len(keywords) > 0:
-
-                    for jj, value in enumerate(keywords):
-                        if value.find('.') == -1 and value.isupper():
-                            logging.warning('setting fits keyword header value')
-                            _set_override_keyword_value_in_header(
-                                parser.headers, keywords, overrides[ii])
-                        else:
-                            logging.warning('setting override value')
-                            _set_override_value_in_config(
-                                this_config, ii, overrides[ii])
-                        break
-                else:
-                    _set_override_value_in_config(this_config, ii,
-                                                  overrides[ii])
+        _set_overrides(overrides, this_config, parser.headers, 0)
+        _set_overrides_for_artifacts(
+            overrides, parser, artifact_uri, this_config)
 
     # for ii in this_config.keys():
     #     logging.warning('{} {}'.format(ii, this_config[ii]))
 
     return parser
+
+
+def _set_overrides(_overrides, _config, _headers, _index):
+    for ii in _overrides.keys():
+        logging.warning('override key {}'.format(ii))
+
+        if ii.isupper() and ii.find('.') == -1:
+            _set_override_keyword_value_in_header(_headers, [ii],
+                                                  _overrides[ii], _index)
+
+        else:
+            # config key, add as a default if it's not found in the
+            # configuration
+            keywords = _find_fits_keyword_in_config(_config, ii)
+            if len(keywords) > 0:
+
+                for jj, value in enumerate(keywords):
+                    if value.find('.') == -1 and value.isupper():
+                        logging.warning('setting fits keyword header value')
+                        _set_override_keyword_value_in_header(
+                            _headers, keywords, _overrides[ii], _index)
+                    else:
+                        logging.warning('setting override value')
+                        _set_override_value_in_config(
+                            _config, ii, _overrides[ii])
+                    break
+            else:
+                _set_override_value_in_config(_config, ii,
+                                              _overrides[ii])
 
 
 def _set_default_value_in_config(_config, _key, _value):
@@ -1259,6 +1266,23 @@ def _set_default_value_in_config(_config, _key, _value):
                 ii, _config[ii], _value))
             _config[ii] = _value
             break
+    return
+
+
+def _set_overrides_for_artifacts(_overrides, _parser, _uri, _config):
+    logging.warning('_set_overrides_for_artifacts')
+    if 'artifacts' in _overrides.keys() and _uri in _overrides['artifacts']:
+        logging.warning(
+            'Found extension overrides for URI {}. Update headers accordingly.'.
+            format(_uri))
+        if len(_overrides['artifacts'][_uri]) > len(_parser.headers):
+            msg = 'Disconnect in {} and overrides.'.format(_uri)
+            logging.error(msg)
+            raise IndexError(msg)
+
+        for ii in _overrides['artifacts'][_uri]:
+            _set_overrides(
+                _overrides['artifacts'][_uri][ii], _config, _parser.headers, ii)
     return
 
 
@@ -1355,46 +1379,53 @@ def _set_default_keyword_value_in_header(_headers, _keys, _value):
     #             header.append((_keys[0], _value, 'Added value'))
 
 
-def _set_override_keyword_value_in_header(_headers, _keys, _value):
+def _set_override_keyword_value_in_header(_headers, _keys, _value, _index):
     for key in _keys:
         if _value.find('{') == -1:
-            # the default value does not contain index markup, check only the
-            # first header
-            if key in _headers[0].keys():
-                logging.warning(
-                    'Set {} to override value of {} in HDU 0.'.format(
-                        _keys[0], _value))
-                _headers[0].set(_keys[0], _value, 'Updated value')
-                break
+            # the default value does not contain index markup
+            # if key in _headers[_index].keys():
+            logging.warning(
+                'Set {} to override value of {} in HDU {}.'.format(
+                    key, _value, _index))
+            _headers[_index].set(
+                key, _value, 'Updated HDU {} value'.format(_index))
+            break
         else:
             # the default value contains index markup, check all the headers
             for ii, header in enumerate(_headers):
-                if key in header.keys():
-                    logging.warning(
-                        'Set {} to override value of {} in extension {}'.format(
-                            _keys[0], _value, ii))
-                    header.set(_keys[0], _value, 'Updated value')
-                    break
+                # if key in header.keys():
+                logging.warning(
+                    'Set {} to override value of {} in HDU {}'.format(
+                        key, _value, ii))
+                header.set(key, _value, 'Updated HDU {} value'.format(ii))
+            break
 
 
 def _merge_configs(default_config, input_config):
-    # if there was only a need to support python 3.5+, do it like this:
-    # return {**x, **y}
+    merged = None
+    if input_config and default_config:
+        logging.warning('Merging two separate configurations into single map.')
+        merged = default_config.copy()
+        # if there was only a need to support python 3.5+, do it like this:
+        # return {**x, **y}
 
-    # input_config takes precedence
+        # input_config takes precedence
 
-    merged = default_config.copy()
+        # make the input config values into lists, because that's how the
+        # default config is done, that's why and also because of the default
+        # value of 'ZNAXIS, NAXIS' for Chunk.naxis
 
-    # make the input config values into lists, because that's how the default
-    # config is done, that's why
-    # and also because of the default value of 'ZNAXIS, NAXIS' for Chunk.naxis
+        for ii in input_config.keys():
+            if not isinstance(input_config[ii], list):
+                values = input_config[ii].split(',')
+                input_config[ii] = values
+            logging.warning('{} {}'.format(ii, input_config[ii]))
 
-    for ii in input_config.keys():
-        values = input_config[ii].split(',')
-        input_config[ii] = values
-        logging.warning('{} {}'.format(ii, input_config[ii]))
-
-    merged.update(input_config)
+        merged.update(input_config)
+    elif input_config and not default_config:
+        merged = input_config.copy()
+    elif default_config and not input_config:
+        merged = default_config.copy()
     return merged
 
 
