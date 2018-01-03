@@ -97,7 +97,8 @@ from io import BytesIO
 
 APP_NAME = 'fits2caom2'
 
-__all__ = ['FitsParser', 'WcsParser', 'get_cadc_headers', 'main_app',
+__all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
+           'get_cadc_headers', 'main_app',
            'update_fits_headers', 'load_config']
 
 ENERGY_CTYPES = [
@@ -132,11 +133,11 @@ TIME_KEYWORDS = [
 POLARIZATION_CTYPES = ['STOKES']
 
 
-class LoggingFilter(logging.Filter):
+class HDULoggingFilter(logging.Filter):
     """Add the HDU number to logging messages as a default."""
 
     def __init__(self):
-        super(LoggingFilter, self).__init__()
+        super(HDULoggingFilter, self).__init__()
         self._extension = -1
 
     def filter(self, record):
@@ -145,6 +146,29 @@ class LoggingFilter(logging.Filter):
 
     def extension(self, value):
         self._extension = value
+
+
+class DispatchingFormatter:
+    """Dispatch formatter for logger and it's sub-logger, so there can
+    be multiple formatters."""
+
+    def __init__(self, formatters, default_formatter):
+        self._formatters = formatters
+        self._default_formatter = default_formatter
+
+    def format(self, record):
+        logger = logging.getLogger(record.name)
+        while logger:
+            # check if suitable formatter for current logger exists
+            if logger.name in self._formatters:
+                formatter = self._formatters[logger.name]
+                break
+            else:
+                logger = logger.parent
+        else:
+            # if no formatter found, just use the default
+            formatter = self._default_formatter
+        return formatter.format(record)
 
 
 class FitsParser(object):
@@ -782,7 +806,7 @@ class WcsParser(object):
 
         # add the HDU extension to logging messages from this class
         self.logger = logging.getLogger(__name__)
-        self.log_filter = LoggingFilter()
+        self.log_filter = HDULoggingFilter()
         self.logger.addFilter(self.log_filter)
         self.log_filter.extension(extension)
         logging.basicConfig(
@@ -1215,15 +1239,12 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None, o
                     # set a value in the config
                     _set_default_value_in_config(this_config, ii, defaults[ii])
 
-    logging.warning('Defaults set for {}. Start overrides.'.format(artifact_uri))
+    logging.debug('Defaults set for {}. Start overrides.'.format(artifact_uri))
 
     if overrides:
         _set_overrides(overrides, this_config, parser.headers, 0)
         _set_overrides_for_artifacts(
             overrides, parser, artifact_uri, this_config)
-
-    # for ii in this_config.keys():
-    #     logging.warning('{} {}'.format(ii, this_config[ii]))
 
     return parser
 
@@ -1234,8 +1255,6 @@ def _set_overrides(_overrides, _config, _headers, _index):
             # the overrides that are part of the 'artifacts' dict entry are
             # handled in a separate function
             continue
-
-        logging.warning('override key {}'.format(ii))
 
         if ii.isupper() and ii.find('.') == -1:
             _set_override_keyword_value_in_header(_headers, [ii],
@@ -1263,7 +1282,7 @@ def _set_overrides(_overrides, _config, _headers, _index):
 def _set_default_value_in_config(_config, _key, _value):
     for ii in _config.keys():
         if _find(ii, _key):
-            logging.warning('{}: Set {} to default value of {}'.format(
+            logging.debug('{}: Set {} to default value of {}'.format(
                 ii, _config[ii], _value))
             _config[ii] = _value
             break
@@ -1271,9 +1290,8 @@ def _set_default_value_in_config(_config, _key, _value):
 
 
 def _set_overrides_for_artifacts(_overrides, _parser, _uri, _config):
-    logging.warning('_set_overrides_for_artifacts')
     if 'artifacts' in _overrides.keys() and _uri in _overrides['artifacts']:
-        logging.warning(
+        logging.debug(
             'Found extension overrides for URI {}. Update headers accordingly.'.
             format(_uri))
         if len(_overrides['artifacts'][_uri]) > len(_parser.headers):
@@ -1292,12 +1310,12 @@ def _set_override_value_in_config(_config, _key, _value):
     new_key = _key
     if _key.startswith('obs.'):
         new_key = _key.replace('obs.', 'Observation.', 1)
-        logging.warning('Replacing configuration data member {} with {}'
+        logging.debug('Replacing configuration data member {} with {}'
                         .format(_key, new_key))
 
     for ii in _config.keys():
         if _find(ii, new_key):
-            logging.warning('{}: Set {} to override value of {}'.format(
+            logging.debug('{}: Set {} to override value of {}'.format(
                 ii, _config[ii], _value))
             if len(_value) == 0:
                 _config[ii] = None
@@ -1310,7 +1328,7 @@ def _set_override_value_in_config(_config, _key, _value):
     # of appending undefined values
     if key_not_found:
         _config[new_key] = _value
-        logging.warning('{}: Add override value of {} to configuration.'.format(
+        logging.debug('{}: Add override value of {} to configuration.'.format(
             new_key, _config[new_key]))
     return
 
@@ -1346,7 +1364,7 @@ def _set_default_keyword_value_in_header(_headers, _keys, _value):
     if _value.find('{') == -1:
         # the default value does not contain index markup, add the
         # default value only to the first header
-        logging.warning(
+        logging.debug(
             'Set header {} to default value of {} in extension 0.'.format(
                 _keys[0], _value))
         _headers[0].set(_keys[0], _value, 'fits2caom2 set value')
@@ -1354,7 +1372,7 @@ def _set_default_keyword_value_in_header(_headers, _keys, _value):
         # the default value contains index markup, add the default value
         # to all the headers
         for ii, header in enumerate(_headers):
-            logging.warning(
+            logging.debug(
                 'Set header {} to default value of {} in extension {}'.format(
                     _keys[0], _value, ii))
             header.set(_keys[0], _value, 'fits2caom2 set value')
@@ -1365,7 +1383,7 @@ def _set_override_keyword_value_in_header(_headers, _keys, _value, _index):
         if _value.find('{') == -1:
             # the default value does not contain index markup
             # if key in _headers[_index].keys():
-            logging.warning(
+            logging.debug(
                 'Set {} to override value of {} in HDU {}.'.format(
                     key, _value, _index))
             _headers[_index].set(
@@ -1375,7 +1393,7 @@ def _set_override_keyword_value_in_header(_headers, _keys, _value, _index):
             # the default value contains index markup, check all the headers
             for ii, header in enumerate(_headers):
                 # if key in header.keys():
-                logging.warning(
+                logging.debug(
                     'Set {} to override value of {} in HDU {}'.format(
                         key, _value, ii))
                 header.set(key, _value, 'Updated HDU {} value'.format(ii))
@@ -1385,7 +1403,7 @@ def _set_override_keyword_value_in_header(_headers, _keys, _value, _index):
 def _merge_configs(default_config, input_config):
     merged = None
     if input_config and default_config:
-        logging.warning('Merging two separate configurations into single map.')
+        logging.debug('Merging two separate configurations into single map.')
         merged = default_config.copy()
         # if there was only a need to support python 3.5+, do it like this:
         # return {**x, **y}
@@ -1400,7 +1418,7 @@ def _merge_configs(default_config, input_config):
             if not isinstance(input_config[ii], list):
                 values = input_config[ii].split(',')
                 input_config[ii] = values
-            logging.warning('{} {}'.format(ii, input_config[ii]))
+            logging.debug('{} {}'.format(ii, input_config[ii]))
 
         merged.update(input_config)
     elif input_config and not default_config:
@@ -1480,8 +1498,8 @@ def main_app():
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    # else:
-    #     logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+    else:
+        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
 
     if args.local and (len(args.local) != len(args.fileURI)):
         sys.stderr.write(('number of local arguments not the same with file '

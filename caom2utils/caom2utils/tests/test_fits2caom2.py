@@ -72,7 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_fits_headers
-from caom2utils import load_config
+from caom2utils import load_config, DispatchingFormatter
 
 from caom2 import ObservationWriter, Observation, Algorithm, obs_reader_writer
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -81,6 +81,7 @@ from lxml import etree
 from mock import Mock, patch
 from six import StringIO, BytesIO
 
+import logging
 import os
 import sys
 import uuid
@@ -125,9 +126,17 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 '''
 
 
-@pytest.mark.skip('Working on overrides.')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
+    handler = logging.StreamHandler()
+    handler.setFormatter(DispatchingFormatter({
+        'fits2caom2.WcsParser': logging.Formatter(
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
+    },
+        logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
+    ))
+    logging.getLogger().addHandler(handler)
+
     test_fitsparser = FitsParser(test_file)
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
@@ -158,7 +167,6 @@ EXPECTED_POLARIZATION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.or
 '''
 
 
-@pytest.mark.skip('Working on overrides.')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_polarization(test_file):
     test_fitsparser = FitsParser(test_file)
@@ -207,7 +215,6 @@ EXPECTED_POSITION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/ca
 '''
 
 
-@pytest.mark.skip('Working on overrides.')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
     test_fitsparser = FitsParser(test_file)
@@ -252,7 +259,6 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = '''<caom2:import xmlns:caom2="http://
 '''
 
 
-@pytest.mark.skip('Working on overrides.')
 @pytest.mark.parametrize('test_file, expected',
                          [(sample_file_time_axes,
                            EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
@@ -271,7 +277,6 @@ def test_augment_artifact_time(test_file, expected):
               expected)
 
 
-@pytest.mark.skip('Working on overrides.')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
@@ -307,7 +312,6 @@ def check_xml(xml_func, test_wcs, expected):
     assert result == expected, result
 
 
-@pytest.mark.skip('Working on overrides.')
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                      MyExitError, MyExitError,
                                      MyExitError]))
@@ -570,7 +574,6 @@ def test_update_fits_headers():
     assert test_parser.headers[3]['CRVAL1'] == '210.898333333', 'override HDU 3'
     assert test_parser.headers[4]['CRVAL1'] == '210.942083333', 'override HDU 4'
     assert test_parser.headers[5]['CRVAL1'] == '0.000000000', 'override HDU 5'
-    print(repr(test_parser.config))
     assert test_parser.config['Observation.intent'] == 'science', \
         'override configuration data member, Observation.intent == obs.intent'
     assert test_parser.config['time.resolution'] == '0.020000000000', \
