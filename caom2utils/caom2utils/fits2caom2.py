@@ -375,7 +375,7 @@ class FitsParser(object):
         observation.algorithm = self._get_algorithm()
 
         observation.sequence_number = int(self._get_from_list(
-            'Observation.sequenceNumber', index=0))
+            'Observation.sequenceNumber', index=0, default=-1))
         observation.intent = self._get_from_list('Observation.intent', 0,
                                                  ObservationIntentType.SCIENCE)
         observation.type = self._get_from_list('Observation.type', 0)
@@ -389,7 +389,8 @@ class FitsParser(object):
         observation.telescope = self._get_telescope()
         observation.environment = self._get_environment()
 
-        self.logger.warning('telescope name is {}'.format(observation.telescope.name))
+        self.logger.debug(
+            'telescope name is {}'.format(observation.telescope.name))
 
         plane = None
         if not product_id:
@@ -428,7 +429,7 @@ class FitsParser(object):
         plane.data_release = self._get_from_list('Plane.data_release', index=0,
                                                  default=None)
         plane.data_product_type = \
-            self._get_from_list('Plane.data_product_type',
+            self._get_from_list('Plane.dataProductType',
                                 index=0,
                                 default=DataProductType.CUBE)
         plane.calibration_level = \
@@ -513,7 +514,7 @@ class FitsParser(object):
         self.logger.debug('Begin CAOM2 Target augmentation.')
         name = self._get_from_list('Observation.target.name', index=0,
                                    default='UNKNOWN')  # TODO
-        target_type = self._get_from_list('Observation.target.target_type',
+        target_type = self._get_from_list('Observation.target.type',
                                           index=0)
         standard = self._cast_as_bool(self._get_from_list(
             'Observation.target.standard', index=0))
@@ -548,17 +549,20 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Telescope augmentation.')
         name = self._get_from_list('Observation.telescope.name', index=0)
-        geo_x = float(self._get_from_list('Observation.telescope.geoLocationX',
-                                          index=0))
-        geo_y = float(self._get_from_list('Observation.telescope.geoLocationY',
-                                          index=0))
-        geo_z = float(self._get_from_list('Observation.telescope.geoLocationZ',
-                                          index=0))
+        answer = self._get_from_list('Observation.telescope.geoLocationX',
+                                     index=0)
+        geo_x = float(answer) if answer else None
+        answer = self._get_from_list('Observation.telescope.geoLocationY',
+                                     index=0)
+        geo_y = float(answer) if answer else None
+        answer = self._get_from_list('Observation.telescope.geoLocationZ',
+                                     index=0)
+        geo_z = float(answer) if answer else None
         keywords = self._get_set_from_list('Observation.telescope.keywords',
                                            index=0)  # TODO
         self.logger.debug('End CAOM2 Telescope augmentation.')
         if name:
-            self.logger.warning('name is {}'.format(name))
+            self.logger.debug('name is {}'.format(name))
             return Telescope(str(name), geo_x, geo_y, geo_z, keywords)
         else:
             return None
@@ -617,11 +621,11 @@ class FitsParser(object):
             keywords = self.config[lookup]
         except KeyError:
             self.logger.warning(
-                'Could not find \'{}\' in fits2caom2 configuration.'.format(
+                'Could not find {!r} in fits2caom2 configuration.'.format(
                     lookup))
             if current:
                 self.logger.warning(
-                    '{}: using current value of {}.'.format(lookup, current))
+                    '{}: using current value of {!r}.'.format(lookup, current))
                 value = current
             return value
 
@@ -630,18 +634,18 @@ class FitsParser(object):
                 value = self.headers[index].get(ii, default)
                 if value is None and current:
                     value = current
-                    self.logger.warning(
-                        '{}: used current value {}.'.format(
+                    self.logger.debug(
+                        '{}: used current value {!r}.'.format(
                             lookup, value))
                 else:
-                    self.logger.warning(
+                    self.logger.debug(
                         '{}: assigned value {} based on keyword {}.'.format(
                             lookup, value, ii))
                 if value is not default:
                     break
         else:
             # the original list has been over-ridden or provided with a default
-            self.logger.warning('{}: value is {}'.format(lookup, value))
+            self.logger.debug('{}: value is {}'.format(lookup, value))
             value = keywords
 
         return value
@@ -760,12 +764,12 @@ class FitsParser(object):
                 elif units == 's':
                     return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
                 else:
-                    return datetime(1990, 1, 1, 12, 12, 12)  # TODO better
+                    return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
             else:
-                return datetime(1990, 1, 1, 12, 12, 12)  # TODO better
+                return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
         except ValueError:
             self.logger.warning('{}'.format(sys.exc_info()[1]))
-            return datetime(1990, 1, 1, 12, 12, 12)  # TODO better
+            return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
 
     def _cast_as_bool(self, from_value):
         """
@@ -805,7 +809,7 @@ class WcsParser(object):
         """
 
         # add the HDU extension to logging messages from this class
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__ + '.WcsParser')
         self.log_filter = HDULoggingFilter()
         self.logger.addFilter(self.log_filter)
         self.log_filter.extension(extension)
@@ -1214,8 +1218,6 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None, o
 
     if defaults:
         for ii in defaults.keys():
-            logging.warning(ii)
-
             if ii.isupper() and ii.find('.') == -1:
                 _set_default_keyword_value_in_header(
                     parser.headers, [ii], defaults[ii])
@@ -1528,9 +1530,9 @@ def main_app():
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
     else:
-        obs = Observation(collection=str(args.observation[0]),
-                          observation_id=str(args.observation[1]),
-                          algorithm=Algorithm(str('EXPOSURE')))  # TODO
+        obs = SimpleObservation(collection=args.observation[0],
+                                observation_id=args.observation[1],
+                                algorithm=Algorithm('EXPOSURE'))  # TODO
 
     if args.productID not in obs.planes.keys():
         obs.planes.add(Plane(product_id=str(args.productID)))

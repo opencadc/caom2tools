@@ -102,7 +102,6 @@ cfhtwircam_defaults = os.path.join(TESTDATA_DIR, 'cfhtwircam.default')
 cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
 
 
-@pytest.mark.skip('Working on overrides.')
 def test_fits2caom2():
     # test fits2caom2 on a known existing CGPS file
     expected = open(expected_cgps_obs).read()

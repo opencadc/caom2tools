@@ -130,7 +130,7 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 def test_augment_energy(test_file):
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
-        'fits2caom2.WcsParser': logging.Formatter(
+        'caom2utils.fits2caom2.WcsParser': logging.Formatter(
             '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
     },
         logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
@@ -412,9 +412,9 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
     """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ +\
     """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ +\
     """xsi:type="caom2:CompositeObservation" caom2:id="1311768465173141112">
-  <caom2:collection>UNKNOWN</caom2:collection>
+  <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
-  <caom2:metaRelease>1990-01-01T12:12:12.000</caom2:metaRelease>
+  <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
   <caom2:sequenceNumber>-1</caom2:sequenceNumber>
   <caom2:algorithm>
     <caom2:name>exposure</caom2:name>
@@ -425,7 +425,6 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
   </caom2:proposal>
   <caom2:target>
     <caom2:name>CGPS Mosaic MA1</caom2:name>
-    <caom2:type>field</caom2:type>
     <caom2:standard>false</caom2:standard>
     <caom2:moving>false</caom2:moving>
   </caom2:target>
@@ -450,7 +449,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
         <caom2:project>CGPS</caom2:project>
         <caom2:producer>CGPS Consortium</caom2:producer>
         <caom2:reference>http://dx.doi.org/10.1086/375301</caom2:reference>
-        <caom2:lastExecuted>1990-01-01T12:12:12.000</caom2:lastExecuted>
+        <caom2:lastExecuted>1999-01-01T00:00:00.000</caom2:lastExecuted>
       </caom2:provenance>
       <caom2:metrics/>
       <caom2:artifacts>
@@ -471,7 +470,6 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 """
 
 
-@pytest.mark.skip('Working on overrides.')
 @pytest.mark.parametrize('test_file, test_file_uri',
                          [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
