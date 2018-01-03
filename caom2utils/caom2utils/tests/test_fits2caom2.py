@@ -501,7 +501,6 @@ def test_augment_observation(test_file, test_file_uri):
     assert result == EXPECTED_OBS_XML  # , result
 
 
-@pytest.mark.skip('Working on overrides.')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_from_list(test_file):
     test_fitsparser = FitsParser(test_file)
@@ -565,12 +564,17 @@ def test_update_fits_headers():
                                       test_defaults, test_overrides)
     assert test_parser.config['Observation.type'] == 'OBJECT', \
         'default value over-ridden, value all upper case'
-    assert test_parser.headers[0]['CRVAL1'] == '210.551666667', 'HDU 0 override'
-    assert test_parser.headers[1]['CRVAL1'] == '210.551666667', 'HDU 1 override'
-    assert test_parser.headers[2]['CRVAL1'] == '210.508333333', 'HDU 2 override'
-    assert test_parser.headers[3]['CRVAL1'] == '210.898333333', 'HDU 3 override'
-    assert test_parser.headers[4]['CRVAL1'] == '210.942083333', 'HDU 4 override'
-    assert test_parser.headers[5]['CRVAL1'] == '0.000000000', 'HDU 5 override'
+    assert test_parser.headers[0]['CRVAL1'] == '210.551666667', 'override HDU 0'
+    assert test_parser.headers[1]['CRVAL1'] == '210.551666667', 'override HDU 1'
+    assert test_parser.headers[2]['CRVAL1'] == '210.508333333', 'override HDU 2'
+    assert test_parser.headers[3]['CRVAL1'] == '210.898333333', 'override HDU 3'
+    assert test_parser.headers[4]['CRVAL1'] == '210.942083333', 'override HDU 4'
+    assert test_parser.headers[5]['CRVAL1'] == '0.000000000', 'override HDU 5'
+    print(repr(test_parser.config))
+    assert test_parser.config['Observation.intent'] == 'science', \
+        'override configuration data member, Observation.intent == obs.intent'
+    assert test_parser.config['time.resolution'] == '0.020000000000', \
+        'override configuration data member'
 
 
 TEST_OVERRIDES = \

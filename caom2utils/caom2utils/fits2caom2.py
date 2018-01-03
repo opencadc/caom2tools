@@ -1081,7 +1081,7 @@ class WcsParser(object):
 
     def _sanitize(self, value):
         """
-        Sanitazes values from FITS to caom2
+        Sanitizes values from FITS to caom2
         :param value:
         :return:
         """
@@ -1098,7 +1098,7 @@ def load_config(file_name):
     Override CONFIG with externally-supplied values.
 
     The override file can contain information for more than one input file,
-    as well as providing information for different headers.
+    as well as providing information for different HDUs.
 
     :param file_name Name of the configuration file to load.
     :return: dict representation of file content.
@@ -1230,6 +1230,11 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None, o
 
 def _set_overrides(_overrides, _config, _headers, _index):
     for ii in _overrides.keys():
+        if ii == 'artifacts':
+            # the overrides that are part of the 'artifacts' dict entry are
+            # handled in a separate function
+            continue
+
         logging.warning('override key {}'.format(ii))
 
         if ii.isupper() and ii.find('.') == -1:
@@ -1244,11 +1249,9 @@ def _set_overrides(_overrides, _config, _headers, _index):
 
                 for jj, value in enumerate(keywords):
                     if value.find('.') == -1 and value.isupper():
-                        logging.warning('setting fits keyword header value')
                         _set_override_keyword_value_in_header(
                             _headers, keywords, _overrides[ii], _index)
                     else:
-                        logging.warning('setting override value')
                         _set_override_value_in_config(
                             _config, ii, _overrides[ii])
                     break
@@ -1259,8 +1262,6 @@ def _set_overrides(_overrides, _config, _headers, _index):
 
 def _set_default_value_in_config(_config, _key, _value):
     for ii in _config.keys():
-        # if ii.endswith(_key) and len(_config[ii]) == 0:
-        # if ii.endswith(_key):
         if _find(ii, _key):
             logging.warning('{}: Set {} to default value of {}'.format(
                 ii, _config[ii], _value))
@@ -1287,15 +1288,30 @@ def _set_overrides_for_artifacts(_overrides, _parser, _uri, _config):
 
 
 def _set_override_value_in_config(_config, _key, _value):
+    key_not_found = True
+    new_key = _key
+    if _key.startswith('obs.'):
+        new_key = _key.replace('obs.', 'Observation.', 1)
+        logging.warning('Replacing configuration data member {} with {}'
+                        .format(_key, new_key))
+
     for ii in _config.keys():
-        if _find(ii, _key):
+        if _find(ii, new_key):
             logging.warning('{}: Set {} to override value of {}'.format(
                 ii, _config[ii], _value))
             if len(_value) == 0:
                 _config[ii] = None
             else:
                 _config[ii] = _value
+            key_not_found = False
             break
+    # if a value does not already exist in a configuration, add that
+    # value to the configuration, giving over-ride values the effect
+    # of appending undefined values
+    if key_not_found:
+        _config[new_key] = _value
+        logging.warning('{}: Add override value of {} to configuration.'.format(
+            new_key, _config[new_key]))
     return
 
 
@@ -1342,41 +1358,6 @@ def _set_default_keyword_value_in_header(_headers, _keys, _value):
                 'Set header {} to default value of {} in extension {}'.format(
                     _keys[0], _value, ii))
             header.set(_keys[0], _value, 'fits2caom2 set value')
-
-    # found = False
-    # for key in _keys:
-    #     logging.warning('finding key {}'.format(key))
-    #     if _value.find('{') == -1:
-    #         # the default value does not contain index markup, check only the
-    #         # first header
-    #         if key in _headers[0].keys():
-    #             found = True
-    #             break
-    #     else:
-    #         # the default value contains index markup, check all the headers
-    #         for ii, header in enumerate(_headers):
-    #             if key in header.keys():
-    #                 found = True
-    #                 break
-    # if found:
-    #     logging.warning('found key')
-    #     return
-    # else:
-    #     # add the default value
-    #     if _value.find('{') == -1:
-    #         # the default value does not contain index markup, add the
-    #         # default value only to the first header
-    #         logging.warning('Set header {} to default value of {} in HDU 0.'.format(
-    #             _keys[0], _value))
-    #         _headers[0].append((_keys[0], _value, 'Added value'))
-    #     else:
-    #         # the default value contains index markup, add the default value
-    #         # to all the headers
-    #         for ii, header in enumerate(_headers):
-    #             logging.warning(
-    #                 'Set header {} to default value of {} in extension {}'.format(
-    #                 _keys[0], _value, ii))
-    #             header.append((_keys[0], _value, 'Added value'))
 
 
 def _set_override_keyword_value_in_header(_headers, _keys, _value, _index):
