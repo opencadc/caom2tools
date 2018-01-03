@@ -1529,15 +1529,9 @@ def main_app():
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
     else:
-        obs = Observation(collection=str(args.observation[0]),
-                          observation_id=str(args.observation[1]),
-                          algorithm=Algorithm(str('EXPOSURE')))  # TODO
-
-    if args.productID not in obs.planes.keys():
-        obs.planes.add(Plane(product_id=str(args.productID)))
         obs = SimpleObservation(collection=args.observation[0],
                                 observation_id=args.observation[1],
-                                algorithm=Algorithm('blah'))  # TODO
+                                algorithm=Algorithm('EXPOSURE'))  # TODO
 
     if args.productID not in obs.planes.keys():
         obs.planes.add(Plane(product_id=args.productID))
