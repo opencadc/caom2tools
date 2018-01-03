@@ -5,4 +5,3 @@ caom2utils
     :target: https://pypi.python.org/pypi/caom2utils
 
 Utilities to facililate working with the CAOM2 model.
-

@@ -101,58 +101,44 @@ cfhtwircam_config = os.path.join(TESTDATA_DIR, 'cfhtwircam.config')
 cfhtwircam_defaults = os.path.join(TESTDATA_DIR, 'cfhtwircam.default')
 cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
 
-# def test_fits2caom2():
-#     # test fits2caom2 on a known existing CGPS file
-#     expected = open(expected_cgps_obs).read()
-#     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-#         sys.argv = ('fits2caom2 --observation TEST myOBS myplane '
-#                     'ad:CGPS/CGPS_MA1_HI_line_image').split()
-#         fits2caom2.main_app()
-#     actual = stdout_mock.getvalue().decode('ascii')
-#     _cmp(expected, actual)
-#
-#     # repeat the test when the observation is saved
-#     temp = tempfile.NamedTemporaryFile();
-#     sys.argv = ('fits2caom2 --observation TEST myOBS -o {} myplane '
-#                 'ad:CGPS/CGPS_MA1_HI_line_image'.format(temp.name)).split()
-#     fits2caom2.main_app()
-#
-#     actual = open(temp.name).read()
-#     _cmp(expected, actual)
-#
-#     # test fits2caom2 on a known existing but now local CGPS file
-#     expected = open(expected_local_cgps_obs).read()
-#     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-#         sys.argv = ('fits2caom2 --local {} --observation TEST myOBS myplane '
-#                     'ad:CGPS/CGPS_MA1_HI_line_image').format(
-#             sample_file_4axes).split()
-#         fits2caom2.main_app()
-#     actual = stdout_mock.getvalue().decode('ascii')
-#     _cmp(expected, actual)
-#
-#     # repeat the test when the observation is saved
-#     temp = tempfile.NamedTemporaryFile();
-#     sys.argv = ('fits2caom2 --observation TEST myOBS --local {} -o {} myplane '
-#                 'ad:CGPS/CGPS_MA1_HI_line_image'.format(
-#         sample_file_4axes, temp.name)).split()
-#     fits2caom2.main_app()
-#
-#     actual = open(temp.name).read()
-#     _cmp(expected, actual)
+def test_fits2caom2():
+    # test fits2caom2 on a known existing CGPS file
+    expected = open(expected_cgps_obs).read()
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+        sys.argv = ('fits2caom2 --observation TEST myOBS myplane '
+                    'ad:CGPS/CGPS_MA1_HI_line_image').split()
+        fits2caom2.main_app()
+    actual = stdout_mock.getvalue().decode('ascii')
+    _cmp(expected, actual)
 
+    # repeat the test when the observation is saved
+    temp = tempfile.NamedTemporaryFile();
+    sys.argv = ('fits2caom2 --observation TEST myOBS -o {} myplane '
+                'ad:CGPS/CGPS_MA1_HI_line_image'.format(temp.name)).split()
+    fits2caom2.main_app()
 
-# def test_fits2caom2_defaults():
-#     # test fits2caom2 on a known existing CFHT file with a defaults file
-#     expected = open(expected_cfhtwircam_obs).read()
-#     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-#         sys.argv = ('fits2caom2 --default {} --override {} --config {} '
-#                     '--local {} --observation CFHT 1709071 myplane '
-#                     'ad:CFHT/1709071g').format(
-#             cfhtwircam_defaults, cfhtwircam_override, cfhtwircam_config,
-#             sample_cfhtwircam).split()
-#         fits2caom2.main_app()
-#     actual = stdout_mock.getvalue().decode('ascii')
-#     _cmp(expected, actual)
+    actual = open(temp.name).read()
+    _cmp(expected, actual)
+
+    # test fits2caom2 on a known existing but now local CGPS file
+    expected = open(expected_local_cgps_obs).read()
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+        sys.argv = ('fits2caom2 --local {} --observation TEST myOBS myplane '
+                    'ad:CGPS/CGPS_MA1_HI_line_image').format(
+            sample_file_4axes).split()
+        fits2caom2.main_app()
+    actual = stdout_mock.getvalue().decode('ascii')
+    _cmp(expected, actual)
+
+    # repeat the test when the observation is saved
+    temp = tempfile.NamedTemporaryFile();
+    sys.argv = ('fits2caom2 --observation TEST myOBS --local {} -o {} myplane '
+                'ad:CGPS/CGPS_MA1_HI_line_image'.format(
+        sample_file_4axes, temp.name)).split()
+    fits2caom2.main_app()
+
+    actual = open(temp.name).read()
+    _cmp(expected, actual)
 
 
 def _cmp(expected_obs_xml, actual_obs_xml):
