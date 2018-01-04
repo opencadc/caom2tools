@@ -71,7 +71,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
-from caom2utils import FitsParser, WcsParser, main_app
+from caom2utils import FitsParser, WcsParser, main_app, DispatchingFormatter
 
 from caom2 import ObservationWriter
 from caom2 import Artifact, ProductType, ReleaseType
@@ -82,6 +82,7 @@ from six import StringIO
 from caom2utils import fits2caom2
 
 from io import BytesIO
+import logging
 import os
 import sys
 import tempfile
@@ -102,11 +103,12 @@ cfhtwircam_defaults = os.path.join(TESTDATA_DIR, 'cfhtwircam.default')
 cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
 
 
+# @pytest.mark.skip('')
 def test_fits2caom2():
     # test fits2caom2 on a known existing CGPS file
     expected = open(expected_cgps_obs).read()
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-        sys.argv = ('fits2caom2 --observation TEST myOBS myplane '
+        sys.argv = ('fits2caom2 -q --observation TEST myOBS myplane '
                     'ad:CGPS/CGPS_MA1_HI_line_image').split()
         fits2caom2.main_app()
     actual = stdout_mock.getvalue().decode('ascii')
@@ -114,7 +116,7 @@ def test_fits2caom2():
 
     # repeat the test when the observation is saved
     temp = tempfile.NamedTemporaryFile();
-    sys.argv = ('fits2caom2 --observation TEST myOBS -o {} myplane '
+    sys.argv = ('fits2caom2 -q --observation TEST myOBS -o {} myplane '
                 'ad:CGPS/CGPS_MA1_HI_line_image'.format(temp.name)).split()
     fits2caom2.main_app()
 
@@ -124,7 +126,7 @@ def test_fits2caom2():
     # test fits2caom2 on a known existing but now local CGPS file
     expected = open(expected_local_cgps_obs).read()
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-        sys.argv = ('fits2caom2 --local {} --observation TEST myOBS myplane '
+        sys.argv = ('fits2caom2 -q --local {} --observation TEST myOBS myplane '
                     'ad:CGPS/CGPS_MA1_HI_line_image').format(
             sample_file_4axes).split()
         fits2caom2.main_app()
@@ -133,11 +135,29 @@ def test_fits2caom2():
 
     # repeat the test when the observation is saved
     temp = tempfile.NamedTemporaryFile();
-    sys.argv = ('fits2caom2 --observation TEST myOBS --local {} -o {} myplane '
-                'ad:CGPS/CGPS_MA1_HI_line_image'.format(
-        sample_file_4axes, temp.name)).split()
+    sys.argv = (
+        'fits2caom2 -q --observation TEST myOBS --local {} -o {} myplane '
+        'ad:CGPS/CGPS_MA1_HI_line_image'.format(
+            sample_file_4axes, temp.name)).split()
     fits2caom2.main_app()
 
+    actual = open(temp.name).read()
+    _cmp(expected, actual)
+
+
+@pytest.mark.skip('')
+def test_fits2caom2_cfht_defaults_overrides():
+    # test fits2caom2 on a known existing CFHT file, with defaults and
+    # overrides
+    temp = tempfile.NamedTemporaryFile();
+    expected = open(expected_cfhtwircam_obs).read()
+    sys.argv = ('fits2caom2 -d -o {} --observation CFHT 1709071 '
+                '--config {} --default {} --override {} '
+                '1709071og ad:CFHT/1709071g ').format(
+        temp, cfhtwircam_config, cfhtwircam_defaults,
+        cfhtwircam_override).split()
+    logging.warning(sys.argv)
+    fits2caom2.main_app()
     actual = open(temp.name).read()
     _cmp(expected, actual)
 

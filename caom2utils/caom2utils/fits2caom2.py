@@ -372,7 +372,7 @@ class FitsParser(object):
         observation.observation_id = str(
             self._get_from_list('Observation.observation_id', index=0,
                                 current=observation.observation_id))
-        observation.algorithm = self._get_algorithm()
+        observation.algorithm = self._get_algorithm(observation)
 
         observation.sequence_number = int(self._get_from_list(
             'Observation.sequenceNumber', index=0, default=-1))
@@ -456,14 +456,15 @@ class FitsParser(object):
         self.logger.debug(
             'End CAOM2 plane augmentation for {}.'.format(artifact_uri))
 
-    def _get_algorithm(self):
+    def _get_algorithm(self, obs):
         """
         Create an Algorithm instance populated with available FITS information.
         :return: Algorithm
         """
         self.logger.debug('Begin CAOM2 Algorithm augmentation.')
         name = self._get_from_list('Observation.algorithm.name', index=0,
-                                   default='DEFAULT')  # TODO DEFAULT VALUE
+                                   default='DEFAULT',
+                                   current=obs.algorithm.name)  # TODO DEFAULT VALUE
         self.logger.debug('End CAOM2 Algorithm augmentation.')
         if name:
             return Algorithm(str(name))
@@ -811,10 +812,8 @@ class WcsParser(object):
         # add the HDU extension to logging messages from this class
         self.logger = logging.getLogger(__name__ + '.WcsParser')
         self.log_filter = HDULoggingFilter()
-        self.logger.addFilter(self.log_filter)
         self.log_filter.extension(extension)
-        logging.basicConfig(
-            format='%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
+        self.logger.addFilter(self.log_filter)
         logastro = logging.getLogger('astropy')
         logastro.addFilter(self.log_filter)
         logastro.propagate = False
@@ -1495,13 +1494,25 @@ def main_app():
         sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
         sys.exit(-1)
 
+    # parser.print_help()
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    if args.debug:
+    elif args.debug:
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    elif args.quiet:
+        logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
     else:
         logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(DispatchingFormatter({
+        'caom2utils.fits2caom2.WcsParser': logging.Formatter(
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
+    },
+        logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
+    ))
+    logging.getLogger().addHandler(handler)
 
     if args.local and (len(args.local) != len(args.fileURI)):
         sys.stderr.write(('number of local arguments not the same with file '
@@ -1566,6 +1577,7 @@ def main_app():
     if args.out_obs_xml:
         writer.write(obs, args.out_obs_xml)
     else:
+        sys.stdout.flush()
         writer.write(obs, sys.stdout)
 
     logging.info("DONE")

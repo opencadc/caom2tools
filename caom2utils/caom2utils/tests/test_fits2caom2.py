@@ -128,15 +128,6 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
-    handler = logging.StreamHandler()
-    handler.setFormatter(DispatchingFormatter({
-        'caom2utils.fits2caom2.WcsParser': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
-    },
-        logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
-    ))
-    logging.getLogger().addHandler(handler)
-
     test_fitsparser = FitsParser(test_file)
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
@@ -511,6 +502,7 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
+# @pytest.mark.skip('testing end-to-end')
 def test_update_fits_headers():
 
     # The rules for the values:
@@ -646,6 +638,7 @@ TEST_OVERRIDES = \
      }}
 
 
+# @pytest.mark.skip('testing end-to-end')
 def test_load_config_overrides():
     # cool override file content
     result = load_config(override_file)
