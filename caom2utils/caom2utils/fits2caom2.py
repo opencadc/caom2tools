@@ -1212,8 +1212,10 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None, o
     this_config = _merge_configs(parser.CONFIG, config)
     parser.set_config(this_config)
 
-    # for lack of better criteria, anything that's all upper case is assumed
-    # to be a FITS keyword - I'm sure that will bite somewhere in the future :)
+    # for lack of better criteria, anything that's all upper case, on the
+    # left-hand side of an '=' is assumed to be a FITS keyword. On the right
+    # hand side of an '=', it is assumed to be a value. I'm sure that will
+    # bite somewhere in the future :)
 
     if defaults:
         for ii in defaults.keys():
@@ -1221,33 +1223,44 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None, o
                 _set_default_keyword_value_in_header(
                     parser.headers, [ii], defaults[ii])
             else:
-                # config key, add as a default if it's not found in the
-                # configuration
-                keywords = _find_fits_keyword_in_config(this_config, ii)
-                if len(keywords) > 0:
-
-                    for jj, value in enumerate(keywords):
-                        if value.find('.') == -1:
-                            # set a FITS header keyword
-                            _set_default_keyword_value_in_header(
-                                parser.headers, keywords, defaults[ii])
-                        else:
-                            # set a lookup value in the config
-                            _set_default_value_in_config(
-                                this_config, ii, defaults[ii])
-                        break
-                else:
-                    # set a value in the config
-                    _set_default_value_in_config(this_config, ii, defaults[ii])
+                _set_default_value_in_config(this_config, ii, defaults[ii])
 
     logging.debug('Defaults set for {}. Start overrides.'.format(artifact_uri))
 
     if overrides:
         _set_overrides(overrides, this_config, parser.headers, 0)
+
+        logging.warning(this_config)
+
         _set_overrides_for_artifacts(
             overrides, parser, artifact_uri, this_config)
 
     return parser
+
+
+def _set_default_value_in_config(_config, _key, _value):
+    key_found = False
+    for ii in _config.values():
+        if isinstance(ii, list):
+            for jj in ii:
+                if jj == _key:
+                    index = ii.index(jj)
+                    ii[index] = {'default': _value}
+                    logging.debug('{}: Set default value of {}'.format(
+                        ii, _value))
+                    key_found = True
+                    break
+        elif ii == _key:
+            index = _config.index(ii)
+            _config[index] = {'default': _value}
+            logging.debug('{}: Set to default value of {}'.format(ii, _value))
+            key_found = True
+            break
+
+    if not key_found:
+        msg = 'Could not find configuration key for default {!r}'.format(_key)
+        logging.warning(msg)
+        raise KeyError(msg)
 
 
 def _set_overrides(_overrides, _config, _headers, _index):
@@ -1280,16 +1293,6 @@ def _set_overrides(_overrides, _config, _headers, _index):
                                               _overrides[ii])
 
 
-def _set_default_value_in_config(_config, _key, _value):
-    for ii in _config.keys():
-        if _find(ii, _key):
-            logging.debug('{}: Set {} to default value of {}'.format(
-                ii, _config[ii], _value))
-            _config[ii] = _value
-            break
-    return
-
-
 def _set_overrides_for_artifacts(_overrides, _parser, _uri, _config):
     if 'artifacts' in _overrides.keys() and _uri in _overrides['artifacts']:
         logging.debug(
@@ -1308,38 +1311,42 @@ def _set_overrides_for_artifacts(_overrides, _parser, _uri, _config):
 
 def _set_override_value_in_config(_config, _key, _value):
     key_not_found = True
-    new_key = _key
-    if _key.startswith('obs.'):
-        new_key = _key.replace('obs.', 'Observation.', 1)
-        logging.debug('Replacing configuration data member {} with {}'
-                        .format(_key, new_key))
-
-    for ii in _config.keys():
-        if _find(ii, new_key):
-            logging.debug('{}: Set {} to override value of {}'.format(
-                ii, _config[ii], _value))
-            if len(_value) == 0:
-                _config[ii] = None
-            else:
-                _config[ii] = _value
+    for k, v in _config.items():
+        if isinstance(v, list):
+            for jj in v:
+                if jj == _key:
+                    _config[k] = _set_value(k, _value)
+                    key_not_found = False
+                    break
+        elif v == _key:
+            _config[k] = _set_value(k, _value)
             key_not_found = False
             break
     # if a value does not already exist in a configuration, add that
     # value to the configuration, giving over-ride values the effect
     # of appending undefined values
     if key_not_found:
-        _config[new_key] = _value
+        _config[_key] = _value
         logging.debug('{}: Add override value of {} to configuration.'.format(
-            new_key, _config[new_key]))
+            _key, _config[_key]))
     return
+
+
+def _set_value(_here, _to):
+    logging.debug('{}: Set override value of {}'.format(
+        _here, _to))
+    if len(_to) == 0:
+        return None
+    else:
+        return _to
 
 
 def _find_fits_keyword_in_config(_config, _key):
     keywords = []
-    for ii in _config.keys():
-        if _find(ii, _key):
-            if len(_config[ii]) > 0:
-                keywords = _config[ii]
+    for k, v in _config.items():
+        if _key == k:
+            if len(v) > 0:
+                keywords = v
             break
     return keywords
 

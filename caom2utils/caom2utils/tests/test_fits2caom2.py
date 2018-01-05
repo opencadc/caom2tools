@@ -513,6 +513,8 @@ def test_update_fits_headers():
     # has a '.' - a config keyword
     # all upper case - a FITS keyword
 
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+
     hdr1 = fits.Header()
     hdr2 = fits.Header()
     hdr3 = fits.Header()
@@ -521,7 +523,10 @@ def test_update_fits_headers():
     hdr6 = fits.Header()
     hdr7 = fits.Header()
     test_parser = FitsParser(src=[hdr1, hdr2, hdr3, hdr4, hdr5, hdr6, hdr7])
-    def_config = {'Observation.type': 'observation.type'}
+    def_config = {'Observation.type': 'observation.type',
+                  'Observation.intent': 'obs.intent',
+                  'Plane.dataProductType': 'plane.dataProductType',
+                  'Plane.provenance.producer': 'provenance.producer'}
     test_uri = 'ad:CFHT/1709071g.fits.gz'
     test_config = def_config.copy()
     assert test_parser.config['Observation.type'] == ['OBSTYPE'], \
@@ -532,25 +537,31 @@ def test_update_fits_headers():
     assert test_parser.config['Observation.type'] == ['observation.type'], \
         'FitsParser configuration replaced by user-provided configuration'
 
-    test_defaults = {'algorithm.name': 'exposure',
-                     'provenance.name': 'IIWI',
-                     'CUNIT1': 'deg',
+    try:
+        test_defaults = {'a.b': 'deg'}
+        test_config = def_config.copy()
+        test_parser = update_fits_headers(test_parser, test_uri, test_config,
+                                          test_defaults, overrides=None)
+        assert False, 'Should have had a KeyError exception thrown'
+    except KeyError:
+        pass
+
+    test_defaults = {'CUNIT1': 'deg',
                      'CTYPE3': 'TIME',
-                     'plane.dataProductType': 'image'}
+                     'plane.dataProductType': 'image',
+                     'provenance.producer': 'CFHT'}
     test_config = def_config.copy()
     test_parser = update_fits_headers(test_parser, test_uri, test_config,
                                       test_defaults, overrides=None)
-    assert test_parser.headers[0]['PROCNAME'] == 'exposure', \
-        'default value assigned to header'
-    assert test_parser.headers[0]['XPRVNAME'] == 'IIWI', \
-        'default value assigned to header, all upper case'
-    assert test_parser.config['Plane.dataProductType'] == 'image', \
-        'default value assigned to configuration'
-
     assert test_parser.headers[0]['CUNIT1'] == 'deg', \
         'default value assigned to the input headers'
     assert test_parser.headers[0]['CTYPE3'] == 'TIME', \
         ' default value assigned to input headers, value all upper case'
+    assert test_parser.config['Plane.dataProductType'] == \
+        [{'default': 'image'}], 'default value assigned to configuration'
+    assert test_parser.config['Plane.provenance.producer'] == \
+        [{'default': 'CFHT'}], \
+        'default value assigned to configuration, all upper-case'
 
     test_config = def_config.copy()
     test_overrides = load_config(override_file)
