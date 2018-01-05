@@ -172,6 +172,242 @@ class DispatchingFormatter:
         return formatter.format(record)
 
 
+class ObservationBlueprint(object):
+    """
+    Class that captures the blueprint of building a CAOM2 Observation
+    """
+    _CAOM2_ELEMENTS = ['Observation.meta_release',
+                       'Observation.instrument.name',
+                       'Observation.type',
+                       'Observation.environment.ambientTemp',
+                       'Observation.algorithm.name',
+                       'Observation.intent',
+                       'Observation.sequenceNumber',
+                       'Observation.instrument.keywords',
+                       'Observation.proposal.id',
+                       'Observation.proposal.pi',
+                       'Observation.proposal.project',
+                       'Observation.proposal.title',
+                       'Observation.proposal.keywords',
+                       'Observation.target.name',
+                       'Observation.target.type',
+                       'Observation.target.standard',
+                       'Observation.target.redshift',
+                       'Observation.target.keywords',
+                       'Observation.telescope.name',
+                       'Observation.telescope.geoLocationX',
+                       'Observation.telescope.geoLocationY',
+                       'Observation.telescope.geoLocationZ',
+                       'Observation.telescope.keywords',
+                       'Observation.environment.seeing',
+                       'Observation.environment.humidity',
+                       'Observation.environment.elevation',
+                       'Observation.environment.tau',
+                       'Observation.environment.wavelengthTau',
+                       'Observation.environment.photometric',
+                       'Observation.observation_id',
+                       'Plane.meta_release',
+                       'Plane.data_release',
+                       'Plane.dataProductType',
+                       'Plane.product_id',
+                       'Plane.calibrationLevel',
+                       'Plane.provenance.name',
+                       'Plane.provenance.version',
+                       'Plane.provenance.project',
+                       'Plane.provenance.producer',
+                       'Plane.provenance.runID',
+                       'Plane.provenance.reference',
+                       'Plane.provenance.lastExecuted',
+                       'Plane.provenance.keywords',
+                       'Plane.provenance.inputs',
+                       'Plane.metrics.sourceNumberDensity',
+                       'Plane.metrics.background',
+                       'Plane.metrics.backgroundStddev',
+                       'Plane.metrics.fluxDensityLimit',
+                       'Plane.metrics.magLimit'
+                       ]
+
+    def __init__(self, spacial_axis=None, energy_axis=None,
+                 polarization_axis=None, time_axis=None):
+        """
+        Ctor
+        """
+
+        # this is the default blueprint
+        self._plan = {'Observation.meta_release':
+                      (['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
+                        'UTC-DATE', 'MJDOBS', 'MJD_OBS'], None),
+                      'Observation.instrument.name': (['INSTRUME'], None),
+                      'Observation.type': (['OBSTYPE'], None),
+                      'Observation.environment.ambientTemp': (['TEMPERAT'], None),
+                      'Observation.algorithm.name': (['PROCNAME'], None),
+                      'Observation.instrument.keywords': (['INSTMODE'], None),
+                      'Observation.proposal.id': (['RUNID'], None),
+                      'Observation.target.name': (['OBJECT'], None),
+                      'Observation.telescope.name': (['INSTRUME'], None),
+                      'Observation.telescope.geoLocationX': (['OBSGEO-X'], None),
+                      'Observation.telescope.geoLocationY': (['OBSGEO-Y'], None),
+                      'Observation.telescope.geoLocationZ': (['OBSGEO-Z'], None),
+                      'Observation.observation_id': (['OBSID'], None),
+                      'Plane.meta_release': (['RELEASE', 'REL_DATE'], None),
+                      'Plane.data_release': (['RELEASE', 'REL_DATE'], None),
+                      'Plane.product_id': (['RUNID'], None),
+                      'Plane.provenance.name': (['XPRVNAME'], None),
+                      'Plane.provenance.project': (['ADC_ARCH'], None),
+                      'Plane.provenance.producer': (['ORIGIN'], None),
+                      'Plane.provenance.reference': (['XREFER'], None),
+                      'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
+                     }
+
+        if energy_axis:
+            self._plan['Chunk.energy.specsys'] = (['SPECSYT'], None,)
+            self._plan['Chunk.energy.ssysobs'] = (['SSYSOBS'], None)
+            self._plan['Chunk.energy.restfrq'] = (['RESTFRQ'], None)
+            self._plan['Chunk.energy.restwav'] = (['RESTWAV'], None)
+            self._plan['Chunk.energy.velosys'] = (['VELOSYS'], None)
+            self._plan['Chunk.energy.zsource'] = (['ZSOURCE'], None)
+            self._plan['Chunk.energy.ssyssrc'] = (['SSYSSRC'], None)
+            self._plan['Chunk.energy.velang'] = (['VELANG'], None)
+            self._plan['Chunk.energy.axis.axis.ctype'] = (['CTYPE{}'.format(energy_axis)], None)
+            self._plan['Chunk.energy.axis.axis.cunit'] = (['CUNIT{}'.format(energy_axis)], None)
+            self._plan['Chunk.energy.axis.error.syser'] = (['CSYER{}'.format(energy_axis)], None)
+            self._plan['Chunk.energy.axis.error.rnder'] = (['CRDER{}'.format(energy_axis)], None)
+            self._plan['Chunk.energy.axis.function.naxis'] = (['NAXIS{}'.format(energy_axis)], None)
+            self._plan['Chunk.energy.axis.function.delta'] = (['CDELT{}'.format(energy_axis)], None)
+            self._plan['Chunk.energy.axis.function.refCoord.pix'] = (['CRPIX{}'.format(energy_axis)], None)
+            self._plan['Chunk.energy.axis.function.refCoord.val'] = (['CRVAL{}'.format(energy_axis)], None)
+
+        self._extensions = {}
+
+    def set(self, caom2_element, value, extension=None):
+        """
+        Sets the value associated with an element in the CAOM2 model. Value
+        cannot be a tuple.
+        :param caom2_element: CAOM2 element
+        :param value: new value of the CAOM2 element
+        :param extension: extension number (used only for Chunk elements)
+        """
+        if extension:
+            if not caom2_element.startswith('Chunk'):
+                raise ValueError(
+                    "Extension number refers to Chunk elements only")
+            if extension not in self._extensions:
+                self._extensions[extension] = {}
+            self._extensions[extension][caom2_element] = value
+        else:
+            self._plan[caom2_element] = value
+
+    def set_fits_attribute(self, caom2_element, fits_attribute, extension=None):
+        """
+        Associates a CAOM2 element with a FITS attribute
+        :param caom2_element:
+        :param fits_attribute:
+        :param extension: extension number (used only for Chunk elements)
+        """
+        if extension:
+            if not caom2_element.startswith('Chunk'):
+                raise ValueError(
+                    "Extension number refers to Chunk elements only")
+            if extension not in self._extensions:
+                self._extensions[extension] = {}
+            self._extensions[extension][caom2_element] = (list(fits_attribute), None)
+        else:
+            self._plan[caom2_element] = (list(fits_attribute), None)
+
+    def add_fits_attribute(self, caom2_element, fits_attribute, extension=None):
+        """
+        Adds a FITS attribute in the list of other FITS attributes associated
+        with an caom2 element.
+        :param caom2_element:
+        :param fits_attribute:
+        :param extension: extension number (used only for Chunk elements)
+        :raises AttributeError if the caom2 element has already an associated
+        value or KeyError if the caom2 element does not exists.
+        """
+        if extension:
+            if not caom2_element.startswith('Chunk'):
+                raise ValueError(
+                    "Extension number refers to Chunk elements only")
+            if extension not in self._extensions:
+                raise AttributeError(
+                    'No extension {} in the blueprint'.format(extension))
+            else:
+                if caom2_element in self._extensions[extension]:
+                    if isinstance(self._extensions[extension][caom2_element], tuple):
+                        self._extensions[extension][caom2_element][0].insert(0, fits_attribute)
+                    else:
+                        raise AttributeError(
+                            'No FITS attributes in extension {} associated with keyword {}'.
+                                format(extension, caom2_element))
+                else:
+                    raise KeyError(
+                        'Keyword {} not found in the extension {} of the blueprint'.
+                            format(caom2_element, extension))
+        else:
+            if caom2_element in self._plan:
+                if isinstance(self._plan[caom2_element], tuple):
+                    self._plan[caom2_element][0].insert(0, fits_attribute)
+                else:
+                    raise AttributeError(
+                        'No FITS attributes associated with keyword {}'.
+                            format(caom2_element))
+            else:
+                raise KeyError(
+                    'Keyword {} not found in the blueprint'.
+                        format(caom2_element))
+
+    def set_default(self, caom2_element, default, extension=None):
+        """
+        Sets the default value of a caom2 element that is associated with FITS
+        attributes. If the element does not exist or does not have a list of
+        associated FITS attributes, default is set as the associated value
+        of the element
+        :param caom2_element:
+        :param default: default value
+        :param extension: extension number (used only for Chunk elements)
+        """
+        if extension:
+            if not caom2_element.startswith('Chunk'):
+                raise ValueError(
+                    "Extension number refers to Chunk elements only")
+            if extension not in self._extensions:
+                self._extensions[extension] = {}
+            if caom2_element in self._extensions[extension] and\
+                isinstance(self._extensions[extension][caom2_element], tuple):
+                self._extensions[extension][caom2_element] = (self._extensions[extension][caom2_element][0], default)
+            else:
+                # default is the only value
+                self._extensions[extension][caom2_element] = default
+        else:
+            if (caom2_element in self._plan) and \
+                    isinstance(self._plan[caom2_element], tuple):
+                self._plan[caom2_element] = (self._plan[caom2_element][0], default)
+            else:
+                # override the value
+                self._plan[caom2_element] = default
+
+    def get(self, caom2_element, extension=None):
+        """
+        Returns the value associated with a CAOM2 element
+        :param caom2_element:
+        :param extension: extension number (used only for Chunk elements)
+        :return: Tuple of the form (list_of_associated_fits_attributes,
+        default_value) OR the actual associated value of the CAOM2 element
+        """
+        if extension:
+            if not caom2_element.startswith('Chunk'):
+                raise ValueError(
+                    "Extension number refers to Chunk elements only")
+            if (extension in self._extensions) and (caom2_element in self._extensions[extension]):
+                return self._extensions[extension][caom2_element]
+
+        # look in the generic plan
+        if caom2_element not in self._plan:
+            return None
+        else:
+            return self._plan[caom2_element]
+
+
 class FitsParser(object):
     """
     Parses a FITS file and extracts the CAOM2 related information which can
@@ -212,75 +448,17 @@ class FitsParser(object):
 
     """
 
-    """There are three phases this configuration participates in, and it
-    serves a unique purpose for each phase:
-    1) Merge this configuration with the configuration obtained from the 
-     config and default files provided as input. Use this configuration to 
-     update the FITS headers
-    2) Augment the WCS.
-    3) Update this configuration with over-ride information, and apply
-     that to the headers."""
-    CONFIG = {'Observation.metaRelease':
-              ['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
-               'UTC-DATE', 'MJDOBS', 'MJD_OBS'],
-              'Observation.instrument.name': ['INSTRUME'],
-              'Observation.type': ['OBSTYPE'],
-              'Observation.environment.ambientTemp': ['TEMPERAT'],
-              'Observation.algorithm.name': ['PROCNAME'],
-              'Observation.intent': [],
-              'Observation.sequenceNumber': [],
-              'Observation.instrument.keywords': ['INSTMODE'],
-              'Observation.proposal.id': ['RUNID'],
-              'Observation.proposal.pi': [],
-              'Observation.proposal.project': [],
-              'Observation.proposal.title': [],
-              'Observation.proposal.keywords': [],
-              'Observation.target.name': ['OBJECT'],
-              'Observation.target.type': [],
-              'Observation.target.standard': [],
-              'Observation.target.redshift': [],
-              'Observation.target.keywords': [],
-              'Observation.telescope.name': ['INSTRUME'],
-              'Observation.telescope.geoLocationX': ['OBSGEO-X'],
-              'Observation.telescope.geoLocationY': ['OBSGEO-Y'],
-              'Observation.telescope.geoLocationZ': ['OBSGEO-Z'],
-              'Observation.telescope.keywords': [],
-              'Observation.environment.seeing': [],
-              'Observation.environment.humidity': [],
-              'Observation.environment.elevation': [],
-              'Observation.environment.tau': [],
-              'Observation.environment.wavelengthTau': [],
-              'Observation.environment.photometric': [],
-              'Observation.observation_id': ['OBSID'],
-              'Plane.metaRelease': ['RELEASE', 'REL_DATE'],
-              'Plane.dataRelease': ['RELEASE', 'REL_DATE'],
-              'Plane.dataProductType': [],
-              'Plane.product_id': ['RUNID'],
-              'Plane.calibrationLevel': [],
-              'Plane.provenance.name': ['XPRVNAME'],
-              'Plane.provenance.version': [],
-              'Plane.provenance.project': ['ADC_ARCH'],
-              'Plane.provenance.producer': ['ORIGIN'],
-              'Plane.provenance.runID': [],
-              'Plane.provenance.reference': ['XREFER'],
-              'Plane.provenance.lastExecuted': ['DATE-FTS'],
-              'Plane.provenance.keywords': [],
-              'Plane.provenance.inputs': [],
-              'Plane.metrics.sourceNumberDensity': [],
-              'Plane.metrics.background': [],
-              'Plane.metrics.backgroundStddev': [],
-              'Plane.metrics.fluxDensityLimit': [],
-              'Plane.metrics.magLimit': []
-              }
-
-    def __init__(self, src):
+    def __init__(self, src, obs_blueprint=None):
         """
         Ctor
         :param src: List of headers (dictionary of FITS keywords:value) with
         one header for each extension or a FITS input file.
         """
         self.logger = logging.getLogger(__name__)
-        self.config = self.CONFIG
+        if obs_blueprint:
+            self.blueprint = obs_blueprint
+        else:
+            self.blueprint = ObservationBlueprint()
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -302,9 +480,6 @@ class FitsParser(object):
         :return:
         """
         return self._headers
-
-    def set_config(self, _config):
-        self.config = _config
 
     def augment_artifact(self, artifact):
         """
@@ -627,7 +802,7 @@ class FitsParser(object):
     def _get_from_list(self, lookup, index, default=None, current=None):
         value = default
         try:
-            keywords = self.config[lookup]
+            keywords = self.config.get(lookup)
         except KeyError:
             self.logger.warning(
                 'Could not find {!r} in fits2caom2 configuration.'.format(
@@ -655,6 +830,7 @@ class FitsParser(object):
                             lookup, value, ii))
                 if value is not default:
                     break
+            #TODO set the default
         else:
             # the original list has been over-ridden or provided with a default
             self.logger.debug('{}: value is {}'.format(lookup, value))
