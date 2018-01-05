@@ -171,6 +171,136 @@ class DispatchingFormatter:
         return formatter.format(record)
 
 
+class Fits2Caom2Blueprint(object):
+    """
+    Class that captures the blueprint of building a CAOM2 Observation
+    """
+
+    def __init__(self):
+         """
+         Ctor
+         """
+         self._plan = {'Observation.meta_release':
+                       (['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
+                         'UTC-DATE', 'MJDOBS', 'MJD_OBS'], None),
+                       'Observation.instrument.name': (['INSTRUME'], None),
+                       'Observation.type': ['OBSTYPE'],
+                       'Observation.environment.ambientTemp': ['TEMPERAT'],
+                       'Observation.algorithm.name': ['PROCNAME'],
+                       'Observation.intent': [],
+                       'Observation.sequenceNumber': [],
+                       'Observation.instrument.keywords': ['INSTMODE'],
+                       'Observation.proposal.id': ['RUNID'],
+                       'Observation.proposal.pi': [],
+                       'Observation.proposal.project': [],
+                       'Observation.proposal.title': [],
+                       'Observation.proposal.keywords': [],
+                       'Observation.target.name': ['OBJECT'],
+                       'Observation.target.type': [],
+                       'Observation.target.standard': [],
+                       'Observation.target.redshift': [],
+                       'Observation.target.keywords': [],
+                       'Observation.telescope.name': ['INSTRUME'],
+                       'Observation.telescope.geoLocationX': ['OBSGEO-X'],
+                       'Observation.telescope.geoLocationY': ['OBSGEO-Y'],
+                       'Observation.telescope.geoLocationZ': ['OBSGEO-Z'],
+                       'Observation.telescope.keywords': [],
+                       'Observation.environment.seeing': [],
+                       'Observation.environment.humidity': [],
+                       'Observation.environment.elevation': [],
+                       'Observation.environment.tau': [],
+                       'Observation.environment.wavelengthTau': [],
+                       'Observation.environment.photometric': [],
+                       'Observation.observation_id': ['OBSID'],
+                       'Plane.meta_release': ['RELEASE', 'REL_DATE'],
+                       'Plane.data_release': ['RELEASE', 'REL_DATE'],
+                       'Plane.dataProductType': [],
+                       'Plane.product_id': ['RUNID'],
+                       'Plane.calibrationLevel': [],
+                       'Plane.provenance.name': ['XPRVNAME'],
+                       'Plane.provenance.version': [],
+                       'Plane.provenance.project': ['ADC_ARCH'],
+                       'Plane.provenance.producer': ['ORIGIN'],
+                       'Plane.provenance.runID': [],
+                       'Plane.provenance.reference': ['XREFER'],
+                       'Plane.provenance.lastExecuted': ['DATE-FTS'],
+                       'Plane.provenance.keywords': [],
+                       'Plane.provenance.inputs': [],
+                       'Plane.metrics.sourceNumberDensity': [],
+                       'Plane.metrics.background': [],
+                       'Plane.metrics.backgroundStddev': [],
+                       'Plane.metrics.fluxDensityLimit': [],
+                       'Plane.metrics.magLimit': []
+                       }
+
+    def set(self, caom2_element, value):
+        """
+        Sets the value associated with an element in the CAOM2 model. Value
+        cannot be tuple.
+        :param caom2_element: CAOM2 element
+        :param value: new value of the CAOM2 element
+        """
+        self._plan[caom2_element] = value
+
+    def set_fits_attribute(self, caom2_element, fits_attribute):
+        """
+        Associates a CAOM2 element with a FITS attribute
+        :param caom2_element:
+        :param fits_attribute:
+        """
+        self._plan[caom2_element] = (list(fits_attribute), None)
+
+    def add_fits_attribute(self, caom2_element, fits_attribute):
+        """
+        Adds a FITS attribute in the list of other FITS attributes associated
+        with an caom2 element.
+        :param caom2_element:
+        :param fits_attribute:
+        :raises AttributeError if the caom2 element has already an associated
+        value or KeyError if the caom2 element does not exists.
+        """
+        if caom2_element in self._plan:
+            if isinstance(self._plan[caom2_element], tuple):
+                self._plan[caom2_element][0].insert(0, fits_attribute)
+            else:
+                raise AttributeError(
+                    'No FITS attributes associated with keyword {}'.
+                        format(caom2_element))
+        else:
+            raise KeyError(
+                'Keyword {} not found in the Fits2Caom2Blueprint plan'.
+                    format(caom2_element))
+
+    def set_default(self, caom2_element, default):
+        """
+        Sets the default value of a caom2 element that is associated with FITS
+        attributes. If the element does not exist or does not have a list of
+        associated FITS attributes, default is set as the associated value
+        of the element
+        :param caom2_element:
+        :param default: default value
+        """
+        if (caom2_element in self._plan) and \
+                isinstance(self._plan[caom2_element], tuple):
+            self._plan[caom2_element] = (self._plan[caom2_element][0], default)
+        else:
+            # override the value
+            self._plan[caom2_element] = default
+
+    def get(self, caom2_element):
+        """
+        Returns the value associated with a CAOM2 element
+        :param caom2_element:
+        :return: Tuple of the form (list_of_associated_fits_attributes,
+        default_value) or the actual associated value of the CAOM2 element
+        """
+        if caom2_element not in self._plan:
+            return None
+        else:
+            return self._plan[caom2_element]
+
+
+
 class FitsParser(object):
     """
     Parses a FITS file and extracts the CAOM2 related information which can
