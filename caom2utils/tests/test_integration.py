@@ -145,18 +145,17 @@ def test_fits2caom2():
     _cmp(expected, actual)
 
 
-@pytest.mark.skip('')
+# @pytest.mark.skip('')
 def test_fits2caom2_cfht_defaults_overrides():
     # test fits2caom2 on a known existing CFHT file, with defaults and
     # overrides
     temp = tempfile.NamedTemporaryFile();
     expected = open(expected_cfhtwircam_obs).read()
-    sys.argv = ('fits2caom2 -d -o {} --observation CFHT 1709071 '
+    sys.argv = ('fits2caom2 -d --local {} -o {} --observation CFHT 1709071 '
                 '--config {} --default {} --override {} '
                 '1709071og ad:CFHT/1709071g ').format(
-        temp, cfhtwircam_config, cfhtwircam_defaults,
+        sample_cfhtwircam, temp.name, cfhtwircam_config, cfhtwircam_defaults,
         cfhtwircam_override).split()
-    logging.warning(sys.argv)
     fits2caom2.main_app()
     actual = open(temp.name).read()
     _cmp(expected, actual)

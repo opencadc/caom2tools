@@ -219,7 +219,7 @@ class FitsParser(object):
     2) Augment the WCS.
     3) Update this configuration with over-ride information, and apply
      that to the headers."""
-    CONFIG = {'Observation.meta_release':
+    CONFIG = {'Observation.metaRelease':
               ['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
                'UTC-DATE', 'MJDOBS', 'MJD_OBS'],
               'Observation.instrument.name': ['INSTRUME'],
@@ -251,8 +251,8 @@ class FitsParser(object):
               'Observation.environment.wavelengthTau': [],
               'Observation.environment.photometric': [],
               'Observation.observation_id': ['OBSID'],
-              'Plane.meta_release': ['RELEASE', 'REL_DATE'],
-              'Plane.data_release': ['RELEASE', 'REL_DATE'],
+              'Plane.metaRelease': ['RELEASE', 'REL_DATE'],
+              'Plane.dataRelease': ['RELEASE', 'REL_DATE'],
               'Plane.dataProductType': [],
               'Plane.product_id': ['RUNID'],
               'Plane.calibrationLevel': [],
@@ -380,7 +380,7 @@ class FitsParser(object):
                                                  ObservationIntentType.SCIENCE)
         observation.type = self._get_from_list('Observation.type', 0)
         observation.meta_release = self._get_datetime(
-            self._get_from_list('Observation.meta_release', 0, datetime.now()))
+            self._get_from_list('Observation.metaRelease', 0, datetime.now()))
         observation.requirements = self._get_requirements()
         observation.instrument = self._get_instrument()
         observation.proposal = self._get_proposal()
@@ -424,18 +424,19 @@ class FitsParser(object):
 
         plane.creator = self._get_from_list('Plane.creator_id', index=0,
                                             default='UNKNOWN')
-        plane.meta_release = self._get_from_list('Plane.meta_release', index=0,
+        plane.meta_release = self._get_from_list('Plane.metaRelease', index=0,
                                                  default=None)
-        plane.data_release = self._get_from_list('Plane.data_release', index=0,
+        plane.data_release = self._get_from_list('Plane.dataRelease', index=0,
                                                  default=None)
         plane.data_product_type = \
-            self._get_from_list('Plane.dataProductType',
-                                index=0,
-                                default=DataProductType.CUBE)
+            DataProductType(self._get_from_list('Plane.dataProductType',
+                                                index=0,
+                                                default=DataProductType.CUBE))
         plane.calibration_level = \
-            self._get_from_list('Plane.calibration_level',
-                                index=0,
-                                default=CalibrationLevel.CALIBRATED)
+            CalibrationLevel(
+                self._get_from_list('Plane.calibration_level',
+                                    index=0,
+                                    default=CalibrationLevel.CALIBRATED))
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
         plane.quality = self._get_quality()
@@ -632,7 +633,10 @@ class FitsParser(object):
 
         if type(keywords) == list:
             for ii in keywords:
-                value = self.headers[index].get(ii, default)
+                if isinstance(ii, dict):
+                    value = ii['default']
+                else:
+                    value = self.headers[index].get(ii, default)
                 if value is None and current:
                     value = current
                     self.logger.debug(
@@ -1148,8 +1152,8 @@ def load_config(file_name):
                     extension = \
                         int(line.split('#[')[1].split(']')[0].strip())
                     logging.debug(
-                        'Adding overrides for artifact {} in extension {}'
-                            .format(artifact, extension))
+                        'Adding overrides for artifact {} in extension {}'.
+                        format(artifact, extension))
                 if artifact not in d['artifacts'].keys():
                     d['artifacts'][artifact] = {}
                 if extension not in d['artifacts'][artifact].keys():
@@ -1194,7 +1198,8 @@ def get_cadc_headers(uri, cert=None):
     return headers
 
 
-def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None, overrides=None):
+def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
+                        overrides=None):
     """
     Update the in-memory representation of FITS headers according to defaults
     and/or overrides as configured by the user.
@@ -1229,31 +1234,29 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None, o
 
     if overrides:
         _set_overrides(overrides, this_config, parser.headers, 0)
-
-        logging.warning(this_config)
-
         _set_overrides_for_artifacts(
             overrides, parser, artifact_uri, this_config)
 
+    logging.debug('Overrides set for {}.'.format(artifact_uri))
     return parser
 
 
 def _set_default_value_in_config(_config, _key, _value):
     key_found = False
-    for ii in _config.values():
-        if isinstance(ii, list):
-            for jj in ii:
+    for k, v in _config.items():
+        if isinstance(v, list):
+            for jj in v:
                 if jj == _key:
-                    index = ii.index(jj)
-                    ii[index] = {'default': _value}
+                    index = v.index(jj)
+                    v[index] = {'default': _value}
                     logging.debug('{}: Set default value of {}'.format(
-                        ii, _value))
+                        k, _value))
                     key_found = True
                     break
-        elif ii == _key:
-            index = _config.index(ii)
+        elif v == _key:
+            index = _config.index(v)
             _config[index] = {'default': _value}
-            logging.debug('{}: Set to default value of {}'.format(ii, _value))
+            logging.debug('{}: Set to default value of {}'.format(k, _value))
             key_found = True
             break
 
@@ -1351,12 +1354,6 @@ def _find_fits_keyword_in_config(_config, _key):
     return keywords
 
 
-def _find(match_this, to_this):
-    # the second clause is for the case where plane.dataProductType is part of
-    # the defaults
-    return match_this.endswith(to_this) or match_this.lower() == to_this.lower()
-
-
 def _set_default_keyword_value_in_header(_headers, _keys, _value):
     """
     The configuration provides a FITS keyword, so modify the headers to have
@@ -1426,7 +1423,6 @@ def _merge_configs(default_config, input_config):
             if not isinstance(input_config[ii], list):
                 values = input_config[ii].split(',')
                 input_config[ii] = values
-            logging.debug('{} {}'.format(ii, input_config[ii]))
 
         merged.update(input_config)
     elif input_config and not default_config:
@@ -1462,6 +1458,7 @@ def main_app():
                         help='do not stop and exit upon finding partial WCS')
 
     parser.add_argument('-o', '--out', dest='out_obs_xml',
+                        type=argparse.FileType('w'),
                         help='output of augmented observation in XML',
                         required=False)
 
@@ -1501,7 +1498,6 @@ def main_app():
         sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
         sys.exit(-1)
 
-    # parser.print_help()
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
@@ -1546,7 +1542,6 @@ def main_app():
     if args.in_obs_xml:
         # append to existing observation
         reader = ObservationReader(validate=True)
-        obs = reader.read(args.in_obs_xml)
     else:
         obs = SimpleObservation(collection=args.observation[0],
                                 observation_id=args.observation[1],
@@ -1576,7 +1571,7 @@ def main_app():
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers)
 
-        update_fits_headers(parser, config, defaults, overrides)
+        update_fits_headers(parser, uri, config, defaults, overrides)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 
