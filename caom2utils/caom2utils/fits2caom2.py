@@ -78,6 +78,7 @@ import math
 from astropy.wcs import WCS
 from astropy.io import fits
 from cadcutils import version
+from caom2.caom_util import int_32
 from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
 from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
@@ -424,19 +425,19 @@ class FitsParser(object):
 
         plane.creator = self._get_from_list('Plane.creator_id', index=0,
                                             default='UNKNOWN')
-        plane.meta_release = self._get_from_list('Plane.metaRelease', index=0,
-                                                 default=None)
-        plane.data_release = self._get_from_list('Plane.dataRelease', index=0,
-                                                 default=None)
+        plane.meta_release = self._get_datetime(self._get_from_list(
+            'Plane.metaRelease', index=0, default=None), 's')
+        plane.data_release = self._get_datetime(self._get_from_list(
+            'Plane.dataRelease', index=0, default=None), 's')
         plane.data_product_type = \
             DataProductType(self._get_from_list('Plane.dataProductType',
                                                 index=0,
                                                 default=DataProductType.CUBE))
         plane.calibration_level = \
-            CalibrationLevel(
-                self._get_from_list('Plane.calibration_level',
+            CalibrationLevel(int_32(
+                self._get_from_list('Plane.calibrationLevel',
                                     index=0,
-                                    default=CalibrationLevel.CALIBRATED))
+                                    default=CalibrationLevel.CALIBRATED.value)))
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
         plane.quality = self._get_quality()
@@ -463,9 +464,10 @@ class FitsParser(object):
         :return: Algorithm
         """
         self.logger.debug('Begin CAOM2 Algorithm augmentation.')
+        # TODO DEFAULT VALUE
         name = self._get_from_list('Observation.algorithm.name', index=0,
                                    default='DEFAULT',
-                                   current=obs.algorithm.name)  # TODO DEFAULT VALUE
+                                   current=obs.algorithm.name)
         self.logger.debug('End CAOM2 Algorithm augmentation.')
         if name:
             return Algorithm(str(name))
@@ -591,17 +593,22 @@ class FitsParser(object):
                                       index=0, default=None)  # TODO
         photometric = \
             self._get_from_list('Observation.environment.photometric',
-                                index=0, default=None)  # TODO
-        enviro = Environment()
-        enviro.seeing = seeing
-        enviro.humidity = humidity
-        enviro.elevation = elevation
-        enviro.tau = tau
-        enviro.wavelength_tau = wavelength_tau
-        enviro.ambient_temp = ambient
-        enviro.photometric = photometric
-        self.logger.debug('End CAOM2 Environment augmentation.')
-        return enviro
+                                index=0, default=False)  # TODO
+
+        if seeing or humidity or elevation or tau or wavelength_tau or ambient \
+            or photometric:
+            enviro = Environment()
+            enviro.seeing = seeing
+            enviro.humidity = humidity
+            enviro.elevation = elevation
+            enviro.tau = tau
+            enviro.wavelength_tau = wavelength_tau
+            enviro.ambient_temp = ambient
+            enviro.photometric = photometric
+            self.logger.debug('End CAOM2 Environment augmentation.')
+            return enviro
+        else:
+            return None
 
     def _get_requirements(self):
         """
@@ -684,13 +691,18 @@ class FitsParser(object):
         :return: Provenance
         """
         self.logger.debug('Begin CAOM2 Provenance augmentation.')
-        name = self._get_from_list('Plane.provenance.name', index=0)
-        version = self._get_from_list('Plane.provenance.version',
-                                      index=0)  # TODO DEFAULT VALUE
-        project = self._get_from_list('Plane.provenance.project', index=0)
-        producer = self._get_from_list('Plane.provenance.producer', index=0)
-        run_id = self._get_from_list('Plane.provenance.runID', index=0)
-        reference = self._get_from_list('Plane.provenance.reference', index=0)
+        name = self._to_str(
+            self._get_from_list('Plane.provenance.name', index=0))
+        p_version = self._to_str(self._get_from_list('Plane.provenance.version',
+                                                     index=0))  # TODO DEFAULT VALUE
+        project = self._to_str(
+            self._get_from_list('Plane.provenance.project', index=0))
+        producer = self._to_str(
+            self._get_from_list('Plane.provenance.producer', index=0))
+        run_id = self._to_str(
+            self._get_from_list('Plane.provenance.runID', index=0))
+        reference = self._to_str(
+            self._get_from_list('Plane.provenance.reference', index=0))
         last_executed = self._get_datetime(
             self._get_from_list('Plane.provenance.lastExecuted',
                                 index=0))  # TODO DEFAULT VALUE
@@ -703,9 +715,8 @@ class FitsParser(object):
                                      default=None)  # TODO DEFAULT VALUE
         self.logger.debug('End CAOM2 Provenance augmentation.')
         if name:
-            prov = Provenance(str(name), str(version), str(project),
-                              str(producer), run_id, str(reference),
-                              last_executed)
+            prov = Provenance(name, p_version, project, producer, run_id,
+                              reference, last_executed)
             prov.keywords.union(keywords)
             if inputs:
                 prov.inputs.add(inputs)
@@ -729,12 +740,17 @@ class FitsParser(object):
             'Plane.metrics.fluxDensityLimit', index=0)  # TODO DEFAULT VALUE
         mag_limit = self._get_from_list('Plane.metrics.magLimit',
                                         index=0)  # TODO DEFAULT VALUE
-        metrics = Metrics()
-        metrics.source_number_density = source_number_density
-        metrics.background = background
-        metrics.background_std_dev = background_stddev
-        metrics.flux_density_limit = flux_density_limit
-        metrics.mag_limit = mag_limit
+
+        if source_number_density or background or background_stddev or \
+                flux_density_limit or mag_limit:
+            metrics = Metrics()
+            metrics.source_number_density = source_number_density
+            metrics.background = background
+            metrics.background_std_dev = background_stddev
+            metrics.flux_density_limit = flux_density_limit
+            metrics.mag_limit = mag_limit
+        else:
+            metrics = None
         self.logger.debug('End CAOM2 Metrics augmentation.')
         return metrics
 
@@ -744,24 +760,26 @@ class FitsParser(object):
         :return: Quality
         """
         self.logger.debug('Begin CAOM2 Quality augmentation.')
-        flag = self._get_from_list('Plane.dataQuality', index=0,
-                                   default=Quality.JUNK)  # TODO DEFAULT VALUE
+        flag = self._get_from_list('Plane.dataQuality', index=0)
         self.logger.debug('End CAOM2 Quality augmentation.')
         if flag:
             return DataQuality(flag)
         else:
             return None
 
-    def _get_datetime(self, from_value):
+    def _get_datetime(self, from_value, default_units=None):
         """
         Ensure datetime values are in MJD. Really. Just not yet.
         :param from_value:
         :return:
         """
 
-        # FITS Time Paper is the source for defaults
-        # http://hea-www.cfa.harvard.edu/~arots/TimeWCS/WCSPaperV0.90.pdf
-        units = self.headers[0].get('TIMEUNIT', 's')
+        if default_units:
+            units = default_units
+        else:
+            # FITS Time Paper is the source for defaults
+            # http://hea-www.cfa.harvard.edu/~arots/TimeWCS/WCSPaperV0.90.pdf
+            units = self.headers[0].get('TIMEUNIT', 's')
         try:
             if from_value:
                 if units == 'd':
@@ -771,10 +789,12 @@ class FitsParser(object):
                 else:
                     return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
             else:
-                return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
+                # return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
+                return None
         except ValueError:
             self.logger.warning('{}'.format(sys.exc_info()[1]))
-            return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
+            # return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
+            return None
 
     def _cast_as_bool(self, from_value):
         """
@@ -790,6 +810,9 @@ class FitsParser(object):
         elif from_value == 'true':
             result = True
         return result
+
+    def _to_str(self, value):
+        return str(value) if value else None
 
 
 class WcsParser(object):
@@ -949,7 +972,7 @@ class WcsParser(object):
         :param chunk:
         :return:
         """
-        self.logger.debug('Begin TemporalWCS augmentation.')
+        self.logger.debug('Begin Polarization WCS augmentation.')
         assert chunk
         assert isinstance(chunk, Chunk)
 
@@ -970,6 +993,7 @@ class WcsParser(object):
             chunk.polarization = PolarizationWCS(naxis)
         else:
             chunk.polarization.naxis = naxis
+        self.logger.debug('End Polarization WCS augmentation.')
 
     def _get_axis_index(self, keywords):
         """
@@ -1223,6 +1247,7 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
     # bite somewhere in the future :)
 
     if defaults:
+        logging.warning(repr(defaults))
         for ii in defaults.keys():
             if ii.isupper() and ii.find('.') == -1:
                 _set_default_keyword_value_in_header(
@@ -1246,6 +1271,7 @@ def _set_default_value_in_config(_config, _key, _value):
     for k, v in _config.items():
         if isinstance(v, list):
             for jj in v:
+                logging.warning('list entry is {}, _key is {}'.format(jj, _key))
                 if jj == _key:
                     index = v.index(jj)
                     v[index] = {'default': _value}
@@ -1260,10 +1286,16 @@ def _set_default_value_in_config(_config, _key, _value):
             key_found = True
             break
 
+        if key_found:
+            break
+
     if not key_found:
-        msg = 'Could not find configuration key for default {!r}'.format(_key)
-        logging.warning(msg)
-        raise KeyError(msg)
+        # one last-ditch attempt? for the case where there's a FITS keyword
+        # lookup value, that might not exist in the source file?
+        if not _last_ditch_find(_config, _key, _value):
+            msg = 'Could not find configuration key for default {!r}'.format(_key)
+            logging.warning(msg)
+            raise KeyError(msg)
 
 
 def _set_overrides(_overrides, _config, _headers, _index):
@@ -1353,6 +1385,21 @@ def _find_fits_keyword_in_config(_config, _key):
             break
     return keywords
 
+
+def _last_ditch_find(_config, _key, _value):
+    found = False
+    for ii in _config.keys():
+        # the second clause is for the case where plane.dataProductType
+        # is part of the defaults
+        if ii.endswith(_key) or ii.lower() == _key.lower():
+            if isinstance(_config[ii], list):
+                _config[ii].append({'default': _value})
+            else:
+                _config[ii] = [{'default': _value}]
+            found = True
+            break
+
+    return found
 
 def _set_default_keyword_value_in_header(_headers, _keys, _value):
     """

@@ -405,7 +405,6 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
     """xsi:type="caom2:CompositeObservation" caom2:id="1311768465173141112">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
-  <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
   <caom2:sequenceNumber>-1</caom2:sequenceNumber>
   <caom2:algorithm>
     <caom2:name>exposure</caom2:name>
@@ -428,7 +427,9 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
   <caom2:instrument>
     <caom2:name>DRAO-ST</caom2:name>
   </caom2:instrument>
-  <caom2:environment/>
+  <caom2:environment>
+    <caom2:photometric>false</caom2:photometric>
+  </caom2:environment>
   <caom2:planes>
     <caom2:plane caom2:id="1311768465173141112">
       <caom2:productID>HI-line</caom2:productID>
@@ -436,13 +437,10 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
       <caom2:provenance>
         <caom2:name>CGPS MOSAIC</caom2:name>
-        <caom2:version>None</caom2:version>
         <caom2:project>CGPS</caom2:project>
         <caom2:producer>CGPS Consortium</caom2:producer>
         <caom2:reference>http://dx.doi.org/10.1086/375301</caom2:reference>
-        <caom2:lastExecuted>1999-01-01T00:00:00.000</caom2:lastExecuted>
       </caom2:provenance>
-      <caom2:metrics/>
       <caom2:artifacts>
         <caom2:artifact caom2:id="1311768465173141112">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
@@ -526,7 +524,8 @@ def test_update_fits_headers():
     def_config = {'Observation.type': 'observation.type',
                   'Observation.intent': 'obs.intent',
                   'Plane.dataProductType': 'plane.dataProductType',
-                  'Plane.provenance.producer': 'provenance.producer'}
+                  'Plane.provenance.producer': 'provenance.producer',
+                  'Plane.provenance.project': ['ADC_ARCH']}
     test_uri = 'ad:CFHT/1709071g.fits.gz'
     test_config = def_config.copy()
     assert test_parser.config['Observation.type'] == ['OBSTYPE'], \
@@ -549,7 +548,8 @@ def test_update_fits_headers():
     test_defaults = {'CUNIT1': 'deg',
                      'CTYPE3': 'TIME',
                      'plane.dataProductType': 'image',
-                     'provenance.producer': 'CFHT'}
+                     'provenance.producer': 'CFHT',
+                     'provenance.project': 'STANDARD PIPELINE'}
     test_config = def_config.copy()
     test_parser = update_fits_headers(test_parser, test_uri, test_config,
                                       test_defaults, overrides=None)
@@ -562,6 +562,9 @@ def test_update_fits_headers():
     assert test_parser.config['Plane.provenance.producer'] == \
         [{'default': 'CFHT'}], \
         'default value assigned to configuration, all upper-case'
+    assert test_parser.config['Plane.provenance.project'] == \
+           ['ADC_ARCH', {'default': 'STANDARD PIPELINE'}], \
+        'default value assigned to configuration, with white-space'
 
     test_config = def_config.copy()
     test_overrides = load_config(override_file)
