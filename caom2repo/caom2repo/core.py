@@ -318,6 +318,9 @@ class CAOM2RepoClient(object):
                         if f:
                             failed.append(f)
 
+                p.close()
+                p.join()
+
             if obs_file is None and len(observations) == BATCH_SIZE:
                 # get observation IDs from caomrepo
                 observations = self._get_observations(collection, self._start,
