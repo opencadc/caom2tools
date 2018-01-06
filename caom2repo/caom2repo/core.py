@@ -74,10 +74,11 @@ import argparse
 import imp
 import logging
 import multiprocessing
-from multiprocessing import Lock, Pool
+from multiprocessing import Pool
 import os
 import os.path
 import sys
+import threading
 from datetime import datetime
 
 from cadcutils import net
@@ -101,18 +102,98 @@ DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 APP_NAME = 'caom2repo'
 
 
+# Copyright 2001-2016 by Vinay Sajip. All Rights Reserved.
+#
+# Permission to use, copy, modify, and distribute this software and its
+# documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright notice appear in all copies and that
+# both that copyright notice and this permission notice appear in
+# supporting documentation, and that the name of Vinay Sajip
+# not be used in advertising or publicity pertaining to distribution
+# of the software without specific, written prior permission.
+# VINAY SAJIP DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
+# ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL
+# VINAY SAJIP BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+# ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+# IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
+# OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+class QueueHandler(logging.Handler):
+    """
+    This handler sends events to a queue. Typically, it would be used together
+    with a multiprocessing Queue to centralise logging to file in one process
+    (in a multi-process application), so as to avoid file write contention
+    between processes.
+    This code is new in Python 3.2, but this class can be copy pasted into
+    user code for use with earlier Python versions.
+    """
+
+    def __init__(self, queue):
+        """
+        Initialise an instance, using the passed queue.
+        """
+        logging.Handler.__init__(self)
+        self.queue = queue
+
+    def enqueue(self, record):
+        """
+        Enqueue a record.
+        The base implementation uses put_nowait. You may want to override
+        this method if you want to use blocking, timeouts or custom queue
+        implementations.
+        """
+        self.queue.put_nowait(record)
+
+    def prepare(self, record):
+        """
+        Prepares a record for queuing. The object returned by this method is
+        enqueued.
+        The base implementation formats the record to merge the message
+        and arguments, and removes unpickleable items from the record
+        in-place.
+        You might want to override this method if you want to convert
+        the record to a dict or JSON string, or send a modified copy
+        of the record while leaving the original intact.
+        """
+        # The format operation gets traceback text into record.exc_text
+        # (if there's exception data), and also returns the formatted
+        # message. We can then use this to replace the original
+        # msg + args, as these might be unpickleable. We also zap the
+        # exc_info attribute, as it's no longer needed and, if not None,
+        # will typically not be pickleable.
+        msg = self.format(record)
+        record.message = msg
+        record.msg = msg
+        record.args = None
+        record.exc_info = None
+        return record
+
+    def emit(self, record):
+        """
+        Emit a record.
+        Writes the LogRecord to the queue, preparing it for pickling first.
+        """
+        try:
+            self.enqueue(self.prepare(record))
+        except Exception:
+            self.handleError(record)
+
+
 class CAOM2RepoClient(object):
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    logger = logging.getLogger('CAOM2RepoClient')
-
-    def __init__(self, subject, resource_id=DEFAULT_RESOURCE_ID, host=None):
+    def __init__(self, subject, queue, logLevel=logging.INFO, resource_id=DEFAULT_RESOURCE_ID, host=None):
         """
         Instance of a CAOM2RepoClient
         :param subject: the subject performing the action
         :type cadcutils.auth.Subject
         :param server: Host server for the caom2repo service
         """
+        self.queue = queue
+        self.level = logLevel
+        qh = QueueHandler(queue)
+        logging.basicConfig(level=logLevel, stream=sys.stdout)
+        self.logger = logging.getLogger('CAOM2RepoClient')
+        self.logger.addHandler(qh)
         agent = '{}/{}'.format(APP_NAME, version.version)
         self.host = host
         self._subject = subject
@@ -217,23 +298,25 @@ class CAOM2RepoClient(object):
                         failed.append(f)
 
             else:
-                mutex = Lock()
                 p = Pool(nthreads)
-                results = [p.apply_async(
-                    self.multiprocess_observation_id,
-                    [collection, observationID, self.get_observation, self.post_observation, halt_on_error,
-                     self.logger, self.plugin, mutex])
-                    for observationID in observations]
-                for r in results:
-                    v, u, s, f= r.get()
-                    if v:
-                        visited.append(v)
-                    if u:
-                        updated.append(u)
-                    if s:
-                        skipped.append(s)
-                    if f:
-                        failed.append(f)
+
+                for observationID in observations:
+                    observation = self.get_observation(collection, observationID)
+                    if self.plugin.update(observation=observation, subject=self._subject) is False:
+                        self.logger.info('SKIP {}'.format(self.get_observation.observation_id))
+                        skipped.append(self.get_observation.observation_id)
+                    else:
+                        r = p.apply_async(
+                            multiprocess_observation_id,
+                            [collection, observation, observationID, self.post_observation, halt_on_error,
+                            self.queue, self.level])
+                        v, u, f= r.get(timeout=1)
+                        if v:
+                            visited.append(v)
+                        if u:
+                            updated.append(u)
+                        if f:
+                            failed.append(f)
 
             if obs_file is None and len(observations) == BATCH_SIZE:
                 # get observation IDs from caomrepo
@@ -253,14 +336,12 @@ class CAOM2RepoClient(object):
         observation = self.get_observation(collection, observationID)
         try:
             if self.plugin.update(observation=observation,
-                             subject=self._subject) is False:
-                self.logger.info(
-                    'SKIP {}'.format(observation.observation_id))
+                                  subject=self._subject) is False:
+                self.logger.info('SKIP {}'.format(observation.observation_id))
                 skipped.append(observation.observation_id)
             else:
                 self.post_observation(observation)
-                self.logger.debug(
-                    'UPDATED {}'.format(observation.observation_id))
+                self.logger.debug('UPDATED {}'.format(observation.observation_id))
                 updated.append(observation.observation_id)
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
@@ -270,62 +351,9 @@ class CAOM2RepoClient(object):
                     " method of your plugin.".format(str(e)))
         except Exception as e:
             failed.append(observation.observation_id)
-            self.logger.error('FAILED {} - Reason: {}'.
-                         format(observation.observation_id, e))
+            self.logger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
             if halt_on_error:
                 raise e
-
-        visited.append(observation.observation_id)
-
-        return visited, updated, skipped, failed
-
-    def multiprocess_observation_id(self, collection, observationID, get_observation, post_observation, halt_on_error,
-                                    logger, plugin, mutex):
-        visited = []
-        failed = []
-        updated = []
-        skipped = []
-        mutex.acquire()
-        logger.info('Process observation: ' + observationID)
-        mutex.release
-        observation = get_observation(collection, observationID)
-        try:
-            if plugin.update(observation=observation,
-                                  subject=self._subject) is False:
-                mutex.acquire()
-                logger.info(
-                    'SKIP {}'.format(observation.observation_id))
-                mutex.release
-                skipped.append(observation.observation_id)
-            else:
-                post_observation(observation)
-                mutex.acquire()
-                logger.debug(
-                    'UPDATED {}'.format(observation.observation_id))
-                mutex.release
-                updated.append(observation.observation_id)
-        except TypeError as e:
-            if "unexpected keyword argument" in str(e):
-                raise RuntimeError(
-                    "{} - To fix the problem, please add the **kwargs "
-                    "argument to the list of arguments for the update"
-                    " method of your plugin.".format(str(e)))
-        except Exception as e:
-            failed.append(observation.observation_id)
-            mutex.acquire()
-            logger.error('FAILED {} - Reason: {}'.
-                              format(observation.observation_id, e))
-            mutex.release
-            if halt_on_error:
-                raise e
-        except KeyboardInterrupt as e:
-            # user pressed Control-C or Delete
-            mutex.acquire()
-            logger.error('FAILED {} - Reason: {}'.
-                              format(observation.observation_id, e))
-            mutex.release
-            raise e
-            sys.exit(-2)
 
         visited.append(observation.observation_id)
 
@@ -354,8 +382,7 @@ class CAOM2RepoClient(object):
                                 obs.append(obs_id)
                         except Exception as e:
                             failed.append(obs_id)
-                            self.logger.error('FAILED {} - Reason: {}'.
-                                              format(obs_id, e))
+                            self.logger.error('FAILED {} - Reason: {}'.format(obs_id, e))
                             if halt_on_error:
                                 raise e
                     else:
@@ -519,6 +546,53 @@ def str2date(s):
     return datetime.strptime(s, date_format)
 
 
+def multiprocess_observation_id(collection, observation, observationID, post_observation, halt_on_error,
+                                queue, logLevel):
+    visited = []
+    failed = []
+    updated = []
+    # set up logging for each process
+    qh = QueueHandler(queue)
+    logging.basicConfig(level=logLevel, stream=sys.stdout)
+    rootLogger = logging.getLogger('multiprocess_observation_id: ' + observationID)
+    rootLogger.addHanlder(qh)
+
+    rootLogger.info('Process observation: ' + observationID)
+    try:
+        post_observation(observation)
+        rootLogger.debug('UPDATED {}'.format(observation.observation_id))
+        updated.append(observation.observation_id)
+    except TypeError as e:
+        if "unexpected keyword argument" in str(e):
+            raise RuntimeError(
+                "{} - To fix the problem, please add the **kwargs "
+                "argument to the list of arguments for the update"
+                " method of your plugin.".format(str(e)))
+    except Exception as e:
+        failed.append(observation.observation_id)
+        rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        if halt_on_error:
+            raise e
+    except KeyboardInterrupt as e:
+        # user pressed Control-C or Delete
+        rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        raise e
+        sys.exit(-2)
+
+    visited.append(observation.observation_id)
+
+    return visited, updated, failed
+
+
+def logger_thread(q):
+    while True:
+        record = q.get()
+        if record is None:
+            break
+        logger = logging.getLogger(record.name)
+        logger.handle(record)
+
+
 def main_app():
     parser = util.get_base_parser(version=version.version,
                                   default_resource_id=DEFAULT_RESOURCE_ID)
@@ -612,18 +686,23 @@ def main_app():
         sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
         sys.exit(-1)
     if args.verbose:
-        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+        level = logging.INFO
+        #logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     elif args.debug:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        level = logging.DEBUG
+        #logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     else:
-        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+        level = logging.WARN
+        #logging.basicConfig(level=logging.WARN, stream=sys.stdout)
 
     subject = net.Subject.from_cmd_line_args(args)
     server = None
     if args.server:
         server = args.server
 
-    client = CAOM2RepoClient(subject, args.resource_id, host=server)
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    client = CAOM2RepoClient(subject, queue, level, args.resource_id, host=server)
     if args.cmd == 'visit':
         print("Visit")
         logging.debug(
@@ -645,7 +724,7 @@ def main_app():
                 #    "{}: error: too many threads specified for visitor\n".format(APP_NAME))
         (visited, updated, skipped, failed) = \
             client.visit(args.plugin.name, args.collection, start=args.start,
-                         end=args.end, obs_file=args.obs_file, threads=args.threads,
+                         end=args.end, obs_file=args.obs_file, nthreads=args.threads,
                          halt_on_error=args.halt_on_error)
         logging.info(
             'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.
@@ -674,7 +753,12 @@ def main_app():
         client.delete_observation(collection=args.collection,
                                   observation_id=args.observationID)
 
+    lp = threading.Thread(target=logger_thread, args=(queue,))
+    lp.start()
+
     logging.info("DONE")
+    queue.put(None)
+    lp.join()
 
 
 if __name__ == '__main__':
