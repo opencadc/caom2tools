@@ -85,9 +85,9 @@ from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
 from caom2 import CoordAxis2D, PolarizationWCS, TemporalWCS
 from caom2 import ObservationReader, ObservationWriter, Algorithm
 from caom2 import ReleaseType, ProductType, ObservationIntentType
-from caom2 import DataProductType, TargetType, Telescope, Environment
-from caom2 import Instrument, Proposal, Target, Provenance, Metrics, Quality
-from caom2 import CalibrationLevel, Status, Requirements, DataQuality
+from caom2 import DataProductType, Telescope, Environment
+from caom2 import Instrument, Proposal, Target, Provenance, Metrics
+from caom2 import CalibrationLevel
 from caom2 import SimpleObservation
 import logging
 import sys
@@ -812,14 +812,6 @@ class FitsParser(object):
         assert observation
         assert isinstance(observation, Observation)
 
-        self.logger.warning('collection value {}'.format(observation.collection))
-        observation.collection = self._get_from_list(
-            'Observation.collection', index=0, current=observation.collection)
-        # TODO there is no OBSID in 1709071g.fits, which the
-        # defaults/overrides/config says there should be
-        observation.observation_id = str(
-            self._get_from_list('Observation.observation_id', index=0,
-                                current=observation.observation_id))
         observation.algorithm = self._get_algorithm(observation)
 
         observation.sequence_number = int(self._get_from_list(
@@ -830,7 +822,6 @@ class FitsParser(object):
         observation.meta_release = self._get_datetime(
 
             self._get_from_list('Observation.metaRelease', 0))
-        observation.requirements = self._get_requirements()
         observation.instrument = self._get_instrument()
         observation.proposal = self._get_proposal()
         observation.target = self._get_target()
@@ -868,8 +859,6 @@ class FitsParser(object):
         assert plane
         assert isinstance(plane, Plane)
 
-        plane.creator = self._get_from_list('Plane.creator_id', index=0,
-                                            default='UNKNOWN')
         plane.meta_release = self._get_datetime(self._get_from_list(
             'Plane.metaRelease', index=0, default=None), 's')
         plane.data_release = self._get_datetime(self._get_from_list(
@@ -885,7 +874,6 @@ class FitsParser(object):
                                     default=CalibrationLevel.CALIBRATED.value)))
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
-        plane.quality = self._get_quality()
 
         artifact = None
         for ii in plane.artifacts:
@@ -970,12 +958,9 @@ class FitsParser(object):
         redshift = self._get_from_list('Observation.target.redshift', index=0)
         keywords = self._get_set_from_list('Observation.target.keywords',
                                            index=0)  # TODO
-        moving = self._get_from_list('Observation.target.moving', index=0,
-                                     default=False)  # TODO
         self.logger.debug('End CAOM2 Target augmentation.')
         if name:
-            return Target(str(name), target_type, standard, redshift, keywords,
-                          moving)
+            return Target(str(name), target_type, standard, redshift, keywords)
         else:
             return None
 
@@ -1051,20 +1036,6 @@ class FitsParser(object):
             enviro.photometric = photometric
             self.logger.debug('End CAOM2 Environment augmentation.')
             return enviro
-        else:
-            return None
-
-    def _get_requirements(self):
-        """
-        Create a Requirements instance populated with available FITS
-        information.
-        :return: Requirements
-        """
-        self.logger.debug('Begin CAOM2 Requirement augmentation.')
-        flag = self._get_from_list('Observation.requirements.flag', index=0)
-        self.logger.debug('End CAOM2 Requirement augmentation.')
-        if flag:
-            return Requirements(flag)
         else:
             return None
 
@@ -1229,19 +1200,6 @@ class FitsParser(object):
             metrics = None
         self.logger.debug('End CAOM2 Metrics augmentation.')
         return metrics
-
-    def _get_quality(self):
-        """
-        Create a Quality instance populated with available FITS information.
-        :return: Quality
-        """
-        self.logger.debug('Begin CAOM2 Quality augmentation.')
-        flag = self._get_from_list('Plane.dataQuality', index=0)
-        self.logger.debug('End CAOM2 Quality augmentation.')
-        if flag:
-            return DataQuality(flag)
-        else:
-            return None
 
     def _get_datetime(self, from_value, default_units=None):
         """
