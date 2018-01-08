@@ -99,7 +99,7 @@ from io import BytesIO
 APP_NAME = 'fits2caom2'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
-           'get_cadc_headers', 'main_app',
+           'ObservationBlueprint', 'get_cadc_headers', 'main_app',
            'update_fits_headers', 'load_config']
 
 ENERGY_CTYPES = [
@@ -566,9 +566,6 @@ class FitsParser(object):
         observation.telescope = self._get_telescope()
         observation.environment = self._get_environment()
 
-        self.logger.debug(
-            'telescope name is {}'.format(observation.telescope.name))
-
         plane = None
         if not product_id:
             product_id = self._get_from_list('Plane.product_id', index=0,
@@ -642,7 +639,6 @@ class FitsParser(object):
         self.logger.debug('Begin CAOM2 Algorithm augmentation.')
         # TODO DEFAULT VALUE
         name = self._get_from_list('Observation.algorithm.name', index=0,
-                                   default='DEFAULT',
                                    current=obs.algorithm.name)
         self.logger.debug('End CAOM2 Algorithm augmentation.')
         if name:
@@ -664,7 +660,8 @@ class FitsParser(object):
         self.logger.debug('End CAOM2 Instrument augmentation.')
         if name:
             instr = Instrument(str(name))
-            instr.keywords.union(keywords)
+            if keywords:
+                instr.keywords.union(keywords)
             return instr
         else:
             return None
@@ -771,8 +768,7 @@ class FitsParser(object):
             self._get_from_list('Observation.environment.photometric',
                                 index=0, default=False)  # TODO
 
-        if seeing or humidity or elevation or tau or wavelength_tau or ambient \
-            or photometric:
+        if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = Environment()
             enviro.seeing = seeing
             enviro.humidity = humidity
@@ -834,27 +830,20 @@ class FitsParser(object):
             # TODO set the default
         elif type(keywords) == tuple:
             for ii in keywords[0]:
-                if isinstance(ii, dict):
-                    value = ii['default']
-                elif isinstance(ii, list):
-                    for jj in ii:
-                        try:
-                            value = self.headers[index].get(jj)
-                            break
-                        except KeyError:
-                            pass
-
-                if value is None and current:
-                    value = current
-                    self.logger.debug(
-                        '{}: used current value {!r}.'.format(
-                            lookup, value))
-                else:
+                try:
+                    value = self.headers[index].get(ii)
                     self.logger.debug(
                         '{}: assigned value {} based on keyword {}.'.format(
                             lookup, value, ii))
-                if value is not default:
                     break
+                except KeyError:
+                    pass
+
+            if value is None and current:
+                value = current
+                self.logger.debug(
+                    '{}: used current value {!r}.'.format(
+                        lookup, value))
 
         elif keywords:
             value = keywords
@@ -874,16 +863,29 @@ class FitsParser(object):
                     lookup))
             return value
 
-        for ii in keywords:
-            temp = self.headers[index].get(ii, default)
-            self.logger.debug(
-                'Assigned value {} based on keyword {}'.format(temp, ii))
-            if temp is not default:
-                value = set()
-                for jj in temp.split(','):
-                    value.add(jj)
-                    print('do i get here?')
-                break
+        if isinstance(keywords, list):
+            for ii in keywords:
+                temp = self.headers[index].get(ii, default)
+                self.logger.debug(
+                    'Assigned value {} based on keyword {}'.format(temp, ii))
+                if temp is not default:
+                    value = set()
+                    for jj in temp.split(','):
+                        value.add(jj)
+                    break
+        elif isinstance(keywords, tuple):
+            for ii in keywords[0]:
+                if isinstance(ii, dict):
+                    value = ii['default']
+                elif isinstance(ii, list):
+                    for jj in ii:
+                        try:
+                            value = self.headers[index].get(jj)
+                            break
+                        except KeyError:
+                            pass
+                if value is not default:
+                    break
 
         return value
 

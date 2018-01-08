@@ -72,7 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_fits_headers
-from caom2utils import load_config, DispatchingFormatter
+from caom2utils import load_config, DispatchingFormatter, ObservationBlueprint
 
 from caom2 import ObservationWriter, Observation, Algorithm, obs_reader_writer
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -83,8 +83,8 @@ from six import StringIO, BytesIO
 
 import logging
 import os
+import re
 import sys
-import uuid
 
 import pytest
 
@@ -402,7 +402,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
     """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ +\
     """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ +\
-    """xsi:type="caom2:CompositeObservation" caom2:id="1311768465173141112">
+    """xsi:type="caom2:CompositeObservation" caom2:id="">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:sequenceNumber>-1</caom2:sequenceNumber>
@@ -427,11 +427,8 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
   <caom2:instrument>
     <caom2:name>DRAO-ST</caom2:name>
   </caom2:instrument>
-  <caom2:environment>
-    <caom2:photometric>false</caom2:photometric>
-  </caom2:environment>
   <caom2:planes>
-    <caom2:plane caom2:id="1311768465173141112">
+    <caom2:plane caom2:id="">
       <caom2:productID>HI-line</caom2:productID>
       <caom2:dataProductType>cube</caom2:dataProductType>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
@@ -442,11 +439,11 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
         <caom2:reference>http://dx.doi.org/10.1086/375301</caom2:reference>
       </caom2:provenance>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="1311768465173141112">
+        <caom2:artifact caom2:id="">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:parts>
-            <caom2:part caom2:id="1311768465173141112">
+            <caom2:part caom2:id="">
               <caom2:name>0</caom2:name>
               <caom2:chunks/>
             </caom2:part>
@@ -463,10 +460,21 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
                          [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    test_fitsparser = FitsParser(test_file)
-    test_obs = Observation('collection', 'observation_id',
-                           Algorithm('algorithm'))
-    test_fitsparser.augment_observation(test_obs, test_file_uri)
+    test_obs_blueprint = ObservationBlueprint()
+    test_obs_blueprint.set('Observation.target.name', 'CGPS Mosaic MA1')
+    test_obs_blueprint.set('Observation.telescope.name', 'DRAO-ST')
+    test_obs_blueprint.set('Observation.instrument.name', 'DRAO-ST')
+    test_obs_blueprint.set('Observation.telescope.geoLocationX',
+                           '-2100330.87517')
+    test_obs_blueprint.set('Observation.telescope.geoLocationY',
+                           '-3694247.82445')
+    test_obs_blueprint.set('Observation.telescope.geoLocationZ',
+                           '4741018.33097')
+    test_fitsparser = FitsParser(test_file, test_obs_blueprint)
+    test_obs = Observation('collection', 'MA1_DRAO-ST',
+                           Algorithm('exposure'))
+    test_fitsparser.augment_observation(test_obs, test_file_uri,
+                                        product_id='HI-line')
     assert test_obs is not None
     assert test_obs.planes is not None
     assert len(test_obs.planes) == 1
@@ -479,18 +487,14 @@ def test_augment_observation(test_file, test_file_uri):
     # remove the chunk bit, as it's part of other tests -
     # results in <caom2:chunks/> xml output
     test_part.chunks.pop()
-    # set the ids to expected values
-    test_obs._id = uuid.UUID('00000000000000001234567812345678')
-    test_plane._id = uuid.UUID('00000000000000001234567812345678')
-    test_artifact._id = uuid.UUID('00000000000000001234567812345678')
-    test_part._id = uuid.UUID('00000000000000001234567812345678')
     output = BytesIO()
     ow = ObservationWriter(False, False, "caom2",
                            obs_reader_writer.CAOM20_NAMESPACE)
     ow.write(test_obs, output)
     result = output.getvalue().decode('UTF-8')
     output.close()
-    assert result == EXPECTED_OBS_XML  # , result
+    compare = re.sub(r'caom2:id=".*"', 'caom2:id=""', result)
+    assert compare == EXPECTED_OBS_XML  # , result
 
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
