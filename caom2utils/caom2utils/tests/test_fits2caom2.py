@@ -462,6 +462,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 @pytest.mark.parametrize('test_file, test_file_uri',
                          [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     test_fitsparser = FitsParser(test_file)
     test_obs = Observation('collection', 'observation_id',
                            Algorithm('algorithm'))
@@ -500,7 +501,7 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
-# @pytest.mark.skip('testing end-to-end')
+@pytest.mark.skip('testing end-to-end')
 def test_update_fits_headers():
 
     # The rules for the values:
@@ -528,12 +529,12 @@ def test_update_fits_headers():
                   'Plane.provenance.project': ['ADC_ARCH']}
     test_uri = 'ad:CFHT/1709071g.fits.gz'
     test_config = def_config.copy()
-    assert test_parser.config['Observation.type'] == ['OBSTYPE'], \
+    assert test_parser.blueprint['Observation.type'] == ['OBSTYPE'], \
         'unmodified FitsParser configuration'
 
     test_parser = update_fits_headers(test_parser, test_uri, test_config,
                                       defaults=None, overrides=None)
-    assert test_parser.config['Observation.type'] == ['observation.type'], \
+    assert test_parser.blueprint['Observation.type'] == ['observation.type'], \
         'FitsParser configuration replaced by user-provided configuration'
 
     try:
@@ -553,16 +554,16 @@ def test_update_fits_headers():
     test_config = def_config.copy()
     test_parser = update_fits_headers(test_parser, test_uri, test_config,
                                       test_defaults, overrides=None)
-    assert test_parser.headers[0]['CUNIT1'] == 'deg', \
+    assert test_parser.blueprint['CUNIT1'] == 'deg', \
         'default value assigned to the input headers'
-    assert test_parser.headers[0]['CTYPE3'] == 'TIME', \
+    assert test_parser.blueprint['CTYPE3'] == 'TIME', \
         ' default value assigned to input headers, value all upper case'
-    assert test_parser.config['Plane.dataProductType'] == \
-        [{'default': 'image'}], 'default value assigned to configuration'
-    assert test_parser.config['Plane.provenance.producer'] == \
-        [{'default': 'CFHT'}], \
+    assert test_parser.blueprint['Plane.dataProductType'] == \
+           [{'default': 'image'}], 'default value assigned to configuration'
+    assert test_parser.blueprint['Plane.provenance.producer'] == \
+           [{'default': 'CFHT'}], \
         'default value assigned to configuration, all upper-case'
-    assert test_parser.config['Plane.provenance.project'] == \
+    assert test_parser.blueprint['Plane.provenance.project'] == \
            ['ADC_ARCH', {'default': 'STANDARD PIPELINE'}], \
         'default value assigned to configuration, with white-space'
 
@@ -570,17 +571,22 @@ def test_update_fits_headers():
     test_overrides = load_config(override_file)
     test_parser = update_fits_headers(test_parser, test_uri, test_config,
                                       test_defaults, test_overrides)
-    assert test_parser.config['Observation.type'] == 'OBJECT', \
+    assert test_parser.blueprint['Observation.type'] == 'OBJECT', \
         'default value over-ridden, value all upper case'
-    assert test_parser.headers[0]['CRVAL1'] == '210.551666667', 'override HDU 0'
-    assert test_parser.headers[1]['CRVAL1'] == '210.551666667', 'override HDU 1'
-    assert test_parser.headers[2]['CRVAL1'] == '210.508333333', 'override HDU 2'
-    assert test_parser.headers[3]['CRVAL1'] == '210.898333333', 'override HDU 3'
-    assert test_parser.headers[4]['CRVAL1'] == '210.942083333', 'override HDU 4'
-    assert test_parser.headers[5]['CRVAL1'] == '0.000000000', 'override HDU 5'
-    assert test_parser.config['Observation.intent'] == 'science', \
+    assert test_parser.blueprint['CRVAL1'][0] == '210.551666667', \
+        'override HDU 0'
+    assert test_parser.blueprint['CRVAL1'][1] == '210.551666667', \
+        'override HDU 1'
+    assert test_parser.blueprint['CRVAL1'][2] == '210.508333333', \
+        'override HDU 2'
+    assert test_parser.blueprint['CRVAL1'][3] == '210.898333333', \
+        'override HDU 3'
+    assert test_parser.blueprint['CRVAL1'][4] == '210.942083333', \
+        'override HDU 4'
+    assert test_parser.blueprint['CRVAL1'][5] == '0.000000000', 'override HDU 5'
+    assert test_parser.blueprint['Observation.intent'] == 'science', \
         'override configuration data member, Observation.intent == obs.intent'
-    assert test_parser.config['time.resolution'] == '0.020000000000', \
+    assert test_parser.blueprint['time.resolution'] == '0.020000000000', \
         'override configuration data member'
 
 

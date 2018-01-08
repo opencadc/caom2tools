@@ -176,7 +176,7 @@ class ObservationBlueprint(object):
     """
     Class that captures the blueprint of building a CAOM2 Observation
     """
-    _CAOM2_ELEMENTS = ['Observation.meta_release',
+    _CAOM2_ELEMENTS = ['Observation.metaRelease',
                        'Observation.instrument.name',
                        'Observation.type',
                        'Observation.environment.ambientTemp',
@@ -206,8 +206,8 @@ class ObservationBlueprint(object):
                        'Observation.environment.wavelengthTau',
                        'Observation.environment.photometric',
                        'Observation.observation_id',
-                       'Plane.meta_release',
-                       'Plane.data_release',
+                       'Plane.metaRelease',
+                       'Plane.dataRelease',
                        'Plane.dataProductType',
                        'Plane.product_id',
                        'Plane.calibrationLevel',
@@ -234,7 +234,7 @@ class ObservationBlueprint(object):
         """
 
         # this is the default blueprint
-        self._plan = {'Observation.meta_release':
+        self._plan = {'Observation.metaRelease':
                       (['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
                         'UTC-DATE', 'MJDOBS', 'MJD_OBS'], None),
                       'Observation.instrument.name': (['INSTRUME'], None),
@@ -249,8 +249,8 @@ class ObservationBlueprint(object):
                       'Observation.telescope.geoLocationY': (['OBSGEO-Y'], None),
                       'Observation.telescope.geoLocationZ': (['OBSGEO-Z'], None),
                       'Observation.observation_id': (['OBSID'], None),
-                      'Plane.meta_release': (['RELEASE', 'REL_DATE'], None),
-                      'Plane.data_release': (['RELEASE', 'REL_DATE'], None),
+                      'Plane.metaRelease': (['RELEASE', 'REL_DATE'], None),
+                      'Plane.dataRelease': (['RELEASE', 'REL_DATE'], None),
                       'Plane.product_id': (['RUNID'], None),
                       'Plane.provenance.name': (['XPRVNAME'], None),
                       'Plane.provenance.project': (['ADC_ARCH'], None),
@@ -556,7 +556,8 @@ class FitsParser(object):
                                                  ObservationIntentType.SCIENCE)
         observation.type = self._get_from_list('Observation.type', 0)
         observation.meta_release = self._get_datetime(
-            self._get_from_list('Observation.metaRelease', 0, datetime.now()))
+
+            self._get_from_list('Observation.metaRelease', 0))
         observation.requirements = self._get_requirements()
         observation.instrument = self._get_instrument()
         observation.proposal = self._get_proposal()
@@ -802,7 +803,7 @@ class FitsParser(object):
     def _get_from_list(self, lookup, index, default=None, current=None):
         value = default
         try:
-            keywords = self.config.get(lookup)
+            keywords = self.blueprint.get(lookup)
         except KeyError:
             self.logger.warning(
                 'Could not find {!r} in fits2caom2 configuration.'.format(
@@ -830,18 +831,43 @@ class FitsParser(object):
                             lookup, value, ii))
                 if value is not default:
                     break
-            #TODO set the default
-        else:
-            # the original list has been over-ridden or provided with a default
-            self.logger.debug('{}: value is {}'.format(lookup, value))
-            value = keywords
+            # TODO set the default
+        elif type(keywords) == tuple:
+            for ii in keywords[0]:
+                if isinstance(ii, dict):
+                    value = ii['default']
+                elif isinstance(ii, list):
+                    for jj in ii:
+                        try:
+                            value = self.headers[index].get(jj)
+                            break
+                        except KeyError:
+                            pass
 
+                if value is None and current:
+                    value = current
+                    self.logger.debug(
+                        '{}: used current value {!r}.'.format(
+                            lookup, value))
+                else:
+                    self.logger.debug(
+                        '{}: assigned value {} based on keyword {}.'.format(
+                            lookup, value, ii))
+                if value is not default:
+                    break
+
+        elif keywords:
+            value = keywords
+        elif current:
+            value = current
+
+        self.logger.debug('{}: value is {}'.format(lookup, value))
         return value
 
     def _get_set_from_list(self, lookup, index, default=None):
         value = default
         try:
-            keywords = self.config[lookup]
+            keywords = self.blueprint.get(lookup)
         except KeyError:
             self.logger.debug(
                 'Could not find \'{}\' in fits2caom2 configuration.'.format(
@@ -1734,6 +1760,8 @@ def main_app():
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s'),
+        'astropy': logging.Formatter(
             '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
     },
         logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
@@ -1794,7 +1822,7 @@ def main_app():
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers)
 
-        update_fits_headers(parser, uri, config, defaults, overrides)
+        # TODO update_fits_headers(parser, uri, config, defaults, overrides)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 
