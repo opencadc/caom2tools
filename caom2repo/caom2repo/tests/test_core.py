@@ -584,7 +584,7 @@ class TestCAOM2Repo(unittest.TestCase):
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), queue, level)
         visitor.get_observation = PickableMagicMock(
-            return_value=MagicMock(spec=SimpleObservation))
+            return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
         visitor._get_observations = PickableMagicMock(side_effect=obs)
 

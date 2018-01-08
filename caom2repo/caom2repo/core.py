@@ -299,24 +299,21 @@ class CAOM2RepoClient(object):
 
             else:
                 p = Pool(nthreads)
-
-                for observationID in observations:
-                    observation = self.get_observation(collection, observationID)
-                    if self.plugin.update(observation=observation, subject=self._subject) is False:
-                        self.logger.info('SKIP {}'.format(self.get_observation.observation_id))
-                        skipped.append(self.get_observation.observation_id)
-                    else:
-                        r = p.apply_async(
-                            multiprocess_observation_id,
-                            [collection, observation, observationID, self.post_observation, halt_on_error,
-                            self.queue, self.level])
-                        v, u, f= r.get(timeout=1)
-                        if v:
-                            visited.append(v)
-                        if u:
-                            updated.append(u)
-                        if f:
-                            failed.append(f)
+                results = [p.apply_async(
+                                         multiprocess_observation_id,
+                                         [collection, observationID, self.plugin, self._subject, self.get_observation,
+                                          self.post_observation, halt_on_error, self.queue, self.level])
+                           for observationID in observations]
+                for r in results:
+                    v, u, s, f= r.get(timeout=1)
+                    if v:
+                        visited.append(v)
+                    if u:
+                        updated.append(u)
+                    if s:
+                        skipped.append(s)
+                    if f:
+                        failed.append(f)
 
                 p.close()
                 p.join()
@@ -549,10 +546,11 @@ def str2date(s):
     return datetime.strptime(s, date_format)
 
 
-def multiprocess_observation_id(collection, observation, observationID, post_observation, halt_on_error,
-                                queue, logLevel):
+def multiprocess_observation_id(collection, observationID, plugin, subject, get_observation, post_observation,
+                                halt_on_error, queue, logLevel):
     visited = []
     failed = []
+    skipped = []
     updated = []
     # set up logging for each process
     qh = QueueHandler(queue)
@@ -561,10 +559,16 @@ def multiprocess_observation_id(collection, observation, observationID, post_obs
     rootLogger.addHandler(qh)
 
     rootLogger.info('Process observation: ' + observationID)
+    observation = get_observation(collection, observationID)
     try:
-        post_observation(observation)
-        rootLogger.debug('UPDATED {}'.format(observation.observation_id))
-        updated.append(observation.observation_id)
+        if plugin.update(observation=observation,
+                         subject=subject) is False:
+            rootLogger.info('SKIP {}'.format(observation.observation_id))
+            skipped.append(observation.observation_id)
+        else:
+            post_observation(observation)
+            rootLogger.debug('UPDATED {}'.format(observation.observation_id))
+            updated.append(observation.observation_id)
     except TypeError as e:
         if "unexpected keyword argument" in str(e):
             raise RuntimeError(
