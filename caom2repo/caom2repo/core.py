@@ -558,7 +558,7 @@ def multiprocess_observation_id(collection, observation, observationID, post_obs
     qh = QueueHandler(queue)
     logging.basicConfig(level=logLevel, stream=sys.stdout)
     rootLogger = logging.getLogger('multiprocess_observation_id: ' + observationID)
-    rootLogger.addHanlder(qh)
+    rootLogger.addHandler(qh)
 
     rootLogger.info('Process observation: ' + observationID)
     try:
