@@ -197,9 +197,6 @@ class CAOM2RepoClient(object):
         agent = '{}/{}'.format(APP_NAME, version.version)
         self.host = host
         self._subject = subject
-        self._repo_client = net.BaseWsClient(resource_id, subject, agent,
-                                             retry=True, host=host)
-
         agent = "caom2-repo-client/{} caom2/{}".format(version.version,
                                                        caom2_version)
 
@@ -469,13 +466,13 @@ class CAOM2RepoClient(object):
         assert collection is not None
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
-        logging.debug('GET '.format(path))
+        self.logger.debug('GET '.format(path))
 
         response = self._repo_client.get((CAOM2REPO_OBS_CAPABILITY_ID, path))
         obs_reader = ObservationReader()
         content = response.content
         if len(content) == 0:
-            logging.error(response.status_code)
+            self.logger.error(response.status_code)
             response.close()
             raise Exception('Got empty response for resource: {}'.format(path))
         return obs_reader.read(BytesIO(content))
@@ -490,7 +487,7 @@ class CAOM2RepoClient(object):
         assert observation.observation_id is not None
         path = '/{}/{}'.format(observation.collection,
                                observation.observation_id)
-        logging.debug('POST {}'.format(path))
+        self.logger.debug('POST {}'.format(path))
 
         ibuffer = BytesIO()
         ObservationWriter().write(observation, ibuffer)
@@ -498,7 +495,7 @@ class CAOM2RepoClient(object):
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.post(
             (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
-        logging.debug('Successfully updated Observation\n')
+        self.logger.debug('Successfully updated Observation\n')
 
     def put_observation(self, observation):
         """
@@ -510,7 +507,7 @@ class CAOM2RepoClient(object):
         assert observation.observation_id is not None
         path = '/{}/{}'.format(observation.collection,
                                observation.observation_id)
-        logging.debug('PUT {}'.format(path))
+        self.logger.debug('PUT {}'.format(path))
 
         ibuffer = BytesIO()
         ObservationWriter().write(observation, ibuffer)
@@ -518,7 +515,7 @@ class CAOM2RepoClient(object):
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.put(
             (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
-        logging.debug('Successfully put Observation\n')
+        self.logger.debug('Successfully put Observation\n')
 
     def delete_observation(self, collection, observation_id):
         """
@@ -528,10 +525,10 @@ class CAOM2RepoClient(object):
         """
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
-        logging.debug('DELETE {}'.format(path))
+        self.logger.debug('DELETE {}'.format(path))
         self._repo_client.delete(
             (CAOM2REPO_OBS_CAPABILITY_ID, path))
-        logging.info('Successfully deleted Observation {}\n')
+        self.logger.info('Successfully deleted Observation {}\n')
 
 
 def str2date(s):
@@ -560,7 +557,6 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
             os.getpid(), observationID))
     rootLogger.addHandler(qh)
 
-    rootLogger.info('Process observation: ' + observationID)
     client = CAOM2RepoClient(subject, queue, log_level) #TODO pass resource_id and host
     observation = client.get_observation(collection, observationID)
     try:
