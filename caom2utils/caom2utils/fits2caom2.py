@@ -347,7 +347,8 @@ class ObservationBlueprint(object):
         ]
 
     def __init__(self, position_axis=None, energy_axis=None,
-                 polarization_axis=None, time_axis=None):
+                 polarization_axis=None, time_axis=None,
+                 user_supplied_config=None):
         """
         Ctor
         """
@@ -408,7 +409,7 @@ class ObservationBlueprint(object):
             self._plan['Chunk.position.axis.function.refCoord.coord2.val'] = (['CRVAL{}'.format(position_axis[1])], None)
 
         if energy_axis:
-            self._plan['Chunk.energy.specsys'] = (['SPECSYT'], None,)
+            self._plan['Chunk.energy.specsys'] = (['SPECSYS'], None,)
             self._plan['Chunk.energy.ssysobs'] = (['SSYSOBS'], None)
             self._plan['Chunk.energy.restfrq'] = (['RESTFRQ'], None)
             self._plan['Chunk.energy.restwav'] = (['RESTWAV'], None)
@@ -516,6 +517,18 @@ class ObservationBlueprint(object):
             self._wcs_std['Chunk.time.axis.function.delta'] = 'CDELT{}'.format(time_axis)
             self._wcs_std['Chunk.time.axis.function.refCoord.pix'] = 'CRPIX{}'.format(time_axis)
             self._wcs_std['Chunk.time.axis.function.refCoord.val'] = 'CRVAL{}'.format(time_axis)
+
+        # for a quick lookup of keywords referenced by the plan
+        self._inverse_plan = {}
+        for key, value in self._plan.items():
+            if isinstance(value, tuple):
+                for ii in value[0]:
+                    self._inverse_plan[ii] = key
+
+        # for a quick lookup of config reference values
+        if user_supplied_config:
+            self._inverse_user_supplied_config = \
+                {v: k for k, v in user_supplied_config.items()}
 
     def __str__(self):
         plan = self._serialize(self._plan)
@@ -632,30 +645,28 @@ class ObservationBlueprint(object):
         :param default: default value
         :param extension: extension number (used only for Chunk elements)
         """
-        if caom2_element not in ObservationBlueprint._CAOM2_ELEMENTS:
-            raise ValueError(
-                '{} not a caom2 element (spelling?).'.format(caom2_element))
+        element = self._lookup_element(caom2_element)
         if extension:
-            if not caom2_element.startswith('Chunk'):
+            if not element.startswith('Chunk'):
                 raise ValueError(
                     "Extension number refers to Chunk elements only")
             if extension not in self._extensions:
                 self._extensions[extension] = {}
-            if caom2_element in self._extensions[extension] and\
-                isinstance(self._extensions[extension][caom2_element], tuple):
-                self._extensions[extension][caom2_element] = (self._extensions[extension][caom2_element][0], default)
+            if element in self._extensions[extension] and\
+                isinstance(self._extensions[extension][element], tuple):
+                self._extensions[extension][element] = (self._extensions[extension][element][0], default)
             else:
                 # default is the only value
-                self._extensions[extension][caom2_element] = default
+                self._extensions[extension][element] = default
         else:
-            if (caom2_element in self._plan) and \
-                    isinstance(self._plan[caom2_element], tuple):
-                self._plan[caom2_element] = (self._plan[caom2_element][0], default)
+            if (element in self._plan) and \
+                    isinstance(self._plan[element], tuple):
+                self._plan[element] = (self._plan[element][0], default)
             else:
                 # override the value
-                self._plan[caom2_element] = default
+                self._plan[element] = default
 
-    def get(self, caom2_element, extension=None):
+    def _get(self, caom2_element, extension=None):
         """
         Returns the value associated with a CAOM2 element
         :param caom2_element:
@@ -663,21 +674,31 @@ class ObservationBlueprint(object):
         :return: Tuple of the form (list_of_associated_fits_attributes,
         default_value) OR the actual associated value of the CAOM2 element
         """
-        if caom2_element not in ObservationBlueprint._CAOM2_ELEMENTS:
-            raise ValueError(
-                '{} not a caom2 element (spelling?).'.format(caom2_element))
+        element = self._lookup_element(caom2_element)
         if extension:
-            if not caom2_element.startswith('Chunk'):
+            if not element.startswith('Chunk'):
                 raise ValueError(
                     "Extension number refers to Chunk elements only")
-            if (extension in self._extensions) and (caom2_element in self._extensions[extension]):
-                return self._extensions[extension][caom2_element]
+            if (extension in self._extensions) and (element in self._extensions[extension]):
+                return self._extensions[extension][element]
 
         # look in the generic plan
-        if caom2_element not in self._plan:
+        if element not in self._plan:
             return None
         else:
-            return self._plan[caom2_element]
+            return self._plan[element]
+
+    def _lookup_element(self, caom2_element):
+        if caom2_element in ObservationBlueprint._CAOM2_ELEMENTS:
+            return caom2_element
+        elif caom2_element in self._inverse_plan.keys():
+            return self._inverse_plan[caom2_element]
+        elif caom2_element in self._inverse_user_supplied_config.keys():
+            return self._inverse_user_supplied_config[caom2_element]
+        else:
+            raise ValueError(
+                '{} caom2 element not found in the plan (spelling?).'.
+                format(caom2_element))
 
 
 class FitsParser(object):
@@ -1042,7 +1063,7 @@ class FitsParser(object):
     def _get_from_list(self, lookup, index, default=None, current=None):
         value = default
         try:
-            keywords = self.blueprint.get(lookup)
+            keywords = self.blueprint._get(lookup)
         except KeyError:
             self.logger.warning(
                 'Could not find {!r} in fits2caom2 configuration.'.format(
@@ -1099,7 +1120,7 @@ class FitsParser(object):
     def _get_set_from_list(self, lookup, index, default=None):
         value = default
         try:
-            keywords = self.blueprint.get(lookup)
+            keywords = self.blueprint._get(lookup)
         except KeyError:
             self.logger.debug(
                 'Could not find \'{}\' in fits2caom2 configuration.'.format(
@@ -1672,8 +1693,8 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
     :return: updated headers
     """
 
-    this_config = _merge_configs(parser.CONFIG, config)
-    parser.set_config(this_config)
+    # this_config = _merge_configs(parser.CONFIG, config)
+    # parser.set_config(this_config)
 
     # for lack of better criteria, anything that's all upper case, on the
     # left-hand side of an '=' is assumed to be a FITS keyword. On the right
@@ -1681,23 +1702,25 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
     # bite somewhere in the future :)
 
     if defaults:
-        logging.warning(repr(defaults))
-        for ii in defaults.keys():
-            if ii.isupper() and ii.find('.') == -1:
-                _set_default_keyword_value_in_header(
-                    parser.headers, [ii], defaults[ii])
-            else:
-                _set_default_value_in_config(this_config, ii, defaults[ii])
+        logging.debug('Setting defaults for {}'.format(artifact_uri))
+        for key, value in defaults.items():
+            parser.blueprint.set_default(key, value)
+            logging.debug('{} setting default value to {}'.format(key, value))
 
     logging.debug('Defaults set for {}. Start overrides.'.format(artifact_uri))
 
-    if overrides:
-        _set_overrides(overrides, this_config, parser.headers, 0)
-        _set_overrides_for_artifacts(
-            overrides, parser, artifact_uri, this_config)
+    # if overrides:
+    #     _set_overrides(overrides, this_config, parser.headers, 0)
+    #     _set_overrides_for_artifacts(
+    #         overrides, parser, artifact_uri, this_config)
+    #
+    # logging.debug('Overrides set for {}.'.format(artifact_uri))
+    # return parser
 
-    logging.debug('Overrides set for {}.'.format(artifact_uri))
-    return parser
+
+def _set_default_keyword_value_in_blueprint(blueprint, key, value):
+    # TODO
+    return None
 
 
 def _set_default_value_in_config(_config, _key, _value):

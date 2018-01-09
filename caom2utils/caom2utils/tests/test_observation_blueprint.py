@@ -80,6 +80,8 @@ import uuid
 
 import pytest
 
+
+@pytest.mark.skip('')
 def test_class():
     ob = ObservationBlueprint(position_axis=(1, 2), energy_axis=3,
                               polarization_axis=4, time_axis=5)
@@ -95,6 +97,35 @@ def test_class():
     ob.set('Chunk.energy.velang', 44, extension=2)
     print(ob)
 
-
     print('******')
     print(ObservationBlueprint())
+
+
+def test_class_apply_defaults():
+    ob = ObservationBlueprint(position_axis=(1, 2), energy_axis=3,
+                              polarization_axis=4, time_axis=5,
+                              user_supplied_config={
+                                  'Observation.algorithm.name': 'algorithm.name'}
+                              )
+    # establish the state of the unmodified configuration
+    test_result = ob._get('Chunk.position.axis.axis1.ctype')
+    assert test_result == (['CTYPE1'], None)
+    test_result = ob._get('Chunk.energy.specsys')
+    assert test_result == (['SPECSYS'], None)
+    test_result = ob._get('Observation.algorithm.name')
+    assert test_result == (['PROCNAME'], None)
+
+    # test case - a FITS keyword with an axis
+    ob.set_default('CUNIT1', 'deg', extension=0)
+    test_result = ob._get('Chunk.position.axis.axis1.cunit')
+    assert test_result == (['CUNIT1'], 'deg')
+
+    # test case - a FITS keywords
+    ob.set_default('SPECSYS', 'TOPOCENT')
+    test_result = ob._get('Chunk.energy.specsys')
+    assert test_result == (['SPECSYS'], 'TOPOCENT')
+
+    # test case - a redirection from config to default
+    ob.set_default('algorithm.name', 'exposure')
+    test_result = ob._get('Observation.algorithm.name')
+    assert test_result == (['PROCNAME'], 'exposure')
