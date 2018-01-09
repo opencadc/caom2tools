@@ -328,21 +328,21 @@ class CAOM2RepoClient(object):
         return visited, updated, skipped, failed
 
     def _process_observation_id(self, collection, observationID, halt_on_error):
-        visited = []
-        failed = []
-        updated = []
-        skipped = []
+        visited = None
+        updated = None
+        skipped = None
+        failed = None
         self.logger.info('Process observation: ' + observationID)
         observation = self.get_observation(collection, observationID)
         try:
             if self.plugin.update(observation=observation,
                                   subject=self._subject) is False:
                 self.logger.info('SKIP {}'.format(observation.observation_id))
-                skipped.append(observation.observation_id)
+                skipped = observation.observation_id
             else:
                 self.post_observation(observation)
                 self.logger.debug('UPDATED {}'.format(observation.observation_id))
-                updated.append(observation.observation_id)
+                updated = observation.observation_id
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
                 raise RuntimeError(
@@ -350,12 +350,12 @@ class CAOM2RepoClient(object):
                     "argument to the list of arguments for the update"
                     " method of your plugin.".format(str(e)))
         except Exception as e:
-            failed.append(observation.observation_id)
+            failed = observation.observation_id
             self.logger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
             if halt_on_error:
                 raise e
 
-        visited.append(observation.observation_id)
+        visited = observation.observation_id
 
         return visited, updated, skipped, failed
 
@@ -548,10 +548,10 @@ def str2date(s):
 
 def multiprocess_observation_id(collection, observationID, plugin, subject, get_observation, post_observation,
                                 halt_on_error, queue, logLevel):
-    visited = []
-    failed = []
-    skipped = []
-    updated = []
+    visited = None
+    updated = None
+    skipped = None
+    failed = None
     # set up logging for each process
     qh = QueueHandler(queue)
     logging.basicConfig(level=logLevel, stream=sys.stdout)
@@ -564,11 +564,11 @@ def multiprocess_observation_id(collection, observationID, plugin, subject, get_
         if plugin.update(observation=observation,
                          subject=subject) is False:
             rootLogger.info('SKIP {}'.format(observation.observation_id))
-            skipped.append(observation.observation_id)
+            skipped = observation.observation_id
         else:
             post_observation(observation)
             rootLogger.debug('UPDATED {}'.format(observation.observation_id))
-            updated.append(observation.observation_id)
+            updated = observation.observation_id
     except TypeError as e:
         if "unexpected keyword argument" in str(e):
             raise RuntimeError(
@@ -576,7 +576,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject, get_
                 "argument to the list of arguments for the update"
                 " method of your plugin.".format(str(e)))
     except Exception as e:
-        failed.append(observation.observation_id)
+        failed = observation.observation_id
         rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
         if halt_on_error:
             raise e
@@ -586,9 +586,9 @@ def multiprocess_observation_id(collection, observationID, plugin, subject, get_
         raise e
         sys.exit(-2)
 
-    visited.append(observation.observation_id)
+    visited = observation.observation_id
 
-    return visited, updated, failed
+    return visited, updated, skipped, failed
 
 
 def logger_thread(q):
