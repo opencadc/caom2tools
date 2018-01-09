@@ -301,19 +301,21 @@ class CAOM2RepoClient(object):
                 p = Pool(nthreads)
                 results = [p.apply_async(
                                          multiprocess_observation_id,
-                                         [collection, observationID, self.plugin, self._subject, self.get_observation,
-                                          self.post_observation, halt_on_error, self.queue, self.level])
+                                         [collection, observationID, None, '/Users/adriand/.ssl/cadcproxy.pem', self.queue, self.level])
                            for observationID in observations]
                 for r in results:
-                    v, u, s, f= r.get(timeout=1)
-                    if v:
-                        visited.append(v)
-                    if u:
-                        updated.append(u)
-                    if s:
-                        skipped.append(s)
-                    if f:
-                        failed.append(f)
+                    result = r.get(timeout=10)
+                    if isinstance(result, tuple):
+                        if result[0]:
+                            visited.append(result[0])
+                        if result[1]:
+                            updated.append(result[1])
+                        if result[2]:
+                            skipped.append(result[2])
+                        if result[3]:
+                            failed.append(result[3])
+                    else:
+                        print('******* result: {}'.format(result))
 
                 p.close()
                 p.join()
@@ -546,29 +548,33 @@ def str2date(s):
     return datetime.strptime(s, date_format)
 
 
-def multiprocess_observation_id(collection, observationID, plugin, subject, get_observation, post_observation,
-                                halt_on_error, queue, logLevel):
-    visited = []
-    failed = []
-    skipped = []
-    updated = []
+def multiprocess_observation_id(collection, observationID, plugin, cert,
+                                queue, log_level):
+    failed = 0
+    skipped = 0
+    updated = 0
     # set up logging for each process
     qh = QueueHandler(queue)
-    logging.basicConfig(level=logLevel, stream=sys.stdout)
-    rootLogger = logging.getLogger('multiprocess_observation_id: ' + observationID)
+    subject = net.Subject(certificate=cert)
+    logging.basicConfig(level=log_level, stream=sys.stdout)
+    rootLogger = logging.getLogger(
+        'multiprocess_observation_id({}): {}'.format(
+            os.getpid(), observationID))
     rootLogger.addHandler(qh)
 
     rootLogger.info('Process observation: ' + observationID)
-    observation = get_observation(collection, observationID)
+    client = CAOM2RepoClient(subject, queue, log_level) #TODO pass resource_id and host
+    observation = client.get_observation(collection, observationID)
     try:
         if plugin.update(observation=observation,
                          subject=subject) is False:
             rootLogger.info('SKIP {}'.format(observation.observation_id))
             skipped.append(observation.observation_id)
+            skipped = 1
         else:
-            post_observation(observation)
+            client.post_observation(observation)
             rootLogger.debug('UPDATED {}'.format(observation.observation_id))
-            updated.append(observation.observation_id)
+            updated = 1
     except TypeError as e:
         if "unexpected keyword argument" in str(e):
             raise RuntimeError(
@@ -576,19 +582,17 @@ def multiprocess_observation_id(collection, observationID, plugin, subject, get_
                 "argument to the list of arguments for the update"
                 " method of your plugin.".format(str(e)))
     except Exception as e:
-        failed.append(observation.observation_id)
+        failed = 1
         rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
-        if halt_on_error:
-            raise e
+        #if halt_on_error:
+        #    raise e TODO
     except KeyboardInterrupt as e:
         # user pressed Control-C or Delete
         rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
         raise e
-        sys.exit(-2)
 
-    visited.append(observation.observation_id)
 
-    return visited, updated, failed
+    return updated, skipped, failed
 
 
 def logger_thread(q):
