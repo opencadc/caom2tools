@@ -710,10 +710,14 @@ def main_app():
 
     manager = multiprocessing.Manager()
     queue = manager.Queue()
+    qh = QueueHandler(queue)
+    logging.basicConfig(level=level, stream=sys.stdout)
+    logger = logging.getLogger('main_app')
+    logger.addHandler(qh)
     client = CAOM2RepoClient(subject, queue, level, args.resource_id, host=server)
     if args.cmd == 'visit':
         print("Visit")
-        logging.debug(
+        logger.debug(
             "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}, threads={}".
             format(args.plugin.name, args.start, args.end,
                    args.collection, args.obs_file, args.threads))
@@ -734,16 +738,16 @@ def main_app():
             client.visit(args.plugin.name, args.collection, start=args.start,
                          end=args.end, obs_file=args.obs_file, nthreads=args.threads,
                          halt_on_error=args.halt_on_error)
-        logging.info(
+        logger.info(
             'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.
             format(len(visited), len(updated), len(skipped), len(failed)))
 
     elif args.cmd == 'create':
-        logging.info("Create")
+        logger.info("Create")
         obs_reader = ObservationReader()
         client.put_observation(obs_reader.read(args.observation))
     elif args.cmd == 'read':
-        logging.info("Read")
+        logger.info("Read")
         observation = client.get_observation(args.collection,
                                              args.observationID)
         observation_writer = ObservationWriter()
@@ -752,19 +756,19 @@ def main_app():
         else:
             observation_writer.write(observation, sys.stdout)
     elif args.cmd == 'update':
-        logging.info("Update")
+        logger.info("Update")
         obs_reader = ObservationReader()
         # TODO not sure if need to read in string first
         client.post_observation(obs_reader.read(args.observation))
     else:
-        logging.info("Delete")
+        logger.info("Delete")
         client.delete_observation(collection=args.collection,
                                   observation_id=args.observationID)
 
     lp = threading.Thread(target=logger_thread, args=(queue,))
     lp.start()
 
-    logging.info("DONE")
+    logger.info("DONE")
     queue.put(None)
     lp.join()
 
