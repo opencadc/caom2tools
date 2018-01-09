@@ -305,17 +305,14 @@ class CAOM2RepoClient(object):
                            for observationID in observations]
                 for r in results:
                     result = r.get(timeout=10)
-                    if isinstance(result, tuple):
-                        if result[0]:
-                            visited.append(result[0])
-                        if result[1]:
-                            updated.append(result[1])
-                        if result[2]:
-                            skipped.append(result[2])
-                        if result[3]:
-                            failed.append(result[3])
-                    else:
-                        print('******* result: {}'.format(result))
+                    if result[0]:
+                        visited.append(result[0])
+                    if result[1]:
+                        updated.append(result[1])
+                    if result[2]:
+                        skipped.append(result[2])
+                    if result[3]:
+                        failed.append(result[3])
 
                 p.close()
                 p.join()
