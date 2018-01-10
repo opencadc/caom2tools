@@ -72,7 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_fits_headers
-from caom2utils import load_config, DispatchingFormatter, ObservationBlueprint
+from caom2utils import load_config, DispatchingFormatter, ObsBlueprint
 
 from caom2 import ObservationWriter, Observation, Algorithm, obs_reader_writer
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -459,7 +459,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
                          [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    test_obs_blueprint = ObservationBlueprint()
+    test_obs_blueprint = ObsBlueprint()
     test_obs_blueprint.set('Observation.target.name', 'CGPS Mosaic MA1')
     test_obs_blueprint.set('Observation.telescope.name', 'DRAO-ST')
     test_obs_blueprint.set('Observation.instrument.name', 'DRAO-ST')

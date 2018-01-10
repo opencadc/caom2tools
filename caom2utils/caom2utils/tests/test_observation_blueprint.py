@@ -69,7 +69,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from caom2utils import ObservationBlueprint
+from caom2utils import ObsBlueprint
 from mock import Mock, patch
 from six import StringIO, BytesIO
 
@@ -81,10 +81,11 @@ import uuid
 import pytest
 
 
-@pytest.mark.skip('')
+#@pytest.mark.skip('')
 def test_class():
-    ob = ObservationBlueprint(position_axis=(1, 2), energy_axis=3,
-                              polarization_axis=4, time_axis=5)
+    elems = ObsBlueprint.CAOM2_ELEMENTS
+    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
+                      polarization_axis=4, time_axis=5)
     ob.set('Observation.instrument.name', 'NIRI')
     ob.set_default('Observation.instrument.keywords', 'TEST')
 
@@ -98,15 +99,16 @@ def test_class():
     print(ob)
 
     print('******')
-    print(ObservationBlueprint())
+    print(ObsBlueprint())
 
 
+@pytest.mark.skip('')
 def test_class_apply_defaults():
-    ob = ObservationBlueprint(position_axis=(1, 2), energy_axis=3,
-                              polarization_axis=4, time_axis=5,
-                              user_supplied_config={
+    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
+                      polarization_axis=4, time_axis=5,
+                      user_supplied_config={
                                   'Observation.algorithm.name': 'algorithm.name'}
-                              )
+                      )
     # establish the state of the unmodified configuration
     test_result = ob._get('Chunk.position.axis.axis1.ctype')
     assert test_result == (['CTYPE1'], None)
