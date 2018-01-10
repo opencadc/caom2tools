@@ -76,9 +76,10 @@ import pytest
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
-cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
+cfhtwircam_override = os.path.join(TESTDATA_DIR, 'test.override')
 
 
+# @pytest.mark.skip('')
 @pytest.mark.parametrize('override_file', [cfhtwircam_override])
 def test_class_apply_defaults(override_file):
     ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
@@ -89,13 +90,13 @@ def test_class_apply_defaults(override_file):
            'Plane.metaRelease': 'plane.metaRelease',
            'Plane.dataRelease': 'plane.dataRelease',
            'Plane.calibrationLevel': 'plane.calibrationLevel',
-           'Observation.metaRelease': 'observation.metaRelease',
+           'Observation.metaRelease': 'obs.metaRelease',
            'Observation.intent': 'obs.intent',
-           'Observation.type': 'observation.type',
+           'Observation.type': 'obs.type',
            'Observation.proposal.pi': 'proposal.pi',
            'Observation.proposal.project': 'proposal.project',
            'Observation.proposal.title': 'proposal.title',
-           'Observation.sequenceNumber': 'sequenceNumber',
+           'Observation.sequenceNumber': 'obs.sequenceNumber',
            'Observation.target.standard': 'target.standard',
            'Artifact.productType': 'artifact.productType',
            'Chunk.time.resolution': 'time.resolution',

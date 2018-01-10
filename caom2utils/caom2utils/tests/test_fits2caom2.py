@@ -304,6 +304,7 @@ def check_xml(xml_func, test_wcs, expected):
     assert result == expected, result
 
 
+# @pytest.mark.skip('')
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                      MyExitError, MyExitError,
                                      MyExitError]))
@@ -507,7 +508,7 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
-@pytest.mark.skip('')
+# @pytest.mark.skip('')
 def test_update_fits_headers():
     # The rules for the values:
     # all upper case - a FITS keyword
@@ -527,27 +528,35 @@ def test_update_fits_headers():
     hdr6 = fits.Header()
     hdr7 = fits.Header()
     test_blueprint = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
-                                  polarization_axis=4, time_axis=5,
-                                  user_supplied_config=test_config)
+                                  polarization_axis=4, time_axis=5)
     test_parser = FitsParser(src=[hdr1, hdr2, hdr3, hdr4, hdr5, hdr6, hdr7],
                              obs_blueprint=test_blueprint)
     test_uri = 'ad:CFHT/1709071g.fits.gz'
     update_fits_headers(test_parser, test_uri, config=None, defaults=None,
                         overrides=None)
     assert test_parser.blueprint._get('Observation.type') == \
-           (['OBSTYPE'], None), 'unmodified blueprint'
+        (['OBSTYPE'], None), 'unmodified blueprint'
+
+    test_defaults = {'CTYPE1': 'deg',
+                     'CTYPE3': 'TIME'}
+    update_fits_headers(test_parser, test_uri, config=None,
+                        defaults=test_defaults, overrides=None)
+    assert test_parser.blueprint._get('Chunk.position.axis.axis1.ctype') == \
+        (['CTYPE1'],'deg'), 'default value assigned'
+    assert test_parser.blueprint._get('Chunk.energy.axis.axis.ctype') ==  \
+        (['CTYPE3'], 'TIME'), 'default value assigned, value all upper case'
+
+    # print(test_parser.blueprint)
 
     test_defaults = {'CTYPE1': 'deg',
                      'CTYPE3': 'TIME',
                      'plane.dataProductType': 'image',
                      'provenance.producer': 'CFHT',
                      'provenance.project': 'STANDARD PIPELINE'}
-    update_fits_headers(test_parser, test_uri, config=test_config,
-                        defaults=test_defaults, overrides=None)
-    assert test_parser.blueprint._get('Chunk.position.axis.axis1.ctype') == \
-        (['CTYPE1'],'deg'), 'default value assigned'
-    assert test_parser.blueprint._get('Chunk.energy.axis.axis.ctype') ==  \
-        (['CTYPE3'], 'TIME'), 'default value assigned, value all upper case'
+    test_config = load_config(java_config_file)
+    test_overrides = load_config(override_file)
+    update_fits_headers(test_parser, test_uri, test_config,
+                        test_defaults, test_overrides)
     assert test_parser.blueprint._get('Plane.dataProductType') == \
         'image', 'default value assigned to configuration'
     assert test_parser.blueprint._get('Plane.provenance.producer') == \
@@ -556,11 +565,6 @@ def test_update_fits_headers():
     assert test_parser.blueprint._get('Plane.provenance.project') == \
         (['ADC_ARCH'], 'STANDARD PIPELINE'), \
         'default value assigned to configuration, with white-space'
-
-    # test_config = def_config.copy()
-    test_overrides = load_config(override_file)
-    update_fits_headers(test_parser, test_uri, test_config,
-                        test_defaults, test_overrides)
     assert test_parser.blueprint._get('Observation.type') == 'OBJECT', \
         'default value over-ridden, value all upper case'
     assert test_parser.blueprint._get(
@@ -586,16 +590,16 @@ def test_update_fits_headers():
 
 
 TEST_OVERRIDES = \
-    {'sequenceNumber': '1709071',
+    {'obs.sequenceNumber': '1709071',
      'obs.intent': 'science',
-     'observation.type': 'OBJECT',
+     'obs.type': 'OBJECT',
      'target.standard': 'false',
      'proposal.project': '',
      'proposal.pi': 'Jean-Gabriel Cuby',
      'proposal.title': '',
      'plane.calibrationLevel': '1',
      'plane.dataRelease': '2015-02-01T00:00:00',
-     'observation.metaRelease': '2014-05-12T10:18:55',
+     'obs.metaRelease': '2014-05-12T10:18:55',
      'plane.metaRelease': '2014-05-12T10:18:55',
      'WCSAXES': '4',
      'filtername': 'H.WC8201',

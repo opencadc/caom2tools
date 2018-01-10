@@ -306,6 +306,7 @@ class ObsBlueprint(object):
 
         'Artifact.productType',
         'Artifact.releaseType',
+        'Artifact.contentChecksum',
 
         'Part.name',
         'Part.productType',
@@ -647,7 +648,7 @@ class ObsBlueprint(object):
             self._wcs_std['Chunk.energy.axis.function.refCoord.val'] = \
                 'CRVAL{}'.format(energy_axis)
 
-        if position_axis:
+        if polarization_axis:
             self._wcs_std['Chunk.polarization.axis.axis.ctype'] = \
                 'CTYPE{}'.format(polarization_axis)
             self._wcs_std['Chunk.polarization.axis.axis.cunit'] = \
@@ -1902,13 +1903,19 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
     :return: updated headers
     """
 
+    convert = ConvertFromJava(parser.blueprint, config)
+
     if defaults:
         logging.debug('Setting defaults for {}'.format(artifact_uri))
         for key, value in defaults.items():
-            parser.blueprint.set_default(key, value)
-            logging.debug('{} setting default value to {}'.format(key, value))
-
-    logging.debug('Defaults set for {}. Start overrides.'.format(artifact_uri))
+            try:
+                caom2_key = convert.get_caom2_element(key)
+                parser.blueprint.set_default(caom2_key, value)
+                logging.debug(
+                    '{} setting default value to {}'.format(caom2_key, value))
+            except ValueError:
+                parser.add_error(key, sys.exc_info()[1])
+        logging.debug('Defaults set for {}.'.format(artifact_uri))
 
     if overrides:
         logging.debug('Setting overrides for {}.'.format(artifact_uri))
@@ -1919,18 +1926,18 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
                 for extension in overrides['artifacts'][artifact_uri].keys():
                     for ext_key, ext_value in overrides['artifacts'][artifact_uri][extension].items():
                         try:
-                            parser.blueprint.set(ext_key, ext_value, extension)
+                            caom2_key = convert.get_caom2_element(ext_key)
+                            parser.blueprint.set(caom2_key, ext_value, extension)
                         except ValueError:
                             parser.add_error(key, 'ext {} {}'.format(
                                 extension, sys.exc_info()[1]))
             else:
                 try:
-                    parser.blueprint.set(key, value)
+                    caom2_key = convert.get_caom2_element(key)
+                    parser.blueprint.set(caom2_key, value)
                 except ValueError:
                     parser.add_error(key, sys.exc_info()[1])
-
-    logging.debug('Overrides set for {}.'.format(artifact_uri))
-    return parser
+        logging.debug('Overrides set for {}.'.format(artifact_uri))
 
 
 def _set_default_value_in_config(_config, _key, _value):
@@ -2287,7 +2294,7 @@ def main_app():
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers)
 
-        # TODO update_fits_headers(parser, uri, config, defaults, overrides)
+        update_fits_headers(parser, uri, config, defaults, overrides)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 
