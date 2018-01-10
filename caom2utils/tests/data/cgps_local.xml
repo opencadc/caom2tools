@@ -2,16 +2,14 @@
 <caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-bbe6-9b1c50c6a1ff">
   <caom2:collection>TEST</caom2:collection>
   <caom2:observationID>myOBS</caom2:observationID>
-  <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
   <caom2:sequenceNumber>-1</caom2:sequenceNumber>
   <caom2:algorithm>
-    <caom2:name>DEFAULT</caom2:name>
+    <caom2:name>EXPOSURE</caom2:name>
   </caom2:algorithm>
   <caom2:intent>science</caom2:intent>
   <caom2:target>
     <caom2:name>CGPS Mosaic MA1</caom2:name>
     <caom2:standard>false</caom2:standard>
-    <caom2:moving>false</caom2:moving>
   </caom2:target>
   <caom2:telescope>
     <caom2:name>DRAO ST</caom2:name>
@@ -19,16 +17,11 @@
   <caom2:instrument>
     <caom2:name>DRAO ST</caom2:name>
   </caom2:instrument>
-  <caom2:environment/>
   <caom2:planes>
     <caom2:plane caom2:id="00000000-0000-0000-9459-ed8c0cc1bebe">
       <caom2:productID>myplane</caom2:productID>
       <caom2:dataProductType>cube</caom2:dataProductType>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
-      <caom2:metrics/>
-      <caom2:quality>
-        <caom2:flag>junk</caom2:flag>
-      </caom2:quality>
       <caom2:artifacts>
         <caom2:artifact caom2:id="00000000-0000-0000-b790-01307755c31a">
           <caom2:uri>ad:CGPS/CGPS_MA1_HI_line_image</caom2:uri>

@@ -1924,7 +1924,8 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
                 logging.debug('Found extension overrides for URI {}.'.format(
                     artifact_uri))
                 for extension in overrides['artifacts'][artifact_uri].keys():
-                    for ext_key, ext_value in overrides['artifacts'][artifact_uri][extension].items():
+                    for ext_key, ext_value in \
+                      overrides['artifacts'][artifact_uri][extension].items():
                         try:
                             caom2_key = convert.get_caom2_element(ext_key)
                             parser.blueprint.set(caom2_key, ext_value, extension)
@@ -1938,219 +1939,6 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
                 except ValueError:
                     parser.add_error(key, sys.exc_info()[1])
         logging.debug('Overrides set for {}.'.format(artifact_uri))
-
-
-def _set_default_value_in_config(_config, _key, _value):
-    key_found = False
-    for k, v in _config.items():
-        if isinstance(v, list):
-            for jj in v:
-                logging.warning('list entry is {}, _key is {}'.format(jj, _key))
-                if jj == _key:
-                    index = v.index(jj)
-                    v[index] = {'default': _value}
-                    logging.debug('{}: Set default value of {}'.format(
-                        k, _value))
-                    key_found = True
-                    break
-        elif v == _key:
-            index = _config.index(v)
-            _config[index] = {'default': _value}
-            logging.debug('{}: Set to default value of {}'.format(k, _value))
-            key_found = True
-            break
-
-        if key_found:
-            break
-
-    if not key_found:
-        # one last-ditch attempt? for the case where there's a FITS keyword
-        # lookup value, that might not exist in the source file?
-        if not _last_ditch_find(_config, _key, _value):
-            msg = 'Could not find configuration key for default {!r}'.format(_key)
-            logging.warning(msg)
-            raise KeyError(msg)
-
-
-def _set_overrides(_overrides, _config, _headers, _index):
-    for ii in _overrides.keys():
-        if ii == 'artifacts':
-            # the overrides that are part of the 'artifacts' dict entry are
-            # handled in a separate function
-            continue
-
-        if ii.isupper() and ii.find('.') == -1:
-            _set_override_keyword_value_in_header(_headers, [ii],
-                                                  _overrides[ii], _index)
-
-        else:
-            # config key, add as a default if it's not found in the
-            # configuration
-            keywords = _find_fits_keyword_in_config(_config, ii)
-            if len(keywords) > 0:
-
-                for jj, value in enumerate(keywords):
-                    if value.find('.') == -1 and value.isupper():
-                        _set_override_keyword_value_in_header(
-                            _headers, keywords, _overrides[ii], _index)
-                    else:
-                        _set_override_value_in_config(
-                            _config, ii, _overrides[ii])
-                    break
-            else:
-                _set_override_value_in_config(_config, ii,
-                                              _overrides[ii])
-
-
-def _set_overrides_for_artifacts(_overrides, _parser, _uri, _config):
-    if 'artifacts' in _overrides.keys() and _uri in _overrides['artifacts']:
-        logging.debug(
-            'Found extension overrides for URI {}. Update headers accordingly.'.
-            format(_uri))
-        if len(_overrides['artifacts'][_uri]) > len(_parser.headers):
-            msg = 'Disconnect in {} and overrides.'.format(_uri)
-            logging.error(msg)
-            raise IndexError(msg)
-
-        for ii in _overrides['artifacts'][_uri]:
-            _set_overrides(
-                _overrides['artifacts'][_uri][ii], _config, _parser.headers, ii)
-    return
-
-
-def _set_override_value_in_config(_config, _key, _value):
-    key_not_found = True
-    for k, v in _config.items():
-        if isinstance(v, list):
-            for jj in v:
-                if jj == _key:
-                    _config[k] = _set_value(k, _value)
-                    key_not_found = False
-                    break
-        elif v == _key:
-            _config[k] = _set_value(k, _value)
-            key_not_found = False
-            break
-    # if a value does not already exist in a configuration, add that
-    # value to the configuration, giving over-ride values the effect
-    # of appending undefined values
-    if key_not_found:
-        _config[_key] = _value
-        logging.debug('{}: Add override value of {} to configuration.'.format(
-            _key, _config[_key]))
-    return
-
-
-def _set_value(_here, _to):
-    logging.debug('{}: Set override value of {}'.format(
-        _here, _to))
-    if len(_to) == 0:
-        return None
-    else:
-        return _to
-
-
-def _find_fits_keyword_in_config(_config, _key):
-    keywords = []
-    for k, v in _config.items():
-        if _key == k:
-            if len(v) > 0:
-                keywords = v
-            break
-    return keywords
-
-
-def _last_ditch_find(_config, _key, _value):
-    found = False
-    for ii in _config.keys():
-        # the second clause is for the case where plane.dataProductType
-        # is part of the defaults
-        if ii.endswith(_key) or ii.lower() == _key.lower():
-            if isinstance(_config[ii], list):
-                _config[ii].append({'default': _value})
-            else:
-                _config[ii] = [{'default': _value}]
-            found = True
-            break
-
-    return found
-
-def _set_default_keyword_value_in_header(_headers, _keys, _value):
-    """
-    The configuration provides a FITS keyword, so modify the headers to have
-    the default value for the keyword.
-    :param _headers: Metadata from the FITS files.
-    :param _keys: The FITS keyword list.
-    :param _value: What value to give to the keyword.
-    :return:
-    """
-
-    # set will append if the keyword doesn't exist, or update an existing value
-
-    if _value.find('{') == -1:
-        # the default value does not contain index markup, add the
-        # default value only to the first header
-        logging.debug(
-            'Set header {} to default value of {} in extension 0.'.format(
-                _keys[0], _value))
-        _headers[0].set(_keys[0], _value, 'fits2caom2 set value')
-    else:
-        # the default value contains index markup, add the default value
-        # to all the headers
-        for ii, header in enumerate(_headers):
-            logging.debug(
-                'Set header {} to default value of {} in extension {}'.format(
-                    _keys[0], _value, ii))
-            header.set(_keys[0], _value, 'fits2caom2 set value')
-
-
-def _set_override_keyword_value_in_header(_headers, _keys, _value, _index):
-    for key in _keys:
-        if _value.find('{') == -1:
-            # the default value does not contain index markup
-            # if key in _headers[_index].keys():
-            logging.debug(
-                'Set {} to override value of {} in HDU {}.'.format(
-                    key, _value, _index))
-            _headers[_index].set(
-                key, _value, 'Updated HDU {} value'.format(_index))
-            break
-        else:
-            # the default value contains index markup, check all the headers
-            for ii, header in enumerate(_headers):
-                # if key in header.keys():
-                logging.debug(
-                    'Set {} to override value of {} in HDU {}'.format(
-                        key, _value, ii))
-                header.set(key, _value, 'Updated HDU {} value'.format(ii))
-            break
-
-
-def _merge_configs(default_config, input_config):
-    merged = None
-    if input_config and default_config:
-        logging.debug('Merging two separate configurations into single map.')
-        merged = default_config.copy()
-        # if there was only a need to support python 3.5+, do it like this:
-        # return {**x, **y}
-
-        # input_config takes precedence
-
-        # make the input config values into lists, because that's how the
-        # default config is done, that's why and also because of the default
-        # value of 'ZNAXIS, NAXIS' for Chunk.naxis
-
-        for ii in input_config.keys():
-            if not isinstance(input_config[ii], list):
-                values = input_config[ii].split(',')
-                input_config[ii] = values
-
-        merged.update(input_config)
-    elif input_config and not default_config:
-        merged = input_config.copy()
-    elif default_config and not input_config:
-        merged = default_config.copy()
-    return merged
 
 
 def main_app():
@@ -2179,7 +1967,7 @@ def main_app():
                         help='do not stop and exit upon finding partial WCS')
 
     parser.add_argument('-o', '--out', dest='out_obs_xml',
-                        type=argparse.FileType('w'),
+                        type=argparse.FileType('wb'),
                         help='output of augmented observation in XML',
                         required=False)
 

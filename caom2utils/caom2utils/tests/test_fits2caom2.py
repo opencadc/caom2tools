@@ -518,7 +518,7 @@ def test_update_fits_headers():
     # has a '.' - a config keyword
     # all upper case - a FITS keyword
 
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     hdr1 = fits.Header()
     hdr2 = fits.Header()
