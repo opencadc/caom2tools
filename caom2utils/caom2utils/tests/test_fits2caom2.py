@@ -72,7 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_fits_headers
-from caom2utils import load_config, DispatchingFormatter, ObservationBlueprint
+from caom2utils import load_config, ObservationBlueprint
 
 from caom2 import ObservationWriter, Observation, Algorithm, obs_reader_writer
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -87,6 +87,7 @@ import re
 import sys
 
 import pytest
+
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
@@ -311,12 +312,12 @@ def test_help(test_file):
     """ Tests the helper displays for commands in main"""
 
     # expected helper messages
-    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt'), 'r')\
+    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt'), 'r') \
             as myfile:
         too_few_arguments_usage = myfile.read()
     with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
         usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r')\
+    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r') \
             as myfile:
         missing_observation_usage = myfile.read()
     with open(os.path.join(TESTDATA_DIR,
@@ -330,14 +331,14 @@ def test_help(test_file):
         with pytest.raises(MyExitError):
             main_app()
         if stdout_mock.getvalue():
-            assert(too_few_arguments_usage == stdout_mock.getvalue())
+            assert (too_few_arguments_usage == stdout_mock.getvalue())
 
     # --help
     with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "-h"]
         with pytest.raises(MyExitError):
             main_app()
-        assert(usage == stdout_mock.getvalue())
+        assert (usage == stdout_mock.getvalue())
 
     # missing required --observation
     """
@@ -357,6 +358,7 @@ def test_help(test_file):
         assert(missing_positional_argument_usage == stdout_mock.getvalue())
     """
 
+
 @pytest.mark.skip('Mock the actual functionality?')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_valid_arguments(test_file):
@@ -368,7 +370,7 @@ def test_valid_arguments(test_file):
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         main_app()
         help_out = stdout_mock.getvalue()
-        assert(not stdout_mock.getvalue())
+        assert (not stdout_mock.getvalue())
 
     # --in and --out
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
@@ -377,7 +379,7 @@ def test_valid_arguments(test_file):
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         main_app()
         help_out = stdout_mock.getvalue()
-        assert(not stdout_mock.getvalue())
+        assert (not stdout_mock.getvalue())
 
     # --observation
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
@@ -386,23 +388,24 @@ def test_valid_arguments(test_file):
                     "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
         main_app()
         help_out = stdout_mock.getvalue()
-        assert(not stdout_mock.getvalue())
+        assert (not stdout_mock.getvalue())
 
     # --observation and --out
     with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
         sys.argv = ["fits2caom2", "--observation", "testCollection",
                     "testObservationID", "--out", "pathTo/outObsXML"
-                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
+                                                  "productID",
+                    "pathTo/testFileURI1", "pathTo/testFileURI2"]
         main_app()
         help_out = stdout_mock.getvalue()
-        assert(not stdout_mock.getvalue())
+        assert (not stdout_mock.getvalue())
 
 
 EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
-    """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ +\
-    """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ +\
-    """xsi:type="caom2:CompositeObservation" caom2:id="">
+                   """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
+                   """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
+                   """xsi:type="caom2:CompositeObservation" caom2:id="">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:sequenceNumber>-1</caom2:sequenceNumber>
@@ -504,9 +507,7 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
-@pytest.mark.skip('testing end-to-end')
 def test_update_fits_headers():
-
     # The rules for the values:
     # all upper case - a FITS keyword
     # has an '{' or an '}' - a FITS keyword with an index
@@ -524,73 +525,84 @@ def test_update_fits_headers():
     hdr5 = fits.Header()
     hdr6 = fits.Header()
     hdr7 = fits.Header()
-    test_parser = FitsParser(src=[hdr1, hdr2, hdr3, hdr4, hdr5, hdr6, hdr7])
-    def_config = {'Observation.type': 'observation.type',
-                  'Observation.intent': 'obs.intent',
-                  'Plane.dataProductType': 'plane.dataProductType',
-                  'Plane.provenance.producer': 'provenance.producer',
-                  'Plane.provenance.project': ['ADC_ARCH']}
+    test_config = {'Plane.dataProductType': 'plane.dataProductType',
+                   'Plane.provenance.producer': 'provenance.producer',
+                   'Plane.provenance.project': 'provenance.project',
+                   'Plane.metaRelease': 'plane.metaRelease',
+                   'Plane.dataRelease': 'plane.dataRelease',
+                   'Plane.calibrationLevel': 'plane.calibrationLevel',
+                   'Observation.metaRelease': 'observation.metaRelease',
+                   'Observation.intent': 'obs.intent',
+                   'Observation.type': 'observation.type',
+                   'Observation.proposal.pi': 'proposal.pi',
+                   'Observation.proposal.project': 'proposal.project',
+                   'Observation.proposal.title': 'proposal.title',
+                   'Observation.sequenceNumber': 'sequenceNumber',
+                   'Observation.target.standard': 'target.standard',
+                   'Artifact.productType': 'artifact.productType',
+                   'Chunk.time.resolution': 'time.resolution',
+                   'Chunk.time.exposure': 'time.exposure',
+                   'Chunk.energy.resolvingPower': 'resolvingPower',
+                   'Chunk.energy.bandpassName': 'filtername',
+                   'Artifact.contentChecksum': 'artifact.contentChecksum'
+                   }
+    test_blueprint = ObservationBlueprint(position_axis=(1, 2), energy_axis=3,
+                                          polarization_axis=4, time_axis=5,
+                                          user_supplied_config=test_config)
+    test_parser = FitsParser(src=[hdr1, hdr2, hdr3, hdr4, hdr5, hdr6, hdr7],
+                             obs_blueprint=test_blueprint)
     test_uri = 'ad:CFHT/1709071g.fits.gz'
-    test_config = def_config.copy()
-    assert test_parser.blueprint['Observation.type'] == ['OBSTYPE'], \
-        'unmodified FitsParser configuration'
+    update_fits_headers(test_parser, test_uri, config=None, defaults=None,
+                        overrides=None)
+    assert test_parser.blueprint._get('Observation.type') == \
+           (['OBSTYPE'], None), 'unmodified blueprint'
 
-    test_parser = update_fits_headers(test_parser, test_uri, test_config,
-                                      defaults=None, overrides=None)
-    assert test_parser.blueprint['Observation.type'] == ['observation.type'], \
-        'FitsParser configuration replaced by user-provided configuration'
-
-    try:
-        test_defaults = {'a.b': 'deg'}
-        test_config = def_config.copy()
-        test_parser = update_fits_headers(test_parser, test_uri, test_config,
-                                          test_defaults, overrides=None)
-        assert False, 'Should have had a KeyError exception thrown'
-    except KeyError:
-        pass
-
-    test_defaults = {'CUNIT1': 'deg',
+    test_defaults = {'CTYPE1': 'deg',
                      'CTYPE3': 'TIME',
                      'plane.dataProductType': 'image',
                      'provenance.producer': 'CFHT',
                      'provenance.project': 'STANDARD PIPELINE'}
-    test_config = def_config.copy()
-    test_parser = update_fits_headers(test_parser, test_uri, test_config,
-                                      test_defaults, overrides=None)
-    assert test_parser.blueprint['CUNIT1'] == 'deg', \
-        'default value assigned to the input headers'
-    assert test_parser.blueprint['CTYPE3'] == 'TIME', \
-        ' default value assigned to input headers, value all upper case'
-    assert test_parser.blueprint['Plane.dataProductType'] == \
-           [{'default': 'image'}], 'default value assigned to configuration'
-    assert test_parser.blueprint['Plane.provenance.producer'] == \
-           [{'default': 'CFHT'}], \
+    update_fits_headers(test_parser, test_uri, config=test_config,
+                        defaults=test_defaults, overrides=None)
+    assert test_parser.blueprint._get('Chunk.position.axis.axis1.ctype') == \
+        (['CTYPE1'],'deg'), 'default value assigned'
+    assert test_parser.blueprint._get('Chunk.energy.axis.axis.ctype') ==  \
+        (['CTYPE3'], 'TIME'), 'default value assigned, value all upper case'
+    assert test_parser.blueprint._get('Plane.dataProductType') == \
+        'image', 'default value assigned to configuration'
+    assert test_parser.blueprint._get('Plane.provenance.producer') == \
+        (['ORIGIN'], 'CFHT'), \
         'default value assigned to configuration, all upper-case'
-    assert test_parser.blueprint['Plane.provenance.project'] == \
-           ['ADC_ARCH', {'default': 'STANDARD PIPELINE'}], \
+    assert test_parser.blueprint._get('Plane.provenance.project') == \
+        (['ADC_ARCH'], 'STANDARD PIPELINE'), \
         'default value assigned to configuration, with white-space'
 
-    test_config = def_config.copy()
+    # test_config = def_config.copy()
     test_overrides = load_config(override_file)
-    test_parser = update_fits_headers(test_parser, test_uri, test_config,
-                                      test_defaults, test_overrides)
-    assert test_parser.blueprint['Observation.type'] == 'OBJECT', \
+    update_fits_headers(test_parser, test_uri, test_config,
+                        test_defaults, test_overrides)
+    assert test_parser.blueprint._get('Observation.type') == 'OBJECT', \
         'default value over-ridden, value all upper case'
-    assert test_parser.blueprint['CRVAL1'][0] == '210.551666667', \
-        'override HDU 0'
-    assert test_parser.blueprint['CRVAL1'][1] == '210.551666667', \
-        'override HDU 1'
-    assert test_parser.blueprint['CRVAL1'][2] == '210.508333333', \
-        'override HDU 2'
-    assert test_parser.blueprint['CRVAL1'][3] == '210.898333333', \
-        'override HDU 3'
-    assert test_parser.blueprint['CRVAL1'][4] == '210.942083333', \
-        'override HDU 4'
-    assert test_parser.blueprint['CRVAL1'][5] == '0.000000000', 'override HDU 5'
-    assert test_parser.blueprint['Observation.intent'] == 'science', \
-        'override configuration data member, Observation.intent == obs.intent'
-    assert test_parser.blueprint['time.resolution'] == '0.020000000000', \
-        'override configuration data member'
+    assert test_parser.blueprint._get(
+        'Chunk.position.axis.function.refCoord.coord1.val',
+        0) == '210.551666667', 'override HDU 0'
+    assert test_parser.blueprint._get(
+        'Chunk.position.axis.function.refCoord.coord1.val',
+         1) == '210.551666667',         'override HDU 1'
+    assert test_parser.blueprint._get(
+        'Chunk.position.axis.function.refCoord.coord1.val',
+        2) == '210.508333333',         'override HDU 2'
+    assert test_parser.blueprint._get(
+        'Chunk.position.axis.function.refCoord.coord1.val',
+        3) == '210.898333333',         'override HDU 3'
+    assert test_parser.blueprint._get(
+        'Chunk.position.axis.function.refCoord.coord1.val',
+        4) == '210.942083333',         'override HDU 4'
+    assert test_parser.blueprint._get(
+        'Chunk.position.axis.function.refCoord.coord1.val',
+        5) == '0.000000000', 'override HDU 5'
+    # this test fails right now :( for BITPIX and WCSAXES
+    assert len(test_parser._errors) == 0, test_parser._errors
 
 
 TEST_OVERRIDES = \
@@ -666,4 +678,3 @@ def test_load_config_overrides():
     # cool override file content
     result = load_config(override_file)
     assert result == TEST_OVERRIDES
-

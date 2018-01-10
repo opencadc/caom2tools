@@ -86,8 +86,8 @@ from caom2 import CoordAxis2D, PolarizationWCS, TemporalWCS
 from caom2 import ObservationReader, ObservationWriter, Algorithm
 from caom2 import ReleaseType, ProductType, ObservationIntentType
 from caom2 import DataProductType, Telescope, Environment
-from caom2 import Instrument, Proposal, Target, Provenance, Metrics
-from caom2 import CalibrationLevel
+from caom2 import Instrument, Proposal, Target, Provenance, Metrics, Quality
+from caom2 import CalibrationLevel, Requirements, DataQuality
 from caom2 import SimpleObservation
 import logging
 import sys
@@ -214,10 +214,13 @@ class ObservationBlueprint(object):
         'Observation.environment.ambientTemp',
         'Observation.environment.photometric',
 
+        'Observation.requirements.flag',
+
         'Plane.metaRelease',
         'Plane.dataRelease',
         'Plane.dataProductType',
         'Plane.calibrationLevel',
+        'Plane.dataQuality',
 
         'Plane.provenance.name',
         'Plane.provenance.version',
@@ -529,6 +532,8 @@ class ObservationBlueprint(object):
         if user_supplied_config:
             self._inverse_user_supplied_config = \
                 {v: k for k, v in user_supplied_config.items()}
+        else:
+            self._inverse_user_supplied_config = {}
 
     def __str__(self):
         plan = self._serialize(self._plan)
@@ -557,18 +562,19 @@ class ObservationBlueprint(object):
         :param value: new value of the CAOM2 element
         :param extension: extension number (used only for Chunk elements)
         """
-        if caom2_element not in ObservationBlueprint._CAOM2_ELEMENTS:
-            raise ValueError(
-                '{} not a caom2 element (spelling?).'.format(caom2_element))
+        # if caom2_element not in ObservationBlueprint._CAOM2_ELEMENTS:
+        #     raise ValueError(
+        #         '{} not a caom2 element (spelling?).'.format(caom2_element))
+        element = self._lookup_element(caom2_element)
         if extension:
-            if not caom2_element.startswith('Chunk'):
+            if not element.startswith('Chunk'):
                 raise ValueError(
                     "Extension number refers to Chunk elements only")
             if extension not in self._extensions:
                 self._extensions[extension] = {}
-            self._extensions[extension][caom2_element] = value
+            self._extensions[extension][element] = value
         else:
-            self._plan[caom2_element] = value
+            self._plan[element] = value
 
     def set_fits_attribute(self, caom2_element, fits_attribute_list, extension=None):
         """
@@ -755,6 +761,7 @@ class FitsParser(object):
         self._headers = []
         self.parts = 0
         self.file = ''
+        self._errors = []
         if isinstance(src, list):
             # assume this is the list of headers
             self._headers = src
@@ -773,6 +780,10 @@ class FitsParser(object):
         :return:
         """
         return self._headers
+
+    def add_error(self, key, message):
+        self._errors.append(('{} {} {}'.format(
+            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), key, message)))
 
     def augment_artifact(self, artifact):
         """
@@ -843,6 +854,7 @@ class FitsParser(object):
         observation.meta_release = self._get_datetime(
 
             self._get_from_list('Observation.metaRelease', 0))
+        observation.requirements = self._get_requirements()
         observation.instrument = self._get_instrument()
         observation.proposal = self._get_proposal()
         observation.target = self._get_target()
@@ -895,6 +907,7 @@ class FitsParser(object):
                                     default=CalibrationLevel.CALIBRATED.value)))
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
+        plane.quality = self._get_quality()
 
         artifact = None
         for ii in plane.artifacts:
@@ -1060,6 +1073,20 @@ class FitsParser(object):
         else:
             return None
 
+    def _get_requirements(self):
+        """
+        Create a Requirements instance populated with available FITS
+        information.
+        :return: Requirements
+        """
+        self.logger.debug('Begin CAOM2 Requirement augmentation.')
+        flag = self._get_from_list('Observation.requirements.flag', index=0)
+        self.logger.debug('End CAOM2 Requirement augmentation.')
+        if flag:
+            return Requirements(flag)
+        else:
+            return None
+
     def _get_from_list(self, lookup, index, default=None, current=None):
         value = default
         try:
@@ -1221,6 +1248,19 @@ class FitsParser(object):
             metrics = None
         self.logger.debug('End CAOM2 Metrics augmentation.')
         return metrics
+
+    def _get_quality(self):
+        """
+        Create a Quality instance populated with available FITS information.
+        :return: Quality
+        """
+        self.logger.debug('Begin CAOM2 Quality augmentation.')
+        flag = self._get_from_list('Plane.dataQuality', index=0)
+        self.logger.debug('End CAOM2 Quality augmentation.')
+        if flag:
+            return DataQuality(flag)
+        else:
+            return None
 
     def _get_datetime(self, from_value, default_units=None):
         """
@@ -1693,14 +1733,6 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
     :return: updated headers
     """
 
-    # this_config = _merge_configs(parser.CONFIG, config)
-    # parser.set_config(this_config)
-
-    # for lack of better criteria, anything that's all upper case, on the
-    # left-hand side of an '=' is assumed to be a FITS keyword. On the right
-    # hand side of an '=', it is assumed to be a value. I'm sure that will
-    # bite somewhere in the future :)
-
     if defaults:
         logging.debug('Setting defaults for {}'.format(artifact_uri))
         for key, value in defaults.items():
@@ -1709,18 +1741,27 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
 
     logging.debug('Defaults set for {}. Start overrides.'.format(artifact_uri))
 
-    # if overrides:
-    #     _set_overrides(overrides, this_config, parser.headers, 0)
-    #     _set_overrides_for_artifacts(
-    #         overrides, parser, artifact_uri, this_config)
-    #
-    # logging.debug('Overrides set for {}.'.format(artifact_uri))
-    # return parser
+    if overrides:
+        logging.debug('Setting overrides for {}.'.format(artifact_uri))
+        for key, value in overrides.items():
+            if key == 'artifacts' and artifact_uri in overrides['artifacts']:
+                logging.debug('Found extension overrides for URI {}.'.format(
+                    artifact_uri))
+                for extension in overrides['artifacts'][artifact_uri].keys():
+                    for ext_key, ext_value in overrides['artifacts'][artifact_uri][extension].items():
+                        try:
+                            parser.blueprint.set(ext_key, ext_value, extension)
+                        except ValueError:
+                            parser.add_error(key, 'ext {} {}'.format(
+                                extension, sys.exc_info()[1]))
+            else:
+                try:
+                    parser.blueprint.set(key, value)
+                except ValueError:
+                    parser.add_error(key, sys.exc_info()[1])
 
-
-def _set_default_keyword_value_in_blueprint(blueprint, key, value):
-    # TODO
-    return None
+    logging.debug('Overrides set for {}.'.format(artifact_uri))
+    return parser
 
 
 def _set_default_value_in_config(_config, _key, _value):
