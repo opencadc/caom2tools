@@ -69,35 +69,53 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from caom2utils import ObsBlueprint
-from mock import Mock, patch
-from six import StringIO, BytesIO
+from caom2utils import ObsBlueprint, ConvertFromJava, load_config
 
-import logging
 import os
-import sys
-import uuid
-
 import pytest
 
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
 
-def test_class():
-    elems = ObsBlueprint.CAOM2_ELEMENTS
+
+@pytest.mark.parametrize('override_file', [cfhtwircam_override])
+def test_class_apply_defaults(override_file):
     ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
                       polarization_axis=4, time_axis=5)
-    ob.set('Observation.instrument.name', 'NIRI')
-    ob.set_default('Observation.instrument.keywords', 'TEST')
+    usc = {'Plane.dataProductType': 'plane.dataProductType',
+           'Plane.provenance.producer': 'provenance.producer',
+           'Plane.provenance.project': 'provenance.project',
+           'Plane.metaRelease': 'plane.metaRelease',
+           'Plane.dataRelease': 'plane.dataRelease',
+           'Plane.calibrationLevel': 'plane.calibrationLevel',
+           'Observation.metaRelease': 'observation.metaRelease',
+           'Observation.intent': 'obs.intent',
+           'Observation.type': 'observation.type',
+           'Observation.proposal.pi': 'proposal.pi',
+           'Observation.proposal.project': 'proposal.project',
+           'Observation.proposal.title': 'proposal.title',
+           'Observation.sequenceNumber': 'sequenceNumber',
+           'Observation.target.standard': 'target.standard',
+           'Artifact.productType': 'artifact.productType',
+           'Chunk.time.resolution': 'time.resolution',
+           'Chunk.time.exposure': 'time.exposure',
+           'Chunk.energy.resolvingPower': 'resolvingPower',
+           'Chunk.energy.bandpassName': 'filtername',
+           'Artifact.contentChecksum': 'artifact.contentChecksum'
+           }
 
-    ob.set_fits_attribute('Chunk.energy.axis.axis.ctype', ['MYCTYPE'], extension=1)
-    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
-                          extension=1)
-    ob.set('Chunk.energy.velang', 33, extension=1)
-    ob.set_default('Chunk.position.coordsys', 'RA-DEC', extension=1)
+    convert = ConvertFromJava(ob, usc)
+    test_overrides = load_config(override_file)
 
-    ob.set('Chunk.energy.velang', 44, extension=2)
-    print(ob)
+    for key, value in test_overrides.items():
+        try:
+            # artifacts is a substructure to be dealt with separately,
+            # WCSAXES should work .... ;)
+            if key == 'artifacts' or key == 'WCSAXES':
+                continue
 
-    print('******')
-    print(ObsBlueprint())
-
-
+            result = convert.get_caom2_element(key)
+            ob._get(result)
+        except ValueError:
+            assert False, 'Could not find key {} in ObsBlueprint'.format(key)
