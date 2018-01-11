@@ -464,7 +464,7 @@ class ObsBlueprint(object):
                'Observation.instrument.keywords': (['INSTMODE'], None),
                'Observation.proposal.id': (['RUNID'], None),
                'Observation.target.name': (['OBJECT'], None),
-               'Observation.telescope.name': (['INSTRUME'], None),
+               'Observation.telescope.name': (['TELESCOP'], None),
                'Observation.telescope.geoLocationX': (['OBSGEO-X'],
                                                       None),
                'Observation.telescope.geoLocationY': (['OBSGEO-Y'],
