@@ -464,7 +464,7 @@ class ObsBlueprint(object):
                'Observation.instrument.keywords': (['INSTMODE'], None),
                'Observation.proposal.id': (['RUNID'], None),
                'Observation.target.name': (['OBJECT'], None),
-               'Observation.telescope.name': (['INSTRUME'], None),
+               'Observation.telescope.name': (['TELESCOP'], None),
                'Observation.telescope.geoLocationX': (['OBSGEO-X'],
                                                       None),
                'Observation.telescope.geoLocationY': (['OBSGEO-Y'],
@@ -1978,8 +1978,7 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
         logging.debug('Setting overrides for {}.'.format(artifact_uri))
         for key, value in overrides.items():
             if key == 'BITPIX' or key == 'WCSAXES':
-                logging.debug(
-                    'Jan 11/18 Chris said ignore {!r}.'.format(key))
+                logging.debug('01/11/18 Chris said ignore {!r}.'.format(key))
                 continue
             if key == 'artifacts' and artifact_uri in overrides['artifacts']:
                 logging.debug('Found extension overrides for URI {}.'.format(
@@ -1989,15 +1988,14 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
                       overrides['artifacts'][artifact_uri][extension].items():
                         if ext_key == 'BITPIX' or ext_key == 'WCSAXES':
                             logging.debug(
-                                'Jan 11/18 Chris said ignore {!r}.'.format(
-                                    key))
+                                '01/11/18 Chris said ignore {!r}.'.format(key))
                             continue
                         try:
                             caom2_key = convert.get_caom2_element(ext_key)
                             parser.blueprint.set(caom2_key, ext_value,
                                                  extension)
                             logging.debug(
-                                '{} setting override value to {} for {}.'.format(
+                                '{} set override value to {} for {}.'.format(
                                     ext_key, ext_value, artifact_uri))
                         except ValueError:
                             parser.add_error(key, 'ext {} {}'.format(
@@ -2009,6 +2007,40 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
                 except ValueError:
                     parser.add_error(key, sys.exc_info()[1])
         logging.debug('Overrides set for {}.'.format(artifact_uri))
+
+        _apply_config_to_fits(parser)
+
+
+def _apply_config_to_fits(parser):
+
+    # pointers that are short to type
+    exts = parser.blueprint._extensions
+    wcs_std = parser.blueprint._wcs_std
+    plan = parser.blueprint._plan
+
+    # apply overrides
+    for extension in exts:
+        hdr = parser._headers[extension]
+        for key, value in exts[extension].items():
+            keywords = wcs_std[key].split(',')
+            for keyword in keywords:
+                hdr.set(keyword, value)
+                logging.debug(
+                    '{}: set to {} in extension {}'.format(keyword, value,
+                                                           extension))
+    # apply defaults
+    for key, value in plan.items():
+        if isinstance(value, tuple) and value[1]:
+            # there is a default value set
+            for header in parser._headers:
+                for keyword in value[0]:
+                    if not header.get(keyword):
+                        # apply a default if a value does not already exist
+                        header.set(keyword, value[1])
+                        logging.debug(
+                            '{}: set default value of {}.'.format(keyword,
+                                                                  value[1]))
+    return
 
 
 def main_app():
