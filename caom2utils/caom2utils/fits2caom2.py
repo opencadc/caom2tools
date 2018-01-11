@@ -88,7 +88,7 @@ from caom2 import ReleaseType, ProductType, ObservationIntentType
 from caom2 import DataProductType, Telescope, Environment
 from caom2 import Instrument, Proposal, Target, Provenance, Metrics, Quality
 from caom2 import CalibrationLevel, Requirements, DataQuality
-from caom2 import SimpleObservation
+from caom2 import SimpleObservation, ChecksumURI
 import logging
 import sys
 from six.moves.urllib.parse import urlparse
@@ -1010,9 +1010,9 @@ class FitsParser(object):
             'Artifact.contentType', index=0, current=artifact.content_type)
         artifact.content_length = self._get_from_list(
             'Artifact.contentLength', index=0, current=artifact.content_length)
-        artifact.content_checksum = self._get_from_list(
+        artifact.content_checksum = self._to_checksum_uri(self._get_from_list(
             'Artifact.contentChecksum', index=0,
-            current=artifact.content_checksum)
+            current=artifact.content_checksum))
 
         for i, header in enumerate(self.headers):
             ii = str(i)
@@ -1039,6 +1039,7 @@ class FitsParser(object):
             chunk = part.chunks[0]
 
             wcs_parser = WcsParser(header, self.file, ii)
+            chunk.naxis = wcs_parser.wcs.wcs.naxis
             wcs_parser.augment_position(chunk)
             wcs_parser.augment_energy(chunk)
             wcs_parser.augment_temporal(chunk)
@@ -1505,6 +1506,9 @@ class FitsParser(object):
     def _to_int_32(self, value):
         return int_32(value) if value else None
 
+    def _to_checksum_uri(self, value):
+        return ChecksumURI(value) if value else None
+
     def _to_data_product_type(self, value):
         return DataProductType(value) if value else DataProductType.CUBE
 
@@ -1603,10 +1607,10 @@ class WcsParser(object):
         assert isinstance(chunk, Chunk)
 
         if self.wcs.has_celestial:
-            chunk.positionAxis1, chunk.positionAxis2 = \
+            chunk.position_axis_1, chunk.position_axis_2 = \
                 self._get_position_axis()
-            axis = self._get_spatial_axis(None, chunk.positionAxis1 - 1,
-                                          chunk.positionAxis2 - 1)
+            axis = self._get_spatial_axis(None, chunk.position_axis_1 - 1,
+                                          chunk.position_axis_2 - 1)
             if not chunk.position:
                 chunk.position = SpatialWCS(axis)
             else:
@@ -1645,7 +1649,7 @@ class WcsParser(object):
             self.logger.warning('No WCS Time info.')
             return
 
-        chunk.timeAxis = time_axis
+        chunk.time_axis = time_axis
         # set chunk.time
         self.logger.debug('Begin temporal axis augmentation.')
 
@@ -1973,12 +1977,21 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
     if overrides:
         logging.debug('Setting overrides for {}.'.format(artifact_uri))
         for key, value in overrides.items():
+            if key == 'BITPIX' or key == 'WCSAXES':
+                logging.debug(
+                    'Jan 11/18 Chris said ignore {!r}.'.format(key))
+                continue
             if key == 'artifacts' and artifact_uri in overrides['artifacts']:
                 logging.debug('Found extension overrides for URI {}.'.format(
                     artifact_uri))
                 for extension in overrides['artifacts'][artifact_uri].keys():
                     for ext_key, ext_value in \
                       overrides['artifacts'][artifact_uri][extension].items():
+                        if ext_key == 'BITPIX' or ext_key == 'WCSAXES':
+                            logging.debug(
+                                'Jan 11/18 Chris said ignore {!r}.'.format(
+                                    key))
+                            continue
                         try:
                             caom2_key = convert.get_caom2_element(ext_key)
                             parser.blueprint.set(caom2_key, ext_value,
