@@ -79,4 +79,4 @@ class ObservationUpdater(object):
         Processes an observation and updates it
         """
         assert isinstance(observation, Observation), (
-            "observation %s is not an Observation".format(observation))
+            "observation {} is not an Observation".format(observation))
