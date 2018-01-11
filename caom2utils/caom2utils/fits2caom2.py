@@ -783,7 +783,8 @@ class ObsBlueprint(object):
         else:
             self._plan[caom2_element] = (fits_attribute_list, None)
 
-    def add_fits_attribute(self, caom2_element, fits_attribute, extension=None):
+    def add_fits_attribute(self, caom2_element, fits_attribute,
+                           extension=None):
         """
         Adds a FITS attribute in the list of other FITS attributes associated
         with an caom2 element.
@@ -804,16 +805,19 @@ class ObsBlueprint(object):
                     'No extension {} in the blueprint'.format(extension))
             else:
                 if caom2_element in self._extensions[extension]:
-                    if isinstance(self._extensions[extension][caom2_element], tuple):
-                        self._extensions[extension][caom2_element][0].insert(0, fits_attribute)
+                    if isinstance(self._extensions[extension][caom2_element],
+                                  tuple):
+                        self._extensions[extension][caom2_element][0].\
+                            insert(0, fits_attribute)
                     else:
                         raise AttributeError(
-                            'No FITS attributes in extension {} associated with keyword {}'.
-                                format(extension, caom2_element))
+                            ('No FITS attributes in extension {} associated '
+                             'with keyword {}').format(extension,
+                                                       caom2_element))
                 else:
                     raise KeyError(
-                        'Keyword {} not found in the extension {} of the blueprint'.
-                            format(caom2_element, extension))
+                        ('Keyword {} not found in the extension {} of '
+                         'the blueprint').format(caom2_element, extension))
         else:
             if caom2_element in self._plan:
                 if isinstance(self._plan[caom2_element], tuple):
@@ -2110,6 +2114,7 @@ def main_app():
     if args.in_obs_xml:
         # append to existing observation
         reader = ObservationReader(validate=True)
+        obs = reader.read(args.in_obs_xml)
     else:
         obs = SimpleObservation(collection=args.observation[0],
                                 observation_id=args.observation[1],
