@@ -510,7 +510,7 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
-@pytest.mark.xfail(reason='the len(errors) test fails for BITPIX and WCSAXES')
+@pytest.mark.xfail(reason='the len(errors) test fails for CompositeObservation.members errors')
 def test_update_fits_headers():
     # The rules for the values:
     # all upper case - a FITS keyword
@@ -587,7 +587,7 @@ def test_update_fits_headers():
     assert test_parser.blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
         5) == '0.000000000', 'override HDU 5'
-    # this test fails right now :( for BITPIX and WCSAXES
+    # this will fail because of CompositeObservation.members errors
     assert len(test_parser._errors) == 0, test_parser._errors
 
 
