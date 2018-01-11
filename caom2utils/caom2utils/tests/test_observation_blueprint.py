@@ -69,107 +69,35 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from astropy.io import fits
-from astropy.wcs import WCS as awcs
-from caom2utils import FitsParser, WcsParser, main_app, DispatchingFormatter
-
-from caom2 import ObservationWriter
-from caom2 import Artifact, ProductType, ReleaseType
-from lxml import etree
-
+from caom2utils import ObsBlueprint
 from mock import Mock, patch
-from six import StringIO
-from caom2utils import fits2caom2
+from six import StringIO, BytesIO
 
-from io import BytesIO
 import logging
 import os
 import sys
-import tempfile
-import re
+import uuid
 
 import pytest
 
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
-expected_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps.xml')
-expected_cfhtwircam_obs = os.path.join(TESTDATA_DIR, 'cfhtwircam.xml')
-expected_local_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps_local.xml')
-sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
-sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
-sample_cfhtwircam = os.path.join(TESTDATA_DIR, '1709071g.fits')
-cfhtwircam_config = os.path.join(TESTDATA_DIR, 'cfhtwircam.config')
-cfhtwircam_defaults = os.path.join(TESTDATA_DIR, 'cfhtwircam.default')
-cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
+
+def test_class():
+    elems = ObsBlueprint.CAOM2_ELEMENTS
+    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
+                      polarization_axis=4, time_axis=5)
+    ob.set('Observation.instrument.name', 'NIRI')
+    ob.set_default('Observation.instrument.keywords', 'TEST')
+
+    ob.set_fits_attribute('Chunk.energy.axis.axis.ctype', ['MYCTYPE'], extension=1)
+    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
+                          extension=1)
+    ob.set('Chunk.energy.velang', 33, extension=1)
+    ob.set_default('Chunk.position.coordsys', 'RA-DEC', extension=1)
+
+    ob.set('Chunk.energy.velang', 44, extension=2)
+    print(ob)
+
+    print('******')
+    print(ObsBlueprint())
 
 
-# @pytest.mark.skip('')
-def test_fits2caom2():
-    # test fits2caom2 on a known existing CGPS file
-    expected = open(expected_cgps_obs).read()
-    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-        sys.argv = ('fits2caom2 -q --observation TEST myOBS myplane '
-                    'ad:CGPS/CGPS_MA1_HI_line_image').split()
-        fits2caom2.main_app()
-    actual = stdout_mock.getvalue().decode('ascii')
-    _cmp(expected, actual)
-
-    # repeat the test when the observation is saved
-    temp = tempfile.NamedTemporaryFile();
-    sys.argv = ('fits2caom2 -q --observation TEST myOBS -o {} myplane '
-                'ad:CGPS/CGPS_MA1_HI_line_image'.format(temp.name)).split()
-    fits2caom2.main_app()
-
-    actual = open(temp.name).read()
-    _cmp(expected, actual)
-
-    # test fits2caom2 on a known existing but now local CGPS file
-    expected = open(expected_local_cgps_obs).read()
-    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-        sys.argv = ('fits2caom2 -q --local {} --observation TEST myOBS myplane '
-                    'ad:CGPS/CGPS_MA1_HI_line_image').format(
-            sample_file_4axes).split()
-        fits2caom2.main_app()
-    actual = stdout_mock.getvalue().decode('ascii')
-    _cmp(expected, actual)
-
-    # repeat the test when the observation is saved
-    temp = tempfile.NamedTemporaryFile();
-    sys.argv = (
-        'fits2caom2 -q --observation TEST myOBS --local {} -o {} myplane '
-        'ad:CGPS/CGPS_MA1_HI_line_image'.format(
-            sample_file_4axes, temp.name)).split()
-    fits2caom2.main_app()
-
-    actual = open(temp.name).read()
-    _cmp(expected, actual)
-
-
-@pytest.mark.skip('')
-def test_fits2caom2_cfht_defaults_overrides():
-    # test fits2caom2 on a known existing CFHT file, with defaults and
-    # overrides
-    temp = tempfile.NamedTemporaryFile();
-    expected = open(expected_cfhtwircam_obs).read()
-    sys.argv = ('fits2caom2 -d --local {} -o {} --observation CFHT 1709071 '
-                '--config {} --default {} --override {} '
-                '1709071og ad:CFHT/1709071g ').format(
-        sample_cfhtwircam, temp.name, cfhtwircam_config, cfhtwircam_defaults,
-        cfhtwircam_override).split()
-    fits2caom2.main_app()
-    actual = open(temp.name).read()
-    _cmp(expected, actual)
-
-
-def _cmp(expected_obs_xml, actual_obs_xml):
-    """
-    Textual comparison of the xml representation of 2 observations ignoring
-    the UUIDs.
-    :param expected_obs_xml:
-    :param actual_obs_xml:
-    :return:
-    """
-    expected = re.sub(r'caom2:id=".*"', 'caom2:id=""', expected_obs_xml)
-    actual = re.sub(r'caom2:id=".*"', 'caom2:id=""', actual_obs_xml)
-
-    assert expected == actual
