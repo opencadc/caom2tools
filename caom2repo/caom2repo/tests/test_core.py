@@ -598,48 +598,49 @@ class TestCAOM2Repo(unittest.TestCase):
             lp = threading.Thread(target=logger_thread, args=(queue,))
             lp.start()
 
-            self.assertEqual(4, len(visited))
-            self.assertEqual(4, len(updated))
-            self.assertEqual(0, len(skipped))
-            self.assertEqual(0, len(failed))
-            self.assertTrue('a' in visited)
-            self.assertTrue('b' in visited)
-            self.assertTrue('c' in visited)
-            self.assertTrue('d' in visited)
-            self.assertFalse('e' in visited)
-            self.assertTrue('a' in updated)
-            self.assertTrue('b' in updated)
-            self.assertTrue('c' in updated)
-            self.assertTrue('d' in updated)
-            self.assertFalse('e' in updated)
+            try:
+                self.assertEqual(4, len(visited))
+                self.assertEqual(4, len(updated))
+                self.assertEqual(0, len(skipped))
+                self.assertEqual(0, len(failed))
+                self.assertTrue('a' in visited)
+                self.assertTrue('b' in visited)
+                self.assertTrue('c' in visited)
+                self.assertTrue('d' in visited)
+                self.assertFalse('e' in visited)
+                self.assertTrue('a' in updated)
+                self.assertTrue('b' in updated)
+                self.assertTrue('c' in updated)
+                self.assertTrue('d' in updated)
+                self.assertFalse('e' in updated)
 
-            obs_ids = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
-            visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
-            (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+                obs_ids = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
+                visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+                (visited, updated, skipped, failed) = visitor.visit(
+                    os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-            self.assertEqual(6, len(visited))
-            self.assertEqual(6, len(updated))
-            self.assertEqual(0, len(skipped))
-            self.assertEqual(0, len(failed))
-            self.assertTrue('a' in visited)
-            self.assertTrue('b' in visited)
-            self.assertTrue('c' in visited)
-            self.assertTrue('d' in visited)
-            self.assertTrue('e' in visited)
-            self.assertTrue('f' in visited)
-            self.assertFalse('g' in visited)
-            self.assertTrue('a' in updated)
-            self.assertTrue('b' in updated)
-            self.assertTrue('c' in updated)
-            self.assertTrue('d' in updated)
-            self.assertTrue('e' in updated)
-            self.assertTrue('f' in updated)
-            self.assertFalse('g' in updated)
-
-            queue.put(None)
-            lp.join()
-            logging.info("DONE")
+                self.assertEqual(6, len(visited))
+                self.assertEqual(6, len(updated))
+                self.assertEqual(0, len(skipped))
+                self.assertEqual(0, len(failed))
+                self.assertTrue('a' in visited)
+                self.assertTrue('b' in visited)
+                self.assertTrue('c' in visited)
+                self.assertTrue('d' in visited)
+                self.assertTrue('e' in visited)
+                self.assertTrue('f' in visited)
+                self.assertFalse('g' in visited)
+                self.assertTrue('a' in updated)
+                self.assertTrue('b' in updated)
+                self.assertTrue('c' in updated)
+                self.assertTrue('d' in updated)
+                self.assertTrue('e' in updated)
+                self.assertTrue('f' in updated)
+                self.assertFalse('g' in updated)
+            finally:
+                queue.put(None)
+                lp.join()
+                logging.info("DONE")
 
     def test_multiprocess_with_different_statuses(self):
         with patch('caom2repo.core.CAOM2RepoClient', PickableMagicMock()) as client_mock:
@@ -667,25 +668,25 @@ class TestCAOM2Repo(unittest.TestCase):
             lp = threading.Thread(target=logger_thread, args=(queue,))
             lp.start()
 
-            self.assertEqual(3, len(visited))
-            self.assertEqual(1, len(updated))
-            self.assertEqual(1, len(skipped))
-            self.assertEqual(1, len(failed))
+            try:
+                self.assertEqual(3, len(visited))
+                self.assertEqual(1, len(updated))
+                self.assertEqual(1, len(skipped))
+                self.assertEqual(1, len(failed))
 
-            obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
-            visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
-            (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+                obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
+                visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+                (visited, updated, skipped, failed) = visitor.visit(
+                    os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-            self.assertEqual(5, len(visited))
-            self.assertEqual(2, len(updated))
-            self.assertEqual(2, len(skipped))
-            self.assertEqual(1, len(failed))
-
-
-            queue.put(None)
-            lp.join()
-            logging.info("DONE")
+                self.assertEqual(5, len(visited))
+                self.assertEqual(2, len(updated))
+                self.assertEqual(2, len(skipped))
+                self.assertEqual(1, len(failed))
+            finally:
+                queue.put(None)
+                lp.join()
+                logging.info("DONE")
 
     def test_shortcuts(self):
         manager = multiprocessing.Manager()
