@@ -103,7 +103,7 @@ cfhtwircam_defaults = os.path.join(TESTDATA_DIR, 'cfhtwircam.default')
 cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
 
 
-# @pytest.mark.skip('')
+@pytest.mark.skip('')
 def test_fits2caom2():
     # test fits2caom2 on a known existing CGPS file
     expected = open(expected_cgps_obs).read()
@@ -145,7 +145,7 @@ def test_fits2caom2():
     _cmp(expected, actual)
 
 
-@pytest.mark.skip('')
+# @pytest.mark.skip('')
 def test_fits2caom2_cfht_defaults_overrides():
     # test fits2caom2 on a known existing CFHT file, with defaults and
     # overrides
@@ -153,7 +153,7 @@ def test_fits2caom2_cfht_defaults_overrides():
     expected = open(expected_cfhtwircam_obs).read()
     sys.argv = ('fits2caom2 -d --local {} -o {} --observation CFHT 1709071 '
                 '--config {} --default {} --override {} '
-                '1709071og ad:CFHT/1709071g ').format(
+                '1709071og ad:CFHT/1709071g.fits.gz ').format(
         sample_cfhtwircam, temp.name, cfhtwircam_config, cfhtwircam_defaults,
         cfhtwircam_override).split()
     fits2caom2.main_app()

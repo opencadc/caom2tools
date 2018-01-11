@@ -307,6 +307,8 @@ class ObsBlueprint(object):
         'Artifact.productType',
         'Artifact.releaseType',
         'Artifact.contentChecksum',
+        'Artifact.contentLength',
+        'Artifact.contentType',
 
         'Part.name',
         'Part.productType',
@@ -967,6 +969,20 @@ class FitsParser(object):
             'Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(
                 artifact.uri, len(self.headers)))
 
+        artifact.uri = self._get_from_list('Artifact.uri', index=0,
+                                           current=artifact.uri)
+        artifact.product_type = self._to_product_type(self._get_from_list(
+            'Artifact.productType', index=0, current=artifact.product_type))
+        artifact.release_type = self._to_release_type(self._get_from_list(
+            'Artifact.releaseType', index=0, current=artifact.release_type))
+        artifact.content_type = self._get_from_list(
+            'Artifact.contentType', index=0, current=artifact.content_type)
+        artifact.content_length = self._get_from_list(
+            'Artifact.contentLength', index=0, current=artifact.content_length)
+        artifact.content_checksum = self._get_from_list(
+            'Artifact.contentChecksum', index=0,
+            current=artifact.content_checksum)
+
         for i, header in enumerate(self.headers):
             ii = str(i)
 
@@ -1016,13 +1032,12 @@ class FitsParser(object):
 
         observation.algorithm = self._get_algorithm(observation)
 
-        observation.sequence_number = int(self._get_from_list(
-            'Observation.sequenceNumber', index=0, default=-1))
+        observation.sequence_number = self._to_int(self._get_from_list(
+            'Observation.sequenceNumber', index=0))
         observation.intent = self._get_from_list('Observation.intent', 0,
                                                  ObservationIntentType.SCIENCE)
         observation.type = self._get_from_list('Observation.type', 0)
         observation.meta_release = self._get_datetime(
-
             self._get_from_list('Observation.metaRelease', 0))
         observation.requirements = self._get_requirements()
         observation.instrument = self._get_instrument()
@@ -1034,8 +1049,7 @@ class FitsParser(object):
 
         plane = None
         if not product_id:
-            product_id = self._get_from_list('Plane.product_id', index=0,
-                                             default=None)
+            product_id = self._get_from_list('Plane.product_id', index=0)
         assert product_id, 'product ID required'
 
         for ii in observation.planes:
@@ -1063,18 +1077,13 @@ class FitsParser(object):
         assert isinstance(plane, Plane)
 
         plane.meta_release = self._get_datetime(self._get_from_list(
-            'Plane.metaRelease', index=0, default=None), 's')
+            'Plane.metaRelease', index=0), 's')
         plane.data_release = self._get_datetime(self._get_from_list(
-            'Plane.dataRelease', index=0, default=None), 's')
-        plane.data_product_type = \
-            DataProductType(self._get_from_list('Plane.dataProductType',
-                                                index=0,
-                                                default=DataProductType.CUBE))
-        plane.calibration_level = \
-            CalibrationLevel(int_32(
-                self._get_from_list('Plane.calibrationLevel',
-                                    index=0,
-                                    default=CalibrationLevel.CALIBRATED.value)))
+            'Plane.dataRelease', index=0), 's')
+        plane.data_product_type = self._to_data_product_type(
+            self._get_from_list('Plane.dataProductType', index=0))
+        plane.calibration_level = self._to_calibration_level(self._to_int_32(
+            self._get_from_list('Plane.calibrationLevel', index=0)))
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
         plane.quality = self._get_quality()
@@ -1117,10 +1126,9 @@ class FitsParser(object):
         :return: Instrument
         """
         self.logger.debug('Begin CAOM2 Instrument augmentation.')
-        name = self._get_from_list('Observation.instrument.name', index=0,
-                                   default='UNKNOWN')  # TODO DEFAULT VALUE
+        name = self._get_from_list('Observation.instrument.name', index=0)
         keywords = self._get_from_list('Observation.instrument.keywords',
-                                       index=0, default=['UNKNOWN'])  # TODO
+                                       index=0)
         self.logger.debug('End CAOM2 Instrument augmentation.')
         if name:
             instr = Instrument(str(name))
@@ -1153,8 +1161,7 @@ class FitsParser(object):
         :return: Target
         """
         self.logger.debug('Begin CAOM2 Target augmentation.')
-        name = self._get_from_list('Observation.target.name', index=0,
-                                   default='UNKNOWN')  # TODO
+        name = self._get_from_list('Observation.target.name', index=0)
         target_type = self._get_from_list('Observation.target.type',
                                           index=0)
         standard = self._cast_as_bool(self._get_from_list(
@@ -1212,22 +1219,18 @@ class FitsParser(object):
         :return: Environment
         """
         self.logger.debug('Begin CAOM2 Environment augmentation.')
-        seeing = self._get_from_list('Observation.environment.seeing', index=0,
-                                     default=None)  # TODO
+        seeing = self._get_from_list('Observation.environment.seeing', index=0)
         humidity = self._get_from_list('Observation.environment.humidity',
-                                       index=0, default=None)  # TODO
+                                       index=0)
         elevation = self._get_from_list('Observation.environment.elevation',
-                                        index=0, default=None)  # TODO
-        tau = self._get_from_list('Observation.environment.tau', index=0,
-                                  default=None)  # TODO
+                                        index=0)
+        tau = self._get_from_list('Observation.environment.tau', index=0)
         wavelength_tau = self._get_from_list(
-            'Observation.environment.wavelengthTau', index=0,
-            default=None)  # TODO
+            'Observation.environment.wavelengthTau', index=0)
         ambient = self._get_from_list('Observation.environment.ambientTemp',
-                                      index=0, default=None)  # TODO
-        photometric = \
-            self._get_from_list('Observation.environment.photometric',
-                                index=0, default=False)  # TODO
+                                      index=0)
+        photometric = self._get_from_list('Observation.environment.photometric',
+                                          index=0)
 
         if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = Environment()
@@ -1257,11 +1260,12 @@ class FitsParser(object):
         else:
             return None
 
-    def _get_from_list(self, lookup, index, default=None, current=None):
-        value = default
+    def _get_from_list(self, lookup, index, current=None):
+        value = None
         try:
             keywords = self.blueprint._get(lookup)
         except KeyError:
+            self.add_error(lookup, sys.exc_info()[1])
             self.logger.warning(
                 'Could not find {!r} in fits2caom2 configuration.'.format(
                     lookup))
@@ -1271,40 +1275,35 @@ class FitsParser(object):
                 value = current
             return value
 
-        if type(keywords) == list:
-            for ii in keywords:
-                if isinstance(ii, dict):
-                    value = ii['default']
-                else:
-                    value = self.headers[index].get(ii, default)
-                if value is None and current:
-                    value = current
-                    self.logger.debug(
-                        '{}: used current value {!r}.'.format(
-                            lookup, value))
-                else:
-                    self.logger.debug(
-                        '{}: assigned value {} based on keyword {}.'.format(
-                            lookup, value, ii))
-                if value is not default:
-                    break
-            # TODO set the default
-        elif type(keywords) == tuple:
+        if isinstance(keywords, tuple):
             for ii in keywords[0]:
                 try:
                     value = self.headers[index].get(ii)
-                    self.logger.debug(
-                        '{}: assigned value {} based on keyword {}.'.format(
-                            lookup, value, ii))
-                    break
+                    if value:
+                        self.logger.debug(
+                            '{}: assigned value {} based on keyword {}.'.format(
+                                lookup, value, ii))
+                        break
                 except KeyError:
-                    pass
-
-            if value is None and current:
-                value = current
-                self.logger.debug(
-                    '{}: used current value {!r}.'.format(
-                        lookup, value))
+                    self.add_error(lookup, sys.exc_info()[1])
+                    # assign a default value, if one exists
+                    if keywords[1]:
+                        value = keywords[1]
+                        self.logger.debug(
+                            '{}: assigned default value {}.'.format(lookup,
+                                                                    value))
+            if value is None:
+                if current:
+                    value = current
+                    self.logger.debug(
+                        '{}: used current value {!r}.'.format(lookup, value))
+                else:
+                    # assign a default value, if one exists
+                    if keywords[1]:
+                        value = keywords[1]
+                        self.logger.debug(
+                            '{}: assigned default value {}.'.format(lookup,
+                                                                    value))
 
         elif keywords:
             value = keywords
@@ -1314,39 +1313,32 @@ class FitsParser(object):
         self.logger.debug('{}: value is {}'.format(lookup, value))
         return value
 
-    def _get_set_from_list(self, lookup, index, default=None):
-        value = default
+    def _get_set_from_list(self, lookup, index):
+        value = None
+        keywords = None
         try:
             keywords = self.blueprint._get(lookup)
         except KeyError:
+            self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(
                 'Could not find \'{}\' in fits2caom2 configuration.'.format(
                     lookup))
-            return value
 
-        if isinstance(keywords, list):
-            for ii in keywords:
-                temp = self.headers[index].get(ii, default)
-                self.logger.debug(
-                    'Assigned value {} based on keyword {}'.format(temp, ii))
-                if temp is not default:
-                    value = set()
-                    for jj in temp.split(','):
-                        value.add(jj)
-                    break
-        elif isinstance(keywords, tuple):
+        if isinstance(keywords, tuple):
             for ii in keywords[0]:
-                if isinstance(ii, dict):
-                    value = ii['default']
-                elif isinstance(ii, list):
-                    for jj in ii:
-                        try:
-                            value = self.headers[index].get(jj)
-                            break
-                        except KeyError:
-                            pass
-                if value is not default:
+                try:
+                    value = self.headers[index].get(ii)
                     break
+                except KeyError:
+                    self.add_error(lookup, sys.exc_info()[1])
+                    if keywords[1]:
+                        value = keywords[1]
+                        self.logger.debug(
+                            '{}: assigned default value {}.'.format(lookup,
+                                                                    value))
+        elif keywords:
+            value = keywords
+            self.logger.debug('{}: assigned value {}.'.format(lookup, value))
 
         return value
 
@@ -1359,7 +1351,7 @@ class FitsParser(object):
         name = self._to_str(
             self._get_from_list('Plane.provenance.name', index=0))
         p_version = self._to_str(self._get_from_list('Plane.provenance.version',
-                                                     index=0))  # TODO DEFAULT VALUE
+                                                     index=0))
         project = self._to_str(
             self._get_from_list('Plane.provenance.project', index=0))
         producer = self._to_str(
@@ -1369,20 +1361,18 @@ class FitsParser(object):
         reference = self._to_str(
             self._get_from_list('Plane.provenance.reference', index=0))
         last_executed = self._get_datetime(
-            self._get_from_list('Plane.provenance.lastExecuted',
-                                index=0))  # TODO DEFAULT VALUE
-        keywords = self._get_from_list('Plane.provenance.keywords', index=0,
-                                       default='DEFAULT')  # TODO DEFAULT VALUE
+            self._get_from_list('Plane.provenance.lastExecuted', index=0))
+        keywords = self._get_from_list('Plane.provenance.keywords', index=0)
         # inputs = self._get_from_list('Plane.provenance.inputs', index=0,
         # default=set(PlaneURI('caom:UNKNOWN/UNKNOWN/UNKNOWN')))
         #  TODO DEFAULT VALUE
-        inputs = self._get_from_list('Plane.provenance.inputs', index=0,
-                                     default=None)  # TODO DEFAULT VALUE
+        inputs = self._get_from_list('Plane.provenance.inputs', index=0)
         self.logger.debug('End CAOM2 Provenance augmentation.')
         if name:
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
-            prov.keywords.union(keywords)
+            if keywords:
+                prov.keywords.union(keywords)
             if inputs:
                 prov.inputs.add(inputs)
             return prov
@@ -1396,15 +1386,14 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Metrics augmentation.')
         source_number_density = self._get_from_list(
-            'Plane.metrics.sourceNumberDensity', index=0)  # TODO DEFAULT VALUE
+            'Plane.metrics.sourceNumberDensity', index=0)
         background = self._get_from_list('Plane.metrics.background',
-                                         index=0)  # TODO DEFAULT VALUE
+                                         index=0)
         background_stddev = self._get_from_list(
-            'Plane.metrics.backgroundStddev', index=0)  # TODO DEFAULT VALUE
+            'Plane.metrics.backgroundStddev', index=0)
         flux_density_limit = self._get_from_list(
-            'Plane.metrics.fluxDensityLimit', index=0)  # TODO DEFAULT VALUE
-        mag_limit = self._get_from_list('Plane.metrics.magLimit',
-                                        index=0)  # TODO DEFAULT VALUE
+            'Plane.metrics.fluxDensityLimit', index=0)
+        mag_limit = self._get_from_list('Plane.metrics.magLimit', index=0)
 
         if source_number_density or background or background_stddev or \
                 flux_density_limit or mag_limit:
@@ -1458,7 +1447,7 @@ class FitsParser(object):
                 return None
         except ValueError:
             self.logger.warning('{}'.format(sys.exc_info()[1]))
-            # return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
+            self.add_error('get_datetime', sys.exc_info()[1])
             return None
 
     def _cast_as_bool(self, from_value):
@@ -1478,6 +1467,24 @@ class FitsParser(object):
 
     def _to_str(self, value):
         return str(value) if value else None
+
+    def _to_int(self, value):
+        return int(value) if value else None
+
+    def _to_int_32(self, value):
+        return int_32(value) if value else None
+
+    def _to_data_product_type(self, value):
+        return DataProductType(value) if value else DataProductType.CUBE
+
+    def _to_calibration_level(self, value):
+        return CalibrationLevel(value) if value else CalibrationLevel.CALIBRATED
+
+    def _to_product_type(self, value):
+        return ProductType(value) if value else ProductType.INFO
+
+    def _to_release_type(self, value):
+        return ReleaseType(value) if value else ReleaseType.DATA
 
 
 class WcsParser(object):
@@ -1905,6 +1912,21 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
 
     convert = ConvertFromJava(parser.blueprint, config)
 
+    if config:
+        logging.debug(
+            'Setting user-supplied configuration for {}.'.format(artifact_uri))
+        for key, value in config.items():
+            try:
+                caom2_key = convert.get_caom2_element(key)
+                if value.isupper() and value.find('.') == -1:
+                    # assume its a fits keyword, in the 0th extension,
+                    # and add to the blueprint
+                    parser.blueprint.set_fits_attribute(caom2_key, [value])
+            except ValueError:
+                parser.add_error(key, sys.exc_info()[1])
+        logging.debug(
+            'User-supplied configuration applied for {}.'.format(artifact_uri))
+
     if defaults:
         logging.debug('Setting defaults for {}'.format(artifact_uri))
         for key, value in defaults.items():
@@ -1928,7 +1950,11 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
                       overrides['artifacts'][artifact_uri][extension].items():
                         try:
                             caom2_key = convert.get_caom2_element(ext_key)
-                            parser.blueprint.set(caom2_key, ext_value, extension)
+                            parser.blueprint.set(caom2_key, ext_value,
+                                                 extension)
+                            logging.debug(
+                                '{} setting override value to {} for {}.'.format(
+                                    ext_key, ext_value, artifact_uri))
                         except ValueError:
                             parser.add_error(key, 'ext {} {}'.format(
                                 extension, sys.exc_info()[1]))
@@ -2083,8 +2109,14 @@ def main_app():
             parser = FitsParser(headers)
 
         update_fits_headers(parser, uri, config, defaults, overrides)
+        print(parser.blueprint)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
+
+        if len(parser._errors) > 0:
+            logging.warning(
+                '{} errors encountered while processing {!r}.'.format(
+                    len(parser._errors), uri))
 
     writer = ObservationWriter()
     if args.out_obs_xml:

@@ -2,7 +2,6 @@
 <caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-9b95-d331dc5f6f4d">
   <caom2:collection>TEST</caom2:collection>
   <caom2:observationID>myOBS</caom2:observationID>
-  <caom2:sequenceNumber>-1</caom2:sequenceNumber>
   <caom2:algorithm>
     <caom2:name>EXPOSURE</caom2:name>
   </caom2:algorithm>
