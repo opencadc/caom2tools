@@ -149,6 +149,17 @@ class HDULoggingFilter(logging.Filter):
         self._extension = value
 
 
+class classproperty(object):
+    """
+    Class property used for CAOM2_ELEMENTS in ObsBleprint
+    """
+    def __init__(self, f):
+        self.f = f
+
+    def __get__(self, obj, owner):
+        return self.f(owner)
+
+
 class DispatchingFormatter:
     """Dispatch formatter for logger and it's sub-logger, so there can
     be multiple formatters."""
@@ -187,15 +198,15 @@ class ObsBlueprint(object):
     For example:
 
     # display the default blueprint when WCS axes are not specified
-    print(ObservationBlueprint())
+    print(ObsBlueprint())
 
     # display the default blueprint when WCS axes are specified
-    print(ObservationBlueprint(position_axis=(1, 2), energy_axis=3,
-                               polarization_axis=4, time_axis=5))
+    print(ObsBlueprint(position_axis=(1, 2), energy_axis=3,
+                       polarization_axis=4, time_axis=5))
 
     # create a blueprint and customize it
-    ob = ObservationBlueprint(position_axis=(1, 2), energy_axis=3,
-                              polarization_axis=4, time_axis=5))
+    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
+                      polarization_axis=4, time_axis=5))
     ob.set('Observation.algorithm.name', 'EXPOSURE')
     ob.set_fits_attribute('Chunk.energy.axis.axis.ctype', ['MYCTYPE'],
                           extension=1)
@@ -210,6 +221,7 @@ class ObsBlueprint(object):
     """
     _CAOM2_ELEMENTS = [
         #TODO not used for now 'CompositeObservation.members',
+        'Observation.observationID',
         'Observation.type',
         'Observation.intent',
         'Observation.sequenceNumber',
@@ -246,6 +258,7 @@ class ObsBlueprint(object):
         'Observation.environment.ambientTemp',
         'Observation.environment.photometric',
 
+        'Plane.productID',
         'Plane.metaRelease',
         'Plane.dataRelease',
         'Plane.dataProductType',
@@ -400,137 +413,143 @@ class ObsBlueprint(object):
                     format(str(position_axis)))
 
         # this is the default blueprint
-        self._plan = {'Observation.metaRelease':
-                      (['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
-                        'UTC-DATE', 'MJDOBS', 'MJD_OBS'], None),
-                      'Observation.instrument.name': (['INSTRUME'], None),
-                      'Observation.type': (['OBSTYPE'], None),
-                      'Observation.environment.ambientTemp': (['TEMPERAT'],
-                                                              None),
-                      'Observation.algorithm.name': (['PROCNAME'], None),
-                      'Observation.instrument.keywords': (['INSTMODE'], None),
-                      'Observation.proposal.id': (['RUNID'], None),
-                      'Observation.target.name': (['OBJECT'], None),
-                      'Observation.telescope.name': (['INSTRUME'], None),
-                      'Observation.telescope.geoLocationX': (['OBSGEO-X'],
-                                                             None),
-                      'Observation.telescope.geoLocationY': (['OBSGEO-Y'],
-                                                             None),
-                      'Observation.telescope.geoLocationZ': (['OBSGEO-Z'],
-                                                             None),
-                      'Observation.observation_id': (['OBSID'], None),
-                      'Plane.metaRelease': (['RELEASE', 'REL_DATE'], None),
-                      'Plane.dataRelease': (['RELEASE', 'REL_DATE'], None),
-                      'Plane.product_id': (['RUNID'], None),
-                      'Plane.provenance.name': (['XPRVNAME'], None),
-                      'Plane.provenance.project': (['ADC_ARCH'], None),
-                      'Plane.provenance.producer': (['ORIGIN'], None),
-                      'Plane.provenance.reference': (['XREFER'], None),
-                      'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
-                     }
+        self._plan = {}
+        tmp = {'Observation.metaRelease':
+               (['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
+                 'UTC-DATE', 'MJDOBS', 'MJD_OBS'], None),
+               'Observation.instrument.name': (['INSTRUME'], None),
+               'Observation.type': (['OBSTYPE'], None),
+               'Observation.environment.ambientTemp': (['TEMPERAT'],
+                                                       None),
+               'Observation.algorithm.name': (['PROCNAME'], None),
+               'Observation.instrument.keywords': (['INSTMODE'], None),
+               'Observation.proposal.id': (['RUNID'], None),
+               'Observation.target.name': (['OBJECT'], None),
+               'Observation.telescope.name': (['INSTRUME'], None),
+               'Observation.telescope.geoLocationX': (['OBSGEO-X'],
+                                                      None),
+               'Observation.telescope.geoLocationY': (['OBSGEO-Y'],
+                                                      None),
+               'Observation.telescope.geoLocationZ': (['OBSGEO-Z'],
+                                                      None),
+               'Observation.observationID': (['OBSID'], None),
+               'Plane.metaRelease': (['RELEASE', 'REL_DATE'], None),
+               'Plane.dataRelease': (['RELEASE', 'REL_DATE'], None),
+               'Plane.productID': (['RUNID'], None),
+               'Plane.provenance.name': (['XPRVNAME'], None),
+               'Plane.provenance.project': (['ADC_ARCH'], None),
+               'Plane.provenance.producer': (['ORIGIN'], None),
+               'Plane.provenance.reference': (['XREFER'], None),
+               'Plane.provenance.lastExecuted': (['DATE-FTS'], None)
+               }
+        # using the tmp to make sure that the keywords are valid
+        for key in tmp:
+            self.set(key, tmp[key])
 
         if position_axis:
-            self._plan['Chunk.position.coordsys'] = (['RADECSYS', 'RADESYS'],
-                                                     None)
-            self._plan['Chunk.position.equinox'] =(['EQUINOX' ,'EPOCH'], None)
-            self._plan['Chunk.position.axis.axis1.ctype'] = \
-                (['CTYPE{}'.format(position_axis[0])], None)
-            self._plan['Chunk.position.axis.axis1.cunit'] = \
-                (['CUNIT{}'.format(position_axis[0])], None)
-            self._plan['Chunk.position.axis.axis2.ctype'] = \
-                (['CTYPE{}'.format(position_axis[1])], None)
-            self._plan['Chunk.position.axis.axis2.cunit'] = \
-                (['CUNIT{}'.format(position_axis[1])], None)
-            self._plan['Chunk.position.axis.error1.syser'] = \
-                (['CSYER{}'.format(position_axis[0])], None)
-            self._plan['Chunk.position.axis.error1.rnder'] = \
-                (['CRDER{}'.format(position_axis[0])], None)
-            self._plan['Chunk.position.axis.error2.syser'] = \
-                (['CSYER{}'.format(position_axis[1])], None)
-            self._plan['Chunk.position.axis.error2.rnder'] = \
-                (['CRDER{}'.format(position_axis[1])], None)
-            self._plan['Chunk.position.axis.function.cd11'] = \
-                (['CD{}_{}'.format(position_axis[0], position_axis[0])], None)
-            self._plan['Chunk.position.axis.function.cd12'] = \
-                (['CD{}_{}'.format(position_axis[0], position_axis[1])], None)
-            self._plan['Chunk.position.axis.function.cd21'] = \
-                (['CD{}_{}'.format(position_axis[1], position_axis[0])], None)
-            self._plan['Chunk.position.axis.function.cd22'] = \
-                (['CD{}_{}'.format(position_axis[1], position_axis[1])], None)
-            self._plan['Chunk.position.axis.function.dimension.naxis1'] = \
-                (['ZNAXIS{}', 'NAXIS{}'.format(position_axis[0])], None)
-            self._plan['Chunk.position.axis.function.dimension.naxis2'] = \
-                (['ZNAXIS{}' ,'NAXIS{}'.format(position_axis[1])], None)
-            self._plan['Chunk.position.axis.function.refCoord.coord1.pix'] = \
-                (['CRPIX{}'.format(position_axis[0])], None)
-            self._plan['Chunk.position.axis.function.refCoord.coord1.val'] = \
-                (['CRVAL{}'.format(position_axis[0])], None)
-            self._plan['Chunk.position.axis.function.refCoord.coord2.pix'] = \
-                (['CRPIX{}'.format(position_axis[1])], None)
-            self._plan['Chunk.position.axis.function.refCoord.coord2.val'] = \
-                (['CRVAL{}'.format(position_axis[1])], None)
+            self.set('Chunk.position.coordsys', (['RADECSYS', 'RADESYS'],
+                                                  None))
+            self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
+            self.set('Chunk.position.axis.axis1.ctype',
+                (['CTYPE{}'.format(position_axis[0])], None))
+            self.set('Chunk.position.axis.axis1.cunit',
+                (['CUNIT{}'.format(position_axis[0])], None))
+            self.set('Chunk.position.axis.axis2.ctype',
+                (['CTYPE{}'.format(position_axis[1])], None))
+            self.set('Chunk.position.axis.axis2.cunit',
+                (['CUNIT{}'.format(position_axis[1])], None))
+            self.set('Chunk.position.axis.error1.syser',
+                (['CSYER{}'.format(position_axis[0])], None))
+            self.set('Chunk.position.axis.error1.rnder',
+                (['CRDER{}'.format(position_axis[0])], None))
+            self.set('Chunk.position.axis.error2.syser',
+                (['CSYER{}'.format(position_axis[1])], None))
+            self.set('Chunk.position.axis.error2.rnder',
+                (['CRDER{}'.format(position_axis[1])], None))
+            self.set('Chunk.position.axis.function.cd11',
+                (['CD{}_{}'.format(position_axis[0], position_axis[0])], None))
+            self.set('Chunk.position.axis.function.cd12',
+                (['CD{}_{}'.format(position_axis[0], position_axis[1])], None))
+            self.set('Chunk.position.axis.function.cd21',
+                (['CD{}_{}'.format(position_axis[1], position_axis[0])], None))
+            self.set('Chunk.position.axis.function.cd22',
+                (['CD{}_{}'.format(position_axis[1], position_axis[1])], None))
+            self.set('Chunk.position.axis.function.dimension.naxis1',
+                (['ZNAXIS{}'.format(position_axis[0]),
+                  'NAXIS{}'.format(position_axis[0])], None))
+            self.set('Chunk.position.axis.function.dimension.naxis2',
+                (['ZNAXIS{}'.format(position_axis[0]),
+                  'NAXIS{}'.format(position_axis[1])], None))
+            self.set('Chunk.position.axis.function.refCoord.coord1.pix',
+                (['CRPIX{}'.format(position_axis[0])], None))
+            self.set('Chunk.position.axis.function.refCoord.coord1.val',
+                (['CRVAL{}'.format(position_axis[0])], None))
+            self.set('Chunk.position.axis.function.refCoord.coord2.pix',
+                (['CRPIX{}'.format(position_axis[1])], None))
+            self.set('Chunk.position.axis.function.refCoord.coord2.val',
+                (['CRVAL{}'.format(position_axis[1])], None))
 
         if energy_axis:
-            self._plan['Chunk.energy.specsys'] = (['SPECSYS'], None,)
-            self._plan['Chunk.energy.ssysobs'] = (['SSYSOBS'], None)
-            self._plan['Chunk.energy.restfrq'] = (['RESTFRQ'], None)
-            self._plan['Chunk.energy.restwav'] = (['RESTWAV'], None)
-            self._plan['Chunk.energy.velosys'] = (['VELOSYS'], None)
-            self._plan['Chunk.energy.zsource'] = (['ZSOURCE'], None)
-            self._plan['Chunk.energy.ssyssrc'] = (['SSYSSRC'], None)
-            self._plan['Chunk.energy.velang'] = (['VELANG'], None)
-            self._plan['Chunk.energy.axis.axis.ctype'] = \
-                (['CTYPE{}'.format(energy_axis)], None)
-            self._plan['Chunk.energy.axis.axis.cunit'] = \
-                (['CUNIT{}'.format(energy_axis)], None)
-            self._plan['Chunk.energy.axis.error.syser'] = \
-                (['CSYER{}'.format(energy_axis)], None)
-            self._plan['Chunk.energy.axis.error.rnder'] = \
-                (['CRDER{}'.format(energy_axis)], None)
-            self._plan['Chunk.energy.axis.function.naxis'] = \
-                (['NAXIS{}'.format(energy_axis)], None)
-            self._plan['Chunk.energy.axis.function.delta'] = \
-                (['CDELT{}'.format(energy_axis)], None)
-            self._plan['Chunk.energy.axis.function.refCoord.pix'] = \
-                (['CRPIX{}'.format(energy_axis)], None)
-            self._plan['Chunk.energy.axis.function.refCoord.val'] = \
-                (['CRVAL{}'.format(energy_axis)], None)
+            self.set('Chunk.energy.specsys', (['SPECSYS'], None))
+            self.set('Chunk.energy.ssysobs', (['SSYSOBS'], None))
+            self.set('Chunk.energy.restfrq', (['RESTFRQ'], None))
+            self.set('Chunk.energy.restwav', (['RESTWAV'], None))
+            self.set('Chunk.energy.velosys', (['VELOSYS'], None))
+            self.set('Chunk.energy.zsource', (['ZSOURCE'], None))
+            self.set('Chunk.energy.ssyssrc', (['SSYSSRC'], None))
+            self.set('Chunk.energy.velang', (['VELANG'], None))
+            self.set('Chunk.energy.axis.axis.ctype',
+                (['CTYPE{}'.format(energy_axis)], None))
+            self.set('Chunk.energy.axis.axis.cunit',
+                (['CUNIT{}'.format(energy_axis)], None))
+            self.set('Chunk.energy.axis.error.syser',
+                (['CSYER{}'.format(energy_axis)], None))
+            self.set('Chunk.energy.axis.error.rnder',
+                (['CRDER{}'.format(energy_axis)], None))
+            self.set('Chunk.energy.axis.function.naxis',
+                (['NAXIS{}'.format(energy_axis)], None))
+            self.set('Chunk.energy.axis.function.delta',
+                (['CDELT{}'.format(energy_axis)], None))
+            self.set('Chunk.energy.axis.function.refCoord.pix',
+                (['CRPIX{}'.format(energy_axis)], None))
+            self.set('Chunk.energy.axis.function.refCoord.val',
+                (['CRVAL{}'.format(energy_axis)], None))
 
         if polarization_axis:
-            self._plan['Chunk.polarization.axis.axis.ctype'] = \
-                (['CTYPE{}'.format(polarization_axis)], None)
-            self._plan['Chunk.polarization.axis.axis.cunit'] = \
-                (['CUNIT{}'.format(polarization_axis)], None)
-            self._plan['Chunk.polarization.axis.function.naxis'] = \
-                (['NAXIS{}'.format(polarization_axis)], None)
-            self._plan['Chunk.polarization.axis.function.delta'] = \
-                (['CDELT{}'.format(polarization_axis)], None)
-            self._plan['Chunk.polarization.axis.function.refCoord.pix'] = \
-                (['CRPIX{}'.format(polarization_axis)], None)
-            self._plan['Chunk.polarization.axis.function.refCoord.val'] = \
-                (['CRVAL{}'.format(polarization_axis)], None)
+            self.set('Chunk.polarization.axis.axis.ctype',
+                (['CTYPE{}'.format(polarization_axis)], None))
+            self.set('Chunk.polarization.axis.axis.cunit',
+                (['CUNIT{}'.format(polarization_axis)], None))
+            self.set('Chunk.polarization.axis.function.naxis',
+                (['NAXIS{}'.format(polarization_axis)], None))
+            self.set('Chunk.polarization.axis.function.delta',
+                (['CDELT{}'.format(polarization_axis)], None))
+            self.set('Chunk.polarization.axis.function.refCoord.pix',
+                (['CRPIX{}'.format(polarization_axis)], None))
+            self.set('Chunk.polarization.axis.function.refCoord.val',
+                (['CRVAL{}'.format(polarization_axis)], None))
 
         if time_axis:
-            self._plan['Chunk.time.exposure'] = (['EXPTIME', 'INTTIME'], None)
-            self._plan['Chunk.time.timesys'] = (['TIMESYS'], None)
-            self._plan['Chunk.time.trefpos'] = (['TREFPOS'], None)
-            self._plan['Chunk.time.mjdref'] = (['MJDREF'], None)
-            self._plan['Chunk.time.axis.axis.ctype'] = \
-                (['CTYPE{}'.format(time_axis)], None)
-            self._plan['Chunk.time.axis.axis.cunit'] = \
-                (['CUNIT{}'.format(time_axis)], None)
-            self._plan['Chunk.time.axis.error.syser'] = \
-                (['CSYER{}'.format(time_axis)], None)
-            self._plan['Chunk.time.axis.error.rnder'] = \
-                (['CRDER{}'.format(time_axis)], None)
-            self._plan['Chunk.time.axis.function.naxis'] = \
-                (['NAXIS{}'.format(time_axis)], None)
-            self._plan['Chunk.time.axis.function.delta'] = \
-                (['CDELT{}'.format(time_axis)], None)
-            self._plan['Chunk.time.axis.function.refCoord.pix'] = \
-                (['CRPIX{}'.format(time_axis)], None)
-            self._plan['Chunk.time.axis.function.refCoord.val'] = \
-                (['CRVAL{}'.format(time_axis)], None)
+            self.set('Chunk.time.exposure', (['EXPTIME', 'INTTIME'], None))
+            self.set('Chunk.time.timesys', (['TIMESYS'], None))
+            self.set('Chunk.time.trefpos', (['TREFPOS'], None))
+            self.set('Chunk.time.mjdref', (['MJDREF'], None))
+            self.set('Chunk.time.axis.axis.ctype',
+                (['CTYPE{}'.format(time_axis)], None))
+            self.set('Chunk.time.axis.axis.cunit',
+                (['CUNIT{}'.format(time_axis)], None))
+            self.set('Chunk.time.axis.error.syser',
+                (['CSYER{}'.format(time_axis)], None))
+            self.set('Chunk.time.axis.error.rnder',
+                (['CRDER{}'.format(time_axis)], None))
+            self.set('Chunk.time.axis.function.naxis',
+                (['NAXIS{}'.format(time_axis)], None))
+            self.set('Chunk.time.axis.function.delta',
+                (['CDELT{}'.format(time_axis)], None))
+            self.set('Chunk.time.axis.function.refCoord.pix',
+                (['CRPIX{}'.format(time_axis)], None))
+            self.set('Chunk.time.axis.function.refCoord.val',
+                (['CRVAL{}'.format(time_axis)], None))
 
         self._extensions = {}
 
@@ -642,10 +661,26 @@ class ObsBlueprint(object):
             self._wcs_std['Chunk.time.axis.function.refCoord.val'] = \
                 'CRVAL{}'.format(time_axis)
 
-    @classmethod
-    @property
+    @classproperty
     def CAOM2_ELEMENTS(cls):
+        """
+        List of valid names of CAOM2 elements.
+        :return:
+        """
         return list(ObsBlueprint._CAOM2_ELEMENTS) # return a copy
+
+    @classmethod
+    def check_caom2_element(cls, caom2_element):
+        """
+        Checks that an element is a valid caom2_element in the blueprint. It
+        checks that it's part of the ObsBlueprint._CAOM2_ELEMENTS
+        :param caom2_element: name CAOM2 element to check
+        :raises KeyError
+        """
+        if caom2_element not in cls._CAOM2_ELEMENTS:
+            raise KeyError(
+                '{} not a valid CAOM2 element name (mispelling?).'.
+                format(caom2_element))
 
     def __str__(self):
         plan = self._serialize(self._plan)
@@ -670,11 +705,12 @@ class ObsBlueprint(object):
         """
         Sets the value associated with an element in the CAOM2 model. Value
         cannot be a tuple.
-        :param caom2_element: CAOM2 element
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
         :param value: new value of the CAOM2 element
         :param extension: extension number (used only for Chunk elements)
         """
-        self.check_caom2_element(caom2_element)
+        ObsBlueprint.check_caom2_element(caom2_element)
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -689,11 +725,14 @@ class ObsBlueprint(object):
                            extension=None):
         """
         Associates a CAOM2 element with a FITS attribute
-        :param caom2_element:
-        :param fits_attribute_list:
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param fits_attribute_list: list of FITS attributes the element is
+        potentially mapped to.
         :param extension: extension number (used only for Chunk elements)
         """
-        self.check_caom2_element(caom2_element)
+        ObsBlueprint.check_caom2_element(caom2_element)
+        assert isinstance(fits_attribute_list, list)
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -709,13 +748,14 @@ class ObsBlueprint(object):
         """
         Adds a FITS attribute in the list of other FITS attributes associated
         with an caom2 element.
-        :param caom2_element:
-        :param fits_attribute:
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param fits_attribute: name of FITS attribute the element is mapped to
         :param extension: extension number (used only for Chunk elements)
         :raises AttributeError if the caom2 element has already an associated
         value or KeyError if the caom2 element does not exists.
         """
-        self.check_caom2_element(caom2_element)
+        ObsBlueprint.check_caom2_element(caom2_element)
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -754,11 +794,12 @@ class ObsBlueprint(object):
         attributes. If the element does not exist or does not have a list of
         associated FITS attributes, default is set as the associated value
         of the element
-        :param caom2_element:
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
         :param default: default value
         :param extension: extension number (used only for Chunk elements)
         """
-        self.check_caom2_element(caom2_element)
+        ObsBlueprint.check_caom2_element(caom2_element)
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -781,14 +822,15 @@ class ObsBlueprint(object):
                 # override the value
                 self._plan[caom2_element] = default
 
-    def delete_element(self, caom2_element, extension=None):
+    def delete(self, caom2_element, extension=None):
         """
         Deletes an element from the blueprint
-        :param caom2_element: element to delete
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
         :param extension: extension number
         :raises exceptions if the element or extension not found
         """
-        self.check_caom2_element(caom2_element)
+        ObsBlueprint.check_caom2_element(caom2_element)
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -798,6 +840,8 @@ class ObsBlueprint(object):
                                  format(extension))
             if caom2_element in self._extensions[extension]:
                 del self._extensions[extension][caom2_element]
+            if len(self._extensions[extension]) == 0:
+                del self._extensions[extension]
         else:
             if caom2_element in self._plan:
                 del self._plan[caom2_element]
@@ -805,12 +849,13 @@ class ObsBlueprint(object):
     def _get(self, caom2_element, extension=None):
         """
         Returns the source associated with a CAOM2 element
-        :param caom2_element:
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
         :param extension: extension number (used only for Chunk elements)
         :return: Tuple of the form (list_of_associated_fits_attributes,
         default_value) OR the actual value associated with the CAOM2 element
         """
-        self.check_caom2_element(caom2_element)
+        ObsBlueprint.check_caom2_element(caom2_element)
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -824,18 +869,6 @@ class ObsBlueprint(object):
             return None
         else:
             return self._plan[caom2_element]
-
-    def check_caom2_element(self, caom2_element):
-        """
-        Checks that an element is a valid caom2_element in the blueprint. It
-        checks that it's part of the ObservationBlueprint._CAOM2_ELEMENTS
-        :param caom2_element: string element to check
-        :return:
-        """
-        if caom2_element not in ObsBlueprint._CAOM2_ELEMENTS:
-            raise KeyError(
-                '{} caom2 element not found in the plan (mispelling?).'.
-                format(caom2_element))
 
 
 class FitsParser(object):
