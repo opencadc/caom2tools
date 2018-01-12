@@ -145,6 +145,22 @@ def test_obs_blueprint():
     extension2_str = str(ob)[str(ob).index('extension 2'):]
     assert 'Chunk.energy.velang = 44' in extension2_str
 
+    # test get
+    assert ob._get('Observation.instrument.name') == 'NIRI'
+    assert ob._get('Observation.instrument.keywords')[0] == ['INSTMODE']
+    assert ob._get('Observation.instrument.keywords')[1] == 'TEST'
+    assert ob._get('Chunk.energy.velang', extension=2) == 44
+    assert ob._get('Chunk.energy.velang', extension=1) == 33
+    assert ob._get('Chunk.energy.axis.axis.ctype', extension=1)[0] ==\
+           ['MYCTYPE2', 'MYCTYPE']
+    assert ob._get('Chunk.energy.axis.axis.ctype', extension=1)[1] == 'NOCTYPE'
+    # test get when keyword not present in extension and the default is used
+    assert ob._get('Chunk.energy.specsys', extension=33)[0] == ['SPECSYS']
+    assert ob._get('Chunk.energy.specsys', extension=44)[1] is None
+    # get element not set
+    assert 'Observation.target.redshift' not in ob._plan
+    assert ob._get('Observation.target.redshift') is None
+
     # delete attributes
     assert len(ob._plan) != 0
     assert len(ob._extensions) != 0
@@ -172,6 +188,8 @@ def test_obs_blueprint():
     with pytest.raises(KeyError):
         ob.set_default('Nonexistent', 33)
     with pytest.raises(KeyError):
+        ob._get('Nonexistent')
+    with pytest.raises(KeyError):
         ob.delete('Nonexistent')
 
     # repeat with extension specified
@@ -183,6 +201,8 @@ def test_obs_blueprint():
         ob.add_fits_attribute('Chunk.Nonexistent', 33, extension=1)
     with pytest.raises(KeyError):
         ob.set_default('Chunk.Nonexistent', 33, extension=1)
+    with pytest.raises(KeyError):
+        ob._get('Nonexistent', extension=33)
     with pytest.raises(KeyError):
         ob.delete('Chunk.Nonexistent', extension=1)
 
