@@ -101,7 +101,9 @@ CAOM2REPO_OBS_CAPABILITY_ID =\
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 APP_NAME = 'caom2repo'
 
-
+# QueueHandler was excerpted from the source code in the following url:
+# https://github.com/python/cpython/blob/master/Lib/logging/handlers.py
+#
 # Copyright 2001-2016 by Vinay Sajip. All Rights Reserved.
 #
 # Permission to use, copy, modify, and distribute this software and its
@@ -283,8 +285,9 @@ class CAOM2RepoClient(object):
 
         while len(observations) > 0:
             if nthreads is None:
-                for observationID in observations:
-                    v, u, s, f= self._process_observation_id(collection, observationID, halt_on_error)
+                results = [self._process_observation_id(collection, observationID, halt_on_error)
+                           for observationID in observations]
+                for v, u, s, f in results:
                     if v:
                         visited.append(v)
                     if u:
@@ -316,7 +319,7 @@ class CAOM2RepoClient(object):
                     p.join()
 
             if obs_file is None and len(observations) == BATCH_SIZE:
-                # get observation IDs from caomrepo
+                # get next batch of observationIDs from caomrepo
                 observations = self._get_observations(collection, self._start,
                                                       end)
             else:
@@ -357,8 +360,8 @@ class CAOM2RepoClient(object):
         return visited, updated, skipped, failed
 
     def _get_obs_from_file(self, obs_file, start, end, halt_on_error):
-        start_datetime = util.utils.str2ivoa(start)
-        end_datetime = util.utils.str2ivoa(end)
+        start_datetime = util.str2ivoa(start)
+        end_datetime = util.str2ivoa(end)
         obs = []
         failed = []
         with open(obs_file) as fp:
@@ -369,7 +372,7 @@ class CAOM2RepoClient(object):
                         # we have at least two tokens in line
                         obs_id, last_modified_date = line.split(' ', 1)
                         try:
-                            last_mod_datetime = util.utils.str2ivoa(last_modified_date)
+                            last_mod_datetime = util.str2ivoa(last_modified_date)
                             if start_datetime is not None:
                                 if start_datetime<= last_mod_datetime:
                                     # last_modified_date is same or later than start date
@@ -412,9 +415,9 @@ class CAOM2RepoClient(object):
         observations = []
         params = {'MAXREC': BATCH_SIZE}
         if start is not None:
-            params['START'] = util.utils.date2ivoa(start)
+            params['START'] = util.date2ivoa(start)
         if end is not None:
-            params['END'] = util.utils.date2ivoa(end)
+            params['END'] = util.date2ivoa(end)
 
         response = self._repo_client.get(
             (CAOM2REPO_OBS_CAPABILITY_ID, collection),
@@ -429,7 +432,7 @@ class CAOM2RepoClient(object):
             else:
                 self.logger.warn('Incomplete listing line: {}'.format(line))
         if last_datetime is not None:
-            self._start = util.utils.str2ivoa(last_datetime)
+            self._start = util.str2ivoa(last_datetime)
         return observations
 
     def _load_plugin_class(self, filepath):
@@ -659,8 +662,8 @@ def main_app():
     visit_parser.add_argument('--obs_file', help='file containing observations to be visited',
                               type=argparse.FileType('r'))
     visit_parser.add_argument(
-        '--threads', type=int,
-        help='number of threads the visitor will spawn when getting observations, range is 2 to 10')
+        '--threads', type=int, choices=xrange(2,10),
+        help='number of working threads used by the visitor when getting observations, range is 2 to 10')
     visit_parser.add_argument(
         '--halt-on-error', action='store_true',
         help='stop visitor on first update exception raised by plugin')
@@ -718,19 +721,6 @@ def main_app():
             "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}, threads={}".
             format(args.plugin.name, args.start, args.end,
                    args.collection, args.obs_file, args.threads))
-        if args.threads is not None:
-            if args.threads < 2:
-                parser.print_usage(file=sys.stderr)
-                sys.stderr.write("{}: error: too few threads specified for visitor\n".format(APP_NAME))
-                sys.exit(-1)
-                #raise ValueError(
-                #    "{}: error: too few threads specified for visitor\n".format(APP_NAME))
-            elif args.threads > 10:
-                parser.print_usage(file=sys.stderr)
-                sys.stderr.write("{}: error: too many threads specified for visitor\n".format(APP_NAME))
-                sys.exit(-1)
-                #raise ValueError(
-                #    "{}: error: too many threads specified for visitor\n".format(APP_NAME))
         (visited, updated, skipped, failed) = \
             client.visit(args.plugin.name, args.collection, start=args.start,
                          end=args.end, obs_file=args.obs_file, nthreads=args.threads,

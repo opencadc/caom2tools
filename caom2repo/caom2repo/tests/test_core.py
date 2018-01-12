@@ -613,12 +613,32 @@ class TestCAOM2Repo(unittest.TestCase):
                 self.assertTrue('c' in updated)
                 self.assertTrue('d' in updated)
                 self.assertFalse('e' in updated)
+            finally:
+                queue.put(None)
+                lp.join()
+                logging.info("DONE")
 
-                obs_ids = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
-                visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
-                (visited, updated, skipped, failed) = visitor.visit(
-                    os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+    def test_multiprocess_with_more_obs_id(self):
+        with patch('caom2repo.core.CAOM2RepoClient', PickableMagicMock()) as client_mock:
+            core.BATCH_SIZE = 3  # size of the batch is 3
+            obs_ids = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
+            client_mock.return_value.get_observation.side_effect = self.mock_get_observation
+            manager = multiprocessing.Manager()
+            queue = manager.Queue()
+            level = logging.DEBUG
+            visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+            visitor.get_observation = PickableMagicMock(
+                return_value=PickableMagicMock(spec=SimpleObservation))
+            visitor.post_observation = PickableMagicMock()
+            visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
 
+            (visited, updated, skipped, failed) = visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+
+            lp = threading.Thread(target=logger_thread, args=(queue,))
+            lp.start()
+
+            try:
                 self.assertEqual(6, len(visited))
                 self.assertEqual(6, len(updated))
                 self.assertEqual(0, len(skipped))
@@ -649,9 +669,6 @@ class TestCAOM2Repo(unittest.TestCase):
             # id of the observation: True for 'UPDATE', False for 'SKIP' and
             # raises exception for 'ERROR'
             obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
-            #obs = [SimpleObservation(collection='TEST', observation_id='UPDATE'),
-            #       SimpleObservation(collection='TEST', observation_id='SKIP'),
-            #       SimpleObservation(collection='TEST', observation_id='ERROR')]
             client_mock.return_value.get_observation.side_effect = self.mock_get_observation
             manager = multiprocessing.Manager()
             queue = manager.Queue()
@@ -673,12 +690,35 @@ class TestCAOM2Repo(unittest.TestCase):
                 self.assertEqual(1, len(updated))
                 self.assertEqual(1, len(skipped))
                 self.assertEqual(1, len(failed))
+            finally:
+                queue.put(None)
+                lp.join()
+                logging.info("DONE")
 
-                obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
-                visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
-                (visited, updated, skipped, failed) = visitor.visit(
-                    os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+    def test_multiprocess_with_more_different_statuses(self):
+        with patch('caom2repo.core.CAOM2RepoClient', PickableMagicMock()) as client_mock:
+            core.BATCH_SIZE = 3  # size of the batch is 3
+            # make it return different status. errorplugin returns according to the
+            # id of the observation: True for 'UPDATE', False for 'SKIP' and
+            # raises exception for 'ERROR'
+            obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
+            client_mock.return_value.get_observation.side_effect = self.mock_get_observation
+            manager = multiprocessing.Manager()
+            queue = manager.Queue()
+            level = logging.DEBUG
+            visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+            visitor.get_observation = PickableMagicMock(
+                return_value=PickableMagicMock(spec=SimpleObservation))
+            visitor.post_observation = PickableMagicMock()
+            visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
 
+            (visited, updated, skipped, failed) = visitor.visit(
+                os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+
+            lp = threading.Thread(target=logger_thread, args=(queue,))
+            lp.start()
+
+            try:
                 self.assertEqual(5, len(visited))
                 self.assertEqual(2, len(updated))
                 self.assertEqual(2, len(skipped))
@@ -868,7 +908,7 @@ class TestCAOM2Repo(unittest.TestCase):
                         "--plugin", os.path.join(THIS_DIR, 'passplugin.py'), "TEST"]
             with self.assertRaises(MyExitError):
                 core.main_app()
-            self.assertTrue('too few threads' in stderr_mock.getvalue())
+            self.assertTrue('error: argument --threads: invalid choice' in stderr_mock.getvalue())
         # print(stderr_mock.getvalue())
 
         # visit too many number of threads
@@ -878,7 +918,7 @@ class TestCAOM2Repo(unittest.TestCase):
                         "--plugin", os.path.join(THIS_DIR, 'passplugin.py'), "TEST"]
             with self.assertRaises(MyExitError):
                 core.main_app()
-            self.assertTrue('too many threads' in stderr_mock.getvalue())
+            self.assertTrue('error: argument --threads: invalid choice' in stderr_mock.getvalue())
         # print(stderr_mock.getvalue())
 
 def logger_thread(q):
