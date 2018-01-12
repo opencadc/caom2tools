@@ -366,19 +366,23 @@ class CAOM2RepoClient(object):
         failed = []
         with open(obs_file) as fp:
             for l in fp:
-                line = l.rstrip('\n').strip()
-                if len(line) > 0:
-                    if ' ' in line:
+                tokens = l.split()
+                if len(tokens) > 0:
+                    obs_id = tokens[0]
+                    if len(tokens) > 1:
                         # we have at least two tokens in line
-                        obs_id, last_modified_date = line.split(' ', 1)
                         try:
-                            last_mod_datetime = util.str2ivoa(last_modified_date)
-                            if start_datetime is not None:
-                                if start_datetime<= last_mod_datetime:
-                                    # last_modified_date is same or later than start date
-                                    if self._matches_end_date(obs_id, end_datetime, last_mod_datetime):
-                                        obs.append(obs_id)
-                            elif self._matches_end_date(obs_id, end_datetime, last_mod_datetime):
+                            last_mod_datetime = util.str2ivoa(tokens[1])
+                            if len(tokens) > 2:
+                                # we have more than two tokens in line
+                                raise Exception(
+                                    'Extra token one line: {}'.format(l))
+                            elif (start and last_mod_datetime<start_datetime) or \
+                                    (end and last_mod_datetime>end_datetime):
+                                # last modified date is out of start/end range
+                                self.logger.info('last modified date is out of start/end range: {}'.format(l))
+                            else:
+                                # two tokens in line: <observation id> <last modification date>
                                 obs.append(obs_id)
                         except Exception as e:
                             failed.append(obs_id)
@@ -387,7 +391,7 @@ class CAOM2RepoClient(object):
                                 raise e
                     else:
                         # only one token in line, line should contain observationID only
-                        obs.append(line)
+                        obs.append(obs_id)
 
         return obs
 
