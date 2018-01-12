@@ -88,7 +88,7 @@ from caom2 import ReleaseType, ProductType, ObservationIntentType
 from caom2 import DataProductType, Telescope, Environment
 from caom2 import Instrument, Proposal, Target, Provenance, Metrics, Quality
 from caom2 import CalibrationLevel, Requirements, DataQuality
-from caom2 import SimpleObservation, ChecksumURI
+from caom2 import SimpleObservation, ChecksumURI, PlaneURI
 import logging
 import sys
 from six.moves.urllib.parse import urlparse
@@ -740,7 +740,7 @@ class ObsBlueprint(object):
              for key in ObsBlueprint._CAOM2_ELEMENTS
              if key in src])
 
-    def set(self, caom2_element, value, extension=None):
+    def set(self, caom2_element, value, extension=0):
         """
         Sets the value associated with an element in the CAOM2 model. Value
         cannot be a tuple.
@@ -750,6 +750,7 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
+        assert extension >= 0
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -761,7 +762,7 @@ class ObsBlueprint(object):
             self._plan[caom2_element] = value
 
     def set_fits_attribute(self, caom2_element, fits_attribute_list,
-                           extension=None):
+                           extension=0):
         """
         Associates a CAOM2 element with a FITS attribute
         :param caom2_element: name CAOM2 element (as in
@@ -772,6 +773,7 @@ class ObsBlueprint(object):
         """
         ObsBlueprint.check_caom2_element(caom2_element)
         assert isinstance(fits_attribute_list, list)
+        assert extension >= 0
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -783,7 +785,7 @@ class ObsBlueprint(object):
         else:
             self._plan[caom2_element] = (fits_attribute_list, None)
 
-    def add_fits_attribute(self, caom2_element, fits_attribute, extension=None):
+    def add_fits_attribute(self, caom2_element, fits_attribute, extension=0):
         """
         Adds a FITS attribute in the list of other FITS attributes associated
         with an caom2 element.
@@ -795,6 +797,7 @@ class ObsBlueprint(object):
         value or KeyError if the caom2 element does not exists.
         """
         ObsBlueprint.check_caom2_element(caom2_element)
+        assert extension >= 0
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -804,16 +807,19 @@ class ObsBlueprint(object):
                     'No extension {} in the blueprint'.format(extension))
             else:
                 if caom2_element in self._extensions[extension]:
-                    if isinstance(self._extensions[extension][caom2_element], tuple):
-                        self._extensions[extension][caom2_element][0].insert(0, fits_attribute)
+                    if isinstance(self._extensions[extension][caom2_element],
+                                  tuple):
+                        self._extensions[extension][caom2_element][0].\
+                            insert(0, fits_attribute)
                     else:
                         raise AttributeError(
-                            'No FITS attributes in extension {} associated with keyword {}'.
-                                format(extension, caom2_element))
+                            ('No FITS attributes in extension {} associated '
+                             'with keyword {}').format(extension,
+                                                       caom2_element))
                 else:
                     raise KeyError(
-                        'Keyword {} not found in the extension {} of the blueprint'.
-                            format(caom2_element, extension))
+                        ('Keyword {} not found in the extension {} of '
+                         'the blueprint').format(caom2_element, extension))
         else:
             if caom2_element in self._plan:
                 if isinstance(self._plan[caom2_element], tuple):
@@ -827,7 +833,7 @@ class ObsBlueprint(object):
                     'Keyword {} not found in the blueprint'.
                         format(caom2_element))
 
-    def set_default(self, caom2_element, default, extension=None):
+    def set_default(self, caom2_element, default, extension=0):
         """
         Sets the default value of a caom2 element that is associated with FITS
         attributes. If the element does not exist or does not have a list of
@@ -839,6 +845,7 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
+        assert extension >= 0
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -861,7 +868,7 @@ class ObsBlueprint(object):
                 # override the value
                 self._plan[caom2_element] = default
 
-    def delete(self, caom2_element, extension=None):
+    def delete(self, caom2_element, extension=0):
         """
         Deletes an element from the blueprint
         :param caom2_element: name CAOM2 element (as in
@@ -870,6 +877,7 @@ class ObsBlueprint(object):
         :raises exceptions if the element or extension not found
         """
         ObsBlueprint.check_caom2_element(caom2_element)
+        assert extension >= 0
         if extension:
             if not caom2_element.startswith('Chunk'):
                 raise ValueError(
@@ -885,7 +893,7 @@ class ObsBlueprint(object):
             if caom2_element in self._plan:
                 del self._plan[caom2_element]
 
-    def _get(self, caom2_element, extension=None):
+    def _get(self, caom2_element, extension=0):
         """
         Returns the source associated with a CAOM2 element
         :param caom2_element: name CAOM2 element (as in
@@ -1406,7 +1414,8 @@ class FitsParser(object):
             if keywords:
                 prov.keywords.union(keywords)
             if inputs:
-                prov.inputs.add(inputs)
+                for i in inputs.split():
+                    prov.inputs.add(PlaneURI(i))
             return prov
         else:
             return None
@@ -1893,7 +1902,7 @@ def load_config(file_name):
             elif line.find('=') == -1 or line.startswith('#'):
                 continue
             else:
-                key, value = line.split('=')
+                key, value = line.split('=', 1)
                 ptr[key.strip()] = value.strip()
     return d
 
@@ -2160,6 +2169,7 @@ def main_app():
     if args.in_obs_xml:
         # append to existing observation
         reader = ObservationReader(validate=True)
+        obs = reader.read(args.in_obs_xml)
     else:
         obs = SimpleObservation(collection=args.observation[0],
                                 observation_id=args.observation[1],
