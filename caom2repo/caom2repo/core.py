@@ -183,7 +183,7 @@ class QueueHandler(logging.Handler):
 class CAOM2RepoClient(object):
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, subject, queue, logLevel=logging.INFO, resource_id=DEFAULT_RESOURCE_ID, host=None):
+    def __init__(self, subject, queue, logLevel=logging.INFO, resource_id=DEFAULT_RESOURCE_ID, host=None, agent=None):
         """
         Instance of a CAOM2RepoClient
         :param subject: the subject performing the action
@@ -196,11 +196,14 @@ class CAOM2RepoClient(object):
         logging.basicConfig(level=logLevel, stream=sys.stdout)
         self.logger = logging.getLogger('CAOM2RepoClient')
         self.logger.addHandler(qh)
-        agent = '{}/{}'.format(APP_NAME, version.version)
+        self.resource_id = resource_id
         self.host = host
         self._subject = subject
-        agent = "caom2-repo-client/{} caom2/{}".format(version.version,
-                                                       caom2_version)
+        if agent is None:
+            agent = "caom2-repo-client/{} caom2/{}".format(version.version, caom2_version)
+
+        self.agent = agent
+
 
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host)
@@ -302,7 +305,8 @@ class CAOM2RepoClient(object):
                 try:
                     results = [p.apply_async(
                         multiprocess_observation_id,
-                        [collection, observationID, self.plugin, self._subject, self.queue, self.level])
+                        [collection, observationID, self.plugin, self._subject, self.queue, self.level,
+                         self.resource_id, self.host, self.agent])
                         for observationID in observations]
                     for r in results:
                         result = r.get(timeout=10)
@@ -551,7 +555,22 @@ def str2date(s):
 
 
 def multiprocess_observation_id(collection, observationID, plugin, subject,
-                                queue, log_level):
+                                queue, log_level, resource_id, host, agent):
+    """
+    Multi-process version of CAOM2RepoClient._process_observation_id().
+    Each process handles Control-C via KeyboardInterrupt, which is not needed in
+    CAOM2RepoClient._process_observation_id().
+    :param collection: Name of the collection
+    :param observationID: Observation identifier
+    :param plugin: path to python file that contains the algorithm to be applied to visited observations
+    :param subject: Subject performing the action
+    :param queue: Pipe used to collect all logged messages to a centralized logging worker
+    :param log_level: Logging level
+    :param resource_id: ID of the resource being access (URI format)
+    :param host: Host server for the caom2repo service
+    :param agent: Name of the application that accesses the service and its version
+    :return: Tuple of observationID representing visited, updated, skipped and failed
+    """
     visited = None
     updated = None
     skipped = None
@@ -565,7 +584,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
             os.getpid(), observationID))
     rootLogger.addHandler(qh)
 
-    client = CAOM2RepoClient(subject, queue, log_level) #TODO pass resource_id and host
+    client = CAOM2RepoClient(subject, queue, log_level, resource_id, host, agent)
     observation = client.get_observation(collection, observationID)
     try:
         if plugin.update(observation=observation,
