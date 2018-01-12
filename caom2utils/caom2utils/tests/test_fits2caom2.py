@@ -98,7 +98,6 @@ sample_file_4axes_uri = 'caom:CGPS/TEST/4axes_obs.fits'
 java_config_file = os.path.join(TESTDATA_DIR, 'java.config')
 override_file = os.path.join(TESTDATA_DIR, 'test.override')
 
-
 class MyExitError(Exception):
     pass
 
@@ -125,7 +124,6 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
   </caom2:energy>
 </caom2:import>
 '''
-
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
@@ -304,7 +302,6 @@ def check_xml(xml_func, test_wcs, expected):
     assert result == expected, result
 
 
-# @pytest.mark.skip('')
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                      MyExitError, MyExitError,
                                      MyExitError]))
@@ -510,6 +507,7 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
+# @pytest.mark.skip('')
 @pytest.mark.xfail(reason='the len(errors) test fails for CompositeObservation.members errors')
 def test_update_fits_headers():
     # The rules for the values:
@@ -587,6 +585,17 @@ def test_update_fits_headers():
     assert test_parser.blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
         5) == '0.000000000', 'override HDU 5'
+    assert test_parser._headers[0][
+               'CRVAL1'] == '210.551666667', 'override HDU 0'
+    assert test_parser._headers[1][
+               'CRVAL1'] == '210.551666667', 'override HDU 1'
+    assert test_parser._headers[2][
+               'CRVAL1'] == '210.508333333', 'override HDU 2'
+    assert test_parser._headers[3][
+               'CRVAL1'] == '210.898333333', 'override HDU 3'
+    assert test_parser._headers[4][
+               'CRVAL1'] == '210.942083333', 'override HDU 4'
+    assert test_parser._headers[5]['CRVAL1'] == '0.000000000', 'override HDU 5'
     # this will fail because of CompositeObservation.members errors
     assert len(test_parser._errors) == 0, test_parser._errors
 
@@ -659,7 +668,6 @@ TEST_OVERRIDES = \
      }}
 
 
-# @pytest.mark.skip('testing end-to-end')
 def test_load_config_overrides():
     # cool override file content
     result = load_config(override_file)

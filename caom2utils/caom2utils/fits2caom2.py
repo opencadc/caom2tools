@@ -2018,6 +2018,11 @@ def _apply_config_to_fits(parser):
     wcs_std = parser.blueprint._wcs_std
     plan = parser.blueprint._plan
 
+    # apply overrides from blueprint to extension 0
+    for key, value in plan.items():
+        if not isinstance(value, tuple) and key in wcs_std:
+            parser._headers[0].set(wcs_std[key], value)
+
     # apply overrides
     for extension in exts:
         hdr = parser._headers[extension]
@@ -2185,7 +2190,6 @@ def main_app():
             parser = FitsParser(headers)
 
         update_fits_headers(parser, uri, config, defaults, overrides)
-        print(parser.blueprint)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 
