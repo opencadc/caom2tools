@@ -1018,7 +1018,7 @@ class FitsParser(object):
             'Artifact.contentType', index=0, current=artifact.content_type)
         artifact.content_length = self._get_from_list(
             'Artifact.contentLength', index=0, current=artifact.content_length)
-        artifact.content_checksum = self._to_checksum_uri(self._get_from_list(
+        artifact.content_checksum = _to_checksum_uri(self._get_from_list(
             'Artifact.contentChecksum', index=0,
             current=artifact.content_checksum))
 
@@ -1030,7 +1030,7 @@ class FitsParser(object):
             #    Only primary headers for 1 extension files or the extensions
             # for multiple extension files can have data and therefore
             # corresponding parts
-            if (i > 0) or (len(self.headers) == 1) :
+            if (i > 0) or (len(self.headers) == 1):
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
@@ -1072,7 +1072,7 @@ class FitsParser(object):
 
         observation.algorithm = self._get_algorithm(observation)
 
-        observation.sequence_number = self._to_int(self._get_from_list(
+        observation.sequence_number = _to_int(self._get_from_list(
             'Observation.sequenceNumber', index=0))
         observation.intent = self._get_from_list('Observation.intent', 0,
                                                  ObservationIntentType.SCIENCE)
@@ -1122,7 +1122,7 @@ class FitsParser(object):
             'Plane.dataRelease', index=0), 's')
         plane.data_product_type = self._to_data_product_type(
             self._get_from_list('Plane.dataProductType', index=0))
-        plane.calibration_level = self._to_calibration_level(self._to_int_32(
+        plane.calibration_level = self._to_calibration_level(_to_int_32(
             self._get_from_list('Plane.calibrationLevel', index=0)))
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
@@ -1388,24 +1388,21 @@ class FitsParser(object):
         :return: Provenance
         """
         self.logger.debug('Begin CAOM2 Provenance augmentation.')
-        name = self._to_str(
+        name = _to_str(
             self._get_from_list('Plane.provenance.name', index=0))
-        p_version = self._to_str(self._get_from_list('Plane.provenance.version',
+        p_version = _to_str(self._get_from_list('Plane.provenance.version',
                                                      index=0))
-        project = self._to_str(
+        project = _to_str(
             self._get_from_list('Plane.provenance.project', index=0))
-        producer = self._to_str(
+        producer = _to_str(
             self._get_from_list('Plane.provenance.producer', index=0))
-        run_id = self._to_str(
+        run_id = _to_str(
             self._get_from_list('Plane.provenance.runID', index=0))
-        reference = self._to_str(
+        reference = _to_str(
             self._get_from_list('Plane.provenance.reference', index=0))
         last_executed = self._get_datetime(
             self._get_from_list('Plane.provenance.lastExecuted', index=0))
         keywords = self._get_from_list('Plane.provenance.keywords', index=0)
-        # inputs = self._get_from_list('Plane.provenance.inputs', index=0,
-        # default=set(PlaneURI('caom:UNKNOWN/UNKNOWN/UNKNOWN')))
-        #  TODO DEFAULT VALUE
         inputs = self._get_from_list('Plane.provenance.inputs', index=0)
         self.logger.debug('End CAOM2 Provenance augmentation.')
         if name:
@@ -1506,18 +1503,6 @@ class FitsParser(object):
             result = True
         return result
 
-    def _to_str(self, value):
-        return str(value) if value else None
-
-    def _to_int(self, value):
-        return int(value) if value else None
-
-    def _to_int_32(self, value):
-        return int_32(value) if value else None
-
-    def _to_checksum_uri(self, value):
-        return ChecksumURI(value) if value else None
-
     def _to_data_product_type(self, value):
         return DataProductType(value) if value else DataProductType.CUBE
 
@@ -1585,7 +1570,7 @@ class WcsParser(object):
 
         # Note - could not avoid using _naxis private attributes...
         naxis.function = CoordFunction1D(
-            self._sanitize(self.wcs._naxis[energy_axis]),
+            _to_int(self._sanitize(self.wcs._naxis[energy_axis])),
             self._sanitize(self.wcs.wcs.cdelt[energy_axis]),
             RefCoord(self._sanitize(self.wcs.wcs.crpix[energy_axis]),
                      self._sanitize(self.wcs.wcs.crval[energy_axis])))
@@ -1596,12 +1581,12 @@ class WcsParser(object):
             chunk.energy.naxis = naxis
             chunk.energy.specsys = specsys
 
-        chunk.energy.ssysobs = self._sanitize(self.wcs.wcs.ssysobs)
+        chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.wcs.ssysobs))
         chunk.energy.restfrq = self._sanitize(self.wcs.wcs.restfrq)
         chunk.energy.restwav = self._sanitize(self.wcs.wcs.restwav)
         chunk.energy.velosys = self._sanitize(self.wcs.wcs.velosys)
         chunk.energy.zsource = self._sanitize(self.wcs.wcs.zsource)
-        chunk.energy.ssyssrc = self._sanitize(self.wcs.wcs.ssyssrc)
+        chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.wcs.ssyssrc))
         chunk.energy.velang = self._sanitize(self.wcs.wcs.velangl)
 
     def augment_position(self, chunk):
@@ -1864,6 +1849,22 @@ class WcsParser(object):
             return value
 
 
+def _to_str(value):
+    return str(value) if value else None
+
+
+def _to_int(value):
+    return int(value) if value else None
+
+
+def _to_int_32(value):
+    return int_32(value) if value else None
+
+
+def _to_checksum_uri(value):
+    return ChecksumURI(value) if value else None
+
+
 def load_config(file_name):
     """
     Override CONFIG with externally-supplied values.
@@ -2030,19 +2031,21 @@ def _apply_config_to_fits(parser):
     # apply overrides from blueprint to extension 0
     for key, value in plan.items():
         if not isinstance(value, tuple) and key in wcs_std:
-            parser._headers[0].set(wcs_std[key], value)
+            keywords = wcs_std[key].split(',')
+            for keyword in keywords:
+                _set_by_type(parser._headers[0], keyword, value)
 
-    # apply overrides
+    # apply overrides to the remaining extensions
     for extension in exts:
         hdr = parser._headers[extension]
         for key, value in exts[extension].items():
             keywords = wcs_std[key].split(',')
             for keyword in keywords:
-                hdr.set(keyword, value)
+                _set_by_type(hdr, keyword, value)
                 logging.debug(
                     '{}: set to {} in extension {}'.format(keyword, value,
                                                            extension))
-    # apply defaults
+    # apply defaults to all extensions
     for key, value in plan.items():
         if isinstance(value, tuple) and value[1]:
             # there is a default value set
@@ -2050,14 +2053,71 @@ def _apply_config_to_fits(parser):
                 for keyword in value[0]:
                     if not header.get(keyword):
                         # apply a default if a value does not already exist
-                        header.set(keyword, value[1])
+                        _set_by_type(header, keyword, value[1])
                         logging.debug(
-                            '{}: set default value of {}.'.format(keyword,
-                                                                  value[1]))
+                            '{}: set default value of {} in HDU {}.'.format(
+                                keyword, value[1],
+                                parser._headers.index(header)))
     return
 
 
-def main_app():
+def _set_by_type(header, keyword, value):
+    """astropy documentations says that the type of the second
+    parameter in the 'set' call is 'str', and then warns of expectations
+    for floating-point values."""
+    float_value = None
+    int_value = None
+
+    try:
+        float_value = float(value)
+    except ValueError:
+        pass
+
+    try:
+        int_value = int(value)
+    except ValueError:
+        pass
+
+    if float_value and not value.isdigit():
+        header.set(keyword, float_value)
+    elif int_value:
+        header.set(keyword, int_value)
+    else:
+        header.set(keyword, value)
+
+
+def _dump_config(parser, uri):
+    f = None
+    try:
+        temp = uri.split('/')
+        mod_uri = temp[len(temp) - 1]
+        fname = './{}.mod.fits'.format(mod_uri)
+        logging.debug('Writing modified fits file to {}.'.format(fname))
+        f = open(fname, 'w')
+        f.write(parser._headers[0].tostring('\n'))
+        if len(parser._headers) >= 2:
+            f.write(parser._headers[1].tostring('\n'))
+        f.close()
+        fname = './{}.blueprint.out'.format(mod_uri)
+        logging.debug('Writing blueprint to {}.'.format(fname))
+        f = open(fname, 'w')
+        f.write(str(parser.blueprint))
+        f.close()
+        fname = './{}.errors.out'.format(mod_uri)
+        logging.debug('Writing errors to {}.'.format(fname))
+        f = open(fname, 'w')
+        for ii in parser._errors:
+            f.write(ii)
+            f.write('\n')
+        f.close()
+    except EnvironmentError:
+        logging.warning('Failed to dump config. {}'.format(sys.exc_info()[1]))
+    finally:
+        if f:
+            f.close()
+
+
+def main_app(obs_blueprint=None):
     parser = argparse.ArgumentParser()
 
     parser.description = (
@@ -2179,6 +2239,12 @@ def main_app():
         obs.planes.add(Plane(product_id=str(args.productID)))
 
     plane = obs.planes[args.productID]
+
+    if not obs_blueprint:
+        obs_blueprint = {}
+        for i, uri in enumerate(args.fileURI):
+            obs_blueprint[uri] = ObsBlueprint()
+
     for i, uri in enumerate(args.fileURI):
         if args.local:
             file = args.local[i]
@@ -2188,7 +2254,7 @@ def main_app():
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
             artifact = plane.artifacts[uri]
-            parser = FitsParser(file)
+            parser = FitsParser(file, obs_blueprint[uri])
         else:
             headers = get_cadc_headers(uri, args.cert)
 
@@ -2197,9 +2263,12 @@ def main_app():
                     Artifact(uri=str(uri),
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            parser = FitsParser(headers)
+            parser = FitsParser(headers, obs_blueprint[uri])
 
         update_fits_headers(parser, uri, config, defaults, overrides)
+        if args.dumpconfig:
+            _dump_config(parser, uri)
+
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 

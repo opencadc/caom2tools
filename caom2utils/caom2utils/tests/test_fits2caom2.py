@@ -87,6 +87,7 @@ import re
 import sys
 
 import pytest
+import unittest
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -458,7 +459,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 @pytest.mark.parametrize('test_file, test_file_uri',
                          [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     test_obs_blueprint = ObsBlueprint()
     test_obs_blueprint.set('Observation.target.name', 'CGPS Mosaic MA1')
     test_obs_blueprint.set('Observation.telescope.name', 'DRAO-ST')
@@ -517,8 +518,6 @@ def test_update_fits_headers():
     # The rules for the keys:
     # has a '.' - a config keyword
     # all upper case - a FITS keyword
-
-    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     hdr1 = fits.Header()
     hdr2 = fits.Header()
@@ -596,6 +595,8 @@ def test_update_fits_headers():
     assert test_parser._headers[4][
                'CRVAL1'] == '210.942083333', 'override HDU 4'
     assert test_parser._headers[5]['CRVAL1'] == '0.000000000', 'override HDU 5'
+    assert test_parser._headers[0][
+               'CRVAL3'] == '56789.429806900000', 'override HDU 0'
     # this will fail because of CompositeObservation.members errors
     assert len(test_parser._errors) == 0, test_parser._errors
 
