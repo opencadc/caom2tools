@@ -578,155 +578,155 @@ class TestCAOM2Repo(unittest.TestCase):
     def mock_get_observation(self, collection, observationID):
         return SimpleObservation(collection, observationID)
 
-    def test_multiprocess_with_obs_id(self):
-        with patch('caom2repo.core.CAOM2RepoClient', PickableMagicMock()) as client_mock:
-            core.BATCH_SIZE = 3  # size of the batch is 3
-            obs_ids = [['a', 'b', 'c'], ['d'], []]
-            client_mock.return_value.get_observation.side_effect = self.mock_get_observation
-            manager = multiprocessing.Manager()
-            queue = manager.Queue()
-            level = logging.DEBUG
-            visitor = CAOM2RepoClient(auth.Subject(), queue, level)
-            visitor.get_observation = PickableMagicMock(
-                return_value=PickableMagicMock(spec=SimpleObservation))
-            visitor.post_observation = PickableMagicMock()
-            visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_obs_id(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        obs_ids = [['a', 'b', 'c'], ['d'], []]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
 
-            (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+        (visited, updated, skipped, failed) = visitor.visit(
+            os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-            lp = threading.Thread(target=logger_thread, args=(queue,))
-            lp.start()
+        lp = threading.Thread(target=logger_thread, args=(queue,))
+        lp.start()
 
-            try:
-                self.assertEqual(4, len(visited))
-                self.assertEqual(4, len(updated))
-                self.assertEqual(0, len(skipped))
-                self.assertEqual(0, len(failed))
-                self.assertTrue('a' in visited)
-                self.assertTrue('b' in visited)
-                self.assertTrue('c' in visited)
-                self.assertTrue('d' in visited)
-                self.assertFalse('e' in visited)
-                self.assertTrue('a' in updated)
-                self.assertTrue('b' in updated)
-                self.assertTrue('c' in updated)
-                self.assertTrue('d' in updated)
-                self.assertFalse('e' in updated)
-            finally:
-                queue.put(None)
-                lp.join()
-                logging.info("DONE")
+        try:
+            self.assertEqual(4, len(visited))
+            self.assertEqual(4, len(updated))
+            self.assertEqual(0, len(skipped))
+            self.assertEqual(0, len(failed))
+            self.assertTrue('a' in visited)
+            self.assertTrue('b' in visited)
+            self.assertTrue('c' in visited)
+            self.assertTrue('d' in visited)
+            self.assertFalse('e' in visited)
+            self.assertTrue('a' in updated)
+            self.assertTrue('b' in updated)
+            self.assertTrue('c' in updated)
+            self.assertTrue('d' in updated)
+            self.assertFalse('e' in updated)
+        finally:
+            queue.put(None)
+            lp.join()
+            logging.info("DONE")
 
-    def test_multiprocess_with_more_obs_id(self):
-        with patch('caom2repo.core.CAOM2RepoClient', PickableMagicMock()) as client_mock:
-            core.BATCH_SIZE = 3  # size of the batch is 3
-            obs_ids = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
-            client_mock.return_value.get_observation.side_effect = self.mock_get_observation
-            manager = multiprocessing.Manager()
-            queue = manager.Queue()
-            level = logging.DEBUG
-            visitor = CAOM2RepoClient(auth.Subject(), queue, level)
-            visitor.get_observation = PickableMagicMock(
-                return_value=PickableMagicMock(spec=SimpleObservation))
-            visitor.post_observation = PickableMagicMock()
-            visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_more_obs_id(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        obs_ids = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
 
-            (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+        (visited, updated, skipped, failed) = visitor.visit(
+            os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-            lp = threading.Thread(target=logger_thread, args=(queue,))
-            lp.start()
+        lp = threading.Thread(target=logger_thread, args=(queue,))
+        lp.start()
 
-            try:
-                self.assertEqual(6, len(visited))
-                self.assertEqual(6, len(updated))
-                self.assertEqual(0, len(skipped))
-                self.assertEqual(0, len(failed))
-                self.assertTrue('a' in visited)
-                self.assertTrue('b' in visited)
-                self.assertTrue('c' in visited)
-                self.assertTrue('d' in visited)
-                self.assertTrue('e' in visited)
-                self.assertTrue('f' in visited)
-                self.assertFalse('g' in visited)
-                self.assertTrue('a' in updated)
-                self.assertTrue('b' in updated)
-                self.assertTrue('c' in updated)
-                self.assertTrue('d' in updated)
-                self.assertTrue('e' in updated)
-                self.assertTrue('f' in updated)
-                self.assertFalse('g' in updated)
-            finally:
-                queue.put(None)
-                lp.join()
-                logging.info("DONE")
+        try:
+            self.assertEqual(6, len(visited))
+            self.assertEqual(6, len(updated))
+            self.assertEqual(0, len(skipped))
+            self.assertEqual(0, len(failed))
+            self.assertTrue('a' in visited)
+            self.assertTrue('b' in visited)
+            self.assertTrue('c' in visited)
+            self.assertTrue('d' in visited)
+            self.assertTrue('e' in visited)
+            self.assertTrue('f' in visited)
+            self.assertFalse('g' in visited)
+            self.assertTrue('a' in updated)
+            self.assertTrue('b' in updated)
+            self.assertTrue('c' in updated)
+            self.assertTrue('d' in updated)
+            self.assertTrue('e' in updated)
+            self.assertTrue('f' in updated)
+            self.assertFalse('g' in updated)
+        finally:
+            queue.put(None)
+            lp.join()
+            logging.info("DONE")
 
-    def test_multiprocess_with_different_statuses(self):
-        with patch('caom2repo.core.CAOM2RepoClient', PickableMagicMock()) as client_mock:
-            core.BATCH_SIZE = 3  # size of the batch is 3
-            # make it return different status. errorplugin returns according to the
-            # id of the observation: True for 'UPDATE', False for 'SKIP' and
-            # raises exception for 'ERROR'
-            obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
-            client_mock.return_value.get_observation.side_effect = self.mock_get_observation
-            manager = multiprocessing.Manager()
-            queue = manager.Queue()
-            level = logging.DEBUG
-            visitor = CAOM2RepoClient(auth.Subject(), queue, level)
-            visitor.get_observation = PickableMagicMock(
-                return_value=PickableMagicMock(spec=SimpleObservation))
-            visitor.post_observation = PickableMagicMock()
-            visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_different_statuses(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        # make it return different status. errorplugin returns according to the
+        # id of the observation: True for 'UPDATE', False for 'SKIP' and
+        # raises exception for 'ERROR'
+        obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
 
-            (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+        (visited, updated, skipped, failed) = visitor.visit(
+            os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-            lp = threading.Thread(target=logger_thread, args=(queue,))
-            lp.start()
+        lp = threading.Thread(target=logger_thread, args=(queue,))
+        lp.start()
 
-            try:
-                self.assertEqual(3, len(visited))
-                self.assertEqual(1, len(updated))
-                self.assertEqual(1, len(skipped))
-                self.assertEqual(1, len(failed))
-            finally:
-                queue.put(None)
-                lp.join()
-                logging.info("DONE")
+        try:
+            self.assertEqual(3, len(visited))
+            self.assertEqual(1, len(updated))
+            self.assertEqual(1, len(skipped))
+            self.assertEqual(1, len(failed))
+        finally:
+            queue.put(None)
+            lp.join()
+            logging.info("DONE")
 
-    def test_multiprocess_with_more_different_statuses(self):
-        with patch('caom2repo.core.CAOM2RepoClient', PickableMagicMock()) as client_mock:
-            core.BATCH_SIZE = 3  # size of the batch is 3
-            # make it return different status. errorplugin returns according to the
-            # id of the observation: True for 'UPDATE', False for 'SKIP' and
-            # raises exception for 'ERROR'
-            obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
-            client_mock.return_value.get_observation.side_effect = self.mock_get_observation
-            manager = multiprocessing.Manager()
-            queue = manager.Queue()
-            level = logging.DEBUG
-            visitor = CAOM2RepoClient(auth.Subject(), queue, level)
-            visitor.get_observation = PickableMagicMock(
-                return_value=PickableMagicMock(spec=SimpleObservation))
-            visitor.post_observation = PickableMagicMock()
-            visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_more_different_statuses(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        # make it return different status. errorplugin returns according to the
+        # id of the observation: True for 'UPDATE', False for 'SKIP' and
+        # raises exception for 'ERROR'
+        obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
 
-            (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+        (visited, updated, skipped, failed) = visitor.visit(
+            os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-            lp = threading.Thread(target=logger_thread, args=(queue,))
-            lp.start()
+        lp = threading.Thread(target=logger_thread, args=(queue,))
+        lp.start()
 
-            try:
-                self.assertEqual(5, len(visited))
-                self.assertEqual(2, len(updated))
-                self.assertEqual(2, len(skipped))
-                self.assertEqual(1, len(failed))
-            finally:
-                queue.put(None)
-                lp.join()
-                logging.info("DONE")
+        try:
+            self.assertEqual(5, len(visited))
+            self.assertEqual(2, len(updated))
+            self.assertEqual(2, len(skipped))
+            self.assertEqual(1, len(failed))
+        finally:
+            queue.put(None)
+            lp.join()
+            logging.info("DONE")
 
     def test_shortcuts(self):
         manager = multiprocessing.Manager()
