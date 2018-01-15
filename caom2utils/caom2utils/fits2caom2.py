@@ -1565,15 +1565,14 @@ class WcsParser(object):
             self.logger.debug('No WCS Energy info.')
             return
 
-        chunk.energy_axis = energy_axis
+        chunk.energy_axis = energy_axis + 1
         naxis = CoordAxis1D(self._get_axis(energy_axis))
 
-        # Note - could not avoid using _naxis private attributes...
         naxis.function = CoordFunction1D(
-            _to_int(self._sanitize(self.wcs._naxis[energy_axis])),
-            self._sanitize(self.wcs.wcs.cdelt[energy_axis]),
-            RefCoord(self._sanitize(self.wcs.wcs.crpix[energy_axis]),
-                     self._sanitize(self.wcs.wcs.crval[energy_axis])))
+            self._get_axis_length(energy_axis + 1),
+            _to_float(self._sanitize(self.wcs.wcs.cdelt[energy_axis])),
+            RefCoord(_to_float(self._sanitize(self.wcs.wcs.crpix[energy_axis])),
+                     _to_float(self._sanitize(self.wcs.wcs.crval[energy_axis]))))
         specsys = str(self.wcs.wcs.specsys)
         if not chunk.energy:
             chunk.energy = SpectralWCS(naxis, specsys)
@@ -1643,14 +1642,14 @@ class WcsParser(object):
             self.logger.warning('No WCS Time info.')
             return
 
-        chunk.time_axis = time_axis
+        chunk.time_axis = time_axis + 1
         # set chunk.time
         self.logger.debug('Begin temporal axis augmentation.')
 
         aug_naxis = self._get_axis(time_axis)
         aug_error = self._get_coord_error(None, time_axis)
         aug_ref_coord = self._get_ref_coord(None, time_axis)
-        aug_function = CoordFunction1D(self.wcs._naxis[time_axis],
+        aug_function = CoordFunction1D(self._get_axis_length(time_axis + 1),
                                        self.wcs.wcs.cdelt[time_axis],
                                        aug_ref_coord)
         naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
@@ -1682,11 +1681,11 @@ class WcsParser(object):
             self.logger.debug('No WCS Polarization info')
             return
 
-        chunk.polarization_axis = polarization_axis
+        chunk.polarization_axis = polarization_axis + 1
 
         naxis = CoordAxis1D(self._get_axis(polarization_axis))
         naxis.function = CoordFunction1D(
-            self._sanitize(self.wcs._naxis[polarization_axis]),
+            self._get_axis_length(polarization_axis + 1),
             self._sanitize(self.wcs.wcs.cdelt[polarization_axis]),
             RefCoord(self._sanitize(self.wcs.wcs.crpix[polarization_axis]),
                      self._sanitize(self.wcs.wcs.crval[polarization_axis])))
@@ -1711,6 +1710,7 @@ class WcsParser(object):
                 check = self.wcs.wcs.ctype[i]
                 if check in keywords:
                     axis = i
+                    break
         return axis
 
     def _get_axis(self, index, over_ctype=None, over_cunit=None):
@@ -1835,6 +1835,27 @@ class WcsParser(object):
             aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
 
+    def _get_axis_length(self, for_axis):
+        result = -1
+        try:
+            # Note - could not avoid using _naxis private attributes...
+            result = _to_int(self._sanitize(self.wcs._naxis[for_axis - 1]))
+        except IndexError:
+            try:
+                result = _to_int(
+                    self._sanitize(self.header.get('NAXIS{}'.format(for_axis))))
+            except ValueError:
+                try:
+                    result = _to_int(self._sanitize(
+                        self.header.get('ZAXIS{}'.format(for_axis))))
+                except ValueError:
+                    self.logger.warning(
+                        'Could not find axis length for axis {}'.format(
+                            for_axis))
+        if isinstance(result, tuple):
+            result = result[0]
+        return result
+
     def _sanitize(self, value):
         """
         Sanitizes values from FITS to caom2
@@ -1851,6 +1872,10 @@ class WcsParser(object):
 
 def _to_str(value):
     return str(value) if value else None
+
+
+def _to_float(value):
+    return float(value) if value else None
 
 
 def _to_int(value):

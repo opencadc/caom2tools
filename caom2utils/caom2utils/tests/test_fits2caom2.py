@@ -112,7 +112,7 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
       </caom2:axis>
       <caom2:function>
         <caom2:naxis>1</caom2:naxis>
-        <caom2:delta>-824.46001999999999</caom2:delta>
+        <caom2:delta>-824.46002</caom2:delta>
         <caom2:refCoord>
           <caom2:pix>145.0</caom2:pix>
           <caom2:val>-60000.0</caom2:val>

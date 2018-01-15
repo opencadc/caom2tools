@@ -10,9 +10,6 @@
     <caom2:name>CGPS Mosaic MA1</caom2:name>
     <caom2:standard>false</caom2:standard>
   </caom2:target>
-  <caom2:telescope>
-    <caom2:name>DRAO ST</caom2:name>
-  </caom2:telescope>
   <caom2:instrument>
     <caom2:name>DRAO ST</caom2:name>
   </caom2:instrument>
@@ -31,8 +28,11 @@
               <caom2:name>0</caom2:name>
               <caom2:chunks>
                 <caom2:chunk caom2:id="00000000-0000-0000-94d7-ed401aa1586f">
-                  <caom2:energyAxis>2</caom2:energyAxis>
-                  <caom2:polarizationAxis>3</caom2:polarizationAxis>
+                  <caom2:naxis>4</caom2:naxis>
+                  <caom2:positionAxis1>1</caom2:positionAxis1>
+                  <caom2:positionAxis2>2</caom2:positionAxis2>
+                  <caom2:energyAxis>3</caom2:energyAxis>
+                  <caom2:polarizationAxis>4</caom2:polarizationAxis>
                   <caom2:position>
                     <caom2:axis>
                       <caom2:axis1>
@@ -73,7 +73,7 @@
                       </caom2:axis>
                       <caom2:function>
                         <caom2:naxis>272</caom2:naxis>
-                        <caom2:delta>-824.46001999999999</caom2:delta>
+                        <caom2:delta>-824.46002</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>145.0</caom2:pix>
                           <caom2:val>-60000.0</caom2:val>
