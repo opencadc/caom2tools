@@ -1,8 +1,11 @@
 **Caom2Repo**
+
 ***Client caom2-repo***
+
 caom2Repo provides a client (caom2-repo) to perform CRUD (Create, Read, Update, Delete) on an observation in a collection in a repository. 
 
 ***Visitor Plugin***
+
 The client also provides a visitor function which accepts a plugin. The visitor function iterates the observations of a collection and updates them according to the algorithm of the plugin function. The following is an example plugin to add a 'PREVIEW' Plane to an observation. More plugin examples can be found in caom2repo/tests/.
 ```
 from __future__ import (absolute_import, division, print_function,
