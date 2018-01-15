@@ -86,6 +86,7 @@ from cadcutils import util
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 from caom2.version import version as caom2_version
 from six import BytesIO
+from six.moves import xrange
 
 # from . import version as caom2repo_version
 from caom2repo import version
