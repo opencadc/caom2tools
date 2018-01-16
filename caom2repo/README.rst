@@ -1,6 +1,10 @@
 =========
 Caom2Repo
 =========
+
+.. image:: https://img.shields.io/pypi/v/caom2repo.svg   
+    :target: https://pypi.python.org/pypi/caom2repo
+
 Client caom2-repo
 =================
 caom2Repo provides a client (caom2-repo) to perform CRUD (Create, Read, Update, Delete) on an observation in a collection in a repository.
