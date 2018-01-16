@@ -129,6 +129,7 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
     test_fitsparser = FitsParser(test_file)
+    test_fitsparser.blueprint = ObsBlueprint()
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -161,6 +162,7 @@ EXPECTED_POLARIZATION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.or
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_polarization(test_file):
     test_fitsparser = FitsParser(test_file)
+    test_fitsparser.blueprint = ObsBlueprint()
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -209,6 +211,7 @@ EXPECTED_POSITION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/ca
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
     test_fitsparser = FitsParser(test_file)
+    test_fitsparser.blueprint = ObsBlueprint()
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -255,6 +258,7 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = '''<caom2:import xmlns:caom2="http://
                            EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
 def test_augment_artifact_time(test_file, expected):
     test_fitsparser = FitsParser(test_file)
+    test_fitsparser.blueprint = ObsBlueprint()
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -474,6 +478,7 @@ def test_augment_observation(test_file, test_file_uri):
     test_obs_blueprint.set('Plane.dataProductType', 'cube')
     test_obs_blueprint.set('Plane.calibrationLevel', '2')
     test_fitsparser = FitsParser(test_file, test_obs_blueprint)
+    test_fitsparser.blueprint = test_obs_blueprint
     test_obs = Observation('collection', 'MA1_DRAO-ST',
                            Algorithm('exposure'))
     test_fitsparser.augment_observation(test_obs, test_file_uri,
@@ -503,6 +508,7 @@ def test_augment_observation(test_file, test_file_uri):
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_from_list(test_file):
     test_fitsparser = FitsParser(test_file)
+    test_fitsparser.blueprint = ObsBlueprint()
     result = test_fitsparser._get_from_list('Observation.intent', 0,
                                             ObservationIntentType.SCIENCE)
     assert result == ObservationIntentType.SCIENCE

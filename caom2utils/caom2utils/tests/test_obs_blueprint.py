@@ -99,8 +99,11 @@ def test_obs_blueprint():
     assert str(ObsBlueprint(position_axis=(1, 2), energy_axis=3,
                polarization_axis=4, time_axis=5)).count('\n') == 74
 
-    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
-                      polarization_axis=4, time_axis=5)
+    ob = ObsBlueprint()
+    ob.configure_position_axes(axes=(1, 2))
+    ob.configure_energy_axis(axis=3)
+    ob.configure_polarization_axis(axis=4)
+    ob.configure_time_axis(axis=5)
 
     # set attribute
     ob.set('Observation.instrument.name', 'NIRI')
@@ -176,8 +179,11 @@ def test_obs_blueprint():
     assert len(ob._extensions) == 0
 
     # testing error cases
-    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
-                      polarization_axis=4, time_axis=5)
+    ob = ObsBlueprint()
+    ob.configure_position_axes(axes=(1, 2))
+    ob.configure_energy_axis(axis=3)
+    ob.configure_polarization_axis(axis=4)
+    ob.configure_time_axis(axis=5)
 
     # non CAOM2 element name
     with pytest.raises(KeyError):

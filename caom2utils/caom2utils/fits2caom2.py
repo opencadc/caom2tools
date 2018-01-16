@@ -485,220 +485,259 @@ class ObsBlueprint(object):
         for key in tmp:
             self.set(key, tmp[key])
 
-        if position_axis:
-            self.set('Chunk.position.coordsys', (['RADECSYS', 'RADESYS'],
-                                                  None))
-            self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
-            self.set('Chunk.position.axis.axis1.ctype',
-                (['CTYPE{}'.format(position_axis[0])], None))
-            self.set('Chunk.position.axis.axis1.cunit',
-                (['CUNIT{}'.format(position_axis[0])], None))
-            self.set('Chunk.position.axis.axis2.ctype',
-                (['CTYPE{}'.format(position_axis[1])], None))
-            self.set('Chunk.position.axis.axis2.cunit',
-                (['CUNIT{}'.format(position_axis[1])], None))
-            self.set('Chunk.position.axis.error1.syser',
-                (['CSYER{}'.format(position_axis[0])], None))
-            self.set('Chunk.position.axis.error1.rnder',
-                (['CRDER{}'.format(position_axis[0])], None))
-            self.set('Chunk.position.axis.error2.syser',
-                (['CSYER{}'.format(position_axis[1])], None))
-            self.set('Chunk.position.axis.error2.rnder',
-                (['CRDER{}'.format(position_axis[1])], None))
-            self.set('Chunk.position.axis.function.cd11',
-                (['CD{}_{}'.format(position_axis[0], position_axis[0])], None))
-            self.set('Chunk.position.axis.function.cd12',
-                (['CD{}_{}'.format(position_axis[0], position_axis[1])], None))
-            self.set('Chunk.position.axis.function.cd21',
-                (['CD{}_{}'.format(position_axis[1], position_axis[0])], None))
-            self.set('Chunk.position.axis.function.cd22',
-                (['CD{}_{}'.format(position_axis[1], position_axis[1])], None))
-            self.set('Chunk.position.axis.function.dimension.naxis1',
-                (['ZNAXIS{}'.format(position_axis[0]),
-                  'NAXIS{}'.format(position_axis[0])], None))
-            self.set('Chunk.position.axis.function.dimension.naxis2',
-                (['ZNAXIS{}'.format(position_axis[0]),
-                  'NAXIS{}'.format(position_axis[1])], None))
-            self.set('Chunk.position.axis.function.refCoord.coord1.pix',
-                (['CRPIX{}'.format(position_axis[0])], None))
-            self.set('Chunk.position.axis.function.refCoord.coord1.val',
-                (['CRVAL{}'.format(position_axis[0])], None))
-            self.set('Chunk.position.axis.function.refCoord.coord2.pix',
-                (['CRPIX{}'.format(position_axis[1])], None))
-            self.set('Chunk.position.axis.function.refCoord.coord2.val',
-                (['CRVAL{}'.format(position_axis[1])], None))
-
-        if energy_axis:
-            self.set('Chunk.energy.specsys', (['SPECSYS'], None))
-            self.set('Chunk.energy.ssysobs', (['SSYSOBS'], None))
-            self.set('Chunk.energy.restfrq', (['RESTFRQ'], None))
-            self.set('Chunk.energy.restwav', (['RESTWAV'], None))
-            self.set('Chunk.energy.velosys', (['VELOSYS'], None))
-            self.set('Chunk.energy.zsource', (['ZSOURCE'], None))
-            self.set('Chunk.energy.ssyssrc', (['SSYSSRC'], None))
-            self.set('Chunk.energy.velang', (['VELANG'], None))
-            self.set('Chunk.energy.axis.axis.ctype',
-                (['CTYPE{}'.format(energy_axis)], None))
-            self.set('Chunk.energy.axis.axis.cunit',
-                (['CUNIT{}'.format(energy_axis)], None))
-            self.set('Chunk.energy.axis.error.syser',
-                (['CSYER{}'.format(energy_axis)], None))
-            self.set('Chunk.energy.axis.error.rnder',
-                (['CRDER{}'.format(energy_axis)], None))
-            self.set('Chunk.energy.axis.function.naxis',
-                (['NAXIS{}'.format(energy_axis)], None))
-            self.set('Chunk.energy.axis.function.delta',
-                (['CDELT{}'.format(energy_axis)], None))
-            self.set('Chunk.energy.axis.function.refCoord.pix',
-                (['CRPIX{}'.format(energy_axis)], None))
-            self.set('Chunk.energy.axis.function.refCoord.val',
-                (['CRVAL{}'.format(energy_axis)], None))
-
-        if polarization_axis:
-            self.set('Chunk.polarization.axis.axis.ctype',
-                (['CTYPE{}'.format(polarization_axis)], None))
-            self.set('Chunk.polarization.axis.axis.cunit',
-                (['CUNIT{}'.format(polarization_axis)], None))
-            self.set('Chunk.polarization.axis.function.naxis',
-                (['NAXIS{}'.format(polarization_axis)], None))
-            self.set('Chunk.polarization.axis.function.delta',
-                (['CDELT{}'.format(polarization_axis)], None))
-            self.set('Chunk.polarization.axis.function.refCoord.pix',
-                (['CRPIX{}'.format(polarization_axis)], None))
-            self.set('Chunk.polarization.axis.function.refCoord.val',
-                (['CRVAL{}'.format(polarization_axis)], None))
-
-        if time_axis:
-            self.set('Chunk.time.exposure', (['EXPTIME', 'INTTIME'], None))
-            self.set('Chunk.time.timesys', (['TIMESYS'], None))
-            self.set('Chunk.time.trefpos', (['TREFPOS'], None))
-            self.set('Chunk.time.mjdref', (['MJDREF'], None))
-            self.set('Chunk.time.axis.axis.ctype',
-                (['CTYPE{}'.format(time_axis)], None))
-            self.set('Chunk.time.axis.axis.cunit',
-                (['CUNIT{}'.format(time_axis)], None))
-            self.set('Chunk.time.axis.error.syser',
-                (['CSYER{}'.format(time_axis)], None))
-            self.set('Chunk.time.axis.error.rnder',
-                (['CRDER{}'.format(time_axis)], None))
-            self.set('Chunk.time.axis.function.naxis',
-                (['NAXIS{}'.format(time_axis)], None))
-            self.set('Chunk.time.axis.function.delta',
-                (['CDELT{}'.format(time_axis)], None))
-            self.set('Chunk.time.axis.function.refCoord.pix',
-                (['CRPIX{}'.format(time_axis)], None))
-            self.set('Chunk.time.axis.function.refCoord.val',
-                (['CRVAL{}'.format(time_axis)], None))
-
         self._extensions = {}
 
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            'Chunk.naxis': 'ZNAXIS,NAXIS',
-            'Chunk.position.coordsys': 'RADECSYS,RADESYS',
-            'Chunk.position.equinox': 'EQUINOX,EPOCH',
-            'Chunk.energy.specsys': 'SPECSYS',
-            'Chunk.energy.ssysobs': 'SSYSOBS',
-            'Chunk.energy.restfrq': 'RESTFRQ',
-            'Chunk.energy.restwav': 'RESTWAV',
-            'Chunk.energy.velosys': 'VELOSYS',
-            'Chunk.energy.zsource': 'ZSOURCE',
-            'Chunk.energy.ssyssrc': 'SSYSSRC',
-            'Chunk.energy.velang': 'VELANG',
-            'Chunk.time.exposure': 'EXPTIME,INTTIME',
-            'Chunk.time.timesys': 'TIMESYS',
-            'Chunk.time.trefpos': 'TREFPOS',
-            'Chunk.time.mjdref': 'MJDREF'
+            'Chunk.naxis': 'ZNAXIS,NAXIS'
         }
 
         if position_axis:
-            self._wcs_std['Chunk.position.axis.axis1.ctype'] = \
-                'CTYPE{}'.format(position_axis[0])
-            self._wcs_std['Chunk.position.axis.axis1.cunit'] = \
-                'CUNIT{}'.format(position_axis[0])
-            self._wcs_std['Chunk.position.axis.axis2.ctype'] = \
-                'CTYPE{}'.format(position_axis[1])
-            self._wcs_std['Chunk.position.axis.axis2.cunit'] = \
-                'CUNIT{}'.format(position_axis[1])
-            self._wcs_std['Chunk.position.axis.error1.syser'] = \
-                'CSYER{}'.format(position_axis[0])
-            self._wcs_std['Chunk.position.axis.error1.rnder'] = \
-                'CRDER{}'.format(position_axis[0])
-            self._wcs_std['Chunk.position.axis.error2.syser'] = \
-                'CSYER{}'.format(position_axis[1])
-            self._wcs_std['Chunk.position.axis.error2.rnder'] = \
-                'CRDER{}'.format(position_axis[1])
-            self._wcs_std['Chunk.position.axis.function.cd11'] = \
-                'CD{}_{}'.format(position_axis[0], position_axis[0])
-            self._wcs_std['Chunk.position.axis.function.cd12'] = \
-                'CD{}_{}'.format(position_axis[0], position_axis[1])
-            self._wcs_std['Chunk.position.axis.function.cd21'] = \
-                'CD{}_{}'.format(position_axis[1], position_axis[0])
-            self._wcs_std['Chunk.position.axis.function.cd22'] = \
-                'CD{}_{}'.format(position_axis[1], position_axis[1])
-            self._wcs_std['Chunk.position.axis.function.dimension.naxis1'] = \
-                'NAXIS{}'.format(position_axis[0])
-            self._wcs_std['Chunk.position.axis.function.dimension.naxis2'] = \
-                'NAXIS{}'.format(position_axis[1])
-            self._wcs_std['Chunk.position.axis.function.refCoord.coord1.pix'] \
-                = 'CRPIX{}'.format(position_axis[0])
-            self._wcs_std['Chunk.position.axis.function.refCoord.coord1.val'] \
-                = 'CRVAL{}'.format(position_axis[0])
-            self._wcs_std['Chunk.position.axis.function.refCoord.coord2.pix'] \
-                = 'CRPIX{}'.format(position_axis[1])
-            self._wcs_std['Chunk.position.axis.function.refCoord.coord2.val'] \
-                = 'CRVAL{}'.format(position_axis[1])
+            self.configure_position_axes(position_axis)
 
         if energy_axis:
-            self._wcs_std['Chunk.energy.axis.axis.ctype'] = \
-                'CTYPE{}'.format(energy_axis)
-            self._wcs_std['Chunk.energy.axis.axis.cunit'] = \
-                'CUNIT{}'.format(energy_axis)
-            self._wcs_std['Chunk.energy.axis.error.syser'] = \
-                'CSYER{}'.format(energy_axis)
-            self._wcs_std['Chunk.energy.axis.error.rnder'] = \
-                'CRDER{}'.format(energy_axis)
-            self._wcs_std['Chunk.energy.axis.function.naxis'] = \
-                'NAXIS{}'.format(energy_axis)
-            self._wcs_std['Chunk.energy.axis.function.delta'] = \
-                'CDELT{}'.format(energy_axis)
-            self._wcs_std['Chunk.energy.axis.function.refCoord.pix'] = \
-                'CRPIX{}'.format(energy_axis)
-            self._wcs_std['Chunk.energy.axis.function.refCoord.val'] = \
-                'CRVAL{}'.format(energy_axis)
+            self.configure_energy_axis(energy_axis)
 
         if polarization_axis:
-            self._wcs_std['Chunk.polarization.axis.axis.ctype'] = \
-                'CTYPE{}'.format(polarization_axis)
-            self._wcs_std['Chunk.polarization.axis.axis.cunit'] = \
-                'CUNIT{}'.format(polarization_axis)
-            self._wcs_std['Chunk.polarization.axis.function.naxis'] = \
-                'NAXIS{}'.format(polarization_axis)
-            self._wcs_std['Chunk.polarization.axis.function.delta'] = \
-                'CDELT{}'.format(polarization_axis)
-            self._wcs_std['Chunk.polarization.axis.function.refCoord.pix'] = \
-                'CRPIX{}'.format(polarization_axis)
-            self._wcs_std['Chunk.polarization.axis.function.refCoord.val'] = \
-                'CRVAL{}'.format(polarization_axis)
+            self.configure_polarization_axis(polarization_axis)
 
         if time_axis:
-            self._wcs_std['Chunk.time.axis.axis.ctype'] = \
-                'CTYPE{}'.format(time_axis)
-            self._wcs_std['Chunk.time.axis.axis.cunit'] = \
-                'CUNIT{}'.format(time_axis)
-            self._wcs_std['Chunk.time.axis.error.syser'] = \
-                'CSYER{}'.format(time_axis)
-            self._wcs_std['Chunk.time.axis.error.rnder'] = \
-                'CRDER{}'.format(time_axis)
-            self._wcs_std['Chunk.time.axis.function.naxis'] = \
-                'NAXIS{}'.format(time_axis)
-            self._wcs_std['Chunk.time.axis.function.delta'] = \
-                'CDELT{}'.format(time_axis)
-            self._wcs_std['Chunk.time.axis.function.refCoord.pix'] = \
-                'CRPIX{}'.format(time_axis)
-            self._wcs_std['Chunk.time.axis.function.refCoord.val'] = \
-                'CRVAL{}'.format(time_axis)
+            self.configure_time_axis(time_axis)
+
+    def configure_position_axes(self, axes):
+        """
+        Set the expected FITS spatial keywords by indices in the blueprint and
+        the wcs_std lookup.
+
+        :param axes: The index expected for the position axes.
+        :return:
+        """
+        self.set('Chunk.position.coordsys', (['RADECSYS', 'RADESYS'],
+                                             None))
+        self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
+        self.set('Chunk.position.axis.axis1.ctype',
+                 (['CTYPE{}'.format(axes[0])], None))
+        self.set('Chunk.position.axis.axis1.cunit',
+                 (['CUNIT{}'.format(axes[0])], None))
+        self.set('Chunk.position.axis.axis2.ctype',
+                 (['CTYPE{}'.format(axes[1])], None))
+        self.set('Chunk.position.axis.axis2.cunit',
+                 (['CUNIT{}'.format(axes[1])], None))
+        self.set('Chunk.position.axis.error1.syser',
+                 (['CSYER{}'.format(axes[0])], None))
+        self.set('Chunk.position.axis.error1.rnder',
+                 (['CRDER{}'.format(axes[0])], None))
+        self.set('Chunk.position.axis.error2.syser',
+                 (['CSYER{}'.format(axes[1])], None))
+        self.set('Chunk.position.axis.error2.rnder',
+                 (['CRDER{}'.format(axes[1])], None))
+        self.set('Chunk.position.axis.function.cd11',
+                 (['CD{}_{}'.format(axes[0], axes[0])], None))
+        self.set('Chunk.position.axis.function.cd12',
+                 (['CD{}_{}'.format(axes[0], axes[1])], None))
+        self.set('Chunk.position.axis.function.cd21',
+                 (['CD{}_{}'.format(axes[1], axes[0])], None))
+        self.set('Chunk.position.axis.function.cd22',
+                 (['CD{}_{}'.format(axes[1], axes[1])], None))
+        self.set('Chunk.position.axis.function.dimension.naxis1',
+                 (['ZNAXIS{}'.format(axes[0]),
+                   'NAXIS{}'.format(axes[0])], None))
+        self.set('Chunk.position.axis.function.dimension.naxis2',
+                 (['ZNAXIS{}'.format(axes[0]),
+                   'NAXIS{}'.format(axes[1])], None))
+        self.set('Chunk.position.axis.function.refCoord.coord1.pix',
+                 (['CRPIX{}'.format(axes[0])], None))
+        self.set('Chunk.position.axis.function.refCoord.coord1.val',
+                 (['CRVAL{}'.format(axes[0])], None))
+        self.set('Chunk.position.axis.function.refCoord.coord2.pix',
+                 (['CRPIX{}'.format(axes[1])], None))
+        self.set('Chunk.position.axis.function.refCoord.coord2.val',
+                 (['CRVAL{}'.format(axes[1])], None))
+
+        self._wcs_std['Chunk.position.coordsys'] = 'RADECSYS,RADESYS'
+        self._wcs_std['Chunk.position.equinox'] = 'EQUINOX,EPOCH'
+
+        self._wcs_std['Chunk.position.axis.axis1.ctype'] = \
+            'CTYPE{}'.format(axes[0])
+        self._wcs_std['Chunk.position.axis.axis1.cunit'] = \
+            'CUNIT{}'.format(axes[0])
+        self._wcs_std['Chunk.position.axis.axis2.ctype'] = \
+            'CTYPE{}'.format(axes[1])
+        self._wcs_std['Chunk.position.axis.axis2.cunit'] = \
+            'CUNIT{}'.format(axes[1])
+        self._wcs_std['Chunk.position.axis.error1.syser'] = \
+            'CSYER{}'.format(axes[0])
+        self._wcs_std['Chunk.position.axis.error1.rnder'] = \
+            'CRDER{}'.format(axes[0])
+        self._wcs_std['Chunk.position.axis.error2.syser'] = \
+            'CSYER{}'.format(axes[1])
+        self._wcs_std['Chunk.position.axis.error2.rnder'] = \
+            'CRDER{}'.format(axes[1])
+        self._wcs_std['Chunk.position.axis.function.cd11'] = \
+            'CD{}_{}'.format(axes[0], axes[0])
+        self._wcs_std['Chunk.position.axis.function.cd12'] = \
+            'CD{}_{}'.format(axes[0], axes[1])
+        self._wcs_std['Chunk.position.axis.function.cd21'] = \
+            'CD{}_{}'.format(axes[1], axes[0])
+        self._wcs_std['Chunk.position.axis.function.cd22'] = \
+            'CD{}_{}'.format(axes[1], axes[1])
+        self._wcs_std['Chunk.position.axis.function.dimension.naxis1'] = \
+            'NAXIS{}'.format(axes[0])
+        self._wcs_std['Chunk.position.axis.function.dimension.naxis2'] = \
+            'NAXIS{}'.format(axes[1])
+        self._wcs_std['Chunk.position.axis.function.refCoord.coord1.pix'] \
+            = 'CRPIX{}'.format(axes[0])
+        self._wcs_std['Chunk.position.axis.function.refCoord.coord1.val'] \
+            = 'CRVAL{}'.format(axes[0])
+        self._wcs_std['Chunk.position.axis.function.refCoord.coord2.pix'] \
+            = 'CRPIX{}'.format(axes[1])
+        self._wcs_std['Chunk.position.axis.function.refCoord.coord2.val'] \
+            = 'CRVAL{}'.format(axes[1])
+
+    def configure_energy_axis(self, axis):
+        """
+        Set the expected FITS energy keywords by index in the blueprint and
+        the wcs_std lookup.
+
+        :param axis: The index expected for the energy axis.
+        :return:
+        """
+        self.set('Chunk.energy.specsys', (['SPECSYS'], None))
+        self.set('Chunk.energy.ssysobs', (['SSYSOBS'], None))
+        self.set('Chunk.energy.restfrq', (['RESTFRQ'], None))
+        self.set('Chunk.energy.restwav', (['RESTWAV'], None))
+        self.set('Chunk.energy.velosys', (['VELOSYS'], None))
+        self.set('Chunk.energy.zsource', (['ZSOURCE'], None))
+        self.set('Chunk.energy.ssyssrc', (['SSYSSRC'], None))
+        self.set('Chunk.energy.velang', (['VELANG'], None))
+        self.set('Chunk.energy.axis.axis.ctype',
+                 (['CTYPE{}'.format(axis)], None))
+        self.set('Chunk.energy.axis.axis.cunit',
+                 (['CUNIT{}'.format(axis)], None))
+        self.set('Chunk.energy.axis.error.syser',
+                 (['CSYER{}'.format(axis)], None))
+        self.set('Chunk.energy.axis.error.rnder',
+                 (['CRDER{}'.format(axis)], None))
+        self.set('Chunk.energy.axis.function.naxis',
+                 (['NAXIS{}'.format(axis)], None))
+        self.set('Chunk.energy.axis.function.delta',
+                 (['CDELT{}'.format(axis)], None))
+        self.set('Chunk.energy.axis.function.refCoord.pix',
+                 (['CRPIX{}'.format(axis)], None))
+        self.set('Chunk.energy.axis.function.refCoord.val',
+                 (['CRVAL{}'.format(axis)], None))
+
+        self._wcs_std['Chunk.energy.specsys'] = 'SPECSYS'
+        self._wcs_std['Chunk.energy.ssysobs'] = 'SSYSOBS'
+        self._wcs_std['Chunk.energy.restfrq'] = 'RESTFRQ'
+        self._wcs_std['Chunk.energy.restwav'] = 'RESTWAV'
+        self._wcs_std['Chunk.energy.velosys'] = 'VELOSYS'
+        self._wcs_std['Chunk.energy.zsource'] = 'ZSOURCE'
+        self._wcs_std['Chunk.energy.ssyssrc'] = 'SSYSSRC'
+        self._wcs_std['Chunk.energy.velang'] = 'VELANG'
+
+        self._wcs_std['Chunk.energy.axis.axis.ctype'] = \
+            'CTYPE{}'.format(axis)
+        self._wcs_std['Chunk.energy.axis.axis.cunit'] = \
+            'CUNIT{}'.format(axis)
+        self._wcs_std['Chunk.energy.axis.error.syser'] = \
+            'CSYER{}'.format(axis)
+        self._wcs_std['Chunk.energy.axis.error.rnder'] = \
+            'CRDER{}'.format(axis)
+        self._wcs_std['Chunk.energy.axis.function.naxis'] = \
+            'NAXIS{}'.format(axis)
+        self._wcs_std['Chunk.energy.axis.function.delta'] = \
+            'CDELT{}'.format(axis)
+        self._wcs_std['Chunk.energy.axis.function.refCoord.pix'] = \
+            'CRPIX{}'.format(axis)
+        self._wcs_std['Chunk.energy.axis.function.refCoord.val'] = \
+            'CRVAL{}'.format(axis)
+
+    def configure_polarization_axis(self, axis):
+        """
+        Set the expected FITS polarization keywords by index in the blueprint
+        and the wcs_std lookup.
+
+        :param axis: The index expected for the polarization axis.
+        :return:
+        """
+        self.set('Chunk.polarization.axis.axis.ctype',
+                 (['CTYPE{}'.format(axis)], None))
+        self.set('Chunk.polarization.axis.axis.cunit',
+                 (['CUNIT{}'.format(axis)], None))
+        self.set('Chunk.polarization.axis.function.naxis',
+                 (['NAXIS{}'.format(axis)], None))
+        self.set('Chunk.polarization.axis.function.delta',
+                 (['CDELT{}'.format(axis)], None))
+        self.set('Chunk.polarization.axis.function.refCoord.pix',
+                 (['CRPIX{}'.format(axis)], None))
+        self.set('Chunk.polarization.axis.function.refCoord.val',
+                 (['CRVAL{}'.format(axis)], None))
+
+        self._wcs_std['Chunk.polarization.axis.axis.ctype'] = \
+            'CTYPE{}'.format(axis)
+        self._wcs_std['Chunk.polarization.axis.axis.cunit'] = \
+            'CUNIT{}'.format(axis)
+        self._wcs_std['Chunk.polarization.axis.function.naxis'] = \
+            'NAXIS{}'.format(axis)
+        self._wcs_std['Chunk.polarization.axis.function.delta'] = \
+            'CDELT{}'.format(axis)
+        self._wcs_std['Chunk.polarization.axis.function.refCoord.pix'] = \
+            'CRPIX{}'.format(axis)
+        self._wcs_std['Chunk.polarization.axis.function.refCoord.val'] = \
+            'CRVAL{}'.format(axis)
+
+    def configure_time_axis(self, axis):
+        """
+        Set the expected FITS time keywords by index in the blueprint and
+        the wcs_std lookup.
+
+        :param axis: The index expected for the time axis.
+        :return:
+        """
+        self.set('Chunk.time.exposure', (['EXPTIME', 'INTTIME'], None))
+        self.set('Chunk.time.timesys', (['TIMESYS'], None))
+        self.set('Chunk.time.trefpos', (['TREFPOS'], None))
+        self.set('Chunk.time.mjdref', (['MJDREF'], None))
+        self.set('Chunk.time.axis.axis.ctype',
+                 (['CTYPE{}'.format(axis)], None))
+        self.set('Chunk.time.axis.axis.cunit',
+                 (['CUNIT{}'.format(axis)], None))
+        self.set('Chunk.time.axis.error.syser',
+                 (['CSYER{}'.format(axis)], None))
+        self.set('Chunk.time.axis.error.rnder',
+                 (['CRDER{}'.format(axis)], None))
+        self.set('Chunk.time.axis.function.naxis',
+                 (['NAXIS{}'.format(axis)], None))
+        self.set('Chunk.time.axis.function.delta',
+                 (['CDELT{}'.format(axis)], None))
+        self.set('Chunk.time.axis.function.refCoord.pix',
+                 (['CRPIX{}'.format(axis)], None))
+        self.set('Chunk.time.axis.function.refCoord.val',
+                 (['CRVAL{}'.format(axis)], None))
+
+        self._wcs_std['Chunk.time.exposure'] = 'EXPTIME,INTTIME'
+        self._wcs_std['Chunk.time.timesys'] = 'TIMESYS'
+        self._wcs_std['Chunk.time.trefpos'] = 'TREFPOS'
+        self._wcs_std['Chunk.time.mjdref'] = 'MJDREF'
+
+        self._wcs_std['Chunk.time.axis.axis.ctype'] = \
+            'CTYPE{}'.format(axis)
+        self._wcs_std['Chunk.time.axis.axis.cunit'] = \
+            'CUNIT{}'.format(axis)
+        self._wcs_std['Chunk.time.axis.error.syser'] = \
+            'CSYER{}'.format(axis)
+        self._wcs_std['Chunk.time.axis.error.rnder'] = \
+            'CRDER{}'.format(axis)
+        self._wcs_std['Chunk.time.axis.function.naxis'] = \
+            'NAXIS{}'.format(axis)
+        self._wcs_std['Chunk.time.axis.function.delta'] = \
+            'CDELT{}'.format(axis)
+        self._wcs_std['Chunk.time.axis.function.refCoord.pix'] = \
+            'CRPIX{}'.format(axis)
+        self._wcs_std['Chunk.time.axis.function.refCoord.val'] = \
+            'CRVAL{}'.format(axis)
 
     @classproperty
     def CAOM2_ELEMENTS(cls):
@@ -965,10 +1004,11 @@ class FitsParser(object):
         one header for each extension or a FITS input file.
         """
         self.logger = logging.getLogger(__name__)
-        if obs_blueprint:
-            self.blueprint = obs_blueprint
-        else:
-            self.blueprint = ObsBlueprint()
+        # if obs_blueprint:
+        #     self.blueprint = obs_blueprint
+        # else:
+        #     self.blueprint = ObsBlueprint()
+        self._blueprint = None
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -991,6 +1031,14 @@ class FitsParser(object):
         :return:
         """
         return self._headers
+
+    @property
+    def blueprint(self):
+        return self._blueprint
+
+    @blueprint.setter
+    def blueprint(self, value):
+        self._blueprint = value
 
     def add_error(self, key, message):
         self._errors.append(('{} {} {}'.format(
@@ -2279,7 +2327,8 @@ def main_app(obs_blueprint=None):
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
             artifact = plane.artifacts[uri]
-            parser = FitsParser(file, obs_blueprint[uri])
+            parser = FitsParser(file)
+            parser.blueprint = obs_blueprint[uri]
         else:
             headers = get_cadc_headers(uri, args.cert)
 
@@ -2288,7 +2337,8 @@ def main_app(obs_blueprint=None):
                     Artifact(uri=str(uri),
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            parser = FitsParser(headers, obs_blueprint[uri])
+            parser = FitsParser(headers)
+            parser.blueprint = obs_blueprint[uri]
 
         update_fits_headers(parser, uri, config, defaults, overrides)
         if args.dumpconfig:
