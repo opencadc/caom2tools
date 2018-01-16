@@ -73,9 +73,12 @@ from __future__ import (absolute_import, division, print_function,
 import argparse
 import imp
 import logging
+import multiprocessing
+from multiprocessing import Pool
 import os
 import os.path
 import sys
+import threading
 from datetime import datetime
 
 from cadcutils import net
@@ -83,6 +86,7 @@ from cadcutils import util
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 from caom2.version import version as caom2_version
 from six import BytesIO
+from six.moves import xrange
 
 # from . import version as caom2repo_version
 from caom2repo import version
@@ -98,27 +102,109 @@ CAOM2REPO_OBS_CAPABILITY_ID =\
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 APP_NAME = 'caom2repo'
 
+# QueueHandler was excerpted from the source code in the following url:
+# https://github.com/python/cpython/blob/master/Lib/logging/handlers.py
+#
+# Copyright 2001-2016 by Vinay Sajip. All Rights Reserved.
+#
+# Permission to use, copy, modify, and distribute this software and its
+# documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright notice appear in all copies and that
+# both that copyright notice and this permission notice appear in
+# supporting documentation, and that the name of Vinay Sajip
+# not be used in advertising or publicity pertaining to distribution
+# of the software without specific, written prior permission.
+# VINAY SAJIP DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
+# ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL
+# VINAY SAJIP BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+# ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
+# IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
+# OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+class QueueHandler(logging.Handler):
+    """
+    This handler sends events to a queue. Typically, it would be used together
+    with a multiprocessing Queue to centralise logging to file in one process
+    (in a multi-process application), so as to avoid file write contention
+    between processes.
+    This code is new in Python 3.2, but this class can be copy pasted into
+    user code for use with earlier Python versions.
+    """
+
+    def __init__(self, queue):
+        """
+        Initialise an instance, using the passed queue.
+        """
+        logging.Handler.__init__(self)
+        self.queue = queue
+
+    def enqueue(self, record):
+        """
+        Enqueue a record.
+        The base implementation uses put_nowait. You may want to override
+        this method if you want to use blocking, timeouts or custom queue
+        implementations.
+        """
+        self.queue.put_nowait(record)
+
+    def prepare(self, record):
+        """
+        Prepares a record for queuing. The object returned by this method is
+        enqueued.
+        The base implementation formats the record to merge the message
+        and arguments, and removes unpickleable items from the record
+        in-place.
+        You might want to override this method if you want to convert
+        the record to a dict or JSON string, or send a modified copy
+        of the record while leaving the original intact.
+        """
+        # The format operation gets traceback text into record.exc_text
+        # (if there's exception data), and also returns the formatted
+        # message. We can then use this to replace the original
+        # msg + args, as these might be unpickleable. We also zap the
+        # exc_info attribute, as it's no longer needed and, if not None,
+        # will typically not be pickleable.
+        msg = self.format(record)
+        record.message = msg
+        record.msg = msg
+        record.args = None
+        record.exc_info = None
+        return record
+
+    def emit(self, record):
+        """
+        Emit a record.
+        Writes the LogRecord to the queue, preparing it for pickling first.
+        """
+        try:
+            self.enqueue(self.prepare(record))
+        except Exception:
+            self.handleError(record)
+
 
 class CAOM2RepoClient(object):
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    logger = logging.getLogger('CAOM2RepoClient')
-
-    def __init__(self, subject, resource_id=DEFAULT_RESOURCE_ID, host=None):
+    def __init__(self, subject, queue, logLevel=logging.INFO, resource_id=DEFAULT_RESOURCE_ID, host=None, agent=None):
         """
         Instance of a CAOM2RepoClient
         :param subject: the subject performing the action
         :type cadcutils.auth.Subject
         :param server: Host server for the caom2repo service
         """
-        agent = '{}/{}'.format(APP_NAME, version.version)
+        self.queue = queue
+        self.level = logLevel
+        qh = QueueHandler(queue)
+        logging.basicConfig(level=logLevel, stream=sys.stdout)
+        self.logger = logging.getLogger('CAOM2RepoClient')
+        self.logger.addHandler(qh)
+        self.resource_id = resource_id
         self.host = host
         self._subject = subject
-        self._repo_client = net.BaseWsClient(resource_id, subject, agent,
-                                             retry=True, host=host)
+        if agent is None:
+            agent = "caom2-repo-client/{} caom2/{}".format(version.version, caom2_version)
 
-        agent = "caom2-repo-client/{} caom2/{}".format(version.version,
-                                                       caom2_version)
+        self.agent = agent
+
 
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host)
@@ -157,8 +243,8 @@ class CAOM2RepoClient(object):
         """
         self.delete_observation(collection, observation_id)
 
-    def visit(self, plugin, collection, start=None, end=None,
-              halt_on_error=False):
+    def visit(self, plugin, collection, start=None, end=None, obs_file=None,
+              nthreads=None, halt_on_error=False):
         """
         Main processing function that iterates through the observations of
         the collection and updates them according to the algorithm
@@ -183,6 +269,7 @@ class CAOM2RepoClient(object):
             assert type(start) is datetime
         if end is not None:
             assert type(end) is datetime
+
         self._load_plugin_class(plugin)
 
         # this is updated by _get_observations with the timestamp of last
@@ -192,36 +279,52 @@ class CAOM2RepoClient(object):
         failed = []
         updated = []
         skipped = []
-        observations = self._get_observations(collection, self._start, end)
+        observations = []
+        if obs_file is not None:
+            # get observation IDs from file, no batching
+            observations = self._get_obs_from_file(obs_file, start, end, halt_on_error)
+        else:
+            # get observation IDs from caomrepo
+            observations = self._get_observations(collection, self._start, end)
+
         while len(observations) > 0:
-            for observationID in observations:
-                self.logger.info('Process observation: ' + observationID)
-                observation = self.get_observation(collection, observationID)
+            if nthreads is None:
+                results = [self._process_observation_id(collection, observationID, halt_on_error)
+                           for observationID in observations]
+                for v, u, s, f in results:
+                    if v:
+                        visited.append(v)
+                    if u:
+                        updated.append(u)
+                    if s:
+                        skipped.append(s)
+                    if f:
+                        failed.append(f)
+
+            else:
+                p = Pool(nthreads)
                 try:
-                    if self.plugin.update(observation=observation,
-                                          subject=self._subject) is False:
-                        self.logger.info(
-                            'SKIP {}'.format(observation.observation_id))
-                        skipped.append(observation.observation_id)
-                    else:
-                        self.post_observation(observation)
-                        self.logger.debug(
-                            'UPDATED {}'.format(observation.observation_id))
-                        updated.append(observation.observation_id)
-                except TypeError as e:
-                    if "unexpected keyword argument" in str(e):
-                        raise RuntimeError(
-                            "{} - To fix the problem, please add the **kwargs "
-                            "argument to the list of arguments for the update"
-                            " method of your plugin.".format(str(e)))
-                except Exception as e:
-                    failed.append(observation.observation_id)
-                    self.logger.error('FAILED {} - Reason: {}'.
-                                      format(observation.observation_id, e))
-                    if halt_on_error:
-                        raise e
-                visited.append(observation.observation_id)
-            if len(observations) == BATCH_SIZE:
+                    results = [p.apply_async(
+                        multiprocess_observation_id,
+                        [collection, observationID, self.plugin, self._subject, self.queue, self.level,
+                         self.resource_id, self.host, self.agent])
+                        for observationID in observations]
+                    for r in results:
+                        result = r.get(timeout=10)
+                        if result[0]:
+                            visited.append(result[0])
+                        if result[1]:
+                            updated.append(result[1])
+                        if result[2]:
+                            skipped.append(result[2])
+                        if result[3]:
+                            failed.append(result[3])
+                finally:
+                    p.close()
+                    p.join()
+
+            if obs_file is None and len(observations) == BATCH_SIZE:
+                # get next batch of observationIDs from caomrepo
                 observations = self._get_observations(collection, self._start,
                                                       end)
             else:
@@ -229,7 +332,87 @@ class CAOM2RepoClient(object):
                 break
         return visited, updated, skipped, failed
 
-    def _get_observations(self, collection, start=None, end=None):
+    def _process_observation_id(self, collection, observationID, halt_on_error):
+        visited = None
+        updated = None
+        skipped = None
+        failed = None
+        self.logger.info('Process observation: ' + observationID)
+        observation = self.get_observation(collection, observationID)
+        try:
+            if self.plugin.update(observation=observation,
+                                  subject=self._subject) is False:
+                self.logger.info('SKIP {}'.format(observation.observation_id))
+                skipped = observation.observation_id
+            else:
+                self.post_observation(observation)
+                self.logger.debug('UPDATED {}'.format(observation.observation_id))
+                updated = observation.observation_id
+        except TypeError as e:
+            if "unexpected keyword argument" in str(e):
+                raise RuntimeError(
+                    "{} - To fix the problem, please add the **kwargs "
+                    "argument to the list of arguments for the update"
+                    " method of your plugin.".format(str(e)))
+        except Exception as e:
+            failed = observation.observation_id
+            self.logger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+            if halt_on_error:
+                raise e
+
+        visited = observation.observation_id
+
+        return visited, updated, skipped, failed
+
+    def _get_obs_from_file(self, obs_file, start, end, halt_on_error):
+        start_datetime = util.str2ivoa(start)
+        end_datetime = util.str2ivoa(end)
+        obs = []
+        failed = []
+        with open(obs_file) as fp:
+            for l in fp:
+                tokens = l.split()
+                if len(tokens) > 0:
+                    obs_id = tokens[0]
+                    if len(tokens) > 1:
+                        # we have at least two tokens in line
+                        try:
+                            last_mod_datetime = util.str2ivoa(tokens[1])
+                            if len(tokens) > 2:
+                                # we have more than two tokens in line
+                                raise Exception(
+                                    'Extra token one line: {}'.format(l))
+                            elif (start and last_mod_datetime<start_datetime) or \
+                                    (end and last_mod_datetime>end_datetime):
+                                # last modified date is out of start/end range
+                                self.logger.info('last modified date is out of start/end range: {}'.format(l))
+                            else:
+                                # two tokens in line: <observation id> <last modification date>
+                                obs.append(obs_id)
+                        except Exception as e:
+                            failed.append(obs_id)
+                            self.logger.error('FAILED {} - Reason: {}'.format(obs_id, e))
+                            if halt_on_error:
+                                raise e
+                    else:
+                        # only one token in line, line should contain observationID only
+                        obs.append(obs_id)
+
+        return obs
+
+    def _matches_end_date(self, obs_id, end_datetime, last_mod_datetime):
+        matches_end_date = False
+        if end_datetime is not None:
+            if last_mod_datetime <= end_datetime:
+                # and last_modified_date is earlier than end date
+                matches_end_date = True
+        else:
+            # but not end date
+            matches_end_date = True
+
+        return matches_end_date
+
+    def _get_observations(self, collection, start=None, end=None, obs_file=None):
         """
         Returns a list of observations from the collection
         :param collection: name of the collection
@@ -241,9 +424,9 @@ class CAOM2RepoClient(object):
         observations = []
         params = {'MAXREC': BATCH_SIZE}
         if start is not None:
-            params['START'] = util.utils.date2ivoa(start)
+            params['START'] = util.date2ivoa(start)
         if end is not None:
-            params['END'] = util.utils.date2ivoa(end)
+            params['END'] = util.date2ivoa(end)
 
         response = self._repo_client.get(
             (CAOM2REPO_OBS_CAPABILITY_ID, collection),
@@ -258,7 +441,7 @@ class CAOM2RepoClient(object):
             else:
                 self.logger.warn('Incomplete listing line: {}'.format(line))
         if last_datetime is not None:
-            self._start = util.utils.str2ivoa(last_datetime)
+            self._start = util.str2ivoa(last_datetime)
         return observations
 
     def _load_plugin_class(self, filepath):
@@ -296,13 +479,13 @@ class CAOM2RepoClient(object):
         assert collection is not None
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
-        logging.debug('GET '.format(path))
+        self.logger.debug('GET '.format(path))
 
         response = self._repo_client.get((CAOM2REPO_OBS_CAPABILITY_ID, path))
         obs_reader = ObservationReader()
         content = response.content
         if len(content) == 0:
-            logging.error(response.status_code)
+            self.logger.error(response.status_code)
             response.close()
             raise Exception('Got empty response for resource: {}'.format(path))
         return obs_reader.read(BytesIO(content))
@@ -317,7 +500,7 @@ class CAOM2RepoClient(object):
         assert observation.observation_id is not None
         path = '/{}/{}'.format(observation.collection,
                                observation.observation_id)
-        logging.debug('POST {}'.format(path))
+        self.logger.debug('POST {}'.format(path))
 
         ibuffer = BytesIO()
         ObservationWriter().write(observation, ibuffer)
@@ -325,7 +508,7 @@ class CAOM2RepoClient(object):
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.post(
             (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
-        logging.debug('Successfully updated Observation\n')
+        self.logger.debug('Successfully updated Observation\n')
 
     def put_observation(self, observation):
         """
@@ -337,7 +520,7 @@ class CAOM2RepoClient(object):
         assert observation.observation_id is not None
         path = '/{}/{}'.format(observation.collection,
                                observation.observation_id)
-        logging.debug('PUT {}'.format(path))
+        self.logger.debug('PUT {}'.format(path))
 
         ibuffer = BytesIO()
         ObservationWriter().write(observation, ibuffer)
@@ -345,7 +528,7 @@ class CAOM2RepoClient(object):
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.put(
             (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
-        logging.debug('Successfully put Observation\n')
+        self.logger.debug('Successfully put Observation\n')
 
     def delete_observation(self, collection, observation_id):
         """
@@ -355,10 +538,10 @@ class CAOM2RepoClient(object):
         """
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
-        logging.debug('DELETE {}'.format(path))
+        self.logger.debug('DELETE {}'.format(path))
         self._repo_client.delete(
             (CAOM2REPO_OBS_CAPABILITY_ID, path))
-        logging.info('Successfully deleted Observation {}\n')
+        self.logger.info('Successfully deleted Observation {}\n')
 
 
 def str2date(s):
@@ -370,6 +553,76 @@ def str2date(s):
     if s is None:
         return None
     return datetime.strptime(s, date_format)
+
+
+def multiprocess_observation_id(collection, observationID, plugin, subject,
+                                queue, log_level, resource_id, host, agent):
+    """
+    Multi-process version of CAOM2RepoClient._process_observation_id().
+    Each process handles Control-C via KeyboardInterrupt, which is not needed in
+    CAOM2RepoClient._process_observation_id().
+    :param collection: Name of the collection
+    :param observationID: Observation identifier
+    :param plugin: path to python file that contains the algorithm to be applied to visited observations
+    :param subject: Subject performing the action
+    :param queue: Pipe used to collect all logged messages to a centralized logging worker
+    :param log_level: Logging level
+    :param resource_id: ID of the resource being access (URI format)
+    :param host: Host server for the caom2repo service
+    :param agent: Name of the application that accesses the service and its version
+    :return: Tuple of observationID representing visited, updated, skipped and failed
+    """
+    visited = None
+    updated = None
+    skipped = None
+    failed = None
+    # set up logging for each process
+    qh = QueueHandler(queue)
+    subject = subject
+    logging.basicConfig(level=log_level, stream=sys.stdout)
+    rootLogger = logging.getLogger(
+        'multiprocess_observation_id({}): {}'.format(
+            os.getpid(), observationID))
+    rootLogger.addHandler(qh)
+
+    client = CAOM2RepoClient(subject, queue, log_level, resource_id, host, agent)
+    observation = client.get_observation(collection, observationID)
+    try:
+        if plugin.update(observation=observation,
+                         subject=subject) is False:
+            rootLogger.info('SKIP {}'.format(observation.observation_id))
+            skipped = observation.observation_id
+        else:
+            client.post_observation(observation)
+            rootLogger.debug('UPDATED {}'.format(observation.observation_id))
+            updated = observation.observation_id
+    except TypeError as e:
+        if "unexpected keyword argument" in str(e):
+            raise RuntimeError(
+                "{} - To fix the problem, please add the **kwargs "
+                "argument to the list of arguments for the update"
+                " method of your plugin.".format(str(e)))
+    except Exception as e:
+        failed = observation.observation_id
+        rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        #if halt_on_error:
+        #    raise e TODO
+    except KeyboardInterrupt as e:
+        # user pressed Control-C or Delete
+        rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        raise e
+
+    visited = observation.observation_id
+
+    return visited, updated, skipped, failed
+
+def logger_thread(q):
+    while True:
+        record = q.get()
+        if record is None:
+            break
+        logger = logging.getLogger(record.name)
+        logger.handle(record)
 
 
 def main_app():
@@ -430,6 +683,11 @@ def main_app():
     visit_parser.add_argument(
         '--end', type=str2date,
         help='latest observation to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
+    visit_parser.add_argument('--obs_file', help='file containing observations to be visited',
+                              type=argparse.FileType('r'))
+    visit_parser.add_argument(
+        '--threads', type=int, choices=xrange(2,10),
+        help='number of working threads used by the visitor when getting observations, range is 2 to 10')
     visit_parser.add_argument(
         '--halt-on-error', action='store_true',
         help='stop visitor on first update exception raised by plugin')
@@ -460,38 +718,47 @@ def main_app():
         sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
         sys.exit(-1)
     if args.verbose:
-        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+        level = logging.INFO
+        #logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     elif args.debug:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        level = logging.DEBUG
+        #logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     else:
-        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+        level = logging.WARN
+        #logging.basicConfig(level=logging.WARN, stream=sys.stdout)
 
     subject = net.Subject.from_cmd_line_args(args)
     server = None
     if args.server:
         server = args.server
 
-    client = CAOM2RepoClient(subject, args.resource_id, host=server)
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    qh = QueueHandler(queue)
+    logging.basicConfig(level=level, stream=sys.stdout)
+    logger = logging.getLogger('main_app')
+    logger.addHandler(qh)
+    client = CAOM2RepoClient(subject, queue, level, args.resource_id, host=server)
     if args.cmd == 'visit':
         print("Visit")
-        logging.debug(
-            "Call visitor with plugin={}, start={}, end={}, collection={}".
+        logger.debug(
+            "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}, threads={}".
             format(args.plugin.name, args.start, args.end,
-                   args.collection))
+                   args.collection, args.obs_file, args.threads))
         (visited, updated, skipped, failed) = \
             client.visit(args.plugin.name, args.collection, start=args.start,
-                         end=args.end,
+                         end=args.end, obs_file=args.obs_file, nthreads=args.threads,
                          halt_on_error=args.halt_on_error)
-        logging.info(
+        logger.info(
             'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.
             format(len(visited), len(updated), len(skipped), len(failed)))
 
     elif args.cmd == 'create':
-        logging.info("Create")
+        logger.info("Create")
         obs_reader = ObservationReader()
         client.put_observation(obs_reader.read(args.observation))
     elif args.cmd == 'read':
-        logging.info("Read")
+        logger.info("Read")
         observation = client.get_observation(args.collection,
                                              args.observationID)
         observation_writer = ObservationWriter()
@@ -500,16 +767,21 @@ def main_app():
         else:
             observation_writer.write(observation, sys.stdout)
     elif args.cmd == 'update':
-        logging.info("Update")
+        logger.info("Update")
         obs_reader = ObservationReader()
         # TODO not sure if need to read in string first
         client.post_observation(obs_reader.read(args.observation))
     else:
-        logging.info("Delete")
+        logger.info("Delete")
         client.delete_observation(collection=args.collection,
                                   observation_id=args.observationID)
 
-    logging.info("DONE")
+    lp = threading.Thread(target=logger_thread, args=(queue,))
+    lp.start()
+
+    logger.info("DONE")
+    queue.put(None)
+    lp.join()
 
 
 if __name__ == '__main__':
