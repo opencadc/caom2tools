@@ -2011,9 +2011,26 @@ def get_cadc_headers(uri, cert=None):
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
 
+def _update_axis_info(parser, defaults, overrides):
+    # look for info regarding axis types in the default and override file
+    energy_axis = None
+    polarization_axis = None
+    time_axis = None
+    for i in defaults, overrides:
+        for key, value in i.items():
+            if (key.startswith('CTYPE')) and (value in ENERGY_CTYPES) and \
+                    key[-1].isdigit():
+                energy_axis = key[-1]
+            if (key.startswith('CTYPE')) and (value in POLARIZATION_CTYPES) \
+                    and key[-1].isdigit():
+                polarization_axis = key[-1]
+            if (key.startswith('CTYPE')) and (value in TIME_KEYWORDS) \
+                    and key[-1].isdigit():
+                time_axis = key[-1]
+                # TODO update the blueprint
 
-def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
-                        overrides=None):
+def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
+                        overrides={}):
     """
     Update the in-memory representation of FITS headers according to defaults
     and/or overrides as configured by the user.
@@ -2027,6 +2044,8 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
     in a dict.
     :return: updated headers
     """
+
+    _update_axis_info(parser.blueprint, defaults, overrides)
 
     convert = ConvertFromJava(parser.blueprint, config)
 
@@ -2060,7 +2079,7 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
     if overrides:
         logging.debug('Setting overrides for {}.'.format(artifact_uri))
         for key, value in overrides.items():
-            if key == 'BITPIX' or key == 'WCSAXES':
+            if key == 'BITPIX':
                 logging.debug('01/11/18 Chris said ignore {!r}.'.format(key))
                 continue
             if key == 'artifacts' and artifact_uri in overrides['artifacts']:
@@ -2069,7 +2088,7 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults=None,
                 for extension in overrides['artifacts'][artifact_uri].keys():
                     for ext_key, ext_value in \
                       overrides['artifacts'][artifact_uri][extension].items():
-                        if ext_key == 'BITPIX' or ext_key == 'WCSAXES':
+                        if ext_key == 'BITPIX':
                             logging.debug(
                                 '01/11/18 Chris said ignore {!r}.'.format(key))
                             continue
