@@ -2011,6 +2011,7 @@ def get_cadc_headers(uri, cert=None):
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
 
+
 def _update_axis_info(parser, defaults, overrides):
     # look for info regarding axis types in the default and override file
     energy_axis = None
@@ -2027,7 +2028,16 @@ def _update_axis_info(parser, defaults, overrides):
             if (key.startswith('CTYPE')) and (value in TIME_KEYWORDS) \
                     and key[-1].isdigit():
                 time_axis = key[-1]
-                # TODO update the blueprint
+
+    if time_axis:
+        parser.configure_time_axis(time_axis)
+
+    if energy_axis:
+        parser.configure_energy_axis(energy_axis)
+
+    if polarization_axis:
+        parser.configure_polarization_axis(polarization_axis)
+
 
 def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
                         overrides={}):
@@ -2307,12 +2317,12 @@ def main_app(obs_blueprint=None):
         config = load_config(args.config)
         logging.debug('Apply configuration from {}.'.format(args.config))
 
-    defaults = None
+    defaults = {}
     if args.default:
         defaults = load_config(args.default)
         logging.debug('Apply defaults from {}.'.format(args.default))
 
-    overrides = None
+    overrides = {}
     if args.override:
         overrides = load_config(args.override)
         logging.debug('Apply overrides from {}.'.format(args.override))
