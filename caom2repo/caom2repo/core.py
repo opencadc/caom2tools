@@ -369,34 +369,33 @@ class CAOM2RepoClient(object):
         end_datetime = util.str2ivoa(end)
         obs = []
         failed = []
-        with open(obs_file) as fp:
-            for l in fp:
-                tokens = l.split()
-                if len(tokens) > 0:
-                    obs_id = tokens[0]
-                    if len(tokens) > 1:
-                        # we have at least two tokens in line
-                        try:
-                            last_mod_datetime = util.str2ivoa(tokens[1])
-                            if len(tokens) > 2:
-                                # we have more than two tokens in line
-                                raise Exception(
-                                    'Extra token one line: {}'.format(l))
-                            elif (start and last_mod_datetime<start_datetime) or \
-                                    (end and last_mod_datetime>end_datetime):
-                                # last modified date is out of start/end range
-                                self.logger.info('last modified date is out of start/end range: {}'.format(l))
-                            else:
-                                # two tokens in line: <observation id> <last modification date>
-                                obs.append(obs_id)
-                        except Exception as e:
-                            failed.append(obs_id)
-                            self.logger.error('FAILED {} - Reason: {}'.format(obs_id, e))
-                            if halt_on_error:
-                                raise e
-                    else:
-                        # only one token in line, line should contain observationID only
-                        obs.append(obs_id)
+        for l in obs_file:
+            tokens = l.split()
+            if len(tokens) > 0:
+                obs_id = tokens[0]
+                if len(tokens) > 1:
+                    # we have at least two tokens in line
+                    try:
+                        last_mod_datetime = util.str2ivoa(tokens[1])
+                        if len(tokens) > 2:
+                            # we have more than two tokens in line
+                            raise Exception(
+                                'Extra token one line: {}'.format(l))
+                        elif (start and last_mod_datetime<start_datetime) or \
+                                (end and last_mod_datetime>end_datetime):
+                            # last modified date is out of start/end range
+                            self.logger.info('last modified date is out of start/end range: {}'.format(l))
+                        else:
+                            # two tokens in line: <observation id> <last modification date>
+                            obs.append(obs_id)
+                    except Exception as e:
+                        failed.append(obs_id)
+                        self.logger.error('FAILED {} - Reason: {}'.format(obs_id, e))
+                        if halt_on_error:
+                            raise e
+                else:
+                    # only one token in line, line should contain observationID only
+                    obs.append(obs_id)
 
         return obs
 
@@ -586,8 +585,8 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     rootLogger.addHandler(qh)
 
     client = CAOM2RepoClient(subject, queue, log_level, resource_id, host, agent)
-    observation = client.get_observation(collection, observationID)
     try:
+        observation = client.get_observation(collection, observationID)
         if plugin.update(observation=observation,
                          subject=subject) is False:
             rootLogger.info('SKIP {}'.format(observation.observation_id))
@@ -745,10 +744,14 @@ def main_app():
             "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}, threads={}".
             format(args.plugin.name, args.start, args.end,
                    args.collection, args.obs_file, args.threads))
-        (visited, updated, skipped, failed) = \
-            client.visit(args.plugin.name, args.collection, start=args.start,
-                         end=args.end, obs_file=args.obs_file, nthreads=args.threads,
-                         halt_on_error=args.halt_on_error)
+        try:
+            (visited, updated, skipped, failed) = \
+                client.visit(args.plugin.name, args.collection, start=args.start,
+                             end=args.end, obs_file=args.obs_file, nthreads=args.threads,
+                             halt_on_error=args.halt_on_error)
+        finally:
+            if args.obs_file is not None:
+                args.obs_file.close()
         logger.info(
             'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.
             format(len(visited), len(updated), len(skipped), len(failed)))
