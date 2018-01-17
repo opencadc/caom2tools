@@ -575,6 +575,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     updated = None
     skipped = None
     failed = None
+    observation = None
     # set up logging for each process
     qh = QueueHandler(queue)
     subject = subject
@@ -601,14 +602,24 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
                 "{} - To fix the problem, please add the **kwargs "
                 "argument to the list of arguments for the update"
                 " method of your plugin.".format(str(e)))
+        else:
+            # other unexpected TypeError
+            raise e
     except Exception as e:
-        failed = observation.observation_id
-        rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        if observation is None:
+            rootLogger.error('Failed to get observation using observationID = {} - Reason: {}'.format(observationID, e))
+            raise e
+        else:
+            failed = observation.observation_id
+            rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
         #if halt_on_error:
         #    raise e TODO
     except KeyboardInterrupt as e:
         # user pressed Control-C or Delete
-        rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        if observation is None:
+            rootLogger.error('Failed to get observation using observationID = {} - Reason: {}'.format(observationID, e))
+        else:
+            rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
         raise e
 
     visited = observation.observation_id
