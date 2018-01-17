@@ -338,8 +338,8 @@ class CAOM2RepoClient(object):
         skipped = None
         failed = None
         self.logger.info('Process observation: ' + observationID)
-        observation = self.get_observation(collection, observationID)
         try:
+            observation = self.get_observation(collection, observationID)
             if self.plugin.update(observation=observation,
                                   subject=self._subject) is False:
                 self.logger.info('SKIP {}'.format(observation.observation_id))
@@ -355,12 +355,12 @@ class CAOM2RepoClient(object):
                     "argument to the list of arguments for the update"
                     " method of your plugin.".format(str(e)))
         except Exception as e:
-            failed = observation.observation_id
-            self.logger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+            failed = observationID
+            self.logger.error('FAILED {} - Reason: {}'.format(observationID, e))
             if halt_on_error:
                 raise e
 
-        visited = observation.observation_id
+        visited = observationID
 
         return visited, updated, skipped, failed
 
@@ -606,19 +606,13 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
             # other unexpected TypeError
             raise e
     except Exception as e:
-        if observation is None:
-            rootLogger.error('Failed to get observation using observationID = {} - Reason: {}'.format(observationID, e))
-        else:
-            failed = observation.observation_id
-            rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        failed = observationID
+        rootLogger.error('FAILED {} - Reason: {}'.format(observationID, e))
         if halt_on_error:
             raise e
     except KeyboardInterrupt as e:
         # user pressed Control-C or Delete
-        if observation is None:
-            rootLogger.error('Failed to get observation using observationID = {} - Reason: {}'.format(observationID, e))
-        else:
-            rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        rootLogger.error('FAILED {} - Reason: {}'.format(observationID, e))
         raise e
 
     visited = observationID
