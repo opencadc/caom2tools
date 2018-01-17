@@ -621,7 +621,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
             rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
         raise e
 
-    visited = observation.observation_id
+    visited = observationID
 
     return visited, updated, skipped, failed
 
