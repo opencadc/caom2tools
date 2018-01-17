@@ -307,7 +307,7 @@ class CAOM2RepoClient(object):
                     results = [p.apply_async(
                         multiprocess_observation_id,
                         [collection, observationID, self.plugin, self._subject, self.queue, self.level,
-                         self.resource_id, self.host, self.agent])
+                         self.resource_id, self.host, self.agent, halt_on_error])
                         for observationID in observations]
                     for r in results:
                         result = r.get(timeout=10)
@@ -555,7 +555,7 @@ def str2date(s):
 
 
 def multiprocess_observation_id(collection, observationID, plugin, subject,
-                                queue, log_level, resource_id, host, agent):
+                                queue, log_level, resource_id, host, agent, halt_on_error):
     """
     Multi-process version of CAOM2RepoClient._process_observation_id().
     Each process handles Control-C via KeyboardInterrupt, which is not needed in
@@ -608,12 +608,11 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     except Exception as e:
         if observation is None:
             rootLogger.error('Failed to get observation using observationID = {} - Reason: {}'.format(observationID, e))
-            raise e
         else:
             failed = observation.observation_id
             rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
-        #if halt_on_error:
-        #    raise e TODO
+        if halt_on_error:
+            raise e
     except KeyboardInterrupt as e:
         # user pressed Control-C or Delete
         if observation is None:

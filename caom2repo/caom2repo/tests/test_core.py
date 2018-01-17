@@ -615,7 +615,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         try:
             (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3,
+                halt_on_error=True)
         except Exception as e:
             self.assertTrue("exception with no observation" in str(e))
         finally:
@@ -639,7 +640,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         try:
             (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3,
+                halt_on_error=True)
         except Exception as e:
             self.assertTrue("exception with observation" in str(e))
         finally:
@@ -662,7 +664,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         try:
             (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3,
+                halt_on_error=True)
         except RuntimeError as e:
             self.assertTrue("To fix the problem" in str(e))
         finally:
@@ -685,7 +688,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         try:
             (visited, updated, skipped, failed) = visitor.visit(
-                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3,
+                halt_on_error=True)
         except TypeError as e:
             self.assertTrue("unexpected TypeError" in str(e))
         finally:
