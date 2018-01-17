@@ -593,6 +593,59 @@ class TestCAOM2Repo(unittest.TestCase):
     def mock_get_observation_with_unexpected_type_error(self, collection, observationID):
         raise TypeError("unexpected TypeError")
 
+    def mock_get_observation_with_exception(self, collection, observationID):
+        raise TypeError("exception with no observation")
+
+    def mock_post_observation_with_exception(self, observation):
+        raise Exception("exception with observation")
+
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_exception_and_no_observation(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        obs_ids = [['a', 'b', 'c'], ['d'], []]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation_with_exception
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+
+        try:
+            (visited, updated, skipped, failed) = visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+        except Exception as e:
+            self.assertTrue("exception with no observation" in str(e))
+        finally:
+            queue.put(None)
+            logging.info("DONE")
+
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_exception(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        obs_ids = [['a', 'b', 'c'], ['d'], []]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation
+        client_mock.return_value.post_observation.side_effect =  self.mock_post_observation_with_exception
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+
+        try:
+            (visited, updated, skipped, failed) = visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
+        except Exception as e:
+            self.assertTrue("exception with observation" in str(e))
+        finally:
+            queue.put(None)
+            logging.info("DONE")
+
     @patch('caom2repo.core.CAOM2RepoClient')
     def test_multiprocess_with_expected_type_error(self, client_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
