@@ -354,6 +354,9 @@ class CAOM2RepoClient(object):
                     "{} - To fix the problem, please add the **kwargs "
                     "argument to the list of arguments for the update"
                     " method of your plugin.".format(str(e)))
+            else:
+                # other unexpected TypeError
+                raise e
         except Exception as e:
             failed = observationID
             self.logger.error('FAILED {} - Reason: {}'.format(observationID, e))
