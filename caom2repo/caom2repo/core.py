@@ -307,7 +307,7 @@ class CAOM2RepoClient(object):
                     results = [p.apply_async(
                         multiprocess_observation_id,
                         [collection, observationID, self.plugin, self._subject, self.queue, self.level,
-                         self.resource_id, self.host, self.agent])
+                         self.resource_id, self.host, self.agent, halt_on_error])
                         for observationID in observations]
                     for r in results:
                         result = r.get(timeout=10)
@@ -338,8 +338,8 @@ class CAOM2RepoClient(object):
         skipped = None
         failed = None
         self.logger.info('Process observation: ' + observationID)
-        observation = self.get_observation(collection, observationID)
         try:
+            observation = self.get_observation(collection, observationID)
             if self.plugin.update(observation=observation,
                                   subject=self._subject) is False:
                 self.logger.info('SKIP {}'.format(observation.observation_id))
@@ -354,13 +354,16 @@ class CAOM2RepoClient(object):
                     "{} - To fix the problem, please add the **kwargs "
                     "argument to the list of arguments for the update"
                     " method of your plugin.".format(str(e)))
+            else:
+                # other unexpected TypeError
+                raise e
         except Exception as e:
-            failed = observation.observation_id
-            self.logger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+            failed = observationID
+            self.logger.error('FAILED {} - Reason: {}'.format(observationID, e))
             if halt_on_error:
                 raise e
 
-        visited = observation.observation_id
+        visited = observationID
 
         return visited, updated, skipped, failed
 
@@ -369,34 +372,33 @@ class CAOM2RepoClient(object):
         end_datetime = util.str2ivoa(end)
         obs = []
         failed = []
-        with open(obs_file) as fp:
-            for l in fp:
-                tokens = l.split()
-                if len(tokens) > 0:
-                    obs_id = tokens[0]
-                    if len(tokens) > 1:
-                        # we have at least two tokens in line
-                        try:
-                            last_mod_datetime = util.str2ivoa(tokens[1])
-                            if len(tokens) > 2:
-                                # we have more than two tokens in line
-                                raise Exception(
-                                    'Extra token one line: {}'.format(l))
-                            elif (start and last_mod_datetime<start_datetime) or \
-                                    (end and last_mod_datetime>end_datetime):
-                                # last modified date is out of start/end range
-                                self.logger.info('last modified date is out of start/end range: {}'.format(l))
-                            else:
-                                # two tokens in line: <observation id> <last modification date>
-                                obs.append(obs_id)
-                        except Exception as e:
-                            failed.append(obs_id)
-                            self.logger.error('FAILED {} - Reason: {}'.format(obs_id, e))
-                            if halt_on_error:
-                                raise e
-                    else:
-                        # only one token in line, line should contain observationID only
-                        obs.append(obs_id)
+        for l in obs_file:
+            tokens = l.split()
+            if len(tokens) > 0:
+                obs_id = tokens[0]
+                if len(tokens) > 1:
+                    # we have at least two tokens in line
+                    try:
+                        last_mod_datetime = util.str2ivoa(tokens[1])
+                        if len(tokens) > 2:
+                            # we have more than two tokens in line
+                            raise Exception(
+                                'Extra token one line: {}'.format(l))
+                        elif (start and last_mod_datetime<start_datetime) or \
+                                (end and last_mod_datetime>end_datetime):
+                            # last modified date is out of start/end range
+                            self.logger.info('last modified date is out of start/end range: {}'.format(l))
+                        else:
+                            # two tokens in line: <observation id> <last modification date>
+                            obs.append(obs_id)
+                    except Exception as e:
+                        failed.append(obs_id)
+                        self.logger.error('FAILED {} - Reason: {}'.format(obs_id, e))
+                        if halt_on_error:
+                            raise e
+                else:
+                    # only one token in line, line should contain observationID only
+                    obs.append(obs_id)
 
         return obs
 
@@ -556,7 +558,7 @@ def str2date(s):
 
 
 def multiprocess_observation_id(collection, observationID, plugin, subject,
-                                queue, log_level, resource_id, host, agent):
+                                queue, log_level, resource_id, host, agent, halt_on_error):
     """
     Multi-process version of CAOM2RepoClient._process_observation_id().
     Each process handles Control-C via KeyboardInterrupt, which is not needed in
@@ -576,6 +578,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     updated = None
     skipped = None
     failed = None
+    observation = None
     # set up logging for each process
     qh = QueueHandler(queue)
     subject = subject
@@ -586,8 +589,8 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     rootLogger.addHandler(qh)
 
     client = CAOM2RepoClient(subject, queue, log_level, resource_id, host, agent)
-    observation = client.get_observation(collection, observationID)
     try:
+        observation = client.get_observation(collection, observationID)
         if plugin.update(observation=observation,
                          subject=subject) is False:
             rootLogger.info('SKIP {}'.format(observation.observation_id))
@@ -602,17 +605,20 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
                 "{} - To fix the problem, please add the **kwargs "
                 "argument to the list of arguments for the update"
                 " method of your plugin.".format(str(e)))
+        else:
+            # other unexpected TypeError
+            raise e
     except Exception as e:
-        failed = observation.observation_id
-        rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
-        #if halt_on_error:
-        #    raise e TODO
+        failed = observationID
+        rootLogger.error('FAILED {} - Reason: {}'.format(observationID, e))
+        if halt_on_error:
+            raise e
     except KeyboardInterrupt as e:
         # user pressed Control-C or Delete
-        rootLogger.error('FAILED {} - Reason: {}'.format(observation.observation_id, e))
+        rootLogger.error('FAILED {} - Reason: {}'.format(observationID, e))
         raise e
 
-    visited = observation.observation_id
+    visited = observationID
 
     return visited, updated, skipped, failed
 
@@ -745,10 +751,14 @@ def main_app():
             "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}, threads={}".
             format(args.plugin.name, args.start, args.end,
                    args.collection, args.obs_file, args.threads))
-        (visited, updated, skipped, failed) = \
-            client.visit(args.plugin.name, args.collection, start=args.start,
-                         end=args.end, obs_file=args.obs_file, nthreads=args.threads,
-                         halt_on_error=args.halt_on_error)
+        try:
+            (visited, updated, skipped, failed) = \
+                client.visit(args.plugin.name, args.collection, start=args.start,
+                             end=args.end, obs_file=args.obs_file, nthreads=args.threads,
+                             halt_on_error=args.halt_on_error)
+        finally:
+            if args.obs_file is not None:
+                args.obs_file.close()
         logger.info(
             'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.
             format(len(visited), len(updated), len(skipped), len(failed)))

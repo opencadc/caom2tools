@@ -116,30 +116,39 @@ class TestCAOM2Repo(unittest.TestCase):
         queue = manager.Queue()
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+
         # no start or end
-        obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id.txt'), None, None, False)
-        self.assertEquals('obs_id_1', obs_id_list[0])
-        self.assertEquals('obs_id_2', obs_id_list[1])
-        self.assertEquals('obs_id_3', obs_id_list[2])
+        with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
+            obs_id_list = visitor._get_obs_from_file(obs_file, None, None, False)
+            self.assertEquals('obs_id_1', obs_id_list[0])
+            self.assertEquals('obs_id_2', obs_id_list[1])
+            self.assertEquals('obs_id_3', obs_id_list[2])
+
         # last_modified_date is earlier than start
-        obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id.txt'), '2000-10-11T12:30:00.333',
-                                                 None, False)
-        self.assertEquals('obs_id_1', obs_id_list[0])
+        with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
+            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-11T12:30:00.333', None, False)
+            self.assertEquals('obs_id_1', obs_id_list[0])
+
         # last_modified_date is between start and end
-        obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id.txt'), '2000-10-9T12:30:00.333',
-                                                 '2016-10-11T12:30:00.333', False)
-        self.assertEquals('obs_id_1', obs_id_list[0])
-        self.assertEquals('obs_id_2', obs_id_list[1])
+        with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
+            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2016-10-11T12:30:00.333',
+                                                     False)
+            self.assertEquals('obs_id_1', obs_id_list[0])
+            self.assertEquals('obs_id_2', obs_id_list[1])
+
         # last_modified_date is after end
-        obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id.txt'), '2000-10-9T12:30:00.333',
-                                                 '2017-10-11T12:30:00.333', False)
-        self.assertEquals('obs_id_1', obs_id_list[0])
-        self.assertEquals('obs_id_2', obs_id_list[1])
-        self.assertEquals('obs_id_3', obs_id_list[2])
+        with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
+            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2017-10-11T12:30:00.333',
+                                                     False)
+            self.assertEquals('obs_id_1', obs_id_list[0])
+            self.assertEquals('obs_id_2', obs_id_list[1])
+            self.assertEquals('obs_id_3', obs_id_list[2])
+
         # error in file
-        with self.assertRaises(Exception):
-            obs_id_list = visitor._get_obs_from_file(os.path.join(THIS_DIR, 'data/obs_id_error.txt'), '2000-10-9T12:30:00.333',
-                                                     '2016-10-11T12:30:00.333', True)
+        with open(os.path.join(THIS_DIR, 'data/obs_id_error.txt')) as obs_file:
+            with self.assertRaises(Exception):
+                obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2016-10-11T12:30:00.333',
+                                                         True)
 
     @patch('caom2repo.core.net.BaseWsClient', Mock())
     def test_plugin_class(self):
@@ -577,6 +586,88 @@ class TestCAOM2Repo(unittest.TestCase):
 
     def mock_get_observation(self, collection, observationID):
         return SimpleObservation(collection, observationID)
+
+    def mock_get_observation_with_expected_type_error(self, collection, observationID):
+        raise TypeError("unexpected keyword argument")
+
+    def mock_get_observation_with_unexpected_type_error(self, collection, observationID):
+        raise TypeError("unexpected TypeError")
+
+    def mock_post_observation_with_exception(self, observation):
+        raise Exception("exception with observation")
+
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_exception(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        obs_ids = [['a', 'b', 'c'], ['d'], []]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation
+        client_mock.return_value.post_observation.side_effect =  self.mock_post_observation_with_exception
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+
+        try:
+            (visited, updated, skipped, failed) = visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3,
+                halt_on_error=True)
+        except Exception as e:
+            self.assertTrue("exception with observation" in str(e))
+        finally:
+            queue.put(None)
+            logging.info("DONE")
+
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_expected_type_error(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        obs_ids = [['a', 'b', 'c'], ['d'], []]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation_with_expected_type_error
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+
+        try:
+            (visited, updated, skipped, failed) = visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3,
+                halt_on_error=True)
+        except RuntimeError as e:
+            self.assertTrue("To fix the problem" in str(e))
+        finally:
+            queue.put(None)
+            logging.info("DONE")
+
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_multiprocess_with_unexpected_type_error(self, client_mock):
+        core.BATCH_SIZE = 3  # size of the batch is 3
+        obs_ids = [['a', 'b', 'c'], ['d'], []]
+        client_mock.return_value.get_observation.side_effect = self.mock_get_observation_with_unexpected_type_error
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor.get_observation = PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor.post_observation = PickableMagicMock()
+        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+
+        try:
+            (visited, updated, skipped, failed) = visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3,
+                halt_on_error=True)
+        except TypeError as e:
+            self.assertTrue("unexpected TypeError" in str(e))
+        finally:
+            queue.put(None)
+            logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
     def test_multiprocess_with_obs_id(self, client_mock):
