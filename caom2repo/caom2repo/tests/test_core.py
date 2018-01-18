@@ -90,6 +90,7 @@ from mock import Mock, patch, MagicMock, ANY, call
 from six import BytesIO, StringIO
 
 from caom2repo import core
+from caom2repo.core import logger_thread
 from caom2repo.core import CAOM2RepoClient, QueueHandler
 
 # The following is a temporary workaround for Python issue 25532
@@ -686,9 +687,6 @@ class TestCAOM2Repo(unittest.TestCase):
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-        lp = threading.Thread(target=logger_thread, args=(queue,))
-        lp.start()
-
         try:
             self.assertEqual(4, len(visited))
             self.assertEqual(4, len(updated))
@@ -706,7 +704,7 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertFalse('e' in updated)
         finally:
             queue.put(None)
-            lp.join()
+            #lp.join()
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -725,9 +723,6 @@ class TestCAOM2Repo(unittest.TestCase):
 
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
-
-        lp = threading.Thread(target=logger_thread, args=(queue,))
-        lp.start()
 
         try:
             self.assertEqual(6, len(visited))
@@ -750,7 +745,7 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertFalse('g' in updated)
         finally:
             queue.put(None)
-            lp.join()
+            #lp.join()
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -773,9 +768,6 @@ class TestCAOM2Repo(unittest.TestCase):
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-        lp = threading.Thread(target=logger_thread, args=(queue,))
-        lp.start()
-
         try:
             self.assertEqual(3, len(visited))
             self.assertEqual(1, len(updated))
@@ -783,7 +775,7 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertEqual(1, len(failed))
         finally:
             queue.put(None)
-            lp.join()
+            #lp.join()
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -806,9 +798,6 @@ class TestCAOM2Repo(unittest.TestCase):
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-        lp = threading.Thread(target=logger_thread, args=(queue,))
-        lp.start()
-
         try:
             self.assertEqual(5, len(visited))
             self.assertEqual(2, len(updated))
@@ -816,7 +805,7 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertEqual(1, len(failed))
         finally:
             queue.put(None)
-            lp.join()
+            #lp.join()
             logging.info("DONE")
 
     def test_shortcuts(self):
@@ -1011,12 +1000,4 @@ class TestCAOM2Repo(unittest.TestCase):
                 core.main_app()
             self.assertTrue('error: argument --threads: invalid choice' in stderr_mock.getvalue())
         # print(stderr_mock.getvalue())
-
-def logger_thread(q):
-    while True:
-        record = q.get()
-        if record is None:
-            break
-        logger = logging.getLogger(record.name)
-        logger.handle(record)
 
