@@ -90,6 +90,7 @@ from caom2 import Instrument, Proposal, Target, Provenance, Metrics, Quality
 from caom2 import CalibrationLevel, Requirements, DataQuality
 from caom2 import SimpleObservation, ChecksumURI, PlaneURI
 import logging
+import re
 import sys
 from six.moves.urllib.parse import urlparse
 from cadcutils import net
@@ -380,6 +381,7 @@ class ObsBlueprint(object):
         'Chunk.energy.velang',
         'Chunk.energy.bandpassName',
         'Chunk.energy.resolvingPower',
+        'Chunk.energy.transition',
         'Chunk.energy.transition.species',
         'Chunk.energy.transition.transition',
         'Chunk.energy.axis.axis.ctype',
@@ -611,6 +613,10 @@ class ObsBlueprint(object):
         self.set('Chunk.energy.zsource', (['ZSOURCE'], None))
         self.set('Chunk.energy.ssyssrc', (['SSYSSRC'], None))
         self.set('Chunk.energy.velang', (['VELANG'], None))
+
+        self.set('Chunk.energy.bandpassName', ([], None))
+        self.set('Chunk.energy.resolvingPower', ([], None))
+
         self.set('Chunk.energy.axis.axis.ctype',
                  (['CTYPE{}'.format(axis)], None))
         self.set('Chunk.energy.axis.axis.cunit',
@@ -700,6 +706,7 @@ class ObsBlueprint(object):
         self.set('Chunk.time.timesys', (['TIMESYS'], None))
         self.set('Chunk.time.trefpos', (['TREFPOS'], None))
         self.set('Chunk.time.mjdref', (['MJDREF'], None))
+        self.set('Chunk.time.resolution', (['TIMEDEL'], None))
         self.set('Chunk.time.axis.axis.ctype',
                  (['CTYPE{}'.format(axis)], None))
         self.set('Chunk.time.axis.axis.cunit',
@@ -1098,6 +1105,13 @@ class FitsParser(object):
             chunk.naxis = wcs_parser.wcs.wcs.naxis
             wcs_parser.augment_position(chunk)
             wcs_parser.augment_energy(chunk)
+            if chunk.energy:
+                chunk.energy.bandpass_name = self._get_from_list(
+                    'Chunk.energy.bandpassName', index=i)
+                chunk.energy.transition = self._get_from_list(
+                    'Chunk.energy.transition', index=i)
+                chunk.energy.resolving_power = _to_float(self._get_from_list(
+                    'Chunk.energy.resolvingPower', index=i))
             wcs_parser.augment_temporal(chunk)
             wcs_parser.augment_polarization(chunk)
 
@@ -1215,7 +1229,7 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Instrument augmentation.')
         name = self._get_from_list('Observation.instrument.name', index=0)
-        keywords = self._get_from_list('Observation.instrument.keywords',
+        keywords =self. _get_from_list('Observation.instrument.keywords',
                                        index=0)
         self.logger.debug('End CAOM2 Instrument augmentation.')
         if name:
@@ -1234,8 +1248,7 @@ class FitsParser(object):
         self.logger.debug('Begin CAOM2 Proposal augmentation.')
         prop_id = self._get_from_list('Observation.proposal.id', index=0)
         pi = self._get_from_list('Observation.proposal.pi', index=0)
-        project = self._get_from_list(
-            'Observation.proposal.project', index=0)
+        project = self._get_from_list('Observation.proposal.project', index=0)
         title = self._get_from_list('Observation.proposal.title', index=0)
         self.logger.debug('End CAOM2 Proposal augmentation.')
         if prop_id:
@@ -1341,7 +1354,7 @@ class FitsParser(object):
         :return: Requirements
         """
         self.logger.debug('Begin CAOM2 Requirement augmentation.')
-        flag = self._get_from_list('Observation.requirements.flag', index=0)
+        flag =self._get_from_list('Observation.requirements.flag', index=0)
         self.logger.debug('End CAOM2 Requirement augmentation.')
         if flag:
             return Requirements(flag)
@@ -1473,8 +1486,7 @@ class FitsParser(object):
         self.logger.debug('Begin CAOM2 Metrics augmentation.')
         source_number_density = self._get_from_list(
             'Plane.metrics.sourceNumberDensity', index=0)
-        background = self._get_from_list('Plane.metrics.background',
-                                         index=0)
+        background = self._get_from_list('Plane.metrics.background', index=0)
         background_stddev = self._get_from_list(
             'Plane.metrics.backgroundStddev', index=0)
         flux_density_limit = self._get_from_list(
@@ -1597,6 +1609,7 @@ class WcsParser(object):
         self.wcs = WCS(header)
         self.header = header
         self.file = file
+        self.extension = extension
 
     def augment_energy(self, chunk):
         """
@@ -2107,8 +2120,8 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
                             parser.blueprint.set(caom2_key, ext_value,
                                                  extension)
                             logging.debug(
-                                '{} set override value to {} for {}.'.format(
-                                    ext_key, ext_value, artifact_uri))
+                                '{} set override value to {} in extension {}.'.
+                                    format(ext_key, ext_value, extension))
                         except ValueError:
                             parser.add_error(key, 'ext {} {}'.format(
                                 extension, sys.exc_info()[1]))
@@ -2130,12 +2143,19 @@ def _apply_config_to_fits(parser):
     wcs_std = parser.blueprint._wcs_std
     plan = parser.blueprint._plan
 
-    # apply overrides from blueprint to extension 0
+    # # apply overrides from blueprint to extension 0
+    # for key, value in plan.items():
+    #     if not isinstance(value, tuple) and key in wcs_std:
+    #         keywords = wcs_std[key].split(',')
+    #         for keyword in keywords:
+    #             _set_by_type(parser._headers[0], keyword, value)
+    # apply overrides from blueprint to all extensions
     for key, value in plan.items():
         if not isinstance(value, tuple) and key in wcs_std:
             keywords = wcs_std[key].split(',')
             for keyword in keywords:
-                _set_by_type(parser._headers[0], keyword, value)
+                for header in parser._headers:
+                    _set_by_type(header, keyword, value)
 
     # apply overrides to the remaining extensions
     for extension in exts:
@@ -2151,15 +2171,15 @@ def _apply_config_to_fits(parser):
     for key, value in plan.items():
         if isinstance(value, tuple) and value[1]:
             # there is a default value set
-            for header in parser._headers:
+            for index, header in enumerate(parser._headers):
+                logging.warning('header index {}'.format(index))
                 for keyword in value[0]:
                     if not header.get(keyword):
                         # apply a default if a value does not already exist
                         _set_by_type(header, keyword, value[1])
                         logging.debug(
                             '{}: set default value of {} in HDU {}.'.format(
-                                keyword, value[1],
-                                parser._headers.index(header)))
+                                keyword, value[1], index))
     return
 
 
@@ -2180,7 +2200,7 @@ def _set_by_type(header, keyword, value):
     except ValueError:
         pass
 
-    if float_value and not value.isdigit():
+    if float_value and not value.isdecimal() or re.match('0\.0*', value):
         header.set(keyword, float_value)
     elif int_value:
         header.set(keyword, int_value)
@@ -2196,9 +2216,9 @@ def _dump_config(parser, uri):
         fname = './{}.mod.fits'.format(mod_uri)
         logging.debug('Writing modified fits file to {}.'.format(fname))
         f = open(fname, 'w')
-        f.write(parser._headers[0].tostring('\n'))
-        if len(parser._headers) >= 2:
-            f.write(parser._headers[1].tostring('\n'))
+        for index, extension in enumerate(parser._headers):
+            f.write('\nHeader {}\n'.format(index))
+            f.write(extension.tostring('\n'))
         f.close()
         fname = './{}.blueprint.out'.format(mod_uri)
         logging.debug('Writing blueprint to {}.'.format(fname))

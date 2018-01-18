@@ -97,7 +97,7 @@ def test_obs_blueprint():
 
     # default config with WCS info
     assert str(ObsBlueprint(position_axis=(1, 2), energy_axis=3,
-               polarization_axis=4, time_axis=5)).count('\n') == 74
+               polarization_axis=4, time_axis=5)).count('\n') == 77
 
     ob = ObsBlueprint()
     ob.configure_position_axes(axes=(1, 2))
@@ -226,17 +226,17 @@ def test_obs_blueprint():
         ob.delete('Observation.observationID', extension=1)
 
     # add FITS attribute to element that does not exist
-    assert 'Chunk.energy.bandpassName' not in ob._plan
+    assert 'Chunk.energy.transition' not in ob._plan
     with pytest.raises(KeyError):
-        ob.add_fits_attribute('Chunk.energy.bandpassName', 'BP')
-    ob.set('Chunk.energy.bandpassName', 'Name')
+        ob.add_fits_attribute('Chunk.energy.transition', 'BP')
+    ob.set('Chunk.energy.transition', 'Name')
     with pytest.raises(AttributeError):
-        ob.add_fits_attribute('Chunk.energy.bandpassName', 'BP')
+        ob.add_fits_attribute('Chunk.energy.transition', 'BP')
 
     # call set_fits_attribute with argument other than list
     with pytest.raises(AssertionError):
-        ob.set_fits_attribute('Chunk.energy.bandpassName', 33)
+        ob.set_fits_attribute('Chunk.energy.transition', 33)
 
     # delete element from a non-existent extension
     with pytest.raises(ValueError):
-        ob.delete('Chunk.energy.bandpassName', extension=66)
+        ob.delete('Chunk.energy.transition', extension=66)
