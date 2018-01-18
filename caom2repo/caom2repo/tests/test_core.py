@@ -90,7 +90,6 @@ from mock import Mock, patch, MagicMock, ANY, call
 from six import BytesIO, StringIO
 
 from caom2repo import core
-from caom2repo.core import logger_thread
 from caom2repo.core import CAOM2RepoClient, QueueHandler
 
 # The following is a temporary workaround for Python issue 25532

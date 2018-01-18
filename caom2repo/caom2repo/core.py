@@ -624,14 +624,6 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
 
     return visited, updated, skipped, failed
 
-def logger_thread(q):
-    while True:
-        record = q.get()
-        if record is None:
-            break
-        logger = logging.getLogger(record.name)
-        logger.handle(record)
-
 
 def main_app():
     parser = util.get_base_parser(version=version.version,
@@ -786,12 +778,7 @@ def main_app():
         client.delete_observation(collection=args.collection,
                                   observation_id=args.observationID)
 
-    lp = threading.Thread(target=logger_thread, args=(queue,))
-    lp.start()
-
     logger.info("DONE")
-    queue.put(None)
-    lp.join()
 
 
 if __name__ == '__main__':
