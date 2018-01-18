@@ -194,7 +194,8 @@ class CAOM2RepoClient(object):
         self.queue = queue
         self.level = logLevel
         qh = QueueHandler(queue)
-        logging.basicConfig(level=logLevel, stream=sys.stdout)
+        logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+                            level=logLevel, stream=sys.stdout)
         self.logger = logging.getLogger('CAOM2RepoClient')
         self.logger.addHandler(qh)
         self.resource_id = resource_id
@@ -582,7 +583,8 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     # set up logging for each process
     qh = QueueHandler(queue)
     subject = subject
-    logging.basicConfig(level=log_level, stream=sys.stdout)
+    logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+                        level=log_level, stream=sys.stdout)
     rootLogger = logging.getLogger(
         'multiprocess_observation_id({}): {}'.format(
             os.getpid(), observationID))
@@ -725,13 +727,10 @@ def main_app():
         sys.exit(-1)
     if args.verbose:
         level = logging.INFO
-        #logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     elif args.debug:
         level = logging.DEBUG
-        #logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     else:
         level = logging.WARN
-        #logging.basicConfig(level=logging.WARN, stream=sys.stdout)
 
     subject = net.Subject.from_cmd_line_args(args)
     server = None
@@ -741,7 +740,8 @@ def main_app():
     manager = multiprocessing.Manager()
     queue = manager.Queue()
     qh = QueueHandler(queue)
-    logging.basicConfig(level=level, stream=sys.stdout)
+    logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+                        level=level, stream=sys.stdout)
     logger = logging.getLogger('main_app')
     logger.addHandler(qh)
     client = CAOM2RepoClient(subject, queue, level, args.resource_id, host=server)
