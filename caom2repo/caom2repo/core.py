@@ -102,102 +102,20 @@ CAOM2REPO_OBS_CAPABILITY_ID =\
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 APP_NAME = 'caom2repo'
 
-# QueueHandler was excerpted from the source code in the following url:
-# https://github.com/python/cpython/blob/master/Lib/logging/handlers.py
-#
-# Copyright 2001-2016 by Vinay Sajip. All Rights Reserved.
-#
-# Permission to use, copy, modify, and distribute this software and its
-# documentation for any purpose and without fee is hereby granted,
-# provided that the above copyright notice appear in all copies and that
-# both that copyright notice and this permission notice appear in
-# supporting documentation, and that the name of Vinay Sajip
-# not be used in advertising or publicity pertaining to distribution
-# of the software without specific, written prior permission.
-# VINAY SAJIP DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
-# ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL
-# VINAY SAJIP BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
-# ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
-# IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
-# OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-class QueueHandler(logging.Handler):
-    """
-    This handler sends events to a queue. Typically, it would be used together
-    with a multiprocessing Queue to centralise logging to file in one process
-    (in a multi-process application), so as to avoid file write contention
-    between processes.
-    This code is new in Python 3.2, but this class can be copy pasted into
-    user code for use with earlier Python versions.
-    """
-
-    def __init__(self, queue):
-        """
-        Initialise an instance, using the passed queue.
-        """
-        logging.Handler.__init__(self)
-        self.queue = queue
-
-    def enqueue(self, record):
-        """
-        Enqueue a record.
-        The base implementation uses put_nowait. You may want to override
-        this method if you want to use blocking, timeouts or custom queue
-        implementations.
-        """
-        self.queue.put_nowait(record)
-
-    def prepare(self, record):
-        """
-        Prepares a record for queuing. The object returned by this method is
-        enqueued.
-        The base implementation formats the record to merge the message
-        and arguments, and removes unpickleable items from the record
-        in-place.
-        You might want to override this method if you want to convert
-        the record to a dict or JSON string, or send a modified copy
-        of the record while leaving the original intact.
-        """
-        # The format operation gets traceback text into record.exc_text
-        # (if there's exception data), and also returns the formatted
-        # message. We can then use this to replace the original
-        # msg + args, as these might be unpickleable. We also zap the
-        # exc_info attribute, as it's no longer needed and, if not None,
-        # will typically not be pickleable.
-        msg = self.format(record)
-        record.message = msg
-        record.msg = msg
-        record.args = None
-        record.exc_info = None
-        return record
-
-    def emit(self, record):
-        """
-        Emit a record.
-        Writes the LogRecord to the queue, preparing it for pickling first.
-        """
-        try:
-            self.enqueue(self.prepare(record))
-        except Exception:
-            self.handleError(record)
-
-
 class CAOM2RepoClient(object):
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, subject, queue, logLevel=logging.INFO, resource_id=DEFAULT_RESOURCE_ID, host=None, agent=None):
+    def __init__(self, subject, logLevel=logging.INFO, resource_id=DEFAULT_RESOURCE_ID, host=None, agent=None):
         """
         Instance of a CAOM2RepoClient
         :param subject: the subject performing the action
         :type cadcutils.auth.Subject
         :param server: Host server for the caom2repo service
         """
-        self.queue = queue
         self.level = logLevel
-        qh = QueueHandler(queue)
         logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', level=logLevel, stream=sys.stdout)
         self.logger = logging.getLogger('CAOM2RepoClient')
-        self.logger.addHandler(qh)
         self.resource_id = resource_id
         self.host = host
         self._subject = subject
@@ -307,7 +225,7 @@ class CAOM2RepoClient(object):
                 try:
                     results = [p.apply_async(
                         multiprocess_observation_id,
-                        [collection, observationID, self.plugin, self._subject, self.queue, self.level,
+                        [collection, observationID, self.plugin, self._subject, self.level,
                          self.resource_id, self.host, self.agent, halt_on_error])
                         for observationID in observations]
                     for r in results:
@@ -559,7 +477,7 @@ def str2date(s):
 
 
 def multiprocess_observation_id(collection, observationID, plugin, subject,
-                                queue, log_level, resource_id, host, agent, halt_on_error):
+                                log_level, resource_id, host, agent, halt_on_error):
     """
     Multi-process version of CAOM2RepoClient._process_observation_id().
     Each process handles Control-C via KeyboardInterrupt, which is not needed in
@@ -568,7 +486,6 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     :param observationID: Observation identifier
     :param plugin: path to python file that contains the algorithm to be applied to visited observations
     :param subject: Subject performing the action
-    :param queue: Pipe used to collect all logged messages to a centralized logging worker
     :param log_level: Logging level
     :param resource_id: ID of the resource being access (URI format)
     :param host: Host server for the caom2repo service
@@ -581,15 +498,13 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     failed = None
     observation = None
     # set up logging for each process
-    qh = QueueHandler(queue)
     subject = subject
     logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S', level=log_level, stream=sys.stdout)
     rootLogger = logging.getLogger(
         'multiprocess_observation_id(): {}'.format(observationID))
-    rootLogger.addHandler(qh)
 
-    client = CAOM2RepoClient(subject, queue, log_level, resource_id, host, agent)
+    client = CAOM2RepoClient(subject, log_level, resource_id, host, agent)
     try:
         observation = client.get_observation(collection, observationID)
         if plugin.update(observation=observation,
@@ -729,13 +644,10 @@ def main_app():
         server = args.server
 
     manager = multiprocessing.Manager()
-    queue = manager.Queue()
-    qh = QueueHandler(queue)
     logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S', level=level, stream=sys.stdout)
     logger = logging.getLogger('main_app')
-    logger.addHandler(qh)
-    client = CAOM2RepoClient(subject, queue, level, args.resource_id, host=server)
+    client = CAOM2RepoClient(subject, level, args.resource_id, host=server)
     if args.cmd == 'visit':
         print("Visit")
         logger.debug(
