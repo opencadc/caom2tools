@@ -114,7 +114,7 @@ class CAOM2RepoClient(object):
         """
         self.level = logLevel
         logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', level=logLevel, stream=sys.stdout)
+                            level=logLevel, stream=sys.stdout)
         self.logger = logging.getLogger('CAOM2RepoClient')
         self.resource_id = resource_id
         self.host = host
@@ -500,7 +500,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     # set up logging for each process
     subject = subject
     logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', level=log_level, stream=sys.stdout)
+                        level=log_level, stream=sys.stdout)
     rootLogger = logging.getLogger(
         'multiprocess_observation_id(): {}'.format(observationID))
 
@@ -645,7 +645,7 @@ def main_app():
 
     manager = multiprocessing.Manager()
     logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S', level=level, stream=sys.stdout)
+                        level=level, stream=sys.stdout)
     logger = logging.getLogger('main_app')
     client = CAOM2RepoClient(subject, level, args.resource_id, host=server)
     if args.cmd == 'visit':
