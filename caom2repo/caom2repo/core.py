@@ -194,8 +194,8 @@ class CAOM2RepoClient(object):
         self.queue = queue
         self.level = logLevel
         qh = QueueHandler(queue)
-        logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                            level=logLevel, stream=sys.stdout)
+        logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S', level=logLevel, stream=sys.stdout)
         self.logger = logging.getLogger('CAOM2RepoClient')
         self.logger.addHandler(qh)
         self.resource_id = resource_id
@@ -583,11 +583,10 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     # set up logging for each process
     qh = QueueHandler(queue)
     subject = subject
-    logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                        level=log_level, stream=sys.stdout)
+    logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S', level=log_level, stream=sys.stdout)
     rootLogger = logging.getLogger(
-        'multiprocess_observation_id({}): {}'.format(
-            os.getpid(), observationID))
+        'multiprocess_observation_id(): {}'.format(observationID))
     rootLogger.addHandler(qh)
 
     client = CAOM2RepoClient(subject, queue, log_level, resource_id, host, agent)
@@ -732,8 +731,8 @@ def main_app():
     manager = multiprocessing.Manager()
     queue = manager.Queue()
     qh = QueueHandler(queue)
-    logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                        level=level, stream=sys.stdout)
+    logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S', level=level, stream=sys.stdout)
     logger = logging.getLogger('main_app')
     logger.addHandler(qh)
     client = CAOM2RepoClient(subject, queue, level, args.resource_id, host=server)
