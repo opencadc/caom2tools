@@ -103,6 +103,19 @@ __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'ConvertFromJava', 'get_cadc_headers', 'main_app',
            'update_fits_headers', 'load_config']
 
+POSITION_CTYPES = [
+    ['RA',
+     'GLON',
+     'ELON',
+     'HLON',
+     'SLON'],
+    ['DEC',
+     'GLAT',
+     'ELAT',
+     'HLAT',
+     'SLAT']
+]
+
 ENERGY_CTYPES = [
     'FREQ',
     'ENER',
@@ -279,6 +292,7 @@ class ObsBlueprint(object):
         'Observation.target.standard',
         'Observation.target.redshift',
         'Observation.target.keywords',
+        'Observation.target.moving',
 
         'Observation.telescope.name',
         'Observation.telescope.geoLocationX',
@@ -494,7 +508,10 @@ class ObsBlueprint(object):
         self._wcs_std = {
             'Chunk.naxis': 'ZNAXIS,NAXIS'
         }
-
+        self._pos_axes_configed = False
+        self._energy_axis_configed = False
+        self._time_axis_configed = False
+        self._pol_axis_configed = False
         if position_axis:
             self.configure_position_axes(position_axis)
 
@@ -515,6 +532,9 @@ class ObsBlueprint(object):
         :param axes: The index expected for the position axes.
         :return:
         """
+        if self._pos_axes_configed:
+            return
+
         self.set('Chunk.position.coordsys', (['RADECSYS', 'RADESYS'],
                                              None))
         self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
@@ -597,6 +617,8 @@ class ObsBlueprint(object):
         self._wcs_std['Chunk.position.axis.function.refCoord.coord2.val'] \
             = 'CRVAL{}'.format(axes[1])
 
+        self._pos_axes_configed = True
+
     def configure_energy_axis(self, axis):
         """
         Set the expected FITS energy keywords by index in the blueprint and
@@ -605,6 +627,9 @@ class ObsBlueprint(object):
         :param axis: The index expected for the energy axis.
         :return:
         """
+        if self._energy_axis_configed:
+            return
+
         self.set('Chunk.energy.specsys', (['SPECSYS'], None))
         self.set('Chunk.energy.ssysobs', (['SSYSOBS'], None))
         self.set('Chunk.energy.restfrq', (['RESTFRQ'], None))
@@ -660,6 +685,8 @@ class ObsBlueprint(object):
         self._wcs_std['Chunk.energy.axis.function.refCoord.val'] = \
             'CRVAL{}'.format(axis)
 
+        self._energy_axis_configed = True
+
     def configure_polarization_axis(self, axis):
         """
         Set the expected FITS polarization keywords by index in the blueprint
@@ -668,6 +695,9 @@ class ObsBlueprint(object):
         :param axis: The index expected for the polarization axis.
         :return:
         """
+        if self._pol_axis_configed:
+            return
+
         self.set('Chunk.polarization.axis.axis.ctype',
                  (['CTYPE{}'.format(axis)], None))
         self.set('Chunk.polarization.axis.axis.cunit',
@@ -694,6 +724,8 @@ class ObsBlueprint(object):
         self._wcs_std['Chunk.polarization.axis.function.refCoord.val'] = \
             'CRVAL{}'.format(axis)
 
+        self._pol_axis_configed = True
+
     def configure_time_axis(self, axis):
         """
         Set the expected FITS time keywords by index in the blueprint and
@@ -702,6 +734,9 @@ class ObsBlueprint(object):
         :param axis: The index expected for the time axis.
         :return:
         """
+        if self._time_axis_configed:
+            return
+
         self.set('Chunk.time.exposure', (['EXPTIME', 'INTTIME'], None))
         self.set('Chunk.time.timesys', (['TIMESYS'], None))
         self.set('Chunk.time.trefpos', (['TREFPOS'], None))
@@ -745,6 +780,8 @@ class ObsBlueprint(object):
             'CRPIX{}'.format(axis)
         self._wcs_std['Chunk.time.axis.function.refCoord.val'] = \
             'CRVAL{}'.format(axis)
+
+        self._time_axis_configed = True
 
     @classproperty
     def CAOM2_ELEMENTS(cls):
@@ -1102,7 +1139,7 @@ class FitsParser(object):
             chunk = part.chunks[0]
 
             wcs_parser = WcsParser(header, self.file, ii)
-            chunk.naxis = wcs_parser.wcs.wcs.naxis
+            chunk.naxis = wcs_parser._get_axis_length('')
             wcs_parser.augment_position(chunk)
             wcs_parser.augment_energy(chunk)
             if chunk.energy:
@@ -1270,9 +1307,11 @@ class FitsParser(object):
         redshift = self._get_from_list('Observation.target.redshift', index=0)
         keywords = self._get_set_from_list('Observation.target.keywords',
                                            index=0)  # TODO
+        moving = self._get_from_list('Observation.target.moving', index=0)
         self.logger.debug('End CAOM2 Target augmentation.')
         if name:
-            return Target(str(name), target_type, standard, redshift, keywords)
+            return Target(str(name), target_type, standard, redshift,
+                          keywords, moving)
         else:
             return None
 
@@ -1330,8 +1369,8 @@ class FitsParser(object):
             'Observation.environment.wavelengthTau', index=0)
         ambient = self._get_from_list('Observation.environment.ambientTemp',
                                       index=0)
-        photometric = self._get_from_list('Observation.environment.photometric',
-                                          index=0)
+        photometric = self._get_from_list(
+            'Observation.environment.photometric', index=0)
 
         if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = Environment()
@@ -1470,7 +1509,8 @@ class FitsParser(object):
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
             if keywords:
-                prov.keywords.union(keywords)
+                for k in keywords.split(): #TODO delimitator?
+                    prov.keywords.add(k)
             if inputs:
                 for i in inputs.split():
                     prov.inputs.add(PlaneURI(i))
@@ -1628,6 +1668,7 @@ class WcsParser(object):
 
         chunk.energy_axis = energy_axis + 1
         naxis = CoordAxis1D(self._get_axis(energy_axis))
+        naxis.error = self._get_coord_error(energy_axis)
 
         naxis.function = CoordFunction1D(
             self._get_axis_length(energy_axis + 1),
@@ -1708,7 +1749,7 @@ class WcsParser(object):
         self.logger.debug('Begin temporal axis augmentation.')
 
         aug_naxis = self._get_axis(time_axis)
-        aug_error = self._get_coord_error(None, time_axis)
+        aug_error = self._get_coord_error(time_axis)
         aug_ref_coord = self._get_ref_coord(None, time_axis)
         aug_function = CoordFunction1D(self._get_axis_length(time_axis + 1),
                                        self.wcs.wcs.cdelt[time_axis],
@@ -1805,8 +1846,8 @@ class WcsParser(object):
 
             aug_axis = CoordAxis2D(self._get_axis(xindex),
                                    self._get_axis(yindex),
-                                   self._get_coord_error(None, xindex),
-                                   self._get_coord_error(None, yindex),
+                                   self._get_coord_error(xindex),
+                                   self._get_coord_error(yindex),
                                    None, None, aug_function)
         return aug_axis
 
@@ -1834,18 +1875,16 @@ class WcsParser(object):
 
         return cd11, cd12, cd21, cd22
 
-    def _get_coord_error(self, aug_coord_error, index, over_csyer=None,
+    def _get_coord_error(self, index, over_csyer=None,
                          over_crder=None):
-        if aug_coord_error:
-            raise NotImplementedError
-        else:
-            aug_csyer = over_csyer if over_csyer is not None \
-                else self._sanitize(self.wcs.wcs.csyer[index])
-            aug_crder = over_crder if over_crder is not None \
-                else self._sanitize(self.wcs.wcs.crder[index])
+        aug_coord_error = None
+        aug_csyer = over_csyer if over_csyer is not None \
+            else self._sanitize(self.wcs.wcs.csyer[index])
+        aug_crder = over_crder if over_crder is not None \
+            else self._sanitize(self.wcs.wcs.crder[index])
 
-            if aug_csyer and aug_crder:
-                aug_coord_error = CoordError(aug_csyer, aug_crder)
+        if aug_csyer and aug_crder:
+            aug_coord_error = CoordError(aug_csyer, aug_crder)
 
         return aug_coord_error
 
@@ -1854,13 +1893,13 @@ class WcsParser(object):
         if aug_dimension:
             raise NotImplementedError
         else:
-            aug_dimension = Dimension2D(self.wcs._naxis[xindex],
-                                        self.wcs._naxis[yindex])
+            # TODO more consistent use of x,y number vs index
+            aug_dimension = Dimension2D(self._get_axis_length(xindex + 1),
+                                        self._get_axis_length(yindex + 1))
 
         return aug_dimension
 
     def _get_position_axis(self):
-
         # there are two celestial axes, get the applicable indices from
         # the axis_types
         xindex = None
@@ -1874,15 +1913,19 @@ class WcsParser(object):
                 else:
                     yindex = axis_types.index(ii)
 
-        # TODO determine what value to return if there is no index for an axis
-        xaxis = -1 if xindex is None else int(axis_types[xindex]['number']) + 1
-        yaxis = -1 if yindex is None else int(axis_types[yindex]['number']) + 1
+        xaxis = None if xindex is None else int(axis_types[xindex]['number']) + 1
+        yaxis = None if yindex is None else int(axis_types[yindex]['number']) + 1
 
         self.logger.debug(
             'Setting positionAxis1 to {}, positionAxis2 to {}'.format(xaxis,
                                                                       yaxis))
-
-        return xaxis, yaxis
+        if xaxis and yaxis:
+            return xaxis, yaxis
+        elif not xaxis and not yaxis:
+            return None
+        else:
+            raise ValueError('Found only one position axis ra/dec: {}/{}'.
+                             format(xaxis, yaxis))
 
     def _get_ref_coord(self, aug_ref_coord, index, over_crpix=None,
                        over_crval=None):
@@ -1899,16 +1942,19 @@ class WcsParser(object):
     def _get_axis_length(self, for_axis):
         result = -1
         try:
-            # Note - could not avoid using _naxis private attributes...
-            result = _to_int(self._sanitize(self.wcs._naxis[for_axis - 1]))
-        except IndexError:
+            # try ZNAXIS first in order to get the size of the original
+            # image in case it was FITS compressed
+            result = int(self._sanitize(
+                self.header.get('ZNAXIS{}'.format(for_axis))))
+            return result
+        except TypeError:
             try:
-                result = _to_int(
-                    self._sanitize(self.header.get('NAXIS{}'.format(for_axis))))
-            except ValueError:
+                # Note - could not avoid using _naxis private attributes...
+                result = _to_int(self._sanitize(self.wcs._naxis[for_axis - 1]))
+            except IndexError:
                 try:
-                    result = _to_int(self._sanitize(
-                        self.header.get('ZAXIS{}'.format(for_axis))))
+                    result = _to_int(
+                        self._sanitize(self.header.get('NAXIS{}'.format(for_axis))))
                 except ValueError:
                     self.logger.warning(
                         'Could not find axis length for axis {}'.format(
@@ -2030,17 +2076,27 @@ def _update_axis_info(parser, defaults, overrides):
     energy_axis = None
     polarization_axis = None
     time_axis = None
+    ra_axis = None
+    dec_axis = None
     for i in defaults, overrides:
         for key, value in i.items():
-            if (key.startswith('CTYPE')) and (value in ENERGY_CTYPES) and \
-                    key[-1].isdigit():
-                energy_axis = key[-1]
-            if (key.startswith('CTYPE')) and (value in POLARIZATION_CTYPES) \
-                    and key[-1].isdigit():
-                polarization_axis = key[-1]
-            if (key.startswith('CTYPE')) and (value in TIME_KEYWORDS) \
-                    and key[-1].isdigit():
-                time_axis = key[-1]
+            if (key.startswith('CTYPE')) and key[-1].isdigit():
+                if value in ENERGY_CTYPES:
+                    energy_axis = key[-1]
+                if value in POLARIZATION_CTYPES:
+                    polarization_axis = key[-1]
+                if value in TIME_KEYWORDS:
+                    time_axis = key[-1]
+                if value in POSITION_CTYPES[0]:
+                    ra_axis = key[-1]
+                if value in POSITION_CTYPES[1]:
+                    dec_axis = key[-1]
+
+    if ra_axis and dec_axis:
+        parser.configure_position_axes((ra_axis, dec_axis))
+    elif ra_axis or dec_axis:
+        raise ValueError('Only one positional axis found (ra/dec): {}/{}'.
+                         format(ra_axis, dec_axis))
 
     if time_axis:
         parser.configure_time_axis(time_axis)
@@ -2238,6 +2294,34 @@ def _dump_config(parser, uri):
         if f:
             f.close()
 
+def _update_cadc_artifact(artifact, cert):
+    """
+    Updates contentType, contentLength and contentChecksum of a CADC artifact
+    :param artifact:
+    :param cert:
+    :return:
+    """
+    client = CadcDataClient(net.Subject(cert))
+    file_url = urlparse(artifact.uri)
+    if file_url.scheme != 'ad':
+        # TODO add hook to support other service providers
+        raise NotImplementedError('Only ad type URIs supported')
+    archive, file_id = file_url.path.split('/')
+    metadata = client.get_file_info(archive, file_id)
+    checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
+    logging.debug("old - uri({}), encoding({}), size({}), type({})".
+          format(artifact.uri,
+                 artifact.content_checksum,
+                 artifact.content_length,
+                 artifact.content_type))
+    artifact.content_checksum = checksum
+    artifact.content_length = int(metadata['size'])
+    artifact.content_type = str(metadata['type'])
+    logging.debug("updated - uri({}), encoding({}), size({}), type({})".
+          format(artifact.uri,
+                 artifact.content_checksum,
+                 artifact.content_length,
+                 artifact.content_type))
 
 def main_app(obs_blueprint=None):
     parser = argparse.ArgumentParser()
@@ -2375,7 +2459,6 @@ def main_app(obs_blueprint=None):
                     Artifact(uri=uri,
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            artifact = plane.artifacts[uri]
             parser = FitsParser(file)
             parser.blueprint = obs_blueprint[uri]
         else:
@@ -2388,7 +2471,7 @@ def main_app(obs_blueprint=None):
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers)
             parser.blueprint = obs_blueprint[uri]
-
+        _update_cadc_artifact(plane.artifacts[uri], args.cert)
         update_fits_headers(parser, uri, config, defaults, overrides)
         if args.dumpconfig:
             _dump_config(parser, uri)
