@@ -80,6 +80,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import collections
+import math
 import struct
 import sys
 import uuid
@@ -88,7 +89,11 @@ from datetime import datetime
 import six
 from builtins import bytes, int
 
-__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
+from caom2.common import AbstractCaomEntity
+
+
+__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty',
+           'get_differences']
 
 # TODO both these are very bad, implement more sensibly
 IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
@@ -221,6 +226,166 @@ def value_check(value, min_value, max_value, variable, override=None):
                     min_value, variable, max_value, value))
 
     return True
+
+
+def get_differences(expected, actual, parent=None):
+    """
+    Compare two entities. Provide a report if differences exist between the two
+    entities.
+
+    :param expected: What is expected to exist. May be AbstractCaomEntity,
+    TypedOrderedDict, TypedList, or TypedSet.
+    :param actual: What exists. May be AbstractCaomEntity,
+    TypedOrderedDict, TypedList, or TypedSet.
+    :return: None if the entities are the same, or a text report of the
+    individual differences.
+    """
+    report = []
+
+    if expected == actual:
+        return None
+
+    if type(expected) != type(actual):
+        report.append(
+            'Types:: expected \'{}\' actual \'{}\''.format(type(expected),
+                                                           type(actual)))
+        return report
+
+    if (isinstance(expected, TypedOrderedDict) or
+        isinstance(expected, TypedList) or
+            isinstance(expected, TypedSet)):
+        temp_report = _get_collection_differences(expected, actual, parent)
+    else:
+        assert isinstance(expected, AbstractCaomEntity)
+        assert isinstance(actual, AbstractCaomEntity)
+        temp_report = _get_object_differences(expected, actual, parent)
+
+    if temp_report:
+        report.extend(temp_report)
+
+    return report if len(report) > 0 else None
+
+
+def _get_object_differences(expected, actual, parent=None):
+    """Reports on the differences between both attributes and
+    their values for object differences."""
+    report = []
+    expected_dict, expected_decompose = _get_dict(expected)
+    actual_dict, actual_decompose = _get_dict(actual)
+
+    if expected_dict != actual_dict:
+        new_parent = '{}.{}'.format(
+            parent, expected.__class__) if parent else expected.__class__
+        temp_report = _get_dict_differences(expected_dict, actual_dict, new_parent)
+        if temp_report:
+            report.extend(temp_report)
+
+    for expected_key, expected_value in expected_decompose.items():
+        if expected_key in actual_decompose:
+            actual_value = actual_decompose[expected_key]
+            label = '{}.{}'.format(parent, expected_key)
+            temp_report = get_differences(expected_value, actual_value, label)
+            actual_decompose.pop(expected_key)
+            if temp_report:
+                report.extend(temp_report)
+        else:
+            report.append('Member:: {} missing from {}'.format(
+                expected_key, actual.__class__))
+
+    for actual_key in actual_decompose.items():
+        report.append(
+            'Member::{} missing from {}'.format(actual_key, expected.__class__))
+
+    return report if len(report) > 0 else None
+
+
+def _get_collection_differences(expected, actual, parent=None):
+    """Reports on the differences between two collections. Ignores collection
+    ordering."""
+    report = []
+    if len(expected) != len(actual):
+        report.append(
+            'Collection:: length of expected {} != actual {}'.format(
+                len(expected), len(actual)))
+
+    for expected_key, expected_value in expected.items():
+        label = '{}[\'{}\']'.format(parent, expected_key)
+        if expected_key in actual.keys():
+            actual_value = actual[expected_key]
+            temp_report = get_differences(expected_value,
+                                          actual_value, label)
+            actual.pop(expected_key)
+            if temp_report:
+                report.extend(temp_report)
+            break
+        else:
+            report.append('Collection:: {} not in actual.'.format(label))
+
+    for key in actual.keys():
+        label = '{}[\'{}\']'.format(parent, key)
+        report.append('Collection:: actual {} not in expected.'.format(
+            label))
+
+    return report if len(report) > 0 else None
+
+
+def _get_dict_differences(expected, actual, parent):
+    """Reports on how two dictionaries are different."""
+    report = []
+    for expected_key, expected_value in expected.items():
+        if expected_key in actual:
+            actual_value = actual[expected_key]
+            if _not_equal(expected_value, actual_value):
+                report.append(
+                    'Member value:: {}.{}: expected {} actual {}'.format(
+                        parent,
+                        expected_key,
+                        expected_value,
+                        actual_value))
+            actual.pop(expected_key)
+        else:
+            report.append(
+                'Member:: {}.{}: expected missing from actual.'.format(
+                    parent, expected_key))
+
+    for key in actual.items():
+        report.append(
+            'Member:: {}.{}: actual missing from expected.'.format(parent,
+                                                                   key))
+
+    return report if len(report) > 0 else None
+
+
+def _not_equal(rhs, lhs):
+    """Handling for not-quite-equals float comparisons."""
+    if isinstance(rhs, float) and isinstance(lhs, float):
+        result = math.isclose(rhs, lhs, rel_tol=1e-10)
+    else:
+        result = rhs == lhs
+    return not result
+
+
+def _get_dict(entity):
+    """This removes all the entity attributes that are not considered part of
+    an AbstractCaomEntity comparison, and tracks the entities that are not
+    straight-to-dictionary conversions for later handling."""
+
+    attributes = {}
+    caom_collections = {}
+    for i in dir(entity):
+        attribute = getattr(entity, i)
+        if (i.startswith('_') or
+                callable(attribute) or
+                i.find('checksum') != -1):
+            continue
+        if (isinstance(attribute, TypedOrderedDict) or
+                isinstance(i, TypedList) or
+                isinstance(i, TypedSet) or
+                isinstance(i, AbstractCaomEntity)):
+            caom_collections[i] = attribute
+        else:
+            attributes[i] = getattr(entity, i)
+    return attributes, caom_collections
 
 
 class TypedList(collections.MutableSequence):
