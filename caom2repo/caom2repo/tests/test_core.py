@@ -90,7 +90,7 @@ from mock import Mock, patch, MagicMock, ANY, call
 from six import BytesIO, StringIO
 
 from caom2repo import core
-from caom2repo.core import CAOM2RepoClient
+from caom2repo.core import CAOM2RepoClient, str2date
 
 # The following is a temporary workaround for Python issue 25532
 # (https://bugs.python.org/issue25532)
@@ -124,20 +124,20 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # last_modified_date is earlier than start
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
-            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-11T12:30:00.333', None, False)
+            obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa('2000-10-11T12:30:00.333'), None, False)
             self.assertEquals('obs_id_1', obs_id_list[0])
 
         # last_modified_date is between start and end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
-            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2016-10-11T12:30:00.333',
-                                                     False)
+            obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
+                                                     util.str2ivoa('2016-10-11T12:30:00.333'), False)
             self.assertEquals('obs_id_1', obs_id_list[0])
             self.assertEquals('obs_id_2', obs_id_list[1])
 
         # last_modified_date is after end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
-            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2017-10-11T12:30:00.333',
-                                                     False)
+            obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
+                                                     util.str2ivoa('2017-10-11T12:30:00.333'), False)
             self.assertEquals('obs_id_1', obs_id_list[0])
             self.assertEquals('obs_id_2', obs_id_list[1])
             self.assertEquals('obs_id_3', obs_id_list[2])
@@ -145,8 +145,8 @@ class TestCAOM2Repo(unittest.TestCase):
         # error in file
         with open(os.path.join(THIS_DIR, 'data/obs_id_error.txt')) as obs_file:
             with self.assertRaises(Exception):
-                obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2016-10-11T12:30:00.333',
-                                                         True)
+                obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
+                                                         util.str2ivoa('2016-10-11T12:30:00.333'), True)
 
     @patch('caom2repo.core.net.BaseWsClient', Mock())
     def test_plugin_class(self):

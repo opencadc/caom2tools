@@ -287,8 +287,6 @@ class CAOM2RepoClient(object):
         return visited, updated, skipped, failed
 
     def _get_obs_from_file(self, obs_file, start, end, halt_on_error):
-        start_datetime = util.str2ivoa(start)
-        end_datetime = util.str2ivoa(end)
         obs = []
         failed = []
         for l in obs_file:
@@ -303,8 +301,8 @@ class CAOM2RepoClient(object):
                             # we have more than two tokens in line
                             raise Exception(
                                 'Extra token one line: {}'.format(l))
-                        elif (start and last_mod_datetime<start_datetime) or \
-                                (end and last_mod_datetime>end_datetime):
+                        elif (start and last_mod_datetime<start) or \
+                                (end and last_mod_datetime>end):
                             # last modified date is out of start/end range
                             self.logger.info('last modified date is out of start/end range: {}'.format(l))
                         else:
