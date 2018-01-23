@@ -2228,7 +2228,6 @@ def _apply_config_to_fits(parser):
         if isinstance(value, tuple) and value[1]:
             # there is a default value set
             for index, header in enumerate(parser._headers):
-                logging.warning('header index {}'.format(index))
                 for keyword in value[0]:
                     if not header.get(keyword):
                         # apply a default if a value does not already exist
