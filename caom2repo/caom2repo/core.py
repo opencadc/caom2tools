@@ -77,8 +77,8 @@ import multiprocessing
 from multiprocessing import Pool
 import os
 import os.path
+import signal
 import sys
-import threading
 from datetime import datetime
 
 from cadcutils import net
@@ -221,7 +221,7 @@ class CAOM2RepoClient(object):
                         failed.append(f)
 
             else:
-                p = Pool(nthreads)
+                p = Pool(nthreads, init_worker)
                 try:
                     results = [p.apply_async(
                         multiprocess_observation_id,
@@ -238,6 +238,8 @@ class CAOM2RepoClient(object):
                             skipped.append(result[2])
                         if result[3]:
                             failed.append(result[3])
+                except KeyboardInterrupt:
+                    p.terminate()
                 finally:
                     p.close()
                     p.join()
@@ -462,6 +464,14 @@ class CAOM2RepoClient(object):
             (CAOM2REPO_OBS_CAPABILITY_ID, path))
         self.logger.info('Successfully deleted Observation {}\n')
 
+def init_worker():
+    """
+    An initializer that programs each worker process to ignore Control-C.
+    This is required to work around a bug in Python which resulted in
+    Control-C not being able to handled properly. The bug was not addressed
+    at time of writing of this function. https://bugs.python.org/issue8296
+    """
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 def str2date(s):
     """
@@ -527,10 +537,6 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
         rootLogger.error('FAILED {} - Reason: {}'.format(observationID, e))
         if halt_on_error:
             raise e
-    except KeyboardInterrupt as e:
-        # user pressed Control-C or Delete
-        rootLogger.error('FAILED {} - Reason: {}'.format(observationID, e))
-        raise e
 
     visited = observationID
 
