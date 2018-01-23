@@ -90,7 +90,7 @@ from mock import Mock, patch, MagicMock, ANY, call
 from six import BytesIO, StringIO
 
 from caom2repo import core
-from caom2repo.core import CAOM2RepoClient, QueueHandler
+from caom2repo.core import CAOM2RepoClient, str2date
 
 # The following is a temporary workaround for Python issue 25532
 # (https://bugs.python.org/issue25532)
@@ -112,10 +112,8 @@ class TestCAOM2Repo(unittest.TestCase):
     """Test the Caom2Visitor class"""
 
     def test_get_obs_from_file(self):
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
 
         # no start or end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
@@ -126,20 +124,20 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # last_modified_date is earlier than start
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
-            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-11T12:30:00.333', None, False)
+            obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa('2000-10-11T12:30:00.333'), None, False)
             self.assertEquals('obs_id_1', obs_id_list[0])
 
         # last_modified_date is between start and end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
-            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2016-10-11T12:30:00.333',
-                                                     False)
+            obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
+                                                     util.str2ivoa('2016-10-11T12:30:00.333'), False)
             self.assertEquals('obs_id_1', obs_id_list[0])
             self.assertEquals('obs_id_2', obs_id_list[1])
 
         # last_modified_date is after end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
-            obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2017-10-11T12:30:00.333',
-                                                     False)
+            obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
+                                                     util.str2ivoa('2017-10-11T12:30:00.333'), False)
             self.assertEquals('obs_id_1', obs_id_list[0])
             self.assertEquals('obs_id_2', obs_id_list[1])
             self.assertEquals('obs_id_3', obs_id_list[2])
@@ -147,18 +145,16 @@ class TestCAOM2Repo(unittest.TestCase):
         # error in file
         with open(os.path.join(THIS_DIR, 'data/obs_id_error.txt')) as obs_file:
             with self.assertRaises(Exception):
-                obs_id_list = visitor._get_obs_from_file(obs_file, '2000-10-9T12:30:00.333', '2016-10-11T12:30:00.333',
-                                                         True)
+                obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
+                                                         util.str2ivoa('2016-10-11T12:30:00.333'), True)
 
     @patch('caom2repo.core.net.BaseWsClient', Mock())
     def test_plugin_class(self):
         # plugin class does not change the observation
         collection = 'cfht'
         observation_id = '7000000o'
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         obs = SimpleObservation(collection, observation_id)
         expect_obs = copy.deepcopy(obs)
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'passplugin.py'))
@@ -166,7 +162,7 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEquals(expect_obs, obs)
 
         # plugin class adds a plane to the observation
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         obs = SimpleObservation('cfht', '7000000o')
         expect_obs = copy.deepcopy(obs)
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'addplaneplugin.py'))
@@ -209,10 +205,8 @@ class TestCAOM2Repo(unittest.TestCase):
         response.content = ibuffer.getvalue()
         mock_get.return_value = response
         ibuffer.seek(0)  # reposition the buffer for reading
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level, host=service_url)
+        visitor = CAOM2RepoClient(auth.Subject(), level, host=service_url)
         self.assertEquals(obs,
                           visitor.get_observation(collection, observation_id))
 
@@ -263,10 +257,8 @@ class TestCAOM2Repo(unittest.TestCase):
              last_datetime + '\t3e00ca6129dc8358315015204ab9fe15')
         mock_get.return_value = response
 
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         end_date = util.utils.str2ivoa(last_datetime)
 
         expect_observations = ['700000o', '700001o']
@@ -314,10 +306,8 @@ class TestCAOM2Repo(unittest.TestCase):
         service_url = 'www.cadc.nrc.ca'
 
         obs = SimpleObservation(collection, observation_id)
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(netrc='somenetrc'), queue, level, host=service_url)
+        visitor = CAOM2RepoClient(auth.Subject(netrc='somenetrc'), level, host=service_url)
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
@@ -377,10 +367,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         obs = SimpleObservation(collection, observation_id)
         subject = auth.Subject(certificate='somefile.pem')
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(subject, queue, level, host=service_url)
+        visitor = CAOM2RepoClient(subject, level, host=service_url)
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
@@ -435,11 +423,9 @@ class TestCAOM2Repo(unittest.TestCase):
         collection = 'cfht'
         observation_id = '7000000o'
         service_url = 'www.cadc.nrc.ca'
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
 
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level, host=service_url)
+        visitor = CAOM2RepoClient(auth.Subject(), level, host=service_url)
         response = MagicMock()
         response.status = 200
         mock_conn.return_value = response
@@ -477,10 +463,8 @@ class TestCAOM2Repo(unittest.TestCase):
     def test_process(self):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = MagicMock(
             return_value=MagicMock(spec=SimpleObservation))
         visitor.post_observation = MagicMock()
@@ -555,10 +539,8 @@ class TestCAOM2Repo(unittest.TestCase):
                            ARCHIVE\tc\t2011-01-01T12:00:00.000"""
         response2 = MagicMock()
         response2.text = """ARCHIVE\td\t2011-02-02T11:00:00.000"""
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = MagicMock(
             return_value=MagicMock(spec=SimpleObservation))
         visitor.post_observation = MagicMock()
@@ -602,10 +584,8 @@ class TestCAOM2Repo(unittest.TestCase):
         obs_ids = [['a', 'b', 'c'], ['d'], []]
         client_mock.return_value.get_observation.side_effect = self.mock_get_observation
         client_mock.return_value.post_observation.side_effect =  self.mock_post_observation_with_exception
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -618,7 +598,6 @@ class TestCAOM2Repo(unittest.TestCase):
         except Exception as e:
             self.assertTrue("exception with observation" in str(e))
         finally:
-            queue.put(None)
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -626,10 +605,8 @@ class TestCAOM2Repo(unittest.TestCase):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
         client_mock.return_value.get_observation.side_effect = self.mock_get_observation_with_expected_type_error
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -642,7 +619,6 @@ class TestCAOM2Repo(unittest.TestCase):
         except RuntimeError as e:
             self.assertTrue("To fix the problem" in str(e))
         finally:
-            queue.put(None)
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -650,10 +626,8 @@ class TestCAOM2Repo(unittest.TestCase):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
         client_mock.return_value.get_observation.side_effect = self.mock_get_observation_with_unexpected_type_error
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -666,7 +640,6 @@ class TestCAOM2Repo(unittest.TestCase):
         except TypeError as e:
             self.assertTrue("unexpected TypeError" in str(e))
         finally:
-            queue.put(None)
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -674,10 +647,8 @@ class TestCAOM2Repo(unittest.TestCase):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
         client_mock.return_value.get_observation.side_effect = self.mock_get_observation
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -685,9 +656,6 @@ class TestCAOM2Repo(unittest.TestCase):
 
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
-
-        lp = threading.Thread(target=logger_thread, args=(queue,))
-        lp.start()
 
         try:
             self.assertEqual(4, len(visited))
@@ -705,8 +673,7 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertTrue('d' in updated)
             self.assertFalse('e' in updated)
         finally:
-            queue.put(None)
-            lp.join()
+            #lp.join()
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -714,10 +681,8 @@ class TestCAOM2Repo(unittest.TestCase):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
         client_mock.return_value.get_observation.side_effect = self.mock_get_observation
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -725,9 +690,6 @@ class TestCAOM2Repo(unittest.TestCase):
 
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
-
-        lp = threading.Thread(target=logger_thread, args=(queue,))
-        lp.start()
 
         try:
             self.assertEqual(6, len(visited))
@@ -749,8 +711,7 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertTrue('f' in updated)
             self.assertFalse('g' in updated)
         finally:
-            queue.put(None)
-            lp.join()
+            #lp.join()
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -761,10 +722,8 @@ class TestCAOM2Repo(unittest.TestCase):
         # raises exception for 'ERROR'
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
         client_mock.return_value.get_observation.side_effect = self.mock_get_observation
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -773,17 +732,13 @@ class TestCAOM2Repo(unittest.TestCase):
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-        lp = threading.Thread(target=logger_thread, args=(queue,))
-        lp.start()
-
         try:
             self.assertEqual(3, len(visited))
             self.assertEqual(1, len(updated))
             self.assertEqual(1, len(skipped))
             self.assertEqual(1, len(failed))
         finally:
-            queue.put(None)
-            lp.join()
+            #lp.join()
             logging.info("DONE")
 
     @patch('caom2repo.core.CAOM2RepoClient')
@@ -794,10 +749,8 @@ class TestCAOM2Repo(unittest.TestCase):
         # raises exception for 'ERROR'
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
         client_mock.return_value.get_observation.side_effect = self.mock_get_observation
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), queue, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -806,24 +759,18 @@ class TestCAOM2Repo(unittest.TestCase):
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None, end=None, obs_file=None, nthreads=3)
 
-        lp = threading.Thread(target=logger_thread, args=(queue,))
-        lp.start()
-
         try:
             self.assertEqual(5, len(visited))
             self.assertEqual(2, len(updated))
             self.assertEqual(2, len(skipped))
             self.assertEqual(1, len(failed))
         finally:
-            queue.put(None)
-            lp.join()
+            #lp.join()
             logging.info("DONE")
 
     def test_shortcuts(self):
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
         level = logging.DEBUG
-        target = CAOM2RepoClient(auth.Subject(), queue, level)
+        target = CAOM2RepoClient(auth.Subject(), level)
         obs = SimpleObservation('CFHT', 'abc')
 
         target.put_observation = Mock()
@@ -1011,12 +958,4 @@ class TestCAOM2Repo(unittest.TestCase):
                 core.main_app()
             self.assertTrue('error: argument --threads: invalid choice' in stderr_mock.getvalue())
         # print(stderr_mock.getvalue())
-
-def logger_thread(q):
-    while True:
-        record = q.get()
-        if record is None:
-            break
-        logger = logging.getLogger(record.name)
-        logger.handle(record)
 
