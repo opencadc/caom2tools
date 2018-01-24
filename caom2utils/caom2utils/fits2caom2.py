@@ -87,8 +87,9 @@ from caom2 import ObservationReader, ObservationWriter, Algorithm
 from caom2 import ReleaseType, ProductType, ObservationIntentType
 from caom2 import DataProductType, Telescope, Environment
 from caom2 import Instrument, Proposal, Target, Provenance, Metrics, Quality
-from caom2 import CalibrationLevel, Requirements, DataQuality
-from caom2 import SimpleObservation, ChecksumURI, PlaneURI
+from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
+from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
+from caom2 import ObservationURI
 import logging
 import re
 import sys
@@ -269,7 +270,7 @@ class ObsBlueprint(object):
 
     """
     _CAOM2_ELEMENTS = [
-        #TODO not used for now 'CompositeObservation.members',
+        'CompositeObservation.members',
         'Observation.observationID',
         'Observation.type',
         'Observation.intent',
@@ -1268,13 +1269,14 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Instrument augmentation.')
         name = self._get_from_list('Observation.instrument.name', index=0)
-        keywords =self. _get_from_list('Observation.instrument.keywords',
-                                       index=0)
+        keywords =self._get_from_list('Observation.instrument.keywords',
+                                      index=0)
         self.logger.debug('End CAOM2 Instrument augmentation.')
         if name:
             instr = Instrument(str(name))
             if keywords:
-                instr.keywords.union(keywords)
+                for k in keywords.split():
+                    instr.keywords.add(k)
             return instr
         else:
             return None
@@ -1690,10 +1692,10 @@ class WcsParser(object):
         chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.wcs.ssysobs))
         #TODO not sure why, but wcs returns 0.0 when the FITS keywords for the
         # following two keywords are actually not present in the header
-        #chunk.energy.restfrq = self._sanitize(self.wcs.wcs.restfrq)
-        #chunk.energy.restwav = self._sanitize(self.wcs.wcs.restwav)
-        chunk.energy.restfrq = self.header.get('RESTFRQ', None)
-        chunk.energy.restwav = self.header.get('RESTWAV', None)
+        if self._sanitize(self.wcs.wcs.restfrq) != 0:
+            chunk.energy.restfrq = self._sanitize(self.wcs.wcs.restfrq)
+        if self._sanitize(self.wcs.wcs.restwav) != 0:
+            chunk.energy.restwav = self._sanitize(self.wcs.wcs.restwav)
         chunk.energy.velosys = self._sanitize(self.wcs.wcs.velosys)
         chunk.energy.zsource = self._sanitize(self.wcs.wcs.zsource)
         chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.wcs.ssyssrc))
@@ -2468,9 +2470,22 @@ def main_app(obs_blueprint=None):
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
     else:
-        obs = SimpleObservation(collection=args.observation[0],
-                                observation_id=args.observation[1],
-                                algorithm=Algorithm('EXPOSURE'))  # TODO
+        if 'CompositeObservation.members' in config:
+            # build a composity observation
+            obs = CompositeObservation(collection=args.observation[0],
+                                       observation_id=args.observation[1],
+                                       algorithm=Algorithm('EXPOSURE'))  # TODO
+            if config['CompositeObservation.members'] in defaults:
+                for member in defaults[config['CompositeObservation.members']].split():
+                    obs.members.add(member)
+            if config['CompositeObservation.members'] in overrides:
+                for member in overrides[config['CompositeObservation.members']].split():
+                    obs.members.add(ObservationURI(member))
+        else:
+            #build a simple observation
+            obs = SimpleObservation(collection=args.observation[0],
+                                    observation_id=args.observation[1],
+                                    algorithm=Algorithm('EXPOSURE'))  # TODO
 
     if args.productID not in obs.planes.keys():
         obs.planes.add(Plane(product_id=str(args.productID)))
@@ -2502,14 +2517,9 @@ def main_app(obs_blueprint=None):
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers)
             parser.blueprint = obs_blueprint[uri]
+
         _update_cadc_artifact(plane.artifacts[uri], args.cert)
         update_fits_headers(parser, uri, config, defaults, overrides)
- #       for header in parser._headers:
- #           if 'CD1_1' in header:
- #               del header['CD1_1']
- #               del header['CD1_2']
- #               del header['CD2_1']
- #               del header['CD2_2']
         if args.dumpconfig:
             _dump_config(parser, uri)
 
