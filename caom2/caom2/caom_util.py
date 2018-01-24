@@ -89,7 +89,7 @@ from datetime import datetime
 import six
 from builtins import bytes, int
 
-from caom2.common import AbstractCaomEntity
+from caom2.common import CaomObject
 
 
 __all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty',
@@ -237,13 +237,11 @@ def get_differences(expected, actual, parent=None):
     TypedOrderedDict, TypedList, or TypedSet.
     :param actual: What exists. May be AbstractCaomEntity,
     TypedOrderedDict, TypedList, or TypedSet.
+    :param parent: str for message content.
     :return: None if the entities are the same, or a text report of the
     individual differences.
     """
     report = []
-
-    if expected == actual:
-        return None
 
     if type(expected) != type(actual):
         report.append(
@@ -256,8 +254,12 @@ def get_differences(expected, actual, parent=None):
             isinstance(expected, TypedSet)):
         temp_report = _get_collection_differences(expected, actual, parent)
     else:
-        assert isinstance(expected, AbstractCaomEntity)
-        assert isinstance(actual, AbstractCaomEntity)
+        assert isinstance(expected, CaomObject)
+        assert isinstance(actual, CaomObject)
+        if parent:
+            parent = '{}.{}'.format(parent, expected.__class__.__name__)
+        else:
+            parent = expected.__class__.__name__
         temp_report = _get_object_differences(expected, actual, parent)
 
     if temp_report:
@@ -266,7 +268,7 @@ def get_differences(expected, actual, parent=None):
     return report if len(report) > 0 else None
 
 
-def _get_object_differences(expected, actual, parent=None):
+def _get_object_differences(expected, actual, parent):
     """Reports on the differences between both attributes and
     their values for object differences."""
     report = []
@@ -274,9 +276,7 @@ def _get_object_differences(expected, actual, parent=None):
     actual_dict, actual_decompose = _get_dict(actual)
 
     if expected_dict != actual_dict:
-        new_parent = '{}.{}'.format(
-            parent, expected.__class__) if parent else expected.__class__
-        temp_report = _get_dict_differences(expected_dict, actual_dict, new_parent)
+        temp_report = _get_dict_differences(expected_dict, actual_dict, parent)
         if temp_report:
             report.extend(temp_report)
 
@@ -289,24 +289,39 @@ def _get_object_differences(expected, actual, parent=None):
             if temp_report:
                 report.extend(temp_report)
         else:
-            report.append('Member:: {} missing from {}'.format(
-                expected_key, actual.__class__))
+            report.append('Member:: {}.{}: missing from {}'.format(
+                parent, expected_key, actual.__class__))
 
     for actual_key in actual_decompose.items():
-        report.append(
-            'Member::{} missing from {}'.format(actual_key, expected.__class__))
+        report.append('Member:: {}.{}: missing from {}'.format(
+            parent, actual_key, expected.__class__))
 
     return report if len(report) > 0 else None
 
 
-def _get_collection_differences(expected, actual, parent=None):
+def _get_collection_differences(expected, actual, parent):
     """Reports on the differences between two collections. Ignores collection
     ordering."""
     report = []
     if len(expected) != len(actual):
         report.append(
-            'Collection:: length of expected {} != actual {}'.format(
-                len(expected), len(actual)))
+            'Collection:: {}: length of expected {} != length of actual {}'.format(
+                parent, len(expected), len(actual)))
+
+    if isinstance(actual, TypedList) or isinstance(actual, TypedSet):
+        temp_report = _get_sequence_differences(expected, actual, parent)
+    else:
+        temp_report = _get_mapping_differences(expected, actual, parent)
+
+    if temp_report:
+        report.extend(temp_report)
+
+    return report if len(report) > 0 else None
+
+
+def _get_mapping_differences(expected, actual, parent):
+    report = []
+    actual_keys_copy = list(actual.keys())
 
     for expected_key, expected_value in expected.items():
         label = '{}[\'{}\']'.format(parent, expected_key)
@@ -314,16 +329,39 @@ def _get_collection_differences(expected, actual, parent=None):
             actual_value = actual[expected_key]
             temp_report = get_differences(expected_value,
                                           actual_value, label)
-            actual.pop(expected_key)
+            actual_keys_copy.remove(expected_key)
             if temp_report:
                 report.extend(temp_report)
-            break
         else:
-            report.append('Collection:: {} not in actual.'.format(label))
+            report.append('Map:: {} not in actual.'.format(label))
 
-    for key in actual.keys():
+    for key in actual_keys_copy:
         label = '{}[\'{}\']'.format(parent, key)
-        report.append('Collection:: actual {} not in expected.'.format(
+        report.append('Map:: actual {} not in expected.'.format(
+            label))
+
+    return report if len(report) > 0 else None
+
+
+def _get_sequence_differences(expected, actual, parent):
+    report = []
+    actual_copy = list(actual)
+
+    for expected_key, expected_value in enumerate(expected):
+        label = '{}[\'{}\']'.format(parent, expected_key)
+        try:
+            actual_value = actual[expected_key]
+            temp_report = get_differences(expected_value,
+                                          actual_value, label)
+            actual_copy.remove(actual_value)
+            if temp_report:
+                report.extend(temp_report)
+        except:
+            report.append('Sequence:: {} not in actual.'.format(label))
+
+    for key, value in enumerate(actual_copy):
+        label = '{}[\'{}\']'.format(parent, key)
+        report.append('Sequence:: actual {} not in expected.'.format(
             label))
 
     return report if len(report) > 0 else None
@@ -337,7 +375,7 @@ def _get_dict_differences(expected, actual, parent):
             actual_value = actual[expected_key]
             if _not_equal(expected_value, actual_value):
                 report.append(
-                    'Member value:: {}.{}: expected {} actual {}'.format(
+                    'Value:: {}.{}: expected {} actual {}'.format(
                         parent,
                         expected_key,
                         expected_value,
@@ -379,12 +417,12 @@ def _get_dict(entity):
                 i.find('checksum') != -1):
             continue
         if (isinstance(attribute, TypedOrderedDict) or
-                isinstance(i, TypedList) or
-                isinstance(i, TypedSet) or
-                isinstance(i, AbstractCaomEntity)):
+                isinstance(attribute, TypedList) or
+                isinstance(attribute, TypedSet) or
+                isinstance(attribute, CaomObject)):
             caom_collections[i] = attribute
         else:
-            attributes[i] = getattr(entity, i)
+            attributes[i] = attribute
     return attributes, caom_collections
 
 
