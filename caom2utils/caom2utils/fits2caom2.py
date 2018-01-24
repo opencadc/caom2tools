@@ -92,6 +92,7 @@ from caom2 import SimpleObservation, ChecksumURI, PlaneURI
 import logging
 import re
 import sys
+import warnings
 from six.moves.urllib.parse import urlparse
 from cadcutils import net
 from cadcdata import CadcDataClient
@@ -760,6 +761,7 @@ class ObsBlueprint(object):
                  (['CRVAL{}'.format(axis)], None))
 
         self._wcs_std['Chunk.time.exposure'] = 'EXPTIME,INTTIME'
+        self._wcs_std['Chunk.time.resolution'] = 'TIMEDEL'
         self._wcs_std['Chunk.time.timesys'] = 'TIMESYS'
         self._wcs_std['Chunk.time.trefpos'] = 'TREFPOS'
         self._wcs_std['Chunk.time.mjdref'] = 'MJDREF'
@@ -1646,7 +1648,7 @@ class WcsParser(object):
         logastro.addFilter(self.log_filter)
         logastro.propagate = False
 
-        self.wcs = WCS(header)
+        self.wcs = WCS(header, relax=False)
         self.header = header
         self.file = file
         self.extension = extension
@@ -1669,12 +1671,15 @@ class WcsParser(object):
         chunk.energy_axis = energy_axis + 1
         naxis = CoordAxis1D(self._get_axis(energy_axis))
         naxis.error = self._get_coord_error(energy_axis)
-
+        if self.wcs.wcs.has_cd():
+            delta = self.wcs.wcs.cd[energy_axis][energy_axis]
+        else:
+            delta = self.wcs.wcs.cdelt[energy_axis]
         naxis.function = CoordFunction1D(
-            self._get_axis_length(energy_axis + 1),
-            _to_float(self._sanitize(self.wcs.wcs.cdelt[energy_axis])),
+            self._get_axis_length(energy_axis + 1), delta,
             RefCoord(_to_float(self._sanitize(self.wcs.wcs.crpix[energy_axis])),
                      _to_float(self._sanitize(self.wcs.wcs.crval[energy_axis]))))
+
         specsys = str(self.wcs.wcs.specsys)
         if not chunk.energy:
             chunk.energy = SpectralWCS(naxis, specsys)
@@ -1683,8 +1688,12 @@ class WcsParser(object):
             chunk.energy.specsys = specsys
 
         chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.wcs.ssysobs))
-        chunk.energy.restfrq = self._sanitize(self.wcs.wcs.restfrq)
-        chunk.energy.restwav = self._sanitize(self.wcs.wcs.restwav)
+        #TODO not sure why, but wcs returns 0.0 when the FITS keywords for the
+        # following two keywords are actually not present in the header
+        #chunk.energy.restfrq = self._sanitize(self.wcs.wcs.restfrq)
+        #chunk.energy.restwav = self._sanitize(self.wcs.wcs.restwav)
+        chunk.energy.restfrq = self.header.get('RESTFRQ', None)
+        chunk.energy.restwav = self.header.get('RESTWAV', None)
         chunk.energy.velosys = self._sanitize(self.wcs.wcs.velosys)
         chunk.energy.zsource = self._sanitize(self.wcs.wcs.zsource)
         chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.wcs.ssyssrc))
@@ -1751,9 +1760,12 @@ class WcsParser(object):
         aug_naxis = self._get_axis(time_axis)
         aug_error = self._get_coord_error(time_axis)
         aug_ref_coord = self._get_ref_coord(None, time_axis)
+        if self.wcs.wcs.has_cd():
+            delta = self.wcs.wcs.cd[time_axis][time_axis]
+        else:
+            delta = self.wcs.wcs.cdelt[time_axis]
         aug_function = CoordFunction1D(self._get_axis_length(time_axis + 1),
-                                       self.wcs.wcs.cdelt[time_axis],
-                                       aug_ref_coord)
+                                       delta, aug_ref_coord)
         naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
         if not chunk.time:
             chunk.time = TemporalWCS(naxis)
@@ -1786,9 +1798,13 @@ class WcsParser(object):
         chunk.polarization_axis = polarization_axis + 1
 
         naxis = CoordAxis1D(self._get_axis(polarization_axis))
+        if self.wcs.wcs.has_cd():
+            delta = self.wcs.wcs.cd[polarization_axis][polarization_axis]
+        else:
+            delta = self.wcs.wcs.cdelt[polarization_axis]
         naxis.function = CoordFunction1D(
             self._get_axis_length(polarization_axis + 1),
-            self._sanitize(self.wcs.wcs.cdelt[polarization_axis]),
+            delta,
             RefCoord(self._sanitize(self.wcs.wcs.crpix[polarization_axis]),
                      self._sanitize(self.wcs.wcs.crval[polarization_axis])))
         if not chunk.polarization:
@@ -2240,6 +2256,21 @@ def _apply_config_to_fits(parser):
                         logging.debug(
                             '{}: set default value of {} in HDU {}.'.format(
                                 keyword, value[1], index))
+
+    # TODO wcs in astropy ignores cdelt attributes when it finds a cd
+    # attribute even if it's in a different axis
+    for header in parser._headers:
+        cd_present = False
+        for i in range(1, 6):
+            if 'CD{0}_{0}'.format(i) in header:
+                cd_present = True
+                break
+        if cd_present:
+            for i in range(1, 6):
+                if 'CDELT{}'.format(i) in header and \
+                    'CD{0}_{0}'.format(i) not in header:
+                    header['CD{0}_{0}'.format(i)] = \
+                                 header['CDELT{}'.format(i)]
     return
 
 
@@ -2477,6 +2508,12 @@ def main_app(obs_blueprint=None):
             parser.blueprint = obs_blueprint[uri]
         _update_cadc_artifact(plane.artifacts[uri], args.cert)
         update_fits_headers(parser, uri, config, defaults, overrides)
+ #       for header in parser._headers:
+ #           if 'CD1_1' in header:
+ #               del header['CD1_1']
+ #               del header['CD1_2']
+ #               del header['CD2_1']
+ #               del header['CD2_2']
         if args.dumpconfig:
             _dump_config(parser, uri)
 
