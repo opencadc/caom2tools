@@ -1139,7 +1139,7 @@ class FitsParser(object):
             chunk = part.chunks[0]
 
             wcs_parser = WcsParser(header, self.file, ii)
-            chunk.naxis = wcs_parser._get_axis_length('')
+            chunk.naxis = wcs_parser.wcs.wcs.naxis
             wcs_parser.augment_position(chunk)
             wcs_parser.augment_energy(chunk)
             if chunk.energy:
@@ -1832,7 +1832,7 @@ class WcsParser(object):
             raise NotImplementedError
         else:
 
-            aug_dimension = self._get_dimension(None, xindex, yindex)
+            aug_dimension = self._get_dimension(xindex, yindex)
 
             aug_ref_coord = Coord2D(self._get_ref_coord(None, xindex),
                                     self._get_ref_coord(None, yindex))
@@ -1840,9 +1840,13 @@ class WcsParser(object):
             aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
                 self._get_cd(xindex, yindex)
 
-            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
-                                           aug_cd11, aug_cd12,
-                                           aug_cd21, aug_cd22)
+            if aug_dimension and aug_ref_coord and aug_cd11 and \
+                    aug_cd12 and aug_cd21 and aug_cd22:
+                aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
+                                               aug_cd11, aug_cd12,
+                                               aug_cd21, aug_cd22)
+            else:
+                aug_function = None
 
             aug_axis = CoordAxis2D(self._get_axis(xindex),
                                    self._get_axis(yindex),
@@ -1888,14 +1892,15 @@ class WcsParser(object):
 
         return aug_coord_error
 
-    def _get_dimension(self, aug_dimension, xindex, yindex):
+    def _get_dimension(self, xindex, yindex):
 
-        if aug_dimension:
-            raise NotImplementedError
-        else:
-            # TODO more consistent use of x,y number vs index
-            aug_dimension = Dimension2D(self._get_axis_length(xindex + 1),
-                                        self._get_axis_length(yindex + 1))
+        aug_dimension = None
+        # TODO more consistent use of x,y number vs index
+        aug_dim1 = _to_int(self._get_axis_length(xindex + 1))
+        aug_dim2 = _to_int(self._get_axis_length(yindex + 1))
+        if aug_dim1 and aug_dim2:
+            aug_dimension = Dimension2D(aug_dim1, aug_dim2)
+            self.logger.debug('End 2D dimension augmentation.')
 
         return aug_dimension
 
