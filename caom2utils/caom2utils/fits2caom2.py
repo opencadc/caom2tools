@@ -110,12 +110,14 @@ POSITION_CTYPES = [
      'GLON',
      'ELON',
      'HLON',
-     'SLON'],
+     'SLON',
+     'RA---TAN'],
     ['DEC',
      'GLAT',
      'ELAT',
      'HLAT',
-     'SLAT']
+     'SLAT',
+     'DEC--TAN']
 ]
 
 ENERGY_CTYPES = [
@@ -2158,22 +2160,31 @@ def _update_axis_info(parser, defaults, overrides):
             if (key.startswith('CTYPE')) and key[-1].isdigit():
                 if value in ENERGY_CTYPES:
                     energy_axis = key[-1]
-                if value in POLARIZATION_CTYPES:
+                elif value in POLARIZATION_CTYPES:
                     polarization_axis = key[-1]
-                if value in TIME_KEYWORDS:
+                elif value in TIME_KEYWORDS:
                     time_axis = key[-1]
-                if value in POSITION_CTYPES[0]:
+                elif value in POSITION_CTYPES[0]:
                     ra_axis = key[-1]
-                if value in POSITION_CTYPES[1]:
+                elif value in POSITION_CTYPES[1]:
                     dec_axis = key[-1]
-                if value in OBSERVABLE_CTYPES:
+                elif value in OBSERVABLE_CTYPES:
                     obs_axis = key[-1]
+                else:
+                    raise ValueError('Unrecognized CTYPE: {}'.format(value))
 
     if ra_axis and dec_axis:
         parser.configure_position_axes((ra_axis, dec_axis))
     elif ra_axis or dec_axis:
         raise ValueError('Only one positional axis found (ra/dec): {}/{}'.
                          format(ra_axis, dec_axis))
+    else:
+        # assume that positional axis are 1 and 2 by default
+        if time_axis in ['1', '2'] or energy_axis in ['1', '2'] or \
+            polarization_axis in ['1', '2'] or obs_axis in ['1', '2']:
+            raise ValueError('Cannot determine the positional axis')
+        else:
+            parser.configure_position_axes(('1', '2'))
 
     if time_axis:
         parser.configure_time_axis(time_axis)
@@ -2533,7 +2544,9 @@ def main_app(obs_blueprint=None):
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
     else:
-        if 'CompositeObservation.members' in config:
+        if 'CompositeObservation.members' in config and \
+            ((config['CompositeObservation.members'] in defaults) or
+             (config['CompositeObservation.members'] in overrides)):
             # build a composity observation
             obs = CompositeObservation(collection=args.observation[0],
                                        observation_id=args.observation[1],
