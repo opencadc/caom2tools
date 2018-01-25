@@ -1550,7 +1550,7 @@ class FitsParser(object):
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
             if keywords:
-                for k in keywords.split(): #TODO delimitator?
+                for k in keywords.split():  # TODO delimitator?
                     prov.keywords.add(k)
             if inputs:
                 for i in inputs.split():
@@ -1622,7 +1622,6 @@ class FitsParser(object):
                 else:
                     return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
             else:
-                # return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
                 return None
         except ValueError:
             self.logger.warning('{}'.format(sys.exc_info()[1]))
@@ -1852,11 +1851,10 @@ class WcsParser(object):
             chunk.polarization.naxis = naxis
         self.logger.debug('End Polarization WCS augmentation.')
 
-
     def augment_observable(self, chunk):
         """
         Augments a chunk with an observable axis
-        :param chunck:
+        :param chunk:
         :return:
         """
         self.logger.debug('Begin Observable WCS augmentation.')
@@ -1871,10 +1869,9 @@ class WcsParser(object):
         chunk.observable_axis = observable_axis + 1
         ctype = self.header.get('CTYPE{}'.format(chunk.observable_axis))
         cunit = self.header.get('CUNIT{}'.format(chunk.observable_axis))
-        bin = self.header.get('CRPIX{}'.format(chunk.observable_axis))
-        chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit), bin))
+        pix_bin = self.header.get('CRPIX{}'.format(chunk.observable_axis))
+        chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit), pix_bin))
         self.logger.debug('End Observable WCS augmentation.')
-
 
     def _get_axis_index(self, keywords):
         """
@@ -2534,7 +2531,7 @@ def main_app(obs_blueprint=None):
         obs = reader.read(args.in_obs_xml)
     else:
         if 'CompositeObservation.members' in config:
-            # build a composity observation
+            # build a composite observation
             obs = CompositeObservation(collection=args.observation[0],
                                        observation_id=args.observation[1],
                                        algorithm=Algorithm('EXPOSURE'))  # TODO
@@ -2545,7 +2542,7 @@ def main_app(obs_blueprint=None):
                 for member in overrides[config['CompositeObservation.members']].split():
                     obs.members.add(ObservationURI(member))
         else:
-            #build a simple observation
+            # build a simple observation
             obs = SimpleObservation(collection=args.observation[0],
                                     observation_id=args.observation[1],
                                     algorithm=Algorithm('EXPOSURE'))  # TODO
