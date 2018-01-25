@@ -73,6 +73,7 @@ from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, DispatchingFormatter
 from caom2utils import ObsBlueprint
+from caom2.caom_util import get_differences
 
 from caom2 import ObservationWriter, ObservationReader
 
@@ -92,7 +93,6 @@ import re
 
 import pytest
 
-from .compare import ObsCompare
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
@@ -107,7 +107,7 @@ cfhtwircam_defaults = os.path.join(TESTDATA_DIR, 'cfhtwircam.default')
 cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
 
 
-# @pytest.mark.skip('')
+@pytest.mark.skip('')
 def test_fits2caom2():
     # test fits2caom2 on a known existing CGPS file
     expected = open(expected_cgps_obs).read()
@@ -153,14 +153,16 @@ def test_fits2caom2():
 def test_fits2caom2_cfht_defaults_overrides():
     # test fits2caom2 on two known existing CFHT files, with defaults and
     # overrides
+    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     temp = tempfile.NamedTemporaryFile()
+    # sys.argv = ('fits2caom2 --debug --dumpconfig --local {} {} '
     sys.argv = ('fits2caom2 --debug --dumpconfig --local {} {} '
                 '-o {} --observation CFHT 1709071 '
                 '--config {} --default {} --override {} '
                 '1709071og '
-                'ad:CFHT/1709071o.fits.fz ad:CFHT/1709071g.fits.gz ').format(
-        os.path.join(TESTDATA_DIR, '1709071o.fits.fz'),
+                'ad:CFHT/1709071g.fits.gz ad:CFHT/1709071o.fits.fz ').format(
         os.path.join(TESTDATA_DIR, '1709071g.fits'),
+        os.path.join(TESTDATA_DIR, '1709071o.fits.fz'),
         temp.name, cfhtwircam_config, cfhtwircam_defaults,
         cfhtwircam_override).split()
     bp_param = {'ad:CFHT/1709071o.fits.fz': ObsBlueprint(position_axis=(1, 2),
@@ -172,8 +174,9 @@ def test_fits2caom2_cfht_defaults_overrides():
     fits2caom2.main_app(bp_param)
     expected = _read_obs(expected_cfhtwircam_obs)
     actual = _read_obs(temp.name)
-    x = ObsCompare()
-    x.compare_observations(expected, actual, '23')
+    result = get_differences(expected, actual, 'Observation')
+    # print('\n'.join(str(p) for p in result))
+    assert len(result) == 0
 
 
 def _cmp(expected_obs_xml, actual_obs_xml):
@@ -190,15 +193,7 @@ def _cmp(expected_obs_xml, actual_obs_xml):
     assert expected == actual
 
 
-def _print(actual):
-    f = open('./actual.out', 'w')
-    f.write(actual)
-    f.close()
-
-
 def _read_obs(fname):
     reader = ObservationReader(False)
     result = reader.read(fname)
     return result
-
-
