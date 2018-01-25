@@ -1,10 +1,9 @@
-#
 # -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2010.                            (c) 2010.
+#  (c) 2018.                            (c) 2018.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,24 +67,44 @@
 # ***********************************************************************
 #
 
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-"""
-This library implements the Common Archive Observation Model (CAOM), a general
-purpose data model for use as the core data model of an astronomical data
-centre. The details about the model and its components can be found at:
+import unittest
 
-http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2/
-"""
-from .artifact import *  # noqa
-from .caom_util import *  # noqa
-from .checksum import *  # noqa
-from .chunk import *  # noqa
-from .common import *  # noqa
-from .diff import *  # noqa
-from .obs_reader_writer import *  # noqa
-from .observation import *  # noqa
-from .part import *  # noqa
-from .plane import *  # noqa
-from .shape import *  # noqa
-from .wcs import *  # noqa
+from .. import diff
+from .. import observation
+
+
+class TestCaomUtil(unittest.TestCase):
+    def test_get_differences(self):
+        expected_simple = observation.SimpleObservation(
+            collection='test_collection',
+            observation_id='test_observation_id',
+            algorithm=observation.Algorithm('EXPOSURE'))
+        report = diff.get_differences(expected_simple, expected_simple,
+                                           'obs')
+        self.assertTrue(report is None, repr(report))
+
+        actual_simple = observation.SimpleObservation(
+            collection='test_collection',
+            observation_id='test_observation_id',
+            algorithm=observation.Algorithm('EXPOSURE'))
+        report = diff.get_differences(expected_simple, actual_simple,
+                                           'obs')
+        self.assertTrue(report is None, repr(report))
+
+        act_plane = observation.Plane(product_id='test_product_id1')
+        actual_simple.planes['test_product_id1'] = act_plane
+
+        report = diff.get_differences(expected_simple, actual_simple,
+                                           'obs')
+        self.assertTrue(report is not None, repr(report))
+        self.assertTrue(len(report) == 2, repr(report))
+
+        ex_plane = observation.Plane(product_id='test_product_id2')
+        expected_simple.planes['test_product_id2'] = ex_plane
+        report = diff.get_differences(expected_simple, actual_simple,
+                                           'obs')
+        self.assertTrue(report is not None, repr(report))
+        self.assertTrue(len(report) == 2, repr(report))

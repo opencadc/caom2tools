@@ -360,35 +360,3 @@ class TestCaomUtil(unittest.TestCase):
         lng = 3296038095975885829
         uid = caom_util.long2uuid(lng)
         self.assertEqual('00000000-0000-0000-2dbd-e12f64cc2c05', str(uid))
-
-    def test_get_differences(self):
-        expected_simple = observation.SimpleObservation(
-            collection='test_collection',
-            observation_id='test_observation_id',
-            algorithm=observation.Algorithm('EXPOSURE'))
-        report = caom_util.get_differences(expected_simple, expected_simple,
-                                           'obs')
-        self.assertTrue(report is None, repr(report))
-
-        actual_simple = observation.SimpleObservation(
-            collection='test_collection',
-            observation_id='test_observation_id',
-            algorithm=observation.Algorithm('EXPOSURE'))
-        report = caom_util.get_differences(expected_simple, actual_simple,
-                                           'obs')
-        self.assertTrue(report is None, repr(report))
-
-        act_plane = observation.Plane(product_id='test_product_id1')
-        actual_simple.planes['test_product_id1'] = act_plane
-
-        report = caom_util.get_differences(expected_simple, actual_simple,
-                                           'obs')
-        self.assertTrue(report is not None, repr(report))
-        self.assertTrue(len(report) == 2, repr(report))
-
-        ex_plane = observation.Plane(product_id='test_product_id2')
-        expected_simple.planes['test_product_id2'] = ex_plane
-        report = caom_util.get_differences(expected_simple, actual_simple,
-                                           'obs')
-        self.assertTrue(report is not None, repr(report))
-        self.assertTrue(len(report) == 2, repr(report))

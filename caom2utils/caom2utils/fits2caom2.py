@@ -2329,6 +2329,7 @@ def _dump_config(parser, uri):
         if f:
             f.close()
 
+
 def _update_cadc_artifact(artifact, cert):
     """
     Updates contentType, contentLength and contentChecksum of a CADC artifact
@@ -2357,6 +2358,7 @@ def _update_cadc_artifact(artifact, cert):
                  artifact.content_checksum,
                  artifact.content_length,
                  artifact.content_type))
+
 
 def main_app(obs_blueprint=None):
     parser = argparse.ArgumentParser()

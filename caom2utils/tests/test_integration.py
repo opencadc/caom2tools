@@ -69,23 +69,15 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from astropy.io import fits
-from astropy.wcs import WCS as awcs
-from caom2utils import FitsParser, WcsParser, main_app, DispatchingFormatter
 from caom2utils import ObsBlueprint
-from caom2.caom_util import get_differences
+from caom2.diff import get_differences
 
 from caom2 import ObservationWriter, ObservationReader
 
-from caom2 import Artifact, ProductType, ReleaseType
-from lxml import etree
-
 from mock import Mock, patch
-from six import StringIO
 from caom2utils import fits2caom2
 
 from io import BytesIO
-import logging
 import os
 import sys
 import tempfile
@@ -98,6 +90,7 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 expected_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps.xml')
 expected_cfhtwircam_obs = os.path.join(TESTDATA_DIR, 'cfhtwircam.xml')
+expected_sitellep_obs = os.path.join(TESTDATA_DIR, 'cfhtsitellep.xml')
 expected_local_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps_local.xml')
 sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
 sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
@@ -105,6 +98,12 @@ sample_cfhtwircam = os.path.join(TESTDATA_DIR, '1709071g.fits')
 cfhtwircam_config = os.path.join(TESTDATA_DIR, 'cfhtwircam.config')
 cfhtwircam_defaults = os.path.join(TESTDATA_DIR, 'cfhtwircam.default')
 cfhtwircam_override = os.path.join(TESTDATA_DIR, 'cfhtwircam.override')
+cfhtsitellep_config = os.path.join(TESTDATA_DIR, 'cfhtsitellep.config')
+cfhtsitellep_defaults = os.path.join(TESTDATA_DIR, 'cfhtsitellep.default')
+cfhtsitellep_override = os.path.join(TESTDATA_DIR, 'cfhtsitellep.override')
+cfhtsitelleo_config = os.path.join(TESTDATA_DIR, 'cfhtsitelleo.config')
+cfhtsitelleo_defaults = os.path.join(TESTDATA_DIR, 'cfhtsitelleo.default')
+cfhtsitelleo_override = os.path.join(TESTDATA_DIR, 'cfhtsitelleo.override')
 
 
 @pytest.mark.skip('')
@@ -175,8 +174,37 @@ def test_fits2caom2_cfht_defaults_overrides():
     expected = _read_obs(expected_cfhtwircam_obs)
     actual = _read_obs(temp.name)
     result = get_differences(expected, actual, 'Observation')
-    # print('\n'.join(str(p) for p in result))
+    print('\n'.join(str(p) for p in result))
     assert len(result) == 0
+
+
+@pytest.mark.skip('')
+def test_fits2caom2_cfht_sitelle():
+    # test fits2caom2 on  known existing CFHT files, with defaults and
+    # overrides
+    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    temp = tempfile.NamedTemporaryFile()
+    # sys.argv = ('fits2caom2 --debug --dumpconfig --local {} '
+    #             '-o {} --observation CFHT 2136164 '
+    #             '--config {} --default {} --override {} '
+    #             '2136164p '
+    #             'ad:CFHT/2136164p.fits ').format(
+    #     os.path.join(TESTDATA_DIR, '2136164p.fits'),
+    #     temp.name, cfhtsitellep_config, cfhtsitellep_defaults,
+    #     cfhtsitellep_override).split()
+    sys.argv = ('fits2caom2 --debug --dumpconfig '
+                '-o {} --observation CFHT 2136164 '
+                '--config {} --default {} --override {} '
+                '2136164p '
+                'ad:CFHT/2136164p.fits ').format(
+        temp.name, cfhtsitellep_config, cfhtsitellep_defaults,
+        cfhtsitellep_override).split()
+    fits2caom2.main_app()
+    expected = _read_obs(expected_sitellep_obs)
+    actual = _read_obs(temp.name)
+    # result = get_differences(expected, actual, 'Observation')
+    # print('\n'.join(str(p) for p in result))
+    # assert len(result) == 0
 
 
 def _cmp(expected_obs_xml, actual_obs_xml):
@@ -197,3 +225,11 @@ def _read_obs(fname):
     reader = ObservationReader(False)
     result = reader.read(fname)
     return result
+
+
+def _print(actual):
+    f = open('./actual.out', 'w')
+    writer = ObservationWriter(True, False, "caom2", 'http://www.opencadc.org/caom2/xml/v2.3')
+    writer.write(actual, f)
+    # f.write(actual)
+    f.close()
