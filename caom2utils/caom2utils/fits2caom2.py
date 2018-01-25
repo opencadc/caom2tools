@@ -86,9 +86,10 @@ from caom2 import CoordAxis2D, PolarizationWCS, TemporalWCS
 from caom2 import ObservationReader, ObservationWriter, Algorithm
 from caom2 import ReleaseType, ProductType, ObservationIntentType
 from caom2 import DataProductType, Telescope, Environment
-from caom2 import Instrument, Proposal, Target, Provenance, Metrics, Quality
-from caom2 import CalibrationLevel, Requirements, DataQuality
-from caom2 import SimpleObservation, ChecksumURI, PlaneURI
+from caom2 import Instrument, Proposal, Target, Provenance, Metrics
+from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
+from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
+from caom2 import ObservationURI, ObservableAxis, Slice
 import logging
 import re
 import sys
@@ -147,6 +148,8 @@ TIME_KEYWORDS = [
     'LOCAL']
 
 POLARIZATION_CTYPES = ['STOKES']
+
+OBSERVABLE_CTYPES = ['', 'observable']
 
 
 class HDULoggingFilter(logging.Filter):
@@ -269,7 +272,7 @@ class ObsBlueprint(object):
 
     """
     _CAOM2_ELEMENTS = [
-        #TODO not used for now 'CompositeObservation.members',
+        'CompositeObservation.members',
         'Observation.observationID',
         'Observation.type',
         'Observation.intent',
@@ -444,7 +447,11 @@ class ObsBlueprint(object):
         'Chunk.time.axis.range.start.pix',
         'Chunk.time.axis.range.start.val',
         'Chunk.time.axis.range.end.pix',
-        'Chunk.time.axis.range.end.val'
+        'Chunk.time.axis.range.end.val',
+
+        'Chunk.observable.axis.axis.ctype',
+        'Chunk.observable.axis.axis.cunit',
+        'Chunk.observable.axis.function.refCoord.pix'
         ]
 
     # replace _CAOM2_ELEMENTS in __doc__ with the real elements
@@ -513,6 +520,7 @@ class ObsBlueprint(object):
         self._energy_axis_configed = False
         self._time_axis_configed = False
         self._pol_axis_configed = False
+        self._obs_axis_configed = False
         if position_axis:
             self.configure_position_axes(position_axis)
 
@@ -726,6 +734,35 @@ class ObsBlueprint(object):
             'CRVAL{}'.format(axis)
 
         self._pol_axis_configed = True
+
+    def configure_observable_axis(self, axis):
+        """
+        Set the expected FITS observable keywords by index in the blueprint
+        and the wcs_std lookup.
+        Note: observable axis is not a standard WCS and it's not used by
+        astropy.wcs so, arguably, it can be removed. It is here for now for
+        consistency purposes.
+        :param axis: The index expected for the observable axis.
+        :return:
+        """
+        if self._obs_axis_configed:
+            return
+
+        self.set('Chunk.observable.axis.axis.ctype',
+                 (['CTYPE{}'.format(axis)], None))
+        self.set('Chunk.observable.axis.axis.cunit',
+                 (['CUNIT{}'.format(axis)], None))
+        self.set('Chunk.observable.axis.function.refCoord.pix',
+                 (['CRPIX{}'.format(axis)], None))
+
+        self._wcs_std['Chunk.observable.axis.axis.ctype'] = \
+            'CTYPE{}'.format(axis)
+        self._wcs_std['Chunk.observable.axis.axis.cunit'] = \
+            'CUNIT{}'.format(axis)
+        self._wcs_std['Chunk.observable.axis.function.refCoord.pix'] = \
+            'CRPIX{}'.format(axis)
+
+        self._obs_axis_configed = True
 
     def configure_time_axis(self, axis):
         """
@@ -1153,6 +1190,7 @@ class FitsParser(object):
                     'Chunk.energy.resolvingPower', index=i))
             wcs_parser.augment_temporal(chunk)
             wcs_parser.augment_polarization(chunk)
+            wcs_parser.augment_observable(chunk)
 
         self.logger.debug(
             'End CAOM2 artifact augmentation for {}.'.format(artifact.uri))
@@ -1268,13 +1306,14 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Instrument augmentation.')
         name = self._get_from_list('Observation.instrument.name', index=0)
-        keywords =self. _get_from_list('Observation.instrument.keywords',
-                                       index=0)
+        keywords =self._get_from_list('Observation.instrument.keywords',
+                                      index=0)
         self.logger.debug('End CAOM2 Instrument augmentation.')
         if name:
             instr = Instrument(str(name))
             if keywords:
-                instr.keywords.union(keywords)
+                for k in keywords.split():
+                    instr.keywords.add(k)
             return instr
         else:
             return None
@@ -1690,10 +1729,10 @@ class WcsParser(object):
         chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.wcs.ssysobs))
         #TODO not sure why, but wcs returns 0.0 when the FITS keywords for the
         # following two keywords are actually not present in the header
-        #chunk.energy.restfrq = self._sanitize(self.wcs.wcs.restfrq)
-        #chunk.energy.restwav = self._sanitize(self.wcs.wcs.restwav)
-        chunk.energy.restfrq = self.header.get('RESTFRQ', None)
-        chunk.energy.restwav = self.header.get('RESTWAV', None)
+        if self._sanitize(self.wcs.wcs.restfrq) != 0:
+            chunk.energy.restfrq = self._sanitize(self.wcs.wcs.restfrq)
+        if self._sanitize(self.wcs.wcs.restwav) != 0:
+            chunk.energy.restwav = self._sanitize(self.wcs.wcs.restwav)
         chunk.energy.velosys = self._sanitize(self.wcs.wcs.velosys)
         chunk.energy.zsource = self._sanitize(self.wcs.wcs.zsource)
         chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.wcs.ssyssrc))
@@ -1813,6 +1852,30 @@ class WcsParser(object):
             chunk.polarization.naxis = naxis
         self.logger.debug('End Polarization WCS augmentation.')
 
+
+    def augment_observable(self, chunk):
+        """
+        Augments a chunk with an observable axis
+        :param chunck:
+        :return:
+        """
+        self.logger.debug('Begin Observable WCS augmentation.')
+        assert chunk
+        assert isinstance(chunk, Chunk)
+
+        observable_axis = self._get_axis_index(OBSERVABLE_CTYPES)
+        if observable_axis is None:
+            self.logger.debug('No Observable axis info')
+            return
+
+        chunk.observable_axis = observable_axis + 1
+        ctype = self.header.get('CTYPE{}'.format(chunk.observable_axis))
+        cunit = self.header.get('CUNIT{}'.format(chunk.observable_axis))
+        bin = self.header.get('CRPIX{}'.format(chunk.observable_axis))
+        chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit), bin))
+        self.logger.debug('End Observable WCS augmentation.')
+
+
     def _get_axis_index(self, keywords):
         """
         Return the index of a specific axis type or None of it doesn't exist
@@ -1923,30 +1986,16 @@ class WcsParser(object):
     def _get_position_axis(self):
         # there are two celestial axes, get the applicable indices from
         # the axis_types
-        xindex = None
-        yindex = None
-        axis_types = self.wcs.get_axis_types()
+        xindex = self._get_axis_index(POSITION_CTYPES[0])
+        yindex = self._get_axis_index(POSITION_CTYPES[1])
 
-        for ii in axis_types:
-            if ii['coordinate_type'] == 'celestial':
-                if xindex is None:
-                    xindex = axis_types.index(ii)
-                else:
-                    yindex = axis_types.index(ii)
-
-        xaxis = None if xindex is None else int(axis_types[xindex]['number']) + 1
-        yaxis = None if yindex is None else int(axis_types[yindex]['number']) + 1
-
-        self.logger.debug(
-            'Setting positionAxis1 to {}, positionAxis2 to {}'.format(xaxis,
-                                                                      yaxis))
-        if xaxis and yaxis:
-            return xaxis, yaxis
-        elif not xaxis and not yaxis:
+        if (xindex is not None) and (yindex is not None):
+            return xindex + 1, yindex + 1
+        elif (xindex is None) and (yindex is None):
             return None
         else:
             raise ValueError('Found only one position axis ra/dec: {}/{}'.
-                             format(xaxis, yaxis))
+                             format(xindex, yindex))
 
     def _get_ref_coord(self, aug_ref_coord, index, over_crpix=None,
                        over_crval=None):
@@ -2099,6 +2148,7 @@ def _update_axis_info(parser, defaults, overrides):
     time_axis = None
     ra_axis = None
     dec_axis = None
+    obs_axis = None
     for i in defaults, overrides:
         for key, value in i.items():
             if (key.startswith('CTYPE')) and key[-1].isdigit():
@@ -2112,6 +2162,8 @@ def _update_axis_info(parser, defaults, overrides):
                     ra_axis = key[-1]
                 if value in POSITION_CTYPES[1]:
                     dec_axis = key[-1]
+                if value in OBSERVABLE_CTYPES:
+                    obs_axis = key[-1]
 
     if ra_axis and dec_axis:
         parser.configure_position_axes((ra_axis, dec_axis))
@@ -2127,6 +2179,9 @@ def _update_axis_info(parser, defaults, overrides):
 
     if polarization_axis:
         parser.configure_polarization_axis(polarization_axis)
+
+    if obs_axis:
+        parser.configure_observable_axis(obs_axis)
 
 
 def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
@@ -2474,9 +2529,22 @@ def main_app(obs_blueprint=None):
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
     else:
-        obs = SimpleObservation(collection=args.observation[0],
-                                observation_id=args.observation[1],
-                                algorithm=Algorithm('EXPOSURE'))  # TODO
+        if 'CompositeObservation.members' in config:
+            # build a composity observation
+            obs = CompositeObservation(collection=args.observation[0],
+                                       observation_id=args.observation[1],
+                                       algorithm=Algorithm('EXPOSURE'))  # TODO
+            if config['CompositeObservation.members'] in defaults:
+                for member in defaults[config['CompositeObservation.members']].split():
+                    obs.members.add(member)
+            if config['CompositeObservation.members'] in overrides:
+                for member in overrides[config['CompositeObservation.members']].split():
+                    obs.members.add(ObservationURI(member))
+        else:
+            #build a simple observation
+            obs = SimpleObservation(collection=args.observation[0],
+                                    observation_id=args.observation[1],
+                                    algorithm=Algorithm('EXPOSURE'))  # TODO
 
     if args.productID not in obs.planes.keys():
         obs.planes.add(Plane(product_id=str(args.productID)))
@@ -2508,14 +2576,9 @@ def main_app(obs_blueprint=None):
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers)
             parser.blueprint = obs_blueprint[uri]
+
         _update_cadc_artifact(plane.artifacts[uri], args.cert)
         update_fits_headers(parser, uri, config, defaults, overrides)
- #       for header in parser._headers:
- #           if 'CD1_1' in header:
- #               del header['CD1_1']
- #               del header['CD1_2']
- #               del header['CD2_1']
- #               del header['CD2_2']
         if args.dumpconfig:
             _dump_config(parser, uri)
 
