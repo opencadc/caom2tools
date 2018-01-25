@@ -89,7 +89,7 @@ from datetime import datetime
 import six
 from builtins import bytes, int
 
-from caom2.common import CaomObject
+#from caom2.common import CaomObject
 
 
 __all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty',

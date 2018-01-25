@@ -1919,8 +1919,12 @@ class WcsParser(object):
             aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
                 self._get_cd(xindex, yindex)
 
-            if aug_dimension and aug_ref_coord and aug_cd11 and \
-                    aug_cd12 and aug_cd21 and aug_cd22:
+            if aug_dimension is not None and \
+                    aug_ref_coord is not None and \
+                    aug_cd11 is not None and \
+                    aug_cd12 is not None and \
+                    aug_cd21 is not None and \
+                    aug_cd22 is not None:
                 aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
                                                aug_cd11, aug_cd12,
                                                aug_cd21, aug_cd22)
