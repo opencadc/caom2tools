@@ -588,8 +588,8 @@ class ObsBlueprint(object):
         self.set('Chunk.position.axis.function.refCoord.coord2.val',
                  (['CRVAL{}'.format(axes[1])], None))
 
-        self._wcs_std['Chunk.position.coordsys'] = 'RADECSYS,RADESYS'
-        self._wcs_std['Chunk.position.equinox'] = 'EQUINOX,EPOCH'
+        self._wcs_std['Chunk.position.coordsys'] = 'RADECSYS'
+        self._wcs_std['Chunk.position.equinox'] = 'EQUINOX'
 
         self._wcs_std['Chunk.position.axis.axis1.ctype'] = \
             'CTYPE{}'.format(axes[0])
@@ -799,7 +799,7 @@ class ObsBlueprint(object):
         self.set('Chunk.time.axis.function.refCoord.val',
                  (['CRVAL{}'.format(axis)], None))
 
-        self._wcs_std['Chunk.time.exposure'] = 'EXPTIME,INTTIME'
+        self._wcs_std['Chunk.time.exposure'] = 'EXPTIME'
         self._wcs_std['Chunk.time.resolution'] = 'TIMEDEL'
         self._wcs_std['Chunk.time.timesys'] = 'TIMESYS'
         self._wcs_std['Chunk.time.trefpos'] = 'TREFPOS'
@@ -2051,19 +2051,19 @@ class WcsParser(object):
 
 
 def _to_str(value):
-    return str(value) if value else None
+    return str(value) if value is not None else None
 
 
 def _to_float(value):
-    return float(value) if value else None
+    return float(value) if value is not None else None
 
 
 def _to_int(value):
-    return int(value) if value else None
+    return int(value) if value is not None else None
 
 
 def _to_int_32(value):
-    return int_32(value) if value else None
+    return int_32(value) if value is not None else None
 
 
 def _to_checksum_uri(value):
@@ -2292,19 +2292,25 @@ def _apply_config_to_fits(parser):
     wcs_std = parser.blueprint._wcs_std
     plan = parser.blueprint._plan
 
-    # # apply overrides from blueprint to extension 0
-    # for key, value in plan.items():
-    #     if not isinstance(value, tuple) and key in wcs_std:
-    #         keywords = wcs_std[key].split(',')
-    #         for keyword in keywords:
-    #             _set_by_type(parser._headers[0], keyword, value)
     # apply overrides from blueprint to all extensions
     for key, value in plan.items():
-        if not isinstance(value, tuple) and key in wcs_std:
-            keywords = wcs_std[key].split(',')
-            for keyword in keywords:
+        if key in wcs_std:
+            val = None
+            if not isinstance(value, tuple):
+                # value provided for standard wcs attribute
+                val = value
+            else:
+                # alternative attributes provided for standard wcs attribute
                 for header in parser._headers:
-                    _set_by_type(header, keyword, value)
+                    for v in value[0]:
+                        if v in header:
+                            val = header[v]
+                            break
+            if val is not None:
+                keywords = wcs_std[key].split(',')
+                for keyword in keywords:
+                    for header in parser._headers:
+                        _set_by_type(header, keyword, str(val))
 
     # apply overrides to the remaining extensions
     for extension in exts:
