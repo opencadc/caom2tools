@@ -102,7 +102,7 @@ def test_differences():
             config = _get_parameter('config', location)
             defaults = _get_parameter('default', location)
             overrides = _get_parameter('override', location)
-            data_files = _get_file('fits*', location)
+            data_files = _get_file('header', location)
             data_files_parameter = _get_data_files_parameter(data_files)
             expected_fname = _get_file('xml', location)
             obs_id = _get_common(data_files)
