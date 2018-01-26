@@ -78,7 +78,6 @@ import logging
 import os
 import sys
 import tempfile
-import traceback
 
 import pytest
 
@@ -104,7 +103,7 @@ def test_differences():
             overrides = _get_parameter('override', location)
             data_files = _get_file('fits*', location)
             data_files_parameter = _get_data_files_parameter(data_files)
-            expected_fname = _get_file('xml', location)
+            expected_fname = _get_file('xml', location)[0]
             obs_id = _get_common(data_files)
             uris = _get_uris(collection_id, data_files)
             temp = tempfile.NamedTemporaryFile()
@@ -114,13 +113,12 @@ def test_differences():
                     data_files_parameter, temp.name, collection_id, obs_id,
                         config, defaults, overrides, product_id, uris)).split()
             try:
-                print(sys.argv)
                 fits2caom2.main_app()
                 _compare_observations(expected_fname, temp.name, location,
                                       obs_id)
             except:
                 print(
-                    'Execution for collection \'{}\' test case \'{}\' failed with {}'.format(
+                    'Execution for collection \'{}\' test case \'{}\' failed with \'{}\''.format(
                         collection_id, obs_id, sys.exc_info()[1]))
                 logging.exception('test_differences')
 

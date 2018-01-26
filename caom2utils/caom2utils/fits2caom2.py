@@ -2067,7 +2067,12 @@ def _to_int_32(value):
 
 
 def _to_checksum_uri(value):
-    return ChecksumURI(value) if value else None
+    if value is None:
+        return None
+    elif isinstance(value, ChecksumURI):
+        return value
+    else:
+        return ChecksumURI(value)
 
 
 def load_config(file_name):
