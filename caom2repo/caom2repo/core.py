@@ -229,7 +229,7 @@ class CAOM2RepoClient(object):
                          self.resource_id, self.host, self.agent, halt_on_error])
                         for observationID in observations]
                     for r in results:
-                        result = r.get(timeout=10)
+                        result = r.get(timeout=30)
                         if result[0]:
                             visited.append(result[0])
                         if result[1]:
