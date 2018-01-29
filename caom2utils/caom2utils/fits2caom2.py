@@ -111,13 +111,13 @@ POSITION_CTYPES = [
      'ELON',
      'HLON',
      'SLON',
-     'RA---TAN'],
+     'RA---TAN'], #TODO not sure if needed or CTYPE starts with one of these
     ['DEC',
      'GLAT',
      'ELAT',
      'HLAT',
      'SLAT',
-     'DEC--TAN']
+     'DEC--TAN']  #TODO not sure if needed or CTYPE starts with one of these
 ]
 
 ENERGY_CTYPES = [
