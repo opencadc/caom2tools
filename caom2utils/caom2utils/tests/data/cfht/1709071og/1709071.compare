@@ -1,0 +1,2 @@
+Map:: Observation.SimpleObservation.planes['1709071og'] not in actual.
+Map:: actual Observation.SimpleObservation.planes['/usr/src/app/caom2utils/tests/data/cfht/1709071/1709071o'] not in expected.

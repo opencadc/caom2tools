@@ -276,7 +276,6 @@ def test_augment_artifact_time(test_file, expected):
               expected)
 
 
-@pytest.mark.skip('')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
@@ -466,7 +465,6 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 """
 
 
-@pytest.mark.skip('')
 @pytest.mark.parametrize('test_file, test_file_uri',
                          [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
@@ -521,7 +519,6 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
-@pytest.mark.skip('')
 @pytest.mark.xfail(reason='the len(errors) test fails for CompositeObservation.members errors')
 def test_update_fits_headers():
     # The rules for the values:
@@ -686,7 +683,6 @@ TEST_OVERRIDES = \
      }}
 
 
-@pytest.mark.skip('')
 def test_load_config_overrides():
     # cool override file content
     result = load_config(override_file)

@@ -588,8 +588,8 @@ class ObsBlueprint(object):
         self.set('Chunk.position.axis.function.refCoord.coord2.val',
                  (['CRVAL{}'.format(axes[1])], None))
 
-        self._wcs_std['Chunk.position.coordsys'] = 'RADECSYS,RADESYS'
-        self._wcs_std['Chunk.position.equinox'] = 'EQUINOX,EPOCH'
+        self._wcs_std['Chunk.position.coordsys'] = 'RADECSYS'
+        self._wcs_std['Chunk.position.equinox'] = 'EQUINOX'
 
         self._wcs_std['Chunk.position.axis.axis1.ctype'] = \
             'CTYPE{}'.format(axes[0])
@@ -799,7 +799,7 @@ class ObsBlueprint(object):
         self.set('Chunk.time.axis.function.refCoord.val',
                  (['CRVAL{}'.format(axis)], None))
 
-        self._wcs_std['Chunk.time.exposure'] = 'EXPTIME,INTTIME'
+        self._wcs_std['Chunk.time.exposure'] = 'EXPTIME'
         self._wcs_std['Chunk.time.resolution'] = 'TIMEDEL'
         self._wcs_std['Chunk.time.timesys'] = 'TIMESYS'
         self._wcs_std['Chunk.time.trefpos'] = 'TREFPOS'
@@ -1552,7 +1552,7 @@ class FitsParser(object):
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
             if keywords:
-                for k in keywords.split(): #TODO delimitator?
+                for k in keywords.split():  # TODO delimitator?
                     prov.keywords.add(k)
             if inputs:
                 for i in inputs.split():
@@ -1624,7 +1624,6 @@ class FitsParser(object):
                 else:
                     return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
             else:
-                # return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
                 return None
         except ValueError:
             self.logger.warning('{}'.format(sys.exc_info()[1]))
@@ -1854,11 +1853,10 @@ class WcsParser(object):
             chunk.polarization.naxis = naxis
         self.logger.debug('End Polarization WCS augmentation.')
 
-
     def augment_observable(self, chunk):
         """
         Augments a chunk with an observable axis
-        :param chunck:
+        :param chunk:
         :return:
         """
         self.logger.debug('Begin Observable WCS augmentation.')
@@ -1873,10 +1871,9 @@ class WcsParser(object):
         chunk.observable_axis = observable_axis + 1
         ctype = self.header.get('CTYPE{}'.format(chunk.observable_axis))
         cunit = self.header.get('CUNIT{}'.format(chunk.observable_axis))
-        bin = self.header.get('CRPIX{}'.format(chunk.observable_axis))
-        chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit), bin))
+        pix_bin = self.header.get('CRPIX{}'.format(chunk.observable_axis))
+        chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit), pix_bin))
         self.logger.debug('End Observable WCS augmentation.')
-
 
     def _get_axis_index(self, keywords):
         """
@@ -2054,23 +2051,23 @@ class WcsParser(object):
 
 
 def _to_str(value):
-    return str(value) if value else None
+    return str(value) if value is not None else None
 
 
 def _to_float(value):
-    return float(value) if value else None
+    return float(value) if value is not None else None
 
 
 def _to_int(value):
-    return int(value) if value else None
+    return int(value) if value is not None else None
 
 
 def _to_int_32(value):
-    return int_32(value) if value else None
+    return int_32(value) if value is not None else None
 
 
 def _to_checksum_uri(value):
-    return ChecksumURI(value) if value else None
+    return ChecksumURI(value) if value is not None else None
 
 
 def load_config(file_name):
@@ -2118,28 +2115,32 @@ def load_config(file_name):
 
 def get_cadc_headers(uri, cert=None):
     """
-    Fetches the FITS headers of a CADC file. The function takes advantage
+    Creates the FITS headers object from a either a local file or it
+    fetches the FITS headers of a CADC file. The function takes advantage
     of the fhead feature of the CADC storage service and retrieves just the
     headers and no data, minimizing the transfer time.
-    :param uri: CADC (AD like) file URI
+    :param uri: CADC ('ad:') or local file ('file:') URI
     :param cert: X509 certificate for accessing proprietary files
     :return: List of headers corresponding to each extension. Each header is
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
-    if file_url.scheme != 'ad':
+    if file_url.scheme == 'ad':
+        # create possible types of subjects
+        subject = net.Subject(cert)
+        client = CadcDataClient(subject)
+        # do a fhead on the file
+        archive, file_id = file_url.path.split('/')
+        b = BytesIO()
+        b.name = uri
+        client.get_file(archive, file_id, b, fhead=True)
+        fits_header = b.getvalue().decode('ascii')
+        b.close()
+    elif file_url.scheme == 'file':
+        fits_header = open(file_url.path).read()
+    else:
         # TODO add hook to support other service providers
         raise NotImplementedError('Only ad type URIs supported')
-    # create possible types of subjects
-    subject = net.Subject(cert)
-    client = CadcDataClient(subject)
-    # do a fhead on the file
-    archive, file_id = file_url.path.split('/')
-    b = BytesIO()
-    b.name = uri
-    client.get_file(archive, file_id, b, fhead=True)
-    fits_header = b.getvalue().decode('ascii')
-    b.close()
     delim = '\nEND'
     extensions = \
         [e + delim for e in fits_header.split(delim) if e.strip()]
@@ -2298,11 +2299,24 @@ def _apply_config_to_fits(parser):
     #             _set_by_type(parser._headers[0], keyword, value)
     # apply overrides from blueprint to all extensions
     for key, value in plan.items():
-        if not isinstance(value, tuple) and key in wcs_std:
-            keywords = wcs_std[key].split(',')
-            for keyword in keywords:
+        if key in wcs_std:
+            val = None
+            if not isinstance(value, tuple):
+                # value provided for standard wcs attribute
+                val = value
+            else:
+                # alternative attributes provided for standard wcs attribute
                 for header in parser._headers:
-                    _set_by_type(header, keyword, value)
+                    for v in value[0]:
+                        if v in header:
+                            val = header[v]
+                            break
+            if val is not None:
+                keywords = wcs_std[key].split(',')
+                for keyword in keywords:
+                    for header in parser._headers:
+                        _set_by_type(header, keyword, str(val))
+
 
     # apply overrides to the remaining extensions
     for extension in exts:
@@ -2558,7 +2572,7 @@ def main_app(obs_blueprint=None):
                 for member in overrides[config['CompositeObservation.members']].split():
                     obs.members.add(ObservationURI(member))
         else:
-            #build a simple observation
+            # build a simple observation
             obs = SimpleObservation(collection=args.observation[0],
                                     observation_id=args.observation[1],
                                     algorithm=Algorithm('EXPOSURE'))  # TODO
@@ -2581,7 +2595,11 @@ def main_app(obs_blueprint=None):
                     Artifact(uri=uri,
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            parser = FitsParser(file)
+            if file.endswith('.fits'):
+                parser = FitsParser(file)
+            else:
+                # assume headers file
+                parser = FitsParser(get_cadc_headers('file://{}'.format(file)))
             parser.blueprint = obs_blueprint[uri]
         else:
             headers = get_cadc_headers(uri, args.cert)
