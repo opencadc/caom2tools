@@ -1180,7 +1180,17 @@ class FitsParser(object):
             chunk = part.chunks[0]
 
             wcs_parser = WcsParser(header, self.file, ii)
-            chunk.naxis = wcs_parser.wcs.wcs.naxis
+            # NOTE: astropy.wcs does not distinguished between WCS axes and
+            # data array axes. naxis in astropy.wcs represents in fact the
+            # number of WCS axes, whereas chunk.axis represents the naxis
+            # of the data array. Solution is to determine it directly from
+            # the header
+            if 'ZNAXIS' in header:
+                chunk.naxis = _to_int(header['ZNAXIS'])
+            elif 'NAXIS' in header:
+                chunk.naxis = _to_int(header['NAXIS'])
+            else:
+                chunk.naxis = wcs_parser.wcs.wcs.naxis
             wcs_parser.augment_position(chunk)
             wcs_parser.augment_energy(chunk)
             if chunk.energy:
@@ -2291,13 +2301,8 @@ def _apply_config_to_fits(parser):
     wcs_std = parser.blueprint._wcs_std
     plan = parser.blueprint._plan
 
-    # # apply overrides from blueprint to extension 0
-    # for key, value in plan.items():
-    #     if not isinstance(value, tuple) and key in wcs_std:
-    #         keywords = wcs_std[key].split(',')
-    #         for keyword in keywords:
-    #             _set_by_type(parser._headers[0], keyword, value)
     # apply overrides from blueprint to all extensions
+    # set standard WCS attributes in the headers according to the blueprint:
     for key, value in plan.items():
         if key in wcs_std:
             val = None
@@ -2305,10 +2310,12 @@ def _apply_config_to_fits(parser):
                 # value provided for standard wcs attribute
                 val = value
             else:
-                # alternative attributes provided for standard wcs attribute
+
                 for header in parser._headers:
                     for v in value[0]:
-                        if v in header:
+                        if (v in header) and (v != wcs_std[key]):
+                            # alternative attributes provided for standard wcs
+                            # attribute
                             val = header[v]
                             break
             if val is not None:

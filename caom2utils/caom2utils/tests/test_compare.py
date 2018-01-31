@@ -78,6 +78,9 @@ import logging
 import os
 import sys
 import tempfile
+from mock import patch, Mock
+from six.moves.urllib.parse import urlparse
+import six
 import traceback
 
 import pytest
@@ -87,42 +90,54 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
 
-def test_differences():
-    """This test assumes a directory structure of
-    tests/data/'collection'/'test case'/files. """
+def raise_exit_error():
+    yield SystemExit("Raised")
 
-    collections = _get_subdirs(TESTDATA_DIR)
-    for collection in collections:
-        test_cases = _get_subdirs(os.path.join(TESTDATA_DIR, collection))
-        for test_case in test_cases:
-            location = os.path.join(os.path.join(TESTDATA_DIR, collection),
-                                    test_case)
-            product_id = test_case
-            collection_id = collection.upper()
-            config = _get_parameter('config', location)
-            defaults = _get_parameter('default', location)
-            overrides = _get_parameter('override', location)
-            data_files = _get_file('header', location)
-            data_files_parameter = _get_data_files_parameter(data_files)
-            expected_fname = _get_file('xml', location)
-            obs_id = _get_common(data_files)
-            uris = _get_uris(collection_id, data_files)
-            temp = tempfile.NamedTemporaryFile()
-            sys.argv = ('fits2caom2 --debug --dumpconfig '
-                        '{} -o {} '
-                        '--observation {} {} {} {} {} {} {} '.format(
-                    data_files_parameter, temp.name, collection_id, obs_id,
-                        config, defaults, overrides, product_id, uris)).split()
-            try:
-                print(sys.argv)
-                fits2caom2.main_app()
-                _compare_observations(expected_fname, temp.name, location,
-                                      obs_id)
-            except:
-                print(
-                    'Execution for collection \'{}\' test case \'{}\' failed with {}'.format(
-                        collection_id, obs_id, sys.exc_info()[1]))
-                logging.exception('test_differences')
+@patch('sys.exit', Mock(side_effect=ImportError))
+def test_differences(directory):
+    """
+    Note: This tests is parametrized from conftest.py file.
+    This test assumes a directory contains the config, default,
+    override, input FITS files (*.header) and expected observation (*.xml)
+    files
+    """
+    #data_client_mock = patch('caom2utils.fits2caom2.CadcDataClient')
+    expected_fname = _get_file('xml', directory)
+    assert expected_fname
+    assert len(expected_fname) == 1
+    expected = _read_observation(expected_fname[0])  # expected observation
+    assert len(expected.planes) == 1
+    product_id = [p.product_id for p in six.itervalues(expected.planes)][0]
+    collection_id = expected.collection
+    config = _get_parameter('config', directory)
+    assert config
+    defaults = _get_parameter('default', directory)
+    assert defaults
+    overrides = _get_parameter('override', directory)
+    assert overrides
+    data_files = _get_file('header', directory)
+    assert data_files
+    data_files_parameter = _get_data_files_parameter(data_files)
+
+    file_meta = _get_uris(collection_id, data_files, expected)
+    assert file_meta
+    with patch('caom2utils.fits2caom2.CadcDataClient') as data_client_mock:
+        def get_file_info(archive, file_id):
+            return file_meta[1][(archive, file_id)]
+        data_client_mock.return_value.get_file_info.side_effect = get_file_info
+        temp = tempfile.NamedTemporaryFile()
+        sys.argv = ('fits2caom2 '
+                    '{} -o {} '
+                    '--observation {} {} {} {} {} {} {} '.format(
+                data_files_parameter, temp.name, expected.collection,
+            expected.observation_id,
+                    config, defaults, overrides, product_id,
+                    ' '.join(file_meta[0]))).split()
+        print(sys.argv)
+        fits2caom2.main_app()
+    actual = _read_observation(temp.name)  # actual observation
+    _compare_observations(expected, actual, directory)
+
 
 
 def _get_common(fnames):
@@ -166,13 +181,32 @@ def _get_data_files_parameter(fnames):
         return None
 
 
-def _get_uris(collection, fnames):
+def _get_uris(collection, fnames, obs):
+    # NOTE: this function makes the assumption that the collection is
+    # the same with the AD archive, which in many cases is not true (CFHT
+    # for example has multiple collections)
+    uris = []
+    file_meta = {}
     if fnames:
         result = ''
         for fname in fnames:
-            result = '{} ad:{}/{}'.format(result, collection,
-                                          os.path.basename(fname))
-        return result
+            f = os.path.basename(fname).replace('.header','')
+            for p in obs.planes.values():
+                for a in p.artifacts.values():
+                    if 'ad:{}/{}'.format(collection, f) in a.uri:
+                        uris.append(a.uri)
+                        meta = {}
+                        meta['type'] = a.content_type
+                        meta['size'] = a.content_length
+                        meta['md5sum'] = a.content_checksum.checksum
+                        file_url = urlparse(a.uri)
+                        if file_url.scheme != 'ad':
+                            # TODO add hook to support other service providers
+                            raise NotImplementedError(
+                                'Only ad type URIs supported')
+                        archive, file_id = file_url.path.split('/')
+                        file_meta[(archive, file_id)] = meta
+        return (uris, file_meta)
     else:
         return None
 
@@ -185,19 +219,16 @@ def _get_file(pattern, dir_name):
         return None
 
 
-def _compare_observations(expected_fname, actual_fname, output_dir, obsid):
-    expected = _read_observation(expected_fname)
-    actual = _read_observation(actual_fname)
+def _compare_observations(expected, actual, output_dir):
     result = get_differences(expected, actual, 'Observation')
-    result_fname = os.path.join(output_dir, '{}.compare'.format(obsid))
-    print(
-        '{} differences between expected and actual, in {}'.format(
-            len(result), result_fname))
-    f = open(result_fname, 'w')
-    f.write('\n'.join(str(p) for p in result))
-    f.write('\n')
-    f.close()
-
+    if result:
+        msg = 'Differences found observation {} in {}\n{}'.\
+            format(expected.observation_id,
+                   output_dir, '\n'.join([r for r in result]))
+        raise AssertionError(msg)
+    else:
+        logging.info('Observation {} in {} match'.format(
+            expected.observation_id, output_dir))
 
 def _read_observation(fname):
     reader = ObservationReader(False)
