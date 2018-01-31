@@ -201,24 +201,33 @@ def _get_mapping_differences(expected, actual, parent):
 def _get_sequence_differences(expected, actual, parent):
     """Reports on how two sequences are different."""
     report = []
+    if not expected and actual:
+        report.extend('Sequence:: {} not expected'.format(parent))
+        return report
+
+    if expected and not actual:
+        report.extend('Sequence:: {} not found'.format(parent))
+        return report
+
+    if not expected and not actual:
+        return report
+
     actual_copy = list(actual)
+    expected_copy = list(expected)
+    actual_copy.sort()  #TODO does sort work properly?
+    expected_copy.sort()  #TODO does sort work properly?
 
-    for expected_key, expected_value in enumerate(expected):
-        label = '{}[\'{}\']'.format(parent, expected_key)
-        try:
-            actual_value = actual[expected_key]
-            temp_report = get_differences(expected_value,
-                                          actual_value, label)
-            actual_copy.remove(actual_value)
-            if temp_report:
-                report.extend(temp_report)
-        except:
-            report.append('Sequence:: {} not in actual.'.format(label))
+    if len(expected_copy) != len(actual_copy):
+        report.append(
+            'Sequence:: {} expected length ({}) != actual length ({})'.format(
+                parent, len(expected_copy), len(actual_copy)))
+        return report
 
-    for key, value in enumerate(actual_copy):
-        label = '{}[\'{}\']'.format(parent, key)
-        report.append('Sequence:: actual {} not in expected.'.format(
-            label))
+    for index, e in enumerate(expected_copy):
+        label = '{}[\'{}\']'.format(parent, index)
+        temp_report = get_differences(e, actual_copy[index], label) # deep comparison
+        if temp_report:
+            report.extend(temp_report)
 
     return report if len(report) > 0 else None
 
@@ -269,7 +278,10 @@ def _get_dict(entity):
     attributes = {}
     caom_collections = {}
     for i in dir(entity):
-        attribute = getattr(entity, i)
+        try:
+            attribute = getattr(entity, i)
+        except TypeError:
+            pass
         if (i.startswith('_') or
                 callable(attribute) or
                 i.find('checksum') != -1):
