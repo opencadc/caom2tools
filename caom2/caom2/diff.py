@@ -253,7 +253,7 @@ def _get_dict_differences(expected, actual, parent):
 
     for key in actual.items():
         report.append(
-            'Member:: {}.{}: actual missing from expected.'.format(parent,
+            'Member:: {}.{}: unexpected.'.format(parent,
                                                                    key))
 
     return report if len(report) > 0 else None

@@ -1,0 +1,1 @@
+fits2caom2 --out=inout/1709071p/1709071p.xml --collection=CFHT --observationID=1709071 --productID=1709071p --uri=ad:CFHT/1709071p.fits.fz --config=inout/1709071p/1709071p.config --default=inout/1709071p/caom2wircam.default --override=inout/1709071p/1709071p.override -n --local=1709071p.fits.fz --ignorePartialWCS

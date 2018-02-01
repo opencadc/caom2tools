@@ -116,7 +116,7 @@ def test_class_apply_defaults(override_file):
             if key == 'artifacts' or key == 'WCSAXES':
                 continue
 
-            result = convert.get_caom2_element(key)
+            result = convert.get_caom2_elements(key)
             ob._get(result)
         except ValueError:
             assert False, 'Could not find key {} in ObsBlueprint'.format(key)

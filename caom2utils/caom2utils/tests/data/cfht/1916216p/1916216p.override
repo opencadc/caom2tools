@@ -1,0 +1,40 @@
+
+algorithm.name = polarization
+sequenceNumber= 1916216
+obs.intent = science
+observation.type =  OBJECT
+target.standard = false
+proposal.project = BINAMICS
+proposal.title = Binamics: Binarity and Magnetic Interactions in various classes of Stars
+plane.calibrationLevel = 2
+plane.dataRelease = 2017-08-31T00:00:00
+provenance.inputs = caom:CFHT/1916216/1916216o caom:CFHT/1916217/1916217o caom:CFHT/1916218/1916218o caom:CFHT/1916219/1916219o
+provenance.lastExecuted = 2016-03-29T02:20:54
+provenance.keywords = reduction=Polar
+provenance.name = UPENA
+provenance.reference = http://www.cfht.hawaii.edu/Instruments/Upena/
+provenance.version = 1.0
+members = caom:CFHT/1916216 caom:CFHT/1916217 caom:CFHT/1916218 caom:CFHT/1916219
+artifact.productType = science
+artifact.contentChecksum = md5:3881e374da11661ea95419642e90fa22
+WCSAXES =         6
+CRPIX1 =       0.500000000000
+CRVAL1 =         370.000000000000
+CDELT1 =       0.003176400000
+NAXIS1 =    213722
+resolvingPower = 65000
+time.resolution=    3280.000000000000
+time.exposure=    3280.000000000000
+CRVAL5 = 57476.212
+CRPIX5 = 0.5
+CDELT5 = 0.037962962963
+NAXIS5 = 1
+CTYPE2 = observable
+CRPIX2 = 2
+CUNIT2 = counts
+CTYPE6 = STOKES
+CDELT6 = 1
+NAXIS6 = 1
+CRPIX6 = 1
+CRVAL6 =    4
+

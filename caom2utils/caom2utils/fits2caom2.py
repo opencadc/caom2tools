@@ -110,14 +110,12 @@ POSITION_CTYPES = [
      'GLON',
      'ELON',
      'HLON',
-     'SLON',
-     'RA---TAN'], #TODO not sure if needed or CTYPE starts with one of these
+     'SLON',],
     ['DEC',
      'GLAT',
      'ELAT',
      'HLAT',
-     'SLAT',
-     'DEC--TAN']  #TODO not sure if needed or CTYPE starts with one of these
+     'SLAT']
 ]
 
 ENERGY_CTYPES = [
@@ -215,22 +213,27 @@ class ConvertFromJava(object):
         for key, value in blueprint._plan.items():
             if isinstance(value, tuple):
                 for ii in value[0]:
-                    self._inverse_plan[ii] = key
+                    if ii in self._inverse_plan:
+                        self._inverse_plan[ii].append(key)
+                    else:
+                        self._inverse_plan[ii] = [key]
 
         # for a quick lookup of config reference values
+        self._inverse_user_supplied_config = {}
         if user_supplied_config:
-            self._inverse_user_supplied_config = \
-                {v: k for k, v in user_supplied_config.items()}
-        else:
-            self._inverse_user_supplied_config = {}
+            for k, v in user_supplied_config.items():
+                if v in self._inverse_user_supplied_config:
+                    self._inverse_user_supplied_config[v].append(k)
+                else:
+                    self._inverse_user_supplied_config[v] = [k]
 
-    def get_caom2_element(self, lookup):
+    def get_caom2_elements(self, lookup):
         if lookup in ObsBlueprint._CAOM2_ELEMENTS:
-            return lookup
-        elif lookup in self._inverse_plan.keys():
-            return self._inverse_plan[lookup]
+            return [lookup]
         elif lookup in self._inverse_user_supplied_config.keys():
             return self._inverse_user_supplied_config[lookup]
+        elif lookup in self._inverse_plan.keys():
+            return self._inverse_plan[lookup]
         else:
             raise ValueError(
                 '{} caom2 element not found in the plan (spelling?).'.
@@ -1191,8 +1194,10 @@ class FitsParser(object):
                 chunk.naxis = _to_int(header['NAXIS'])
             else:
                 chunk.naxis = wcs_parser.wcs.wcs.naxis
-            wcs_parser.augment_position(chunk)
-            wcs_parser.augment_energy(chunk)
+            if self.blueprint._pos_axes_configed:
+                wcs_parser.augment_position(chunk)
+            if self.blueprint._energy_axis_configed:
+                wcs_parser.augment_energy(chunk)
             if chunk.energy:
                 chunk.energy.bandpass_name = self._get_from_list(
                     'Chunk.energy.bandpassName', index=i)
@@ -1200,9 +1205,12 @@ class FitsParser(object):
                     'Chunk.energy.transition', index=i)
                 chunk.energy.resolving_power = _to_float(self._get_from_list(
                     'Chunk.energy.resolvingPower', index=i))
-            wcs_parser.augment_temporal(chunk)
-            wcs_parser.augment_polarization(chunk)
-            wcs_parser.augment_observable(chunk)
+            if self.blueprint._time_axis_configed:
+                wcs_parser.augment_temporal(chunk)
+            if self.blueprint._pol_axis_configed:
+                wcs_parser.augment_polarization(chunk)
+            if self.blueprint._obs_axis_configed:
+                wcs_parser.augment_observable(chunk)
 
         self.logger.debug(
             'End CAOM2 artifact augmentation for {}.'.format(artifact.uri))
@@ -1413,15 +1421,16 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Environment augmentation.')
         seeing = self._get_from_list('Observation.environment.seeing', index=0)
-        humidity = self._get_from_list('Observation.environment.humidity',
-                                       index=0)
+        humidity = _to_float(
+            self._get_from_list('Observation.environment.humidity', index=0))
         elevation = self._get_from_list('Observation.environment.elevation',
                                         index=0)
         tau = self._get_from_list('Observation.environment.tau', index=0)
         wavelength_tau = self._get_from_list(
             'Observation.environment.wavelengthTau', index=0)
-        ambient = self._get_from_list('Observation.environment.ambientTemp',
-                                      index=0)
+        ambient = _to_float(
+            self._get_from_list('Observation.environment.ambientTemp',
+                                index=0))
         photometric = self._get_from_list(
             'Observation.environment.photometric', index=0)
 
@@ -1698,7 +1707,7 @@ class WcsParser(object):
         logastro.addFilter(self.log_filter)
         logastro.propagate = False
 
-        self.wcs = WCS(header, relax=False)
+        self.wcs = WCS(header, fix=False)
         self.header = header
         self.file = file
         self.extension = extension
@@ -1759,6 +1768,7 @@ class WcsParser(object):
 
         assert chunk
         assert isinstance(chunk, Chunk)
+
 
         if self.wcs.has_celestial:
             chunk.position_axis_1, chunk.position_axis_2 = \
@@ -1882,7 +1892,12 @@ class WcsParser(object):
         ctype = self.header.get('CTYPE{}'.format(chunk.observable_axis))
         cunit = self.header.get('CUNIT{}'.format(chunk.observable_axis))
         pix_bin = self.header.get('CRPIX{}'.format(chunk.observable_axis))
-        chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit), pix_bin))
+        if ctype is not None and cunit is not None and pix_bin is not None:
+            chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit),
+                                                    pix_bin))
+        else:
+            #chunk.observable_axis = None
+            pass
         self.logger.debug('End Observable WCS augmentation.')
 
     def _get_axis_index(self, keywords):
@@ -2158,7 +2173,7 @@ def get_cadc_headers(uri, cert=None):
     return headers
 
 
-def _update_axis_info(parser, defaults, overrides):
+def _update_axis_info(parser, defaults, overrides, config):
     # look for info regarding axis types in the default and override file
     energy_axis = None
     polarization_axis = None
@@ -2169,6 +2184,7 @@ def _update_axis_info(parser, defaults, overrides):
     for i in defaults, overrides:
         for key, value in i.items():
             if (key.startswith('CTYPE')) and key[-1].isdigit():
+                value = value.split('-')[0]
                 if value in ENERGY_CTYPES:
                     energy_axis = key[-1]
                 elif value in POLARIZATION_CTYPES:
@@ -2184,29 +2200,36 @@ def _update_axis_info(parser, defaults, overrides):
                 else:
                     raise ValueError('Unrecognized CTYPE: {}'.format(value))
 
-    if ra_axis and dec_axis:
-        parser.configure_position_axes((ra_axis, dec_axis))
-    elif ra_axis or dec_axis:
-        raise ValueError('Only one positional axis found (ra/dec): {}/{}'.
-                         format(ra_axis, dec_axis))
-    else:
-        # assume that positional axis are 1 and 2 by default
-        if time_axis in ['1', '2'] or energy_axis in ['1', '2'] or \
-            polarization_axis in ['1', '2'] or obs_axis in ['1', '2']:
-            raise ValueError('Cannot determine the positional axis')
+    ignore = '{ignore}'
+    if ('Chunk.position' not in config) or \
+            (config['Chunk.position'] != ignore):
+        if ra_axis and dec_axis:
+            parser.configure_position_axes((ra_axis, dec_axis))
+        elif ra_axis or dec_axis:
+            raise ValueError('Only one positional axis found (ra/dec): {}/{}'.
+                             format(ra_axis, dec_axis))
         else:
-            parser.configure_position_axes(('1', '2'))
+            # assume that positional axis are 1 and 2 by default
+            if time_axis in ['1', '2'] or energy_axis in ['1', '2'] or \
+                polarization_axis in ['1', '2'] or obs_axis in ['1', '2']:
+                raise ValueError('Cannot determine the positional axis')
+            else:
+                parser.configure_position_axes(('1', '2'))
 
-    if time_axis:
+    if time_axis and (('Chunk.time' not in config) or \
+            (config['Chunk.time'] != ignore)):
         parser.configure_time_axis(time_axis)
 
-    if energy_axis:
+    if energy_axis and (('Chunk.energy' not in config) or \
+            (config['Chunk.energy'] != ignore)):
         parser.configure_energy_axis(energy_axis)
 
-    if polarization_axis:
+    if polarization_axis and (('Chunk.polarization' not in config) or \
+            (config['Chunk.polarization'] != ignore)):
         parser.configure_polarization_axis(polarization_axis)
 
-    if obs_axis:
+    if obs_axis and (('Chunk.observable' not in config) or \
+            (config['Chunk.observable'] != ignore)):
         parser.configure_observable_axis(obs_axis)
 
 
@@ -2226,7 +2249,7 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
     :return: updated headers
     """
 
-    _update_axis_info(parser.blueprint, defaults, overrides)
+    _update_axis_info(parser.blueprint, defaults, overrides, config)
 
     convert = ConvertFromJava(parser.blueprint, config)
 
@@ -2235,11 +2258,12 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
             'Setting user-supplied configuration for {}.'.format(artifact_uri))
         for key, value in config.items():
             try:
-                caom2_key = convert.get_caom2_element(key)
+
                 if value.isupper() and value.find('.') == -1:
-                    # assume its a fits keyword, in the 0th extension,
-                    # and add to the blueprint
-                    parser.blueprint.set_fits_attribute(caom2_key, [value])
+                    # assume FITS keywords, in the 0th extension,
+                    # and add them to the blueprint
+                    for caom2_key in convert.get_caom2_elements(key):
+                        parser.blueprint.set_fits_attribute(caom2_key, [value])
             except ValueError:
                 parser.add_error(key, sys.exc_info()[1])
         logging.debug(
@@ -2249,10 +2273,10 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
         logging.debug('Setting defaults for {}'.format(artifact_uri))
         for key, value in defaults.items():
             try:
-                caom2_key = convert.get_caom2_element(key)
-                parser.blueprint.set_default(caom2_key, value)
-                logging.debug(
-                    '{} setting default value to {}'.format(caom2_key, value))
+                for caom2_key in convert.get_caom2_elements(key):
+                    parser.blueprint.set_default(caom2_key, value)
+                    logging.debug(
+                        '{} setting default value to {}'.format(caom2_key, value))
             except ValueError:
                 parser.add_error(key, sys.exc_info()[1])
         logging.debug('Defaults set for {}.'.format(artifact_uri))
@@ -2274,19 +2298,19 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
                                 '01/11/18 Chris said ignore {!r}.'.format(key))
                             continue
                         try:
-                            caom2_key = convert.get_caom2_element(ext_key)
-                            parser.blueprint.set(caom2_key, ext_value,
-                                                 extension)
-                            logging.debug(
-                                '{} set override value to {} in extension {}.'.
-                                    format(ext_key, ext_value, extension))
+                            for caom2_key in convert.get_caom2_elements(ext_key):
+                                parser.blueprint.set(caom2_key, ext_value,
+                                                     extension)
+                                logging.debug(
+                                    '{} set override value to {} in extension {}.'.
+                                        format(caom2_key, ext_value, extension))
                         except ValueError:
                             parser.add_error(key, 'ext {} {}'.format(
                                 extension, sys.exc_info()[1]))
             else:
                 try:
-                    caom2_key = convert.get_caom2_element(key)
-                    parser.blueprint.set(caom2_key, value)
+                    for caom2_key in convert.get_caom2_elements(key):
+                        parser.blueprint.set(caom2_key, value)
                 except ValueError:
                     parser.add_error(key, sys.exc_info()[1])
         logging.debug('Overrides set for {}.'.format(artifact_uri))

@@ -1,0 +1,24 @@
+
+sequenceNumber= 2087482
+obs.intent = science
+target.standard = false
+proposal.project =  
+proposal.pi = Mary Laychak
+proposal.title =  
+plane.calibrationLevel = 1
+plane.dataRelease = 2018-08-31T00:00:00
+artifact.productType = science
+artifact.contentChecksum = md5:214f02f46f936d26ebc7c79af82a1f63
+TIMESYS= UTC
+CRPIX3 =       0.500000000000
+CRVAL3 =       57839.250366200002
+CDELT3 =       0.000463576389
+time.resolution=      40.053000000000
+time.exposure=      40.053000000000
+NAXIS3 =         1
+WCSAXES =         4
+filtername= HaOFF.MP9604
+CRVAL4 = 6721.0
+CDELT4 = 122.0
+resolvingPower = 55.0901639344
+
