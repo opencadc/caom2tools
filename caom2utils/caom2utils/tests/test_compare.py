@@ -139,7 +139,6 @@ def test_differences(directory):
     _compare_observations(expected, actual, directory)
 
 
-
 def _get_common(fnames):
     common = os.path.basename(fnames[0])
     for jj in fnames:

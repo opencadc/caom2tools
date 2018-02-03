@@ -1248,7 +1248,7 @@ class FitsParser(object):
 
         plane = None
         if not product_id:
-            product_id = self._get_from_list('Plane.product_id', index=0)
+            product_id = self._get_from_list('Plane.productID', index=0)
         assert product_id, 'product ID required'
 
         for ii in observation.planes:
@@ -1293,9 +1293,11 @@ class FitsParser(object):
             if artifact.uri == artifact_uri:
                 break
 
-        if artifact is None:
-            artifact = Artifact(artifact_uri, ProductType.SCIENCE,
-                                ReleaseType.DATA)  # TODO
+        if artifact is None or artifact.uri != artifact_uri:
+            artifact = Artifact(artifact_uri, self._to_product_type(
+                self._get_from_list('Artifact.productType', index=0)),
+                                self._to_release_type(self._get_from_list(
+                                    'Artifact.releaseType', index=0)))  # TODO
             plane.artifacts[artifact_uri] = artifact
 
         self.augment_artifact(artifact)
@@ -1662,16 +1664,29 @@ class FitsParser(object):
         return result
 
     def _to_data_product_type(self, value):
-        return DataProductType(value) if value else DataProductType.CUBE
+        if isinstance(value, DataProductType):
+            return value
+        else:
+            return DataProductType(value) if value else DataProductType.CUBE
 
     def _to_calibration_level(self, value):
-        return CalibrationLevel(value) if value else CalibrationLevel.CALIBRATED
+        if isinstance(value, CalibrationLevel):
+            return value
+        else:
+            return CalibrationLevel(
+                value) if value else CalibrationLevel.CALIBRATED
 
     def _to_product_type(self, value):
-        return ProductType(value) if value else ProductType.INFO
+        if isinstance(value, ProductType):
+            return value
+        else:
+            return ProductType(value) if value else ProductType.INFO
 
     def _to_release_type(self, value):
-        return ReleaseType(value) if value else ReleaseType.DATA
+        if isinstance(value, ReleaseType):
+            return value
+        else:
+            return ReleaseType(value) if value else ReleaseType.DATA
 
 
 class WcsParser(object):
@@ -2083,11 +2098,21 @@ def _to_int(value):
 
 
 def _to_int_32(value):
-    return int_32(value) if value is not None else None
+    if value is None:
+        return None
+    elif isinstance(value, str):
+        return int_32(value)
+    else:
+        return value
 
 
 def _to_checksum_uri(value):
-    return ChecksumURI(value) if value is not None else None
+    if value is None:
+        return None
+    elif isinstance(value, ChecksumURI):
+        return value
+    else:
+        return ChecksumURI(value)
 
 
 def load_config(file_name):
@@ -2342,7 +2367,6 @@ def _apply_config_to_fits(parser):
                 for keyword in keywords:
                     for header in parser._headers:
                         _set_by_type(header, keyword, str(val))
-
 
     # apply overrides to the remaining extensions
     for extension in exts:

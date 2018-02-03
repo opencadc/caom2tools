@@ -284,7 +284,8 @@ def _get_dict(entity):
             pass
         if (i.startswith('_') or
                 callable(attribute) or
-                i.find('checksum') != -1):
+                i.find('checksum') != -1 or
+                i.find('last_modified') != -1):
             continue
         if (isinstance(attribute, TypedOrderedDict) or
                 isinstance(attribute, TypedList) or
