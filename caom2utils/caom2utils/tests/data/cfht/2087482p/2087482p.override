@@ -1,0 +1,26 @@
+
+sequenceNumber= 2087482
+obs.intent = science
+target.standard = false
+proposal.project =  
+proposal.pi = Mary Laychak
+proposal.title =  
+plane.calibrationLevel = 2
+plane.dataRelease = 2018-08-31T00:00:00
+provenance.inputs = caom:CFHT/2087482/2087482o
+provenance.keywords = 
+artifact.productType = science
+artifact.contentChecksum = md5:06a88ab48f37840019b02565188483bd
+TIMESYS= UTC
+CRPIX3 =       0.500000000000
+CRVAL3 =       57839.250366200002
+CDELT3 =       0.000463576389
+time.resolution=      40.053000000000
+time.exposure=      40.053000000000
+NAXIS3 =         1
+WCSAXES =         4
+filtername= HaOFF.MP9604
+CRVAL4 =   6721.000
+CDELT4 =    122.000
+resolvingPower =     55.09
+

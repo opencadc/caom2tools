@@ -1,0 +1,29 @@
+
+sequenceNumber= 1709071
+obs.intent = science
+observation.type = OBJECT
+target.standard = false
+proposal.project =  
+proposal.pi = Jean-Gabriel Cuby
+proposal.title =  
+plane.calibrationLevel = 2
+plane.dataRelease = 2015-02-01T00:00:00
+observation.metaRelease = 2014-05-12T10:18:55
+plane.metaRelease = 2014-05-12T10:18:55
+provenance.inputs = caom:CFHT/1709071/1709071og
+provenance.lastExecuted = 2014-06-12T19:32:43
+provenance.keywords = skysubtraction=yes
+artifact.productType = science
+artifact.contentChecksum = md5:550cf78d2469df03766fe15ff56de5ca
+CRPIX3 =       0.500000000000
+CRVAL3 =       56789.429806900000
+CDELT3 =       0.000173611111
+time.resolution=      15.000000000000
+time.exposure=      15.000000000000
+NAXIS3 =         3
+WCSAXES =         4
+filtername= H.WC8201
+CRVAL4 =  16310.000
+CDELT4 =   2890.000
+resolvingPower =      5.64
+

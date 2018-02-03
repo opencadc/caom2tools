@@ -66,57 +66,12 @@
 #
 # ***********************************************************************
 #
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from caom2utils import ObsBlueprint, ConvertFromJava, load_config
-
 import os
-import pytest
-
+import glob
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
-cfhtwircam_override = os.path.join(TESTDATA_DIR, 'test.override')
 
-
-# @pytest.mark.skip('')
-@pytest.mark.parametrize('override_file', [cfhtwircam_override])
-def test_class_apply_defaults(override_file):
-    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
-                      polarization_axis=4, time_axis=5)
-    usc = {'Plane.dataProductType': 'plane.dataProductType',
-           'Plane.provenance.producer': 'provenance.producer',
-           'Plane.provenance.project': 'provenance.project',
-           'Plane.metaRelease': 'plane.metaRelease',
-           'Plane.dataRelease': 'plane.dataRelease',
-           'Plane.calibrationLevel': 'plane.calibrationLevel',
-           'Observation.metaRelease': 'obs.metaRelease',
-           'Observation.intent': 'obs.intent',
-           'Observation.type': 'obs.type',
-           'Observation.proposal.pi': 'proposal.pi',
-           'Observation.proposal.project': 'proposal.project',
-           'Observation.proposal.title': 'proposal.title',
-           'Observation.sequenceNumber': 'obs.sequenceNumber',
-           'Observation.target.standard': 'target.standard',
-           'Artifact.productType': 'artifact.productType',
-           'Chunk.time.resolution': 'time.resolution',
-           'Chunk.time.exposure': 'time.exposure',
-           'Chunk.energy.resolvingPower': 'resolvingPower',
-           'Chunk.energy.bandpassName': 'filtername',
-           'Artifact.contentChecksum': 'artifact.contentChecksum'
-           }
-
-    convert = ConvertFromJava(ob, usc)
-    test_overrides = load_config(override_file)
-
-    for key, value in test_overrides.items():
-        try:
-            # artifacts is a substructure to be dealt with separately,
-            # WCSAXES should work .... ;)
-            if key == 'artifacts' or key == 'WCSAXES':
-                continue
-
-            result = convert.get_caom2_elements(key)
-            ob._get(result)
-        except ValueError:
-            assert False, 'Could not find key {} in ObsBlueprint'.format(key)
+def pytest_generate_tests(metafunc):
+    dirs = glob.glob('{}/*/*/'.format(TESTDATA_DIR))
+    if 'directory' in metafunc.fixturenames:
+        metafunc.parametrize('directory', dirs)
