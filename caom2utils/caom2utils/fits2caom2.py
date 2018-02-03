@@ -75,7 +75,7 @@ from builtins import str
 from datetime import datetime
 
 import math
-from astropy.wcs import WCS
+from astropy.wcs import Wcsprm
 from astropy.io import fits
 from cadcutils import version
 from caom2.caom_util import int_32
@@ -149,7 +149,7 @@ TIME_KEYWORDS = [
 
 POLARIZATION_CTYPES = ['STOKES']
 
-OBSERVABLE_CTYPES = ['', 'observable']
+OBSERVABLE_CTYPES = ['observable']
 
 
 class HDULoggingFilter(logging.Filter):
@@ -1193,7 +1193,7 @@ class FitsParser(object):
             elif 'NAXIS' in header:
                 chunk.naxis = _to_int(header['NAXIS'])
             else:
-                chunk.naxis = wcs_parser.wcs.wcs.naxis
+                chunk.naxis = wcs_parser.wcs.naxis
             if self.blueprint._pos_axes_configed:
                 wcs_parser.augment_position(chunk)
             if self.blueprint._energy_axis_configed:
@@ -1276,9 +1276,9 @@ class FitsParser(object):
         assert isinstance(plane, Plane)
 
         plane.meta_release = self._get_datetime(self._get_from_list(
-            'Plane.metaRelease', index=0), 's')
+            'Plane.metaRelease', index=0))
         plane.data_release = self._get_datetime(self._get_from_list(
-            'Plane.dataRelease', index=0), 's')
+            'Plane.dataRelease', index=0))
         plane.data_product_type = self._to_data_product_type(
             self._get_from_list('Plane.dataProductType', index=0))
         plane.calibration_level = self._to_calibration_level(_to_int_32(
@@ -1621,32 +1621,29 @@ class FitsParser(object):
         else:
             return None
 
-    def _get_datetime(self, from_value, default_units=None):
+    def _get_datetime(self, from_value):
         """
         Ensure datetime values are in MJD. Really. Just not yet.
         :param from_value:
         :return:
         """
 
-        if default_units:
-            units = default_units
+        if from_value:
+            try:
+                return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                try:
+                    return datetime.strptime(from_value,
+                                             '%Y-%m-%d %H:%M:%S.%f')
+                except ValueError:
+                    try:
+                        return datetime.strptime(from_value, '%Y-%m-%d')
+                    except ValueError:
+                        self.logger.error(
+                            'Cannot parse datetime {}'.format(from_value))
+                        self.add_error('get_datetime', sys.exc_info()[1])
+                        return None
         else:
-            # FITS Time Paper is the source for defaults
-            # http://hea-www.cfa.harvard.edu/~arots/TimeWCS/WCSPaperV0.90.pdf
-            units = self.headers[0].get('TIMEUNIT', 's')
-        try:
-            if from_value:
-                if units == 'd':
-                    return datetime.strptime(from_value, '%Y-%m-%d')
-                elif units == 's':
-                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
-                else:
-                    return datetime(1999, 1, 1, 0, 0, 0)  # TODO better
-            else:
-                return None
-        except ValueError:
-            self.logger.warning('{}'.format(sys.exc_info()[1]))
-            self.add_error('get_datetime', sys.exc_info()[1])
             return None
 
     def _cast_as_bool(self, from_value):
@@ -1706,8 +1703,10 @@ class WcsParser(object):
         logastro = logging.getLogger('astropy')
         logastro.addFilter(self.log_filter)
         logastro.propagate = False
-
-        self.wcs = WCS(header, fix=False)
+        header_string = header.tostring().rstrip()
+        header_string = header_string.replace('END' + ' ' * 77, '')
+        self.wcs = Wcsprm(header_string.encode('ascii'))
+        self.wcs.fix()
         self.header = header
         self.file = file
         self.extension = extension
@@ -1730,33 +1729,33 @@ class WcsParser(object):
         chunk.energy_axis = energy_axis + 1
         naxis = CoordAxis1D(self._get_axis(energy_axis))
         naxis.error = self._get_coord_error(energy_axis)
-        if self.wcs.wcs.has_cd():
-            delta = self.wcs.wcs.cd[energy_axis][energy_axis]
+        if self.wcs.has_cd():
+            delta = self.wcs.cd[energy_axis][energy_axis]
         else:
-            delta = self.wcs.wcs.cdelt[energy_axis]
+            delta = self.wcs.cdelt[energy_axis]
         naxis.function = CoordFunction1D(
             self._get_axis_length(energy_axis + 1), delta,
-            RefCoord(_to_float(self._sanitize(self.wcs.wcs.crpix[energy_axis])),
-                     _to_float(self._sanitize(self.wcs.wcs.crval[energy_axis]))))
+            RefCoord(_to_float(self._sanitize(self.wcs.crpix[energy_axis])),
+                     _to_float(self._sanitize(self.wcs.crval[energy_axis]))))
 
-        specsys = str(self.wcs.wcs.specsys)
+        specsys = str(self.wcs.specsys)
         if not chunk.energy:
             chunk.energy = SpectralWCS(naxis, specsys)
         else:
             chunk.energy.naxis = naxis
             chunk.energy.specsys = specsys
 
-        chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.wcs.ssysobs))
+        chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.ssysobs))
         #TODO not sure why, but wcs returns 0.0 when the FITS keywords for the
         # following two keywords are actually not present in the header
-        if self._sanitize(self.wcs.wcs.restfrq) != 0:
-            chunk.energy.restfrq = self._sanitize(self.wcs.wcs.restfrq)
-        if self._sanitize(self.wcs.wcs.restwav) != 0:
-            chunk.energy.restwav = self._sanitize(self.wcs.wcs.restwav)
-        chunk.energy.velosys = self._sanitize(self.wcs.wcs.velosys)
-        chunk.energy.zsource = self._sanitize(self.wcs.wcs.zsource)
-        chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.wcs.ssyssrc))
-        chunk.energy.velang = self._sanitize(self.wcs.wcs.velangl)
+        if self._sanitize(self.wcs.restfrq) != 0:
+            chunk.energy.restfrq = self._sanitize(self.wcs.restfrq)
+        if self._sanitize(self.wcs.restwav) != 0:
+            chunk.energy.restwav = self._sanitize(self.wcs.restwav)
+        chunk.energy.velosys = self._sanitize(self.wcs.velosys)
+        chunk.energy.zsource = self._sanitize(self.wcs.zsource)
+        chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.ssyssrc))
+        chunk.energy.velang = self._sanitize(self.wcs.velangl)
 
     def augment_position(self, chunk):
         """
@@ -1769,24 +1768,26 @@ class WcsParser(object):
         assert chunk
         assert isinstance(chunk, Chunk)
 
+        pos = self._get_position_axis()
+        if not pos:
+            self.logger.debug('No Spatial WCS found')
+            return
 
-        if self.wcs.has_celestial:
-            chunk.position_axis_1, chunk.position_axis_2 = \
-                self._get_position_axis()
-            axis = self._get_spatial_axis(None, chunk.position_axis_1 - 1,
-                                          chunk.position_axis_2 - 1)
-            if not chunk.position:
-                chunk.position = SpatialWCS(axis)
-            else:
-                chunk.position.axis = axis
-
-            radesys = self._sanitize(self.wcs.celestial.wcs.radesys)
-            chunk.position.coordsys = None if radesys is None else str(radesys)
-            chunk.position.equinox = \
-                self._sanitize(self.wcs.celestial.wcs.equinox)
-            self.logger.debug('End Spatial WCS augmentation.')
+        chunk.position_axis_1 = pos[0]
+        chunk.position_axis_2 = pos[1]
+        axis = self._get_spatial_axis(None, chunk.position_axis_1 - 1,
+                                      chunk.position_axis_2 - 1)
+        if not chunk.position:
+            chunk.position = SpatialWCS(axis)
         else:
-            self.logger.warning('No celestial metadata')
+            chunk.position.axis = axis
+
+        radesys = self._sanitize(self.wcs.radesys)
+        chunk.position.coordsys = None if radesys is None else \
+            str(radesys).strip()
+        chunk.position.equinox = \
+            self._sanitize(self.wcs.equinox)
+        self.logger.debug('End Spatial WCS augmentation.')
 
     def augment_temporal(self, chunk):
         """
@@ -1820,10 +1821,10 @@ class WcsParser(object):
         aug_naxis = self._get_axis(time_axis)
         aug_error = self._get_coord_error(time_axis)
         aug_ref_coord = self._get_ref_coord(None, time_axis)
-        if self.wcs.wcs.has_cd():
-            delta = self.wcs.wcs.cd[time_axis][time_axis]
+        if self.wcs.has_cd():
+            delta = self.wcs.cd[time_axis][time_axis]
         else:
-            delta = self.wcs.wcs.cdelt[time_axis]
+            delta = self.wcs.cdelt[time_axis]
         aug_function = CoordFunction1D(self._get_axis_length(time_axis + 1),
                                        delta, aug_ref_coord)
         naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
@@ -1858,15 +1859,15 @@ class WcsParser(object):
         chunk.polarization_axis = polarization_axis + 1
 
         naxis = CoordAxis1D(self._get_axis(polarization_axis))
-        if self.wcs.wcs.has_cd():
-            delta = self.wcs.wcs.cd[polarization_axis][polarization_axis]
+        if self.wcs.has_cd():
+            delta = self.wcs.cd[polarization_axis][polarization_axis]
         else:
-            delta = self.wcs.wcs.cdelt[polarization_axis]
+            delta = self.wcs.cdelt[polarization_axis]
         naxis.function = CoordFunction1D(
             self._get_axis_length(polarization_axis + 1),
             delta,
-            RefCoord(self._sanitize(self.wcs.wcs.crpix[polarization_axis]),
-                     self._sanitize(self.wcs.wcs.crval[polarization_axis])))
+            RefCoord(self._sanitize(self.wcs.crpix[polarization_axis]),
+                     self._sanitize(self.wcs.crval[polarization_axis])))
         if not chunk.polarization:
             chunk.polarization = PolarizationWCS(naxis)
         else:
@@ -1895,9 +1896,6 @@ class WcsParser(object):
         if ctype is not None and cunit is not None and pix_bin is not None:
             chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit),
                                                     pix_bin))
-        else:
-            #chunk.observable_axis = None
-            pass
         self.logger.debug('End Observable WCS augmentation.')
 
     def _get_axis_index(self, keywords):
@@ -1907,12 +1905,13 @@ class WcsParser(object):
         :return:
         """
         axis = None
-        for i, elem in enumerate(self.wcs.axis_type_names):
+        for i, elem in enumerate(self.wcs.ctype):
+            elem = elem.split('-')[0]
             if elem in keywords:
                 axis = i
                 break
             elif len(elem) == 0:
-                check = self.wcs.wcs.ctype[i]
+                check = self.wcs.ctype[i]
                 if check in keywords:
                     axis = i
                     break
@@ -1921,9 +1920,9 @@ class WcsParser(object):
     def _get_axis(self, index, over_ctype=None, over_cunit=None):
         """ Assemble a generic axis """
         aug_ctype = over_ctype if over_ctype is not None \
-            else str(self.wcs.wcs.ctype[index])
+            else str(self.wcs.ctype[index])
         aug_cunit = over_cunit if over_cunit is not None \
-            else str(self.wcs.wcs.cunit[index])
+            else str(self.wcs.cunit[index])
         aug_axis = Axis(aug_ctype, aug_cunit)
         return aug_axis
 
@@ -1966,16 +1965,16 @@ class WcsParser(object):
         """ returns cd info"""
 
         try:
-            if self.wcs.wcs.has_cd():
-                cd11 = self.wcs.wcs.cd[x_index][x_index]
-                cd12 = self.wcs.wcs.cd[x_index][y_index]
-                cd21 = self.wcs.wcs.cd[y_index][x_index]
-                cd22 = self.wcs.wcs.cd[y_index][y_index]
+            if self.wcs.has_cd():
+                cd11 = self.wcs.cd[x_index][x_index]
+                cd12 = self.wcs.cd[x_index][y_index]
+                cd21 = self.wcs.cd[y_index][x_index]
+                cd22 = self.wcs.cd[y_index][y_index]
             else:
-                cd11 = self.wcs.wcs.cdelt[x_index]
-                cd12 = self.wcs.wcs.crota[x_index]
-                cd21 = self.wcs.wcs.crota[y_index]
-                cd22 = self.wcs.wcs.cdelt[y_index]
+                cd11 = self.wcs.cdelt[x_index]
+                cd12 = self.wcs.crota[x_index]
+                cd21 = self.wcs.crota[y_index]
+                cd22 = self.wcs.cdelt[y_index]
         except AttributeError:
             self.logger.warning(
                 'Error searching for CD* values {}'.format(sys.exc_info()[1]))
@@ -1990,9 +1989,9 @@ class WcsParser(object):
                          over_crder=None):
         aug_coord_error = None
         aug_csyer = over_csyer if over_csyer is not None \
-            else self._sanitize(self.wcs.wcs.csyer[index])
+            else self._sanitize(self.wcs.csyer[index])
         aug_crder = over_crder if over_crder is not None \
-            else self._sanitize(self.wcs.wcs.crder[index])
+            else self._sanitize(self.wcs.crder[index])
 
         if aug_csyer and aug_crder:
             aug_coord_error = CoordError(aug_csyer, aug_crder)
@@ -2031,9 +2030,9 @@ class WcsParser(object):
             raise NotImplementedError
         else:
             aug_crpix = over_crpix if over_crpix is not None \
-                else self.wcs.wcs.crpix[index]
+                else self.wcs.crpix[index]
             aug_crval = over_crval if over_crval is not None \
-                else self.wcs.wcs.crval[index]
+                else self.wcs.crval[index]
             aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
 
@@ -2047,16 +2046,12 @@ class WcsParser(object):
             return result
         except TypeError:
             try:
-                # Note - could not avoid using _naxis private attributes...
-                result = _to_int(self._sanitize(self.wcs._naxis[for_axis - 1]))
-            except IndexError:
-                try:
-                    result = _to_int(
-                        self._sanitize(self.header.get('NAXIS{}'.format(for_axis))))
-                except ValueError:
-                    self.logger.warning(
-                        'Could not find axis length for axis {}'.format(
-                            for_axis))
+                result = _to_int(
+                    self._sanitize(self.header.get('NAXIS{}'.format(for_axis))))
+            except ValueError:
+                self.logger.warning(
+                    'Could not find axis length for axis {}'.format(
+                        for_axis))
         if isinstance(result, tuple):
             result = result[0]
         return result
@@ -2076,7 +2071,7 @@ class WcsParser(object):
 
 
 def _to_str(value):
-    return str(value) if value is not None else None
+    return str(value).strip() if value is not None else None
 
 
 def _to_float(value):
@@ -2386,6 +2381,27 @@ def _apply_config_to_fits(parser):
                     'CD{0}_{0}'.format(i) not in header:
                     header['CD{0}_{0}'.format(i)] = \
                                  header['CDELT{}'.format(i)]
+
+    # TODO When a projection is specified, wcslib expects corresponding
+    # DP arguments with NAXES attributes. Normally, omitting the attribute
+    # signals no distorsion which is the assumption in fits2caom2 for
+    # energy and polarization axes. Following is a workaround this for SIP
+    # projections.
+    # For more details see:
+    # http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
+    for header in parser._headers:
+        sip = False
+        for i in range(1, 6):
+            if ('CTYPE{}'.format(i) in header) and \
+                    ('-SIP' in header['CTYPE{}'.format(i)]):
+                sip = True
+                break;
+        if sip:
+            for i in range(1, 6):
+                if ('CTYPE{}'.format(i) in header) and \
+                        ('-SIP' not in header['CTYPE{}'.format(i)]) and\
+                        ('DP{}'.format(i) not in header):
+                    header['DP{}'.format(i)] = 'NAXES: 1'
     return
 
 
