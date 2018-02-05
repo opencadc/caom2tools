@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-2f92-016075dfb1b7">
+<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-8b15-acb2c5f82153">
   <caom2:collection>CFHT</caom2:collection>
   <caom2:observationID>1916216p</caom2:observationID>
   <caom2:metaRelease>2016-03-29T02:20:54.000</caom2:metaRelease>
@@ -37,7 +37,7 @@
     <caom2:ambientTemp>3.0</caom2:ambientTemp>
   </caom2:environment>
   <caom2:planes>
-    <caom2:plane caom2:id="00000000-0000-0000-2f92-016075dfb4f3">
+    <caom2:plane caom2:id="00000000-0000-0000-b3ba-5b113dd21deb">
       <caom2:productID>1916216p</caom2:productID>
       <caom2:metaRelease>2016-03-29T02:20:54.000</caom2:metaRelease>
       <caom2:dataRelease>2017-08-31T00:00:00.000</caom2:dataRelease>
@@ -54,14 +54,14 @@
           <caom2:keyword>reduction=Polar</caom2:keyword>
         </caom2:keywords>
         <caom2:inputs>
+          <caom2:planeURI>caom:CFHT/1916219/1916219o</caom2:planeURI>
           <caom2:planeURI>caom:CFHT/1916216/1916216o</caom2:planeURI>
           <caom2:planeURI>caom:CFHT/1916217/1916217o</caom2:planeURI>
           <caom2:planeURI>caom:CFHT/1916218/1916218o</caom2:planeURI>
-          <caom2:planeURI>caom:CFHT/1916219/1916219o</caom2:planeURI>
         </caom2:inputs>
       </caom2:provenance>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="00000000-0000-0000-2f92-016075dfb4fb">
+        <caom2:artifact caom2:id="00000000-0000-0000-87df-f6ef36aa7f20">
           <caom2:uri>ad:CFHT/1916216p.fits.gz</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
@@ -69,10 +69,10 @@
           <caom2:contentLength>16826523</caom2:contentLength>
           <caom2:contentChecksum>md5:3881e374da11661ea95419642e90fa22</caom2:contentChecksum>
           <caom2:parts>
-            <caom2:part caom2:id="00000000-0000-0000-2f92-016075dfb4fd">
+            <caom2:part caom2:id="00000000-0000-0000-8730-b440485d00a3">
               <caom2:name>0</caom2:name>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-2f92-016075dfb4ff">
+                <caom2:chunk caom2:id="00000000-0000-0000-9496-649ee037be01">
                   <caom2:naxis>2</caom2:naxis>
                   <caom2:observableAxis>2</caom2:observableAxis>
                   <caom2:positionAxis1>3</caom2:positionAxis1>
@@ -100,12 +100,12 @@
                         <caom2:cunit>deg</caom2:cunit>
                       </caom2:axis2>
                       <caom2:error1>
-                        <caom2:syser>2.78E-5</caom2:syser>
-                        <caom2:rnder>2.78E-5</caom2:rnder>
+                        <caom2:syser>2.7800000000000001e-05</caom2:syser>
+                        <caom2:rnder>2.7800000000000001e-05</caom2:rnder>
                       </caom2:error1>
                       <caom2:error2>
-                        <caom2:syser>2.78E-5</caom2:syser>
-                        <caom2:rnder>2.78E-5</caom2:rnder>
+                        <caom2:syser>2.7800000000000001e-05</caom2:syser>
+                        <caom2:rnder>2.7800000000000001e-05</caom2:rnder>
                       </caom2:error2>
                       <caom2:function>
                         <caom2:dimension>
@@ -119,13 +119,13 @@
                           </caom2:coord1>
                           <caom2:coord2>
                             <caom2:pix>1.0</caom2:pix>
-                            <caom2:val>-4.583833</caom2:val>
+                            <caom2:val>-4.5838330000000003</caom2:val>
                           </caom2:coord2>
                         </caom2:refCoord>
-                        <caom2:cd11>-4.44E-4</caom2:cd11>
+                        <caom2:cd11>-0.000444</caom2:cd11>
                         <caom2:cd12>0.0</caom2:cd12>
                         <caom2:cd21>0.0</caom2:cd21>
-                        <caom2:cd22>4.44E-4</caom2:cd22>
+                        <caom2:cd22>0.000444</caom2:cd22>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:coordsys>FK5</caom2:coordsys>
@@ -135,7 +135,7 @@
                     <caom2:axis>
                       <caom2:axis>
                         <caom2:ctype>WAVE</caom2:ctype>
-                        <caom2:cunit>nm</caom2:cunit>
+                        <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
                         <caom2:syser>0.001</caom2:syser>
@@ -143,10 +143,10 @@
                       </caom2:error>
                       <caom2:function>
                         <caom2:naxis>213722</caom2:naxis>
-                        <caom2:delta>0.0031764</caom2:delta>
+                        <caom2:delta>3.1764000000000001e-12</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>0.5</caom2:pix>
-                          <caom2:val>370.0</caom2:val>
+                          <caom2:val>3.7e-07</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
@@ -162,12 +162,12 @@
                         <caom2:cunit>d</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
-                        <caom2:syser>1.0E-7</caom2:syser>
-                        <caom2:rnder>1.0E-7</caom2:rnder>
+                        <caom2:syser>9.9999999999999995e-08</caom2:syser>
+                        <caom2:rnder>9.9999999999999995e-08</caom2:rnder>
                       </caom2:error>
                       <caom2:function>
                         <caom2:naxis>1</caom2:naxis>
-                        <caom2:delta>0.037962962963</caom2:delta>
+                        <caom2:delta>0.037962962963000002</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>0.5</caom2:pix>
                           <caom2:val>57476.212</caom2:val>
@@ -202,9 +202,9 @@
     </caom2:plane>
   </caom2:planes>
   <caom2:members>
-    <caom2:observationURI>caom:CFHT/1916216</caom2:observationURI>
-    <caom2:observationURI>caom:CFHT/1916217</caom2:observationURI>
     <caom2:observationURI>caom:CFHT/1916218</caom2:observationURI>
+    <caom2:observationURI>caom:CFHT/1916217</caom2:observationURI>
     <caom2:observationURI>caom:CFHT/1916219</caom2:observationURI>
+    <caom2:observationURI>caom:CFHT/1916216</caom2:observationURI>
   </caom2:members>
 </caom2:Observation>
