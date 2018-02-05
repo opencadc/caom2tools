@@ -580,7 +580,7 @@ class ObsBlueprint(object):
                  (['ZNAXIS{}'.format(axes[0]),
                    'NAXIS{}'.format(axes[0])], None))
         self.set('Chunk.position.axis.function.dimension.naxis2',
-                 (['ZNAXIS{}'.format(axes[0]),
+                 (['ZNAXIS{}'.format(axes[1]),
                    'NAXIS{}'.format(axes[1])], None))
         self.set('Chunk.position.axis.function.refCoord.coord1.pix',
                  (['CRPIX{}'.format(axes[0])], None))
