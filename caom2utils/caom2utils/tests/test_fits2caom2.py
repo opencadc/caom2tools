@@ -99,6 +99,8 @@ sample_file_4axes_uri = 'caom:CGPS/TEST/4axes_obs.fits'
 java_config_file = os.path.join(TESTDATA_DIR, 'java.config')
 override_file = os.path.join(TESTDATA_DIR, 'test.override')
 
+skipif_single_test = pytest.mark.skipif(True)
+
 class MyExitError(Exception):
     pass
 
@@ -112,7 +114,7 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
       </caom2:axis>
       <caom2:function>
         <caom2:naxis>1</caom2:naxis>
-        <caom2:delta>-824.46002</caom2:delta>
+        <caom2:delta>-824.46001999999999</caom2:delta>
         <caom2:refCoord>
           <caom2:pix>145.0</caom2:pix>
           <caom2:val>-60000.0</caom2:val>
@@ -121,16 +123,15 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
     </caom2:axis>
     <caom2:specsys>LSRK</caom2:specsys>
     <caom2:restfrq>1420406000.0</caom2:restfrq>
-    <caom2:restwav>0.0</caom2:restwav>
   </caom2:energy>
 </caom2:import>
 '''
 
-@pytest.mark.skip('')
+#skipif_single_test
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
-    test_fitsparser = FitsParser(test_file)
-    test_fitsparser.blueprint = ObsBlueprint()
+    bp = ObsBlueprint(energy_axis=1)
+    test_fitsparser = FitsParser(test_file, bp)
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -160,11 +161,10 @@ EXPECTED_POLARIZATION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.or
 '''
 
 
-@pytest.mark.skip('')
+skipif_single_test
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_polarization(test_file):
-    test_fitsparser = FitsParser(test_file)
-    test_fitsparser.blueprint = ObsBlueprint()
+    test_fitsparser = FitsParser(test_file, ObsBlueprint(polarization_axis=1))
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -210,11 +210,10 @@ EXPECTED_POSITION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/ca
 '''
 
 
-@pytest.mark.skip('')
+skipif_single_test
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
-    test_fitsparser = FitsParser(test_file)
-    test_fitsparser.blueprint = ObsBlueprint()
+    test_fitsparser = FitsParser(test_file, ObsBlueprint(position_axis=(1, 2)))
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -256,13 +255,12 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = '''<caom2:import xmlns:caom2="http://
 '''
 
 
-@pytest.mark.skip('')
+skipif_single_test
 @pytest.mark.parametrize('test_file, expected',
                          [(sample_file_time_axes,
                            EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
 def test_augment_artifact_time(test_file, expected):
-    test_fitsparser = FitsParser(test_file)
-    test_fitsparser.blueprint = ObsBlueprint()
+    test_fitsparser = FitsParser(test_file, ObsBlueprint(time_axis=1))
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -271,7 +269,7 @@ def test_augment_artifact_time(test_file, expected):
     test_part = artifact.parts['1']
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
-    assert test_chunk.position is not None
+    assert test_chunk.time is not None
     check_xml(ObservationWriter()._add_temporal_wcs_element, test_chunk.time,
               expected)
 
@@ -279,7 +277,7 @@ def test_augment_artifact_time(test_file, expected):
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
-    test_parser = WcsParser(get_test_header(test_file)[0], test_file, 0)
+    test_parser = WcsParser(get_test_header(test_file)[0].header, test_file, 0)
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
     result = getattr(w, '_naxis1')
@@ -311,7 +309,7 @@ def check_xml(xml_func, test_wcs, expected):
     assert result == expected, result
 
 
-@pytest.mark.skip('')
+skipif_single_test
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                      MyExitError, MyExitError,
                                      MyExitError]))
@@ -367,48 +365,6 @@ def test_help(test_file):
     """
 
 
-@pytest.mark.skip('Mock the actual functionality?')
-@pytest.mark.parametrize('test_file', [sample_file_4axes])
-def test_valid_arguments(test_file):
-    """ Tests the parser with valid commands in main"""
-
-    # --in
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML",
-                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        main_app()
-        help_out = stdout_mock.getvalue()
-        assert (not stdout_mock.getvalue())
-
-    # --in and --out
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--in", "pathTo/inObsXML", "--out",
-                    "pathTo/outObsXML",
-                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        main_app()
-        help_out = stdout_mock.getvalue()
-        assert (not stdout_mock.getvalue())
-
-    # --observation
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection",
-                    "testObservationID",
-                    "productID", "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        main_app()
-        help_out = stdout_mock.getvalue()
-        assert (not stdout_mock.getvalue())
-
-    # --observation and --out
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection",
-                    "testObservationID", "--out", "pathTo/outObsXML"
-                                                  "productID",
-                    "pathTo/testFileURI1", "pathTo/testFileURI2"]
-        main_app()
-        help_out = stdout_mock.getvalue()
-        assert (not stdout_mock.getvalue())
-
-
 EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
                    """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
@@ -416,6 +372,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
                    """xsi:type="caom2:CompositeObservation" caom2:id="">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
+  <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
   <caom2:algorithm>
     <caom2:name>exposure</caom2:name>
   </caom2:algorithm>
@@ -446,11 +403,12 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
         <caom2:project>CGPS</caom2:project>
         <caom2:producer>CGPS Consortium</caom2:producer>
         <caom2:reference>http://dx.doi.org/10.1086/375301</caom2:reference>
+        <caom2:lastExecuted>2000-10-16T00:00:00.000</caom2:lastExecuted>
       </caom2:provenance>
       <caom2:artifacts>
         <caom2:artifact caom2:id="">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
-          <caom2:productType>science</caom2:productType>
+          <caom2:productType>info</caom2:productType>
           <caom2:parts>
             <caom2:part caom2:id="">
               <caom2:name>0</caom2:name>
@@ -519,7 +477,7 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
-@pytest.mark.xfail(reason='the len(errors) test fails for CompositeObservation.members errors')
+#@pytest.mark.xfail(reason='the len(errors) test fails for CompositeObservation.members errors')
 def test_update_fits_headers():
     # The rules for the values:
     # all upper case - a FITS keyword
@@ -537,31 +495,35 @@ def test_update_fits_headers():
     hdr6 = fits.Header()
     hdr7 = fits.Header()
     test_blueprint = ObsBlueprint()
-    test_blueprint.configure_position_axes((1, 2))
-    test_blueprint.configure_energy_axis(3)
-    test_blueprint.configure_polarization_axis(4)
-    test_blueprint.configure_time_axis(5)
+    test_blueprint.configure_time_axis(3)
 
     test_parser = FitsParser(src=[hdr1, hdr2, hdr3, hdr4, hdr5, hdr6, hdr7])
     test_parser.blueprint = test_blueprint
     test_uri = 'ad:CFHT/1709071g.fits.gz'
-    update_fits_headers(test_parser, test_uri, config=None, defaults={},
+    update_fits_headers(test_parser, test_uri, config={}, defaults={},
                         overrides={})
     assert test_parser.blueprint._get('Observation.type') == \
         (['OBSTYPE'], None), 'unmodified blueprint'
 
-    test_defaults = {'CTYPE1': 'deg',
-                     'CTYPE3': 'TIME'}
-    update_fits_headers(test_parser, test_uri, config=None,
+    test_defaults = {'CTYPE1': 'RA---TAN',
+                     'CTYPE2': 'DEC--TAN',
+                     'CTYPE3': 'TIME',
+                     'CTYPE4': 'WAVE',
+                     'CDELT4': '1.2',
+                     'CRVAL4': '32'}
+    update_fits_headers(test_parser, test_uri, config={},
                         defaults=test_defaults, overrides={})
     assert test_parser.blueprint._get('Chunk.position.axis.axis1.ctype') == \
-        (['CTYPE1'],'deg'), 'default value assigned'
+        (['CTYPE1'],'RA---TAN'), 'default value assigned'
+    assert test_parser.blueprint._get('Chunk.position.axis.axis2.ctype') == \
+        (['CTYPE2'],'DEC--TAN'), 'default value assigned'
     assert test_parser.blueprint._get('Chunk.time.axis.axis.ctype') ==  \
         (['CTYPE3'], 'TIME'), 'default value assigned, value all upper case'
 
     # print(test_parser.blueprint)
 
-    test_defaults = {'CTYPE1': 'deg',
+    test_defaults = {'CTYPE1': 'RA--TAN',
+                     'CTYPE2': 'DEC--TAN',
                      'CTYPE3': 'TIME',
                      'plane.dataProductType': 'image',
                      'provenance.producer': 'CFHT',
@@ -627,7 +589,6 @@ TEST_OVERRIDES = \
      'plane.dataRelease': '2015-02-01T00:00:00',
      'obs.metaRelease': '2014-05-12T10:18:55',
      'plane.metaRelease': '2014-05-12T10:18:55',
-     'WCSAXES': '4',
      'filtername': 'H.WC8201',
      'CRVAL4': '16310.000',
      'CDELT4': '2890.000',
