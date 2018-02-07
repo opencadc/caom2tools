@@ -344,6 +344,7 @@ class ObsBlueprint(object):
         'Artifact.contentChecksum',
         'Artifact.contentLength',
         'Artifact.contentType',
+        'Artifact.uri',
 
         'Part.name',
         'Part.productType',
@@ -1043,6 +1044,20 @@ class ObsBlueprint(object):
         else:
             return self._plan[caom2_element]
 
+    def get_configed_axes_count(self):
+        configed_axes = 0
+        if self._pos_axes_configed:
+            configed_axes += 2
+        if self._energy_axis_configed:
+            configed_axes += 1
+        if self._time_axis_configed:
+            configed_axes += 1
+        if self._pol_axis_configed:
+            configed_axes += 1
+        if self._obs_axis_configed:
+            configed_axes += 1
+        return configed_axes
+
 
 class FitsParser(object):
     """
@@ -1191,7 +1206,8 @@ class FitsParser(object):
             elif 'NAXIS' in header:
                 chunk.naxis = _to_int(header['NAXIS'])
             else:
-                chunk.naxis = wcs_parser.wcs.naxis
+                chunk.naxis = self._get_from_list('Chunk.naxis', 0,
+                                                  wcs_parser.wcs.wcs.naxis)
             if self.blueprint._pos_axes_configed:
                 wcs_parser.augment_position(chunk)
             if self.blueprint._energy_axis_configed:
@@ -1278,7 +1294,8 @@ class FitsParser(object):
         plane.data_release = self._get_datetime(self._get_from_list(
             'Plane.dataRelease', index=0))
         plane.data_product_type = self._to_data_product_type(
-            self._get_from_list('Plane.dataProductType', index=0))
+            self._get_from_list('Plane.dataProductType', index=0,
+                                current=plane.data_product_type))
         plane.calibration_level = self._to_calibration_level(_to_int_32(
             self._get_from_list('Plane.calibrationLevel', index=0)))
         plane.provenance = self._get_provenance()
@@ -1302,6 +1319,72 @@ class FitsParser(object):
 
         self.logger.debug(
             'End CAOM2 plane augmentation for {}.'.format(artifact_uri))
+
+    def apply_config_to_fits(self):
+
+        # pointers that are short to type
+        exts = self.blueprint._extensions
+        wcs_std = self.blueprint._wcs_std
+        plan = self.blueprint._plan
+
+        # apply overrides from blueprint to all extensions
+        for key, value in plan.items():
+            if key in wcs_std:
+                val = None
+                if not isinstance(value, tuple):
+                    # value provided for standard wcs attribute
+                    val = value
+                else:
+                    # alternative attributes provided for standard wcs attribute
+                    for header in self._headers:
+                        for v in value[0]:
+                            if v in header:
+                                val = header[v]
+                                break
+                if val is not None:
+                    keywords = wcs_std[key].split(',')
+                    for keyword in keywords:
+                        for header in self._headers:
+                            _set_by_type(header, keyword, str(val))
+
+        # apply overrides to the remaining extensions
+        for extension in exts:
+            hdr = self._headers[extension]
+            for key, value in exts[extension].items():
+                keywords = wcs_std[key].split(',')
+                for keyword in keywords:
+                    _set_by_type(hdr, keyword, value)
+                    logging.debug(
+                        '{}: set to {} in extension {}'.format(keyword, value,
+                                                               extension))
+        # apply defaults to all extensions
+        for key, value in plan.items():
+            if isinstance(value, tuple) and value[1]:
+                # there is a default value set
+                for index, header in enumerate(self._headers):
+                    for keyword in value[0]:
+                        if not header.get(keyword):
+                            # apply a default if a value does not already exist
+                            _set_by_type(header, keyword, value[1])
+                            logging.debug(
+                                '{}: set default value of {} in HDU {}.'.format(
+                                    keyword, value[1], index))
+
+        # TODO wcs in astropy ignores cdelt attributes when it finds a cd
+        # attribute even if it's in a different axis
+        for header in self._headers:
+            cd_present = False
+            for i in range(1, 6):
+                if 'CD{0}_{0}'.format(i) in header:
+                    cd_present = True
+                    break
+            if cd_present:
+                for i in range(1, 6):
+                    if 'CDELT{}'.format(i) in header and \
+                            'CD{0}_{0}'.format(i) not in header:
+                        header['CD{0}_{0}'.format(i)] = \
+                            header['CDELT{}'.format(i)]
+        return
 
     def _get_algorithm(self, obs):
         """
@@ -2334,98 +2417,7 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
                     parser.add_error(key, sys.exc_info()[1])
         logging.debug('Overrides set for {}.'.format(artifact_uri))
 
-        _apply_config_to_fits(parser)
-
-
-def _apply_config_to_fits(parser):
-
-    # pointers that are short to type
-    exts = parser.blueprint._extensions
-    wcs_std = parser.blueprint._wcs_std
-    plan = parser.blueprint._plan
-
-    # apply overrides from blueprint to all extensions
-    # set standard WCS attributes in the headers according to the blueprint:
-    for key, value in plan.items():
-        if key in wcs_std:
-            val = None
-            if not isinstance(value, tuple):
-                # value provided for standard wcs attribute
-                val = value
-            else:
-
-                for header in parser._headers:
-                    for v in value[0]:
-                        if (v in header) and (v != wcs_std[key]):
-                            # alternative attributes provided for standard wcs
-                            # attribute
-                            val = header[v]
-                            break
-            if val is not None:
-                keywords = wcs_std[key].split(',')
-                for keyword in keywords:
-                    for header in parser._headers:
-                        _set_by_type(header, keyword, str(val))
-
-    # apply overrides to the remaining extensions
-    for extension in exts:
-        hdr = parser._headers[extension]
-        for key, value in exts[extension].items():
-            keywords = wcs_std[key].split(',')
-            for keyword in keywords:
-                _set_by_type(hdr, keyword, value)
-                logging.debug(
-                    '{}: set to {} in extension {}'.format(keyword, value,
-                                                           extension))
-    # apply defaults to all extensions
-    for key, value in plan.items():
-        if isinstance(value, tuple) and value[1]:
-            # there is a default value set
-            for index, header in enumerate(parser._headers):
-                for keyword in value[0]:
-                    if not header.get(keyword):
-                        # apply a default if a value does not already exist
-                        _set_by_type(header, keyword, value[1])
-                        logging.debug(
-                            '{}: set default value of {} in HDU {}.'.format(
-                                keyword, value[1], index))
-
-    # TODO wcs in astropy ignores cdelt attributes when it finds a cd
-    # attribute even if it's in a different axis
-    for header in parser._headers:
-        cd_present = False
-        for i in range(1, 6):
-            if 'CD{0}_{0}'.format(i) in header:
-                cd_present = True
-                break
-        if cd_present:
-            for i in range(1, 6):
-                if 'CDELT{}'.format(i) in header and \
-                    'CD{0}_{0}'.format(i) not in header:
-                    header['CD{0}_{0}'.format(i)] = \
-                                 header['CDELT{}'.format(i)]
-
-    # TODO When a projection is specified, wcslib expects corresponding
-    # DP arguments with NAXES attributes. Normally, omitting the attribute
-    # signals no distorsion which is the assumption in fits2caom2 for
-    # energy and polarization axes. Following is a workaround this for SIP
-    # projections.
-    # For more details see:
-    # http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
-    for header in parser._headers:
-        sip = False
-        for i in range(1, 6):
-            if ('CTYPE{}'.format(i) in header) and \
-                    ('-SIP' in header['CTYPE{}'.format(i)]):
-                sip = True
-                break;
-        if sip:
-            for i in range(1, 6):
-                if ('CTYPE{}'.format(i) in header) and \
-                        ('-SIP' not in header['CTYPE{}'.format(i)]) and\
-                        ('DP{}'.format(i) not in header):
-                    header['DP{}'.format(i)] = 'NAXES: 1'
-    return
+        parser.apply_config_to_fits()
 
 
 def _set_by_type(header, keyword, value):
