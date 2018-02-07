@@ -117,6 +117,7 @@ def test_class_apply_defaults(override_file):
                 continue
 
             result = convert.get_caom2_elements(key)
-            ob._get(result)
+            for r in result:
+                ob._get(r)
         except ValueError:
             assert False, 'Could not find key {} in ObsBlueprint'.format(key)

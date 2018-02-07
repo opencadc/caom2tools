@@ -93,7 +93,6 @@ from caom2 import ObservationURI, ObservableAxis, Slice
 import logging
 import re
 import sys
-import warnings
 from six.moves.urllib.parse import urlparse
 from cadcutils import net
 from cadcdata import CadcDataClient
@@ -581,7 +580,7 @@ class ObsBlueprint(object):
                  (['ZNAXIS{}'.format(axes[0]),
                    'NAXIS{}'.format(axes[0])], None))
         self.set('Chunk.position.axis.function.dimension.naxis2',
-                 (['ZNAXIS{}'.format(axes[0]),
+                 (['ZNAXIS{}'.format(axes[1]),
                    'NAXIS{}'.format(axes[1])], None))
         self.set('Chunk.position.axis.function.refCoord.coord1.pix',
                  (['CRPIX{}'.format(axes[0])], None))
@@ -1107,11 +1106,10 @@ class FitsParser(object):
         one header for each extension or a FITS input file.
         """
         self.logger = logging.getLogger(__name__)
-        # if obs_blueprint:
-        #     self.blueprint = obs_blueprint
-        # else:
-        #     self.blueprint = ObsBlueprint()
-        self._blueprint = None
+        if obs_blueprint:
+             self.blueprint = obs_blueprint
+        else:
+             self.blueprint = ObsBlueprint()
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -2278,6 +2276,7 @@ def get_cadc_headers(uri, cert=None):
 
 def _update_axis_info(parser, defaults, overrides, config):
     # look for info regarding axis types in the default and override file
+    assert config is not None
     energy_axis = None
     polarization_axis = None
     time_axis = None

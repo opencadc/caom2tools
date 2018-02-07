@@ -224,6 +224,7 @@ class CAOM2RepoClient(object):
         :param collection: Name of the collection
         :param observation_id: Observation identifier
         :return: Observation
+        :raises: cadcutils.exceptions.NotFoundException
         """
         self.get_observation(collection, observation_id)
 
@@ -475,6 +476,7 @@ class CAOM2RepoClient(object):
         :param collection: name of the collection
         :param observation_id: the ID of the observation
         :return: the caom2.observation.Observation object
+        :raises: cadcutils.exceptions.NotFoundException
         """
         assert collection is not None
         assert observation_id is not None

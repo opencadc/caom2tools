@@ -10,7 +10,6 @@ plane.calibrationLevel = 1
 plane.dataRelease = 2015-02-01T00:00:00
 obs.metaRelease = 2014-05-12T10:18:55
 plane.metaRelease = 2014-05-12T10:18:55
-WCSAXES =         4
 filtername= H.WC8201
 CRVAL4 =  16310.000
 CDELT4 =   2890.000
