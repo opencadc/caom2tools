@@ -87,55 +87,41 @@ import pytest
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+TESTDATA_DIR = os.path.join(THIS_DIR, 'data/CGPS')
 expected_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps.xml')
-expected_sitellep_obs = os.path.join(TESTDATA_DIR, 'cfhtsitellep.xml')
 expected_local_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps_local.xml')
 sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
 sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
-CFHT_DIR = os.path.join(TESTDATA_DIR, 'cfht/1709071og')
-expected_cfhtwircam_obs = os.path.join(CFHT_DIR, 'cfhtwircam.xml')
-sample_cfhtwircam = os.path.join(CFHT_DIR, '1709071g.fits')
-cfhtwircam_config = os.path.join(CFHT_DIR, 'cfhtwircam.config')
-cfhtwircam_defaults = os.path.join(CFHT_DIR, 'cfhtwircam.default')
-cfhtwircam_override = os.path.join(CFHT_DIR, 'cfhtwircam.override')
-cfhtsitellep_config = os.path.join(TESTDATA_DIR, 'cfhtsitellep.config')
-cfhtsitellep_defaults = os.path.join(TESTDATA_DIR, 'cfhtsitellep.default')
-cfhtsitellep_override = os.path.join(TESTDATA_DIR, 'cfhtsitellep.override')
-cfhtsitelleo_config = os.path.join(TESTDATA_DIR, 'cfhtsitelleo.config')
-cfhtsitelleo_defaults = os.path.join(TESTDATA_DIR, 'cfhtsitelleo.default')
-cfhtsitelleo_override = os.path.join(TESTDATA_DIR, 'cfhtsitelleo.override')
 
 
-@pytest.mark.skip('')
 def test_fits2caom2():
     # test fits2caom2 on a known existing CGPS file
-    expected = open(expected_cgps_obs).read()
+    reader = ObservationReader(True)
+    expected = reader.read(expected_cgps_obs)
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
         sys.argv = ('fits2caom2 -q --observation TEST myOBS myplane '
                     'ad:CGPS/CGPS_MA1_HI_line_image').split()
         fits2caom2.main_app()
-    actual = stdout_mock.getvalue().decode('ascii')
-    _cmp(expected, actual)
+    actual = reader.read(BytesIO(stdout_mock.getvalue()))
+    assert not get_differences(expected, actual, 'Observation')
 
     # repeat the test when the observation is saved
     temp = tempfile.NamedTemporaryFile()
     sys.argv = ('fits2caom2 -q --observation TEST myOBS -o {} myplane '
                 'ad:CGPS/CGPS_MA1_HI_line_image'.format(temp.name)).split()
     fits2caom2.main_app()
-
-    actual = open(temp.name).read()
-    _cmp(expected, actual)
+    actual = reader.read(temp.name)
+    assert not get_differences(expected, actual, 'Observation')
 
     # test fits2caom2 on a known existing but now local CGPS file
-    expected = open(expected_local_cgps_obs).read()
+    expected = reader.read(expected_local_cgps_obs)
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
         sys.argv = ('fits2caom2 -q --local {} --observation TEST myOBS myplane '
                     'ad:CGPS/CGPS_MA1_HI_line_image').format(
             sample_file_4axes).split()
         fits2caom2.main_app()
-    actual = stdout_mock.getvalue().decode('ascii')
-    _cmp(expected, actual)
+    actual = reader.read(BytesIO(stdout_mock.getvalue()))
+    assert not get_differences(expected, actual, 'Observation')
 
     # repeat the test when the observation is saved
     temp = tempfile.NamedTemporaryFile()
@@ -144,51 +130,9 @@ def test_fits2caom2():
         'ad:CGPS/CGPS_MA1_HI_line_image'.format(
             sample_file_4axes, temp.name)).split()
     fits2caom2.main_app()
+    actual = reader.read(temp.name)
+    assert not get_differences(expected, actual, 'Observation')
 
-    actual = open(temp.name).read()
-    _cmp(expected, actual)
-
-
-@pytest.mark.skip('')
-def test_fits2caom2_cfht_defaults_overrides():
-    # test fits2caom2 on two known existing CFHT files, with defaults and
-    # overrides
-    temp = tempfile.NamedTemporaryFile()
-    sys.argv = ('fits2caom2 --debug --dumpconfig --local {} {} '
-                '-o {} --observation CFHT 1709071 '
-                '--config {} --default {} --override {} '
-                '1709071og '
-                'ad:CFHT/1709071g.fits.gz ad:CFHT/1709071o.fits.fz ').format(
-        os.path.join(CFHT_DIR, '1709071g.fits'),
-        os.path.join(CFHT_DIR, '1709071o.fits.fz'),
-        temp.name, cfhtwircam_config, cfhtwircam_defaults,
-        cfhtwircam_override).split()
-    fits2caom2.main_app()
-    expected = _read_obs(expected_cfhtwircam_obs)
-    actual = _read_obs(temp.name)
-    result = get_differences(expected, actual, 'Observation')
-    print('\n'.join(str(p) for p in result))
-    assert len(result) == 36
-
-
-@pytest.mark.skip('')
-def test_fits2caom2_cfht_sitelle():
-    # test fits2caom2 on  known existing CFHT files, with defaults and
-    # overrides
-    temp = tempfile.NamedTemporaryFile()
-    sys.argv = ('fits2caom2 --debug --dumpconfig '
-                '-o {} --observation CFHT 2136164 '
-                '--config {} --default {} --override {} '
-                '2136164p '
-                'ad:CFHT/2136164p.fits ').format(
-        temp.name, cfhtsitellep_config, cfhtsitellep_defaults,
-        cfhtsitellep_override).split()
-    fits2caom2.main_app()
-    expected = _read_obs(expected_sitellep_obs)
-    actual = _read_obs(temp.name)
-    result = get_differences(expected, actual, 'Observation')
-    print('\n'.join(str(p) for p in result))
-    assert len(result) == 0
 
 
 def _cmp(expected_obs_xml, actual_obs_xml):

@@ -518,7 +518,7 @@ class ObsBlueprint(object):
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            'Chunk.naxis': 'ZNAXIS,NAXIS'
+            'Chunk.naxis': 'ZNAXIS, NAXIS'
         }
         self._pos_axes_configed = False
         self._energy_axis_configed = False
@@ -2628,17 +2628,17 @@ def main_app(obs_blueprint=None):
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
     else:
-        if 'CompositeObservation.members' in config and \
-            ((config['CompositeObservation.members'] in defaults) or
-             (config['CompositeObservation.members'] in overrides)):
+        if config and 'CompositeObservation.members' in config and \
+            ((defaults and config['CompositeObservation.members'] in defaults) or
+             (overrides and config['CompositeObservation.members'] in overrides)):
             # build a composity observation
             obs = CompositeObservation(collection=args.observation[0],
                                        observation_id=args.observation[1],
                                        algorithm=Algorithm('EXPOSURE'))  # TODO
-            if config['CompositeObservation.members'] in defaults:
+            if defaults and config['CompositeObservation.members'] in defaults:
                 for member in defaults[config['CompositeObservation.members']].split():
                     obs.members.add(member)
-            if config['CompositeObservation.members'] in overrides:
+            if overrides and config['CompositeObservation.members'] in overrides:
                 for member in overrides[config['CompositeObservation.members']].split():
                     obs.members.add(ObservationURI(member))
         else:
@@ -2683,7 +2683,8 @@ def main_app(obs_blueprint=None):
             parser.blueprint = obs_blueprint[uri]
 
         _update_cadc_artifact(plane.artifacts[uri], args.cert)
-        update_fits_headers(parser, uri, config, defaults, overrides)
+        if config:
+            update_fits_headers(parser, uri, config, defaults, overrides)
         if args.dumpconfig:
             _dump_config(parser, uri)
 
@@ -2703,4 +2704,3 @@ def main_app(obs_blueprint=None):
         writer.write(obs, sys.stdout)
 
     logging.info("DONE")
-
