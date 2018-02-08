@@ -399,7 +399,7 @@ def main_app():
     try:
         fits2caom2.proc(args, obs_blueprint)
     except Exception as e:
-        logging.error(e.message)
+        logging.error(e)
         sys.exit(-1)
 
     logging.info("DONE")
