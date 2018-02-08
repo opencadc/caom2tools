@@ -70,18 +70,10 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from caom2utils import ObsBlueprint
-from mock import Mock, patch
-from six import StringIO, BytesIO
-
-import logging
-import os
-import sys
-import uuid
 
 import pytest
 
 
-#@pytest.mark.skip('')
 def test_obs_blueprint():
     # test the CAOM2_ELEMENTS property
     assert ObsBlueprint.CAOM2_ELEMENTS == ObsBlueprint._CAOM2_ELEMENTS
@@ -156,7 +148,7 @@ def test_obs_blueprint():
     assert ob._get('Chunk.energy.velang', extension=2) == 44
     assert ob._get('Chunk.energy.velang', extension=1) == 33
     assert ob._get('Chunk.energy.axis.axis.ctype', extension=1)[0] ==\
-           ['MYCTYPE2', 'MYCTYPE']
+        ['MYCTYPE2', 'MYCTYPE']
     assert ob._get('Chunk.energy.axis.axis.ctype', extension=1)[1] == 'NOCTYPE'
     # test get when keyword not present in extension and the default is used
     assert ob._get('Chunk.energy.specsys', extension=33)[0] == ['SPECSYS']

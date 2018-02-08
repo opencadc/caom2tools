@@ -80,7 +80,6 @@ TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 cfhtwircam_override = os.path.join(TESTDATA_DIR, 'test.override')
 
 
-# @pytest.mark.skip('')
 @pytest.mark.parametrize('override_file', [cfhtwircam_override])
 def test_class_apply_defaults(override_file):
     ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,

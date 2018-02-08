@@ -70,16 +70,9 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import argparse
 from builtins import str
 
-from cadcutils import version
-from caom2 import Artifact, Plane
-from caom2 import ObservationReader, ObservationWriter, Algorithm
-from caom2 import ReleaseType, ProductType, ObservationURI
-from caom2 import SimpleObservation, CompositeObservation
 import logging
-import re
 import sys
 
 from . import fits2caom2
@@ -170,6 +163,7 @@ def load_config(file_name):
                 ptr[key.strip()] = value.strip()
     return d
 
+
 def _update_axis_info(parser, defaults, overrides, config):
     # look for info regarding axis types in the default and override file
     assert config is not None
@@ -209,30 +203,30 @@ def _update_axis_info(parser, defaults, overrides, config):
         else:
             # assume that positional axis are 1 and 2 by default
             if time_axis in ['1', '2'] or energy_axis in ['1', '2'] or \
-                polarization_axis in ['1', '2'] or obs_axis in ['1', '2']:
+               polarization_axis in ['1', '2'] or obs_axis in ['1', '2']:
                 raise ValueError('Cannot determine the positional axis')
             else:
                 parser.configure_position_axes(('1', '2'))
 
-    if time_axis and (('Chunk.time' not in config) or \
-            (config['Chunk.time'] != ignore)):
+    if time_axis and (('Chunk.time' not in config) or
+       (config['Chunk.time'] != ignore)):
         parser.configure_time_axis(time_axis)
 
-    if energy_axis and (('Chunk.energy' not in config) or \
-            (config['Chunk.energy'] != ignore)):
+    if energy_axis and (('Chunk.energy' not in config) or
+       (config['Chunk.energy'] != ignore)):
         parser.configure_energy_axis(energy_axis)
 
-    if polarization_axis and (('Chunk.polarization' not in config) or \
-            (config['Chunk.polarization'] != ignore)):
+    if polarization_axis and (('Chunk.polarization' not in config) or
+       (config['Chunk.polarization'] != ignore)):
         parser.configure_polarization_axis(polarization_axis)
 
-    if obs_axis and (('Chunk.observable' not in config) or \
-            (config['Chunk.observable'] != ignore)):
+    if obs_axis and (('Chunk.observable' not in config) or
+       (config['Chunk.observable'] != ignore)):
         parser.configure_observable_axis(obs_axis)
 
 
 def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
-                     defaults={}, overrides={}):
+                     defaults=None, overrides=None):
     """
     Update an observation blueprint according to defaults and/or overrides as
     configured by the user.
@@ -274,7 +268,8 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                 for caom2_key in convert.get_caom2_elements(key):
                     obs_blueprint.set_default(caom2_key, value)
                     logging.debug(
-                        '{} setting default value to {}'.format(caom2_key, value))
+                        '{} setting default value to {}'.format(
+                            caom2_key, value))
             except ValueError:
                 errors.append('{}: {}'.format(key, sys.exc_info()[1]))
         logging.debug('Defaults set for {}.'.format(artifact_uri))
@@ -296,12 +291,13 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                                 '01/11/18 Chris said ignore {!r}.'.format(key))
                             continue
                         try:
-                            for caom2_key in convert.get_caom2_elements(ext_key):
+                            for caom2_key in \
+                                    convert.get_caom2_elements(ext_key):
                                 obs_blueprint.set(caom2_key, ext_value,
-                                                     extension)
-                                logging.debug(
-                                    '{} set override value to {} in extension {}.'.
-                                        format(caom2_key, ext_value, extension))
+                                                  extension)
+                                logging.debug(('{} set override value to {} '
+                                               'in extension {}.').format(
+                                    caom2_key, ext_value, extension))
                         except ValueError:
                             errors.append('{}: ext {} {}'.format(
                                 key, extension, sys.exc_info()[1]))

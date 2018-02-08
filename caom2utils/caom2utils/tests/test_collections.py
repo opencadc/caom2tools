@@ -90,6 +90,7 @@ TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 def raise_exit_error():
     yield SystemExit("Raised")
 
+
 @patch('sys.exit', Mock(side_effect=ImportError))
 def test_differences(directory):
     """
@@ -124,12 +125,11 @@ def test_differences(directory):
         data_client_mock.return_value.get_file_info.side_effect = get_file_info
         temp = tempfile.NamedTemporaryFile()
         sys.argv = ('fits2caom2 '
-                    '{} -o {} '
-                    '--observation {} {} {} {} {} {} {} '.format(
-                data_files_parameter, temp.name, expected.collection,
-            expected.observation_id,
-                    config, defaults, overrides, product_id,
-                    ' '.join(file_meta[0]))).split()
+                    '{} -o {} --observation {} {} {} {} {} {} {} '.format(
+                        data_files_parameter, temp.name, expected.collection,
+                        expected.observation_id,
+                        config, defaults, overrides, product_id,
+                        ' '.join(file_meta[0]))).split()
         print(sys.argv)
         legacy.main_app()
     actual = _read_observation(temp.name)  # actual observation
@@ -184,9 +184,8 @@ def _get_uris(collection, fnames, obs):
     uris = []
     file_meta = {}
     if fnames:
-        result = ''
         for fname in fnames:
-            f = os.path.basename(fname).replace('.header','')
+            f = os.path.basename(fname).replace('.header', '')
             for p in obs.planes.values():
                 for a in p.artifacts.values():
                     if 'ad:{}/{}'.format(collection, f) in a.uri:
@@ -225,6 +224,7 @@ def _compare_observations(expected, actual, output_dir):
     else:
         logging.info('Observation {} in {} match'.format(
             expected.observation_id, output_dir))
+
 
 def _read_observation(fname):
     reader = ObservationReader(False)
