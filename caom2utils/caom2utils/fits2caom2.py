@@ -108,7 +108,7 @@ POSITION_CTYPES = [
      'GLON',
      'ELON',
      'HLON',
-     'SLON',],
+     'SLON'],
     ['DEC',
      'GLAT',
      'ELAT',
@@ -438,7 +438,7 @@ class ObsBlueprint(object):
                 (len(position_axis) != 2):
             raise ValueError(
                 'Invalid position axis: {}. Must be tuple with 2 elements'.
-                    format(str(position_axis)))
+                format(str(position_axis)))
 
         # this is the default blueprint
         self._plan = {}
@@ -793,7 +793,7 @@ class ObsBlueprint(object):
         List of valid names of CAOM2 elements.
         :return:
         """
-        return list(ObsBlueprint._CAOM2_ELEMENTS) # return a copy
+        return list(ObsBlueprint._CAOM2_ELEMENTS)  # return a copy
 
     @classmethod
     def check_caom2_element(cls, caom2_element):
@@ -820,10 +820,10 @@ class ObsBlueprint(object):
 
     def _serialize(self, src):
         return '\n'.join(
-            ['{} = {}'.format(key, '{}, default = {}'.format(
-                src[key][0], src[key][1])
-            if isinstance(src[key], tuple)
-            else src[key])
+            ['{} = {}'.format(key, '{}, default = {}'.format(src[key][0],
+                                                             src[key][1])
+             if isinstance(src[key], tuple)
+             else src[key])
              for key in ObsBlueprint._CAOM2_ELEMENTS
              if key in src])
 
@@ -914,11 +914,11 @@ class ObsBlueprint(object):
                 else:
                     raise AttributeError(
                         'No FITS attributes associated with keyword {}'.
-                            format(caom2_element))
+                        format(caom2_element))
             else:
                 raise KeyError(
                     'Keyword {} not found in the blueprint'.
-                        format(caom2_element))
+                    format(caom2_element))
 
     def set_default(self, caom2_element, default, extension=0):
         """
@@ -939,8 +939,8 @@ class ObsBlueprint(object):
                     "Extension number refers to Chunk elements only")
             if extension not in self._extensions:
                 self._extensions[extension] = {}
-            if caom2_element in self._extensions[extension] and\
-                isinstance(self._extensions[extension][caom2_element], tuple):
+            if caom2_element in self._extensions[extension] and \
+               isinstance(self._extensions[extension][caom2_element], tuple):
                 self._extensions[extension][caom2_element] = \
                     (self._extensions[extension][caom2_element][0], default)
             else:
@@ -1080,9 +1080,9 @@ class FitsParser(object):
             hdulist.close()
             self._headers = [h.header for h in hdulist]
         if obs_blueprint:
-             self._blueprint = obs_blueprint
+            self._blueprint = obs_blueprint
         else:
-             self.blueprint = ObsBlueprint()
+            self.blueprint = ObsBlueprint()
         self.apply_config_to_fits()
 
     @property
@@ -1303,13 +1303,15 @@ class FitsParser(object):
                         for header in self.headers:
                             _set_by_type(header, keyword, str(value))
                 else:
-                    # alternative attributes provided for standard wcs attribute
+                    # alternative attributes provided for standard wcs attrib.
                     for header in self.headers:
                         for v in value[0]:
-                            if v in header and v not in wcs_std[key].split(','):
+                            if v in header and \
+                               v not in wcs_std[key].split(','):
                                 keywords = wcs_std[key].split(',')
                                 for keyword in keywords:
-                                    _set_by_type(header, keyword, str(header[v]))
+                                    _set_by_type(header, keyword,
+                                                 str(header[v]))
 
         # apply overrides to the remaining extensions
         for extension in exts:
@@ -1331,8 +1333,8 @@ class FitsParser(object):
                             # apply a default if a value does not already exist
                             _set_by_type(header, keyword, value[1])
                             logging.debug(
-                                '{}: set default value of {} in HDU {}.'.format(
-                                    keyword, value[1], index))
+                                '{}: set default value of {} in HDU {}.'.
+                                format(keyword, value[1], index))
 
         # TODO wcs in astropy ignores cdelt attributes when it finds a cd
         # attribute even if it's in a different axis
@@ -1381,7 +1383,7 @@ class FitsParser(object):
         members = None
         self.logger.debug('Begin CAOM2 Members augmentation.')
         if isinstance(obs, SimpleObservation) and \
-            self.blueprint._get('CompositeObservation.members'):
+           self.blueprint._get('CompositeObservation.members'):
             raise TypeError(
                 ('Cannot apply blueprint for CompositeObservation to a '
                  'simple observation'))
@@ -1414,8 +1416,8 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Instrument augmentation.')
         name = self._get_from_list('Observation.instrument.name', index=0)
-        keywords =self._get_from_list('Observation.instrument.keywords',
-                                      index=0)
+        keywords = self._get_from_list('Observation.instrument.keywords',
+                                       index=0)
         self.logger.debug('End CAOM2 Instrument augmentation.')
         if name:
             instr = Instrument(str(name))
@@ -1543,7 +1545,7 @@ class FitsParser(object):
         :return: Requirements
         """
         self.logger.debug('Begin CAOM2 Requirement augmentation.')
-        flag =self._get_from_list('Observation.requirements.flag', index=0)
+        flag = self._get_from_list('Observation.requirements.flag', index=0)
         self.logger.debug('End CAOM2 Requirement augmentation.')
         if flag:
             return Requirements(flag)
@@ -1571,8 +1573,8 @@ class FitsParser(object):
                     value = self.headers[index].get(ii)
                     if value:
                         self.logger.debug(
-                            '{}: assigned value {} based on keyword {}.'.format(
-                                lookup, value, ii))
+                            '{}: assigned value {} based on keyword {}.'.
+                            format(lookup, value, ii))
                         break
                 except (KeyError, IndexError) as error:
                     self.add_error(lookup, sys.exc_info()[1])
@@ -1641,7 +1643,7 @@ class FitsParser(object):
         name = _to_str(
             self._get_from_list('Plane.provenance.name', index=0))
         p_version = _to_str(self._get_from_list('Plane.provenance.version',
-                                                     index=0))
+                                                index=0))
         project = _to_str(
             self._get_from_list('Plane.provenance.project', index=0))
         producer = _to_str(
@@ -1847,7 +1849,7 @@ class WcsParser(object):
             chunk.energy.specsys = specsys
 
         chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.ssysobs))
-        #TODO not sure why, but wcs returns 0.0 when the FITS keywords for the
+        # TODO not sure why, but wcs returns 0.0 when the FITS keywords for the
         # following two keywords are actually not present in the header
         if self._sanitize(self.wcs.restfrq) != 0:
             chunk.energy.restfrq = self._sanitize(self.wcs.restfrq)
@@ -2147,8 +2149,8 @@ class WcsParser(object):
             return result
         except TypeError:
             try:
-                result = _to_int(
-                    self._sanitize(self.header.get('NAXIS{}'.format(for_axis))))
+                result = _to_int(self._sanitize(
+                    self.header.get('NAXIS{}'.format(for_axis))))
             except ValueError:
                 self.logger.warning(
                     'Could not find axis length for axis {}'.format(
@@ -2277,18 +2279,18 @@ def _update_cadc_artifact(artifact, cert):
     metadata = client.get_file_info(archive, file_id)
     checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug("old - uri({}), encoding({}), size({}), type({})".
-          format(artifact.uri,
-                 artifact.content_checksum,
-                 artifact.content_length,
-                 artifact.content_type))
+                  format(artifact.uri,
+                         artifact.content_checksum,
+                         artifact.content_length,
+                         artifact.content_type))
     artifact.content_checksum = checksum
     artifact.content_length = int(metadata['size'])
     artifact.content_type = str(metadata['type'])
     logging.debug("updated - uri({}), encoding({}), size({}), type({})".
-          format(artifact.uri,
-                 artifact.content_checksum,
-                 artifact.content_length,
-                 artifact.content_type))
+                  format(artifact.uri,
+                         artifact.content_checksum,
+                         artifact.content_length,
+                         artifact.content_type))
 
 
 def get_arg_parser():
@@ -2384,8 +2386,7 @@ def proc(args, obs_blueprints):
 
     if args.local and (len(args.local) != len(args.fileURI)):
         msg = ('number of local arguments not the same with file '
-                          'URIs ({} vs {})').format(len(args.local),
-                                                    args.fileURI)
+               'URIs ({} vs {})').format(len(args.local), args.fileURI)
         raise RuntimeError(msg)
 
     obs = None

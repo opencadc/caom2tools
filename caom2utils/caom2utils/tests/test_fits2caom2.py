@@ -82,13 +82,11 @@ from lxml import etree
 from mock import Mock, patch
 from six import StringIO, BytesIO
 
-import logging
 import os
 import re
 import sys
 
 import pytest
-import unittest
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -100,13 +98,17 @@ sample_file_4axes_uri = 'caom:CGPS/TEST/4axes_obs.fits'
 java_config_file = os.path.join(TESTDATA_DIR, 'java.config')
 override_file = os.path.join(TESTDATA_DIR, 'test.override')
 
-skipif_single_test = pytest.mark.skipif(True)
+# to execute only one test in the file set this var to True and comment
+# out the skipif decorator of the test
+single_test = False
+
 
 class MyExitError(Exception):
     pass
 
 
-EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+EXPECTED_ENERGY_XML = \
+    '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:energy>
     <caom2:axis>
       <caom2:axis>
@@ -128,7 +130,8 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 </caom2:import>
 '''
 
-#skipif_single_test
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
     bp = ObsBlueprint(energy_axis=1)
@@ -142,7 +145,8 @@ def test_augment_energy(test_file):
               EXPECTED_ENERGY_XML)
 
 
-EXPECTED_POLARIZATION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+EXPECTED_POLARIZATION_XML = \
+    '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:polarization>
     <caom2:axis>
       <caom2:axis>
@@ -162,7 +166,7 @@ EXPECTED_POLARIZATION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.or
 '''
 
 
-skipif_single_test
+@pytest.mark.skipif(single_test, reason='Single test mode')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_polarization(test_file):
     test_fitsparser = FitsParser(test_file, ObsBlueprint(polarization_axis=1))
@@ -174,7 +178,8 @@ def test_augment_polarization(test_file):
               EXPECTED_POLARIZATION_XML)
 
 
-EXPECTED_POSITION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+EXPECTED_POSITION_XML = \
+    '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:position>
     <caom2:axis>
       <caom2:axis1>
@@ -211,7 +216,7 @@ EXPECTED_POSITION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/ca
 '''
 
 
-skipif_single_test
+@pytest.mark.skipif(single_test, reason='Single test mode')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
     test_fitsparser = FitsParser(test_file, ObsBlueprint(position_axis=(1, 2)))
@@ -228,7 +233,8 @@ def test_augment_artifact(test_file):
               test_chunk.position, EXPECTED_POSITION_XML)
 
 
-EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
+    '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:time>
     <caom2:axis>
       <caom2:axis>
@@ -256,7 +262,7 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = '''<caom2:import xmlns:caom2="http://
 '''
 
 
-skipif_single_test
+@pytest.mark.skipif(single_test, reason='Single test mode')
 @pytest.mark.parametrize('test_file, expected',
                          [(sample_file_time_axes,
                            EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
@@ -275,6 +281,7 @@ def test_augment_artifact_time(test_file, expected):
               expected)
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_wcs_values(test_file):
     w = get_test_wcs(test_file)
@@ -310,7 +317,7 @@ def check_xml(xml_func, test_wcs, expected):
     assert result == expected, result
 
 
-skipif_single_test
+@pytest.mark.skipif(single_test, reason='Single test mode')
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                      MyExitError, MyExitError,
                                      MyExitError]))
@@ -324,13 +331,13 @@ def test_help(test_file):
         too_few_arguments_usage = myfile.read()
     with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
         usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r') \
+    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r')\
             as myfile:
-        missing_observation_usage = myfile.read()
+        myfile.read()
     with open(os.path.join(TESTDATA_DIR,
                            'missing_positional_argument_help.txt'), 'r') \
             as myfile:
-        missing_positional_argument_usage = myfile.read()
+        myfile.read()
 
     # too few arguments error message when running python3
     with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
@@ -368,9 +375,9 @@ def test_help(test_file):
 
 EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
-                   """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
-                   """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
-                   """xsi:type="caom2:CompositeObservation" caom2:id="">
+        """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
+        """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
+        """xsi:type="caom2:CompositeObservation" caom2:id="">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
@@ -424,6 +431,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 """
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 @pytest.mark.parametrize('test_file, test_file_uri',
                          [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
@@ -469,6 +477,7 @@ def test_augment_observation(test_file, test_file_uri):
     assert compare == EXPECTED_OBS_XML  # , result
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_get_from_list(test_file):
     test_fitsparser = FitsParser(test_file)
@@ -478,6 +487,7 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_update_fits_headers():
     # The rules for the values:
     # all upper case - a FITS keyword
@@ -501,7 +511,7 @@ def test_update_fits_headers():
 
     test_uri = 'ad:CFHT/1709071g.fits.gz'
     update_blueprint(test_blueprint, test_uri, config={}, defaults={},
-                        overrides={})
+                     overrides={})
     assert test_parser.blueprint._get('Observation.type') == \
         (['OBSTYPE'], None), 'unmodified blueprint'
 
@@ -512,11 +522,11 @@ def test_update_fits_headers():
                      'CDELT4': '1.2',
                      'CRVAL4': '32'}
     update_blueprint(test_blueprint, test_uri, config={},
-                        defaults=test_defaults, overrides={})
+                     defaults=test_defaults, overrides={})
     assert test_blueprint._get('Chunk.position.axis.axis1.ctype') == \
-        (['CTYPE1'],'RA---TAN'), 'default value assigned'
+        (['CTYPE1'], 'RA---TAN'), 'default value assigned'
     assert test_blueprint._get('Chunk.position.axis.axis2.ctype') == \
-        (['CTYPE2'],'DEC--TAN'), 'default value assigned'
+        (['CTYPE2'], 'DEC--TAN'), 'default value assigned'
     assert test_blueprint._get('Chunk.time.axis.axis.ctype') ==  \
         (['CTYPE3'], 'TIME'), 'default value assigned, value all upper case'
 
@@ -531,7 +541,7 @@ def test_update_fits_headers():
     test_config = load_config(java_config_file)
     test_overrides = load_config(override_file)
     update_blueprint(test_blueprint, test_uri, test_config,
-                        test_defaults, test_overrides)
+                     test_defaults, test_overrides)
     assert test_blueprint._get('Plane.dataProductType') == \
         'image', 'default value assigned to configuration'
     assert test_blueprint._get('Plane.provenance.producer') == \
@@ -546,8 +556,8 @@ def test_update_fits_headers():
         'Chunk.position.axis.function.refCoord.coord1.val',
         0) == '210.551666667', 'override HDU 0'
     assert test_blueprint._get(
-        'Chunk.position.axis.function.refCoord.coord1.val',
-         1) == '210.551666667',         'override HDU 1'
+        'Chunk.position.axis.function.refCoord.coord1.val', 1) == \
+        '210.551666667',         'override HDU 1'
     assert test_blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
         2) == '210.508333333',         'override HDU 2'
@@ -598,7 +608,8 @@ TEST_OVERRIDES = \
      'artifacts': {
          'ad:CFHT/1709071o.fits.fz': {
              0: {'artifact.productType': 'science',
-                 'artifact.contentChecksum': 'md5:88bfd03471053a916067a4e6f80d332d',
+                 'artifact.contentChecksum':
+                     'md5:88bfd03471053a916067a4e6f80d332d',
                  'CRPIX3': '0.500000000000',
                  'CRVAL3': '56789.429806900000',
                  'CDELT3': '0.000173611111',
@@ -607,7 +618,8 @@ TEST_OVERRIDES = \
                  'NAXIS3': '3'}},
          'ad:CFHT/1709071g.fits.gz': {
              0: {'artifact.productType': 'auxiliary',
-                 'artifact.contentChecksum': 'md5:47cdd15371f82893ed384dec96240ae2',
+                 'artifact.contentChecksum':
+                     'md5:47cdd15371f82893ed384dec96240ae2',
                  'CD1_1': '-0.000083333333',
                  'CD1_2': '0.000000000000',
                  'CD2_1': '0.000000000000',
@@ -646,6 +658,7 @@ TEST_OVERRIDES = \
      }}
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_load_config_overrides():
     # cool override file content
     result = load_config(override_file)
