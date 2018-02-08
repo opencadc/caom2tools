@@ -101,7 +101,8 @@ from io import BytesIO
 APP_NAME = 'fits2caom2'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
-           'ObsBlueprint', 'get_cadc_headers']
+           'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
+           'POLARIZATION_CTYPES']
 
 POSITION_CTYPES = [
     ['RA',
@@ -1132,6 +1133,12 @@ class FitsParser(object):
         artifact.content_checksum = _to_checksum_uri(self._get_from_list(
             'Artifact.contentChecksum', index=0,
             current=artifact.content_checksum))
+
+        if self.blueprint.get_configed_axes_count() == 0:
+            self.logger.debug(
+                'No WCS Data. End CAOM2 artifact augmentation for {}.'.format(
+                    artifact.uri))
+            return
 
         for i, header in enumerate(self.headers):
             ii = str(i)
