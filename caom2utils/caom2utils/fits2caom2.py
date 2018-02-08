@@ -102,7 +102,7 @@ APP_NAME = 'fits2caom2'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'ConvertFromJava', 'get_cadc_headers', 'main_app',
-           'update_fits_headers', 'load_config']
+           'update_fits_headers', 'load_config', 'POLARIZATION_CTYPES']
 
 POSITION_CTYPES = [
     ['RA',
@@ -1569,7 +1569,7 @@ class FitsParser(object):
                             '{}: assigned value {} based on keyword {}.'.format(
                                 lookup, value, ii))
                         break
-                except KeyError:
+                except (KeyError, IndexError) as error:
                     self.add_error(lookup, sys.exc_info()[1])
                     # assign a default value, if one exists
                     if keywords[1]:
@@ -1654,7 +1654,7 @@ class FitsParser(object):
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
             if keywords:
-                for k in keywords.split():  # TODO delimitator?
+                for k in keywords.split():  # TODO delimiter?
                     prov.keywords.add(k)
             if inputs:
                 for i in inputs.split():
