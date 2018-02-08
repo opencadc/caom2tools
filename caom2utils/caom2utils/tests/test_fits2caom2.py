@@ -71,8 +71,9 @@ from __future__ import (absolute_import, division, print_function,
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
-from caom2utils import FitsParser, WcsParser, main_app, update_fits_headers
-from caom2utils import load_config, DispatchingFormatter, ObsBlueprint
+from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
+from caom2utils import ObsBlueprint
+from caom2utils.legacy import load_config
 
 from caom2 import ObservationWriter, Observation, Algorithm, obs_reader_writer
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -477,7 +478,6 @@ def test_get_from_list(test_file):
     assert result == ObservationIntentType.SCIENCE
 
 
-#@pytest.mark.xfail(reason='the len(errors) test fails for CompositeObservation.members errors')
 def test_update_fits_headers():
     # The rules for the values:
     # all upper case - a FITS keyword
@@ -498,9 +498,9 @@ def test_update_fits_headers():
     test_blueprint.configure_time_axis(3)
 
     test_parser = FitsParser(src=[hdr1, hdr2, hdr3, hdr4, hdr5, hdr6, hdr7])
-    test_parser.blueprint = test_blueprint
+
     test_uri = 'ad:CFHT/1709071g.fits.gz'
-    update_fits_headers(test_parser, test_uri, config={}, defaults={},
+    update_blueprint(test_blueprint, test_uri, config={}, defaults={},
                         overrides={})
     assert test_parser.blueprint._get('Observation.type') == \
         (['OBSTYPE'], None), 'unmodified blueprint'
@@ -511,13 +511,13 @@ def test_update_fits_headers():
                      'CTYPE4': 'WAVE',
                      'CDELT4': '1.2',
                      'CRVAL4': '32'}
-    update_fits_headers(test_parser, test_uri, config={},
+    update_blueprint(test_blueprint, test_uri, config={},
                         defaults=test_defaults, overrides={})
-    assert test_parser.blueprint._get('Chunk.position.axis.axis1.ctype') == \
+    assert test_blueprint._get('Chunk.position.axis.axis1.ctype') == \
         (['CTYPE1'],'RA---TAN'), 'default value assigned'
-    assert test_parser.blueprint._get('Chunk.position.axis.axis2.ctype') == \
+    assert test_blueprint._get('Chunk.position.axis.axis2.ctype') == \
         (['CTYPE2'],'DEC--TAN'), 'default value assigned'
-    assert test_parser.blueprint._get('Chunk.time.axis.axis.ctype') ==  \
+    assert test_blueprint._get('Chunk.time.axis.axis.ctype') ==  \
         (['CTYPE3'], 'TIME'), 'default value assigned, value all upper case'
 
     # print(test_parser.blueprint)
@@ -530,36 +530,38 @@ def test_update_fits_headers():
                      'provenance.project': 'STANDARD PIPELINE'}
     test_config = load_config(java_config_file)
     test_overrides = load_config(override_file)
-    update_fits_headers(test_parser, test_uri, test_config,
+    update_blueprint(test_blueprint, test_uri, test_config,
                         test_defaults, test_overrides)
-    assert test_parser.blueprint._get('Plane.dataProductType') == \
+    assert test_blueprint._get('Plane.dataProductType') == \
         'image', 'default value assigned to configuration'
-    assert test_parser.blueprint._get('Plane.provenance.producer') == \
+    assert test_blueprint._get('Plane.provenance.producer') == \
         (['ORIGIN'], 'CFHT'), \
         'default value assigned to configuration, all upper-case'
-    assert test_parser.blueprint._get('Plane.provenance.project') == \
+    assert test_blueprint._get('Plane.provenance.project') == \
         (['ADC_ARCH'], 'STANDARD PIPELINE'), \
         'default value assigned to configuration, with white-space'
-    assert test_parser.blueprint._get('Observation.type') == 'OBJECT', \
+    assert test_blueprint._get('Observation.type') == 'OBJECT', \
         'default value over-ridden, value all upper case'
-    assert test_parser.blueprint._get(
+    assert test_blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
         0) == '210.551666667', 'override HDU 0'
-    assert test_parser.blueprint._get(
+    assert test_blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
          1) == '210.551666667',         'override HDU 1'
-    assert test_parser.blueprint._get(
+    assert test_blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
         2) == '210.508333333',         'override HDU 2'
-    assert test_parser.blueprint._get(
+    assert test_blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
         3) == '210.898333333',         'override HDU 3'
-    assert test_parser.blueprint._get(
+    assert test_blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
         4) == '210.942083333',         'override HDU 4'
-    assert test_parser.blueprint._get(
+    assert test_blueprint._get(
         'Chunk.position.axis.function.refCoord.coord1.val',
         5) == '0.000000000', 'override HDU 5'
+
+    test_parser.blueprint = test_blueprint
     assert test_parser._headers[0][
                'CRVAL1'] == 210.551666667, 'override HDU 0'
     assert test_parser._headers[1][

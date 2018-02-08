@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2018.                            (c) 2018.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -71,6 +71,8 @@ import glob
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
+# This function discovers the parameters used to call the
+# test_collections.py: test_differences.
 def pytest_generate_tests(metafunc):
     dirs = glob.glob('{}/*/*/'.format(TESTDATA_DIR))
     if 'directory' in metafunc.fixturenames:

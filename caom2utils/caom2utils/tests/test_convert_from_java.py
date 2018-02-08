@@ -69,7 +69,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from caom2utils import ObsBlueprint, ConvertFromJava, load_config
+from caom2utils import ObsBlueprint
+from caom2utils.legacy import ConvertFromJava, load_config
 
 import os
 import pytest
