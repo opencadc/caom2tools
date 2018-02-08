@@ -102,7 +102,7 @@ APP_NAME = 'fits2caom2'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'ConvertFromJava', 'get_cadc_headers', 'main_app',
-           'update_fits_headers', 'load_config']
+           'update_blueprint', 'load_config']
 
 POSITION_CTYPES = [
     ['RA',
@@ -1106,10 +1106,6 @@ class FitsParser(object):
         one header for each extension or a FITS input file.
         """
         self.logger = logging.getLogger(__name__)
-        if obs_blueprint:
-             self.blueprint = obs_blueprint
-        else:
-             self.blueprint = ObsBlueprint()
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -1123,6 +1119,11 @@ class FitsParser(object):
             hdulist = fits.open(self.file, memmap=True, lazy_load_hdus=False)
             hdulist.close()
             self._headers = [h.header for h in hdulist]
+        if obs_blueprint:
+             self._blueprint = obs_blueprint
+        else:
+             self.blueprint = ObsBlueprint()
+        self.apply_config_to_fits()
 
     @property
     def headers(self):
@@ -1140,6 +1141,7 @@ class FitsParser(object):
     @blueprint.setter
     def blueprint(self, value):
         self._blueprint = value
+        self.apply_config_to_fits()
 
     def add_error(self, key, message):
         self._errors.append(('{} {} {}'.format(
@@ -1330,26 +1332,24 @@ class FitsParser(object):
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
             if key in wcs_std:
-                val = None
                 if not isinstance(value, tuple):
                     # value provided for standard wcs attribute
-                    val = value
-                else:
-                    # alternative attributes provided for standard wcs attribute
-                    for header in self._headers:
-                        for v in value[0]:
-                            if v in header:
-                                val = header[v]
-                                break
-                if val is not None:
                     keywords = wcs_std[key].split(',')
                     for keyword in keywords:
-                        for header in self._headers:
-                            _set_by_type(header, keyword, str(val))
+                        for header in self.headers:
+                            _set_by_type(header, keyword, str(value))
+                else:
+                    # alternative attributes provided for standard wcs attribute
+                    for header in self.headers:
+                        for v in value[0]:
+                            if v in header and v not in wcs_std[key].split(','):
+                                keywords = wcs_std[key].split(',')
+                                for keyword in keywords:
+                                    _set_by_type(header, keyword, str(header[v]))
 
         # apply overrides to the remaining extensions
         for extension in exts:
-            hdr = self._headers[extension]
+            hdr = self.headers[extension]
             for key, value in exts[extension].items():
                 keywords = wcs_std[key].split(',')
                 for keyword in keywords:
@@ -1361,7 +1361,7 @@ class FitsParser(object):
         for key, value in plan.items():
             if isinstance(value, tuple) and value[1]:
                 # there is a default value set
-                for index, header in enumerate(self._headers):
+                for index, header in enumerate(self.headers):
                     for keyword in value[0]:
                         if not header.get(keyword):
                             # apply a default if a value does not already exist
@@ -1372,7 +1372,7 @@ class FitsParser(object):
 
         # TODO wcs in astropy ignores cdelt attributes when it finds a cd
         # attribute even if it's in a different axis
-        for header in self._headers:
+        for header in self.headers:
             cd_present = False
             for i in range(1, 6):
                 if 'CD{0}_{0}'.format(i) in header:
@@ -1384,6 +1384,28 @@ class FitsParser(object):
                             'CD{0}_{0}'.format(i) not in header:
                         header['CD{0}_{0}'.format(i)] = \
                             header['CDELT{}'.format(i)]
+
+        # TODO When a projection is specified, wcslib expects corresponding
+        # DP arguments with NAXES attributes. Normally, omitting the attribute
+        # signals no distorsion which is the assumption in fits2caom2 for
+        # energy and polarization axes. Following is a workaround this for SIP
+        # projections.
+        # For more details see:
+        # http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
+        for header in self.headers:
+            sip = False
+            for i in range(1, 6):
+                if ('CTYPE{}'.format(i) in header) and \
+                        ('-SIP' in header['CTYPE{}'.format(i)]):
+                    sip = True
+                    break
+            if sip:
+                for i in range(1, 6):
+                    if ('CTYPE{}'.format(i) in header) and \
+                            ('-SIP' not in header['CTYPE{}'.format(i)]) and \
+                            ('DP{}'.format(i) not in header):
+                        header['DP{}'.format(i)] = 'NAXES: 1'
+
         return
 
     def _get_algorithm(self, obs):
@@ -2335,26 +2357,26 @@ def _update_axis_info(parser, defaults, overrides, config):
         parser.configure_observable_axis(obs_axis)
 
 
-def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
-                        overrides={}):
+def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
+                     defaults={}, overrides={}):
     """
-    Update the in-memory representation of FITS headers according to defaults
-    and/or overrides as configured by the user.
-    :param parser: access to FITS keywords as type astropy.wcs.Header - a
-    dictionary of FITS keywords, as well as the default parser CONFIG
+    Update an observation blueprint according to defaults and/or overrides as
+    configured by the user.
+    :param obs_blueprint: ObsBlueprint to update
     :param artifact_uri: Where the overrides come from, and where
     to apply them.
     :param config: Input configuration in a dict.
     :param defaults: FITS header and configuration default values in a dict.
     :param overrides: FITS header keyword and configuration default overrides
     in a dict.
-    :return: updated headers
+    :return: String containing error messages. Result is None if no errors
+    encountered.
     """
 
-    _update_axis_info(parser.blueprint, defaults, overrides, config)
+    _update_axis_info(obs_blueprint, defaults, overrides, config)
 
-    convert = ConvertFromJava(parser.blueprint, config)
-
+    convert = ConvertFromJava(obs_blueprint, config)
+    errors = []
     if config:
         logging.debug(
             'Setting user-supplied configuration for {}.'.format(artifact_uri))
@@ -2365,9 +2387,9 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
                     # assume FITS keywords, in the 0th extension,
                     # and add them to the blueprint
                     for caom2_key in convert.get_caom2_elements(key):
-                        parser.blueprint.set_fits_attribute(caom2_key, [value])
+                        obs_blueprint.set_fits_attribute(caom2_key, [value])
             except ValueError:
-                parser.add_error(key, sys.exc_info()[1])
+                errors.append(('{}: {}'.format(key, sys.exc_info()[1])))
         logging.debug(
             'User-supplied configuration applied for {}.'.format(artifact_uri))
 
@@ -2376,11 +2398,11 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
         for key, value in defaults.items():
             try:
                 for caom2_key in convert.get_caom2_elements(key):
-                    parser.blueprint.set_default(caom2_key, value)
+                    obs_blueprint.set_default(caom2_key, value)
                     logging.debug(
                         '{} setting default value to {}'.format(caom2_key, value))
             except ValueError:
-                parser.add_error(key, sys.exc_info()[1])
+                errors.append('{}: {}'.format(key, sys.exc_info()[1]))
         logging.debug('Defaults set for {}.'.format(artifact_uri))
 
     if overrides:
@@ -2401,23 +2423,26 @@ def update_fits_headers(parser, artifact_uri=None, config=None, defaults={},
                             continue
                         try:
                             for caom2_key in convert.get_caom2_elements(ext_key):
-                                parser.blueprint.set(caom2_key, ext_value,
+                                obs_blueprint.set(caom2_key, ext_value,
                                                      extension)
                                 logging.debug(
                                     '{} set override value to {} in extension {}.'.
                                         format(caom2_key, ext_value, extension))
                         except ValueError:
-                            parser.add_error(key, 'ext {} {}'.format(
-                                extension, sys.exc_info()[1]))
+                            errors.append('{}: ext {} {}'.format(
+                                key, extension, sys.exc_info()[1]))
             else:
                 try:
                     for caom2_key in convert.get_caom2_elements(key):
-                        parser.blueprint.set(caom2_key, value)
+                        obs_blueprint.set(caom2_key, value)
                 except ValueError:
-                    parser.add_error(key, sys.exc_info()[1])
+                    errors.append('{}: {}'.format(key, sys.exc_info()[1]))
         logging.debug('Overrides set for {}.'.format(artifact_uri))
 
-        parser.apply_config_to_fits()
+        if errors:
+            return '\n'.join(errors)
+        else:
+            return None
 
 
 def _set_by_type(header, keyword, value):
@@ -2506,7 +2531,7 @@ def _update_cadc_artifact(artifact, cert):
                  artifact.content_type))
 
 
-def main_app(obs_blueprint=None):
+def main_app():
     parser = argparse.ArgumentParser()
 
     parser.description = (
@@ -2644,10 +2669,15 @@ def main_app(obs_blueprint=None):
 
     plane = obs.planes[args.productID]
 
-    if not obs_blueprint:
-        obs_blueprint = {}
-        for i, uri in enumerate(args.fileURI):
-            obs_blueprint[uri] = ObsBlueprint()
+    obs_blueprint = {}
+    for i, uri in enumerate(args.fileURI):
+        obs_blueprint[uri] = ObsBlueprint()
+        if config:
+            result = update_blueprint(obs_blueprint[uri], uri,
+                                      config, defaults, overrides)
+            if result:
+                logging.warning(
+                    'Errors parsing the config files: {}'.format(result))
 
     for i, uri in enumerate(args.fileURI):
         if args.local:
@@ -2661,8 +2691,8 @@ def main_app(obs_blueprint=None):
                 parser = FitsParser(file)
             else:
                 # assume headers file
-                parser = FitsParser(get_cadc_headers('file://{}'.format(file)))
-            parser.blueprint = obs_blueprint[uri]
+                parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
+                                    obs_blueprint[uri])
         else:
             headers = get_cadc_headers(uri, args.cert)
 
@@ -2671,12 +2701,10 @@ def main_app(obs_blueprint=None):
                     Artifact(uri=str(uri),
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            parser = FitsParser(headers)
-            parser.blueprint = obs_blueprint[uri]
+            parser = FitsParser(headers, obs_blueprint[uri])
 
         _update_cadc_artifact(plane.artifacts[uri], args.cert)
-        if config:
-            update_fits_headers(parser, uri, config, defaults, overrides)
+
         if args.dumpconfig:
             _dump_config(parser, uri)
 
