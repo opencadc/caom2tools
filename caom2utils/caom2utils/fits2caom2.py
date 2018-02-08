@@ -1205,6 +1205,10 @@ class FitsParser(object):
         assert observation
         assert isinstance(observation, Observation)
 
+        members = self._get_members(observation)
+        if members:
+            for m in members.split():
+                observation.members.add(ObservationURI(m))
         observation.algorithm = self._get_algorithm(observation)
 
         observation.sequence_number = _to_int(self._get_from_list(
@@ -1367,6 +1371,25 @@ class FitsParser(object):
                         header['DP{}'.format(i)] = 'NAXES: 1'
 
         return
+
+    def _get_members(self, obs):
+        """
+        Returns the members of a composite observation (if specified)
+        :param obs: observation to augment
+        :return: members value
+        """
+        members = None
+        self.logger.debug('Begin CAOM2 Members augmentation.')
+        if isinstance(obs, SimpleObservation) and \
+            self.blueprint._get('CompositeObservation.members'):
+            raise TypeError(
+                ('Cannot apply blueprint for CompositeObservation to a '
+                 'simple observation'))
+        elif isinstance(obs, CompositeObservation):
+            members = self._get_from_list('CompositeObservation.members',
+                                          index=0, current=obs.members)
+        self.logger.debug('End CAOM2 members augmentation.')
+        return members
 
     def _get_algorithm(self, obs):
         """
@@ -2265,3 +2288,171 @@ def _update_cadc_artifact(artifact, cert):
                  artifact.content_checksum,
                  artifact.content_length,
                  artifact.content_type))
+
+
+def get_arg_parser():
+    """
+    Returns the arg parser with minimum arguments required to run
+    fits2caom2
+    :return: args parser
+    """
+
+    parser = argparse.ArgumentParser()
+
+    parser.description = (
+        'Augments an observation with information in one or more fits files.')
+
+    if version.version is not None:
+        parser.add_argument('-V', '--version', action='version',
+                            version=version)
+
+    log_group = parser.add_mutually_exclusive_group()
+    log_group.add_argument('-d', '--debug', action='store_true',
+                           help='debug messages')
+    log_group.add_argument('-q', '--quiet', action='store_true',
+                           help='run quietly')
+    log_group.add_argument('-v', '--verbose', action='store_true',
+                           help='verbose messages')
+
+    parser.add_argument('--dumpconfig', action='store_true',
+                        help=('output the utype to keyword mapping to '
+                              'the console'))
+
+    parser.add_argument('--ignorePartialWCS', action='store_true',
+                        help='do not stop and exit upon finding partial WCS')
+
+    parser.add_argument('-o', '--out', dest='out_obs_xml',
+                        type=argparse.FileType('wb'),
+                        help='output of augmented observation in XML',
+                        required=False)
+
+    in_group = parser.add_mutually_exclusive_group(required=True)
+    in_group.add_argument('-i', '--in', dest='in_obs_xml',
+                          type=argparse.FileType('r'),
+                          help='input of observation to be augmented in XML')
+    in_group.add_argument('--observation', nargs=2,
+                          help='observation in a collection',
+                          metavar=('collection', 'observationID'))
+    parser.add_argument('--local', nargs='+',
+                        help=('list of files in local filesystem (same order '
+                              'as uri)'))
+    parser.add_argument('--log', help='log file name > (instead of console)')
+    parser.add_argument('--keep', action='store_true',
+                        help='keep the locally stored files after ingestion')
+    parser.add_argument('--test', action='store_true',
+                        help='test mode, do not persist to database')
+    parser.add_argument('--cert', help='Proxy Cert&Key PEM file')
+
+    parser.add_argument('productID',
+                        help='product ID of the plane in the observation')
+    parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
+    return parser
+
+
+def proc(args, obs_blueprints):
+    """
+    Function to process an observation according to command line arguments
+    and a dictionary of blueprints
+    :param args: argparse args object containing the user supplied arguments.
+    Arguments correspond to the parser returned by the get_arg_parser function
+    :param obs_blueprints: dictionary of blueprints reguired to process the
+    observation. The fileURIs represent the keys in this dictionary. Every
+    fileURI in args.fileURI should have a corresponding blueprint.
+    :return:
+    """
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    elif args.debug:
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    elif args.quiet:
+        logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
+    else:
+        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(DispatchingFormatter({
+        'caom2utils.fits2caom2.WcsParser': logging.Formatter(
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s'),
+        'astropy': logging.Formatter(
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
+    },
+        logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
+    ))
+    logging.getLogger().addHandler(handler)
+
+    if args.local and (len(args.local) != len(args.fileURI)):
+        msg = ('number of local arguments not the same with file '
+                          'URIs ({} vs {})').format(len(args.local),
+                                                    args.fileURI)
+        raise RuntimeError(msg)
+
+    obs = None
+    if args.in_obs_xml:
+        # append to existing observation
+        reader = ObservationReader(validate=True)
+        obs = reader.read(args.in_obs_xml)
+    else:
+        # determine the type of observation to create by looking for the
+        # the CompositeObservation.members in the blueprints. If present
+        # in any of it assume composite
+        for bp in obs_blueprints.values():
+            if bp._get('CompositeObservation.members'):
+                obs = CompositeObservation(collection=args.observation[0],
+                                           observation_id=args.observation[1],
+                                           algorithm=Algorithm('EXPOSURE'))
+                break
+    if not obs:
+        # build a simple observation
+        obs = SimpleObservation(collection=args.observation[0],
+                                observation_id=args.observation[1],
+                                algorithm=Algorithm('EXPOSURE'))  # TODO
+
+    if args.productID not in obs.planes.keys():
+        obs.planes.add(Plane(product_id=str(args.productID)))
+
+    plane = obs.planes[args.productID]
+
+    for i, uri in enumerate(args.fileURI):
+        if args.local:
+            file = args.local[i]
+            if uri not in plane.artifacts.keys():
+                plane.artifacts.add(
+                    Artifact(uri=uri,
+                             product_type=ProductType.SCIENCE,
+                             release_type=ReleaseType.DATA))
+            if file.endswith('.fits'):
+                parser = FitsParser(file)
+            else:
+                # assume headers file
+                parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
+                                    obs_blueprints[uri])
+        else:
+            headers = get_cadc_headers(uri, args.cert)
+
+            if uri not in plane.artifacts.keys():
+                plane.artifacts.add(
+                    Artifact(uri=str(uri),
+                             product_type=ProductType.SCIENCE,
+                             release_type=ReleaseType.DATA))
+            parser = FitsParser(headers, obs_blueprints[uri])
+
+        _update_cadc_artifact(plane.artifacts[uri], args.cert)
+
+        if args.dumpconfig:
+            print('Blueprint for {}: {}'.format(uri, obs_blueprints[uri]))
+
+        parser.augment_observation(observation=obs, artifact_uri=uri,
+                                   product_id=plane.product_id)
+
+        if len(parser._errors) > 0:
+            logging.warning(
+                '{} errors encountered while processing {!r}.'.format(
+                    len(parser._errors), uri))
+
+    writer = ObservationWriter()
+    if args.out_obs_xml:
+        writer.write(obs, args.out_obs_xml)
+    else:
+        sys.stdout.flush()
+        writer.write(obs, sys.stdout)

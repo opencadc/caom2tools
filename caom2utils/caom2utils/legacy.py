@@ -351,43 +351,9 @@ def _dump_config(parser, uri):
 
 
 def main_app():
-    parser = argparse.ArgumentParser()
+    parser = fits2caom2.get_arg_parser()
 
-    parser.description = (
-        'Augments an observation with information in one or more fits files.')
-
-    if version.version is not None:
-        parser.add_argument('-V', '--version', action='version',
-                            version=version)
-
-    log_group = parser.add_mutually_exclusive_group()
-    log_group.add_argument('-d', '--debug', action='store_true',
-                           help='debug messages')
-    log_group.add_argument('-q', '--quiet', action='store_true',
-                           help='run quietly')
-    log_group.add_argument('-v', '--verbose', action='store_true',
-                           help='verbose messages')
-
-    parser.add_argument('--dumpconfig', action='store_true',
-                        help=('output the utype to keyword mapping to '
-                              'the console'))
-
-    parser.add_argument('--ignorePartialWCS', action='store_true',
-                        help='do not stop and exit upon finding partial WCS')
-
-    parser.add_argument('-o', '--out', dest='out_obs_xml',
-                        type=argparse.FileType('wb'),
-                        help='output of augmented observation in XML',
-                        required=False)
-
-    in_group = parser.add_mutually_exclusive_group(required=True)
-    in_group.add_argument('-i', '--in', dest='in_obs_xml',
-                          type=argparse.FileType('r'),
-                          help='input of observation to be augmented in XML')
-    in_group.add_argument('--observation', nargs=2,
-                          help='observation in a collection',
-                          metavar=('collection', 'observationID'))
-
+    # add legacy fits2caom2 arguments
     parser.add_argument('--config', required=False,
                         help=('optional CAOM2 utype to keyword config file to '
                               'merge with the internal configuration'))
@@ -396,19 +362,6 @@ def main_app():
                         help='file with default values for keywords')
     parser.add_argument('--override',
                         help='file with override values for keywords')
-    parser.add_argument('--local', nargs='+',
-                        help=('list of files in local filesystem (same order '
-                              'as uri)'))
-    parser.add_argument('--log', help='log file name > (instead of console)')
-    parser.add_argument('--keep', action='store_true',
-                        help='keep the locally stored files after ingestion')
-    parser.add_argument('--test', action='store_true',
-                        help='test mode, do not persist to database')
-    parser.add_argument('--cert', help='Proxy Cert&Key PEM file')
-
-    parser.add_argument('productID',
-                        help='product ID of the plane in the observation')
-    parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
 
     if len(sys.argv) < 2:
         # correct error message when running python3
@@ -417,31 +370,6 @@ def main_app():
         sys.exit(-1)
 
     args = parser.parse_args()
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    elif args.debug:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    elif args.quiet:
-        logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
-    else:
-        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
-
-    handler = logging.StreamHandler()
-    handler.setFormatter(fits2caom2.DispatchingFormatter({
-        'caom2utils.fits2caom2.WcsParser': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s'),
-        'astropy': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
-    },
-        logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
-    ))
-    logging.getLogger().addHandler(handler)
-
-    if args.local and (len(args.local) != len(args.fileURI)):
-        sys.stderr.write(('number of local arguments not the same with file '
-                          'URIs ({} vs {})').format(len(args.local),
-                                                    args.fileURI))
-        sys.exit(-1)
 
     config = None
     if args.config:
@@ -458,36 +386,6 @@ def main_app():
         overrides = load_config(args.override)
         logging.debug('Apply overrides from {}.'.format(args.override))
 
-    # invoke the appropriate function based on the inputs
-    if args.in_obs_xml:
-        # append to existing observation
-        reader = ObservationReader(validate=True)
-        obs = reader.read(args.in_obs_xml)
-    else:
-        if config and 'CompositeObservation.members' in config and \
-            ((defaults and config['CompositeObservation.members'] in defaults) or
-             (overrides and config['CompositeObservation.members'] in overrides)):
-            # build a composity observation
-            obs = CompositeObservation(collection=args.observation[0],
-                                       observation_id=args.observation[1],
-                                       algorithm=Algorithm('EXPOSURE'))  # TODO
-            if defaults and config['CompositeObservation.members'] in defaults:
-                for member in defaults[config['CompositeObservation.members']].split():
-                    obs.members.add(member)
-            if overrides and config['CompositeObservation.members'] in overrides:
-                for member in overrides[config['CompositeObservation.members']].split():
-                    obs.members.add(ObservationURI(member))
-        else:
-            # build a simple observation
-            obs = SimpleObservation(collection=args.observation[0],
-                                    observation_id=args.observation[1],
-                                    algorithm=Algorithm('EXPOSURE'))  # TODO
-
-    if args.productID not in obs.planes.keys():
-        obs.planes.add(Plane(product_id=str(args.productID)))
-
-    plane = obs.planes[args.productID]
-
     obs_blueprint = {}
     for i, uri in enumerate(args.fileURI):
         obs_blueprint[uri] = fits2caom2.ObsBlueprint()
@@ -498,48 +396,10 @@ def main_app():
                 logging.warning(
                     'Errors parsing the config files: {}'.format(result))
 
-    for i, uri in enumerate(args.fileURI):
-        if args.local:
-            file = args.local[i]
-            if uri not in plane.artifacts.keys():
-                plane.artifacts.add(
-                    Artifact(uri=uri,
-                             product_type=ProductType.SCIENCE,
-                             release_type=ReleaseType.DATA))
-            if file.endswith('.fits'):
-                parser = fits2caom2.FitsParser(file)
-            else:
-                # assume headers file
-                parser = fits2caom2.FitsParser(fits2caom2.get_cadc_headers('file://{}'.format(file)),
-                                    obs_blueprint[uri])
-        else:
-            headers = fits2caom2.get_cadc_headers(uri, args.cert)
-
-            if uri not in plane.artifacts.keys():
-                plane.artifacts.add(
-                    Artifact(uri=str(uri),
-                             product_type=ProductType.SCIENCE,
-                             release_type=ReleaseType.DATA))
-            parser = fits2caom2.FitsParser(headers, obs_blueprint[uri])
-
-        fits2caom2._update_cadc_artifact(plane.artifacts[uri], args.cert)
-
-        if args.dumpconfig:
-            _dump_config(parser, uri)
-
-        parser.augment_observation(observation=obs, artifact_uri=uri,
-                                   product_id=plane.product_id)
-
-        if len(parser._errors) > 0:
-            logging.warning(
-                '{} errors encountered while processing {!r}.'.format(
-                    len(parser._errors), uri))
-
-    writer = ObservationWriter()
-    if args.out_obs_xml:
-        writer.write(obs, args.out_obs_xml)
-    else:
-        sys.stdout.flush()
-        writer.write(obs, sys.stdout)
+    try:
+        fits2caom2.proc(args, obs_blueprint)
+    except Exception as e:
+        logging.error(e.message)
+        sys.exit(-1)
 
     logging.info("DONE")
