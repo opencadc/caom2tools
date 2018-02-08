@@ -69,7 +69,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from caom2utils import fits2caom2
+from caom2utils import legacy
 from caom2 import ObservationReader
 from caom2.diff import get_differences
 
@@ -81,9 +81,6 @@ import tempfile
 from mock import patch, Mock
 from six.moves.urllib.parse import urlparse
 import six
-import traceback
-
-import pytest
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -96,12 +93,12 @@ def raise_exit_error():
 @patch('sys.exit', Mock(side_effect=ImportError))
 def test_differences(directory):
     """
-    Note: This tests is parametrized from conftest.py file.
+    Note: This tests is parametrized from conftest.py file. Directories
+    of the form TESTDATA_DIR/*/* become parameters to this test.
     This test assumes a directory contains the config, default,
     override, input FITS files (*.header) and expected observation (*.xml)
     files
     """
-    #data_client_mock = patch('caom2utils.fits2caom2.CadcDataClient')
     expected_fname = _get_file('xml', directory)
     assert expected_fname
     assert len(expected_fname) == 1
@@ -134,7 +131,7 @@ def test_differences(directory):
                     config, defaults, overrides, product_id,
                     ' '.join(file_meta[0]))).split()
         print(sys.argv)
-        fits2caom2.main_app()
+        legacy.main_app()
     actual = _read_observation(temp.name)  # actual observation
     _compare_observations(expected, actual, directory)
 

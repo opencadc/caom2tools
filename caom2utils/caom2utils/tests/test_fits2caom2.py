@@ -72,7 +72,8 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
-from caom2utils import load_config, DispatchingFormatter, ObsBlueprint
+from caom2utils import ObsBlueprint
+from caom2utils.legacy import load_config
 
 from caom2 import ObservationWriter, Observation, Algorithm, obs_reader_writer
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
