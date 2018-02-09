@@ -202,11 +202,11 @@ def _get_sequence_differences(expected, actual, parent):
     """Reports on how two sequences are different."""
     report = []
     if not expected and actual:
-        report.extend('Sequence:: {} not expected'.format(parent))
+        report.append('Sequence:: {} not expected'.format(parent))
         return report
 
     if expected and not actual:
-        report.extend('Sequence:: {} not found'.format(parent))
+        report.append('Sequence:: {} not found'.format(parent))
         return report
 
     if not expected and not actual:

@@ -2417,12 +2417,18 @@ def proc(args, obs_blueprints):
                                 observation_id=args.observation[1],
                                 algorithm=Algorithm('EXPOSURE'))  # TODO
 
-    if args.productID not in obs.planes.keys():
-        obs.planes.add(Plane(product_id=str(args.productID)))
-
-    plane = obs.planes[args.productID]
-
     for i, uri in enumerate(args.fileURI):
+        blueprint = obs_blueprints[uri]
+        # override the command-line argument for the plane product ID value
+        product_id = blueprint._get('Plane.productID')
+        if product_id is None or isinstance(product_id, tuple):
+            product_id = args.productID
+
+        if product_id not in obs.planes.keys():
+            obs.planes.add(Plane(product_id=str(product_id)))
+
+        plane = obs.planes[product_id]
+
         if args.local:
             file = args.local[i]
             if uri not in plane.artifacts.keys():
@@ -2435,7 +2441,7 @@ def proc(args, obs_blueprints):
             else:
                 # assume headers file
                 parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
-                                    obs_blueprints[uri])
+                                    blueprint)
         else:
             headers = get_cadc_headers(uri, args.cert)
 
@@ -2444,12 +2450,12 @@ def proc(args, obs_blueprints):
                     Artifact(uri=str(uri),
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            parser = FitsParser(headers, obs_blueprints[uri])
+            parser = FitsParser(headers, blueprint)
 
         _update_cadc_artifact(plane.artifacts[uri], args.cert)
 
         if args.dumpconfig:
-            print('Blueprint for {}: {}'.format(uri, obs_blueprints[uri]))
+            print('Blueprint for {}: {}'.format(uri, blueprint))
 
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
