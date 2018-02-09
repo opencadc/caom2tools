@@ -104,6 +104,10 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(chunk.ProductType.WEIGHT.value, "weight")
         self.assertEqual(chunk.ProductType.AUXILIARY.value, "auxiliary")
         self.assertEqual(chunk.ProductType.THUMBNAIL.value, "thumbnail")
+        self.assertEqual(chunk.ProductType.BIAS.value, "bias")
+        self.assertEqual(chunk.ProductType.DARK.value, "dark")
+        self.assertEqual(chunk.ProductType.FLAT.value, "flat")
+        self.assertEqual(chunk.ProductType.WAVECAL.value, "wavecal")
 
 
 class TestChunk(unittest.TestCase):

@@ -2,7 +2,8 @@ usage: caom2-repo visit [-h]
                         [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                         [--host HOST] [--resource-id RESOURCE_ID]
                         [-d | -q | -v] --plugin PLUGIN [--start START]
-                        [--end END] [--halt-on-error]
+                        [--end END] [--obs_file OBS_FILE]
+                        [--threads {2,3,4,5,6,7,8,9}] [--halt-on-error]
                         collection
 
 Visit observations in a collection
@@ -24,6 +25,7 @@ optional arguments:
   -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
+  --obs_file OBS_FILE   file containing observations to be visited
   --plugin PLUGIN       plugin class to update each observation
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
@@ -31,6 +33,9 @@ optional arguments:
                         ivo://cadc.nrc.ca/caom2repo)
   --start START         earliest observation to visit (UTC IVOA format: YYYY-
                         mm-ddTH:M:S)
+  --threads {2,3,4,5,6,7,8,9}
+                        number of working threads used by the visitor when
+                        getting observations, range is 2 to 10
   -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages

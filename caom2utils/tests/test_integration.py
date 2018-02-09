@@ -1,5 +1,4 @@
-#!/usr/bin/env python2.7
-# # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,16 +66,85 @@
 #
 # ***********************************************************************
 #
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-from caom2.observation import Observation
+from astropy.io import fits
+from astropy.wcs import WCS as awcs
+from caom2utils import FitsParser, WcsParser, main_app
+
+from caom2 import ObservationWriter
+from caom2 import Artifact, ProductType, ReleaseType
+from lxml import etree
+
+from mock import Mock, patch
+from six import StringIO
+from caom2utils import fits2caom2
+
+from io import BytesIO
+import os
+import sys
+import tempfile
+import re
+
+import pytest
+
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+expected_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps.xml')
+expected_local_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps_local.xml')
+sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
+sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
+
+def test_fits2caom2():
+    # test fits2caom2 on a known existing CGPS file
+    expected = open(expected_cgps_obs).read()
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+        sys.argv = ('fits2caom2 --observation TEST myOBS myplane '
+                    'ad:CGPS/CGPS_MA1_HI_line_image').split()
+        fits2caom2.main_app()
+    actual = stdout_mock.getvalue().decode('ascii')
+    _cmp(expected, actual)
+
+    # repeat the test when the observation is saved
+    temp = tempfile.NamedTemporaryFile();
+    sys.argv = ('fits2caom2 --observation TEST myOBS -o {} myplane '
+                'ad:CGPS/CGPS_MA1_HI_line_image'.format(temp.name)).split()
+    fits2caom2.main_app()
+
+    actual = open(temp.name).read()
+    _cmp(expected, actual)
+
+    # test fits2caom2 on a known existing but now local CGPS file
+    expected = open(expected_local_cgps_obs).read()
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+        sys.argv = ('fits2caom2 --local {} --observation TEST myOBS myplane '
+                    'ad:CGPS/CGPS_MA1_HI_line_image').format(
+            sample_file_4axes).split()
+        fits2caom2.main_app()
+    actual = stdout_mock.getvalue().decode('ascii')
+    _cmp(expected, actual)
+
+    # repeat the test when the observation is saved
+    temp = tempfile.NamedTemporaryFile();
+    sys.argv = ('fits2caom2 --observation TEST myOBS --local {} -o {} myplane '
+                'ad:CGPS/CGPS_MA1_HI_line_image'.format(
+        sample_file_4axes, temp.name)).split()
+    fits2caom2.main_app()
+
+    actual = open(temp.name).read()
+    _cmp(expected, actual)
 
 
-class ObservationUpdater(object):
-    """Plugin that does not update the observation"""
+def _cmp(expected_obs_xml, actual_obs_xml):
+    """
+    Textual comparison of the xml representation of 2 observations ignoring
+    the UUIDs.
+    :param expected_obs_xml:
+    :param actual_obs_xml:
+    :return:
+    """
+    expected = re.sub(r'caom2:id=".*"', 'caom2:id=""', expected_obs_xml)
+    actual = re.sub(r'caom2:id=".*"', 'caom2:id=""', actual_obs_xml)
 
-    def update(self, observation, **kwargs):
-        """
-        Processes an observation and updates it
-        """
-        assert isinstance(observation, Observation), (
-            "observation {} is not an Observation".format(observation))
+    assert expected == actual

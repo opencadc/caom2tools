@@ -1,0 +1,10 @@
+usage: fits2caom2 [-h] [-V] [-d | -q | -v] [--dumpconfig] [--ignorePartialWCS]
+                  [-o OUT_OBS_XML]
+                  (-i IN_OBS_XML | --observation collection observationID)
+                  [--config CONFIG] [--default DEFAULT] [--override OVERRIDE]
+                  [--local LOCAL [LOCAL ...]] [--log LOG] [--keep] [--test]
+                  [--cert CERT]
+                  productID fileURI [fileURI ...]
+fits2caom2: error: too few arguments
+
+
