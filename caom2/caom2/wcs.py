@@ -941,9 +941,9 @@ class Slice(common.CaomObject):
 
     """
 
-    def __init__(self, axis, bin_):
+    def __init__(self, axis, bin):
         self.axis = axis
-        self.bin = bin_
+        self.bin = bin
 
     @property
     def axis(self):

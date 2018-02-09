@@ -1,0 +1,23 @@
+FROM python:3.6.3-jessie
+
+WORKDIR /usr/src/app
+
+COPY ./docker-entrypoint.sh ./
+COPY ./caom2 ./caom2/
+COPY ./caom2utils ./caom2utils/
+
+COPY ./caom2utils/dev_requirements.txt dev_requirements.txt
+RUN pip install --no-cache-dir -r dev_requirements.txt
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
+
+# dev_requirements looks like this:
+#
+#-e ./caom2
+#-e ./caom2utils
+#pytest==3.0.0
+#pytest-cov>=2.5.1
+#flake8>=3.4.1
+#funcsigs==1.0.2
+#mock==2.0.0
+#xml-compare==1.0.5

@@ -1,0 +1,1 @@
+fits2caom2 --out=inout/2087482o/2087482o.xml --collection=CFHT --observationID=2087482 --productID=2087482o --uri=ad:CFHT/2087482o.fits.fz --config=inout/2087482o/2087482o.config --default=inout/2087482o/caom2megacam.default --override=inout/2087482o/2087482o.override -n  --local=2087482o.fits.fz --ignorePartialWCS'

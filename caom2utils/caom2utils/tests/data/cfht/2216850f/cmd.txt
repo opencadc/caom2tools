@@ -1,0 +1,1 @@
+fits2caom2 --out=inout/2216850f/2216850f.xml --collection=CFHT --observationID=2216850 --productID=2216850f --uri=ad:CFHT/2216850f.fits.gz --config=inout/2216850f/2216850f.config --default=inout/2216850f/caom2espadons.default --override=inout/2216850f/2216850f.override -n --local=2216850f.fits.gz --ignorePartialWCS

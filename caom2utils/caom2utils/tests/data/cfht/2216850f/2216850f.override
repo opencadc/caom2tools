@@ -1,0 +1,26 @@
+
+algorithm.name = exposure
+sequenceNumber= 2216850
+obs.intent = calibration
+observation.type =  FLAT
+target.standard = false
+proposal.project =  
+proposal.title =  
+plane.calibrationLevel = 1
+plane.dataRelease = 2017-11-05T00:00:00
+artifact.productType = calibration
+artifact.contentChecksum = md5:6b166e52dc8618ddb7a9ad2b175641b2
+WCSAXES =         5
+CRPIX1 =       0.500000000000
+CRVAL1 =         370.000000000000
+CDELT1 =       0.003176400000
+NAXIS1 = 1
+resolvingPower = 65000
+time.resolution=       2.000000000000
+time.exposure=       2.000000000000
+CRVAL5 = 58062.0407733
+CRPIX5 = 0.5
+CDELT5 = 2.31481481481e-05
+NAXIS5 = 1
+CTYPE2 = observable
+

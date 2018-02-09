@@ -1,0 +1,1 @@
+fits2caom2 --out=inout/2136164p/2136164p.xml --collection=CFHT --observationID=2136164p --productID=2136164p --uri=ad:CFHT/2136164p.fits --config=inout/2136164p/2136164p.config --default=inout/2136164p/caom2sitelle.default --override=inout/2136164p/2136164p.override -n --local=2136164p.fits.fz --ignorePartialWCS

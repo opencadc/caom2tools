@@ -88,6 +88,7 @@ from datetime import datetime
 import six
 from builtins import bytes, int
 
+
 __all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
 
 # TODO both these are very bad, implement more sensibly

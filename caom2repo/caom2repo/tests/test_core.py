@@ -223,7 +223,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status_code = 503
         http_error.response = response
         response.raise_for_status.side_effect = [http_error, None]
-        visitor.get_observation(collection, observation_id)
+        visitor.read(collection, observation_id)
 
         # permanent transient errors
         http_error = requests.HTTPError()
@@ -331,7 +331,7 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(exceptions.InternalServerException):
-            visitor.post_observation(obs)
+            visitor.update(obs)
 
         # temporary transient errors
         http_error = requests.HTTPError()
@@ -392,7 +392,7 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(exceptions.InternalServerException):
-            visitor.put_observation(obs)
+            visitor.create(obs)
 
         # temporary transient errors
         http_error = requests.HTTPError()
@@ -439,7 +439,7 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(exceptions.InternalServerException):
-            visitor.delete_observation(collection, observation_id)
+            visitor.delete(collection, observation_id)
 
         # temporary transient errors
         http_error = requests.HTTPError()
