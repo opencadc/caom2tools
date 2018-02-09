@@ -2,7 +2,7 @@
 Caom2Repo
 =========
 
-.. image:: https://img.shields.io/pypi/v/caom2repo.svg   
+.. image:: https://img.shields.io/pypi/v/caom2repo.svg
     :target: https://pypi.python.org/pypi/caom2repo
 
 Client caom2-repo
