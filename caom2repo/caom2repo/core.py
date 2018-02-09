@@ -215,6 +215,8 @@ class CAOM2RepoClient(object):
         Creates an observation in the repo.
         :param observation: Observation to create
         :return: Created observation
+        :raises: cadcutils.exceptions.AlreadyExistsException and possibly other
+        cadcutils.exceptions
         """
         self.put_observation(observation)
 
@@ -224,15 +226,18 @@ class CAOM2RepoClient(object):
         :param collection: Name of the collection
         :param observation_id: Observation identifier
         :return: Observation
-        :raises: cadcutils.exceptions.NotFoundException
+        :raises: cadcutils.exceptions.NotFoundException and possibly
+        other cadcutils.exceptions
         """
-        self.get_observation(collection, observation_id)
+        return self.get_observation(collection, observation_id)
 
     def update(self, observation):
         """
         Update an observation in the repo
         :param observation: Observation to update
         :return: Updated observation
+        :raises: cadcutils.exceptions.NotFoundException and possibly
+        other cadcutils.exceptions
         """
         self.post_observation(observation)
 
@@ -241,7 +246,10 @@ class CAOM2RepoClient(object):
         Delete an observation from the repo
         :param collection: Name of the collection
         :param observation_id: Observation identifier
+        :raises: cadcutils.exceptions.NotFoundException and possibly
+        other cadcutils.exceptions
         """
+        from cadcutils import exceptions
         self.delete_observation(collection, observation_id)
 
     def visit(self, plugin, collection, start=None, end=None, obs_file=None,
