@@ -307,18 +307,18 @@ class Caom2TestInstances(object):
 
         if self.caom_version >= 23:
             v0 = shape.Vertex(0.0, 0.0, shape.SegmentType.MOVE)
-            v1 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
+            v1 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
             v2 = shape.Vertex(2.0, 3.0, shape.SegmentType.LINE)
-            v3 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
+            v3 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
             v4 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
             vl = [v0, v1, v2, v3, v4]
 
             samples = shape.MultiPolygon(vertices=vl)
 
             p1 = shape.Point(0.0, 0.0)
-            p2 = shape.Point(1.0, 2.0)
+            p2 = shape.Point(3.0, 4.0)
             p3 = shape.Point(2.0, 3.0)
-            p4 = shape.Point(3.0, 4.0)
+            p4 = shape.Point(1.0, 2.0)
             p = [p1, p2, p3, p4]
             polygon = shape.Polygon(points=p, samples=samples)
 

@@ -72,6 +72,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import math
 
+import numpy as np
+from spherical_geometry import polygon
 from aenum import Enum
 
 from caom2.caom_util import int_32
@@ -355,10 +357,13 @@ class Point(common.CaomObject):
 
 class Polygon(common.CaomObject):
     def __init__(self, points=None, samples=None):
-        if not points:
+        if points is None:
             self._points = []
         else:
             self._points = points
+            self.validate()
+        if samples is not None:
+            samples.validate()
         self.samples = samples
 
     # Properties
@@ -384,13 +389,48 @@ class Polygon(common.CaomObject):
                                  override=False)
         self._samples = value
 
+    def validate(self):
+        """
+        Performs a polygon closure and self segment intersection validation of the current object.
+
+        for a closed polygon, we must have:
+            points[0].cval1 == points[-1].cval1
+            points[0].cval2 == points[-1].cval2
+
+        An AssertionError is thrown when the object does not represent a polygon
+        """
+        if len(self._points) < 3:
+            # points in a polygon is not required to form a closed polygon, hence min 3 points
+            raise AssertionError('invalid polygon: {} points (min 3)'.format(
+                len(self._points)))
+
+        cval1s = []
+        cval2s = []
+        for i in range(len(self._points)):
+            cval1s.append(self._points[i].cval1)
+            cval2s.append(self._points[i].cval2)
+        if (cval1s[-1] == 0) and (cval2s[-1] == 0):
+            # (0,0) represents the last point in a closed polygon
+            # SphericalPolygon requires point[0] == point[-1] for a closed polygon
+            cval1s[-1] = cval1s[0]
+            cval2s[-1] = cval2s[0]
+        elif (cval1s[-1] != cval1s[0]) or (cval2s[-1] != cval2s[0]):
+            cval1s.append(self._points[0].cval1)
+            cval2s.append(self._points[0].cval2)
+
+        # use SphericalPolygon to validate our polygon
+        spolygon = polygon.SphericalPolygon.from_radec(cval1s,cval2s)
+        MultiPolygon().validate_self_intersection(spolygon)
+        lon, lat = spolygon.to_lonlat().next()
+        MultiPolygon().validate_is_clockwise(cval1s, lon)
 
 class MultiPolygon(common.CaomObject):
     def __init__(self, vertices=None):
-        if not vertices:
+        if vertices is None:
             self._vertices = []
         else:
             self._vertices = vertices
+            self.validate()
 
     # Properties
 
@@ -403,30 +443,40 @@ class MultiPolygon(common.CaomObject):
 
     def validate(self):
         """
-        Performs a basic calidation of the current object.
-
-        TODO: check the clockwise direction
+        Performs a basic validation of the current object.
 
         An AssertionError is thrown when the object does not represent a
         multi polygon
         """
-        if not self.vertices:
-            raise AssertionError('invalid polygon: no vertices')
         lines = 0
         if len(self._vertices) < 4:
             # triangle
             raise AssertionError('invalid polygon: {} vertices (min 4)'.format(
                 len(self._vertices)))
 
+        if self._vertices[0].type != SegmentType.MOVE:
+            raise AssertionError(
+                'invalid polygon: first vertex is not a MOVE vertex')
+
+        if self._vertices[-1].type != SegmentType.CLOSE:
+            raise AssertionError(
+                'invalid polygon: last vertex is not a CLOSE vertex')
+
+        cval1s = []
+        cval2s = []
         open_loop = False
-        for v in self._vertices:
-            if v.type == SegmentType.MOVE:
+        firstVertex = self._vertices[0]
+        for i in range(len(self._vertices)):
+            if self._vertices[i].type == SegmentType.MOVE:
                 if open_loop:
                     raise AssertionError(
                         'invalid polygon: MOVE vertex when loop open')
                 lines = 0
                 open_loop = True
-            elif v.type == SegmentType.CLOSE:
+                firstVertex = self._vertices[i]
+                cval1s.append(self._vertices[i].cval1)
+                cval2s.append(self._vertices[i].cval2)
+            elif self._vertices[i].type == SegmentType.CLOSE:
                 if not open_loop:
                     raise AssertionError(
                         'invalid polygon: CLOSE vertex when loop close')
@@ -434,12 +484,52 @@ class MultiPolygon(common.CaomObject):
                     raise AssertionError(
                         'invalid polygon: minimum 2 lines required')
                 open_loop = False
+                # SphericalPolygon requires point[0] == point[-1] for a closed polygon
+                cval1s.append(firstVertex.cval1)
+                cval2s.append(firstVertex.cval2)
+                # use SphericalPolygon to validate our polygon
+                spolygon = polygon.SphericalPolygon.from_radec(cval1s,cval2s)
+                self.validate_self_intersection(spolygon)
+                lon, lat = spolygon.to_lonlat().next()
+                self.validate_is_clockwise(cval1s, lon)
+                # clear cval1 nd cval2 for the next iteration
+                cval1s = []
+                cval2s = []
             else:
                 if not open_loop:
                     raise AssertionError(
                         'invalid polygon: LINE vertex when loop close')
                 lines += 1
+                cval1s.append(self._vertices[i].cval1)
+                cval2s.append(self._vertices[i].cval2)
 
+    def validate_self_intersection(self, spolygon):
+        for p in spolygon.iter_polygons_flat():
+            for i in range(len(p._points) - 3):
+                A = p._points[i]
+                B = p._points[i + 1]
+                C = p._points[2:-2] if i == 0 else p._points[i + 2:-1]
+                D = p._points[3:-1] if i == 0 else p._points[i + 3:]
+                if np.any(polygon.great_circle_arc.intersects(A, B, C, D)):
+                    raise AssertionError('Polygon contains self intersecting segments')
+
+    def validate_is_clockwise(self, orig_lon, lon):
+        """
+        Verifies that the polygon is contructed from points in a clockwise direction.
+
+        Note: The SphericalPolygon fixes a polygon with points not in a clockwise direction. We only need to compare a
+        point in our polygon/multipolygon with the corresponding one in the SphericalPolygon object. We cannot use an
+        endpoint since they are the same for a closed polygon.
+
+        An AssertionError is thrown when the points are not in a clockwise direction
+        """
+        if not np.isclose(lon[1], orig_lon[1]):
+            if not np.isclose(lon[1] - 360, orig_lon[1]):
+                rlon = lon[::-1]
+                if np.isclose(rlon[1], orig_lon[1]) or np.isclose(rlon[1] - 360, orig_lon[1]):
+                    raise AssertionError('invalid polygon: vertices not in clockwise direction')
+                else:
+                    raise AssertionError('software error: compared wrong values')
 
 class Vertex(Point):
     def __init__(self, cval1, cval2, type):
