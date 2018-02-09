@@ -480,7 +480,7 @@ class ObsBlueprint(object):
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            'Chunk.naxis': 'ZNAXIS, NAXIS'
+            'Chunk.naxis': 'ZNAXIS,NAXIS'
         }
         self._pos_axes_configed = False
         self._energy_axis_configed = False
