@@ -2438,6 +2438,9 @@ def proc(args, obs_blueprints):
                              release_type=ReleaseType.DATA))
             if file.endswith('.fits'):
                 parser = FitsParser(file)
+            elif file.find('.txt') != -1:
+                # explicitly ignore headers for txt files
+                parser = FitsParser([], blueprint)
             else:
                 # assume headers file
                 parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
