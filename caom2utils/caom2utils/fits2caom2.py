@@ -2407,15 +2407,16 @@ def proc(args, obs_blueprints):
         # in any of it assume composite
         for bp in obs_blueprints.values():
             if bp._get('CompositeObservation.members'):
-                obs = CompositeObservation(collection=args.observation[0],
-                                           observation_id=args.observation[1],
-                                           algorithm=Algorithm('EXPOSURE'))
+                obs = CompositeObservation(
+                    collection=str(args.observation[0]),
+                    observation_id=str(args.observation[1]),
+                    algorithm=Algorithm(str('EXPOSURE')))
                 break
     if not obs:
         # build a simple observation
-        obs = SimpleObservation(collection=args.observation[0],
-                                observation_id=args.observation[1],
-                                algorithm=Algorithm('EXPOSURE'))  # TODO
+        obs = SimpleObservation(collection=str(args.observation[0]),
+                                observation_id=str(args.observation[1]),
+                                algorithm=Algorithm(str('EXPOSURE')))  # TODO
 
     for i, uri in enumerate(args.fileURI):
         blueprint = obs_blueprints[uri]
@@ -2433,7 +2434,7 @@ def proc(args, obs_blueprints):
             file = args.local[i]
             if uri not in plane.artifacts.keys():
                 plane.artifacts.add(
-                    Artifact(uri=uri,
+                    Artifact(uri=str(uri),
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
             if file.endswith('.fits'):
