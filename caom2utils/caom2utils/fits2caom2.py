@@ -2371,15 +2371,19 @@ def proc(args, obs_blueprints):
     :return:
     """
 
+    logger = logging.getLogger()
     if args.verbose:
-        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+        logger.setLevel(logging.INFO)
     elif args.debug:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        logger.setLevel(logging.DEBUG)
     elif args.quiet:
-        logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
+        logger.setLevel(logging.ERROR)
     else:
-        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+        logger.setLevel(logging.WARN)
 
+    if logger.handlers:
+        handler = logger.handlers[0]
+        logger.removeHandler(handler)
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
@@ -2389,7 +2393,7 @@ def proc(args, obs_blueprints):
     },
         logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
     ))
-    logging.getLogger().addHandler(handler)
+    logger.addHandler(handler)
 
     if args.local and (len(args.local) != len(args.fileURI)):
         msg = ('number of local arguments not the same with file '
