@@ -151,9 +151,13 @@ class TestInterval(unittest.TestCase):
         upper1 = 2.1
         lower2 = 1.2
         upper2 = 2.2
-        samples = [shape.SubInterval(lower, upper),
-                   shape.SubInterval(lower1, upper1),
-                   shape.SubInterval(lower2, upper2)]
+        samples = [shape.SubInterval(lower, lower1),
+                   shape.SubInterval(lower2, upper),
+                   shape.SubInterval(upper1, upper2)]
+        invalid_samples_lower_mismatch = [shape.SubInterval(lower, upper)]
+        invalid_samples_upper_mismatch = [shape.SubInterval(lower, upper2)]
+        invalid_samples_middle_bounds_overlap = [
+            shape.SubInterval(lower, upper), shape.SubInterval(lower1, upper1)]
 
         self.assertRaises(TypeError, shape.Interval, None, None, None)
         self.assertRaises(TypeError, shape.Interval, None, None, 1.0)
@@ -167,9 +171,17 @@ class TestInterval(unittest.TestCase):
         self.assertRaises(TypeError, shape.Interval, "string1", "string2",
                           int(1))
         self.assertRaises(AssertionError, shape.Interval, 2.0, 1.0, None)
+        # validate errors
+        self.assertRaises(AssertionError, shape.Interval, lower, lower, [])
+        self.assertRaises(AssertionError, shape.Interval, lower1, upper,
+                          invalid_samples_lower_mismatch)
+        self.assertRaises(AssertionError, shape.Interval, lower, upper,
+                          invalid_samples_upper_mismatch)
+        self.assertRaises(AssertionError, shape.Interval, lower, upper2,
+                          invalid_samples_middle_bounds_overlap)
 
         # test cannot set interval with upper < lower
-        interval = shape.Interval(lower, upper, samples)
+        interval = shape.Interval(lower, upper2, samples)
         has_assertionError = False
         try:
             interval.upper = 0.5
