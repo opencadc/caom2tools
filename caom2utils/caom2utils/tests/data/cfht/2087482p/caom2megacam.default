@@ -1,0 +1,40 @@
+
+algorithm.name = exposure
+
+telescope.geoLocationX = -5464228.6
+telescope.geoLocationY = -2493778.2
+telescope.geoLocationZ = 2150937.8
+telescope.name =  CFHT 3.6m
+
+instrument = MegaPrime
+
+provenance.name = ELIXIR
+provenance.producer = CFHT
+provenance.project = STANDARD PIPELINE
+provenance.reference = http://www.cfht.hawaii.edu/Instruments/Elixir/
+
+plane.dataProductType=image
+artifact.releaseType=data
+
+CUNIT1 = deg
+CUNIT2 = deg
+CRDER1 = 0.0000278
+CRDER2 = 0.0000278
+CSYER1 = 0.0000278
+CSYER2 = 0.0000278
+
+CTYPE3 = TIME
+CUNIT3 = d
+CRDER3 = 0.0000001
+CSYER3 = 0.0000001
+
+CTYPE4 = WAVE
+CUNIT4 = Angstrom
+NAXIS4 = 1
+CRPIX4 = 1
+SPECSYS = TOPOCENT
+SSYSOBS = TOPOCENT
+SSYSSRC = TOPOCENT
+CRDER4 = 1.0
+CSYER4 = 1.0
+

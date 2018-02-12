@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-85a6-4e9b074da606">
+  <caom2:collection>CFHT</caom2:collection>
+  <caom2:observationID>2216860</caom2:observationID>
+  <caom2:metaRelease>2017-11-05T01:03:55.000</caom2:metaRelease>
+  <caom2:sequenceNumber>2216860</caom2:sequenceNumber>
+  <caom2:algorithm>
+    <caom2:name>exposure</caom2:name>
+  </caom2:algorithm>
+  <caom2:type>BIAS</caom2:type>
+  <caom2:intent>calibration</caom2:intent>
+  <caom2:proposal>
+    <caom2:id>17BQ79</caom2:id>
+    <caom2:pi>QSO Team</caom2:pi>
+  </caom2:proposal>
+  <caom2:target>
+    <caom2:name>Nowhere</caom2:name>
+    <caom2:standard>false</caom2:standard>
+  </caom2:target>
+  <caom2:telescope>
+    <caom2:name>CFHT 3.6m</caom2:name>
+    <caom2:geoLocationX>-5464228.6</caom2:geoLocationX>
+    <caom2:geoLocationY>-2493778.2</caom2:geoLocationY>
+    <caom2:geoLocationZ>2150937.8</caom2:geoLocationZ>
+  </caom2:telescope>
+  <caom2:instrument>
+    <caom2:name>ESPaDOnS</caom2:name>
+    <caom2:keywords>
+      <caom2:keyword>Polarimetry,</caom2:keyword>
+      <caom2:keyword>R=65,000</caom2:keyword>
+    </caom2:keywords>
+  </caom2:instrument>
+  <caom2:environment>
+    <caom2:humidity>44.2</caom2:humidity>
+    <caom2:ambientTemp>5.81</caom2:ambientTemp>
+  </caom2:environment>
+  <caom2:planes>
+    <caom2:plane caom2:id="00000000-0000-0000-8dcc-9408ae74b0ee">
+      <caom2:productID>2216860b</caom2:productID>
+      <caom2:metaRelease>2017-11-05T01:03:55.000</caom2:metaRelease>
+      <caom2:dataRelease>2017-11-05T00:00:00.000</caom2:dataRelease>
+      <caom2:dataProductType>spectrum</caom2:dataProductType>
+      <caom2:calibrationLevel>1</caom2:calibrationLevel>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-99e1-933b16e6bd9f">
+          <caom2:uri>ad:CFHT/2216860b.fits.gz</caom2:uri>
+          <caom2:productType>calibration</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/fits</caom2:contentType>
+          <caom2:contentLength>5802727</caom2:contentLength>
+          <caom2:contentChecksum>md5:a448e8df9e6261f7161e76a5db87c072</caom2:contentChecksum>
+          <caom2:parts>
+            <caom2:part caom2:id="00000000-0000-0000-8e62-f29b7874796a">
+              <caom2:name>0</caom2:name>
+              <caom2:chunks>
+                <caom2:chunk caom2:id="00000000-0000-0000-a059-b8b700d14ff8">
+                  <caom2:naxis>2</caom2:naxis>
+                  <caom2:observableAxis>2</caom2:observableAxis>
+                  <caom2:timeAxis>5</caom2:timeAxis>
+                  <caom2:time>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>TIME</caom2:ctype>
+                        <caom2:cunit>d</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>9.9999999999999995e-08</caom2:syser>
+                        <caom2:rnder>9.9999999999999995e-08</caom2:rnder>
+                      </caom2:error>
+                      <caom2:function>
+                        <caom2:naxis>1</caom2:naxis>
+                        <caom2:delta>0.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>58062.044360499996</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                    <caom2:timesys>UTC</caom2:timesys>
+                    <caom2:exposure>0.0</caom2:exposure>
+                    <caom2:resolution>0.0</caom2:resolution>
+                  </caom2:time>
+                </caom2:chunk>
+              </caom2:chunks>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>

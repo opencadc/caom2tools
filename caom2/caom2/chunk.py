@@ -201,7 +201,7 @@ class Chunk(AbstractCaomEntity):
     @naxis.setter
     def naxis(self, value):
         caom_util.type_check(value, int_32, 'naxis')
-        caom_util.value_check(value, 0, 5, 'naxis')
+        caom_util.value_check(value, 0, 6, 'naxis')
         self._naxis = int_32(value) if value is not None else None
 
     @property

@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2018.                            (c) 2018.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,85 +66,45 @@
 #
 # ***********************************************************************
 #
+
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from astropy.io import fits
-from astropy.wcs import WCS as awcs
-from caom2utils import FitsParser, WcsParser, main_app
+import unittest
 
-from caom2 import ObservationWriter
-from caom2 import Artifact, ProductType, ReleaseType
-from lxml import etree
-
-from mock import Mock, patch
-from six import StringIO
-from caom2utils import fits2caom2
-
-from io import BytesIO
-import os
-import sys
-import tempfile
-import re
-
-import pytest
-
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
-expected_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps.xml')
-expected_local_cgps_obs = os.path.join(TESTDATA_DIR, 'cgps_local.xml')
-sample_file_4axes = os.path.join(TESTDATA_DIR, '4axes.fits')
-sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
-
-def test_fits2caom2():
-    # test fits2caom2 on a known existing CGPS file
-    expected = open(expected_cgps_obs).read()
-    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-        sys.argv = ('fits2caom2 --observation TEST myOBS myplane '
-                    'ad:CGPS/CGPS_MA1_HI_line_image').split()
-        fits2caom2.main_app()
-    actual = stdout_mock.getvalue().decode('ascii')
-    _cmp(expected, actual)
-
-    # repeat the test when the observation is saved
-    temp = tempfile.NamedTemporaryFile();
-    sys.argv = ('fits2caom2 --observation TEST myOBS -o {} myplane '
-                'ad:CGPS/CGPS_MA1_HI_line_image'.format(temp.name)).split()
-    fits2caom2.main_app()
-
-    actual = open(temp.name).read()
-    _cmp(expected, actual)
-
-    # test fits2caom2 on a known existing but now local CGPS file
-    expected = open(expected_local_cgps_obs).read()
-    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
-        sys.argv = ('fits2caom2 --local {} --observation TEST myOBS myplane '
-                    'ad:CGPS/CGPS_MA1_HI_line_image').format(
-            sample_file_4axes).split()
-        fits2caom2.main_app()
-    actual = stdout_mock.getvalue().decode('ascii')
-    _cmp(expected, actual)
-
-    # repeat the test when the observation is saved
-    temp = tempfile.NamedTemporaryFile();
-    sys.argv = ('fits2caom2 --observation TEST myOBS --local {} -o {} myplane '
-                'ad:CGPS/CGPS_MA1_HI_line_image'.format(
-        sample_file_4axes, temp.name)).split()
-    fits2caom2.main_app()
-
-    actual = open(temp.name).read()
-    _cmp(expected, actual)
+from .. import diff
+from .. import observation
 
 
-def _cmp(expected_obs_xml, actual_obs_xml):
-    """
-    Textual comparison of the xml representation of 2 observations ignoring
-    the UUIDs.
-    :param expected_obs_xml:
-    :param actual_obs_xml:
-    :return:
-    """
-    expected = re.sub(r'caom2:id=".*"', 'caom2:id=""', expected_obs_xml)
-    actual = re.sub(r'caom2:id=".*"', 'caom2:id=""', actual_obs_xml)
+class TestCaomUtil(unittest.TestCase):
+    def test_get_differences(self):
+        expected_simple = observation.SimpleObservation(
+            collection='test_collection',
+            observation_id='test_observation_id',
+            algorithm=observation.Algorithm('EXPOSURE'))
+        report = diff.get_differences(expected_simple, expected_simple,
+                                           'obs')
+        self.assertTrue(report is None, repr(report))
 
-    assert expected == actual
+        actual_simple = observation.SimpleObservation(
+            collection='test_collection',
+            observation_id='test_observation_id',
+            algorithm=observation.Algorithm('EXPOSURE'))
+        report = diff.get_differences(expected_simple, actual_simple,
+                                           'obs')
+        self.assertTrue(report is None, repr(report))
+
+        act_plane = observation.Plane(product_id='test_product_id1')
+        actual_simple.planes['test_product_id1'] = act_plane
+
+        report = diff.get_differences(expected_simple, actual_simple,
+                                           'obs')
+        self.assertTrue(report is not None, repr(report))
+        self.assertTrue(len(report) == 2, repr(report))
+
+        ex_plane = observation.Plane(product_id='test_product_id2')
+        expected_simple.planes['test_product_id2'] = ex_plane
+        report = diff.get_differences(expected_simple, actual_simple,
+                                           'obs')
+        self.assertTrue(report is not None, repr(report))
+        self.assertTrue(len(report) == 2, repr(report))

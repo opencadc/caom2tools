@@ -1,9 +1,9 @@
 usage: fits2caom2 [-h] [-V] [-d | -q | -v] [--dumpconfig] [--ignorePartialWCS]
                   [-o OUT_OBS_XML]
                   (-i IN_OBS_XML | --observation collection observationID)
-                  [--config CONFIG] [--default DEFAULT] [--override OVERRIDE]
                   [--local LOCAL [LOCAL ...]] [--log LOG] [--keep] [--test]
-                  [--cert CERT]
+                  [--cert CERT] [--config CONFIG] [--default DEFAULT]
+                  [--override OVERRIDE]
                   productID fileURI [fileURI ...]
 
 Augments an observation with information in one or more fits files.
@@ -26,13 +26,13 @@ optional arguments:
                         input of observation to be augmented in XML
   --observation collection observationID
                         observation in a collection
-  --config CONFIG       optional CAOM2 utype to keyword config file to merge
-                        with the internal configuration
-  --default DEFAULT     file with default values for keywords
-  --override OVERRIDE   file with override values for keywords
   --local LOCAL [LOCAL ...]
                         list of files in local filesystem (same order as uri)
   --log LOG             log file name > (instead of console)
   --keep                keep the locally stored files after ingestion
   --test                test mode, do not persist to database
   --cert CERT           Proxy Cert&Key PEM file
+  --config CONFIG       optional CAOM2 utype to keyword config file to merge
+                        with the internal configuration
+  --default DEFAULT     file with default values for keywords
+  --override OVERRIDE   file with override values for keywords
