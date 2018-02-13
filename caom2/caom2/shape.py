@@ -71,6 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import math
+import six
 
 import numpy as np
 from spherical_geometry import polygon
@@ -421,7 +422,7 @@ class Polygon(common.CaomObject):
         # use SphericalPolygon to validate our polygon
         spolygon = polygon.SphericalPolygon.from_radec(cval1s,cval2s)
         MultiPolygon().validate_self_intersection(spolygon)
-        lon, lat = spolygon.to_lonlat().next()
+        lon, lat = six.next(spolygon.to_lonlat())
         MultiPolygon().validate_is_clockwise(cval1s, lon)
 
 class MultiPolygon(common.CaomObject):
@@ -490,7 +491,7 @@ class MultiPolygon(common.CaomObject):
                 # use SphericalPolygon to validate our polygon
                 spolygon = polygon.SphericalPolygon.from_radec(cval1s,cval2s)
                 self.validate_self_intersection(spolygon)
-                lon, lat = spolygon.to_lonlat().next()
+                lon, lat = six.next(spolygon.to_lonlat())
                 self.validate_is_clockwise(cval1s, lon)
                 # clear cval1 nd cval2 for the next iteration
                 cval1s = []
