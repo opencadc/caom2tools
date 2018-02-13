@@ -356,6 +356,7 @@ class Interval(common.CaomObject):
                             '\n{}\nvs\n{}'.format(sample, prev))
                 prev = sample
 
+
 class Point(common.CaomObject):
     def __init__(self, cval1, cval2):
         self.cval1 = cval1
