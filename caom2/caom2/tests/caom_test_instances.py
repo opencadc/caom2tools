@@ -350,11 +350,11 @@ class Caom2TestInstances(object):
         upper1 = 2.1
         lower2 = 1.2
         upper2 = 2.2
-        samples = [shape.SubInterval(lower, upper),
-                   shape.SubInterval(lower1, upper1),
-                   shape.SubInterval(lower2, upper2)]
+        samples = [shape.SubInterval(lower, lower1),
+                   shape.SubInterval(lower2, upper),
+                   shape.SubInterval(upper1, upper2)]
 
-        interval = shape.Interval(lower, upper, samples)
+        interval = shape.Interval(lower, upper2, samples)
 
         energy.bounds = interval
         energy.dimension = 100
@@ -375,11 +375,11 @@ class Caom2TestInstances(object):
         upper1 = 2.1
         lower2 = 1.2
         upper2 = 2.2
-        samples = [shape.SubInterval(lower, upper),
-                   shape.SubInterval(lower1, upper1),
-                   shape.SubInterval(lower2, upper2)]
+        samples = [shape.SubInterval(lower, lower1),
+                   shape.SubInterval(lower2, upper),
+                   shape.SubInterval(upper1, upper2)]
 
-        interval = shape.Interval(lower, upper, samples)
+        interval = shape.Interval(lower, upper2, samples)
 
         time.bounds = interval
         time.dimension = 1

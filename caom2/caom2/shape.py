@@ -255,6 +255,7 @@ class Interval(common.CaomObject):
         self.lower = lower
         self.upper = upper
         self.samples = samples
+        self.validate()
 
     def get_width(self):
         return self._upper - self._lower
@@ -325,6 +326,35 @@ class Interval(common.CaomObject):
             caom_util.type_check(value, list, 'samples', override=False)
         self._samples = value
 
+    def validate(self):
+        """
+        Performs a validation of the current object.
+
+        An AssertionError is thrown when the object does not represent an
+        Interval
+        """
+        if self._samples is not None:
+
+            if len(self._samples) == 0:
+                raise AssertionError(
+                    'invalid interval (samples cannot be empty)')
+
+            prev = None
+            for sample in self._samples:
+                if sample.lower < self._lower:
+                    raise AssertionError(
+                        'invalid interval: sample extends below lower bound: '
+                        '{} vs {}'.format(sample, self._lower))
+                if sample.upper > self._upper:
+                    raise AssertionError(
+                        'invalid interval: sample extends above upper bound: '
+                        '{} vs {}'.format(sample, self._upper))
+                if prev is not None:
+                    if sample.lower <= prev.upper:
+                        raise AssertionError(
+                            'invalid interval: sample overlaps previous sample:'
+                            '\n{}\nvs\n{}'.format(sample, prev))
+                prev = sample
 
 class Point(common.CaomObject):
     def __init__(self, cval1, cval2):
