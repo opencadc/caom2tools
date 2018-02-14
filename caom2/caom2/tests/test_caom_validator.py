@@ -70,55 +70,93 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import unittest
+import logging
+import os
+import sys
 
-from .. import diff
-from .. import observation
+from caom2.caom_validator import validate_obs, validate, validate_acc
+from caom2.caom_validator import _assert_validate_keyword
+from caom2.obs_reader_writer import ObservationReader
+from caom2.observation import SimpleObservation, CompositeObservation, Proposal
+from caom2.observation import Algorithm, Telescope, Instrument, Target
+from caom2.plane import Plane, Provenance
 from . import caom_test_instances
 
 
-class TestCaomUtil(unittest.TestCase):
-    def test_get_differences(self):
-        expected_simple = observation.SimpleObservation(
-            collection='test_collection',
-            observation_id='test_observation_id',
-            algorithm=observation.Algorithm('EXPOSURE'))
-        report = diff.get_differences(expected_simple, expected_simple,
-                                           'obs')
-        self.assertTrue(report is None, repr(report))
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+TEST_DATA = 'data'
 
-        actual_simple = observation.SimpleObservation(
-            collection='test_collection',
-            observation_id='test_observation_id',
-            algorithm=observation.Algorithm('EXPOSURE'))
-        report = diff.get_differences(expected_simple, actual_simple,
-                                           'obs')
-        self.assertTrue(report is None, repr(report))
 
-        act_plane = observation.Plane(product_id='test_product_id1')
-        actual_simple.planes['test_product_id1'] = act_plane
+def test_assert_validate_keyword():
+    _assert_validate_keyword(__name__, 'test', 'foo')
+    _assert_validate_keyword(__name__, 'test', 'foo=42')
+    _assert_validate_keyword(__name__, 'test', 'foo:42')
+    _assert_validate_keyword(__name__, 'test', "tick'marks")
+    _assert_validate_keyword(__name__, 'test', 'has multiple spaces')
+    exception_raised = False
+    try:
+        _assert_validate_keyword(__name__, 'test', 'pipe|denied')
+    except AssertionError:
+        # successful test case
+        exception_raised = True
+    assert exception_raised
 
-        report = diff.get_differences(expected_simple, actual_simple,
-                                           'obs')
-        self.assertTrue(report is not None, repr(report))
-        self.assertTrue(len(report) == 2, repr(report))
 
-        ex_plane = observation.Plane(product_id='test_product_id2')
-        expected_simple.planes['test_product_id2'] = ex_plane
-        report = diff.get_differences(expected_simple, actual_simple,
-                                           'obs')
-        self.assertTrue(report is not None, repr(report))
-        self.assertTrue(len(report) == 2, repr(report))
+def test_validate_obs():
+    obs = SimpleObservation('test_collection', 'test_obs_id',
+                            Algorithm('test_name'))
+    validate_obs(obs)
+    obs = CompositeObservation('test_collection', 'test_obs_id',
+                               Algorithm('test_name'),
+                               proposal=Proposal('test_proposal'),
+                               telescope=Telescope('test_telescope'),
+                               instrument=Instrument('test_instrument'),
+                               target=Target('test_targets'))
+    obs.algorithm.keywords = 'foo'
+    obs.proposal.keywords = set('foo=42')
+    obs.telescope.keywords = set('foo:42')
+    obs.instrument.keywords.add("tick'marks")
+    obs.target.keywords = set('has multiple spaces')
+    test_plane = Plane('test_plane')
+    test_plane.provenance = Provenance('test_provenance')
+    test_plane.provenance.keywords.add('pipe|denied')
+    obs.planes['test_plane'] = test_plane
+    exception_raised = False
+    try:
+        validate_obs(obs)
+    except AssertionError as e:
+        # success test case
+        assert str(e).find('provenance.keywords') != -1
+        exception_raised = True
+    assert exception_raised
 
-        instances = caom_test_instances.Caom2TestInstances()
-        instances.complete = True
-        obs1 = instances.get_composite_observation()
-        obs2 = instances.get_composite_observation()
 
-        report = diff.get_differences(obs1, obs2, 'caom_test_instances')
-        assert report is None
+def test_compatibility():
+    # tests a previously generated observation and validates the
+    # entities, and the entities with children
 
-        obs3 = instances.get_simple_observation()
+    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
+                                    'SampleComposite-CAOM-2.3.xml')
+    reader = ObservationReader(True)
+    with open(source_file_path, 'r'):
+        obs = reader.read(source_file_path)
 
-        report = diff.get_differences(obs1, obs3, 'caom_test_instances')
-        assert len(report) == 1
+    try:
+        for plane in obs.planes.values():
+            for artifact in plane.artifacts.values():
+                for part in artifact.parts.values():
+                    for chunk in part.chunks:
+                        validate(chunk)
+                        validate_acc(chunk)
+                    validate(part)
+                    validate_acc(part)
+                validate(artifact)
+                validate_acc(artifact)
+            validate(plane)
+            validate_acc(plane)
+
+        validate(obs)
+        validate_acc(obs)
+    except AssertionError:
+        assert False, \
+            'validate or validate_acc should not raise an AssertionError.'
