@@ -74,9 +74,11 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import os
+from io import StringIO
 import uuid
 from builtins import str, int
 import six
+from six import BytesIO
 from six.moves.urllib.parse import urlparse
 
 from lxml import etree
@@ -2507,3 +2509,55 @@ class ObservationWriter(object):
 
 class ObservationParsingException(Exception):
     pass
+
+
+class SchemaValidator(object):
+
+    def _create_observation(self, intent_type):
+        valid_observation = observation.SimpleObservation("collection", "observationID")
+        valid_observation.complete = False
+        valid_observation.depth = 1
+        valid_observation.bounds_is_circle = False
+        valid_observation.caom_version = 23
+        valid_observation.intent = intent_type
+        return valid_observation
+
+    def _write_observation(self, observation):
+        writer = ObservationWriter(True, False, "caom2", CAOM23_NAMESPACE)
+        output = BytesIO()
+        writer.write(observation, output)
+        xml = output.getvalue()
+        output.close()
+        f = open ('/tmp/schemaValidator.xml', 'wb')
+        f.write(xml)
+        #return output
+
+    def _validate_with_intent_type(self, intent_type):
+        valid_observation = self._create_observation(intent_type)
+        #xml = self._write_observation(valid_observation)
+        self._write_observation(valid_observation)
+        reader = ObservationReader(True)
+        #reader.read(xml)
+        reader.read('/tmp/schemaValidator.xml')
+
+    def validate_schema(self):
+        """
+        This function is to catch unsupported extensions to our schema. This function
+        validates the schema by performing two simple observation read-write round trips.
+        One round trip uses a valid observation while another uses an observation with
+        an invalid value. The former should pass while the latter should fail.
+        """
+        try:
+            # use a valid observation, should not catch any error
+            self._validate_with_intent_type(observation.ObservationIntentType.SCIENCE)
+        except Exception as ex:
+            raise AssertionError('Schema error: {}'.format(str(ex)))
+
+        try:
+            # use an invalid observation, should catch any error
+            self._validate_with_intent_type(observation.ObservationIntentType.UNSUPPORTED)
+            raise AssertionError('Schema failed to detect an error in ObservationIntentType.')
+        except Exception as ex:
+            if 'unsupported' not in str(ex):
+                raise AssertionError('Schema error: {}'.format(str(ex)))
+

@@ -1151,3 +1151,8 @@ class TestRoundTrip(unittest.TestCase):
 
         except Exception:
             raise
+
+
+class TestSchemaValidator(unittest.TestCase):
+    def testSchemaValidator(self):
+        obs_reader_writer.SchemaValidator().validate_schema()
