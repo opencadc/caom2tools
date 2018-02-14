@@ -74,6 +74,7 @@ import unittest
 
 from .. import diff
 from .. import observation
+from . import caom_test_instances
 
 
 class TestCaomUtil(unittest.TestCase):
@@ -108,3 +109,16 @@ class TestCaomUtil(unittest.TestCase):
                                            'obs')
         self.assertTrue(report is not None, repr(report))
         self.assertTrue(len(report) == 2, repr(report))
+
+        instances = caom_test_instances.Caom2TestInstances()
+        instances.complete = True
+        obs1 = instances.get_composite_observation()
+        obs2 = instances.get_composite_observation()
+
+        report = diff.get_differences(obs1, obs2, 'caom_test_instances')
+        assert report is None
+
+        obs3 = instances.get_simple_observation()
+
+        report = diff.get_differences(obs1, obs3, 'caom_test_instances')
+        assert len(report) == 1
