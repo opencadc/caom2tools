@@ -67,13 +67,122 @@
 # ***********************************************************************
 #
 
-"""Perform validation of the content of an Observation."""
+"""
+This module contains the functionlity for validation of entities in CAOM2.
+Two types of validation are available:
+    validate - returns the validation of the entity, except its CAOM2
+               children
+    validate_acc - returns the accumulated validation of the entity attributes
+                   including those of the CAOM2 children.
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+The validation represents the correctness of the state of the entity itself,
+while the accumulated validation represents the state of the entity, and
+all the children below.
+
+IMPORTANT NOTE: The validate algorithms use introspection to automatically
+find the attributes that are part of the CAOM2 model. It is therefore very
+important that attributes that are not part of the model
+(http://www.opencadc.org/caom2) be prefixed with an '_' so that the validate
+algorithms ignore them in their computations. Equally important is to use the
+names of the attributes from the model (with the Python syntax) as the
+algorithm parses them in alphabetical order.
+
+Perform validation of the content of an Observation."""
+
+from __future__ import (absolute_import, print_function, unicode_literals)
+
+from builtins import str, int
 
 
-def validate(observation):
+import logging
+import uuid
+
+from aenum import Enum
+from datetime import datetime
+
+from caom2.caom_util import TypedList, TypedOrderedDict, TypedSet, int_32
+from caom2.common import CaomObject, ObservationURI
+from caom2.common import ChecksumURI
+from caom2.observation import Observation
+
+
+__all__ = ['validate_obs', 'validate', 'validate_acc']
+
+
+logger = logging.getLogger('caom_validate')
+
+
+def validate(entity, acc=False, name=None):
+    """
+    Validate the content of any CAOM2 entity.
+
+    Throws an AssertionError if the validate call fails.
+
+    :param entity: CAOM2 entity, descended from CaomObject.
+    :param acc: Boolean to indicate whether to validate the entities members.
+    :param name: Better logging for a better future.
+    """
+
+    if type(entity) is None:
+        logger.debug('Encoded empty entity {}'.format(entity.__name__))
+        return
+
+    if (isinstance(entity, ObservationURI) or isinstance(entity, ChecksumURI)
+            or isinstance(entity, bytes) or isinstance(entity, bool)
+            or isinstance(entity, float) or isinstance(entity, int_32)
+            or isinstance(entity, int) or isinstance(entity, str)
+            or isinstance(entity, datetime) or isinstance(entity, Enum)
+            or isinstance(entity, uuid.UUID)):
+        logger.debug('There is no validate call for {} of type {}.'.format(
+            entity, type(entity)))
+        return
+    elif isinstance(entity, CaomObject):
+        if isinstance(entity, Observation):
+            validate_obs(entity)
+        if hasattr(entity, 'validate') and callable(
+                getattr(entity, 'validate')):
+            logger.debug('Direct invocation of validate for {}'.format(
+                entity.__class__.__name__))
+            entity.validate()
+        if acc:
+            validate_acc(entity)
+    elif isinstance(entity, set) or \
+            (isinstance(entity, TypedSet) and not
+                isinstance(entity.key_type, CaomObject)):
+        for i in sorted(entity):
+            validate(i, acc)
+    elif isinstance(entity, list) or isinstance(entity, TypedList):
+        for i in entity:
+            validate(i, acc)
+    elif isinstance(entity, TypedOrderedDict):
+        for i in entity:
+            validate(entity[i], acc)
+    else:
+        raise AssertionError(
+            'Cannot find a validate behaviour for {} of type {}.'.format(
+                name, type(entity)))
+
+
+def validate_acc(entity):
+    """
+    Validate the content of any CAOM2 entity, and it's children.
+
+    Throws an AssertionError if any of the validate calls fail.
+
+    :param entity: CAOM2 entity.
+    """
+    assert isinstance(entity, CaomObject)
+
+    for i in sorted(dir(entity)):
+        if not callable(getattr(entity, i)) and not i.startswith('_'):
+            attribute = getattr(entity, i)
+            if attribute is not None:
+                logger.debug('Calling validate for {} of type {}'.format(
+                    i, type(attribute)))
+                validate(attribute, True, i)
+
+
+def validate_obs(observation):
     """
     Perform validation of the content of an Observation.
 
@@ -83,6 +192,7 @@ def validate(observation):
     :param observation: The Observation (SimpleObservation or
         CompositeObservation) to validate.
     """
+    assert isinstance(observation, Observation)
     if observation is not None:
         _validate_keywords(observation)
 

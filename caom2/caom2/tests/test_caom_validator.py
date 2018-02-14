@@ -70,55 +70,93 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from .. import caom_validator
-from .. import observation
-from .. import plane
+import logging
+import os
+import sys
+
+from caom2.caom_validator import validate_obs, validate, validate_acc
+from caom2.caom_validator import _assert_validate_keyword
+from caom2.obs_reader_writer import ObservationReader
+from caom2.observation import SimpleObservation, CompositeObservation, Proposal
+from caom2.observation import Algorithm, Telescope, Instrument, Target
+from caom2.plane import Plane, Provenance
+from . import caom_test_instances
+
+
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+TEST_DATA = 'data'
 
 
 def test_assert_validate_keyword():
-    caom_validator._assert_validate_keyword(__name__, 'test', 'foo')
-    caom_validator._assert_validate_keyword(__name__, 'test', 'foo=42')
-    caom_validator._assert_validate_keyword(__name__, 'test', 'foo:42')
-    caom_validator._assert_validate_keyword(__name__, 'test', "tick'marks")
-    caom_validator._assert_validate_keyword(__name__, 'test',
-                                            'has multiple spaces')
+    _assert_validate_keyword(__name__, 'test', 'foo')
+    _assert_validate_keyword(__name__, 'test', 'foo=42')
+    _assert_validate_keyword(__name__, 'test', 'foo:42')
+    _assert_validate_keyword(__name__, 'test', "tick'marks")
+    _assert_validate_keyword(__name__, 'test', 'has multiple spaces')
     exception_raised = False
     try:
-        caom_validator._assert_validate_keyword(__name__, 'test', 'pipe|denied')
+        _assert_validate_keyword(__name__, 'test', 'pipe|denied')
     except AssertionError:
         # successful test case
         exception_raised = True
     assert exception_raised
 
 
-def test_validate():
-    obs = observation.SimpleObservation('test_collection', 'test_obs_id',
-                                        observation.Algorithm('test_name'))
-    caom_validator.validate(obs)
-    obs = observation.CompositeObservation('test_collection', 'test_obs_id',
-                                           observation.Algorithm('test_name'),
-                                           proposal=observation.Proposal(
-                                               'test_proposal'),
-                                           telescope=observation.Telescope(
-                                               'test_telescope'),
-                                           instrument=observation.Instrument(
-                                               'test_instrument'),
-                                           target=observation.Target(
-                                               'test_targets'))
+def test_validate_obs():
+    obs = SimpleObservation('test_collection', 'test_obs_id',
+                            Algorithm('test_name'))
+    validate_obs(obs)
+    obs = CompositeObservation('test_collection', 'test_obs_id',
+                               Algorithm('test_name'),
+                               proposal=Proposal('test_proposal'),
+                               telescope=Telescope('test_telescope'),
+                               instrument=Instrument('test_instrument'),
+                               target=Target('test_targets'))
     obs.algorithm.keywords = 'foo'
     obs.proposal.keywords = set('foo=42')
     obs.telescope.keywords = set('foo:42')
     obs.instrument.keywords.add("tick'marks")
     obs.target.keywords = set('has multiple spaces')
-    test_plane = plane.Plane('test_plane')
-    test_plane.provenance = plane.Provenance('test_provenance')
+    test_plane = Plane('test_plane')
+    test_plane.provenance = Provenance('test_provenance')
     test_plane.provenance.keywords.add('pipe|denied')
     obs.planes['test_plane'] = test_plane
     exception_raised = False
     try:
-        caom_validator.validate(obs)
+        validate_obs(obs)
     except AssertionError as e:
         # success test case
         assert str(e).find('provenance.keywords') != -1
         exception_raised = True
     assert exception_raised
+
+
+def test_compatibility():
+    # tests a previously generated observation and validates the
+    # entities, and the entities with children
+
+    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
+                                    'SampleComposite-CAOM-2.3.xml')
+    reader = ObservationReader(True)
+    with open(source_file_path, 'r'):
+        obs = reader.read(source_file_path)
+
+    try:
+        for plane in obs.planes.values():
+            for artifact in plane.artifacts.values():
+                for part in artifact.parts.values():
+                    for chunk in part.chunks:
+                        validate(chunk)
+                        validate_acc(chunk)
+                    validate(part)
+                    validate_acc(part)
+                validate(artifact)
+                validate_acc(artifact)
+            validate(plane)
+            validate_acc(plane)
+
+        validate(obs)
+        validate_acc(obs)
+    except AssertionError:
+        assert False, \
+            'validate or validate_acc should not raise an AssertionError.'
