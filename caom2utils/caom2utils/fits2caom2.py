@@ -1360,9 +1360,9 @@ class FitsParser(object):
 
         # TODO When a projection is specified, wcslib expects corresponding
         # DP arguments with NAXES attributes. Normally, omitting the attribute
-        # signals no distorsion which is the assumption in fits2caom2 for
-        # energy and polarization axes. Following is a workaround this for SIP
-        # projections.
+        # signals no distortion which is the assumption in fits2caom2 for
+        # energy and polarization axes. Following is a workaround to this for
+        # SIP projections.
         # For more details see:
         # http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
         for header in self.headers:
@@ -2247,26 +2247,35 @@ def get_cadc_headers(uri, cert=None):
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
-    if file_url.scheme == 'ad':
-        # create possible types of subjects
-        subject = net.Subject(cert)
-        client = CadcDataClient(subject)
-        # do a fhead on the file
-        archive, file_id = file_url.path.split('/')
-        b = BytesIO()
-        b.name = uri
-        client.get_file(archive, file_id, b, fhead=True)
-        fits_header = b.getvalue().decode('ascii')
-        b.close()
-    elif file_url.scheme == 'file':
-        fits_header = open(file_url.path).read()
-    else:
-        # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad type URIs supported')
-    delim = '\nEND'
-    extensions = \
-        [e + delim for e in fits_header.split(delim) if e.strip()]
-    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    try:
+        if file_url.scheme == 'ad':
+            # create possible types of subjects
+            subject = net.Subject(cert)
+            client = CadcDataClient(subject)
+            # do a fhead on the file
+            archive, file_id = file_url.path.split('/')
+            b = BytesIO()
+            b.name = uri
+            client.get_file(archive, file_id, b, fhead=True)
+            fits_header = b.getvalue().decode('ascii')
+            b.close()
+        elif file_url.scheme == 'file':
+            fits_header = open(file_url.path).read()
+        else:
+            # TODO add hook to support other service providers
+            raise NotImplementedError('Only ad type URIs supported')
+        delim = '\nEND'
+        extensions = \
+            [e + delim for e in fits_header.split(delim) if e.strip()]
+        headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    except UnicodeDecodeError:
+        headers = []
+        if file_url.scheme == 'file':
+            logging.debug('Try a second mechanism to open the file {}'.format(
+                file_url.path))
+            hdulist = fits.open(file_url.path, memmap=True, lazy_load_hdus=False)
+            hdulist.close()
+            headers = [h.header for h in hdulist]
     return headers
 
 
@@ -2442,7 +2451,7 @@ def proc(args, obs_blueprints):
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
             if file.endswith('.fits'):
-                parser = FitsParser(file)
+                parser = FitsParser(file, blueprint)
             elif file.find('.txt') != -1:
                 # explicitly ignore headers for txt files
                 parser = FitsParser([], blueprint)
