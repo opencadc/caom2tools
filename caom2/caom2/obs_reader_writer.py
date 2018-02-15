@@ -2512,6 +2512,7 @@ class ObservationParsingException(Exception):
 
 
 class SchemaValidator(object):
+    """ This class provides a means to validate the XML schema. """
 
     def _create_observation(self):
         obs = observation.SimpleObservation("SCHEMA_VALIDATOR_COLLECTION", "schemaValidatorObsID")
