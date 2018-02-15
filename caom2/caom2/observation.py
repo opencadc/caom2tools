@@ -99,7 +99,6 @@ class ObservationIntentType(Enum):
     """
     CALIBRATION = "calibration"
     SCIENCE = "science"
-    UNSUPPORTED = "unsupported"
 
 
 class Status(Enum):

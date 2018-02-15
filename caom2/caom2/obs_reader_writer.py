@@ -2513,14 +2513,10 @@ class ObservationParsingException(Exception):
 
 class SchemaValidator(object):
 
-    def _create_observation(self, intent_type):
-        valid_observation = observation.SimpleObservation("collection", "observationID")
-        valid_observation.complete = False
-        valid_observation.depth = 1
-        valid_observation.bounds_is_circle = False
-        valid_observation.caom_version = 23
-        valid_observation.intent = intent_type
-        return valid_observation
+    def _create_observation(self):
+        obs = observation.SimpleObservation("SCHEMA_VALIDATOR_COLLECTION", "schemaValidatorObsID")
+        obs.intent = observation.ObservationIntentType.SCIENCE
+        return obs
 
     def _write_observation(self, observation):
         writer = ObservationWriter(True, False, "caom2", CAOM23_NAMESPACE)
@@ -2528,17 +2524,15 @@ class SchemaValidator(object):
         writer.write(observation, output)
         xml = output.getvalue()
         output.close()
-        f = open ('/tmp/schemaValidator.xml', 'wb')
-        f.write(xml)
-        #return output
+        return xml
 
-    def _validate_with_intent_type(self, intent_type):
-        valid_observation = self._create_observation(intent_type)
-        #xml = self._write_observation(valid_observation)
-        self._write_observation(valid_observation)
+    def _validate_with_intent_type(self, intent_type=None):
+        valid_observation = self._create_observation()
+        xml = self._write_observation(valid_observation)
+        if intent_type is not None:
+            xml = xml.replace(b'science', intent_type)
         reader = ObservationReader(True)
-        #reader.read(xml)
-        reader.read('/tmp/schemaValidator.xml')
+        reader.read(BytesIO(xml))
 
     def validate_schema(self):
         """
@@ -2549,15 +2543,15 @@ class SchemaValidator(object):
         """
         try:
             # use a valid observation, should not catch any error
-            self._validate_with_intent_type(observation.ObservationIntentType.SCIENCE)
+            self._validate_with_intent_type()
         except Exception as ex:
             raise AssertionError('Schema error: {}'.format(str(ex)))
 
         try:
             # use an invalid observation, should catch any error
-            self._validate_with_intent_type(observation.ObservationIntentType.UNSUPPORTED)
+            self._validate_with_intent_type(b'nosuchintent')
             raise AssertionError('Schema failed to detect an error in ObservationIntentType.')
         except Exception as ex:
-            if 'unsupported' not in str(ex):
+            if 'nosuchintent' not in str(ex):
                 raise AssertionError('Schema error: {}'.format(str(ex)))
 
