@@ -73,38 +73,66 @@ from __future__ import (absolute_import, division, print_function,
 from caom2utils import WcsValidator, validate_temporal_wcs, validate_spatial_wcs, validate_spectral_wcs
 from caom2 import Artifact, wcs, chunk, plane
 
-import pytest
-import logging
 
-
+# TemporalWCS validator tests
 def test_temporalwcs_validator():
+    # TODO: validate_temporal_wcs here will throw an error,
+    #  but which ones and how to deal with them here for reporting?
     timetest = TimeTestUtil()
     good_temporal_wcs = timetest.good_wcs()
     assert good_temporal_wcs.axis.function is not None
 
     is_valid = validate_temporal_wcs(good_temporal_wcs)
-
     assert is_valid
 
+    is_valid = validate_temporal_wcs(None)
+    assert is_valid is None
 
+
+# SpatialWCS validation tests
 def test_spatialwcs_validator():
     spatialtest = SpatialTestUtil()
     good_spatial_wcs = spatialtest.good_wcs()
     assert good_spatial_wcs.axis.function is not None
 
     is_valid = validate_spatial_wcs(good_spatial_wcs)
-
     assert is_valid
 
+    # None is valid
+    is_valid = validate_spatial_wcs(None)
+    assert is_valid
+
+
+def testInvalidSpatialWCS():
+        position = None
+        try:
+            spatialtest = SpatialTestUtil()
+            position = spatialtest.bad_wcs()
+            is_valid = validate_spatial_wcs(position)
+            assert is_valid
+
+        # } catch (IllegalArgumentException | WCSLibRuntimeException expected) {
+        #     log.info(EXPECTED_EXCEPTION + "SpatialWCS" + VERIFIED_INVALID + position.toString());
+        #     Assert.assertTrue(EXPECTED_EXCEPTION + "SpatialWCS" + VERIFIED_INVALID + position.toString() + expected, true);
+        except:
+            print(position)
+
+
+# SpectralWCS validation tests
 def test_spectralwcs_validator():
     energyTest = EnergyTestUtil()
     good_spectral_wcs = energyTest.good_wcs()
     assert good_spectral_wcs.axis.function is not None
 
     is_valid = validate_spectral_wcs(good_spectral_wcs)
-
     assert is_valid
 
+    # Null validator is acceptable
+    is_valid = validate_spectral_wcs(None)
+    assert is_valid
+
+#  this test should construct an Artifact with all the WCS
+#  and then validate everything.
 def test_valid_wcs():
     pass
     # public void testValidWCS() {
@@ -168,6 +196,20 @@ class SpatialTestUtil:
         # double dp = 1000.0;
         # double ds = 1.0;
         return self.getTestFunction(px, py, sx, sy, False)
+
+    # This is in the java code, but without the toPolygon function in python
+    # is irrelevant here. With the basic validator this will produce
+    # a good WCS value. :
+    def bad_wcs(self):
+        axis1 = wcs.Axis("RA---TAN", "deg")
+        axis2 = wcs.Axis("DEC--TAN", "deg")
+        axis = wcs.CoordAxis2D(axis1, axis2)
+        spatial_wcs = chunk.SpatialWCS(axis)
+        spatial_wcs.equinox = None
+        dim = wcs.Dimension2D(1024, 1024)
+        ref =  wcs.Coord2D( wcs.RefCoord(512, 10),  wcs.RefCoord(512, 20))
+        axis.function = wcs.CoordFunction2D(dim, ref, 1.0e-3, 0.0, 0.0, 0.0) # singular CD matrix
+        return spatial_wcs
 
     def getTestFunction(self, px, py, sx, sy, gal):
         axis1 = wcs.Axis("RA", "deg")

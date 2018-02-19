@@ -112,23 +112,19 @@ class WcsValidator(Artifact):
         pass
 
 
-
 def validate_chunk(context, chunk):
     """
-
-    :param context:
-    :param chunk:
-    :return:
-
-    need to know what point to use for s2p, p2s transformation
+    Validate all WCS in this chunk individually
     """
     validate_spatial_wcs(chunk.position)
     validate_spectral_wcs(chunk.energy)
     validate_temporal_wcs(chunk.time)
     validate_polarization_wcs(chunk.polarization)
 
+
 def validate_spatial_wcs(position):
     # position is a SpatialWCS
+    retval = True
     if position is not None and position.axis is not None:
         if position.axis.function is not None:
             fn2D = position.axis.function
@@ -144,11 +140,11 @@ def validate_spatial_wcs(position):
 
         sky_transform = wcsprm.p2s(coord_array, ORIGIN)
 
-        pix_transform = wcsprm.s2p(sky_transform['world'], 0)
+        pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
 
         transformed_coords = pix_transform['pixcrd']
         # TODO: not sure this is the right thing to have returned?
-        return transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half
+        retval = transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half
 
         # Errors from Java code that need to be handled
         # Transform.Result tr = transform.sky2pix(coords)
@@ -157,14 +153,13 @@ def validate_spatial_wcs(position):
         #     throw new IllegalArgumentException(SPATIAL_WCS_VALIDATION_ERROR + ex.getMessage() + " in " + context, ex);
         # } catch (WCSLibRuntimeException ex) {
         #     throw new IllegalArgumentException(SPATIAL_WCS_VALIDATION_ERROR + ex.getMessage() + " in " + context , ex);
-        # } catch (UnsupportedOperationException ex) {
-        #     // error thrown from toPolygon if WCS is too near a pole, or if the bounds
-        #     // value is not recognized
-        #     throw new IllegalArgumentException(SPATIAL_WCS_VALIDATION_ERROR + ex.getMessage() + " in " + context, ex);
-        # }
+
+    return retval
 
 
 def validate_spectral_wcs(energy):
+    # Not complete. TODO
+    retval = True
     if energy is not None:
         energyAxis = energy.axis
         si = None
@@ -195,34 +190,34 @@ def validate_spectral_wcs(energy):
             print(si)
 
             # TODO: not sure this is the right thing to have returned?
-            return transformed_coords[0][0] == si.lower and transformed_coords[0][1] == si.upper
+            retval = transformed_coords[0][0] == si.lower and transformed_coords[0][1] == si.upper
 
             # Exceptions from the Java code: does this get handled somehow here or not necessary?
             # } catch (NoSuchKeywordException ex) {
             # throw new IllegalArgumentException(SPECTRAL_WCS_VALIDATION_ERROR + ex.getMessage() + " in " + context, ex);
-            # } catch (WCSLibRuntimeException ex) {
-            # throw new IllegalArgumentException(SPECTRAL_WCS_VALIDATION_ERROR + ex.getMessage() + " in " + context, ex);
-            # }
+
+    return retval
 
 
 def validate_temporal_wcs(time):
-    timeutil = TimeUtil()
-    time_axis = time.axis
+    # TODO: what to report if there are no range, bounds, function?
+    subinterval = None
+    if time is not None:
+        timeutil = TimeUtil()
+        time_axis = time.axis
 
-    if time_axis.range is not None:
-        subinterval = timeutil.range1d_to_interval(time, time_axis.range)
+        if time_axis.range is not None:
+            subinterval = timeutil.range1d_to_interval(time, time_axis.range)
 
-    if time_axis.bounds is not None:
-        for cr in time_axis.bounds.samples:
-            subinterval = timeutil.range1d_to_interval(time, cr)
+        if time_axis.bounds is not None:
+            for cr in time_axis.bounds.samples:
+                subinterval = timeutil.range1d_to_interval(time, cr)
 
-    if time_axis.function is not None:
-            print("function")
-            subinterval = timeutil.function1d_to_interval(time, time_axis.function)
+        if time_axis.function is not None:
+                subinterval = timeutil.function1d_to_interval(time, time_axis.function)
 
-    print("validate_temporal_wcs subinterval: ")
-    print(subinterval)
     return subinterval
+
 
 def validate_polarization_wcs(polarization):
     pass

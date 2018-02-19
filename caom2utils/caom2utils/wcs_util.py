@@ -156,9 +156,6 @@ class TimeUtil():
 
         ctype = temporal_wcs.axis.axis.ctype
         sb = ""
-        print("validate_wcs")
-        print(ctype)
-        print(temporal_wcs)
         if ctype == TARGET_CTYPE and (temporal_wcs.timesys is None or temporal_wcs.timesys == TARGET_TIMESYS):
             pass
         elif ctype == TARGET_TIMESYS and temporal_wcs.timesys is None:
