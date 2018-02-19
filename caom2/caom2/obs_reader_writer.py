@@ -2535,22 +2535,24 @@ class SchemaValidator(object):
         reader = ObservationReader(True)
         reader.read(BytesIO(xml))
 
-    def validate_schema(self):
+    @staticmethod
+    def validate_schema():
         """
         This function is to catch unsupported extensions to our schema. This function
         validates the schema by performing two simple observation read-write round trips.
         One round trip uses a valid observation while another uses an observation with
         an invalid value. The former should pass while the latter should fail.
         """
+        myself = SchemaValidator()
         try:
             # use a valid observation, should not catch any error
-            self._validate_with_intent_type()
+            myself._validate_with_intent_type()
         except Exception as ex:
             raise AssertionError('Schema error: {}'.format(str(ex)))
 
         try:
             # use an invalid observation, should catch any error
-            self._validate_with_intent_type(b'nosuchintent')
+            myself._validate_with_intent_type(b'nosuchintent')
             raise AssertionError('Schema failed to detect an error in ObservationIntentType.')
         except Exception as ex:
             if 'nosuchintent' not in str(ex):

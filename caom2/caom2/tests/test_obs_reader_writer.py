@@ -1155,4 +1155,4 @@ class TestRoundTrip(unittest.TestCase):
 
 class TestSchemaValidator(unittest.TestCase):
     def testSchemaValidator(self):
-        obs_reader_writer.SchemaValidator().validate_schema()
+        obs_reader_writer.SchemaValidator.validate_schema()
