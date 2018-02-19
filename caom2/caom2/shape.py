@@ -501,8 +501,8 @@ class MultiPolygon(common.CaomObject):
         self._validate_size_and_end_vertices()
 
         # perform a more detailed validation of this multipolygon object
-        v_validator = self.Vertex_validator()
-        p_validator = self.Polygon_validator()
+        v_validator = self.VertexValidator()
+        p_validator = self.PolygonValidator()
         for i in range(len(self._vertices)):
             v_validator.validate(self._vertices[i])
             p_validator.validate(self._vertices[i])
@@ -545,7 +545,7 @@ class MultiPolygon(common.CaomObject):
         lon, lat = six.next(spolygon.to_lonlat())
         MultiPolygon.validate_is_clockwise(ras, lon)
 
-    class Polygon_validator():
+    class PolygonValidator():
         """
         A class to construct and validate a polygon.
 
@@ -568,7 +568,7 @@ class MultiPolygon(common.CaomObject):
             else:
                 self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
 
-    class Vertex_validator():
+    class VertexValidator():
         """
         A class to validate the sequencing of vertices in a polygon.
 
