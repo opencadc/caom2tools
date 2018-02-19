@@ -81,6 +81,7 @@ from __future__ import (absolute_import, division, print_function,
 from caom2 import shape
 from astropy.wcs import Wcsprm
 import numpy as np
+from astropy import units as u
 
 from aenum import Enum
 # import collections
@@ -89,12 +90,13 @@ from aenum import Enum
 # import uuid
 # from datetime import datetime
 
-__all__ = ['TimeUtil', 'EnergyUtil', 'EnergyConverter']
+__all__ = ['TimeUtil', 'EnergyUtil', 'EnergyConverter', 'ORIGIN']
 
 # TODO both these are very bad, implement more sensibly
 TARGET_TIMESYS = "UTC"
 TARGET_CTYPE = "TIME"
 TARGET_CUNIT = "d"
+ORIGIN = 0
 
 # CoordFunction1D, double/float
 def pix2val(function, pix):
@@ -175,6 +177,15 @@ class TimeUtil():
         # throw new UnsupportedOperationException(sb.toString());
 
 
+#  astropy units & Quanitities could be used here?
+#  On first pass duplicating what is in the Java code so the
+#  validations can be as close as possible mathematically
+#  Plus it's not clear to me what advantage the Quantities/Units
+#  have (other than handling conversions differently, as there needs
+#  to be similar somersaulting in order to determine what units
+#  need to be applied to the values in a particular spectralWCS. -
+#  much of the work in the freqUnits & related arrays would still need
+#  to be done.
 class EnergyConverter():
 
     def __init__(self):
@@ -196,6 +207,9 @@ class EnergyConverter():
 
         self.waveUnits = [ "m", "cm", "mm","um", "µm", "nm", "A" ]
         self.waveMult = [ 1.0, 1.0e-2, 1.0e-3, 1.0e-6, 1.0e-6, 1.0e-9, 1.0e-10 ]
+        # todo: see if astropy units & quantities have representations of
+        #  each of the waveUnits
+        # self.bla = [u.m, u.cm, u.mm, u.]
 
     # Properties
     @property
@@ -238,6 +252,14 @@ class EnergyConverter():
         #  * @return wavelength in meters
         #  */
         def to_meters(d, units):
+            #  if a list of units is allowed,
+            #  This wil turn into: discovering which array the wcs value unit
+            #  is in, assigning that astropy unit to a variable.
+            #  multiplying the wcs value (d) against the astropy unit (makng a quantity,)
+            #  then applying and equivalence in the .to() function to do the
+            #  conversion.
+            #  It just seems like more work than using what is in the
+            #  java code. :(
             try:
                 # i = ArrayUtil.matches("^" + units + "$", self.freqUnits, True)
                 if units in self.freqUnits:
@@ -337,9 +359,6 @@ class EnergyConverter():
             return float(self.c / w)
 
 
-
-
-
 class EnergyUtil():
     def __init__(self):
         pass
@@ -359,7 +378,6 @@ class EnergyUtil():
 
         ctype = temporal_wcs.axis.axis.ctype
         cunit = temporal_wcs.axis.axis.cunit
-        print(cunit)
         # TODO: energy converter convert function not accessible?
         # if not ctype.startswith(str(EnergyConverter.CORE_CTYPE)) or EnergyConverter.CORE_CUNIT is not cunit:
         #         # log.debug("toInterval: converting " + a + cunit);
@@ -385,19 +403,19 @@ class EnergyUtil():
 
         # naxis = kw.getDoubleValue("NAXIS1"); // axis set to 1 above
         # function associated with naxis 1 ? TODO: is this right?
-        naxis = temporal_wcs.function.naxis
+        naxis = temporal_wcs.axis.function.naxis
         p1 = 0.5
         p2 = naxis + 0.5
 
         wcsprm = Wcsprm()
         start_coord = np.array([[p1, p1]])
-        end_coord = np.array([[p2],[p2]])
+        end_coord = np.array([[p2, p2]])
 
-        start = wcsprm.p2s(start_coord)
-        end = wcsprm.p2s(end_coord)
+        start = wcsprm.p2s(start_coord, ORIGIN)
+        end = wcsprm.p2s(end_coord, ORIGIN)
 
-        a = start['world'][0]
-        b = end['world'][0]
+        a = start['world'][0][0]
+        b = end['world'][0][0]
         # log.debug("toInterval: wcslib returned " + a + start.units[0] + "," + b + end.units[0]);
 
         # String specsys = wcs.getSpecsys();
@@ -407,8 +425,9 @@ class EnergyUtil():
         # }
 
         # TODO: what needs to happen here?
+        # where can units be pulled from?
         # // wcslib convert to WAVE-??? but units might be a multiple of EnergyConverter.CORE_UNIT
-        cunit = start.units[0]; # assume same as end.units[0]
+        # cunit = start.units[0]; # assume same as end.units[0]
         # if (!EnergyConverter.CORE_UNIT.equals(cunit)) {
         # log.debug("toInterval: converting " + a + " " + cunit);
         # a = conv.convert(a, EnergyConverter.CORE_CTYPE, cunit);

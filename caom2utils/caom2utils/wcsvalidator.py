@@ -76,7 +76,7 @@ from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
 # from caom2 import SpectralWCS,CoordAxis1D, Axis, CoordFunction1D, RefCoord
 # from caom2 import shape
 from astropy.wcs import Wcsprm
-from caom2utils import TimeUtil, EnergyUtil
+from caom2utils import TimeUtil, EnergyUtil, ORIGIN
 import numpy as np
 
 
@@ -142,7 +142,7 @@ def validate_spatial_wcs(position):
         coord_array = np.array([[naxis1_half, naxis2_half]])
         # [[] * n for x in xrange(n)]
 
-        sky_transform = wcsprm.p2s(coord_array, 0)
+        sky_transform = wcsprm.p2s(coord_array, ORIGIN)
 
         pix_transform = wcsprm.s2p(sky_transform['world'], 0)
 
@@ -178,14 +178,16 @@ def validate_spectral_wcs(energy):
                 si = energy_util.range1d_to_interval(energy, tile)
 
         if energyAxis.function is not None:
+            print("wcsvalidator: energyAxis has a function")
             si = energy_util.function1d_to_interval(energy)
 
             wcsprm = Wcsprm()
-            coord_array = np.array([[si[0], si[1]]])
+            print(si)
+            coord_array = np.array([[si.lower, si.upper]])
 
-            sky_transform = wcsprm.p2s(coord_array, 0)
+            sky_transform = wcsprm.p2s(coord_array, ORIGIN)
             print(sky_transform)
-            pix_transform = wcsprm.s2p(sky_transform['world'], 0)
+            pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
             print(pix_transform)
 
             transformed_coords = pix_transform['pixcrd']
@@ -193,7 +195,7 @@ def validate_spectral_wcs(energy):
             print(si)
 
             # TODO: not sure this is the right thing to have returned?
-            return transformed_coords[0][0] == si[0] and transformed_coords[0][1] == si[1]
+            return transformed_coords[0][0] == si.lower and transformed_coords[0][1] == si.upper
 
             # Exceptions from the Java code: does this get handled somehow here or not necessary?
             # } catch (NoSuchKeywordException ex) {

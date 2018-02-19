@@ -97,8 +97,8 @@ def test_spatialwcs_validator():
     assert is_valid
 
 def test_spectralwcs_validator():
-    spectraltest = SpectralTestUtil()
-    good_spectral_wcs = spectraltest.good_wcs()
+    energyTest = EnergyTestUtil()
+    good_spectral_wcs = energyTest.good_wcs()
     assert good_spectral_wcs.axis.function is not None
 
     is_valid = validate_spectral_wcs(good_spectral_wcs)
@@ -182,7 +182,7 @@ class SpatialTestUtil:
         spatial_wcs = chunk.SpatialWCS(axis_2d)
         spatial_wcs.coordsys = "ICRS"
 
-        wcs.coordsys = "ICRS";
+        wcs.coordsys = "ICRS"
         if gal:
             spatial_wcs.coordsys = None
 
@@ -191,14 +191,41 @@ class SpatialTestUtil:
         # Simple frame set: 1000x1000 pixels, 1 pixel = 1.0e-3 deg
         dim = wcs.Dimension2D(1000, 1000)
         ref = wcs.Coord2D(wcs.RefCoord(px, sx), wcs.RefCoord(py, sy))
-        axis_2d.function = wcs.CoordFunction2D(dim, ref, 1.e-3, 0.0, 0.0, 1.0e-3);
-        return spatial_wcs;
+        axis_2d.function = wcs.CoordFunction2D(dim, ref, 1.e-3, 0.0, 0.0, 1.0e-3)
+        return spatial_wcs
 
 
-class SpectralTestUtil:
+# class SpectralTestUtil:
+#
+#     def __init__(self):
+#         pass
+#
+#     def good_wcs(self):
+#         px = float(0.5)
+#         sx = float(400.0)
+#         nx = float(200.0)
+#         ds = float(1.0)
+#         # SpectralWCS
+#         energy_test_util = EnergyTestUtil();
+#         energy = energy_test_util.getTestRange(True, px, sx * nx * ds, nx, ds)
+#
+#         c1 = wcs.RefCoord(0.5, 2000.0)
+#         energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
+#         return energy
 
+
+class PolarizationTestUtil:
     def __init__(self):
         pass
+
+    def good_wcs(self):
+        pass
+
+
+class EnergyTestUtil:
+    def __init__(self):
+        self.BANDPASS_NAME = "H-Alpha-narrow"
+        self.TRANSITION = wcs.EnergyTransition("H", "alpha")
 
     def good_wcs(self):
         px = float(0.5)
@@ -211,22 +238,9 @@ class SpectralTestUtil:
 
         c1 = wcs.RefCoord(0.5, 2000.0)
         energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
+        print("getting good_wcs")
+        print (energy)
         return energy
-
-
-class PolarizationTestUtil:
-
-    def __init__(self):
-        pass
-
-    def good_wcs(self):
-        pass
-
-
-class EnergyTestUtil:
-    def __init__(self):
-        self.BANDPASS_NAME = "H-Alpha-narrow"
-        self.TRANSITION = wcs.EnergyTransition("H", "alpha")
 
     def getTestRange(self, complete, px, sx, nx, ds):
         axis =  wcs.CoordAxis1D(wcs.Axis("WAVE", "nm"))
@@ -241,7 +255,22 @@ class EnergyTestUtil:
         c1 = wcs.RefCoord(px, sx)
         c2 = wcs.RefCoord(px + nx, sx + nx * ds)
         spectral_wcs.axis.range = wcs.CoordRange1D(c1, c2)
-        # log.debug("test range: " + axis.range);
+        # log.debug("test range: " + axis.range)
+        return spectral_wcs
+
+    def getTestFunction(self, complete, px, sx, nx, ds):
+        axis = wcs.CoordAxis1D(wcs.Axis("WAVE", "nm"))
+        # log.debug("test axis: " + axis);
+        spectral_wcs = chunk.SpectralWCS(axis, "TOPOCENT")
+        if complete:
+            spectral_wcs.bandpassName = self.BANDPASS_NAME
+            spectral_wcs.restwav = 6563.0e-10; # meters
+            spectral_wcs.resolvingPower = 33000.0
+            spectral_wcs.transition = self.TRANSITION
+
+        c1 = wcs.RefCoord(px, sx)
+        spectral_wcs.axis.function = wcs.CoordFunction1D(nx, ds, c1)
+        # log.debug("test function: " + axis.function)
         return spectral_wcs
 
 
