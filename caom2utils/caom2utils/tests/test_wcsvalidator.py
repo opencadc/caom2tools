@@ -120,17 +120,17 @@ def test_spatialwcs_validator():
 
 
 def test_invalid_spatial_wcs():
-        try:
-            position = None
-            spatialtest = SpatialTestUtil()
-            position = spatialtest.bad_wcs()
-            validate_spatial_wcs(position)
-        except InvalidWCSError as iwe:
-            print("Expected Spatial WCS error: " + repr(iwe))
-            assert True
-        except Exception as e:
-            print(repr(e))
-            assert False
+    try:
+        position = None
+        spatialtest = SpatialTestUtil()
+        position = spatialtest.bad_wcs()
+        validate_spatial_wcs(position)
+    except InvalidWCSError as iwe:
+        print("Expected Spatial WCS error: " + repr(iwe))
+        assert True
+    except Exception as e:
+        print(repr(e))
+        assert False
 
 
 # SpectralWCS validation tests

@@ -161,6 +161,7 @@ def validate_spatial_wcs(position):
         if len(error_string) > 0:
             raise InvalidWCSError("Invalid SpatialWCS: " + error_string + ": " + str(position))
 
+
 #  TODO: Under Construction
 def validate_spectral_wcs(energy):
     error_msg = ""
@@ -176,7 +177,6 @@ def validate_spectral_wcs(energy):
 
             if energyAxis.bounds is not None:
                 for tile in energyAxis.bounds.samples:
-                    # TODO: question: how is this working? it'll only get the last entry
                     si = energy_util.range1d_to_interval(energy, tile)
 
             if energyAxis.function is not None:
