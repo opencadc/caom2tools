@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2018.                            (c) 2016.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,12 +68,8 @@
 #
 
 """
-A collection of utility methods for CAOM2.
+WCS Validation Utilities
 
-This module contains a number of 'TYPED' objects for use in CAOM2.
-These Typed versions were implemented so that content checking near
-the first point of use could be implemented.  This helps the data
-engineer get the correct meta data more quickly.
 """
 
 from __future__ import (absolute_import, division, print_function,
@@ -81,14 +77,6 @@ from __future__ import (absolute_import, division, print_function,
 from caom2 import shape
 from astropy.wcs import Wcsprm
 import numpy as np
-from astropy import units as u
-
-from aenum import Enum
-# import collections
-# import struct
-# import sys
-# import uuid
-# from datetime import datetime
 
 __all__ = ['TimeUtil', 'EnergyUtil', 'EnergyConverter', 'ORIGIN']
 
@@ -98,30 +86,28 @@ TARGET_CTYPE = "TIME"
 TARGET_CUNIT = "d"
 ORIGIN = 0
 
+
 # CoordFunction1D, double/float
 def pix2val(function, pix):
-    # compute at middle of pixel(whole number)
     refPix = float(function.ref_coord.pix)
     return function.ref_coord.val + function.delta * (pix - refPix)
 
 
-class TimeUtil():
+class TimeUtil:
     def __init__(self):
         pass
 
     def range1d_to_interval(self, temporal_wcs, axis_1d):
         """
-
         """
         self.validate_wcs(temporal_wcs)
 
-        # TODO: if mjdref has a value then the units of axis values could be any time
+        # TODO: (comment pulled from Java code):
+        # if mjdref has a value then the units of axis values could be any time
         # units, like days, hours, minutes, seconds, and smaller
         # since they are offsets from mjdref
-
-        a = axis_1d.getStart().val;
-        b = axis_1d.getEnd().val;
-
+        a = axis_1d.getStart().val
+        b = axis_1d.getEnd().val
         if temporal_wcs.mjdref is not None:
             a += float(temporal_wcs.mjdref)
             b += float(temporal_wcs.mjdref)
@@ -130,30 +116,33 @@ class TimeUtil():
 
     def function1d_to_interval(self, temporal_wcs, function_1d):
         """
-            needs Util.pix2val equivalent in here.
         """
-        self.validate_wcs(temporal_wcs)
-        #
-        # // TODO: if mjdref has a value then the units of axis values could be any time
-        # // units, like days, hours, minutes, seconds, and smaller since they are offsets
-        # // from mjdref
+        try:
+            self.validate_wcs(temporal_wcs)
+            # // TODO: (comment pulled from Java code):
+            # if mjdref has a value then the units of axis values could be any time
+            # // units, like days, hours, minutes, seconds, and smaller since they are offsets
+            # // from mjdref
 
-        p1 = float(0.5)
-        p2 = float(function_1d.naxis + 0.5)
-        a = pix2val(function_1d, p1);
-        b = pix2val(function_1d, p2);
+            p1 = float(0.5)
+            p2 = float(function_1d.naxis + 0.5)
+            a = pix2val(function_1d, p1)
+            b = pix2val(function_1d, p2)
 
-        if temporal_wcs.mjdref is not None:
-            a += float(temporal_wcs.mjdref)
-            b += float(temporal_wcs.mjdref)
+            if temporal_wcs.mjdref is not None:
+                a += float(temporal_wcs.mjdref)
+                b += float(temporal_wcs.mjdref)
 
-        return shape.SubInterval(min(a,b),max(a,b))
+            return shape.SubInterval(min(a, b), max(a, b))
+
+        except Exception:
+            raise ValueError("Invalid function in Temporal WCS")
+
+
 
     def validate_wcs(self,  temporal_wcs):
         """
-        Validates the temporalWcs passed in
         """
-
         ctype = temporal_wcs.axis.axis.ctype
         sb = ""
         if ctype == TARGET_CTYPE and (temporal_wcs.timesys is None or temporal_wcs.timesys == TARGET_TIMESYS):
@@ -161,20 +150,18 @@ class TimeUtil():
         elif ctype == TARGET_TIMESYS and temporal_wcs.timesys is None:
             pass
         else:
-            sb += "unexpected TIMESYS, CTYPE: " + temporal_wcs.timesys + "," + ctype
+            sb = sb + "unexpected TIMESYS, CTYPE: " + temporal_wcs.timesys + "," + ctype
 
         cunit = temporal_wcs.axis.axis.cunit
         if TARGET_CUNIT != cunit:
-            sb += "unexpected CUNIT: " + cunit
+            sb = sb + "unexpected CUNIT: " + cunit
 
-        # how to report this sanely?
-        # What does the calling program need to get to trigger
-        # that it shouln't continue anymore?
-        # if (sb.length() > 0)
-        # throw new UnsupportedOperationException(sb.toString());
+        if len(sb) > 0:
+            raise ValueError(sb)
 
 
-#  astropy units & Quanitities could be used here?
+#  TODO: Under Construction
+#  Q: astropy units & Quanitities could be used here?
 #  On first pass duplicating what is in the Java code so the
 #  validations can be as close as possible mathematically
 #  Plus it's not clear to me what advantage the Quantities/Units
@@ -355,7 +342,7 @@ class EnergyConverter():
             w = d * self.waveMult[i]
             return float(self.c / w)
 
-
+#  TODO: Under Construction
 class EnergyUtil():
     def __init__(self):
         pass

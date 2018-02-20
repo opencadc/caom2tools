@@ -70,71 +70,91 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 # from astropy.wcs import Wcsprm
-from caom2utils import WcsValidator, validate_temporal_wcs, validate_spatial_wcs, validate_spectral_wcs
+from caom2utils import WcsValidator, validate_temporal_wcs, validate_spatial_wcs, validate_spectral_wcs, InvalidWCSError
 from caom2 import Artifact, wcs, chunk, plane
 
 
 # TemporalWCS validator tests
 def test_temporalwcs_validator():
-    # TODO: validate_temporal_wcs here will throw an error,
-    #  but which ones and how to deal with them here for reporting?
+    # TODO: how to adequately report errors
     timetest = TimeTestUtil()
     good_temporal_wcs = timetest.good_wcs()
     assert good_temporal_wcs.axis.function is not None
 
-    is_valid = validate_temporal_wcs(good_temporal_wcs)
-    assert is_valid
+    try:
+        validate_temporal_wcs(good_temporal_wcs)
+        validate_temporal_wcs(None)
+    except Exception as e:
+        print(repr(e))
+        assert False
 
-    is_valid = validate_temporal_wcs(None)
-    assert is_valid is None
+
+def test_bad_temporalwcs():
+    timetest = TimeTestUtil()
+    bad_temporal_wcs = timetest.bad_wcs()
+
+    try:
+        validate_temporal_wcs(bad_temporal_wcs)
+    except InvalidWCSError as iwe:
+        print("Expected temporal wcs failure: " + repr(iwe))
+        assert True
+    except Exception as e:
+        print(repr(e))
+        assert False
 
 
 # SpatialWCS validation tests
 def test_spatialwcs_validator():
-    spatialtest = SpatialTestUtil()
-    good_spatial_wcs = spatialtest.good_wcs()
-    assert good_spatial_wcs.axis.function is not None
+    try:
+        spatialtest = SpatialTestUtil()
+        good_spatial_wcs = spatialtest.good_wcs()
+        assert good_spatial_wcs.axis.function is not None
 
-    is_valid = validate_spatial_wcs(good_spatial_wcs)
-    assert is_valid
+        validate_spatial_wcs(good_spatial_wcs)
 
-    # None is valid
-    is_valid = validate_spatial_wcs(None)
-    assert is_valid
+        # None is valid
+        validate_spatial_wcs(None)
+    except Exception as e:
+        print(repr(e))
+        assert False
 
 
-def testInvalidSpatialWCS():
-        position = None
+def test_invalid_spatial_wcs():
         try:
+            position = None
             spatialtest = SpatialTestUtil()
             position = spatialtest.bad_wcs()
-            is_valid = validate_spatial_wcs(position)
-            assert is_valid
-
-        # } catch (IllegalArgumentException | WCSLibRuntimeException expected) {
-        #     log.info(EXPECTED_EXCEPTION + "SpatialWCS" + VERIFIED_INVALID + position.toString());
-        #     Assert.assertTrue(EXPECTED_EXCEPTION + "SpatialWCS" + VERIFIED_INVALID + position.toString() + expected, true);
-        except:
-            print(position)
+            validate_spatial_wcs(position)
+        except InvalidWCSError as iwe:
+            print("Expected Spatial WCS error: " + repr(iwe))
+            assert True
+        except Exception as e:
+            print(repr(e))
+            assert False
 
 
 # SpectralWCS validation tests
 def test_spectralwcs_validator():
-    energyTest = EnergyTestUtil()
-    good_spectral_wcs = energyTest.good_wcs()
-    assert good_spectral_wcs.axis.function is not None
+    try:
+        energyTest = EnergyTestUtil()
+        good_spectral_wcs = energyTest.good_wcs()
+        assert good_spectral_wcs.axis.function is not None
 
-    is_valid = validate_spectral_wcs(good_spectral_wcs)
-    assert is_valid
+        validate_spectral_wcs(good_spectral_wcs)
 
-    # Null validator is acceptable
-    is_valid = validate_spectral_wcs(None)
-    assert is_valid
+        # Null validator is acceptable
+        validate_spectral_wcs(None)
+
+    except Exception as e:
+        print(repr(e))
+        assert False
+
 
 #  this test should construct an Artifact with all the WCS
 #  and then validate everything.
 def test_valid_wcs():
     pass
+    # Will need to be similar to this from the Java code:
     # public void testValidWCS() {
     #     Artifact a = null;
     #     try {
@@ -166,10 +186,20 @@ class TimeTestUtil:
         sx = float(54321.0)
         nx = 200
         ds = float(0.01)
+        goodwcs = self.get_test_function(True, px, sx*nx*ds, nx, ds)
+        return goodwcs
 
-        return self.getTestFunction(self, px, sx*nx*ds, nx, ds)
+    def bad_wcs(self):
+        px = float(0.5)
+        sx = float(54321.0)
+        nx = 200
+        ds = float(0.01)
 
-    def getTestFunction(self, complete, px, sx, nx, ds):
+        badwcs = self.get_test_function(True, px, sx*nx*ds, nx, ds)
+        badwcs.axis.function.ctype = "bla";
+        return badwcs
+
+    def get_test_function(self, complete, px, sx, nx, ds):
         axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
 
         if complete:
@@ -195,11 +225,11 @@ class SpatialTestUtil:
         # not used in java code although declared?
         # double dp = 1000.0;
         # double ds = 1.0;
-        return self.getTestFunction(px, py, sx, sy, False)
+        return self.get_test_function(px, py, sx, sy, False)
 
     # This is in the java code, but without the toPolygon function in python
-    # is irrelevant here. With the basic validator this will produce
-    # a good WCS value. :
+    # is possibly irrelevant here. With the basic validator this will produce
+    # a good WCS value.
     def bad_wcs(self):
         axis1 = wcs.Axis("RA---TAN", "deg")
         axis2 = wcs.Axis("DEC--TAN", "deg")
@@ -207,11 +237,12 @@ class SpatialTestUtil:
         spatial_wcs = chunk.SpatialWCS(axis)
         spatial_wcs.equinox = None
         dim = wcs.Dimension2D(1024, 1024)
-        ref =  wcs.Coord2D( wcs.RefCoord(512, 10),  wcs.RefCoord(512, 20))
+        ref = wcs.Coord2D( wcs.RefCoord(512.0, 10.0),  wcs.RefCoord(512.0, 20.0))
+        #  Create Invalid function
         axis.function = wcs.CoordFunction2D(dim, ref, 1.0e-3, 0.0, 0.0, 0.0) # singular CD matrix
         return spatial_wcs
 
-    def getTestFunction(self, px, py, sx, sy, gal):
+    def get_test_function(self, px, py, sx, sy, gal):
         axis1 = wcs.Axis("RA", "deg")
         axis2 = wcs.Axis("DEC", "deg")
 
@@ -237,25 +268,7 @@ class SpatialTestUtil:
         return spatial_wcs
 
 
-# class SpectralTestUtil:
-#
-#     def __init__(self):
-#         pass
-#
-#     def good_wcs(self):
-#         px = float(0.5)
-#         sx = float(400.0)
-#         nx = float(200.0)
-#         ds = float(1.0)
-#         # SpectralWCS
-#         energy_test_util = EnergyTestUtil();
-#         energy = energy_test_util.getTestRange(True, px, sx * nx * ds, nx, ds)
-#
-#         c1 = wcs.RefCoord(0.5, 2000.0)
-#         energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
-#         return energy
-
-
+#  TODO: add functions to create test data here
 class PolarizationTestUtil:
     def __init__(self):
         pass
@@ -263,7 +276,11 @@ class PolarizationTestUtil:
     def good_wcs(self):
         pass
 
+    def bad_wcs(self):
+        pass
 
+
+#  TODO: Under construction
 class EnergyTestUtil:
     def __init__(self):
         self.BANDPASS_NAME = "H-Alpha-narrow"
@@ -280,8 +297,6 @@ class EnergyTestUtil:
 
         c1 = wcs.RefCoord(0.5, 2000.0)
         energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
-        print("getting good_wcs")
-        print (energy)
         return energy
 
     def getTestRange(self, complete, px, sx, nx, ds):

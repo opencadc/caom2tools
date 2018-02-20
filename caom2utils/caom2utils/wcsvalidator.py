@@ -84,7 +84,8 @@ import numpy as np
 
 APP_NAME = 'wcsvalidator'
 
-__all__ = ['WcsValidator', 'validate_polarization_wcs', 'validate_chunk', 'validate_temporal_wcs', 'validate_spatial_wcs', 'validate_spectral_wcs']
+__all__ = ['WcsValidator', 'validate_polarization_wcs', 'validate_chunk', 'validate_temporal_wcs',
+           'validate_spatial_wcs', 'validate_spectral_wcs', 'InvalidWCSError']
 
 
 # WcsValidator class and functions
@@ -99,17 +100,16 @@ class WcsValidator(Artifact):
     def __init__(self):
         pass
 
+    def __str__(self):
+        pass
+
     def validate(self, artifact):
-        # for i, uri in enumerate(args.fileURI):
         if artifact is not None:
             for p in artifact.parts:
                 if p is not None:
                     for c in p.chunks:
                         context = artifact.uri + "[" + p.name + "]:" + c.id + " "
-                        self.validate_chunk(context, c)
-
-    def __str__(self):
-        pass
+                        validate_chunk(context, c)
 
 
 def validate_chunk(context, chunk):
@@ -122,105 +122,124 @@ def validate_chunk(context, chunk):
     validate_polarization_wcs(chunk.polarization)
 
 
+class InvalidWCSError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+
 def validate_spatial_wcs(position):
     # position is a SpatialWCS
-    retval = True
+    error_string = ""
     if position is not None and position.axis is not None:
-        if position.axis.function is not None:
-            fn2D = position.axis.function
-            naxis1_half = fn2D.dimension.naxis1/2
-            naxis2_half = fn2D.dimension.naxis2/2
-        #     use this as centre point for p2s translation
-        #  now into wcsprm...
+        try:
+            if position.axis.function is not None:
+                fn2D = position.axis.function
+                naxis1_half = float(fn2D.dimension.naxis1/2)
+                naxis2_half = float(fn2D.dimension.naxis2/2)
 
-        # // need 2D array of doubles to pass in to p2s
-        wcsprm = Wcsprm()
-        coord_array = np.array([[naxis1_half, naxis2_half]])
-        # [[] * n for x in xrange(n)]
+                wcsprm = Wcsprm()
+                coord_array = np.array([[naxis1_half, naxis2_half]])
+                print("trying sky transform")
+                sky_transform = wcsprm.p2s(coord_array, ORIGIN)
+                print("sky transform done")
+                pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
+                print ("pix transform done")
 
-        sky_transform = wcsprm.p2s(coord_array, ORIGIN)
+                transformed_coords = pix_transform['pixcrd']
 
-        pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
+                if not (transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half):
+                    error_string = "Could not transform centre coordinate"
+            else:
+                error_string = "WCS axis should have a function"
 
-        transformed_coords = pix_transform['pixcrd']
-        # TODO: not sure this is the right thing to have returned?
-        retval = transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half
+        except Exception as e:
+            error_string = repr(e)
 
-        # Errors from Java code that need to be handled
-        # Transform.Result tr = transform.sky2pix(coords)
-        #     }
-        # } catch (NoSuchKeywordException ex) {
-        #     throw new IllegalArgumentException(SPATIAL_WCS_VALIDATION_ERROR + ex.getMessage() + " in " + context, ex);
-        # } catch (WCSLibRuntimeException ex) {
-        #     throw new IllegalArgumentException(SPATIAL_WCS_VALIDATION_ERROR + ex.getMessage() + " in " + context , ex);
+        if len(error_string) > 0:
+            raise InvalidWCSError("Invalid SpatialWCS: " + error_string + ": " + str(position))
 
-    return retval
-
-
+#  TODO: Under Construction
 def validate_spectral_wcs(energy):
-    # Not complete. TODO
-    retval = True
+    error_msg = ""
     if energy is not None:
-        energyAxis = energy.axis
-        si = None
-        energy_util = EnergyUtil()
+        try:
+            energyAxis = energy.axis
+            transformed_coords = None
+            si = None
+            energy_util = EnergyUtil()
 
-        if energyAxis.range is not None:
-            si = energy_util.range1d_to_interval(energy, energyAxis.range)
+            if energyAxis.range is not None:
+                si = energy_util.range1d_to_interval(energy, energyAxis.range)
 
-        if energyAxis.bounds is not None:
-            for tile in energyAxis.bounds.samples:
-                si = energy_util.range1d_to_interval(energy, tile)
+            if energyAxis.bounds is not None:
+                for tile in energyAxis.bounds.samples:
+                    # TODO: question: how is this working? it'll only get the last entry
+                    si = energy_util.range1d_to_interval(energy, tile)
 
-        if energyAxis.function is not None:
-            print("wcsvalidator: energyAxis has a function")
-            si = energy_util.function1d_to_interval(energy)
+            if energyAxis.function is not None:
+                print("wcsvalidator: energyAxis has a function")
+                si = energy_util.function1d_to_interval(energy)
 
-            wcsprm = Wcsprm()
-            print(si)
-            coord_array = np.array([[si.lower, si.upper]])
+                wcsprm = Wcsprm()
+                print(si)
+                coord_array = np.array([[si.lower, si.upper]])
 
-            sky_transform = wcsprm.p2s(coord_array, ORIGIN)
-            print(sky_transform)
-            pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
-            print(pix_transform)
+                sky_transform = wcsprm.p2s(coord_array, ORIGIN)
+                print(sky_transform)
+                pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
+                print(pix_transform)
 
-            transformed_coords = pix_transform['pixcrd']
-            print(transformed_coords)
-            print(si)
+                transformed_coords = pix_transform['pixcrd']
+                print(transformed_coords)
+                print(si)
 
-            # TODO: not sure this is the right thing to have returned?
-            retval = transformed_coords[0][0] == si.lower and transformed_coords[0][1] == si.upper
+            if si is None:
+                error_msg = "WCS must have one of range, bounds or function"
 
-            # Exceptions from the Java code: does this get handled somehow here or not necessary?
-            # } catch (NoSuchKeywordException ex) {
-            # throw new IllegalArgumentException(SPECTRAL_WCS_VALIDATION_ERROR + ex.getMessage() + " in " + context, ex);
+            if not (transformed_coords[0][0] == si.lower and transformed_coords[0][1] == si.upper):
+                error_msg = "Could not transform central coordinates"
 
-    return retval
+        except Exception as ex:
+            error_msg = repr(ex)
+
+        if len(error_msg) > 0:
+            raise InvalidWCSError("Invalid Spectral WCS: " + error_msg + ": " + str(energy))
 
 
 def validate_temporal_wcs(time):
-    # TODO: what to report if there are no range, bounds, function?
-    subinterval = None
+    error_msg = ""
     if time is not None:
-        timeutil = TimeUtil()
-        time_axis = time.axis
+        subinterval = None
+        try:
+            timeutil = TimeUtil()
+            time_axis = time.axis
 
-        if time_axis.range is not None:
-            subinterval = timeutil.range1d_to_interval(time, time_axis.range)
+            if time_axis.range is not None:
+                subinterval = timeutil.range1d_to_interval(time, time_axis.range)
 
-        if time_axis.bounds is not None:
-            for cr in time_axis.bounds.samples:
-                subinterval = timeutil.range1d_to_interval(time, cr)
+            if time_axis.bounds is not None:
+                for cr in time_axis.bounds.samples:
+                    subinterval = timeutil.range1d_to_interval(time, cr)
 
-        if time_axis.function is not None:
-                subinterval = timeutil.function1d_to_interval(time, time_axis.function)
+            if time_axis.function is not None:
+                    subinterval = timeutil.function1d_to_interval(time, time_axis.function)
 
-    return subinterval
+            if subinterval is None:
+                error_msg = "Temporal WCS must have one of range, bounds, function assigned"
+
+        except Exception as e:
+            error_msg = repr(e)
+
+        if len(error_msg) > 0:
+            raise InvalidWCSError("Invalid Temporal WCS: " + error_msg + ": " + str(time))
 
 
+# TODO: Under construction
 def validate_polarization_wcs(polarization):
-    pass
+    return True
 
 
 
