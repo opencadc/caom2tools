@@ -330,7 +330,7 @@ class Interval(common.CaomObject):
         """
         Performs a validation of the current object.
 
-        An AssertionError is thrown when the object does not represent an
+        An AssertionError is thrown if the object does not represent an
         Interval
         """
         if self._samples is not None:
@@ -429,7 +429,7 @@ class Polygon(common.CaomObject):
             points[0].cval1 == points[-1].cval1
             points[0].cval2 == points[-1].cval2
 
-        An AssertionError is thrown when the object does not represent a polygon
+        An AssertionError is thrown if the object does not represent a polygon
         """
         if len(self._points) < 3:
             # points in a polygon is not required to form a closed polygon, hence min 3 points
@@ -453,6 +453,7 @@ class Polygon(common.CaomObject):
         # validate the polygons in the multipolygon
         MultiPolygon.validate_self_intersection_and_direction(cval1s, cval2s)
 
+
 class MultiPolygon(common.CaomObject):
     def __init__(self, vertices=None):
         if vertices is None:
@@ -471,12 +472,6 @@ class MultiPolygon(common.CaomObject):
         return self._vertices
 
     def _validate_size_and_end_vertices(self):
-        """
-        Performs an initial and quick validation of the current object.
-
-        An AssertionError is thrown when the object does not represent a
-        multi polygon
-        """
         if len(self._vertices) < 4:
             # triangle
             raise AssertionError('invalid polygon: {} vertices (min 4)'.format(
@@ -494,7 +489,7 @@ class MultiPolygon(common.CaomObject):
         """
         Performs a basic validation of the current object.
 
-        An AssertionError is thrown when the object does not represent a
+        An AssertionError is thrown if the object does not represent a
         multi polygon
         """
         # perform a quick validation of this multipolygon object to fail early
@@ -509,6 +504,11 @@ class MultiPolygon(common.CaomObject):
 
     @staticmethod
     def validate_self_intersection(spolygon):
+        """
+        Verifies that the polygon does not contain self-intersecting segments.
+
+        An AssertionError is thrown if the polygon contains self-intersecting segments.
+        """
         for p in spolygon.iter_polygons_flat():
             for i in range(len(p._points) - 3):
                 A = p._points[i]
@@ -527,7 +527,7 @@ class MultiPolygon(common.CaomObject):
         point in our polygon/multipolygon with the corresponding one in the SphericalPolygon object. We cannot use an
         endpoint since they are the same for a closed polygon.
 
-        An AssertionError is thrown when the points are not in a clockwise direction
+        An AssertionError is thrown if the points are not in a clockwise direction
         """
         if not np.isclose(lon[1], orig_lon[1]):
             if not np.isclose(lon[1] - 360, orig_lon[1]):
@@ -539,17 +539,23 @@ class MultiPolygon(common.CaomObject):
 
     @staticmethod
     def validate_self_intersection_and_direction(ras, decs):
+        """
+        Verifies that the polygon does not contain self-intersecting segments and that the points are clockwise.
+
+        An AssertionError is thrown if the polygon contains self-intersecting segments.
+        """
         # use SphericalPolygon to validate our polygon
         spolygon = polygon.SphericalPolygon.from_radec(ras, decs)
         MultiPolygon.validate_self_intersection(spolygon)
         lon, lat = six.next(spolygon.to_lonlat())
         MultiPolygon.validate_is_clockwise(ras, lon)
 
+
     class PolygonValidator():
         """
         A class to construct and validate a polygon.
 
-        An AssertionError is thrown when an incorrect polygon is detected.
+        An AssertionError is thrown if an incorrect polygon is detected.
         """
         def __init__(self):
             self._polygon = Polygon()
@@ -568,11 +574,12 @@ class MultiPolygon(common.CaomObject):
             else:
                 self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
 
+
     class VertexValidator():
         """
         A class to validate the sequencing of vertices in a polygon.
 
-        An AssertionError is thrown when an incorrect sequence is detected.
+        An AssertionError is thrown if an incorrect sequence is detected.
         """
         def __init__(self):
             self._lines = 0
@@ -598,6 +605,7 @@ class MultiPolygon(common.CaomObject):
                     raise AssertionError(
                         'invalid polygon: LINE vertex when loop close')
                 self._lines += 1
+
 
 class Vertex(Point):
     def __init__(self, cval1, cval2, type):
