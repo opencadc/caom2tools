@@ -480,7 +480,7 @@ class ObsBlueprint(object):
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            'Chunk.naxis': 'ZNAXIS, NAXIS'
+            'Chunk.naxis': 'ZNAXIS,NAXIS'
         }
         self._pos_axes_configed = False
         self._energy_axis_configed = False
@@ -1360,9 +1360,9 @@ class FitsParser(object):
 
         # TODO When a projection is specified, wcslib expects corresponding
         # DP arguments with NAXES attributes. Normally, omitting the attribute
-        # signals no distorsion which is the assumption in fits2caom2 for
-        # energy and polarization axes. Following is a workaround this for SIP
-        # projections.
+        # signals no distortion which is the assumption in fits2caom2 for
+        # energy and polarization axes. Following is a workaround to this for
+        # SIP projections.
         # For more details see:
         # http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
         for header in self.headers:
@@ -2247,26 +2247,35 @@ def get_cadc_headers(uri, cert=None):
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
-    if file_url.scheme == 'ad':
-        # create possible types of subjects
-        subject = net.Subject(cert)
-        client = CadcDataClient(subject)
-        # do a fhead on the file
-        archive, file_id = file_url.path.split('/')
-        b = BytesIO()
-        b.name = uri
-        client.get_file(archive, file_id, b, fhead=True)
-        fits_header = b.getvalue().decode('ascii')
-        b.close()
-    elif file_url.scheme == 'file':
-        fits_header = open(file_url.path).read()
-    else:
-        # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad type URIs supported')
-    delim = '\nEND'
-    extensions = \
-        [e + delim for e in fits_header.split(delim) if e.strip()]
-    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    try:
+        if file_url.scheme == 'ad':
+            # create possible types of subjects
+            subject = net.Subject(cert)
+            client = CadcDataClient(subject)
+            # do a fhead on the file
+            archive, file_id = file_url.path.split('/')
+            b = BytesIO()
+            b.name = uri
+            client.get_file(archive, file_id, b, fhead=True)
+            fits_header = b.getvalue().decode('ascii')
+            b.close()
+        elif file_url.scheme == 'file':
+            fits_header = open(file_url.path).read()
+        else:
+            # TODO add hook to support other service providers
+            raise NotImplementedError('Only ad type URIs supported')
+        delim = '\nEND'
+        extensions = \
+            [e + delim for e in fits_header.split(delim) if e.strip()]
+        headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    except UnicodeDecodeError:
+        headers = []
+        if file_url.scheme == 'file':
+            logging.debug('Try a second mechanism to open the file {}'.format(
+                file_url.path))
+            hdulist = fits.open(file_url.path, memmap=True, lazy_load_hdus=False)
+            hdulist.close()
+            headers = [h.header for h in hdulist]
     return headers
 
 
@@ -2371,15 +2380,19 @@ def proc(args, obs_blueprints):
     :return:
     """
 
+    logger = logging.getLogger()
     if args.verbose:
-        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+        logger.setLevel(logging.INFO)
     elif args.debug:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        logger.setLevel(logging.DEBUG)
     elif args.quiet:
-        logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
+        logger.setLevel(logging.ERROR)
     else:
-        logging.basicConfig(level=logging.WARN, stream=sys.stdout)
+        logger.setLevel(logging.WARN)
 
+    if logger.handlers:
+        handler = logger.handlers[0]
+        logger.removeHandler(handler)
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
@@ -2389,7 +2402,7 @@ def proc(args, obs_blueprints):
     },
         logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
     ))
-    logging.getLogger().addHandler(handler)
+    logger.addHandler(handler)
 
     if args.local and (len(args.local) != len(args.fileURI)):
         msg = ('number of local arguments not the same with file '
@@ -2407,35 +2420,45 @@ def proc(args, obs_blueprints):
         # in any of it assume composite
         for bp in obs_blueprints.values():
             if bp._get('CompositeObservation.members'):
-                obs = CompositeObservation(collection=args.observation[0],
-                                           observation_id=args.observation[1],
-                                           algorithm=Algorithm('EXPOSURE'))
+                obs = CompositeObservation(
+                    collection=str(args.observation[0]),
+                    observation_id=str(args.observation[1]),
+                    algorithm=Algorithm(str('EXPOSURE')))
                 break
     if not obs:
         # build a simple observation
-        obs = SimpleObservation(collection=args.observation[0],
-                                observation_id=args.observation[1],
-                                algorithm=Algorithm('EXPOSURE'))  # TODO
-
-    if args.productID not in obs.planes.keys():
-        obs.planes.add(Plane(product_id=str(args.productID)))
-
-    plane = obs.planes[args.productID]
+        obs = SimpleObservation(collection=str(args.observation[0]),
+                                observation_id=str(args.observation[1]),
+                                algorithm=Algorithm(str('EXPOSURE')))  # TODO
 
     for i, uri in enumerate(args.fileURI):
+        blueprint = obs_blueprints[uri]
+        # override the command-line argument for the plane product ID value
+        product_id = blueprint._get('Plane.productID')
+        if product_id is None or isinstance(product_id, tuple):
+            product_id = args.productID
+
+        if product_id not in obs.planes.keys():
+            obs.planes.add(Plane(product_id=str(product_id)))
+
+        plane = obs.planes[product_id]
+
         if args.local:
             file = args.local[i]
             if uri not in plane.artifacts.keys():
                 plane.artifacts.add(
-                    Artifact(uri=uri,
+                    Artifact(uri=str(uri),
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
             if file.endswith('.fits'):
-                parser = FitsParser(file)
+                parser = FitsParser(file, blueprint)
+            elif file.find('.txt') != -1:
+                # explicitly ignore headers for txt files
+                parser = FitsParser([], blueprint)
             else:
                 # assume headers file
                 parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
-                                    obs_blueprints[uri])
+                                    blueprint)
         else:
             headers = get_cadc_headers(uri, args.cert)
 
@@ -2444,12 +2467,12 @@ def proc(args, obs_blueprints):
                     Artifact(uri=str(uri),
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA))
-            parser = FitsParser(headers, obs_blueprints[uri])
+            parser = FitsParser(headers, blueprint)
 
         _update_cadc_artifact(plane.artifacts[uri], args.cert)
 
         if args.dumpconfig:
-            print('Blueprint for {}: {}'.format(uri, obs_blueprints[uri]))
+            print('Blueprint for {}: {}'.format(uri, blueprint))
 
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
