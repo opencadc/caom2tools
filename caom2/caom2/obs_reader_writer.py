@@ -74,7 +74,6 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import os
-from io import StringIO
 import uuid
 from builtins import str, int
 import six
@@ -2515,7 +2514,8 @@ class SchemaValidator(object):
     """ This class provides a means to validate the XML schema. """
 
     def _create_observation(self):
-        obs = observation.SimpleObservation("SCHEMA_VALIDATOR_COLLECTION", "schemaValidatorObsID")
+        obs = observation.SimpleObservation(
+            "SCHEMA_VALIDATOR_COLLECTION", "schemaValidatorObsID")
         obs.intent = observation.ObservationIntentType.SCIENCE
         return obs
 
@@ -2538,10 +2538,11 @@ class SchemaValidator(object):
     @staticmethod
     def validate_schema():
         """
-        This function is to catch unsupported extensions to our schema. This function
-        validates the schema by performing two simple observation read-write round trips.
-        One round trip uses a valid observation while another uses an observation with
-        an invalid value. The former should pass while the latter should fail.
+        This function is to catch unsupported extensions to our schema.
+        This function validates the schema by performing two simple observation
+        read-write round trips. One round trip uses a valid observation while
+        another uses an observation with an invalid value. The former should
+        pass while the latter should fail.
         """
         myself = SchemaValidator()
         try:
@@ -2553,8 +2554,8 @@ class SchemaValidator(object):
         try:
             # use an invalid observation, should catch any error
             myself._validate_with_intent_type(b'nosuchintent')
-            raise AssertionError('Schema failed to detect an error in ObservationIntentType.')
+            raise AssertionError(
+                'Schema failed to detect an error in ObservationIntentType.')
         except Exception as ex:
             if 'nosuchintent' not in str(ex):
                 raise AssertionError('Schema error: {}'.format(str(ex)))
-

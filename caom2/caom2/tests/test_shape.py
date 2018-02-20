@@ -74,7 +74,6 @@ import math
 import unittest
 
 from .. import shape
-from spherical_geometry import polygon
 
 
 class TestEnums(unittest.TestCase):
@@ -271,13 +270,15 @@ class TestSubInterval(unittest.TestCase):
         # test construction method
         shape.SubInterval(10.0, 15.0)
 
+
 class TestOpenPolygon(unittest.TestCase):
     def test_all(self):
         p1 = shape.Point(-117.246094, 52.942018)
         p2 = shape.Point(-101.601563, 56.535258)
         p3 = shape.Point(-97.382813, 44.809122)
         p4 = shape.Point(-111.445313, 37.405074)
-        p5 = shape.Point(-117.246094, 52.942018)  # this is how SphericalPolygon closes a polygon
+        # SphericalPolygon requires p1 == p5 for a closed polygon
+        p5 = shape.Point(-117.246094, 52.942018)
         no_points = []
         too_few_points = [p1, p2]
         min_closed_points = [p1, p2, p3]
@@ -297,11 +298,11 @@ class TestOpenPolygon(unittest.TestCase):
         self.assertTrue('invalid polygon: 2 points' in str(ex.exception))
 
         # polygon default constructor
-        poly = shape.Polygon()
+        shape.Polygon()
 
         # should detect that polygon is closed
-        poly = shape.Polygon(min_closed_points)
-        poly = shape.Polygon(closed_points)
+        shape.Polygon(min_closed_points)
+        shape.Polygon(closed_points)
 
         # should detect that multipolygon is not closed
         v0 = shape.Vertex(-126.210938, 67.991108, shape.SegmentType.MOVE)
@@ -317,7 +318,8 @@ class TestOpenPolygon(unittest.TestCase):
         v10 = shape.Vertex(46.757813, 56.145550, shape.SegmentType.LINE)
         v11 = shape.Vertex(26.015625, 55.354135, shape.SegmentType.LINE)
         v12 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-        closed_vertices = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
+        closed_vertices = [
+            v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
 
         # should detect that multipolygon is closed
         mp = shape.MultiPolygon(closed_vertices)
@@ -335,6 +337,7 @@ class TestOpenPolygon(unittest.TestCase):
         self.assertEqual(actual_points[3].cval2, closed_points[3].cval2)
 
         self.assertTrue(mp is p.samples)
+
 
 class TestOpenMultiPolygon(unittest.TestCase):
     def test_all(self):
@@ -357,10 +360,12 @@ class TestOpenMultiPolygon(unittest.TestCase):
         too_few_vertices = [v0, v1, v6]
         two_moves_vertices = [v0, v1, v7, v2, v3, v4, v5, v6]
         no_move_vertices = [v1, v2, v3, v4, v5, v6]
-        two_closes_vertices = [v0, v1, v2, v3, v4, v5, v7, v8, v9, v10, v11, v12]
+        two_closes_vertices = [
+            v0, v1, v2, v3, v4, v5, v7, v8, v9, v10, v11, v12]
         no_close_vertices = [v0, v1, v2, v3, v4, v5]
         min_closed_vertices = [v0, v1, v2, v6]
-        closed_vertices = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
+        closed_vertices = [
+            v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
 
         rv0 = shape.Vertex(26.015625, 55.354135, shape.SegmentType.MOVE)
         rv1 = shape.Vertex(46.757813, 56.145550, shape.SegmentType.LINE)
@@ -375,44 +380,50 @@ class TestOpenMultiPolygon(unittest.TestCase):
         rv10 = shape.Vertex(-108.984375, 70.480896, shape.SegmentType.LINE)
         rv11 = shape.Vertex(-126.210938, 67.991108, shape.SegmentType.LINE)
         rv12 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-        counter_clockwise_vertices = [rv0, rv1, rv2, rv3, rv4, rv5, rv6, rv7, rv8, rv9, rv10, rv11, rv12]
+        counter_clockwise_vertices = [
+            rv0, rv1, rv2, rv3, rv4, rv5, rv6, rv7, rv8, rv9, rv10, rv11, rv12]
 
         # should detect that the polygons is not clockwise
         with self.assertRaises(AssertionError) as ex:
             shape.MultiPolygon(counter_clockwise_vertices)
         self.assertTrue('not in clockwise direction' in str(ex.exception))
-        # should detect that there are not enough number of vertices to produce a multipolygon
+        # should detect that there are not enough number of vertices to
+        # produce a multipolygon
         with self.assertRaises(AssertionError) as ex:
-            mp = shape.MultiPolygon(no_vertices)
+            shape.MultiPolygon(no_vertices)
         self.assertTrue('invalid polygon: 0 vertices' in str(ex.exception))
         with self.assertRaises(AssertionError) as ex:
-            mp = shape.MultiPolygon(too_few_vertices)
+            shape.MultiPolygon(too_few_vertices)
         self.assertTrue('invalid polygon: 3 vertices' in str(ex.exception))
         # no close between two 'MOVE'
         with self.assertRaises(AssertionError) as ex:
             shape.MultiPolygon(two_moves_vertices)
-        self.assertTrue('invalid polygon: MOVE vertex when loop open' in str(ex.exception))
+        self.assertTrue(
+            'invalid polygon: MOVE vertex when loop open' in str(ex.exception))
         # no 'MOVE' before a 'CLOSE'
         with self.assertRaises(AssertionError) as ex:
             shape.MultiPolygon(no_move_vertices)
-        self.assertTrue('invalid polygon: first vertex is not a MOVE' in str(ex.exception))
+        self.assertTrue(
+            'invalid polygon: first vertex is not a MOVE' in str(ex.exception))
         # no 'MOVE' between two 'CLOSE'
         with self.assertRaises(AssertionError) as ex:
             shape.MultiPolygon(two_closes_vertices)
-        self.assertTrue('invalid polygon: MOVE vertex when loop open' in str(ex.exception))
+        self.assertTrue(
+            'invalid polygon: MOVE vertex when loop open' in str(ex.exception))
         # no 'CLOSE' after a 'MOVE'
         with self.assertRaises(AssertionError) as ex:
             shape.MultiPolygon(no_close_vertices)
-        self.assertTrue('invalid polygon: last vertex is not a CLOSE' in str(ex.exception))
+        self.assertTrue(
+            'invalid polygon: last vertex is not a CLOSE' in str(ex.exception))
 
         # multipolygon default constructor
-        mp = shape.MultiPolygon(None)
+        shape.MultiPolygon(None)
 
         # should detect that multipolygon is closed
-        mp = shape.MultiPolygon(min_closed_vertices)
+        shape.MultiPolygon(min_closed_vertices)
 
         # should detect that multipolygon is closed
-        mp = shape.MultiPolygon(closed_vertices)
+        shape.MultiPolygon(closed_vertices)
 
         # instantiated multipolygon should contain the same vertices
         p = shape.MultiPolygon(vertices=closed_vertices)
@@ -457,9 +468,11 @@ class TestOpenMultiPolygon(unittest.TestCase):
         self.assertEqual(actual_vertices[12].cval2, closed_vertices[12].cval2)
         self.assertEqual(actual_vertices[12].type, shape.SegmentType.CLOSE)
 
+
 class TestSelfIntersectingPolygon(unittest.TestCase):
     def test_all(self):
-        # should detect self segment intersection of the polygon not near a Pole
+        # should detect self segment intersection of the polygon not near a
+        # Pole
         p1 = shape.Point(-115.488281, 45.867063)
         p2 = shape.Point(-91.230469, 36.075742)
         p3 = shape.Point(-95.800781, 54.807017)
@@ -470,7 +483,8 @@ class TestSelfIntersectingPolygon(unittest.TestCase):
             shape.Polygon(points_with_self_intersecting_segments)
         self.assertTrue('self intersecting' in str(ex.exception))
 
-        # should detect self segment intersection of the polygon near the South Pole, with the Pole outside the polygon
+        # should detect self segment intersection of the polygon near the
+        # South Pole, with the Pole outside the polygon
         p1 = shape.Point(0.6128286003, -89.8967940441)
         p2 = shape.Point(210.6391743183, -89.9073892376)
         p3 = shape.Point(90.6405151921, -89.8972874698)
@@ -481,7 +495,8 @@ class TestSelfIntersectingPolygon(unittest.TestCase):
             shape.Polygon(points_with_self_intersecting_segments)
         self.assertTrue('self intersecting' in str(ex.exception))
 
-        # should detect self segment intersection of the polygon near the South Pole, with the Pole inside the polygon
+        # should detect self segment intersection of the polygon near the
+        # South Pole, with the Pole inside the polygon
         p1 = shape.Point(0.6128286003, -89.8967940441)
         p2 = shape.Point(130.6391743183, -89.9073892376)
         p3 = shape.Point(90.6405151921, -89.8972874698)
@@ -492,7 +507,8 @@ class TestSelfIntersectingPolygon(unittest.TestCase):
             shape.Polygon(points_with_self_intersecting_segments)
         self.assertTrue('self intersecting' in str(ex.exception))
 
-        # should detect self segment intersection of the polygon which intersects with meridian = 0
+        # should detect self segment intersection of the polygon which
+        # intersects with meridian = 0
         p1 = shape.Point(-7.910156, 13.293411)
         p2 = shape.Point(4.042969, 7.068185)
         p3 = shape.Point(4.746094, 18.030975)
@@ -503,9 +519,11 @@ class TestSelfIntersectingPolygon(unittest.TestCase):
             shape.Polygon(points_with_self_intersecting_segments)
         self.assertTrue('self intersecting' in str(ex.exception))
 
+
 class TestSelfIntersectingMultiPolygon(unittest.TestCase):
     def test_all(self):
-        # should detect self segment intersection of the multipolygon not near a Pole
+        # should detect self segment intersection of the multipolygon not
+        # near a Pole
         v1 = shape.Vertex(-115.488281, 45.867063, shape.SegmentType.MOVE)
         v2 = shape.Vertex(-91.230469, 36.075742, shape.SegmentType.LINE)
         v3 = shape.Vertex(-95.800781, 54.807017, shape.SegmentType.LINE)
@@ -516,11 +534,13 @@ class TestSelfIntersectingMultiPolygon(unittest.TestCase):
             shape.MultiPolygon(points_with_self_intersecting_segments)
         self.assertTrue('self intersecting' in str(ex.exception))
 
-        # should detect self segment intersection of the multipolygon near the South Pole,
-        # with the Pole outside the multipolygon
+        # should detect self segment intersection of the multipolygon near
+        # the South Pole, with the Pole outside the multipolygon
         v1 = shape.Vertex(0.6128286003, -89.8967940441, shape.SegmentType.MOVE)
-        v2 = shape.Vertex(210.6391743183, -89.9073892376, shape.SegmentType.LINE)
-        v3 = shape.Vertex(90.6405151921, -89.8972874698, shape.SegmentType.LINE)
+        v2 = shape.Vertex(
+            210.6391743183, -89.9073892376, shape.SegmentType.LINE)
+        v3 = shape.Vertex(
+            90.6405151921, -89.8972874698, shape.SegmentType.LINE)
         v4 = shape.Vertex(270.6114701911, -89.90689353, shape.SegmentType.LINE)
         v5 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
         points_with_self_intersecting_segments = [v1, v2, v3, v4, v5]
@@ -528,11 +548,13 @@ class TestSelfIntersectingMultiPolygon(unittest.TestCase):
             shape.Polygon(points_with_self_intersecting_segments)
         self.assertTrue('self intersecting' in str(ex.exception))
 
-        # should detect self segment intersection of the multipolygon near the South Pole,
-        # with the Pole inside the multipolygon
+        # should detect self segment intersection of the multipolygon near the
+        # South Pole, with the Pole inside the multipolygon
         v1 = shape.Vertex(0.6128286003, -89.8967940441, shape.SegmentType.MOVE)
-        v2 = shape.Vertex(130.6391743183, -89.9073892376, shape.SegmentType.LINE)
-        v3 = shape.Vertex(90.6405151921, -89.8972874698, shape.SegmentType.LINE)
+        v2 = shape.Vertex(
+            130.6391743183, -89.9073892376, shape.SegmentType.LINE)
+        v3 = shape.Vertex(
+            90.6405151921, -89.8972874698, shape.SegmentType.LINE)
         v4 = shape.Vertex(270.6114701911, -89.90689353, shape.SegmentType.LINE)
         v5 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
         points_with_self_intersecting_segments = [v1, v2, v3, v4, v5]
@@ -540,7 +562,8 @@ class TestSelfIntersectingMultiPolygon(unittest.TestCase):
             shape.Polygon(points_with_self_intersecting_segments)
         self.assertTrue('self intersecting' in str(ex.exception))
 
-        # should detect self segment intersection of the multipolygon which intersects with meridian = 0
+        # should detect self segment intersection of the multipolygon which
+        # intersects with meridian = 0
         v1 = shape.Vertex(-7.910156, 13.293411, shape.SegmentType.MOVE)
         v2 = shape.Vertex(4.042969, 7.068185, shape.SegmentType.LINE)
         v3 = shape.Vertex(4.746094, 18.030975, shape.SegmentType.LINE)
@@ -550,6 +573,7 @@ class TestSelfIntersectingMultiPolygon(unittest.TestCase):
         with self.assertRaises(AssertionError) as ex:
             shape.Polygon(points_with_self_intersecting_segments)
         self.assertTrue('self intersecting' in str(ex.exception))
+
 
 class TestVertex(unittest.TestCase):
     def test_all(self):

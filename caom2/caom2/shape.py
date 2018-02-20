@@ -352,8 +352,8 @@ class Interval(common.CaomObject):
                 if prev is not None:
                     if sample.lower <= prev.upper:
                         raise AssertionError(
-                            'invalid interval: sample overlaps previous sample:'
-                            '\n{}\nvs\n{}'.format(sample, prev))
+                            'invalid interval: sample overlaps previous '
+                            'sample:\n{}\nvs\n{}'.format(sample, prev))
                 prev = sample
 
 
@@ -423,7 +423,8 @@ class Polygon(common.CaomObject):
 
     def validate(self):
         """
-        Performs a polygon closure and self segment intersection validation of the current object.
+        Performs a polygon closure and self segment intersection validation of
+        the current object.
 
         for a closed polygon, we must have:
             points[0].cval1 == points[-1].cval1
@@ -432,7 +433,8 @@ class Polygon(common.CaomObject):
         An AssertionError is thrown if the object does not represent a polygon
         """
         if len(self._points) < 3:
-            # points in a polygon is not required to form a closed polygon, hence min 3 points
+            # points in a polygon is not required to form a closed polygon,
+            # hence min 3 points
             raise AssertionError('invalid polygon: {} points (min 3)'.format(
                 len(self._points)))
 
@@ -443,7 +445,7 @@ class Polygon(common.CaomObject):
             cval2s.append(self._points[i].cval2)
         if (cval1s[-1] == 0) and (cval2s[-1] == 0):
             # (0,0) represents the last point in a closed polygon
-            # SphericalPolygon requires point[0] == point[-1] for a closed polygon
+            # SphericalPolygon requires point[0]==point[-1] for closed polygons
             cval1s[-1] = cval1s[0]
             cval2s[-1] = cval2s[0]
         elif (cval1s[-1] != cval1s[0]) or (cval2s[-1] != cval2s[0]):
@@ -507,7 +509,8 @@ class MultiPolygon(common.CaomObject):
         """
         Verifies that the polygon does not contain self-intersecting segments.
 
-        An AssertionError is thrown if the polygon contains self-intersecting segments.
+        An AssertionError is thrown if the polygon contains self-intersecting
+        segments.
         """
         for p in spolygon.iter_polygons_flat():
             for i in range(len(p._points) - 3):
@@ -516,40 +519,49 @@ class MultiPolygon(common.CaomObject):
                 C = p._points[2:-2] if i == 0 else p._points[i + 2:-1]
                 D = p._points[3:-1] if i == 0 else p._points[i + 3:]
                 if np.any(polygon.great_circle_arc.intersects(A, B, C, D)):
-                    raise AssertionError('Polygon contains self intersecting segments')
+                    raise AssertionError(
+                        'Polygon contains self intersecting segments')
 
     @staticmethod
     def validate_is_clockwise(orig_lon, lon):
         """
-        Verifies that the polygon is contructed from points in a clockwise direction.
+        Verifies that the polygon is contructed from points in a clockwise
+        direction.
 
-        Note: The SphericalPolygon fixes a polygon with points not in a clockwise direction. We only need to compare a
-        point in our polygon/multipolygon with the corresponding one in the SphericalPolygon object. We cannot use an
-        endpoint since they are the same for a closed polygon.
+        Note: The SphericalPolygon fixes a polygon with points not in a
+        clockwise direction. We only need to compare a point in our
+        polygon/multipolygon with the corresponding one in the SphericalPolygon
+        object. We cannot use an endpoint since they are the same for a closed
+        polygon.
 
-        An AssertionError is thrown if the points are not in a clockwise direction
+        An AssertionError is thrown if the points are not in a clockwise
+        direction
         """
         if not np.isclose(lon[1], orig_lon[1]):
             if not np.isclose(lon[1] - 360, orig_lon[1]):
                 rlon = lon[::-1]
-                if np.isclose(rlon[1], orig_lon[1]) or np.isclose(rlon[1] - 360, orig_lon[1]):
-                    raise AssertionError('invalid polygon: vertices not in clockwise direction')
+                if np.isclose(rlon[1], orig_lon[1]) or \
+                        np.isclose(rlon[1] - 360, orig_lon[1]):
+                    raise AssertionError(
+                        'invalid polygon: vertices not in clockwise direction')
                 else:
-                    raise AssertionError('software error: compared wrong values')
+                    raise AssertionError(
+                        'software error: compared wrong values')
 
     @staticmethod
     def validate_self_intersection_and_direction(ras, decs):
         """
-        Verifies that the polygon does not contain self-intersecting segments and that the points are clockwise.
+        Verifies that the polygon does not contain self-intersecting segments
+        and that the points are clockwise.
 
-        An AssertionError is thrown if the polygon contains self-intersecting segments.
+        An AssertionError is thrown if the polygon contains self-intersecting
+        segments.
         """
         # use SphericalPolygon to validate our polygon
         spolygon = polygon.SphericalPolygon.from_radec(ras, decs)
         MultiPolygon.validate_self_intersection(spolygon)
         lon, lat = six.next(spolygon.to_lonlat())
         MultiPolygon.validate_is_clockwise(ras, lon)
-
 
     class PolygonValidator():
         """
@@ -564,7 +576,8 @@ class MultiPolygon(common.CaomObject):
             if vertex.type == SegmentType.MOVE:
                 self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
             elif vertex.type == SegmentType.CLOSE:
-                # SphericalPolygon requires point[0] == point[-1] for a closed polygon
+                # close the polygon
+                # SphericalPolygon requires point[0] == point[-1]
                 point = self._polygon.points[0]
                 self._polygon.points.append(Point(point.cval1, point.cval2))
                 # validate the polygons in the multipolygon
@@ -573,7 +586,6 @@ class MultiPolygon(common.CaomObject):
                 self._polygon = Polygon()
             else:
                 self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
-
 
     class VertexValidator():
         """
