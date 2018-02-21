@@ -111,12 +111,13 @@ class WcsValidator():
         pass
 
     @staticmethod
-    def validate_artifact(self, artifact):
+    def validate_artifact(artifact):
         if artifact is not None:
-            for p in artifact.parts:
+            for pkey in artifact.parts.keys():
+                p = artifact.parts[pkey]
                 if p is not None:
                     for c in p.chunks:
-                        context = artifact.uri + "[" + p.name + "]:" + c.id + " "
+                        context = artifact.uri + "[" + p.name + "]:" + str(c._id) + " "
                         WcsValidator.validate_chunk(context, c)
 
     @staticmethod

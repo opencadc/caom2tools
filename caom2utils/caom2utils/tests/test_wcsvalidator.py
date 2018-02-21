@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2018.                            (c) 2016.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -71,7 +71,8 @@ from __future__ import (absolute_import, division, print_function,
 
 # from astropy.wcs import Wcsprm
 from caom2utils import WcsValidator, InvalidWCSError
-from caom2 import Artifact, wcs, chunk, plane
+from caom2 import artifact, wcs, chunk, part
+from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict
 
 
 # TemporalWCS validator tests
@@ -162,76 +163,58 @@ def test_invalid_spectral_wcs():
         print(repr(e))
         assert False
 
-#  this test should construct an Artifact with all the WCS
-#  and then validate everything.
+
+# Artifact tests
 def test_valid_wcs():
-    pass
-    # # Will need to be similar to this from the Java code:
-    #     artifact = None
-    #     try:
-    #         artifact = get_test_artifact(chunk.ProductType.SCIENCE)
-    #         # Parts is a TypedOrderedDict
-    #         chunk = a.parts.getChunks().iterator().next();
-    #
-    #         # Populate all WCS with good values
-    #         chunk.position = SpatialTestUtil.good_wcs(SpatialTestUtil())
-    #         chunk.energy = EnergyTestUtil.good_wcs(EnergyTestUtil())
-    #         chunk.time = TimeTestUtil.good_wcs(TimeTestUtil())
-    #         chunk.polarization = PolarizationTestUtil.good_wcs(PolarizationTestUtil())
-    #
-    #         WcsValidator.validate(artifact)
-    #     except Exception as unexpected:
-    #         print(repr(unexpected))
-    #         assert False
+    a = None
+    try:
+        a = get_test_artifact(chunk.ProductType.SCIENCE)
+        WcsValidator.validate_artifact(a)
+    except Exception as unexpected:
+        print(repr(unexpected))
+        assert False
 
 
-    # public void testNullWCS() {
-    #     Artifact a = null;
-    #
-    #     try {
-    #         a = dataGenerator.getTestArtifact(ProductType.SCIENCE);
-    #         Chunk c = a.getParts().iterator().next().getChunks().iterator().next();
-    #         c.position = dataGenerator.mkGoodSpatialWCS();
-    #         c.energy = dataGenerator.mkGoodSpectralWCS();
-    #         c.time = dataGenerator.mkGoodTemporalWCS();
-    #         c.polarization = dataGenerator.mkGoodPolarizationWCS();
-    #         CaomWCSValidator.validate(a);
-    #
-    #
-    #         // Not probably reasonable Chunks, but should still be valid
-    #         c.position = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.position = dataGenerator.mkGoodSpatialWCS();
-    #         c.energy = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.energy = dataGenerator.mkGoodSpectralWCS();
-    #         c.time = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.time = dataGenerator.mkGoodTemporalWCS();
-    #         c.polarization = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.energy = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.time = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         // Assert: all WCS should be null at this step
-    #         c.position = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #     } catch (Exception unexpected) {
-    #         log.error(UNEXPECTED_EXCEPTION + " validating artifact: " + a.toString(), unexpected);
-    #         Assert.fail(UNEXPECTED_EXCEPTION + a.toString() + unexpected);
-    #     }
-    #
-    # }
+def test_null_wcs():
+    a = None
+    try:
+        a = get_test_artifact(chunk.ProductType.SCIENCE)
+        WcsValidator.validate_artifact(a)
+        c = a.parts['test_part'].chunks[0]
+
+        # Not probably reasonable Chunks, but should still be valid
+        # Different combinations of this will be represented in different data sets
+        c.position = None
+        WcsValidator.validate_artifact(a)
+
+        c.position = SpatialTestUtil.good_wcs(SpatialTestUtil())
+        c.energy = None
+        WcsValidator.validate_artifact(a)
+
+        c.energy = EnergyTestUtil.good_wcs(EnergyTestUtil())
+        c.time = None
+        WcsValidator.validate_artifact(a)
+
+        c.time = TimeTestUtil.good_wcs(TimeTestUtil())
+        c.polarization = None
+        WcsValidator.validate_artifact(a)
+
+        c.energy = None
+        WcsValidator.validate_artifact(a)
+
+        c.time = None
+        WcsValidator.validate_artifact(a)
+
+        # Assert: all WCS should be null at this step
+        c.position = None
+        WcsValidator.validate_artifact(a)
+
+    except InvalidWCSError as unexpected:
+        print(repr(unexpected))
+        assert False
 
 
+# Supporting Classes for generating test data
 class TimeTestUtil:
 
     def __init__(self):
@@ -398,66 +381,27 @@ class EnergyTestUtil:
         return spectral_wcs
 
 
+def get_good_test_chunk(ptype):
+    test_chunk = chunk.Chunk()
+    test_chunk.position = SpatialTestUtil.good_wcs(SpatialTestUtil())
+    test_chunk.energy = EnergyTestUtil.good_wcs(EnergyTestUtil())
+    test_chunk.time = TimeTestUtil.good_wcs(TimeTestUtil())
+    test_chunk.polarization = PolarizationTestUtil.good_wcs(PolarizationTestUtil())
+
+    return test_chunk
+
+
 # Under construction
 def get_test_artifact(ptype):
-    pass
     # chunk.ProductType.SCIENCE is a common type
-    # artifact = chunk.Artifact('uri:foo/bar', ptype, chunk.ReleaseType.DATA)
-    #
-    # test_part = part.Part("test_part", ptype, )
-    #
-    #
-    # # Assumption:
-    # #    Only primary headers for 1 extension files or the extensions
-    # # for multiple extension files can have data and therefore
-    # # corresponding parts
-    # if (i > 0) or (len(self.headers) == 1):
-    #     if ii not in artifact.parts.keys():
-    #         artifact.parts.add(Part(ii))  # TODO use extension name?
-    #         self.logger.debug('Part created for HDU {}.'.format(ii))
-    # else:
-    #     artifact.parts.add(Part(ii))
-    #     self.logger.debug('Create empty part for HDU {}'.format(ii))
-    #     continue
-    #
-    # part = artifact.parts[ii]
-    #
-    # # each Part has one Chunk
-    # if not part.chunks:
-    #     part.chunks.append(Chunk())
-    # chunk = part.chunks[0]
-    # return artifact
-    #
-    #
-    # return artifact
+    if ptype is None:
+        ptype = chunk.ProductType.SCIENCE
+    test_artifact = artifact.Artifact('uri:foo/bar', ptype, artifact.ReleaseType.DATA)
+    chunks = TypedList(chunk.Chunk)
+    chunks.append(get_good_test_chunk(ptype))
 
-    # create an artifact
-    # populate it with known good WCS values for position, energy, time, polarization,
-    # that's it.
-#     Artifact a = null;
-#     try {
-#         a = dataGenerator.getTestArtifact(ProductType.SCIENCE);
-#         Chunk c = a.getParts().iterator().next().getChunks().iterator().next();
-#
-#         // Populate all WCS with good values
-#         c.position = dataGenerator.mkGoodSpatialWCS();
-#         c.energy = dataGenerator.mkGoodSpectralWCS();
-#         c.time = dataGenerator.mkGoodTemporalWCS();
-#         c.polarization = dataGenerator.mkGoodPolarizationWCS();
-#
-#         CaomWCSValidator.validate(a);
-#     } catch (Exception unexpected) {
-#         log.error(UNEXPECTED_EXCEPTION + " validating artifact: " + a.toString(), unexpected);
-#         Assert.fail(UNEXPECTED_EXCEPTION + a.toString() + unexpected);
-#     }
-#
-# }
+    test_part = part.Part("test_part", ptype, chunks)
+    test_artifact.parts = TypedOrderedDict(part.Part)
+    test_artifact.parts['test_part'] = test_part
 
-
-# dimension = wcs.Dimension2D(int(1), int(2))
-# ref_coord = wcs.Coord2D(wcs.RefCoord(float(9.0), float(10.0)),
-#                         wcs.RefCoord(float(11.0), float(12.0)))
-# cd11 = float(1.1)
-# cd12 = float(1.2)
-# cd21 = float(2.1)
-# cd22 = float(2.2)
+    return test_artifact
