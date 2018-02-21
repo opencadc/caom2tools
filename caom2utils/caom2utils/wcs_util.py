@@ -78,7 +78,7 @@ from caom2 import shape
 from astropy.wcs import Wcsprm
 import numpy as np
 
-__all__ = ['TimeUtil', 'EnergyUtil', 'EnergyConverter', 'ORIGIN']
+__all__ = ['TimeUtil', 'EnergyUtil', 'ORIGIN']
 
 # TODO both these are very bad, implement more sensibly
 TARGET_TIMESYS = "UTC"
@@ -89,8 +89,8 @@ ORIGIN = 0
 
 # CoordFunction1D, double/float
 def pix2val(function, pix):
-    refPix = float(function.ref_coord.pix)
-    return function.ref_coord.val + function.delta * (pix - refPix)
+    ref_pix = float(function.ref_coord.pix)
+    return function.ref_coord.val + function.delta * (pix - ref_pix)
 
 
 class TimeUtil:
@@ -138,8 +138,6 @@ class TimeUtil:
         except Exception:
             raise ValueError("Invalid function in Temporal WCS")
 
-
-
     def validate_wcs(self,  temporal_wcs):
         """
         """
@@ -159,197 +157,169 @@ class TimeUtil:
         if len(sb) > 0:
             raise ValueError(sb)
 
-
-#  TODO: Under Construction
-#  Q: astropy units & Quanitities could be used here?
-#  On first pass duplicating what is in the Java code so the
-#  validations can be as close as possible mathematically
-#  Plus it's not clear to me what advantage the Quantities/Units
-#  have (other than handling conversions differently, as there needs
-#  to be similar somersaulting in order to determine what units
-#  need to be applied to the values in a particular spectralWCS. -
-#  much of the work in the freqUnits & related arrays would still need
-#  to be done.
-class EnergyConverter():
-
-    def __init__(self):
-        self._CORE_SPECSYS = "BARYCENT"
-        self._CORE_CTYPE = "WAVE"
-        self._CORE_CUNIT = "m"
-        self.BASE_UNIT_FREQ = "Hz"
-
-        self.c = float(2.9979250e8) # m / sec
-        self.h = float(6.62620e-27) # erg / sec
-        self.eV = float(1.602192e-12) # erg
-
-        self.allUnits = [];
-
-        self.freqUnits = [ "Hz", "kHz", "MHz", "GHz" ]
-        self.freqMult = [ 1.0, 1.0e3, 1.0e6, 1.0e9 ]
-        self.enUnits = [ "eV", "keV", "MeV", "GeV" ]
-        self.enMult = [ 1.0, 1.0e3, 1.0e6, 1.0e9 ]
-
-        self.waveUnits = [ "m", "cm", "mm","um", "µm", "nm", "A" ]
-        self.waveMult = [ 1.0, 1.0e-2, 1.0e-3, 1.0e-6, 1.0e-6, 1.0e-9, 1.0e-10 ]
-        # todo: see if astropy units & quantities have representations of
-        #  each of the waveUnits
-        # self.bla = [u.m, u.cm, u.mm, u.]
-
-    # Properties
-    @property
-    def CORE_CUNIT(self):
-        """
-        """
-        return self._CORE_CUNIT
-
-    @property
-    def CORE_CTYPE(self):
-        """
-        """
-        return self._CORE_CTYPE
-
-    @property
-    def CORE_SPECSYS(self):
-        """
-        """
-        return self._CORE_SPECSYS
-
-    # // Lay out the actual units only once, then coalesce them.
-    # static {
-    #     final List<String> allUnitList = new ArrayList<String>(
-    #             Arrays.asList(freqUnits));
-    #     allUnitList.addAll(Arrays.asList(enUnits));
-    #     allUnitList.addAll(Arrays.asList(waveUnits));
-    #
-    #     allUnits = allUnitList.toArray(new String[allUnitList.size()]);
-
-    def getSupportedUnits(self):
-        return self.allUnits;
-
-    def convert(self, value, ctype, cunit):
-        # TODO: check ctype instead of just relying on units
-        return self.to_meters(value, cunit)
-
-    def convert_specsys(self, value, specsys):
-        return value # noop
-
-    # /**
-    #  * Convert the energy value d from the specified units to wavelength in
-    #  * meters.
-    #  *
-    #  * @param d
-    #  * @param units
-    #  * @return wavelength in meters
-    #  */
-    def to_meters(self, d, units):
-        #  if a list of units is allowed,
-        #  This wil turn into: discovering which array the wcs value unit
-        #  is in, assigning that astropy unit to a variable.
-        #  multiplying the wcs value (d) against the astropy unit (makng a quantity,)
-        #  then applying and equivalence in the .to() function to do the
-        #  conversion.
-        #  It just seems like more work than using what is in the
-        #  java code. :(
-        # try:
-        # i = ArrayUtil.matches("^" + units + "$", self.freqUnits, True)
-        if units in self.freqUnits:
-            i = self.freqUnits.index(units)
-            return self.freq_to_meters(d, i)
-
-        # i = ArrayUtil.matches("^" + units + "$", self.enUnits, True)
-        if units in self.enUnits:
-            i = self.enUnits.index(units)
-            return self.energy_to_meters(d, i)
-
-        # i = ArrayUtil.matches("^" + units + "$", self.waveUnits, True)
-        if units in self.waveUnits:
-            i = self.waveUnits.index(units)
-            return self.wavelength_to_meters(d, i)
-        # except ValueError:
-        #     pass
-
-
-        # throw new IllegalArgumentException("Unknown units: " + units);
-
-    # /**
-    #  * Convert the energy value d from the specified units to frequency in Hz.
-    #  *
-    #  * @param d
-    #  * @param units
-    #  * @return frequency in Hz
-    #  */
-    def to_hz(self, d, units):
-        # i = ArrayUtil.matches("^" + units + "$", self.freqUnits, True)
-        try:
-            i = self.freqUnits.index(units)
-            if units in self.freqUnits:
-                return self.freq_to_hz(d, i)
-
-            # i = ArrayUtil.matches("^" + units + "$", self.enUnits, True)
-            i = self.enUnits.index(units)
-            if units in self.enUnits:
-                return self.energy_to_hz(d, i)
-
-            # i = ArrayUtil.matches("^" + units + "$", self.waveUnits, True)
-            i = self.waveUnits.index(units)
-            if units in self.waveUnits:
-                return self.wavelength_to_hz(d, i)
-        except ValueError:
-            pass
-            # // unknown units
-
-    # throw new IllegalArgumentException("unknown units: " + units);
-
-    # /**
-    #  * Compute the range of energy values to a wavelength width in meters.
-    #  *
-    #  * @param d1
-    #  * @param d2
-    #  * @param units
-    #  * @return delta lambda in meters
-    #  */
-    # def to_delta_meters(self, d1, d2, units):
-    #     w1 = to_meters(d1, units)
-    #     w2 = to_meters(d2, units)
-    #     return abs(w2 - w1)
-
-    # /**
-    #  * Compute the range of energy values to a frequency width in Hz.
-    #  *
-    #  * @param d1
-    #  * @param d2
-    #  * @param units
-    #  * @return delta nu in Hz
-    #  */
-    # def to_delta_hz(self, d1, d2, units):
-    #     f1 = to_hz(d1, units)
-    #     f2 = to_hz(d2, units)
-    #     return abs(f2 - f1)
-
-    def freq_to_meters(self, d, i):
-        nu = float(d * self.freqMult[i])
-        return self.c / nu
-
-    def energy_to_meters(self, d, i):
-        e = float(self.eV * d * self.enMult[i])
-        return float(self.c * self.h / e)
-
-    def wavelength_to_meters(self, d, i):
-        return float(d * self.waveMult[i])
-
-    def freq_to_hz(self, d, i):
-        return float(self.d * self.freqMult[i])
-
-    def energy_to_hz(self, d, i):
-        w = self.energy_to_meters(d, i)
-        return float(self.c / w)
-
-    def wavelength_to_hz(self, d, i):
-        w = d * self.waveMult[i]
-        return float(self.c / w)
+# #  TODO: Under Construction
+# #  Q: astropy units & Quanitities could be used here?
+# #  On first pass duplicating what is in the Java code so the
+# #  validations can be as close as possible mathematically
+# #  Plus it's not clear to me what advantage the Quantities/Units
+# #  have (other than handling conversions differently, as there needs
+# #  to be similar somersaulting in order to determine what units
+# #  need to be applied to the values in a particular spectralWCS. -
+# #  much of the work in the freqUnits & related arrays would still need
+# #  to be done.
+# class EnergyConverter():
+#
+#     def __init__(self):
+#         self._CORE_SPECSYS = "BARYCENT"
+#         self._CORE_CTYPE = "WAVE"
+#         self._CORE_CUNIT = "m"
+#         self.BASE_UNIT_FREQ = "Hz"
+#
+#         self.c = float(2.9979250e8) # m / sec
+#         self.h = float(6.62620e-27) # erg / sec
+#         self.eV = float(1.602192e-12) # erg
+#
+#         self.allUnits = [];
+#
+#         self.freqUnits = [ "Hz", "kHz", "MHz", "GHz" ]
+#         self.freqMult = [ 1.0, 1.0e3, 1.0e6, 1.0e9 ]
+#         self.enUnits = [ "eV", "keV", "MeV", "GeV" ]
+#         self.enMult = [ 1.0, 1.0e3, 1.0e6, 1.0e9 ]
+#
+#         self.waveUnits = [ "m", "cm", "mm","um", "µm", "nm", "A" ]
+#         self.waveMult = [ 1.0, 1.0e-2, 1.0e-3, 1.0e-6, 1.0e-6, 1.0e-9, 1.0e-10 ]
+#         # todo: see if astropy units & quantities have representations of
+#         #  each of the waveUnits
+#         # self.bla = [u.m, u.cm, u.mm, u.]
+#
+#     # Properties
+#     @property
+#     def CORE_CUNIT(self):
+#         """
+#         """
+#         return self._CORE_CUNIT
+#
+#     @property
+#     def CORE_CTYPE(self):
+#         """
+#         """
+#         return self._CORE_CTYPE
+#
+#     @property
+#     def CORE_SPECSYS(self):
+#         """
+#         """
+#         return self._CORE_SPECSYS
+#
+#     # // Lay out the actual units only once, then coalesce them.
+#     # static {
+#     #     final List<String> allUnitList = new ArrayList<String>(
+#     #             Arrays.asList(freqUnits));
+#     #     allUnitList.addAll(Arrays.asList(enUnits));
+#     #     allUnitList.addAll(Arrays.asList(waveUnits));
+#     #
+#     #     allUnits = allUnitList.toArray(new String[allUnitList.size()]);
+#
+#     def getSupportedUnits(self):
+#         return self.allUnits;
+#
+#     def convert(self, value, ctype, cunit):
+#         # TODO: check ctype instead of just relying on units
+#         return self.to_meters(value, cunit)
+#
+#     def convert_specsys(self, value, specsys):
+#         return value # noop
+#
+#     # /**
+#     #  * Convert the energy value d from the specified units to wavelength in
+#     #  * meters.
+#     #  *
+#     #  * @param d
+#     #  * @param units
+#     #  * @return wavelength in meters
+#     #  */
+#     def to_meters(self, d, units):
+#         #  if a list of units is allowed,
+#         #  This wil turn into: discovering which array the wcs value unit
+#         #  is in, assigning that astropy unit to a variable.
+#         #  multiplying the wcs value (d) against the astropy unit (makng a quantity,)
+#         #  then applying and equivalence in the .to() function to do the
+#         #  conversion.
+#         #  It just seems like more work than using what is in the
+#         #  java code. :(
+#         # try:
+#         # i = ArrayUtil.matches("^" + units + "$", self.freqUnits, True)
+#         if units in self.freqUnits:
+#             i = self.freqUnits.index(units)
+#             return self.freq_to_meters(d, i)
+#
+#         # i = ArrayUtil.matches("^" + units + "$", self.enUnits, True)
+#         if units in self.enUnits:
+#             i = self.enUnits.index(units)
+#             return self.energy_to_meters(d, i)
+#
+#         # i = ArrayUtil.matches("^" + units + "$", self.waveUnits, True)
+#         if units in self.waveUnits:
+#             i = self.waveUnits.index(units)
+#             return self.wavelength_to_meters(d, i)
+#         # except ValueError:
+#         #     pass
+#
+#
+#         # throw new IllegalArgumentException("Unknown units: " + units);
+#
+#     # /**
+#     #  * Convert the energy value d from the specified units to frequency in Hz.
+#     #  *
+#     #  * @param d
+#     #  * @param units
+#     #  * @return frequency in Hz
+#     #  */
+#     def to_hz(self, d, units):
+#         # i = ArrayUtil.matches("^" + units + "$", self.freqUnits, True)
+#         try:
+#             i = self.freqUnits.index(units)
+#             if units in self.freqUnits:
+#                 return self.freq_to_hz(d, i)
+#
+#             # i = ArrayUtil.matches("^" + units + "$", self.enUnits, True)
+#             i = self.enUnits.index(units)
+#             if units in self.enUnits:
+#                 return self.energy_to_hz(d, i)
+#
+#             # i = ArrayUtil.matches("^" + units + "$", self.waveUnits, True)
+#             i = self.waveUnits.index(units)
+#             if units in self.waveUnits:
+#                 return self.wavelength_to_hz(d, i)
+#         except ValueError:
+#             pass
+#             #  unknown units
+#
+#
+#
+#     def freq_to_meters(self, d, i):
+#         nu = float(d * self.freqMult[i])
+#         return self.c / nu
+#
+#     def energy_to_meters(self, d, i):
+#         e = float(self.eV * d * self.enMult[i])
+#         return float(self.c * self.h / e)
+#
+#     def wavelength_to_meters(self, d, i):
+#         return float(d * self.waveMult[i])
+#
+#     def freq_to_hz(self, d, i):
+#         return float(self.d * self.freqMult[i])
+#
+#     def energy_to_hz(self, d, i):
+#         w = self.energy_to_meters(d, i)
+#         return float(self.c / w)
+#
+#     def wavelength_to_hz(self, d, i):
+#         w = d * self.waveMult[i]
+#         return float(self.c / w)
 
 
-#  TODO: Under Construction
 class EnergyUtil():
     def __init__(self):
         pass
@@ -359,68 +329,28 @@ class EnergyUtil():
         """
         a = float(range_1d.start.val)
         b = float(range_1d.end.val)
-        conv = EnergyConverter()
-
-        # There is a specsys conversion step at this point in
-        # the Java code, however it does nothing. So this comment is
-        # a placeholder to flag that yes, it's missing from here.
-
-        ctype = temporal_wcs.axis.axis.ctype
-        cunit = temporal_wcs.axis.axis.cunit
-        if not ctype.startswith(str(EnergyConverter.CORE_CTYPE)) or EnergyConverter.CORE_CUNIT != cunit:
-            a = conv.convert(a, conv.CORE_CTYPE, cunit)
-            b = conv.convert(b, conv.CORE_CTYPE, cunit)
+        #  The energy converter work done in the Java code is skipped here.
+        #  Doing it here introduced some precision errors which lead to false invalids.
+        #  Ignoring the units for validation sounds like it's ok, as long as the
+        #  same values come out of the p2s, s2p calculations in the main validator
+        #  code. TODO: is this sufficient for validation?
+        # conv = EnergyConverter()
+        #
+        # ctype = temporal_wcs.axis.axis.ctype
+        # cunit = temporal_wcs.axis.axis.cunit
+        # if not ctype.startswith(str(EnergyConverter.CORE_CTYPE)) or EnergyConverter.CORE_CUNIT != cunit:
+        #     a = conv.convert(a, conv.CORE_CTYPE, cunit)
+        #     b = conv.convert(b, conv.CORE_CTYPE, cunit)
 
         return shape.SubInterval(min(a, b), max(a, b))
 
     def function1d_to_interval(self, temporal_wcs):
         """
-            needs Util.pix2val equivalent in here.
         """
-
-
-        #  TODO: translate function needed?
-        # ctype = wcs.axis.axis.ctype
-        # if not ctype.startsWith(EnergyConverter.CORE_CTYPE):
-        # # log.debug("toInterval: transform from " + ctype + " to " + EnergyConverter.CORE_CTYPE + "-???");
-        #     kw = trans.translate(EnergyConverter.CORE_CTYPE + "-???"); // any linearization algorithm
-        #     trans = new Transform(kw);
-
-        # naxis = kw.getDoubleValue("NAXIS1"); // axis set to 1 above
-        # function associated with naxis 1 ? TODO: is this right?
         naxis = temporal_wcs.axis.function.naxis
         p1 = 0.5
         p2 = naxis + 0.5
-
-        wcsprm = Wcsprm()
-        start_coord = np.array([[p1, p1]])
-        end_coord = np.array([[p2, p2]])
-
-        start = wcsprm.p2s(start_coord, ORIGIN)
-        end = wcsprm.p2s(end_coord, ORIGIN)
-
-        a = start['world'][0][0]
-        b = end['world'][0][0]
-        # log.debug("toInterval: wcslib returned " + a + start.units[0] + "," + b + end.units[0]);
-
-        # String specsys = wcs.getSpecsys();
-        # if not EnergyConverter.CORE_SPECSYS.equals(specsys)):
-        # a = conv.convertSpecsys(a, specsys);
-        # b = conv.convertSpecsys(b, specsys);
-        # }
-
-        # TODO: what needs to happen here?
-        # where can units be pulled from?
-        # // wcslib convert to WAVE-??? but units might be a multiple of EnergyConverter.CORE_UNIT
-        # cunit = start.units[0]; # assume same as end.units[0]
-        # if (!EnergyConverter.CORE_UNIT.equals(cunit)) {
-        # log.debug("toInterval: converting " + a + " " + cunit);
-        # a = conv.convert(a, EnergyConverter.CORE_CTYPE, cunit);
-        # log.debug("toInterval: converting " + b + " " + cunit);
-        # b = conv.convert(b, EnergyConverter.CORE_CTYPE, cunit);
-        # }
-
-        return shape.SubInterval(min(a, b), max(a, b))
+        return shape.SubInterval(p1, p2)
 
 
 
