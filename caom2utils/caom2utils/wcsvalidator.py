@@ -135,6 +135,7 @@ def validate_spatial_wcs(position):
     error_string = ""
     if position is not None and position.axis is not None:
         try:
+            # There's not much that can be validated about range & bounds
             if position.axis.function is not None:
                 fn2D = position.axis.function
                 naxis1_half = float(fn2D.dimension.naxis1/2)
@@ -142,18 +143,13 @@ def validate_spatial_wcs(position):
 
                 wcsprm = Wcsprm()
                 coord_array = np.array([[naxis1_half, naxis2_half]])
-                print("trying sky transform")
                 sky_transform = wcsprm.p2s(coord_array, ORIGIN)
-                print("sky transform done")
                 pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
-                print ("pix transform done")
 
                 transformed_coords = pix_transform['pixcrd']
 
                 if not (transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half):
                     error_string = "Could not transform centre coordinate"
-            else:
-                error_string = "WCS axis should have a function"
 
         except Exception as e:
             error_string = repr(e)
@@ -162,45 +158,39 @@ def validate_spatial_wcs(position):
             raise InvalidWCSError("Invalid SpatialWCS: " + error_string + ": " + str(position))
 
 
+def check_transform(coords):
+    # Coords is a shape.Subinterval
+    wcsprm = Wcsprm()
+    coord_array = np.array([[coords.lower, coords.upper]])
+    sky_transform = wcsprm.p2s(coord_array, ORIGIN)
+    pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
+    transformed_coords = pix_transform['pixcrd']
+
+    if not (transformed_coords[0][0] == coords.lower and transformed_coords[0][1] == coords.upper):
+        raise ValueError("Could not transform coordinates pixel to sky, sky to pixel")
+
+
 #  TODO: Under Construction
 def validate_spectral_wcs(energy):
     error_msg = ""
     if energy is not None:
         try:
             energyAxis = energy.axis
-            transformed_coords = None
             si = None
             energy_util = EnergyUtil()
 
             if energyAxis.range is not None:
                 si = energy_util.range1d_to_interval(energy, energyAxis.range)
+                check_transform(si)
 
             if energyAxis.bounds is not None:
                 for tile in energyAxis.bounds.samples:
                     si = energy_util.range1d_to_interval(energy, tile)
+                    check_transform(si)
 
             if energyAxis.function is not None:
-                print("wcsvalidator: energyAxis has a function")
                 si = energy_util.function1d_to_interval(energy)
-
-                wcsprm = Wcsprm()
-                print(si)
-                coord_array = np.array([[si.lower, si.upper]])
-
-                sky_transform = wcsprm.p2s(coord_array, ORIGIN)
-                print(sky_transform)
-                pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
-                print(pix_transform)
-
-                transformed_coords = pix_transform['pixcrd']
-                print(transformed_coords)
-                print(si)
-
-            if si is None:
-                error_msg = "WCS must have one of range, bounds or function"
-
-            if not (transformed_coords[0][0] == si.lower and transformed_coords[0][1] == si.upper):
-                error_msg = "Could not transform central coordinates"
+                check_transform(si)
 
         except Exception as ex:
             error_msg = repr(ex)
@@ -226,9 +216,6 @@ def validate_temporal_wcs(time):
 
             if time_axis.function is not None:
                     subinterval = timeutil.function1d_to_interval(time, time_axis.function)
-
-            if subinterval is None:
-                error_msg = "Temporal WCS must have one of range, bounds, function assigned"
 
         except Exception as e:
             error_msg = repr(e)
