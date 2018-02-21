@@ -1,0 +1,6 @@
+fits2caom2 --out=G021.351.032-00.760.xml --collection=CFHTMEGAPIPE 
+--observationID=G021.351.032-00.760 --productID=G021.351.032-00.760.R 
+--uri=ad:CFHTSG/G021.351.032-00.760.R.weight.fits.fz,ad:CFHTSG/G021.351.032-00.760.R.cat,ad:CFHTSG/G021.351.032-00.760.R.fits 
+--verbose --override=G021.351.032-00.760.R.over 
+--local=G021.351.032-00.760.R.weight.fits.fz,G021.351.032-00.760.R.cat,G021.351.032-00.760.R.fits 
+--config=megapipe2caom2.config --default=megapipe2caom2.default

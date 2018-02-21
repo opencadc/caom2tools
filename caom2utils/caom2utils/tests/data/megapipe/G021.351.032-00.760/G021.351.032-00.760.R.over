@@ -1,0 +1,36 @@
+members= caom:CFHT/754757 caom:CFHT/754758 caom:CFHT/806835 caom:CFHT/806839 caom:CFHT/1571780 caom:CFHT/1571795 caom:CFHT/1645563 caom:CFHT/1645576
+
+provenance.inputs= caom:CFHT/754757/754757p caom:CFHT/754758/754758p caom:CFHT/806835/806835p caom:CFHT/806839/806839p caom:CFHT/1571780/1571780p caom:CFHT/1571795/1571795p caom:CFHT/1645563/1645563p caom:CFHT/1645576/1645576p
+
+WCSAXES = 4
+
+CTYPE3 = TIME
+TIMESYS= UTC
+
+CRPIX3 =       0.500000000000
+CRVAL3 =       53204.00000000
+CDELT3 =       3304.00098379629
+CUNIT3 =       d
+NAXIS3 =       1
+
+CTYPE4=WAVE
+SPECSYS=TOPOCENT
+CUNIT4=Angstrom
+NAXIS4=1
+CRPIX4=1
+CRVAL4=6248.5
+CDELT4=1413
+resolvingPower=4.4
+
+
+
+?ad:CFHTSG/G021.351.032-00.760.R.fits
+artifact.productType = science
+
+
+?ad:CFHTSG/G021.351.032-00.760.R.cat
+artifact.productType = catalog
+
+?ad:CFHTSG/G021.351.032-00.760.R.weight.fits.fz
+artifact.productType = weight
+

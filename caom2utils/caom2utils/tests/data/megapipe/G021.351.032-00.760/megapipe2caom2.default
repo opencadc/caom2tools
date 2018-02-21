@@ -1,0 +1,24 @@
+
+algorithm.name = MEGAPIPE
+
+telescope.geoLocationX = -5464228.6
+telescope.geoLocationY = -2493778.2
+telescope.geoLocationZ = 2150937.8
+telescope.name =  CFHT 3.6m
+instrument.name = MegaPrime
+
+
+provenance.name = MEGAPIPE
+provenance.producer = CADC
+provenance.reference = http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/megapipe/
+
+plane.dataProductType=image
+
+
+
+environment.photometric = true
+obs.intent = science
+
+
+obs.type = OBJECT
+plane.calibrationLevel = 3
