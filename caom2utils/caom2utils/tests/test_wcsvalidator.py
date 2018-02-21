@@ -70,7 +70,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 # from astropy.wcs import Wcsprm
-from caom2utils import WcsValidator, validate_temporal_wcs, validate_spatial_wcs, validate_spectral_wcs, InvalidWCSError
+from caom2utils import WcsValidator, InvalidWCSError
 from caom2 import Artifact, wcs, chunk, plane
 
 
@@ -82,8 +82,8 @@ def test_temporalwcs_validator():
     assert good_temporal_wcs.axis.function is not None
 
     try:
-        validate_temporal_wcs(good_temporal_wcs)
-        validate_temporal_wcs(None)
+        WcsValidator.validate_temporal_wcs(good_temporal_wcs)
+        WcsValidator.validate_temporal_wcs(None)
     except Exception as e:
         print(repr(e))
         assert False
@@ -94,7 +94,7 @@ def test_bad_temporalwcs():
     bad_temporal_wcs = timetest.bad_wcs()
 
     try:
-        validate_temporal_wcs(bad_temporal_wcs)
+        WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
     except InvalidWCSError as iwe:
         print("Expected temporal wcs failure: " + repr(iwe))
         assert True
@@ -110,10 +110,10 @@ def test_spatialwcs_validator():
         good_spatial_wcs = spatialtest.good_wcs()
         assert good_spatial_wcs.axis.function is not None
 
-        validate_spatial_wcs(good_spatial_wcs)
+        WcsValidator.validate_spatial_wcs(good_spatial_wcs)
 
         # None is valid
-        validate_spatial_wcs(None)
+        WcsValidator.validate_spatial_wcs(None)
     except Exception as e:
         print(repr(e))
         assert False
@@ -124,7 +124,7 @@ def test_invalid_spatial_wcs():
         position = None
         spatialtest = SpatialTestUtil()
         position = spatialtest.bad_wcs()
-        validate_spatial_wcs(position)
+        WcsValidator.validate_spatial_wcs(position)
     except InvalidWCSError as iwe:
         print("Expected Spatial WCS error: " + repr(iwe))
         assert True
@@ -140,10 +140,10 @@ def test_spectralwcs_validator():
         good_spectral_wcs = energyTest.good_wcs()
         assert good_spectral_wcs.axis.function is not None
 
-        validate_spectral_wcs(good_spectral_wcs)
+        WcsValidator.validate_spectral_wcs(good_spectral_wcs)
 
         # Null validator is acceptable
-        validate_spectral_wcs(None)
+        WcsValidator.validate_spectral_wcs(None)
 
     except Exception as e:
         print(repr(e))
@@ -154,7 +154,7 @@ def test_invalid_spectral_wcs():
     try:
         energytest = EnergyTestUtil()
         energy_wcs = energytest.bad_wcs()
-        validate_spectral_wcs(energy_wcs)
+        WcsValidator.validate_spectral_wcs(energy_wcs)
     except InvalidWCSError as iwe:
         print("Expected Spectral WCS error: " + repr(iwe))
         assert True
@@ -166,20 +166,64 @@ def test_invalid_spectral_wcs():
 #  and then validate everything.
 def test_valid_wcs():
     pass
-    # Will need to be similar to this from the Java code:
-    # public void testValidWCS() {
+    # # Will need to be similar to this from the Java code:
+    #     artifact = None
+    #     try:
+    #         artifact = get_test_artifact(chunk.ProductType.SCIENCE)
+    #         # Parts is a TypedOrderedDict
+    #         chunk = a.parts.getChunks().iterator().next();
+    #
+    #         # Populate all WCS with good values
+    #         chunk.position = SpatialTestUtil.good_wcs(SpatialTestUtil())
+    #         chunk.energy = EnergyTestUtil.good_wcs(EnergyTestUtil())
+    #         chunk.time = TimeTestUtil.good_wcs(TimeTestUtil())
+    #         chunk.polarization = PolarizationTestUtil.good_wcs(PolarizationTestUtil())
+    #
+    #         WcsValidator.validate(artifact)
+    #     except Exception as unexpected:
+    #         print(repr(unexpected))
+    #         assert False
+
+
+    # public void testNullWCS() {
     #     Artifact a = null;
+    #
     #     try {
     #         a = dataGenerator.getTestArtifact(ProductType.SCIENCE);
     #         Chunk c = a.getParts().iterator().next().getChunks().iterator().next();
-    #
-    #         // Populate all WCS with good values
     #         c.position = dataGenerator.mkGoodSpatialWCS();
     #         c.energy = dataGenerator.mkGoodSpectralWCS();
     #         c.time = dataGenerator.mkGoodTemporalWCS();
     #         c.polarization = dataGenerator.mkGoodPolarizationWCS();
-    #
     #         CaomWCSValidator.validate(a);
+    #
+    #
+    #         // Not probably reasonable Chunks, but should still be valid
+    #         c.position = null;
+    #         CaomWCSValidator.validate(a);
+    #
+    #         c.position = dataGenerator.mkGoodSpatialWCS();
+    #         c.energy = null;
+    #         CaomWCSValidator.validate(a);
+    #
+    #         c.energy = dataGenerator.mkGoodSpectralWCS();
+    #         c.time = null;
+    #         CaomWCSValidator.validate(a);
+    #
+    #         c.time = dataGenerator.mkGoodTemporalWCS();
+    #         c.polarization = null;
+    #         CaomWCSValidator.validate(a);
+    #
+    #         c.energy = null;
+    #         CaomWCSValidator.validate(a);
+    #
+    #         c.time = null;
+    #         CaomWCSValidator.validate(a);
+    #
+    #         // Assert: all WCS should be null at this step
+    #         c.position = null;
+    #         CaomWCSValidator.validate(a);
+    #
     #     } catch (Exception unexpected) {
     #         log.error(UNEXPECTED_EXCEPTION + " validating artifact: " + a.toString(), unexpected);
     #         Assert.fail(UNEXPECTED_EXCEPTION + a.toString() + unexpected);
@@ -354,12 +398,38 @@ class EnergyTestUtil:
         return spectral_wcs
 
 
-def getTestArtifact(ptype):
+# Under construction
+def get_test_artifact(ptype):
     pass
-        # throws URISyntaxException {
-        # Plane testPlane = getTestPlane(ptype);
-        # artifact = artifact.Artifact('uri:foo/bar', chunk.ProductType.SCIENCE, chunk.ReleaseType.DATA)
-        # return artifact
+    # chunk.ProductType.SCIENCE is a common type
+    # artifact = chunk.Artifact('uri:foo/bar', ptype, chunk.ReleaseType.DATA)
+    #
+    # test_part = part.Part("test_part", ptype, )
+    #
+    #
+    # # Assumption:
+    # #    Only primary headers for 1 extension files or the extensions
+    # # for multiple extension files can have data and therefore
+    # # corresponding parts
+    # if (i > 0) or (len(self.headers) == 1):
+    #     if ii not in artifact.parts.keys():
+    #         artifact.parts.add(Part(ii))  # TODO use extension name?
+    #         self.logger.debug('Part created for HDU {}.'.format(ii))
+    # else:
+    #     artifact.parts.add(Part(ii))
+    #     self.logger.debug('Create empty part for HDU {}'.format(ii))
+    #     continue
+    #
+    # part = artifact.parts[ii]
+    #
+    # # each Part has one Chunk
+    # if not part.chunks:
+    #     part.chunks.append(Chunk())
+    # chunk = part.chunks[0]
+    # return artifact
+    #
+    #
+    # return artifact
 
     # create an artifact
     # populate it with known good WCS values for position, energy, time, polarization,

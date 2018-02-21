@@ -84,12 +84,19 @@ import numpy as np
 
 APP_NAME = 'wcsvalidator'
 
-__all__ = ['WcsValidator', 'validate_polarization_wcs', 'validate_chunk', 'validate_temporal_wcs',
-           'validate_spatial_wcs', 'validate_spectral_wcs', 'InvalidWCSError']
+__all__ = ['WcsValidator', 'InvalidWCSError']
+
+
+class InvalidWCSError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 # WcsValidator class and functions
-class WcsValidator(Artifact):
+class WcsValidator():
     """
     WcsValidator: validates WCS coordinates in the artifact passed in
 
@@ -103,131 +110,124 @@ class WcsValidator(Artifact):
     def __str__(self):
         pass
 
-    def validate(self, artifact):
+    @staticmethod
+    def validate_artifact(self, artifact):
         if artifact is not None:
             for p in artifact.parts:
                 if p is not None:
                     for c in p.chunks:
                         context = artifact.uri + "[" + p.name + "]:" + c.id + " "
-                        validate_chunk(context, c)
+                        WcsValidator.validate_chunk(context, c)
+
+    @staticmethod
+    def validate_chunk(context, chunk):
+        """
+        Validate all WCS in this chunk individually
+        """
+        WcsValidator.validate_spatial_wcs(chunk.position)
+        WcsValidator.validate_spectral_wcs(chunk.energy)
+        WcsValidator.validate_temporal_wcs(chunk.time)
+        WcsValidator.validate_polarization_wcs(chunk.polarization)
 
 
-def validate_chunk(context, chunk):
-    """
-    Validate all WCS in this chunk individually
-    """
-    validate_spatial_wcs(chunk.position)
-    validate_spectral_wcs(chunk.energy)
-    validate_temporal_wcs(chunk.time)
-    validate_polarization_wcs(chunk.polarization)
+
+    @staticmethod
+    def validate_spatial_wcs(position):
+        # position is a SpatialWCS
+        error_string = ""
+        if position is not None and position.axis is not None:
+            try:
+                # There's not much that can be validated about range & bounds
+                if position.axis.function is not None:
+                    fn2D = position.axis.function
+                    naxis1_half = float(fn2D.dimension.naxis1/2)
+                    naxis2_half = float(fn2D.dimension.naxis2/2)
+
+                    wcsprm = Wcsprm()
+                    coord_array = np.array([[naxis1_half, naxis2_half]])
+                    sky_transform = wcsprm.p2s(coord_array, ORIGIN)
+                    pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
+
+                    transformed_coords = pix_transform['pixcrd']
+
+                    if not (transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half):
+                        error_string = "Could not transform centre coordinate"
+
+            except Exception as e:
+                error_string = repr(e)
+
+            if len(error_string) > 0:
+                raise InvalidWCSError("Invalid SpatialWCS: " + error_string + ": " + str(position))
+
+    @staticmethod
+    def check_transform(coords):
+        # Coords is a shape.Subinterval
+        wcsprm = Wcsprm()
+        coord_array = np.array([[coords.lower, coords.upper]])
+        sky_transform = wcsprm.p2s(coord_array, ORIGIN)
+        pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
+        transformed_coords = pix_transform['pixcrd']
+
+        if not (transformed_coords[0][0] == coords.lower and transformed_coords[0][1] == coords.upper):
+            raise ValueError("Could not transform coordinates pixel to sky, sky to pixel")
+
+    @staticmethod
+    def validate_spectral_wcs(energy):
+        error_msg = ""
+        if energy is not None:
+            try:
+                energyAxis = energy.axis
+                si = None
+                energy_util = EnergyUtil()
+
+                if energyAxis.range is not None:
+                    si = energy_util.range1d_to_interval(energy, energyAxis.range)
+                    WcsValidator.check_transform(si)
+
+                if energyAxis.bounds is not None:
+                    for tile in energyAxis.bounds.samples:
+                        si = energy_util.range1d_to_interval(energy, tile)
+                        WcsValidator.check_transform(si)
+
+                if energyAxis.function is not None:
+                    si = energy_util.function1d_to_interval(energy)
+                    WcsValidator.check_transform(si)
+
+            except Exception as ex:
+                error_msg = repr(ex)
+
+            if len(error_msg) > 0:
+                raise InvalidWCSError("Invalid Spectral WCS: " + error_msg + ": " + str(energy))
+
+    @staticmethod
+    def validate_temporal_wcs(time):
+        error_msg = ""
+        if time is not None:
+            subinterval = None
+            try:
+                timeutil = TimeUtil()
+                time_axis = time.axis
+
+                if time_axis.range is not None:
+                    subinterval = timeutil.range1d_to_interval(time, time_axis.range)
+
+                if time_axis.bounds is not None:
+                    for cr in time_axis.bounds.samples:
+                        subinterval = timeutil.range1d_to_interval(time, cr)
+
+                if time_axis.function is not None:
+                        subinterval = timeutil.function1d_to_interval(time, time_axis.function)
+
+            except Exception as e:
+                error_msg = repr(e)
+
+            if len(error_msg) > 0:
+                raise InvalidWCSError("Invalid Temporal WCS: " + error_msg + ": " + str(time))
 
 
-class InvalidWCSError(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
-
-
-def validate_spatial_wcs(position):
-    # position is a SpatialWCS
-    error_string = ""
-    if position is not None and position.axis is not None:
-        try:
-            # There's not much that can be validated about range & bounds
-            if position.axis.function is not None:
-                fn2D = position.axis.function
-                naxis1_half = float(fn2D.dimension.naxis1/2)
-                naxis2_half = float(fn2D.dimension.naxis2/2)
-
-                wcsprm = Wcsprm()
-                coord_array = np.array([[naxis1_half, naxis2_half]])
-                sky_transform = wcsprm.p2s(coord_array, ORIGIN)
-                pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
-
-                transformed_coords = pix_transform['pixcrd']
-
-                if not (transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half):
-                    error_string = "Could not transform centre coordinate"
-
-        except Exception as e:
-            error_string = repr(e)
-
-        if len(error_string) > 0:
-            raise InvalidWCSError("Invalid SpatialWCS: " + error_string + ": " + str(position))
-
-
-def check_transform(coords):
-    # Coords is a shape.Subinterval
-    wcsprm = Wcsprm()
-    coord_array = np.array([[coords.lower, coords.upper]])
-    sky_transform = wcsprm.p2s(coord_array, ORIGIN)
-    pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
-    transformed_coords = pix_transform['pixcrd']
-
-    if not (transformed_coords[0][0] == coords.lower and transformed_coords[0][1] == coords.upper):
-        raise ValueError("Could not transform coordinates pixel to sky, sky to pixel")
-
-
-def validate_spectral_wcs(energy):
-    error_msg = ""
-    if energy is not None:
-        try:
-            energyAxis = energy.axis
-            si = None
-            energy_util = EnergyUtil()
-
-            if energyAxis.range is not None:
-                si = energy_util.range1d_to_interval(energy, energyAxis.range)
-                check_transform(si)
-
-            if energyAxis.bounds is not None:
-                for tile in energyAxis.bounds.samples:
-                    si = energy_util.range1d_to_interval(energy, tile)
-                    check_transform(si)
-
-            if energyAxis.function is not None:
-                si = energy_util.function1d_to_interval(energy)
-                check_transform(si)
-
-        except Exception as ex:
-            error_msg = repr(ex)
-
-        if len(error_msg) > 0:
-            raise InvalidWCSError("Invalid Spectral WCS: " + error_msg + ": " + str(energy))
-
-
-def validate_temporal_wcs(time):
-    error_msg = ""
-    if time is not None:
-        subinterval = None
-        try:
-            timeutil = TimeUtil()
-            time_axis = time.axis
-
-            if time_axis.range is not None:
-                subinterval = timeutil.range1d_to_interval(time, time_axis.range)
-
-            if time_axis.bounds is not None:
-                for cr in time_axis.bounds.samples:
-                    subinterval = timeutil.range1d_to_interval(time, cr)
-
-            if time_axis.function is not None:
-                    subinterval = timeutil.function1d_to_interval(time, time_axis.function)
-
-        except Exception as e:
-            error_msg = repr(e)
-
-        if len(error_msg) > 0:
-            raise InvalidWCSError("Invalid Temporal WCS: " + error_msg + ": " + str(time))
-
-
-# TODO: Under construction
-def validate_polarization_wcs(polarization):
-    return True
-
-
+    @staticmethod
+    def validate_polarization_wcs(polarization):
+        return True
 
 
 
