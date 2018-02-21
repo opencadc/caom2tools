@@ -150,6 +150,18 @@ def test_spectralwcs_validator():
         assert False
 
 
+def test_invalid_spectral_wcs():
+    try:
+        energytest = EnergyTestUtil()
+        energy_wcs = energytest.bad_wcs()
+        validate_spectral_wcs(energy_wcs)
+    except InvalidWCSError as iwe:
+        print("Expected Spectral WCS error: " + repr(iwe))
+        assert True
+    except Exception as e:
+        print(repr(e))
+        assert False
+
 #  this test should construct an Artifact with all the WCS
 #  and then validate everything.
 def test_valid_wcs():
@@ -298,6 +310,17 @@ class EnergyTestUtil:
         c1 = wcs.RefCoord(0.5, 2000.0)
         energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
         return energy
+
+    def bad_wcs(self):
+        px = float(0.5)
+        sx = float(400.0)
+        nx = 200
+        ds = float(1.0)
+        bad_energy = self.getTestFunction(True, px, sx * nx * ds, nx, ds)
+        # Make function invalid
+        c1 = wcs.RefCoord(0.5, 2000.0)
+        bad_energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
+        return wcs
 
     def getTestRange(self, complete, px, sx, nx, ds):
         axis =  wcs.CoordAxis1D(wcs.Axis("WAVE", "nm"))

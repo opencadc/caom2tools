@@ -170,7 +170,6 @@ def check_transform(coords):
         raise ValueError("Could not transform coordinates pixel to sky, sky to pixel")
 
 
-#  TODO: Under Construction
 def validate_spectral_wcs(energy):
     error_msg = ""
     if energy is not None:
