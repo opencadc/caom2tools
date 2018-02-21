@@ -224,7 +224,7 @@ class ObsBlueprint(object):
     # create a blueprint and customize it
     ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
                       polarization_axis=4, time_axis=5))
-    ob.set('Observation.algorithm.name', 'EXPOSURE')
+    ob.set('Observation.algorithm.name', 'exposure')
     ob.set_fits_attribute('Chunk.energy.axis.axis.ctype', ['MYCTYPE'],
                           extension=1)
     ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
@@ -2423,13 +2423,13 @@ def proc(args, obs_blueprints):
                 obs = CompositeObservation(
                     collection=str(args.observation[0]),
                     observation_id=str(args.observation[1]),
-                    algorithm=Algorithm(str('EXPOSURE')))
+                    algorithm=Algorithm(str('composite')))
                 break
     if not obs:
         # build a simple observation
         obs = SimpleObservation(collection=str(args.observation[0]),
                                 observation_id=str(args.observation[1]),
-                                algorithm=Algorithm(str('EXPOSURE')))  # TODO
+                                algorithm=Algorithm(str('exposure')))
 
     for i, uri in enumerate(args.fileURI):
         blueprint = obs_blueprints[uri]
