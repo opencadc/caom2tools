@@ -424,22 +424,24 @@ class ObsBlueprint(object):
     __doc__ = __doc__.replace('_CAOM2_ELEMENTS', '\n'.join(['\t\t{}'.format(
         elem) for elem in _CAOM2_ELEMENTS]))
 
-    def __init__(self, position_axis=None, energy_axis=None,
+    def __init__(self, position_axes=None, energy_axis=None,
                  polarization_axis=None, time_axis=None):
         """
         Ctor
-        :param position_axis: tuple of form (int, int) indicating the indexes
+        :param position_axes: tuple of form (int, int) indicating the indexes
         of position axis
         :param energy_axis: index of energy axis (int)
         :param polarization_axis: index of polarization axis (int)
         :param time_axis: index of time axis (int)
         """
 
-        if position_axis and isinstance(position_axis, tuple) and\
-                (len(position_axis) != 2):
+        if position_axes and isinstance(position_axes, tuple) and\
+                (len(position_axes) != 2):
             raise ValueError(
                 'Invalid position axis: {}. Must be tuple with 2 elements'.
-                format(str(position_axis)))
+                format(str(position_axes)))
+
+        self.logger = logging.getLogger(__name__)
 
         # this is the default blueprint
         self._plan = {}
@@ -480,15 +482,15 @@ class ObsBlueprint(object):
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            'Chunk.naxis': 'ZNAXIS, NAXIS'
+            'Chunk.naxis': (['ZNAXIS, NAXIS'], None)
         }
         self._pos_axes_configed = False
         self._energy_axis_configed = False
         self._time_axis_configed = False
         self._pol_axis_configed = False
         self._obs_axis_configed = False
-        if position_axis:
-            self.configure_position_axes(position_axis)
+        if position_axes:
+            self.configure_position_axes(position_axes)
 
         if energy_axis:
             self.configure_energy_axis(energy_axis)
@@ -508,6 +510,8 @@ class ObsBlueprint(object):
         :return:
         """
         if self._pos_axes_configed:
+            self.logger.debug(
+                'Attempt to configure already-configured position axes.')
             return
 
         self.set('Chunk.position.coordsys', (['RADECSYS', 'RADESYS'],
@@ -603,6 +607,8 @@ class ObsBlueprint(object):
         :return:
         """
         if self._energy_axis_configed:
+            self.logger.debug(
+                'Attempt to configure already-configured energy axis.')
             return
 
         self.set('Chunk.energy.specsys', (['SPECSYS'], None))
@@ -671,6 +677,8 @@ class ObsBlueprint(object):
         :return:
         """
         if self._pol_axis_configed:
+            self.logger.debug(
+                'Attempt to configure already-configured polarization axis.')
             return
 
         self.set('Chunk.polarization.axis.axis.ctype',
@@ -712,6 +720,8 @@ class ObsBlueprint(object):
         :return:
         """
         if self._obs_axis_configed:
+            self.logger.debug(
+                'Attempt to configure already-configured observable axis.')
             return
 
         self.set('Chunk.observable.axis.axis.ctype',
@@ -739,6 +749,8 @@ class ObsBlueprint(object):
         :return:
         """
         if self._time_axis_configed:
+            self.logger.debug(
+                'Attempt to configure already-configured time axis.')
             return
 
         self.set('Chunk.time.exposure', (['EXPTIME', 'INTTIME'], None))
@@ -809,6 +821,17 @@ class ObsBlueprint(object):
                 '{} not a valid CAOM2 element name (mispelling?).'.
                 format(caom2_element))
 
+    @staticmethod
+    def check_chunk(caom2_element):
+        """
+        Checks that an element is a valid Chunk-type caom2_element
+        :param caom2_element: name CAOM2 element to check
+        :raises ValueError
+        """
+        if not caom2_element.startswith('Chunk'):
+            raise ValueError(
+                "Extension number refers to Chunk elements only")
+
     def __str__(self):
         plan = self._serialize(self._plan)
 
@@ -840,9 +863,7 @@ class ObsBlueprint(object):
         ObsBlueprint.check_caom2_element(caom2_element)
         assert extension >= 0
         if extension:
-            if not caom2_element.startswith('Chunk'):
-                raise ValueError(
-                    "Extension number refers to Chunk elements only")
+            ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 self._extensions[extension] = {}
             self._extensions[extension][caom2_element] = value
@@ -863,9 +884,7 @@ class ObsBlueprint(object):
         assert isinstance(fits_attribute_list, list)
         assert extension >= 0
         if extension:
-            if not caom2_element.startswith('Chunk'):
-                raise ValueError(
-                    "Extension number refers to Chunk elements only")
+            ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 self._extensions[extension] = {}
             self._extensions[extension][caom2_element] = (fits_attribute_list,
@@ -887,9 +906,7 @@ class ObsBlueprint(object):
         ObsBlueprint.check_caom2_element(caom2_element)
         assert extension >= 0
         if extension:
-            if not caom2_element.startswith('Chunk'):
-                raise ValueError(
-                    "Extension number refers to Chunk elements only")
+            ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 raise AttributeError(
                     'No extension {} in the blueprint'.format(extension))
@@ -926,7 +943,11 @@ class ObsBlueprint(object):
         Sets the default value of a caom2 element that is associated with FITS
         attributes. If the element does not exist or does not have a list of
         associated FITS attributes, default is set as the associated value
-        of the element
+        of the element.
+
+        If set_fits_attribute is called for the same caom2_element after this,
+        the default value will be reset to None.
+
         :param caom2_element: name CAOM2 element (as in
         ObsBlueprint.CAOM2_ELEMEMTS)
         :param default: default value
@@ -935,9 +956,7 @@ class ObsBlueprint(object):
         ObsBlueprint.check_caom2_element(caom2_element)
         assert extension >= 0
         if extension:
-            if not caom2_element.startswith('Chunk'):
-                raise ValueError(
-                    "Extension number refers to Chunk elements only")
+            ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 self._extensions[extension] = {}
             if caom2_element in self._extensions[extension] and \
@@ -967,9 +986,7 @@ class ObsBlueprint(object):
         ObsBlueprint.check_caom2_element(caom2_element)
         assert extension >= 0
         if extension:
-            if not caom2_element.startswith('Chunk'):
-                raise ValueError(
-                    "Extension number refers to Chunk elements only")
+            ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 raise ValueError('Extension {} not configured in blueprint'.
                                  format(extension))
@@ -992,9 +1009,7 @@ class ObsBlueprint(object):
         """
         ObsBlueprint.check_caom2_element(caom2_element)
         if extension:
-            if not caom2_element.startswith('Chunk'):
-                raise ValueError(
-                    "Extension number refers to Chunk elements only")
+            ObsBlueprint.check_chunk(caom2_element)
             if (extension in self._extensions) and \
                     (caom2_element in self._extensions[extension]):
                 return self._extensions[extension][caom2_element]
@@ -1285,7 +1300,7 @@ class FitsParser(object):
             artifact = Artifact(artifact_uri, self._to_product_type(
                 self._get_from_list('Artifact.productType', index=0)),
                                 self._to_release_type(self._get_from_list(
-                                    'Artifact.releaseType', index=0)))  # TODO
+                                    'Artifact.releaseType', index=0)))
             plane.artifacts[artifact_uri] = artifact
 
         self.augment_artifact(artifact)
@@ -1361,7 +1376,7 @@ class FitsParser(object):
         # TODO When a projection is specified, wcslib expects corresponding
         # DP arguments with NAXES attributes. Normally, omitting the attribute
         # signals no distortion which is the assumption in fits2caom2 for
-        # energy and polarization axes. Following is a workaround to this for
+        # energy and polarization axes. Following is a workaround for
         # SIP projections.
         # For more details see:
         # http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
@@ -1492,15 +1507,12 @@ class FitsParser(object):
         """
         self.logger.debug('Begin CAOM2 Telescope augmentation.')
         name = self._get_from_list('Observation.telescope.name', index=0)
-        answer = self._get_from_list('Observation.telescope.geoLocationX',
-                                     index=0)
-        geo_x = float(answer) if answer else None
-        answer = self._get_from_list('Observation.telescope.geoLocationY',
-                                     index=0)
-        geo_y = float(answer) if answer else None
-        answer = self._get_from_list('Observation.telescope.geoLocationZ',
-                                     index=0)
-        geo_z = float(answer) if answer else None
+        geo_x = _to_float(
+            self._get_from_list('Observation.telescope.geoLocationX', index=0))
+        geo_y = _to_float(
+            self._get_from_list('Observation.telescope.geoLocationY', index=0))
+        geo_z = _to_float(
+            self._get_from_list('Observation.telescope.geoLocationZ', index=0))
         keywords = self._get_set_from_list('Observation.telescope.keywords',
                                            index=0)  # TODO
         self.logger.debug('End CAOM2 Telescope augmentation.')
@@ -1565,11 +1577,11 @@ class FitsParser(object):
             keywords = self.blueprint._get(lookup)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
-            self.logger.warning(
+            self.logger.debug(
                 'Could not find {!r} in fits2caom2 configuration.'.format(
                     lookup))
             if current:
-                self.logger.warning(
+                self.logger.debug(
                     '{}: using current value of {!r}.'.format(lookup, current))
                 value = current
             return value
@@ -1584,7 +1596,8 @@ class FitsParser(object):
                             format(lookup, value, ii))
                         break
                 except (KeyError, IndexError) as error:
-                    self.add_error(lookup, sys.exc_info()[1])
+                    if keywords[0].index(ii) == len(keywords[0]) - 1:
+                        self.add_error(lookup, sys.exc_info()[1])
                     # assign a default value, if one exists
                     if keywords[1]:
                         value = keywords[1]
@@ -1668,7 +1681,7 @@ class FitsParser(object):
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
             if keywords:
-                for k in keywords.split():  # TODO delimiter?
+                for k in keywords.split():
                     prov.keywords.add(k)
             if inputs:
                 for i in inputs.split():
@@ -1761,27 +1774,46 @@ class FitsParser(object):
     def _to_data_product_type(self, value):
         if isinstance(value, DataProductType):
             return value
+        elif value is not None:
+            return DataProductType(value)
         else:
-            return DataProductType(value) if value else DataProductType.CUBE
+            self.logger.debug(
+                'Setting the very wrong default value of {}.'.format(
+                    DataProductType.CUBE))
+            return DataProductType.CUBE
 
     def _to_calibration_level(self, value):
         if isinstance(value, CalibrationLevel):
             return value
+        elif value is not None:
+            return CalibrationLevel(value)
         else:
-            return CalibrationLevel(
-                value) if value else CalibrationLevel.CALIBRATED
+            self.logger.debug(
+                'Setting the very wrong default value of {}.'.format(
+                    CalibrationLevel.CALIBRATED))
+            return CalibrationLevel.CALIBRATED
 
     def _to_product_type(self, value):
         if isinstance(value, ProductType):
             return value
+        elif value is not None:
+            return ProductType(value)
         else:
-            return ProductType(value) if value else ProductType.INFO
+            self.logger.debug(
+                'Setting the very wrong default value of {}.'.format(
+                    ProductType.INFO))
+            return ProductType.INFO
 
     def _to_release_type(self, value):
         if isinstance(value, ReleaseType):
             return value
+        elif value is not None:
+            return ReleaseType(value)
         else:
-            return ReleaseType(value) if value else ReleaseType.DATA
+            self.logger.debug(
+                'Setting the very wrong default value of {}.'.format(
+                    ReleaseType.DATA))
+            return ReleaseType.DATA
 
 
 class WcsParser(object):
@@ -1830,23 +1862,24 @@ class WcsParser(object):
         assert isinstance(chunk, Chunk)
 
         # get the energy axis
-        energy_axis = self._get_axis_index(ENERGY_CTYPES)
+        energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
 
-        if energy_axis is None:
+        if energy_axis_index is None:
             self.logger.debug('No WCS Energy info.')
             return
 
-        chunk.energy_axis = energy_axis + 1
-        naxis = CoordAxis1D(self._get_axis(energy_axis))
-        naxis.error = self._get_coord_error(energy_axis)
+        chunk.energy_axis = energy_axis_index + 1
+        naxis = CoordAxis1D(self._get_axis(energy_axis_index))
+        naxis.error = self._get_coord_error(energy_axis_index)
         if self.wcs.has_cd():
-            delta = self.wcs.cd[energy_axis][energy_axis]
+            delta = self.wcs.cd[energy_axis_index][energy_axis_index]
         else:
-            delta = self.wcs.cdelt[energy_axis]
+            delta = self.wcs.cdelt[energy_axis_index]
         naxis.function = CoordFunction1D(
-            self._get_axis_length(energy_axis + 1), delta,
-            RefCoord(_to_float(self._sanitize(self.wcs.crpix[energy_axis])),
-                     _to_float(self._sanitize(self.wcs.crval[energy_axis]))))
+            self._get_axis_length(energy_axis_index + 1), delta,
+            RefCoord(
+                _to_float(self._sanitize(self.wcs.crpix[energy_axis_index])),
+                _to_float(self._sanitize(self.wcs.crval[energy_axis_index]))))
 
         specsys = str(self.wcs.specsys)
         if not chunk.energy:
@@ -1878,19 +1911,19 @@ class WcsParser(object):
         assert chunk
         assert isinstance(chunk, Chunk)
 
-        pos = self._get_position_axis()
-        if not pos:
+        position_axes_indices = self._get_position_axis()
+        if not position_axes_indices:
             self.logger.debug('No Spatial WCS found')
             return
 
-        chunk.position_axis_1 = pos[0]
-        chunk.position_axis_2 = pos[1]
+        chunk.position_axis_1 = position_axes_indices[0]
+        chunk.position_axis_2 = position_axes_indices[1]
         axis = self._get_spatial_axis(None, chunk.position_axis_1 - 1,
                                       chunk.position_axis_2 - 1)
-        if not chunk.position:
-            chunk.position = SpatialWCS(axis)
-        else:
+        if chunk.position:
             chunk.position.axis = axis
+        else:
+            chunk.position = SpatialWCS(axis)
 
         radesys = self._sanitize(self.wcs.radesys)
         chunk.position.coordsys = None if radesys is None else \
@@ -1918,25 +1951,25 @@ class WcsParser(object):
         assert chunk
         assert isinstance(chunk, Chunk)
 
-        time_axis = self._get_axis_index(TIME_KEYWORDS)
+        time_axis_index = self._get_axis_index(TIME_KEYWORDS)
 
-        if time_axis is None:
-            self.logger.warning('No WCS Time info.')
+        if time_axis_index is None:
+            self.logger.debug('No WCS Time info.')
             return
 
-        chunk.time_axis = time_axis + 1
+        chunk.time_axis = time_axis_index + 1
         # set chunk.time
         self.logger.debug('Begin temporal axis augmentation.')
 
-        aug_naxis = self._get_axis(time_axis)
-        aug_error = self._get_coord_error(time_axis)
-        aug_ref_coord = self._get_ref_coord(None, time_axis)
+        aug_naxis = self._get_axis(time_axis_index)
+        aug_error = self._get_coord_error(time_axis_index)
+        aug_ref_coord = self._get_ref_coord(None, time_axis_index)
         if self.wcs.has_cd():
-            delta = self.wcs.cd[time_axis][time_axis]
+            delta = self.wcs.cd[time_axis_index][time_axis_index]
         else:
-            delta = self.wcs.cdelt[time_axis]
-        aug_function = CoordFunction1D(self._get_axis_length(time_axis + 1),
-                                       delta, aug_ref_coord)
+            delta = self.wcs.cdelt[time_axis_index]
+        aug_function = CoordFunction1D(
+            self._get_axis_length(time_axis_index + 1), delta, aug_ref_coord)
         naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
         if not chunk.time:
             chunk.time = TemporalWCS(naxis)
@@ -1961,23 +1994,24 @@ class WcsParser(object):
         assert chunk
         assert isinstance(chunk, Chunk)
 
-        polarization_axis = self._get_axis_index(POLARIZATION_CTYPES)
-        if polarization_axis is None:
+        polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
+        if polarization_axis_index is None:
             self.logger.debug('No WCS Polarization info')
             return
 
-        chunk.polarization_axis = polarization_axis + 1
+        chunk.polarization_axis = polarization_axis_index + 1
 
-        naxis = CoordAxis1D(self._get_axis(polarization_axis))
+        naxis = CoordAxis1D(self._get_axis(polarization_axis_index))
         if self.wcs.has_cd():
-            delta = self.wcs.cd[polarization_axis][polarization_axis]
+            delta = self.wcs.cd[polarization_axis_index][
+                polarization_axis_index]
         else:
-            delta = self.wcs.cdelt[polarization_axis]
+            delta = self.wcs.cdelt[polarization_axis_index]
         naxis.function = CoordFunction1D(
-            self._get_axis_length(polarization_axis + 1),
+            self._get_axis_length(polarization_axis_index + 1),
             delta,
-            RefCoord(self._sanitize(self.wcs.crpix[polarization_axis]),
-                     self._sanitize(self.wcs.crval[polarization_axis])))
+            RefCoord(self._sanitize(self.wcs.crpix[polarization_axis_index]),
+                     self._sanitize(self.wcs.crval[polarization_axis_index])))
         if not chunk.polarization:
             chunk.polarization = PolarizationWCS(naxis)
         else:
@@ -1994,18 +2028,18 @@ class WcsParser(object):
         assert chunk
         assert isinstance(chunk, Chunk)
 
-        observable_axis = self._get_axis_index(OBSERVABLE_CTYPES)
-        if observable_axis is None:
+        observable_axis_index = self._get_axis_index(OBSERVABLE_CTYPES)
+        if observable_axis_index is None:
             self.logger.debug('No Observable axis info')
             return
 
-        chunk.observable_axis = observable_axis + 1
+        chunk.observable_axis = observable_axis_index + 1
         ctype = self.header.get('CTYPE{}'.format(chunk.observable_axis))
         cunit = self.header.get('CUNIT{}'.format(chunk.observable_axis))
         pix_bin = self.header.get('CRPIX{}'.format(chunk.observable_axis))
         if ctype is not None and cunit is not None and pix_bin is not None:
-            chunk.observable = ObservableAxis(Slice(Axis(ctype, cunit),
-                                                    pix_bin))
+            chunk.observable = ObservableAxis(
+                Slice(self._get_axis(0, ctype, cunit), pix_bin))
         self.logger.debug('End Observable WCS augmentation.')
 
     def _get_axis_index(self, keywords):
@@ -2086,7 +2120,7 @@ class WcsParser(object):
                 cd21 = self.wcs.crota[y_index]
                 cd22 = self.wcs.cdelt[y_index]
         except AttributeError:
-            self.logger.warning(
+            self.logger.debug(
                 'Error searching for CD* values {}'.format(sys.exc_info()[1]))
             cd11 = -1.0  # TODO what if neither of these are defined?
             cd12 = -1.0
@@ -2159,7 +2193,7 @@ class WcsParser(object):
                 result = _to_int(self._sanitize(
                     self.header.get('NAXIS{}'.format(for_axis))))
             except ValueError:
-                self.logger.warning(
+                self.logger.debug(
                     'Could not find axis length for axis {}'.format(
                         for_axis))
         if isinstance(result, tuple):
@@ -2478,7 +2512,7 @@ def proc(args, obs_blueprints):
                                    product_id=plane.product_id)
 
         if len(parser._errors) > 0:
-            logging.warning(
+            logging.debug(
                 '{} errors encountered while processing {!r}.'.format(
                     len(parser._errors), uri))
 

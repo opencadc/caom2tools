@@ -117,7 +117,7 @@ EXPECTED_ENERGY_XML = \
       </caom2:axis>
       <caom2:function>
         <caom2:naxis>1</caom2:naxis>
-        <caom2:delta>-824.46001999999999</caom2:delta>
+        <caom2:delta>-824.46002</caom2:delta>
         <caom2:refCoord>
           <caom2:pix>145.0</caom2:pix>
           <caom2:val>-60000.0</caom2:val>
@@ -131,8 +131,8 @@ EXPECTED_ENERGY_XML = \
 '''
 
 
-# @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.skipif(True, reason='Failes on Travis')
+@pytest.mark.skipif(single_test, reason='Single test mode')
+# @pytest.mark.skipif(True, reason='Failes on Travis')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_energy(test_file):
     bp = ObsBlueprint(energy_axis=1)
@@ -199,17 +199,17 @@ EXPECTED_POSITION_XML = \
         <caom2:refCoord>
           <caom2:coord1>
             <caom2:pix>513.0</caom2:pix>
-            <caom2:val>128.74999900270001</caom2:val>
+            <caom2:val>128.7499990027</caom2:val>
           </caom2:coord1>
           <caom2:coord2>
             <caom2:pix>513.0</caom2:pix>
-            <caom2:val>-0.99999999225360003</caom2:val>
+            <caom2:val>-0.9999999922536</caom2:val>
           </caom2:coord2>
         </caom2:refCoord>
-        <caom2:cd11>-0.0049999989999999998</caom2:cd11>
+        <caom2:cd11>-0.004999999</caom2:cd11>
         <caom2:cd12>0.0</caom2:cd12>
         <caom2:cd21>0.0</caom2:cd21>
-        <caom2:cd22>0.0049999989999999998</caom2:cd22>
+        <caom2:cd22>0.004999999</caom2:cd22>
       </caom2:function>
     </caom2:axis>
   </caom2:position>
@@ -217,11 +217,11 @@ EXPECTED_POSITION_XML = \
 '''
 
 
-# @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.skipif(True, reason='Failes on Travis')
+@pytest.mark.skipif(single_test, reason='Single test mode')
+# @pytest.mark.skipif(True, reason='Failes on Travis')
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
 def test_augment_artifact(test_file):
-    test_fitsparser = FitsParser(test_file, ObsBlueprint(position_axis=(1, 2)))
+    test_fitsparser = FitsParser(test_file, ObsBlueprint(position_axes=(1, 2)))
     artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -244,12 +244,12 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
         <caom2:cunit>d</caom2:cunit>
       </caom2:axis>
       <caom2:error>
-        <caom2:syser>9.9999999999999995e-08</caom2:syser>
-        <caom2:rnder>9.9999999999999995e-08</caom2:rnder>
+        <caom2:syser>1e-07</caom2:syser>
+        <caom2:rnder>1e-07</caom2:rnder>
       </caom2:error>
       <caom2:function>
         <caom2:naxis>1</caom2:naxis>
-        <caom2:delta>2.3148100000000001e-07</caom2:delta>
+        <caom2:delta>2.31481e-07</caom2:delta>
         <caom2:refCoord>
           <caom2:pix>0.5</caom2:pix>
           <caom2:val>56789.4298069</caom2:val>
@@ -264,8 +264,8 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
 '''
 
 
-# @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.skipif(True, reason='Failes on Travis')
+@pytest.mark.skipif(single_test, reason='Single test mode')
+# @pytest.mark.skipif(True, reason='Failes on Travis')
 @pytest.mark.parametrize('test_file, expected',
                          [(sample_file_time_axes,
                            EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
@@ -439,7 +439,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
                          [(sample_file_4axes_obs, sample_file_4axes_uri)])
 def test_augment_observation(test_file, test_file_uri):
     # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    test_obs_blueprint = ObsBlueprint(position_axis=(1, 2))
+    test_obs_blueprint = ObsBlueprint(position_axes=(1, 2))
     test_obs_blueprint.set('Observation.target.name', 'CGPS Mosaic MA1')
     test_obs_blueprint.set('Observation.telescope.name', 'DRAO-ST')
     test_obs_blueprint.set('Observation.instrument.name', 'DRAO-ST')
