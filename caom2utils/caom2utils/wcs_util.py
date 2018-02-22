@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2018.                            (c) 2016.
+#  (c) 2018.                            (c) 2018.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -97,10 +97,9 @@ class TimeUtil:
     def __init__(self):
         pass
 
-    def range1d_to_interval(self, temporal_wcs, axis_1d):
-        """
-        """
-        self.validate_wcs(temporal_wcs)
+    @staticmethod
+    def range1d_to_interval(temporal_wcs, axis_1d):
+        TimeUtil.validate_wcs(temporal_wcs)
 
         # TODO: (comment pulled from Java code):
         # if mjdref has a value then the units of axis values could be any time
@@ -114,11 +113,10 @@ class TimeUtil:
 
         return shape.SubInterval(min(a,b),max(a,b))
 
-    def function1d_to_interval(self, temporal_wcs, function_1d):
-        """
-        """
+    @staticmethod
+    def function1d_to_interval(temporal_wcs, function_1d):
         try:
-            self.validate_wcs(temporal_wcs)
+            TimeUtil.validate_wcs(temporal_wcs)
             # // TODO: (comment pulled from Java code):
             # if mjdref has a value then the units of axis values could be any time
             # // units, like days, hours, minutes, seconds, and smaller since they are offsets
@@ -138,9 +136,8 @@ class TimeUtil:
         except Exception:
             raise ValueError("Invalid function in Temporal WCS")
 
-    def validate_wcs(self,  temporal_wcs):
-        """
-        """
+    @staticmethod
+    def validate_wcs(temporal_wcs):
         ctype = temporal_wcs.axis.axis.ctype
         sb = ""
         if ctype == TARGET_CTYPE and (temporal_wcs.timesys is None or temporal_wcs.timesys == TARGET_TIMESYS):
@@ -148,23 +145,22 @@ class TimeUtil:
         elif ctype == TARGET_TIMESYS and temporal_wcs.timesys is None:
             pass
         else:
-            sb = sb + "unexpected TIMESYS, CTYPE: " + temporal_wcs.timesys + "," + ctype
+            sb = "unexpected TIMESYS, CTYPE: {},{}".format(temporal_wcs.timesys,ctype)
 
         cunit = temporal_wcs.axis.axis.cunit
         if TARGET_CUNIT != cunit:
-            sb = sb + "unexpected CUNIT: " + cunit
+            sb = sb + "unexpected CUNIT: {}".format(cunit)
 
         if len(sb) > 0:
             raise ValueError(sb)
 
 
-class EnergyUtil():
+class EnergyUtil:
     def __init__(self):
         pass
 
-    def range1d_to_interval(self, temporal_wcs, range_1d):
-        """
-        """
+    @staticmethod
+    def range1d_to_interval(range_1d):
         a = float(range_1d.start.val)
         b = float(range_1d.end.val)
         #  The energy converter work done in the Java code is skipped here.
@@ -176,9 +172,8 @@ class EnergyUtil():
 
         return shape.SubInterval(min(a, b), max(a, b))
 
-    def function1d_to_interval(self, temporal_wcs):
-        """
-        """
+    @staticmethod
+    def function1d_to_interval(temporal_wcs):
         naxis = temporal_wcs.axis.function.naxis
         p1 = 0.5
         p2 = naxis + 0.5
