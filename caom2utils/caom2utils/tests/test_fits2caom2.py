@@ -451,6 +451,8 @@ def test_augment_observation(test_file, test_file_uri):
                            '4741018.33097')
 
     test_obs_blueprint.set('Plane.dataProductType', 'cube')
+    test_obs_blueprint.set('Artifact.productType', 'info')
+    test_obs_blueprint.set('Artifact.releaseType', 'data')
     test_obs_blueprint.set('Plane.calibrationLevel', '2')
     test_fitsparser = FitsParser(test_file, test_obs_blueprint)
     test_fitsparser.blueprint = test_obs_blueprint

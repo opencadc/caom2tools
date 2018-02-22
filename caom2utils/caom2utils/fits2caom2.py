@@ -1772,48 +1772,26 @@ class FitsParser(object):
         return result
 
     def _to_data_product_type(self, value):
-        if isinstance(value, DataProductType):
-            return value
-        elif value is not None:
-            return DataProductType(value)
-        else:
-            self.logger.debug(
-                'Setting the very wrong default value of {}.'.format(
-                    DataProductType.CUBE))
-            return DataProductType.CUBE
+        return self._to_enum_type(value, DataProductType)
 
     def _to_calibration_level(self, value):
-        if isinstance(value, CalibrationLevel):
-            return value
-        elif value is not None:
-            return CalibrationLevel(value)
-        else:
-            self.logger.debug(
-                'Setting the very wrong default value of {}.'.format(
-                    CalibrationLevel.CALIBRATED))
-            return CalibrationLevel.CALIBRATED
+        return self._to_enum_type(value, CalibrationLevel)
 
     def _to_product_type(self, value):
-        if isinstance(value, ProductType):
-            return value
-        elif value is not None:
-            return ProductType(value)
-        else:
-            self.logger.debug(
-                'Setting the very wrong default value of {}.'.format(
-                    ProductType.INFO))
-            return ProductType.INFO
+        return self._to_enum_type(value, ProductType)
 
     def _to_release_type(self, value):
-        if isinstance(value, ReleaseType):
+        return self._to_enum_type(value, ReleaseType)
+
+    def _to_enum_type(self, value, to_enum_type):
+        if value is None:
+            raise ValueError(
+                'Must set a value of {} for {}.'.format(to_enum_type.__name__,
+                                                        self.file))
+        elif isinstance(value, to_enum_type):
             return value
-        elif value is not None:
-            return ReleaseType(value)
         else:
-            self.logger.debug(
-                'Setting the very wrong default value of {}.'.format(
-                    ReleaseType.DATA))
-            return ReleaseType.DATA
+            return to_enum_type(value)
 
 
 class WcsParser(object):
@@ -1877,9 +1855,7 @@ class WcsParser(object):
             delta = self.wcs.cdelt[energy_axis_index]
         naxis.function = CoordFunction1D(
             self._get_axis_length(energy_axis_index + 1), delta,
-            RefCoord(
-                _to_float(self._sanitize(self.wcs.crpix[energy_axis_index])),
-                _to_float(self._sanitize(self.wcs.crval[energy_axis_index]))))
+            self._get_ref_coord(energy_axis_index))
 
         specsys = str(self.wcs.specsys)
         if not chunk.energy:
@@ -1918,18 +1894,15 @@ class WcsParser(object):
 
         chunk.position_axis_1 = position_axes_indices[0]
         chunk.position_axis_2 = position_axes_indices[1]
-        axis = self._get_spatial_axis(None, chunk.position_axis_1 - 1,
+        axis = self._get_spatial_axis(chunk.position_axis_1 - 1,
                                       chunk.position_axis_2 - 1)
         if chunk.position:
             chunk.position.axis = axis
         else:
             chunk.position = SpatialWCS(axis)
 
-        radesys = self._sanitize(self.wcs.radesys)
-        chunk.position.coordsys = None if radesys is None else \
-            str(radesys).strip()
-        chunk.position.equinox = \
-            self._sanitize(self.wcs.equinox)
+        chunk.position.coordsys = _to_str(self._sanitize(self.wcs.radesys))
+        chunk.position.equinox = self._sanitize(self.wcs.equinox)
         self.logger.debug('End Spatial WCS augmentation.')
 
     def augment_temporal(self, chunk):
@@ -1963,7 +1936,7 @@ class WcsParser(object):
 
         aug_naxis = self._get_axis(time_axis_index)
         aug_error = self._get_coord_error(time_axis_index)
-        aug_ref_coord = self._get_ref_coord(None, time_axis_index)
+        aug_ref_coord = self._get_ref_coord(time_axis_index)
         if self.wcs.has_cd():
             delta = self.wcs.cd[time_axis_index][time_axis_index]
         else:
@@ -2010,8 +1983,7 @@ class WcsParser(object):
         naxis.function = CoordFunction1D(
             self._get_axis_length(polarization_axis_index + 1),
             delta,
-            RefCoord(self._sanitize(self.wcs.crpix[polarization_axis_index]),
-                     self._sanitize(self.wcs.crval[polarization_axis_index])))
+            self._get_ref_coord(polarization_axis_index))
         if not chunk.polarization:
             chunk.polarization = PolarizationWCS(naxis)
         else:
@@ -2070,39 +2042,34 @@ class WcsParser(object):
         aug_axis = Axis(aug_ctype, aug_cunit)
         return aug_axis
 
-    def _get_spatial_axis(self, aug_axis, xindex, yindex):
+    def _get_spatial_axis(self, xindex, yindex):
         """Assemble the bits to make the axis parameter needed for
         SpatialWCS construction."""
+        aug_dimension = self._get_dimension(xindex, yindex)
 
-        if aug_axis:
-            raise NotImplementedError
+        aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
+                                self._get_ref_coord(yindex))
+
+        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
+            self._get_cd(xindex, yindex)
+
+        if aug_dimension is not None and \
+                aug_ref_coord is not None and \
+                aug_cd11 is not None and \
+                aug_cd12 is not None and \
+                aug_cd21 is not None and \
+                aug_cd22 is not None:
+            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
+                                           aug_cd11, aug_cd12,
+                                           aug_cd21, aug_cd22)
         else:
+            aug_function = None
 
-            aug_dimension = self._get_dimension(xindex, yindex)
-
-            aug_ref_coord = Coord2D(self._get_ref_coord(None, xindex),
-                                    self._get_ref_coord(None, yindex))
-
-            aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
-                self._get_cd(xindex, yindex)
-
-            if aug_dimension is not None and \
-                    aug_ref_coord is not None and \
-                    aug_cd11 is not None and \
-                    aug_cd12 is not None and \
-                    aug_cd21 is not None and \
-                    aug_cd22 is not None:
-                aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
-                                               aug_cd11, aug_cd12,
-                                               aug_cd21, aug_cd22)
-            else:
-                aug_function = None
-
-            aug_axis = CoordAxis2D(self._get_axis(xindex),
-                                   self._get_axis(yindex),
-                                   self._get_coord_error(xindex),
-                                   self._get_coord_error(yindex),
-                                   None, None, aug_function)
+        aug_axis = CoordAxis2D(self._get_axis(xindex),
+                               self._get_axis(yindex),
+                               self._get_coord_error(xindex),
+                               self._get_coord_error(yindex),
+                               None, None, aug_function)
         return aug_axis
 
     def _get_cd(self, x_index, y_index):
@@ -2129,29 +2096,21 @@ class WcsParser(object):
 
         return cd11, cd12, cd21, cd22
 
-    def _get_coord_error(self, index, over_csyer=None,
-                         over_crder=None):
+    def _get_coord_error(self, index):
         aug_coord_error = None
-        aug_csyer = over_csyer if over_csyer is not None \
-            else self._sanitize(self.wcs.csyer[index])
-        aug_crder = over_crder if over_crder is not None \
-            else self._sanitize(self.wcs.crder[index])
-
+        aug_csyer = self._sanitize(self.wcs.csyer[index])
+        aug_crder = self._sanitize(self.wcs.crder[index])
         if aug_csyer and aug_crder:
             aug_coord_error = CoordError(aug_csyer, aug_crder)
-
         return aug_coord_error
 
     def _get_dimension(self, xindex, yindex):
-
         aug_dimension = None
-        # TODO more consistent use of x,y number vs index
         aug_dim1 = _to_int(self._get_axis_length(xindex + 1))
         aug_dim2 = _to_int(self._get_axis_length(yindex + 1))
         if aug_dim1 and aug_dim2:
             aug_dimension = Dimension2D(aug_dim1, aug_dim2)
             self.logger.debug('End 2D dimension augmentation.')
-
         return aug_dimension
 
     def _get_position_axis(self):
@@ -2168,16 +2127,10 @@ class WcsParser(object):
             raise ValueError('Found only one position axis ra/dec: {}/{}'.
                              format(xindex, yindex))
 
-    def _get_ref_coord(self, aug_ref_coord, index, over_crpix=None,
-                       over_crval=None):
-        if aug_ref_coord:
-            raise NotImplementedError
-        else:
-            aug_crpix = over_crpix if over_crpix is not None \
-                else self.wcs.crpix[index]
-            aug_crval = over_crval if over_crval is not None \
-                else self.wcs.crval[index]
-            aug_ref_coord = RefCoord(aug_crpix, aug_crval)
+    def _get_ref_coord(self, index):
+        aug_crpix = _to_float(self._sanitize(self.wcs.crpix[index]))
+        aug_crval = _to_float(self._sanitize(self.wcs.crval[index]))
+        aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
 
     def _get_axis_length(self, for_axis):
