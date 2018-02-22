@@ -1,0 +1,26 @@
+FROM python:2.7-jessie
+
+WORKDIR /usr/src/app
+
+COPY ./docker-entrypoint-exec.sh ./
+COPY ./caom2utils/exec_requirements.txt exec_requirements.txt
+COPY ./caom2 ./caom2/
+COPY ./caom2utils ./caom2utils/
+
+RUN pip install --no-cache-dir -r exec_requirements.txt 
+
+ENV SYBASE=/opt/sybase
+RUN pip install --no-cache-dir http://downloads.sourceforge.net/python-sybase/python-sybase-0.39.tar.gz
+
+ENTRYPOINT ["./docker-entrypoint-exec.sh"]
+
+# dev_requirements looks like this:
+#
+#-e ./caom2
+#-e ./caom2utils
+#pytest==3.0.0
+#pytest-cov>=2.5.1
+#flake8>=3.4.1
+#funcsigs==1.0.2
+#mock==2.0.0
+#xml-compare==1.0.5
