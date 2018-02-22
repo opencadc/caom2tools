@@ -2349,8 +2349,9 @@ def get_arg_parser():
                         help='test mode, do not persist to database')
     parser.add_argument('--cert', help='Proxy Cert&Key PEM file')
 
-    parser.add_argument('productID',
-                        help='product ID of the plane in the observation')
+    parser.add_argument('--productID',
+                        help='product ID of the plane in the observation',
+                        required=False)
     parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
     return parser
 
@@ -2401,6 +2402,13 @@ def proc(args, obs_blueprints):
         # append to existing observation
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
+        if len(obs.planes) != 1:
+            if not args.productID:
+                msg = '{}{}{}'.format(
+                    'A productID parameter is required if ',
+                    'there are zero or more than one planes ',
+                    'in the input observation.')
+                raise RuntimeError(msg)
     else:
         # determine the type of observation to create by looking for the
         # the CompositeObservation.members in the blueprints. If present
@@ -2423,7 +2431,13 @@ def proc(args, obs_blueprints):
         # override the command-line argument for the plane product ID value
         product_id = blueprint._get('Plane.productID')
         if product_id is None or isinstance(product_id, tuple):
-            product_id = args.productID
+            if args.productID:
+                product_id = args.productID
+            else:
+                msg = '{}{}'.format(
+                    'A productID parameter is required if one is not ',
+                    'identified in the blueprint.')
+                raise RuntimeError(msg)
 
         if product_id not in obs.planes.keys():
             obs.planes.add(Plane(product_id=str(product_id)))

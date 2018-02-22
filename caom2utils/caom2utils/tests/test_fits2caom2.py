@@ -329,6 +329,12 @@ def test_help(test_file):
     """ Tests the helper displays for commands in main"""
 
     # expected helper messages
+    with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt'), 'r') \
+            as myfile:
+        bad_product_id = myfile.read()
+    with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt'), 'r') \
+            as myfile:
+        missing_product_id = myfile.read()
     with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt'), 'r') \
             as myfile:
         too_few_arguments_usage = myfile.read()
@@ -356,6 +362,24 @@ def test_help(test_file):
         with pytest.raises(MyExitError):
             main_app()
         assert (usage == stdout_mock.getvalue())
+
+    # missing productID when plane count is wrong
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+        bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
+        sys.argv = ["fits2caom2", "--in", bad_product_file,
+                    "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
+        with pytest.raises(MyExitError):
+            main_app()
+        assert (bad_product_id == stderr_mock.getvalue())
+
+    # missing productID when blueprint doesn't have one either
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+        sys.argv = ["fits2caom2", "--observation", "test_collection_id",
+                    "test_observation_id",
+                    "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
+        with pytest.raises(MyExitError):
+            main_app()
+        assert (missing_product_id == stderr_mock.getvalue())
 
     # missing required --observation
     """
