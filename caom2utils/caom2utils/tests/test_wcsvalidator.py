@@ -73,145 +73,138 @@ from __future__ import (absolute_import, division, print_function,
 from caom2utils import WcsValidator, InvalidWCSError
 from caom2 import artifact, wcs, chunk, part
 from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict
+import unittest
 
 
 # TemporalWCS validator tests
-def test_temporalwcs_validator():
-    # TODO: how to adequately report errors
-    timetest = TimeTestUtil()
-    good_temporal_wcs = timetest.good_wcs()
-    assert good_temporal_wcs.axis.function is not None
+class TemporalWCSValidatorTests(unittest.TestCase):
+    def test_temporalwcs_validator(self):
+        timetest = TimeTestUtil()
+        good_temporal_wcs = timetest.good_wcs()
+        self.assertIsNotNone(good_temporal_wcs.axis.function)
 
-    try:
-        WcsValidator.validate_temporal_wcs(good_temporal_wcs)
-        WcsValidator.validate_temporal_wcs(None)
-    except Exception as e:
-        print(repr(e))
-        assert False
+        exception_found = False
+        try:
+            WcsValidator.validate_temporal_wcs(good_temporal_wcs)
+            WcsValidator.validate_temporal_wcs(None)
+        except Exception:
+            exception_found = True
+
+        self.assertEqual(exception_found, False)
+
+    def test_bad_temporalwcs(self):
+        timetest = TimeTestUtil()
+
+        bad_temporal_wcs = timetest.bad_ctype_wcs()
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
+
+        bad_temporal_wcs = timetest.bad_cunit_wcs()
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
+
+        bad_temporal_wcs = timetest.bad_range_wcs()
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
 
 
-def test_bad_temporalwcs():
-    timetest = TimeTestUtil()
-    bad_temporal_wcs = timetest.bad_wcs()
+class SpatialWCSValidatorTests(unittest.TestCase):
+    def test_spatialwcs_validator(self):
 
-    try:
-        WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
-    except InvalidWCSError as iwe:
-        print("Expected temporal wcs failure: " + repr(iwe))
-        assert True
-    except Exception as e:
-        print(repr(e))
-        assert False
-
-
-# SpatialWCS validation tests
-def test_spatialwcs_validator():
-    try:
         spatialtest = SpatialTestUtil()
         good_spatial_wcs = spatialtest.good_wcs()
-        assert good_spatial_wcs.axis.function is not None
+        self.assertIsNotNone(good_spatial_wcs.axis.function)
+        exception_found = False
+        try:
+            WcsValidator.validate_spatial_wcs(good_spatial_wcs)
+            # None is valid
+            WcsValidator.validate_spatial_wcs(None)
+        except Exception:
+            exception_found = True
 
-        WcsValidator.validate_spatial_wcs(good_spatial_wcs)
+        self.assertEqual(exception_found, False)
 
-        # None is valid
-        WcsValidator.validate_spatial_wcs(None)
-    except Exception as e:
-        print(repr(e))
-        assert False
-
-
-def test_invalid_spatial_wcs():
-    try:
-        position = None
+    def test_invalid_spatial_wcs(self):
         spatialtest = SpatialTestUtil()
         position = spatialtest.bad_wcs()
-        WcsValidator.validate_spatial_wcs(position)
-    except InvalidWCSError as iwe:
-        print("Expected Spatial WCS error: " + repr(iwe))
-        assert True
-    except Exception as e:
-        print(repr(e))
-        assert False
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_spatial_wcs(position)
 
 
-# SpectralWCS validation tests
-def test_spectralwcs_validator():
-    try:
+
+class SpectralWCSValidatorTests(unittest.TestCase):
+    def test_spectralwcs_validator(self):
         energyTest = EnergyTestUtil()
         good_spectral_wcs = energyTest.good_wcs()
-        assert good_spectral_wcs.axis.function is not None
+        self.assertIsNotNone(good_spectral_wcs.axis.function)
 
-        WcsValidator.validate_spectral_wcs(good_spectral_wcs)
+        exception_found = False
+        try:
+            WcsValidator.validate_spectral_wcs(good_spectral_wcs)
+            WcsValidator.validate_spectral_wcs(None)
+        except Exception:
+            exception_found = True
+        self.assertEqual(exception_found, False)
 
-        # Null validator is acceptable
-        WcsValidator.validate_spectral_wcs(None)
-
-    except Exception as e:
-        print(repr(e))
-        assert False
-
-
-def test_invalid_spectral_wcs():
-    try:
+    def test_invalid_spectral_wcs(self):
         energytest = EnergyTestUtil()
         energy_wcs = energytest.bad_wcs()
-        WcsValidator.validate_spectral_wcs(energy_wcs)
-    except InvalidWCSError as iwe:
-        print("Expected Spectral WCS error: " + repr(iwe))
-        assert True
-    except Exception as e:
-        print(repr(e))
-        assert False
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_spectral_wcs(energy_wcs)
 
 
 # Artifact tests
-def test_valid_wcs():
-    a = None
-    try:
-        a = get_test_artifact(chunk.ProductType.SCIENCE)
-        WcsValidator.validate_artifact(a)
-    except Exception as unexpected:
-        print(repr(unexpected))
-        assert False
+class ArtifactWCSValidationTests(unittest.TestCase):
+    def test_valid_wcs(self):
+        a = None
+        exception_found = False
+        try:
+            a = get_test_artifact(chunk.ProductType.SCIENCE)
+            WcsValidator.validate_artifact(a)
+        except Exception:
+            exception_found = True
 
+        self.assertEqual(exception_found, False)
 
-def test_null_wcs():
-    a = None
-    try:
-        a = get_test_artifact(chunk.ProductType.SCIENCE)
-        WcsValidator.validate_artifact(a)
-        c = a.parts['test_part'].chunks[0]
+    def test_null_wcs(self):
+        a = None
+        exception_found = False
+        try:
+            a = get_test_artifact(chunk.ProductType.SCIENCE)
+            WcsValidator.validate_artifact(a)
+            c = a.parts['test_part'].chunks[0]
 
-        # Not probably reasonable Chunks, but should still be valid
-        # Different combinations of this will be represented in different data sets
-        c.position = None
-        WcsValidator.validate_artifact(a)
+            # Not probably reasonable Chunks, but should still be valid
+            # Different combinations of this will be represented in different data sets
+            c.position = None
+            WcsValidator.validate_artifact(a)
 
-        c.position = SpatialTestUtil.good_wcs(SpatialTestUtil())
-        c.energy = None
-        WcsValidator.validate_artifact(a)
+            c.position = SpatialTestUtil.good_wcs(SpatialTestUtil())
+            c.energy = None
+            WcsValidator.validate_artifact(a)
 
-        c.energy = EnergyTestUtil.good_wcs(EnergyTestUtil())
-        c.time = None
-        WcsValidator.validate_artifact(a)
+            c.energy = EnergyTestUtil.good_wcs(EnergyTestUtil())
+            c.time = None
+            WcsValidator.validate_artifact(a)
 
-        c.time = TimeTestUtil.good_wcs(TimeTestUtil())
-        c.polarization = None
-        WcsValidator.validate_artifact(a)
+            c.time = TimeTestUtil.good_wcs(TimeTestUtil())
+            c.polarization = None
+            WcsValidator.validate_artifact(a)
 
-        c.energy = None
-        WcsValidator.validate_artifact(a)
+            c.energy = None
+            WcsValidator.validate_artifact(a)
 
-        c.time = None
-        WcsValidator.validate_artifact(a)
+            c.time = None
+            WcsValidator.validate_artifact(a)
 
-        # Assert: all WCS should be null at this step
-        c.position = None
-        WcsValidator.validate_artifact(a)
+            # Assert: all WCS should be null at this step
+            c.position = None
+            WcsValidator.validate_artifact(a)
 
-    except InvalidWCSError as unexpected:
-        print(repr(unexpected))
-        assert False
+        except Exception:
+            exception_found = True
+
+        self.assertEqual(exception_found, False)
 
 
 # Supporting Classes for generating test data
@@ -228,15 +221,42 @@ class TimeTestUtil:
         goodwcs = self.get_test_function(True, px, sx*nx*ds, nx, ds)
         return goodwcs
 
-    def bad_wcs(self):
+    def bad_ctype_wcs(self):
         px = float(0.5)
         sx = float(54321.0)
         nx = 200
         ds = float(0.01)
 
         badwcs = self.get_test_function(True, px, sx*nx*ds, nx, ds)
-        badwcs.axis.function.ctype = "bla";
+        #  Should fail on the ctype
+        badwcs.axis.axis.ctype = "bla"
         return badwcs
+
+    def bad_cunit_wcs(self):
+        badcunit = self.good_wcs()
+        badcunit.axis.axis.cunit = "foo"
+        return badcunit
+
+    def bad_range_wcs(self):
+        px = float(0.5)
+        sx = float(54321.0)
+        nx = 200
+        ds = float(0.01)
+        axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
+        temporal_wcs = chunk.TemporalWCS(axis_1d)
+        temporal_wcs.exposure = 300.0
+        temporal_wcs.resolution = 0.1
+
+        # divide into 2 samples with a gap between
+        c1 = wcs.RefCoord(px, sx)
+        c2 = wcs.RefCoord(0.0, 0.0)
+        c3 = wcs.RefCoord(px + nx * 0.66, sx + nx * ds * 0.66)
+        c4 = wcs.RefCoord(px + nx, sx + nx * ds)
+        temporal_wcs.axis.bounds = wcs.CoordBounds1D()
+        temporal_wcs.axis.bounds.samples.append(wcs.CoordRange1D(c1, c2))
+        temporal_wcs.axis.bounds.samples.append(wcs.CoordRange1D(c3, c4))
+
+        return temporal_wcs
 
     def get_test_function(self, complete, px, sx, nx, ds):
         axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
@@ -252,7 +272,6 @@ class TimeTestUtil:
 
 
 class SpatialTestUtil:
-
     def __init__(self):
         pass
 
