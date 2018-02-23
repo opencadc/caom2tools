@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2018.                            (c) 2018.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,198 +69,199 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import unittest
-
-# from astropy.wcs import Wcsprm
 from caom2utils import WcsValidator, InvalidWCSError
+from caom2 import artifact, wcs, chunk, part, caom_util, Axis, chunk, \
+    CoordAxis1D, CoordBounds1D, CoordFunction1D, CoordRange1D, \
+    PolarizationWCS, RefCoord, wcs
+from caom2.caom_util import TypedList, TypedOrderedDict
 from ..wcsvalidator import WcsPolarizationState
-from caom2 import caom_util, Axis, chunk, CoordAxis1D, CoordBounds1D, \
-    CoordFunction1D, CoordRange1D, PolarizationWCS, RefCoord, wcs
+import unittest
 
 
 # TemporalWCS validator tests
-def test_temporalwcs_validator():
-    # TODO: how to adequately report errors
-    timetest = TimeTestUtil()
-    good_temporal_wcs = timetest.good_wcs()
-    assert good_temporal_wcs.axis.function is not None
+class TemporalWCSValidatorTests(unittest.TestCase):
+    def test_temporalwcs_validator(self):
+        good_temporal_wcs = TimeTestUtil.good_wcs()
+        self.assertIsNotNone(good_temporal_wcs.axis.function)
 
-    try:
-        WcsValidator.validate_temporal_wcs(good_temporal_wcs)
-        WcsValidator.validate_temporal_wcs(None)
-    except Exception as e:
-        print(repr(e))
-        assert False
+        exception_found = False
+        try:
+            WcsValidator.validate_temporal_wcs(good_temporal_wcs)
+            WcsValidator.validate_temporal_wcs(None)
+        except Exception:
+            exception_found = True
+
+        self.assertEqual(exception_found, False)
+
+    def test_bad_temporalwcs(self):
+        bad_temporal_wcs = TimeTestUtil.bad_ctype_wcs()
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
+
+        bad_temporal_wcs = TimeTestUtil.bad_cunit_wcs()
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
+
+        bad_temporal_wcs = TimeTestUtil.bad_range_wcs()
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
 
 
-def test_bad_temporalwcs():
-    timetest = TimeTestUtil()
-    bad_temporal_wcs = timetest.bad_wcs()
+class SpatialWCSValidatorTests(unittest.TestCase):
+    def test_spatialwcs_validator(self):
 
-    try:
-        WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
-    except InvalidWCSError as iwe:
-        print("Expected temporal wcs failure: " + repr(iwe))
-        assert True
-    except Exception as e:
-        print(repr(e))
-        assert False
-
-
-# SpatialWCS validation tests
-def test_spatialwcs_validator():
-    try:
         spatialtest = SpatialTestUtil()
         good_spatial_wcs = spatialtest.good_wcs()
-        assert good_spatial_wcs.axis.function is not None
+        self.assertIsNotNone(good_spatial_wcs.axis.function)
+        exception_found = False
+        try:
+            WcsValidator.validate_spatial_wcs(good_spatial_wcs)
+            # None is valid
+            WcsValidator.validate_spatial_wcs(None)
+        except Exception:
+            exception_found = True
 
-        WcsValidator.validate_spatial_wcs(good_spatial_wcs)
+        self.assertEqual(exception_found, False)
 
-        # None is valid
-        WcsValidator.validate_spatial_wcs(None)
-    except Exception as e:
-        print(repr(e))
-        assert False
-
-
-def test_invalid_spatial_wcs():
-    try:
-        position = None
-        spatialtest = SpatialTestUtil()
-        position = spatialtest.bad_wcs()
-        WcsValidator.validate_spatial_wcs(position)
-    except InvalidWCSError as iwe:
-        print("Expected Spatial WCS error: " + repr(iwe))
-        assert True
-    except Exception as e:
-        print(repr(e))
-        assert False
+    # Without the toPolygon function moved over from Java, there's not
+    # alot of way to test an invalid spatial wcs.
+    # def test_invalid_spatial_wcs(self):
+    #     spatialtest = SpatialTestUtil()
+    #     position = spatialtest.bad_wcs()
+    #     with self.assertRaises(InvalidWCSError):
+    #         WcsValidator.validate_spatial_wcs(position)
 
 
-# SpectralWCS validation tests
-def test_spectralwcs_validator():
-    try:
+class SpectralWCSValidatorTests(unittest.TestCase):
+    def test_spectralwcs_validator(self):
         energyTest = EnergyTestUtil()
         good_spectral_wcs = energyTest.good_wcs()
-        assert good_spectral_wcs.axis.function is not None
+        self.assertIsNotNone(good_spectral_wcs.axis.function)
 
-        WcsValidator.validate_spectral_wcs(good_spectral_wcs)
+        exception_found = False
+        try:
+            WcsValidator.validate_spectral_wcs(good_spectral_wcs)
+            WcsValidator.validate_spectral_wcs(None)
+        except Exception:
+            exception_found = True
+        self.assertEqual(exception_found, False)
 
-        # Null validator is acceptable
-        WcsValidator.validate_spectral_wcs(None)
-
-    except Exception as e:
-        print(repr(e))
-        assert False
-
-
-def test_invalid_spectral_wcs():
-    try:
+    def test_invalid_spectral_wcs(self):
         energytest = EnergyTestUtil()
         energy_wcs = energytest.bad_wcs()
-        WcsValidator.validate_spectral_wcs(energy_wcs)
-    except InvalidWCSError as iwe:
-        print("Expected Spectral WCS error: " + repr(iwe))
-        assert True
-    except Exception as e:
-        print(repr(e))
-        assert False
+        with self.assertRaises(InvalidWCSError):
+            WcsValidator.validate_spectral_wcs(energy_wcs)
 
 
-#  this test should construct an Artifact with all the WCS
-#  and then validate everything.
-def test_valid_wcs():
-    pass
-    # # Will need to be similar to this from the Java code:
-    #     artifact = None
-    #     try:
-    #         artifact = get_test_artifact(chunk.ProductType.SCIENCE)
-    #         # Parts is a TypedOrderedDict
-    #         chunk = a.parts.getChunks().iterator().next();
-    #
-    #         # Populate all WCS with good values
-    #         chunk.position = SpatialTestUtil.good_wcs(SpatialTestUtil())
-    #         chunk.energy = EnergyTestUtil.good_wcs(EnergyTestUtil())
-    #         chunk.time = TimeTestUtil.good_wcs(TimeTestUtil())
-    #         chunk.polarization = PolarizationTestUtil.good_wcs(PolarizationTestUtil())
-    #
-    #         WcsValidator.validate(artifact)
-    #     except Exception as unexpected:
-    #         print(repr(unexpected))
-    #         assert False
+# Artifact tests
+class ArtifactWCSValidationTests(unittest.TestCase):
+    def test_valid_wcs(self):
+        a = None
+        exception_found = False
+        try:
+            a = ArtifactTestUtil.get_test_artifact(chunk.ProductType.SCIENCE)
+            WcsValidator.validate_artifact(a)
+        except Exception:
+            exception_found = True
+        self.assertEqual(exception_found, False)
+
+    def test_null_wcs(self):
+        a = None
+        exception_found = False
+        try:
+            a = ArtifactTestUtil.get_test_artifact(chunk.ProductType.SCIENCE)
+            WcsValidator.validate_artifact(a)
+            c = a.parts['test_part'].chunks[0]
+
+            # Not probably reasonable Chunks, but should still be valid
+            # Different combinations of this will be represented in different data sets
+            c.position = None
+            WcsValidator.validate_artifact(a)
+
+            c.position = SpatialTestUtil.good_wcs()
+            c.energy = None
+            WcsValidator.validate_artifact(a)
+
+            c.energy = EnergyTestUtil.good_wcs()
+            c.time = None
+            WcsValidator.validate_artifact(a)
+
+            c.time = TimeTestUtil.good_wcs()
+            c.polarization = None
+            WcsValidator.validate_artifact(a)
+
+            c.energy = None
+            WcsValidator.validate_artifact(a)
+
+            c.time = None
+            WcsValidator.validate_artifact(a)
+
+            # Assert: all WCS should be null at this step
+            c.position = None
+            WcsValidator.validate_artifact(a)
+
+        except Exception:
+            exception_found = True
+
+        self.assertEqual(exception_found, False)
 
 
-    # public void testNullWCS() {
-    #     Artifact a = null;
-    #
-    #     try {
-    #         a = dataGenerator.getTestArtifact(ProductType.SCIENCE);
-    #         Chunk c = a.getParts().iterator().next().getChunks().iterator().next();
-    #         c.position = dataGenerator.mkGoodSpatialWCS();
-    #         c.energy = dataGenerator.mkGoodSpectralWCS();
-    #         c.time = dataGenerator.mkGoodTemporalWCS();
-    #         c.polarization = dataGenerator.mkGoodPolarizationWCS();
-    #         CaomWCSValidator.validate(a);
-    #
-    #
-    #         // Not probably reasonable Chunks, but should still be valid
-    #         c.position = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.position = dataGenerator.mkGoodSpatialWCS();
-    #         c.energy = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.energy = dataGenerator.mkGoodSpectralWCS();
-    #         c.time = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.time = dataGenerator.mkGoodTemporalWCS();
-    #         c.polarization = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.energy = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         c.time = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #         // Assert: all WCS should be null at this step
-    #         c.position = null;
-    #         CaomWCSValidator.validate(a);
-    #
-    #     } catch (Exception unexpected) {
-    #         log.error(UNEXPECTED_EXCEPTION + " validating artifact: " + a.toString(), unexpected);
-    #         Assert.fail(UNEXPECTED_EXCEPTION + a.toString() + unexpected);
-    #     }
-    #
-    # }
-
-
+# Supporting Classes for generating test data
 class TimeTestUtil:
-
     def __init__(self):
         pass
 
-    def good_wcs(self):
+    @staticmethod
+    def good_wcs():
         px = float(0.5)
         sx = float(54321.0)
         nx = 200
         ds = float(0.01)
-        goodwcs = self.get_test_function(True, px, sx*nx*ds, nx, ds)
+        goodwcs = TimeTestUtil.get_test_function(True, px, sx*nx*ds, nx, ds)
         return goodwcs
 
-    def bad_wcs(self):
+    @staticmethod
+    def bad_ctype_wcs():
         px = float(0.5)
         sx = float(54321.0)
         nx = 200
         ds = float(0.01)
 
-        badwcs = self.get_test_function(True, px, sx*nx*ds, nx, ds)
-        badwcs.axis.function.ctype = "bla";
+        badwcs = TimeTestUtil.get_test_function(True, px, sx*nx*ds, nx, ds)
+        #  Should fail on the ctype
+        badwcs.axis.axis.ctype = "bla"
         return badwcs
 
-    def get_test_function(self, complete, px, sx, nx, ds):
+    @staticmethod
+    def bad_cunit_wcs():
+        badcunit = TimeTestUtil.good_wcs()
+        badcunit.axis.axis.cunit = "foo"
+        return badcunit
+
+    @staticmethod
+    def bad_range_wcs():
+        px = float(0.5)
+        sx = float(54321.0)
+        nx = 200
+        ds = float(0.01)
+        axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
+        temporal_wcs = chunk.TemporalWCS(axis_1d)
+        temporal_wcs.exposure = 300.0
+        temporal_wcs.resolution = 0.1
+
+        # divide into 2 samples with a gap between
+        c1 = wcs.RefCoord(px, sx)
+        c2 = wcs.RefCoord(0.0, 0.0)
+        c3 = wcs.RefCoord(px + nx * 0.66, sx + nx * ds * 0.66)
+        c4 = wcs.RefCoord(px + nx, sx + nx * ds)
+        temporal_wcs.axis.bounds = wcs.CoordBounds1D()
+        temporal_wcs.axis.bounds.samples.append(wcs.CoordRange1D(c1, c2))
+        temporal_wcs.axis.bounds.samples.append(wcs.CoordRange1D(c3, c4))
+
+        return temporal_wcs
+
+    @staticmethod
+    def get_test_function(complete, px, sx, nx, ds):
         axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
 
         if complete:
@@ -274,11 +275,11 @@ class TimeTestUtil:
 
 
 class SpatialTestUtil:
-
     def __init__(self):
         pass
 
-    def good_wcs(self):
+    @staticmethod
+    def good_wcs():
         px = float(0.5)
         py = float(0.5)
         sx = float(20.0)
@@ -286,12 +287,13 @@ class SpatialTestUtil:
         # not used in java code although declared?
         # double dp = 1000.0;
         # double ds = 1.0;
-        return self.get_test_function(px, py, sx, sy, False)
+        return SpatialTestUtil.get_test_function(px, py, sx, sy, False)
 
     # This is in the java code, but without the toPolygon function in python
     # is possibly irrelevant here. With the basic validator this will produce
     # a good WCS value.
-    def bad_wcs(self):
+    @staticmethod
+    def bad_wcs():
         axis1 = wcs.Axis("RA---TAN", "deg")
         axis2 = wcs.Axis("DEC--TAN", "deg")
         axis = wcs.CoordAxis2D(axis1, axis2)
@@ -303,7 +305,8 @@ class SpatialTestUtil:
         axis.function = wcs.CoordFunction2D(dim, ref, 1.0e-3, 0.0, 0.0, 0.0) # singular CD matrix
         return spatial_wcs
 
-    def get_test_function(self, px, py, sx, sy, gal):
+    @staticmethod
+    def get_test_function(px, py, sx, sy, gal):
         axis1 = wcs.Axis("RA", "deg")
         axis2 = wcs.Axis("DEC", "deg")
 
@@ -334,52 +337,59 @@ class PolarizationTestUtil:
     def __init__(self):
         pass
 
+    @staticmethod
     def good_wcs(self):
-        pass
+        return None
 
+    @staticmethod
     def bad_wcs(self):
-        pass
+        return None
 
 
-#  TODO: Under construction
+# There's got to be a better way to do this, but of the 2 ways I tried,
+# none is really great. Leaving these here for now.
+BANDPASS_NAME = "H-Alpha-narrow"
+TRANSITION = wcs.EnergyTransition("H", "alpha")
+
+
 class EnergyTestUtil:
     def __init__(self):
-        self.BANDPASS_NAME = "H-Alpha-narrow"
-        self.TRANSITION = wcs.EnergyTransition("H", "alpha")
+        pass
 
-    def good_wcs(self):
+    @staticmethod
+    def good_wcs():
         px = float(0.5)
         sx = float(400.0)
         nx = float(200.0)
         ds = float(1.0)
         # SpectralWCS
-        energy_test_util = EnergyTestUtil();
-        energy = energy_test_util.getTestRange(True, px, sx * nx * ds, nx, ds)
+        energy = EnergyTestUtil.getTestRange(True, px, sx * nx * ds, nx, ds)
 
         c1 = wcs.RefCoord(0.5, 2000.0)
         energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
         return energy
 
-    def bad_wcs(self):
+    @staticmethod
+    def bad_wcs():
         px = float(0.5)
         sx = float(400.0)
         nx = 200
         ds = float(1.0)
-        bad_energy = self.getTestFunction(True, px, sx * nx * ds, nx, ds)
+        bad_energy = EnergyTestUtil.getTestFunction(True, px, sx * nx * ds, nx, ds)
         # Make function invalid
         c1 = wcs.RefCoord(0.5, 2000.0)
         bad_energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
         return wcs
 
-    def getTestRange(self, complete, px, sx, nx, ds):
+    @staticmethod
+    def getTestRange(complete, px, sx, nx, ds):
         axis =  wcs.CoordAxis1D(wcs.Axis("WAVE", "nm"))
-        # log.debug("test axis: " + axis);
         spectral_wcs = chunk.SpectralWCS(axis, "TOPOCENT")
         if complete:
-            spectral_wcs.bandpassName = self.BANDPASS_NAME
+            spectral_wcs.bandpassName = BANDPASS_NAME
             spectral_wcs.restwav = 6563.0e-10 # meters
             spectral_wcs.resolvingPower = 33000.0
-            spectral_wcs.transition = self.TRANSITION
+            spectral_wcs.transition = TRANSITION
 
         c1 = wcs.RefCoord(px, sx)
         c2 = wcs.RefCoord(px + nx, sx + nx * ds)
@@ -387,85 +397,49 @@ class EnergyTestUtil:
         # log.debug("test range: " + axis.range)
         return spectral_wcs
 
-    def getTestFunction(self, complete, px, sx, nx, ds):
+    @staticmethod
+    def getTestFunction(complete, px, sx, nx, ds):
         axis = wcs.CoordAxis1D(wcs.Axis("WAVE", "nm"))
-        # log.debug("test axis: " + axis);
         spectral_wcs = chunk.SpectralWCS(axis, "TOPOCENT")
         if complete:
-            spectral_wcs.bandpassName = self.BANDPASS_NAME
+            spectral_wcs.bandpassName = BANDPASS_NAME
             spectral_wcs.restwav = 6563.0e-10; # meters
             spectral_wcs.resolvingPower = 33000.0
-            spectral_wcs.transition = self.TRANSITION
+            spectral_wcs.transition = TRANSITION
 
         c1 = wcs.RefCoord(px, sx)
         spectral_wcs.axis.function = wcs.CoordFunction1D(nx, ds, c1)
-        # log.debug("test function: " + axis.function)
         return spectral_wcs
 
 
-# Under construction
-def get_test_artifact(ptype):
-    pass
-    # chunk.ProductType.SCIENCE is a common type
-    # artifact = chunk.Artifact('uri:foo/bar', ptype, chunk.ReleaseType.DATA)
-    #
-    # test_part = part.Part("test_part", ptype, )
-    #
-    #
-    # # Assumption:
-    # #    Only primary headers for 1 extension files or the extensions
-    # # for multiple extension files can have data and therefore
-    # # corresponding parts
-    # if (i > 0) or (len(self.headers) == 1):
-    #     if ii not in artifact.parts.keys():
-    #         artifact.parts.add(Part(ii))  # TODO use extension name?
-    #         self.logger.debug('Part created for HDU {}.'.format(ii))
-    # else:
-    #     artifact.parts.add(Part(ii))
-    #     self.logger.debug('Create empty part for HDU {}'.format(ii))
-    #     continue
-    #
-    # part = artifact.parts[ii]
-    #
-    # # each Part has one Chunk
-    # if not part.chunks:
-    #     part.chunks.append(Chunk())
-    # chunk = part.chunks[0]
-    # return artifact
-    #
-    #
-    # return artifact
+class ArtifactTestUtil():
+    def __init__(self):
+        pass
 
-    # create an artifact
-    # populate it with known good WCS values for position, energy, time, polarization,
-    # that's it.
-#     Artifact a = null;
-#     try {
-#         a = dataGenerator.getTestArtifact(ProductType.SCIENCE);
-#         Chunk c = a.getParts().iterator().next().getChunks().iterator().next();
-#
-#         // Populate all WCS with good values
-#         c.position = dataGenerator.mkGoodSpatialWCS();
-#         c.energy = dataGenerator.mkGoodSpectralWCS();
-#         c.time = dataGenerator.mkGoodTemporalWCS();
-#         c.polarization = dataGenerator.mkGoodPolarizationWCS();
-#
-#         CaomWCSValidator.validate(a);
-#     } catch (Exception unexpected) {
-#         log.error(UNEXPECTED_EXCEPTION + " validating artifact: " + a.toString(), unexpected);
-#         Assert.fail(UNEXPECTED_EXCEPTION + a.toString() + unexpected);
-#     }
-#
-# }
+    @staticmethod
+    def get_good_test_chunk(ptype):
+        test_chunk = chunk.Chunk()
+        test_chunk.position = SpatialTestUtil.good_wcs()
+        test_chunk.energy = EnergyTestUtil.good_wcs()
+        test_chunk.time = TimeTestUtil.good_wcs()
+        # test_chunk.polarization = PolarizationTestUtil.good_wcs()
+
+        return test_chunk
 
 
-# dimension = wcs.Dimension2D(int(1), int(2))
-# ref_coord = wcs.Coord2D(wcs.RefCoord(float(9.0), float(10.0)),
-#                         wcs.RefCoord(float(11.0), float(12.0)))
-# cd11 = float(1.1)
-# cd12 = float(1.2)
-# cd21 = float(2.1)
-# cd22 = float(2.2)
+    @staticmethod
+    def get_test_artifact(ptype):
+        # chunk.ProductType.SCIENCE is a common type
+        if ptype is None:
+            ptype = chunk.ProductType.SCIENCE
+        test_artifact = artifact.Artifact('uri:foo/bar', ptype, artifact.ReleaseType.DATA)
+        chunks = TypedList(chunk.Chunk)
+        chunks.append(ArtifactTestUtil.get_good_test_chunk(ptype))
+
+        test_part = part.Part("test_part", ptype, chunks)
+        test_artifact.parts = TypedOrderedDict(part.Part)
+        test_artifact.parts['test_part'] = test_part
+        return test_artifact
 
 
 class TestValidatePolarizationWcs(unittest.TestCase):

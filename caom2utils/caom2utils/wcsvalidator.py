@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2018.                            (c) 2018.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -113,12 +113,13 @@ class WcsValidator():
         pass
 
     @staticmethod
-    def validate_artifact(self, artifact):
+    def validate_artifact(artifact):
         if artifact is not None:
-            for p in artifact.parts:
+            for pkey in artifact.parts.keys():
+                p = artifact.parts[pkey]
                 if p is not None:
                     for c in p.chunks:
-                        context = artifact.uri + "[" + p.name + "]:" + c.id + " "
+                        context = "{}[{}]: {} ".format(artifact.uri, p.name, str(c._id))
                         WcsValidator.validate_chunk(context, c)
 
     @staticmethod
@@ -130,8 +131,6 @@ class WcsValidator():
         WcsValidator.validate_spectral_wcs(chunk.energy)
         WcsValidator.validate_temporal_wcs(chunk.time)
         WcsValidator.validate_polarization_wcs(chunk.polarization)
-
-
 
     @staticmethod
     def validate_spatial_wcs(position):
@@ -159,7 +158,7 @@ class WcsValidator():
                 error_string = repr(e)
 
             if len(error_string) > 0:
-                raise InvalidWCSError("Invalid SpatialWCS: " + error_string + ": " + str(position))
+                raise InvalidWCSError("Invalid SpatialWCS: {}: {}".format(error_string, str(position)))
 
     @staticmethod
     def check_transform(coords):
@@ -178,28 +177,27 @@ class WcsValidator():
         error_msg = ""
         if energy is not None:
             try:
-                energyAxis = energy.axis
+                energy_axis = energy.axis
                 si = None
-                energy_util = EnergyUtil()
 
-                if energyAxis.range is not None:
-                    si = energy_util.range1d_to_interval(energy, energyAxis.range)
+                if energy_axis.range is not None:
+                    si = EnergyUtil.range1d_to_interval(energy_axis.range)
                     WcsValidator.check_transform(si)
 
-                if energyAxis.bounds is not None:
-                    for tile in energyAxis.bounds.samples:
-                        si = energy_util.range1d_to_interval(energy, tile)
+                if energy_axis.bounds is not None:
+                    for tile in energy_axis.bounds.samples:
+                        si = EnergyUtil.range1d_to_interval(tile)
                         WcsValidator.check_transform(si)
 
-                if energyAxis.function is not None:
-                    si = energy_util.function1d_to_interval(energy)
+                if energy_axis.function is not None:
+                    si = EnergyUtil.function1d_to_interval(energy)
                     WcsValidator.check_transform(si)
 
             except Exception as ex:
                 error_msg = repr(ex)
 
             if len(error_msg) > 0:
-                raise InvalidWCSError("Invalid Spectral WCS: " + error_msg + ": " + str(energy))
+                raise InvalidWCSError("Invalid Spectral WCS: {}: {}".format(error_msg,str(energy)))
 
     @staticmethod
     def validate_temporal_wcs(time):
@@ -207,24 +205,23 @@ class WcsValidator():
         if time is not None:
             subinterval = None
             try:
-                timeutil = TimeUtil()
                 time_axis = time.axis
 
                 if time_axis.range is not None:
-                    subinterval = timeutil.range1d_to_interval(time, time_axis.range)
+                    subinterval = TimeUtil.range1d_to_interval(time, time_axis.range)
 
                 if time_axis.bounds is not None:
                     for cr in time_axis.bounds.samples:
-                        subinterval = timeutil.range1d_to_interval(time, cr)
+                        subinterval = TimeUtil.range1d_to_interval(time, cr)
 
                 if time_axis.function is not None:
-                        subinterval = timeutil.function1d_to_interval(time, time_axis.function)
+                        subinterval = TimeUtil.function1d_to_interval(time, time_axis.function)
 
             except Exception as e:
                 error_msg = repr(e)
 
             if len(error_msg) > 0:
-                raise InvalidWCSError("Invalid Temporal WCS: " + error_msg + ": " + str(time))
+                raise InvalidWCSError("Invalid Temporal WCS: {}: {}".format(error_msg, str(time)))
 
     def _validate_range(self, range):
         keys = PolarizationWcsUtil.get_keys(range)
