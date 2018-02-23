@@ -353,4 +353,53 @@ class EnergyUtil():
         return shape.SubInterval(p1, p2)
 
 
+class PolarizationWcsUtil():
+    def _get_xrange(self, range):
+        if range is not None:
+            lb = int(round(range.start.val))
+            ub = int(round(range.end.val))
+            return xrange(lb, ub+1)
+        return None
 
+    @staticmethod
+    def get_keys(range):
+        """
+        Examines the lower bound (lb) and upper bound (ub) of
+        PolarizationWCS.axis.range and returns range(lb, ub+1) if a range is
+        defined, else returns None. Since Python range iterates over [lb,ub),
+        the returned range is ub+1 to ensure that ub is included in the
+        range iteration.
+        """
+        return PolarizationWcsUtil()._get_xrange(range)
+
+    @staticmethod
+    def get_ranges_from_bounds(bounds):
+        """
+        Examines the ranges in PolarizationWCS.axis.bounds and returns the
+        list of ranges in the bounds if the bounds is defined, else returns
+        an empty list. The upper bound of each range is incremented by 1
+        (refer to comments for get_range above)
+        """
+        ranges = []
+        if bounds is not None:
+            samples = bounds.samples
+            if samples is not None:
+                for sample in samples:
+                    ranges.append(PolarizationWcsUtil()._get_xrange(sample))
+        return ranges
+
+    @staticmethod
+    def get_range_from_function(function):
+        """
+        Examines the ranges in PolarizationWCS.axis.function and returns a
+        range from 1 to Naxis+1 if the function is defined, else returns
+        None. The upper bound of the range is incremented by 1 (refer to
+        comments for get_range above)
+        """
+        if function is not None:
+            if function.naxis >= 1:
+                return xrange(1, function.naxis + 1)
+            else:
+                raise ValueError(
+                    'Invalid naxis value: {}'.format(function.naxis))
+        return None

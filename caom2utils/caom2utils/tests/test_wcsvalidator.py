@@ -69,9 +69,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import unittest
+
 # from astropy.wcs import Wcsprm
 from caom2utils import WcsValidator, InvalidWCSError
-from caom2 import Artifact, wcs, chunk, plane
+from ..wcsvalidator import WcsPolarizationState
+from caom2 import caom_util, Axis, chunk, CoordAxis1D, CoordBounds1D, \
+    CoordFunction1D, CoordRange1D, PolarizationWCS, RefCoord, wcs
 
 
 # TemporalWCS validator tests
@@ -161,6 +165,7 @@ def test_invalid_spectral_wcs():
     except Exception as e:
         print(repr(e))
         assert False
+
 
 #  this test should construct an Artifact with all the WCS
 #  and then validate everything.
@@ -461,3 +466,170 @@ def get_test_artifact(ptype):
 # cd12 = float(1.2)
 # cd21 = float(2.1)
 # cd22 = float(2.2)
+
+
+class TestValidatePolarizationWcs(unittest.TestCase):
+    def test_none_polarization_wcs(self):
+        # Polarization is None, should not produce an error
+        WcsValidator.validate_polarization_wcs(None)
+
+    def test_range(self):
+        # Polarization range is None, should not produce an error
+        axis = Axis("STOKES", "cunit")
+        axis_1d = CoordAxis1D(axis)
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis range contains valid positive values
+        start = RefCoord(float(0.9), float(1.1))
+        end = RefCoord(float(9.9), float(10.1))
+        p_range = CoordRange1D(start, end)
+        axis_1d.range = p_range
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis range contains valid negative values
+        start = RefCoord(float(-8.1), float(-7.9))
+        end = RefCoord(float(-1.1), float(-0.9))
+        n_range = CoordRange1D(start, end)
+        axis_1d.range = n_range
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis range contains invalid positive values
+        start = RefCoord(float(0.9), float(1.1))
+        end = RefCoord(float(10.9), float(11.1))
+        p_range = CoordRange1D(start, end)
+        axis_1d.range = p_range
+        polarization = PolarizationWCS(axis_1d)
+        with self.assertRaises(InvalidWCSError) as ex:
+            WcsValidator.validate_polarization_wcs(polarization)
+        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
+        self.assertTrue('11' in str(ex.exception))
+
+        # Polarization axis range contains invalid negative values
+        start = RefCoord(float(-9.1), float(-8.9))
+        end = RefCoord(float(-1.1), float(-0.9))
+        n_range = CoordRange1D(start, end)
+        axis_1d.range = n_range
+        polarization = PolarizationWCS(axis_1d)
+        with self.assertRaises(InvalidWCSError) as ex:
+            WcsValidator.validate_polarization_wcs(polarization)
+        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
+        self.assertTrue('-9' in str(ex.exception))
+
+        # Polarization axis range contains an invalid value (0) within a range
+        start = RefCoord(float(-8.1), float(-7.9))
+        end = RefCoord(float(9.9), float(10.1))
+        range = CoordRange1D(start, end)
+        axis_1d.range = range
+        polarization = PolarizationWCS(axis_1d)
+        with self.assertRaises(InvalidWCSError) as ex:
+            WcsValidator.validate_polarization_wcs(polarization)
+        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
+        self.assertTrue('0' in str(ex.exception))
+
+    def test_bounds(self):
+        # Polarization bounds is None, should not produce an error
+        axis = Axis("STOKES", "cunit")
+        axis_1d = CoordAxis1D(axis)
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis bounds contains one valid range
+        start = RefCoord(float(0.9), float(1.1))
+        end = RefCoord(float(9.9), float(10.1))
+        p_range = CoordRange1D(start, end)
+        samples = caom_util.TypedList(CoordRange1D, p_range)
+        axis_1d.bounds = CoordBounds1D(samples)
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis bounds contains more than one valid range
+        start = RefCoord(float(0.9), float(1.1))
+        end = RefCoord(float(9.9), float(10.1))
+        p_range = CoordRange1D(start, end)
+        start = RefCoord(float(-8.1), float(-7.9))
+        end = RefCoord(float(-1.1), float(-0.9))
+        n_range = CoordRange1D(start, end)
+        samples = caom_util.TypedList(CoordRange1D, p_range, n_range)
+        axis_1d.bounds = CoordBounds1D(samples)
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis bounds contains one invalid range
+        start = RefCoord(float(0.9), float(1.1))
+        end = RefCoord(float(10.9), float(11.1))
+        p_range = CoordRange1D(start, end)
+        samples = caom_util.TypedList(CoordRange1D, p_range)
+        axis_1d.bounds = CoordBounds1D(samples)
+        polarization = PolarizationWCS(axis_1d)
+        with self.assertRaises(InvalidWCSError) as ex:
+            WcsValidator.validate_polarization_wcs(polarization)
+        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
+        self.assertTrue('11' in str(ex.exception))
+
+        # Polarization axis bounds contains more than one invalid range
+        start = RefCoord(float(0.9), float(1.1))
+        end = RefCoord(float(9.9), float(10.1))
+        p_range = CoordRange1D(start, end)
+        start = RefCoord(float(-9.1), float(-8.9))
+        end = RefCoord(float(-1.1), float(-0.9))
+        n_range = CoordRange1D(start, end)
+        samples = caom_util.TypedList(CoordRange1D, p_range, n_range)
+        axis_1d.bounds = CoordBounds1D(samples)
+        polarization = PolarizationWCS(axis_1d)
+        with self.assertRaises(InvalidWCSError) as ex:
+            WcsValidator.validate_polarization_wcs(polarization)
+        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
+        self.assertTrue('-9' in str(ex.exception))
+
+    def test_function(self):
+        # Polarization function is None, should not produce an error
+        axis = Axis("STOKES", "cunit")
+        axis_1d = CoordAxis1D(axis)
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis function with naxis=1
+        naxis = int(1)
+        delta = float(2.5)
+        ref_coord = wcs.RefCoord(float(1.0), float(2.0))
+        axis_1d.function = CoordFunction1D(naxis, delta, ref_coord)
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis function with naxis>1
+        naxis = int(3)
+        delta = float(2.5)
+        ref_coord = wcs.RefCoord(float(1.0), float(2.0))
+        axis_1d.function = CoordFunction1D(naxis, delta, ref_coord)
+        polarization = PolarizationWCS(axis_1d)
+        WcsValidator.validate_polarization_wcs(polarization)
+
+        # Polarization axis function with invalid naxis=0
+        naxis = int(0)
+        delta = float(2.5)
+        ref_coord = wcs.RefCoord(float(1.0), float(2.0))
+        axis_1d.function = CoordFunction1D(naxis, delta, ref_coord)
+        polarization = PolarizationWCS(axis_1d)
+        with self.assertRaises(InvalidWCSError) as ex:
+            WcsValidator.validate_polarization_wcs(polarization)
+        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
+        self.assertTrue('Invalid naxis value' in str(ex.exception))
+
+
+class TestWcsPolarizationState(unittest.TestCase):
+    def test_all(self):
+        # valid keys
+        for i in xrange(1, 11):
+            WcsPolarizationState.to_value(i)
+        for i in xrange(-8, 0):
+            WcsPolarizationState.to_value(i)
+        # invalid keys
+        with self.assertRaises(KeyError):
+            WcsPolarizationState.to_value(int(-9))
+        with self.assertRaises(KeyError):
+            WcsPolarizationState.to_value(int(0))
+        with self.assertRaises(KeyError):
+            WcsPolarizationState.to_value(int(11))
