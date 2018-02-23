@@ -93,6 +93,8 @@ from caom2 import ObservationURI, ObservableAxis, Slice
 import logging
 import re
 import sys
+from hashlib import md5
+from os import stat
 from six.moves.urllib.parse import urlparse
 from cadcutils import net
 from cadcdata import CadcDataClient
@@ -2247,6 +2249,7 @@ def get_cadc_headers(uri, cert=None):
             fits_header = b.getvalue().decode('ascii')
             b.close()
         elif file_url.scheme == 'file':
+            logging.debug('does the code get here? {}'.format(file_url.path))
             fits_header = open(file_url.path).read()
         else:
             # TODO add hook to support other service providers
@@ -2266,20 +2269,22 @@ def get_cadc_headers(uri, cert=None):
     return headers
 
 
-def _update_cadc_artifact(artifact, cert):
+def _update_artifact_meta(artifact, cert):
     """
-    Updates contentType, contentLength and contentChecksum of a CADC artifact
+    Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
     :param cert:
     :return:
     """
-    client = CadcDataClient(net.Subject(cert))
     file_url = urlparse(artifact.uri)
-    if file_url.scheme != 'ad':
+    if file_url.scheme == 'ad':
+        metadata = _get_cadc_meta(cert, file_url.path)
+    elif file_url.scheme == 'file':
+        metadata = _get_file_meta(file_url.path)
+    else:
         # TODO add hook to support other service providers
         raise NotImplementedError('Only ad type URIs supported')
-    archive, file_id = file_url.path.split('/')
-    metadata = client.get_file_info(archive, file_id)
+
     checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug("old - uri({}), encoding({}), size({}), type({})".
                   format(artifact.uri,
@@ -2294,6 +2299,34 @@ def _update_cadc_artifact(artifact, cert):
                          artifact.content_checksum,
                          artifact.content_length,
                          artifact.content_type))
+
+
+def _get_cadc_meta(cert, path):
+    """
+    Gets contentType, contentLength and contentChecksum of a CADC artifact
+    :param cert:
+    :param path:
+    :return:
+    """
+    client = CadcDataClient(net.Subject(cert))
+    archive, file_id = path.split('/')
+    return client.get_file_info(archive, file_id)
+
+
+def _get_file_meta(path):
+    """
+    Gets contentType, contentLength and contentChecksum of an artifact on disk.
+    :param path:
+    :return:
+    """
+    meta = {}
+    print(path)
+    s = stat(path)
+    # meta['type'] = 'application/{}'.format(s.st_type)
+    meta['type'] = 'application/fits'  # TODO
+    meta['size'] = s.st_size
+    meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
+    return meta
 
 
 def get_arg_parser():
@@ -2470,7 +2503,7 @@ def proc(args, obs_blueprints):
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers, blueprint)
 
-        _update_cadc_artifact(plane.artifacts[uri], args.cert)
+        _update_artifact_meta(plane.artifacts[uri], args.cert)
 
         if args.dumpconfig:
             print('Blueprint for {}: {}'.format(uri, blueprint))

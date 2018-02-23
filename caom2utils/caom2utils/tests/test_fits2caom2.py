@@ -692,3 +692,77 @@ def test_load_config_overrides():
     # cool override file content
     result = load_config(override_file)
     assert result == TEST_OVERRIDES
+
+
+EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation""" + \
+                           """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
+                           """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
+                           """xsi:type="caom2:CompositeObservation" caom2:id="">
+                     <caom2:collection>collection</caom2:collection>
+                     <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
+                     <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
+                     <caom2:algorithm>
+                       <caom2:name>exposure</caom2:name>
+                     </caom2:algorithm>
+                     <caom2:intent>science</caom2:intent>
+                     <caom2:proposal>
+                       <caom2:id>HI-line</caom2:id>
+                     </caom2:proposal>
+                     <caom2:target>
+                       <caom2:name>CGPS Mosaic MA1</caom2:name>
+                       <caom2:standard>false</caom2:standard>
+                     </caom2:target>
+                     <caom2:telescope>
+                       <caom2:name>DRAO-ST</caom2:name>
+                       <caom2:geoLocationX>-2100330.87517</caom2:geoLocationX>
+                       <caom2:geoLocationY>-3694247.82445</caom2:geoLocationY>
+                       <caom2:geoLocationZ>4741018.33097</caom2:geoLocationZ>
+                     </caom2:telescope>
+                     <caom2:instrument>
+                       <caom2:name>DRAO-ST</caom2:name>
+                     </caom2:instrument>
+                     <caom2:planes>
+                       <caom2:plane caom2:id="">
+                         <caom2:productID>HI-line</caom2:productID>
+                         <caom2:dataProductType>cube</caom2:dataProductType>
+                         <caom2:calibrationLevel>2</caom2:calibrationLevel>
+                         <caom2:provenance>
+                           <caom2:name>CGPS MOSAIC</caom2:name>
+                           <caom2:project>CGPS</caom2:project>
+                           <caom2:producer>CGPS Consortium</caom2:producer>
+                           <caom2:reference>http://dx.doi.org/10.1086/375301</caom2:reference>
+                           <caom2:lastExecuted>2000-10-16T00:00:00.000</caom2:lastExecuted>
+                         </caom2:provenance>
+                         <caom2:artifacts>
+                           <caom2:artifact caom2:id="">
+                             <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
+                             <caom2:productType>info</caom2:productType>
+                             <caom2:parts>
+                               <caom2:part caom2:id="">
+                                 <caom2:name>0</caom2:name>
+                                 <caom2:chunks/>
+                               </caom2:part>
+                             </caom2:parts>
+                           </caom2:artifact>
+                         </caom2:artifacts>
+                       </caom2:plane>
+                     </caom2:planes>
+                   </caom2:Observation>
+                   """
+
+
+@pytest.mark.parametrize('test_file', [sample_file_4axes])
+def test_file_scheme_uris(test_file):
+    """ Tests that local files as URIs will be accepted and processed."""
+
+    fname = 'file://{}'.format(test_file)
+    # too few arguments error message when running python3
+    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+        sys.argv = ['fits2caom2', '--debug', '--observation', 'test_collection_id',
+                    'test_observation_id', '--productID', 'test_product_id',
+                    fname]
+        main_app()
+        if stdout_mock.getvalue():
+            print(stdout_mock.getvalue())
+            assert (EXPECTED_FILE_SCHEME_XML == stdout_mock.getvalue())
