@@ -97,6 +97,7 @@ sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
 sample_file_4axes_uri = 'caom:CGPS/TEST/4axes_obs.fits'
 java_config_file = os.path.join(TESTDATA_DIR, 'java.config')
 override_file = os.path.join(TESTDATA_DIR, 'test.override')
+test_override = os.path.join(TESTDATA_DIR, '4axes.override')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
@@ -693,63 +694,88 @@ def test_load_config_overrides():
     result = load_config(override_file)
     assert result == TEST_OVERRIDES
 
-
 EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
-                           """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
+                           """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
                            """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
-                           """xsi:type="caom2:CompositeObservation" caom2:id="">
-                     <caom2:collection>collection</caom2:collection>
-                     <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
-                     <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
-                     <caom2:algorithm>
-                       <caom2:name>exposure</caom2:name>
-                     </caom2:algorithm>
-                     <caom2:intent>science</caom2:intent>
-                     <caom2:proposal>
-                       <caom2:id>HI-line</caom2:id>
-                     </caom2:proposal>
-                     <caom2:target>
-                       <caom2:name>CGPS Mosaic MA1</caom2:name>
-                       <caom2:standard>false</caom2:standard>
-                     </caom2:target>
-                     <caom2:telescope>
-                       <caom2:name>DRAO-ST</caom2:name>
-                       <caom2:geoLocationX>-2100330.87517</caom2:geoLocationX>
-                       <caom2:geoLocationY>-3694247.82445</caom2:geoLocationY>
-                       <caom2:geoLocationZ>4741018.33097</caom2:geoLocationZ>
-                     </caom2:telescope>
-                     <caom2:instrument>
-                       <caom2:name>DRAO-ST</caom2:name>
-                     </caom2:instrument>
-                     <caom2:planes>
-                       <caom2:plane caom2:id="">
-                         <caom2:productID>HI-line</caom2:productID>
-                         <caom2:dataProductType>cube</caom2:dataProductType>
-                         <caom2:calibrationLevel>2</caom2:calibrationLevel>
-                         <caom2:provenance>
-                           <caom2:name>CGPS MOSAIC</caom2:name>
-                           <caom2:project>CGPS</caom2:project>
-                           <caom2:producer>CGPS Consortium</caom2:producer>
-                           <caom2:reference>http://dx.doi.org/10.1086/375301</caom2:reference>
-                           <caom2:lastExecuted>2000-10-16T00:00:00.000</caom2:lastExecuted>
-                         </caom2:provenance>
-                         <caom2:artifacts>
-                           <caom2:artifact caom2:id="">
-                             <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
-                             <caom2:productType>info</caom2:productType>
-                             <caom2:parts>
-                               <caom2:part caom2:id="">
-                                 <caom2:name>0</caom2:name>
-                                 <caom2:chunks/>
-                               </caom2:part>
-                             </caom2:parts>
-                           </caom2:artifact>
-                         </caom2:artifacts>
-                       </caom2:plane>
-                     </caom2:planes>
-                   </caom2:Observation>
-                   """
+                           """xsi:type="caom2:SimpleObservation" caom2:id="">
+  <caom2:collection>test_collection_id</caom2:collection>
+  <caom2:observationID>test_observation_id</caom2:observationID>
+  <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
+  <caom2:algorithm>
+    <caom2:name>exposure</caom2:name>
+  </caom2:algorithm>
+  <caom2:intent>science</caom2:intent>
+  <caom2:target>
+    <caom2:name>CGPS Mosaic MA1</caom2:name>
+    <caom2:standard>false</caom2:standard>
+  </caom2:target>
+  <caom2:instrument>
+    <caom2:name>DRAO ST</caom2:name>
+  </caom2:instrument>
+  <caom2:planes>
+    <caom2:plane caom2:id="">
+      <caom2:productID>test_product_id</caom2:productID>
+      <caom2:dataProductType>cube</caom2:dataProductType>
+      <caom2:calibrationLevel>2</caom2:calibrationLevel>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="">
+          <caom2:uri>file://""" + sample_file_4axes + """</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/octet-stream</caom2:contentType>
+          <caom2:contentLength>11520</caom2:contentLength>
+          <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
+          <caom2:parts>
+            <caom2:part caom2:id="">
+              <caom2:name>0</caom2:name>
+              <caom2:chunks>
+                <caom2:chunk caom2:id="">
+                  <caom2:naxis>4</caom2:naxis>
+                  <caom2:positionAxis1>1</caom2:positionAxis1>
+                  <caom2:positionAxis2>2</caom2:positionAxis2>
+                  <caom2:position>
+                    <caom2:axis>
+                      <caom2:axis1>
+                        <caom2:ctype>GLON-CAR</caom2:ctype>
+                        <caom2:cunit>deg</caom2:cunit>
+                      </caom2:axis1>
+                      <caom2:axis2>
+                        <caom2:ctype>GLAT-CAR</caom2:ctype>
+                        <caom2:cunit>deg</caom2:cunit>
+                      </caom2:axis2>
+                      <caom2:function>
+                        <caom2:dimension>
+                          <caom2:naxis1>1</caom2:naxis1>
+                          <caom2:naxis2>1</caom2:naxis2>
+                        </caom2:dimension>
+                        <caom2:refCoord>
+                          <caom2:coord1>
+                            <caom2:pix>513.0</caom2:pix>
+                            <caom2:val>128.7499990027</caom2:val>
+                          </caom2:coord1>
+                          <caom2:coord2>
+                            <caom2:pix>513.0</caom2:pix>
+                            <caom2:val>-0.9999999922536</caom2:val>
+                          </caom2:coord2>
+                        </caom2:refCoord>
+                        <caom2:cd11>-0.004999999</caom2:cd11>
+                        <caom2:cd12>0.0</caom2:cd12>
+                        <caom2:cd21>0.0</caom2:cd21>
+                        <caom2:cd22>0.004999999</caom2:cd22>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:position>
+                </caom2:chunk>
+              </caom2:chunks>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>
+"""
 
 
 @pytest.mark.parametrize('test_file', [sample_file_4axes])
@@ -758,11 +784,13 @@ def test_file_scheme_uris(test_file):
 
     fname = 'file://{}'.format(test_file)
     # too few arguments error message when running python3
-    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-        sys.argv = ['fits2caom2', '--debug', '--observation', 'test_collection_id',
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+        sys.argv = ['fits2caom2', '--observation', 'test_collection_id',
                     'test_observation_id', '--productID', 'test_product_id',
+                    '--config', java_config_file, '--override', test_override,
                     fname]
         main_app()
         if stdout_mock.getvalue():
-            print(stdout_mock.getvalue())
-            assert (EXPECTED_FILE_SCHEME_XML == stdout_mock.getvalue())
+            assert (EXPECTED_FILE_SCHEME_XML ==
+                    re.sub(r'caom2:id=".*"', 'caom2:id=""',
+                           stdout_mock.getvalue().decode('ascii')))

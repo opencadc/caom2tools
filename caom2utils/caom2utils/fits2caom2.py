@@ -91,6 +91,7 @@ from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice
 import logging
+import magic
 import re
 import sys
 from hashlib import md5
@@ -1094,9 +1095,7 @@ class FitsParser(object):
         else:
             # assume file
             self.file = src
-            hdulist = fits.open(self.file, memmap=True, lazy_load_hdus=False)
-            hdulist.close()
-            self._headers = [h.header for h in hdulist]
+            self._headers = _get_headers_from_fits(self.file)
         if obs_blueprint:
             self._blueprint = obs_blueprint
         else:
@@ -2236,36 +2235,47 @@ def get_cadc_headers(uri, cert=None):
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
-    try:
-        if file_url.scheme == 'ad':
-            # create possible types of subjects
-            subject = net.Subject(cert)
-            client = CadcDataClient(subject)
-            # do a fhead on the file
-            archive, file_id = file_url.path.split('/')
-            b = BytesIO()
-            b.name = uri
-            client.get_file(archive, file_id, b, fhead=True)
-            fits_header = b.getvalue().decode('ascii')
-            b.close()
-        elif file_url.scheme == 'file':
-            logging.debug('does the code get here? {}'.format(file_url.path))
-            fits_header = open(file_url.path).read()
+    if file_url.scheme == 'ad':
+        # create possible types of subjects
+        subject = net.Subject(cert)
+        client = CadcDataClient(subject)
+        # do a fhead on the file
+        archive, file_id = file_url.path.split('/')
+        b = BytesIO()
+        b.name = uri
+        client.get_file(archive, file_id, b, fhead=True)
+        fits_header = b.getvalue().decode('ascii')
+        b.close()
+        headers = _make_headers_from_string(fits_header)
+    elif file_url.scheme == 'file':
+        ftype = magic.from_file(file_url.path, mime=True)
+        if ftype == 'application/octet-stream':
+            headers = _get_headers_from_fits(file_url.path)
         else:
-            # TODO add hook to support other service providers
-            raise NotImplementedError('Only ad type URIs supported')
-        delim = '\nEND'
-        extensions = \
-            [e + delim for e in fits_header.split(delim) if e.strip()]
-        headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
-    except UnicodeDecodeError:
-        headers = []
-        if file_url.scheme == 'file':
-            logging.debug('Try a second mechanism to open the file {}'.format(
-                file_url.path))
-            hdulist = fits.open(file_url.path, memmap=True, lazy_load_hdus=False)
-            hdulist.close()
-            headers = [h.header for h in hdulist]
+            fits_header = open(file_url.path).read()
+            headers = _make_headers_from_string(fits_header)
+    else:
+        # TODO add hook to support other service providers
+        raise NotImplementedError('Only ad type URIs supported')
+    return headers
+
+
+def _make_headers_from_string(fits_header):
+    """Create a list of fits.Header instances from a string.
+    ":param fits_header a string of keyword/value pairs"""
+    delim = '\nEND'
+    extensions = \
+        [e + delim for e in fits_header.split(delim) if e.strip()]
+    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    return headers
+
+
+def _get_headers_from_fits(path):
+    """Create a list of fits.Header instances from a fits file.
+    :param path where the FITS files resides on disk."""
+    hdulist = fits.open(path, memmap=True, lazy_load_hdus=False)
+    hdulist.close()
+    headers = [h.header for h in hdulist]
     return headers
 
 
@@ -2320,10 +2330,8 @@ def _get_file_meta(path):
     :return:
     """
     meta = {}
-    print(path)
     s = stat(path)
-    # meta['type'] = 'application/{}'.format(s.st_type)
-    meta['type'] = 'application/fits'  # TODO
+    meta['type'] = magic.from_file(path, mime=True)
     meta['size'] = s.st_size
     meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
     return meta
