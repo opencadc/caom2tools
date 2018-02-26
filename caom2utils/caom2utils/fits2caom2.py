@@ -2036,10 +2036,12 @@ class WcsParser(object):
 
     def _get_axis(self, index, over_ctype=None, over_cunit=None):
         """ Assemble a generic axis """
-        aug_ctype = over_ctype if over_ctype is not None \
-            else str(self.wcs.ctype[index])
-        aug_cunit = over_cunit if over_cunit is not None \
-            else str(self.wcs.cunit[index])
+        aug_ctype = str(self.wcs.ctype[index]) if over_ctype is None \
+            else over_ctype
+        aug_cunit = str(self.wcs.cunit[index]) if over_cunit is None \
+            else over_cunit
+        if aug_cunit is not None and len(aug_cunit) == 0:
+            aug_cunit = None
         aug_axis = Axis(aug_ctype, aug_cunit)
         return aug_axis
 
