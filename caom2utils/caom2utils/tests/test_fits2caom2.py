@@ -75,8 +75,9 @@ from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint
 from caom2utils.legacy import load_config
 
-from caom2 import ObservationWriter, Observation, Algorithm, obs_reader_writer
+from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
+from caom2 import get_differences, obs_reader_writer
 from lxml import etree
 
 from mock import Mock, patch
@@ -405,7 +406,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
         """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
         """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
-        """xsi:type="caom2:CompositeObservation" caom2:id="">
+        """xsi:type="caom2:SimpleObservation" caom2:id="123">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
@@ -430,7 +431,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
     <caom2:name>DRAO-ST</caom2:name>
   </caom2:instrument>
   <caom2:planes>
-    <caom2:plane caom2:id="">
+    <caom2:plane caom2:id="123">
       <caom2:productID>HI-line</caom2:productID>
       <caom2:dataProductType>cube</caom2:dataProductType>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
@@ -442,11 +443,11 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
         <caom2:lastExecuted>2000-10-16T00:00:00.000</caom2:lastExecuted>
       </caom2:provenance>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="">
+        <caom2:artifact caom2:id="123">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
           <caom2:productType>info</caom2:productType>
           <caom2:parts>
-            <caom2:part caom2:id="">
+            <caom2:part caom2:id="123">
               <caom2:name>0</caom2:name>
               <caom2:chunks/>
             </caom2:part>
@@ -481,7 +482,7 @@ def test_augment_observation(test_file, test_file_uri):
     test_obs_blueprint.set('Plane.calibrationLevel', '2')
     test_fitsparser = FitsParser(test_file, test_obs_blueprint)
     test_fitsparser.blueprint = test_obs_blueprint
-    test_obs = Observation('collection', 'MA1_DRAO-ST',
+    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
                            Algorithm('exposure'))
     test_fitsparser.augment_observation(test_obs, test_file_uri,
                                         product_id='HI-line')
@@ -503,8 +504,10 @@ def test_augment_observation(test_file, test_file_uri):
     ow.write(test_obs, output)
     result = output.getvalue().decode('UTF-8')
     output.close()
-    compare = re.sub(r'caom2:id=".*"', 'caom2:id=""', result)
-    assert compare == EXPECTED_OBS_XML  # , result
+    expected = _get_obs(EXPECTED_OBS_XML)
+    actual = _get_obs(result)
+    diff_result = get_differences(expected, actual, 'Observation')
+    assert diff_result is None
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
@@ -694,11 +697,12 @@ def test_load_config_overrides():
     result = load_config(override_file)
     assert result == TEST_OVERRIDES
 
+
 EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
                            """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
                            """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
-                           """xsi:type="caom2:SimpleObservation" caom2:id="">
+                           """xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
   <caom2:collection>test_collection_id</caom2:collection>
   <caom2:observationID>test_observation_id</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
@@ -714,12 +718,12 @@ EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
     <caom2:name>DRAO ST</caom2:name>
   </caom2:instrument>
   <caom2:planes>
-    <caom2:plane caom2:id="">
+    <caom2:plane caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
       <caom2:productID>test_product_id</caom2:productID>
       <caom2:dataProductType>cube</caom2:dataProductType>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="">
+        <caom2:artifact caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
           <caom2:uri>file://""" + sample_file_4axes + """</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
@@ -727,10 +731,10 @@ EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
           <caom2:contentLength>11520</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:parts>
-            <caom2:part caom2:id="">
+            <caom2:part caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
               <caom2:name>0</caom2:name>
               <caom2:chunks>
-                <caom2:chunk caom2:id="">
+                <caom2:chunk caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
                   <caom2:naxis>4</caom2:naxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
@@ -791,6 +795,15 @@ def test_file_scheme_uris(test_file):
                     fname]
         main_app()
         if stdout_mock.getvalue():
-            assert (EXPECTED_FILE_SCHEME_XML ==
-                    re.sub(r'caom2:id=".*"', 'caom2:id=""',
-                           stdout_mock.getvalue().decode('ascii')))
+            expected = _get_obs(EXPECTED_FILE_SCHEME_XML)
+            actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
+            result = get_differences(expected, actual, 'Observation')
+            assert result is None
+
+
+def _get_obs(from_xml_string):
+    etree.parse = Mock(return_value=etree.ElementTree(
+        etree.fromstring(from_xml_string.encode('ascii'))))
+    obsr = obs_reader_writer.ObservationReader()
+    obs = obsr.read(None)
+    return obs
