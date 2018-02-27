@@ -801,3 +801,22 @@ def _get_obs(from_xml_string):
     obsr = obs_reader_writer.ObservationReader()
     obs = obsr.read(None)
     return obs
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_chunk_naxis():
+
+    hdr1 = fits.Header()
+    test_blueprint = ObsBlueprint()
+    test_blueprint.configure_time_axis(3)
+    test_uri = 'ad:CFHT/1709071g.fits.gz'
+    test_defaults = {'CTYPE3': 'TIME'}
+    test_config = {'Chunk.naxis': 'chunk.naxis'}
+    test_overrides = {'chunk.naxis': '1'}
+    update_blueprint(test_blueprint, test_uri, config=test_config,
+                     defaults=test_defaults, overrides=test_overrides)
+    assert test_blueprint._get('Chunk.naxis') == '1', 'default value assigned'
+    test_parser = FitsParser([hdr1], test_blueprint)
+    assert hdr1['NAXIS'] == 1
+    assert hdr1['ZNAXIS'] == 1
+

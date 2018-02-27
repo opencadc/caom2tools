@@ -485,7 +485,7 @@ class ObsBlueprint(object):
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            'Chunk.naxis': (['ZNAXIS, NAXIS'], None)
+            'Chunk.naxis': (['ZNAXIS', 'NAXIS'], None)
         }
         self._pos_axes_configed = False
         self._energy_axis_configed = False
@@ -1319,22 +1319,25 @@ class FitsParser(object):
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
             if key in wcs_std:
-                if not isinstance(value, tuple):
-                    # value provided for standard wcs attribute
-                    keywords = wcs_std[key].split(',')
-                    for keyword in keywords:
-                        for header in self.headers:
-                            _set_by_type(header, keyword, str(value))
-                else:
+                if isinstance(value, tuple):
                     # alternative attributes provided for standard wcs attrib.
                     for header in self.headers:
                         for v in value[0]:
                             if v in header and \
-                               v not in wcs_std[key].split(','):
+                                    v not in wcs_std[key].split(','):
                                 keywords = wcs_std[key].split(',')
                                 for keyword in keywords:
                                     _set_by_type(header, keyword,
                                                  str(header[v]))
+                else:
+                    # value provided for standard wcs attribute
+                    if isinstance(wcs_std[key], tuple):
+                        keywords = wcs_std[key][0]
+                    else:
+                        keywords = wcs_std[key].split(',')
+                    for keyword in keywords:
+                        for header in self.headers:
+                            _set_by_type(header, keyword, str(value))
 
         # apply overrides to the remaining extensions
         for extension in exts:
