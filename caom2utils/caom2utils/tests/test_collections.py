@@ -105,7 +105,8 @@ def test_differences(directory):
     assert len(expected_fname) == 1
     expected = _read_observation(expected_fname[0])  # expected observation
     assert len(expected.planes) == 1
-    product_id = [p.product_id for p in six.itervalues(expected.planes)][0]
+    prod_id = [p.product_id for p in six.itervalues(expected.planes)][0]
+    product_id = '--productID {}'.format(prod_id)
     collection_id = expected.collection
     config = _get_parameter('config', directory)
     assert config

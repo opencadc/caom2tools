@@ -82,7 +82,7 @@ cfhtwircam_override = os.path.join(TESTDATA_DIR, 'test.override')
 
 @pytest.mark.parametrize('override_file', [cfhtwircam_override])
 def test_class_apply_defaults(override_file):
-    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
+    ob = ObsBlueprint(position_axes=(1, 2), energy_axis=3,
                       polarization_axis=4, time_axis=5)
     usc = {'Plane.dataProductType': 'plane.dataProductType',
            'Plane.provenance.producer': 'provenance.producer',
