@@ -74,9 +74,8 @@ WCS Validation Utilities
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+from six.moves import range
 from caom2 import shape
-from astropy.wcs import Wcsprm
-import numpy as np
 
 __all__ = ['TimeUtil', 'EnergyUtil', 'ORIGIN']
 
@@ -181,11 +180,11 @@ class EnergyUtil:
 
 
 class PolarizationWcsUtil():
-    def _get_xrange(self, range):
-        if range is not None:
-            lb = int(round(range.start.val))
-            ub = int(round(range.end.val))
-            return xrange(lb, ub+1)
+    def _get_range(self, from_range):
+        if from_range is not None:
+            lb = int(round(from_range.start.val))
+            ub = int(round(from_range.end.val))
+            return range(lb, ub+1)
         return None
 
     @staticmethod
@@ -197,7 +196,7 @@ class PolarizationWcsUtil():
         the returned range is ub+1 to ensure that ub is included in the
         range iteration.
         """
-        return PolarizationWcsUtil()._get_xrange(range)
+        return PolarizationWcsUtil()._get_range(range)
 
     @staticmethod
     def get_ranges_from_bounds(bounds):
@@ -212,7 +211,7 @@ class PolarizationWcsUtil():
             samples = bounds.samples
             if samples is not None:
                 for sample in samples:
-                    ranges.append(PolarizationWcsUtil()._get_xrange(sample))
+                    ranges.append(PolarizationWcsUtil()._get_range(sample))
         return ranges
 
     @staticmethod
@@ -225,7 +224,7 @@ class PolarizationWcsUtil():
         """
         if function is not None:
             if function.naxis >= 1:
-                return xrange(1, function.naxis + 1)
+                return range(1, function.naxis + 1)
             else:
                 raise ValueError(
                     'Invalid naxis value: {}'.format(function.naxis))

@@ -71,8 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import math
-import abc, six
-#from abc import ABC, abstractclassmethod
+import six
 
 import numpy as np
 from spherical_geometry import polygon

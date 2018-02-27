@@ -69,6 +69,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from six.moves import range
 from caom2utils import WcsValidator, InvalidWCSError
 from caom2 import artifact, wcs, chunk, part, caom_util, Axis, chunk, \
     CoordAxis1D, CoordBounds1D, CoordFunction1D, CoordRange1D, \
@@ -596,9 +597,9 @@ class TestValidatePolarizationWcs(unittest.TestCase):
 class TestWcsPolarizationState(unittest.TestCase):
     def test_all(self):
         # valid keys
-        for i in xrange(1, 11):
+        for i in range(1, 11):
             WcsPolarizationState.to_value(i)
-        for i in xrange(-8, 0):
+        for i in range(-8, 0):
             WcsPolarizationState.to_value(i)
         # invalid keys
         with self.assertRaises(KeyError):
