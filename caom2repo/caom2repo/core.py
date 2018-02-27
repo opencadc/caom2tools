@@ -168,7 +168,6 @@ class CAOM2RepoClient(object):
         :raises: cadcutils.exceptions.NotFoundException and possibly
         other cadcutils.exceptions
         """
-        from cadcutils import exceptions
         self.delete_observation(collection, observation_id)
 
     def visit(self, plugin, collection, start=None, end=None, obs_file=None,

@@ -75,15 +75,15 @@ from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint
 from caom2utils.legacy import load_config
 
-from caom2 import ObservationWriter, Observation, Algorithm, obs_reader_writer
+from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
+from caom2 import get_differences, obs_reader_writer, ObservationReader
 from lxml import etree
 
 from mock import Mock, patch
 from six import StringIO, BytesIO
 
 import os
-import re
 import sys
 
 import pytest
@@ -97,6 +97,7 @@ sample_file_time_axes = os.path.join(TESTDATA_DIR, 'time_axes.fits')
 sample_file_4axes_uri = 'caom:CGPS/TEST/4axes_obs.fits'
 java_config_file = os.path.join(TESTDATA_DIR, 'java.config')
 override_file = os.path.join(TESTDATA_DIR, 'test.override')
+test_override = os.path.join(TESTDATA_DIR, '4axes.override')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
@@ -117,7 +118,7 @@ EXPECTED_ENERGY_XML = \
       </caom2:axis>
       <caom2:function>
         <caom2:naxis>1</caom2:naxis>
-        <caom2:delta>-824.46001999999999</caom2:delta>
+        <caom2:delta>-824.46002</caom2:delta>
         <caom2:refCoord>
           <caom2:pix>145.0</caom2:pix>
           <caom2:val>-60000.0</caom2:val>
@@ -131,19 +132,18 @@ EXPECTED_ENERGY_XML = \
 '''
 
 
-# @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.skipif(True, reason='Failes on Travis')
-@pytest.mark.parametrize('test_file', [sample_file_4axes])
-def test_augment_energy(test_file):
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_augment_energy():
     bp = ObsBlueprint(energy_axis=1)
-    test_fitsparser = FitsParser(test_file, bp)
-    artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
+    test_fitsparser = FitsParser(sample_file_4axes, bp)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     energy = artifact.parts['0'].chunks[0].energy
-    energy.bandpassName = '21 cm'  # user set attribute
-    check_xml(ObservationWriter()._add_spectral_wcs_element, energy,
-              EXPECTED_ENERGY_XML)
+    ex = _get_from_str_xml(EXPECTED_ENERGY_XML,
+                           ObservationReader()._get_spectral_wcs, 'energy')
+    result = get_differences(ex, energy)
+    assert result is None
 
 
 EXPECTED_POLARIZATION_XML = \
@@ -168,15 +168,18 @@ EXPECTED_POLARIZATION_XML = \
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.parametrize('test_file', [sample_file_4axes])
-def test_augment_polarization(test_file):
-    test_fitsparser = FitsParser(test_file, ObsBlueprint(polarization_axis=1))
-    artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
+def test_augment_polarization():
+    test_fitsparser = FitsParser(sample_file_4axes,
+                                 ObsBlueprint(polarization_axis=1))
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     polarization = artifact.parts['0'].chunks[0].polarization
-    check_xml(ObservationWriter()._add_polarization_wcs_element, polarization,
-              EXPECTED_POLARIZATION_XML)
+    ex = _get_from_str_xml(EXPECTED_POLARIZATION_XML,
+                           ObservationReader()._get_polarization_wcs,
+                           'polarization')
+    result = get_differences(ex, polarization)
+    assert result is None, result
 
 
 EXPECTED_POSITION_XML = \
@@ -199,17 +202,17 @@ EXPECTED_POSITION_XML = \
         <caom2:refCoord>
           <caom2:coord1>
             <caom2:pix>513.0</caom2:pix>
-            <caom2:val>128.74999900270001</caom2:val>
+            <caom2:val>128.7499990027</caom2:val>
           </caom2:coord1>
           <caom2:coord2>
             <caom2:pix>513.0</caom2:pix>
-            <caom2:val>-0.99999999225360003</caom2:val>
+            <caom2:val>-0.9999999922536</caom2:val>
           </caom2:coord2>
         </caom2:refCoord>
-        <caom2:cd11>-0.0049999989999999998</caom2:cd11>
+        <caom2:cd11>-0.004999999</caom2:cd11>
         <caom2:cd12>0.0</caom2:cd12>
         <caom2:cd21>0.0</caom2:cd21>
-        <caom2:cd22>0.0049999989999999998</caom2:cd22>
+        <caom2:cd22>0.004999999</caom2:cd22>
       </caom2:function>
     </caom2:axis>
   </caom2:position>
@@ -217,12 +220,11 @@ EXPECTED_POSITION_XML = \
 '''
 
 
-# @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.skipif(True, reason='Failes on Travis')
-@pytest.mark.parametrize('test_file', [sample_file_4axes])
-def test_augment_artifact(test_file):
-    test_fitsparser = FitsParser(test_file, ObsBlueprint(position_axis=(1, 2)))
-    artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_augment_artifact():
+    test_fitsparser = FitsParser(sample_file_4axes,
+                                 ObsBlueprint(position_axes=(1, 2)))
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     assert artifact.parts is not None
@@ -231,8 +233,10 @@ def test_augment_artifact(test_file):
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.position is not None
-    check_xml(ObservationWriter()._add_spatial_wcs_element,
-              test_chunk.position, EXPECTED_POSITION_XML)
+    ex = _get_from_str_xml(EXPECTED_POSITION_XML,
+                           ObservationReader()._get_spatial_wcs, 'position')
+    result = get_differences(ex, test_chunk.position)
+    assert result is None
 
 
 EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
@@ -244,12 +248,12 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
         <caom2:cunit>d</caom2:cunit>
       </caom2:axis>
       <caom2:error>
-        <caom2:syser>9.9999999999999995e-08</caom2:syser>
-        <caom2:rnder>9.9999999999999995e-08</caom2:rnder>
+        <caom2:syser>1e-07</caom2:syser>
+        <caom2:rnder>1e-07</caom2:rnder>
       </caom2:error>
       <caom2:function>
         <caom2:naxis>1</caom2:naxis>
-        <caom2:delta>2.3148100000000001e-07</caom2:delta>
+        <caom2:delta>2.31481e-07</caom2:delta>
         <caom2:refCoord>
           <caom2:pix>0.5</caom2:pix>
           <caom2:val>56789.4298069</caom2:val>
@@ -264,14 +268,11 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
 '''
 
 
-# @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.skipif(True, reason='Failes on Travis')
-@pytest.mark.parametrize('test_file, expected',
-                         [(sample_file_time_axes,
-                           EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME)])
-def test_augment_artifact_time(test_file, expected):
-    test_fitsparser = FitsParser(test_file, ObsBlueprint(time_axis=1))
-    artifact = Artifact('ad:{}/{}'.format('TEST', test_file),
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_augment_artifact_time():
+    test_fitsparser = FitsParser(sample_file_time_axes,
+                                 ObsBlueprint(time_axis=1))
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_time_axes),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     assert artifact.parts is not None
@@ -280,15 +281,17 @@ def test_augment_artifact_time(test_file, expected):
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.time is not None
-    check_xml(ObservationWriter()._add_temporal_wcs_element, test_chunk.time,
-              expected)
+    ex = _get_from_str_xml(EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME,
+                           ObservationReader()._get_temporal_wcs, 'time')
+    result = get_differences(ex, test_chunk.time)
+    assert result is None
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.parametrize('test_file', [sample_file_4axes])
-def test_get_wcs_values(test_file):
-    w = get_test_wcs(test_file)
-    test_parser = WcsParser(get_test_header(test_file)[0].header, test_file, 0)
+def test_get_wcs_values():
+    w = get_test_wcs(sample_file_4axes)
+    test_parser = WcsParser(get_test_header(sample_file_4axes)[0].header,
+                            sample_file_4axes, 0)
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
     result = getattr(w, '_naxis1')
@@ -309,26 +312,29 @@ def get_test_wcs(test_file):
     return wcs
 
 
-def check_xml(xml_func, test_wcs, expected):
+def _get_from_str_xml(string_xml, get_func, element_tag):
     etree.register_namespace(
         'caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
-    parent_element = etree.Element(
-        '{http://www.opencadc.org/caom2/xml/v2.3}import')
-    xml_func(test_wcs, parent_element)
-    tree = etree.ElementTree(parent_element)
-    result = etree.tostring(tree, encoding='unicode', pretty_print=True)
-    assert result == expected, result
+    parent_element = etree.fromstring(string_xml)
+    ns = parent_element.nsmap['caom2']
+    act_obj = get_func(element_tag, parent_element, ns, False)
+    return act_obj
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                      MyExitError, MyExitError,
                                      MyExitError]))
-@pytest.mark.parametrize('test_file', [sample_file_4axes])
-def test_help(test_file):
+def test_help():
     """ Tests the helper displays for commands in main"""
 
     # expected helper messages
+    with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt'), 'r') \
+            as myfile:
+        bad_product_id = myfile.read()
+    with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt'), 'r') \
+            as myfile:
+        missing_product_id = myfile.read()
     with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt'), 'r') \
             as myfile:
         too_few_arguments_usage = myfile.read()
@@ -357,6 +363,24 @@ def test_help(test_file):
             main_app()
         assert (usage == stdout_mock.getvalue())
 
+    # missing productID when plane count is wrong
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+        bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
+        sys.argv = ["fits2caom2", "--in", bad_product_file,
+                    "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
+        with pytest.raises(MyExitError):
+            main_app()
+        assert (bad_product_id == stderr_mock.getvalue())
+
+    # missing productID when blueprint doesn't have one either
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+        sys.argv = ["fits2caom2", "--observation", "test_collection_id",
+                    "test_observation_id",
+                    "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
+        with pytest.raises(MyExitError):
+            main_app()
+        assert (missing_product_id == stderr_mock.getvalue())
+
     # missing required --observation
     """
     TODO: fix the tests
@@ -380,7 +404,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
         """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
         """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
-        """xsi:type="caom2:CompositeObservation" caom2:id="">
+        """xsi:type="caom2:SimpleObservation" caom2:id="123">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
@@ -405,7 +429,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
     <caom2:name>DRAO-ST</caom2:name>
   </caom2:instrument>
   <caom2:planes>
-    <caom2:plane caom2:id="">
+    <caom2:plane caom2:id="123">
       <caom2:productID>HI-line</caom2:productID>
       <caom2:dataProductType>cube</caom2:dataProductType>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
@@ -417,11 +441,11 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
         <caom2:lastExecuted>2000-10-16T00:00:00.000</caom2:lastExecuted>
       </caom2:provenance>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="">
+        <caom2:artifact caom2:id="123">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
           <caom2:productType>info</caom2:productType>
           <caom2:parts>
-            <caom2:part caom2:id="">
+            <caom2:part caom2:id="123">
               <caom2:name>0</caom2:name>
               <caom2:chunks/>
             </caom2:part>
@@ -435,11 +459,8 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.parametrize('test_file, test_file_uri',
-                         [(sample_file_4axes_obs, sample_file_4axes_uri)])
-def test_augment_observation(test_file, test_file_uri):
-    # logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    test_obs_blueprint = ObsBlueprint(position_axis=(1, 2))
+def test_augment_observation():
+    test_obs_blueprint = ObsBlueprint(position_axes=(1, 2))
     test_obs_blueprint.set('Observation.target.name', 'CGPS Mosaic MA1')
     test_obs_blueprint.set('Observation.telescope.name', 'DRAO-ST')
     test_obs_blueprint.set('Observation.instrument.name', 'DRAO-ST')
@@ -451,12 +472,14 @@ def test_augment_observation(test_file, test_file_uri):
                            '4741018.33097')
 
     test_obs_blueprint.set('Plane.dataProductType', 'cube')
+    test_obs_blueprint.set('Artifact.productType', 'info')
+    test_obs_blueprint.set('Artifact.releaseType', 'data')
     test_obs_blueprint.set('Plane.calibrationLevel', '2')
-    test_fitsparser = FitsParser(test_file, test_obs_blueprint)
+    test_fitsparser = FitsParser(sample_file_4axes_obs, test_obs_blueprint)
     test_fitsparser.blueprint = test_obs_blueprint
-    test_obs = Observation('collection', 'MA1_DRAO-ST',
-                           Algorithm('exposure'))
-    test_fitsparser.augment_observation(test_obs, test_file_uri,
+    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                 Algorithm('exposure'))
+    test_fitsparser.augment_observation(test_obs, sample_file_4axes_uri,
                                         product_id='HI-line')
     assert test_obs is not None
     assert test_obs.planes is not None
@@ -464,7 +487,7 @@ def test_augment_observation(test_file, test_file_uri):
     test_plane = test_obs.planes['HI-line']
     assert test_plane.artifacts is not None
     assert len(test_plane.artifacts) == 1
-    test_artifact = test_plane.artifacts[test_file_uri]
+    test_artifact = test_plane.artifacts[sample_file_4axes_uri]
     assert test_artifact is not None
     test_part = test_artifact.parts['0']
     # remove the chunk bit, as it's part of other tests -
@@ -476,14 +499,15 @@ def test_augment_observation(test_file, test_file_uri):
     ow.write(test_obs, output)
     result = output.getvalue().decode('UTF-8')
     output.close()
-    compare = re.sub(r'caom2:id=".*"', 'caom2:id=""', result)
-    assert compare == EXPECTED_OBS_XML  # , result
+    expected = _get_obs(EXPECTED_OBS_XML)
+    actual = _get_obs(result)
+    diff_result = get_differences(expected, actual, 'Observation')
+    assert diff_result is None
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-@pytest.mark.parametrize('test_file', [sample_file_4axes])
-def test_get_from_list(test_file):
-    test_fitsparser = FitsParser(test_file)
+def test_get_from_list():
+    test_fitsparser = FitsParser(sample_file_4axes)
     test_fitsparser.blueprint = ObsBlueprint()
     result = test_fitsparser._get_from_list('Observation.intent', 0,
                                             ObservationIntentType.SCIENCE)
@@ -666,3 +690,133 @@ def test_load_config_overrides():
     # cool override file content
     result = load_config(override_file)
     assert result == TEST_OVERRIDES
+
+
+EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation""" + \
+    """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
+    """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
+    """xsi:type="caom2:SimpleObservation" """ + \
+    """caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+  <caom2:collection>test_collection_id</caom2:collection>
+  <caom2:observationID>test_observation_id</caom2:observationID>
+  <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
+  <caom2:algorithm>
+    <caom2:name>exposure</caom2:name>
+  </caom2:algorithm>
+  <caom2:intent>science</caom2:intent>
+  <caom2:target>
+    <caom2:name>CGPS Mosaic MA1</caom2:name>
+    <caom2:standard>false</caom2:standard>
+  </caom2:target>
+  <caom2:instrument>
+    <caom2:name>DRAO ST</caom2:name>
+  </caom2:instrument>
+  <caom2:planes>
+    <caom2:plane caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+      <caom2:productID>test_product_id</caom2:productID>
+      <caom2:dataProductType>cube</caom2:dataProductType>
+      <caom2:calibrationLevel>2</caom2:calibrationLevel>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+          <caom2:uri>file://""" + sample_file_4axes + """</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/octet-stream</caom2:contentType>
+          <caom2:contentLength>11520</caom2:contentLength>
+          <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
+          <caom2:parts>
+            <caom2:part caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+              <caom2:name>0</caom2:name>
+              <caom2:chunks>
+                <caom2:chunk caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+                  <caom2:naxis>4</caom2:naxis>
+                  <caom2:positionAxis1>1</caom2:positionAxis1>
+                  <caom2:positionAxis2>2</caom2:positionAxis2>
+                  <caom2:position>
+                    <caom2:axis>
+                      <caom2:axis1>
+                        <caom2:ctype>GLON-CAR</caom2:ctype>
+                        <caom2:cunit>deg</caom2:cunit>
+                      </caom2:axis1>
+                      <caom2:axis2>
+                        <caom2:ctype>GLAT-CAR</caom2:ctype>
+                        <caom2:cunit>deg</caom2:cunit>
+                      </caom2:axis2>
+                      <caom2:function>
+                        <caom2:dimension>
+                          <caom2:naxis1>1</caom2:naxis1>
+                          <caom2:naxis2>1</caom2:naxis2>
+                        </caom2:dimension>
+                        <caom2:refCoord>
+                          <caom2:coord1>
+                            <caom2:pix>513.0</caom2:pix>
+                            <caom2:val>128.7499990027</caom2:val>
+                          </caom2:coord1>
+                          <caom2:coord2>
+                            <caom2:pix>513.0</caom2:pix>
+                            <caom2:val>-0.9999999922536</caom2:val>
+                          </caom2:coord2>
+                        </caom2:refCoord>
+                        <caom2:cd11>-0.004999999</caom2:cd11>
+                        <caom2:cd12>0.0</caom2:cd12>
+                        <caom2:cd21>0.0</caom2:cd21>
+                        <caom2:cd22>0.004999999</caom2:cd22>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:position>
+                </caom2:chunk>
+              </caom2:chunks>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>
+"""
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_file_scheme_uris():
+    """ Tests that local files as URIs will be accepted and processed."""
+
+    fname = 'file://{}'.format(sample_file_4axes)
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+        sys.argv = ['fits2caom2', '--observation', 'test_collection_id',
+                    'test_observation_id', '--productID', 'test_product_id',
+                    '--config', java_config_file, '--override', test_override,
+                    fname]
+        main_app()
+        if stdout_mock.getvalue():
+            expected = _get_obs(EXPECTED_FILE_SCHEME_XML)
+            actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
+            result = get_differences(expected, actual, 'Observation')
+            assert result is None
+
+
+def _get_obs(from_xml_string):
+    etree.parse = Mock(return_value=etree.ElementTree(
+        etree.fromstring(from_xml_string.encode('ascii'))))
+    obsr = obs_reader_writer.ObservationReader()
+    obs = obsr.read(None)
+    return obs
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_chunk_naxis():
+
+    hdr1 = fits.Header()
+    test_blueprint = ObsBlueprint()
+    test_blueprint.configure_time_axis(3)
+    test_uri = 'ad:CFHT/1709071g.fits.gz'
+    test_defaults = {'CTYPE3': 'TIME'}
+    test_config = {'Chunk.naxis': 'chunk.naxis'}
+    test_overrides = {'chunk.naxis': '1'}
+    update_blueprint(test_blueprint, test_uri, config=test_config,
+                     defaults=test_defaults, overrides=test_overrides)
+    assert test_blueprint._get('Chunk.naxis') == '1', 'default value assigned'
+    test_parser = FitsParser([hdr1], test_blueprint)
+    assert hdr1['NAXIS'] == 1
+    assert hdr1['ZNAXIS'] == 1
+
