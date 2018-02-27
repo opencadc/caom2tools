@@ -70,11 +70,6 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-# from astropy.wcs import WCS
-# from cadcutils import version
-#from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
-# from caom2 import SpectralWCS,CoordAxis1D, Axis, CoordFunction1D, RefCoord
-# from caom2 import shape
 from astropy.wcs import Wcsprm
 from caom2utils import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
@@ -223,8 +218,8 @@ class WcsValidator():
             if len(error_msg) > 0:
                 raise InvalidWCSError("Invalid Temporal WCS: {}: {}".format(error_msg, str(time)))
 
-    def _validate_range(self, range):
-        keys = PolarizationWcsUtil.get_keys(range)
+    def _validate_range(self, a_range):
+        keys = PolarizationWcsUtil.get_keys(a_range)
         if keys is not None:
             for key in keys:
                 WcsPolarizationState.to_value(key)
@@ -232,17 +227,17 @@ class WcsValidator():
     def _validate_bounds(self, bounds):
         sample_ranges = PolarizationWcsUtil.get_ranges_from_bounds(bounds)
         if len(sample_ranges) > 0:
-            for range in sample_ranges:
-                for key in range:
+            for srange in sample_ranges:
+                for key in srange:
                     WcsPolarizationState.to_value(key)
 
-    def _validate_function(self, function):
+    def _validate_function(self, a_function):
         naxis_range = \
-            PolarizationWcsUtil.get_range_from_function(function)
+            PolarizationWcsUtil.get_range_from_function(a_function)
         if naxis_range is not None:
             for pix in naxis_range:
                 WcsPolarizationState.to_value(
-                    int(round(wcs_util.pix2val(function, pix))))
+                    int(round(wcs_util.pix2val(a_function, pix))))
 
     @staticmethod
     def validate_polarization_wcs(polarization_wcs):

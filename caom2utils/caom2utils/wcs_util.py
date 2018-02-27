@@ -110,7 +110,7 @@ class TimeUtil:
             a += float(temporal_wcs.mjdref)
             b += float(temporal_wcs.mjdref)
 
-        return shape.SubInterval(min(a,b),max(a,b))
+        return shape.SubInterval(min(a, b), max(a, b))
 
     @staticmethod
     def function1d_to_interval(temporal_wcs, function_1d):
@@ -144,7 +144,7 @@ class TimeUtil:
         elif ctype == TARGET_TIMESYS and temporal_wcs.timesys is None:
             pass
         else:
-            sb = "unexpected TIMESYS, CTYPE: {},{}".format(temporal_wcs.timesys,ctype)
+            sb = "unexpected TIMESYS, CTYPE: {},{}".format(temporal_wcs.timesys, ctype)
 
         cunit = temporal_wcs.axis.axis.cunit
         if TARGET_CUNIT != cunit:

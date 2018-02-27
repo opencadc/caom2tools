@@ -506,10 +506,11 @@ class MultiPolygon(common.CaomObject):
     def validate_self_intersection(spolygon):
         """
         Verifies that the polygon does not contain self-intersecting segments.
-        Note: The (new version) spherical-geometry package has been updated to detect
-        and fix self-segment intersection. However at time of writing of this
-        comment, this new feature has not been released. The (current version)
-        currently released version does not detect self-segment intersection.
+        Note: The (new version) spherical-geometry package has been updated to
+        detect and fix self-segment intersection. However at time of writing
+        of this comment, this new feature has not been released. The
+        (current version) currently released version does not detect
+        self-segment intersection.
 
         An AssertionError is thrown if the polygon contains self-intersecting
         segments.
