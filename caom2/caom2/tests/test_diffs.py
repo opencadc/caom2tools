@@ -76,6 +76,8 @@ from .. import diff
 from .. import observation
 from . import caom_test_instances
 
+import pytest
+
 
 class TestCaomUtil(unittest.TestCase):
     def test_get_differences(self):
@@ -122,3 +124,11 @@ class TestCaomUtil(unittest.TestCase):
 
         report = diff.get_differences(obs1, obs3, 'caom_test_instances')
         assert len(report) == 1
+
+    def test_samples(self):
+        instances = caom_test_instances.Caom2TestInstances()
+        seq1 = instances.get_coord_axis1d()
+        seq2 = instances.get_coord_axis1d()
+
+        report = diff.get_differences(seq1, seq2, 'samples')
+        assert report is None
