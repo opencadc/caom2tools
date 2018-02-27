@@ -91,7 +91,6 @@ from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice
 import logging
-import magic
 import re
 import sys
 from hashlib import md5
@@ -2253,12 +2252,11 @@ def get_cadc_headers(uri, cert=None):
         b.close()
         headers = _make_headers_from_string(fits_header)
     elif file_url.scheme == 'file':
-        ftype = magic.from_file(file_url.path, mime=True)
-        if ftype == 'application/octet-stream':
-            headers = _get_headers_from_fits(file_url.path)
-        else:
+        try:
             fits_header = open(file_url.path).read()
             headers = _make_headers_from_string(fits_header)
+        except UnicodeDecodeError:
+            headers = _get_headers_from_fits(file_url.path)
     else:
         # TODO add hook to support other service providers
         raise NotImplementedError('Only ad type URIs supported')
@@ -2336,9 +2334,12 @@ def _get_file_meta(path):
     """
     meta = {}
     s = stat(path)
-    meta['type'] = magic.from_file(path, mime=True)
     meta['size'] = s.st_size
     meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
+    if path.find('header') == -1:
+        meta['type'] = 'application/octet-stream'
+    else:
+        meta['type'] = 'text/plain'
     return meta
 
 
