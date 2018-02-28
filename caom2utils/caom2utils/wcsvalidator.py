@@ -115,7 +115,8 @@ class WcsValidator():
                 p = artifact.parts[pkey]
                 if p is not None:
                     for c in p.chunks:
-                        context = "{}[{}]: {} ".format(artifact.uri, p.name, str(c._id))
+                        context = "{}[{}]: {} ".format(
+                            artifact.uri, p.name, str(c._id))
                         WcsValidator.validate_chunk(context, c)
 
     @staticmethod
@@ -147,14 +148,17 @@ class WcsValidator():
 
                     transformed_coords = pix_transform['pixcrd']
 
-                    if not (transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half):
+                    if not (transformed_coords[0][0] == naxis1_half
+                            and transformed_coords[0][1] == naxis2_half):
                         error_string = "Could not transform centre coordinate"
 
             except Exception as e:
                 error_string = repr(e)
 
             if len(error_string) > 0:
-                raise InvalidWCSError("Invalid SpatialWCS: {}: {}".format(error_string, str(position)))
+                raise InvalidWCSError(
+                    "Invalid SpatialWCS: {}: {}".format(
+                        error_string, str(position)))
 
     @staticmethod
     def check_transform(coords):
@@ -165,8 +169,10 @@ class WcsValidator():
         pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
         transformed_coords = pix_transform['pixcrd']
 
-        if not (transformed_coords[0][0] == coords.lower and transformed_coords[0][1] == coords.upper):
-            raise ValueError("Could not transform coordinates pixel to sky, sky to pixel")
+        if not (transformed_coords[0][0] == coords.lower
+                and transformed_coords[0][1] == coords.upper):
+            raise ValueError(
+                "Could not transform coordinates pixel to sky, sky to pixel")
 
     @staticmethod
     def validate_spectral_wcs(energy):
@@ -193,31 +199,34 @@ class WcsValidator():
                 error_msg = repr(ex)
 
             if len(error_msg) > 0:
-                raise InvalidWCSError("Invalid Spectral WCS: {}: {}".format(error_msg,str(energy)))
+                raise InvalidWCSError(
+                    "Invalid Spectral WCS: {}: {}".format(
+                        error_msg, str(energy)))
 
     @staticmethod
     def validate_temporal_wcs(time):
         error_msg = ""
         if time is not None:
-            subinterval = None
             try:
                 time_axis = time.axis
 
                 if time_axis.range is not None:
-                    subinterval = TimeUtil.range1d_to_interval(time, time_axis.range)
+                    TimeUtil.range1d_to_interval(time, time_axis.range)
 
                 if time_axis.bounds is not None:
                     for cr in time_axis.bounds.samples:
-                        subinterval = TimeUtil.range1d_to_interval(time, cr)
+                        TimeUtil.range1d_to_interval(time, cr)
 
                 if time_axis.function is not None:
-                        subinterval = TimeUtil.function1d_to_interval(time, time_axis.function)
+                    TimeUtil.function1d_to_interval(time, time_axis.function)
 
             except Exception as e:
                 error_msg = repr(e)
 
             if len(error_msg) > 0:
-                raise InvalidWCSError("Invalid Temporal WCS: {}: {}".format(error_msg, str(time)))
+                raise InvalidWCSError(
+                    "Invalid Temporal WCS: {}: {}".format(
+                        error_msg, str(time)))
 
     def _validate_range(self, a_range):
         keys = PolarizationWcsUtil.get_keys(a_range)

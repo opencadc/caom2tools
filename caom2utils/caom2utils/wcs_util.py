@@ -117,9 +117,10 @@ class TimeUtil:
         try:
             TimeUtil.validate_wcs(temporal_wcs)
             # // TODO: (comment pulled from Java code):
-            # if mjdref has a value then the units of axis values could be any time
-            # // units, like days, hours, minutes, seconds, and smaller since they are offsets
-            # // from mjdref
+            # if mjdref has a value then the units of axis values could be
+            # any time
+            # // units, like days, hours, minutes, seconds, and smaller
+            # // since they are offsets from mjdref
 
             p1 = float(0.5)
             p2 = float(function_1d.naxis + 0.5)
@@ -139,12 +140,15 @@ class TimeUtil:
     def validate_wcs(temporal_wcs):
         ctype = temporal_wcs.axis.axis.ctype
         sb = ""
-        if ctype == TARGET_CTYPE and (temporal_wcs.timesys is None or temporal_wcs.timesys == TARGET_TIMESYS):
+        if ctype == TARGET_CTYPE \
+                and (temporal_wcs.timesys is None
+                     or temporal_wcs.timesys == TARGET_TIMESYS):
             pass
         elif ctype == TARGET_TIMESYS and temporal_wcs.timesys is None:
             pass
         else:
-            sb = "unexpected TIMESYS, CTYPE: {},{}".format(temporal_wcs.timesys, ctype)
+            sb = "unexpected TIMESYS, CTYPE: {},{}".format(
+                temporal_wcs.timesys, ctype)
 
         cunit = temporal_wcs.axis.axis.cunit
         if TARGET_CUNIT != cunit:
@@ -163,11 +167,12 @@ class EnergyUtil:
         a = float(range_1d.start.val)
         b = float(range_1d.end.val)
         #  The energy converter work done in the Java code is skipped here.
-        #  Doing it here introduced some precision errors which lead to false invalids.
-        #  Ignoring the units for validation sounds like it's ok, as long as the
-        #  same values come out of the p2s, s2p calculations in the main validator
-        #  code. It's assumed that doing the conversions in the native units is
-        #  sufficient, as long as the values are the same after p2s -> s2p is done.
+        #  Doing it here introduced some precision errors which lead to false
+        #  invalids. Ignoring the units for validation sounds like it's ok,
+        #  as long as the same values come out of the p2s, s2p calculations
+        #  in the main validator code. It's assumed that doing the
+        #  conversions in the native units is sufficient, as long as the
+        #  values are the same after p2s -> s2p is done.
 
         return shape.SubInterval(min(a, b), max(a, b))
 
