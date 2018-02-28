@@ -449,7 +449,7 @@ class TestOpenMultiPolygon():
         assert(actual_vertices[5].type == shape.SegmentType.LINE)
         assert(actual_vertices[6].cval1 == closed_vertices[6].cval1)
         assert(actual_vertices[6].cval2 == closed_vertices[6].cval2)
-        assert(actual_vertices[6].type  ==shape.SegmentType.CLOSE)
+        assert(actual_vertices[6].type == shape.SegmentType.CLOSE)
         assert(actual_vertices[7].cval1 == closed_vertices[7].cval1)
         assert(actual_vertices[7].cval2 == closed_vertices[7].cval2)
         assert(actual_vertices[7].type == shape.SegmentType.MOVE)
@@ -582,19 +582,19 @@ class TestVertex():
         pytest.raises(TypeError, shape.Vertex, 1.0, 2.0, None)
         pytest.raises(TypeError, shape.Vertex, 1.0, 2.0, 1.0)
         pytest.raises(TypeError, shape.Vertex, None, None,
-                          shape.SegmentType.LINE)
+                      shape.SegmentType.LINE)
         pytest.raises(TypeError, shape.Vertex, None, 2.0,
-                          shape.SegmentType.LINE)
+                      shape.SegmentType.LINE)
         pytest.raises(TypeError, shape.Vertex, 1.0, None,
-                          shape.SegmentType.LINE)
+                      shape.SegmentType.LINE)
         pytest.raises(TypeError, shape.Vertex, None, "string",
-                          shape.SegmentType.LINE)
+                      shape.SegmentType.LINE)
         pytest.raises(TypeError, shape.Vertex, "string", None,
-                          shape.SegmentType.LINE)
+                      shape.SegmentType.LINE)
         pytest.raises(TypeError, shape.Vertex, None, int(1),
-                          shape.SegmentType.LINE)
+                      shape.SegmentType.LINE)
         pytest.raises(TypeError, shape.Vertex, int(1), None,
-                          shape.SegmentType.LINE)
+                      shape.SegmentType.LINE)
 
         vertex = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
         assert(vertex.cval1 == 1.0)
