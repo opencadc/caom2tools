@@ -96,7 +96,7 @@ import sys
 from hashlib import md5
 from os import stat
 from six.moves.urllib.parse import urlparse
-from cadcutils import net
+from cadcutils import net, util
 from cadcdata import CadcDataClient
 from io import BytesIO
 
@@ -2227,21 +2227,22 @@ def _set_by_type(header, keyword, value):
         header.set(keyword, value)
 
 
-def get_cadc_headers(uri, cert=None):
+def get_cadc_headers(uri, subject=None):
     """
     Creates the FITS headers object from a either a local file or it
     fetches the FITS headers of a CADC file. The function takes advantage
     of the fhead feature of the CADC storage service and retrieves just the
     headers and no data, minimizing the transfer time.
     :param uri: CADC ('ad:') or local file ('file:') URI
-    :param cert: X509 certificate for accessing proprietary files
+    :param subject: user credentials. Anonymous if subject is None
     :return: List of headers corresponding to each extension. Each header is
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
     if file_url.scheme == 'ad':
         # create possible types of subjects
-        subject = net.Subject(cert)
+        if not subject:
+            subject = net.Subject()
         client = CadcDataClient(subject)
         # do a fhead on the file
         archive, file_id = file_url.path.split('/')
@@ -2282,16 +2283,16 @@ def _get_headers_from_fits(path):
     return headers
 
 
-def _update_artifact_meta(artifact, cert):
+def _update_artifact_meta(artifact, subject=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
-    :param cert:
+    :param subject: User credentials
     :return:
     """
     file_url = urlparse(artifact.uri)
     if file_url.scheme == 'ad':
-        metadata = _get_cadc_meta(cert, file_url.path)
+        metadata = _get_cadc_meta(subject, file_url.path)
     elif file_url.scheme == 'file':
         metadata = _get_file_meta(file_url.path)
     else:
@@ -2314,14 +2315,14 @@ def _update_artifact_meta(artifact, cert):
                          artifact.content_type))
 
 
-def _get_cadc_meta(cert, path):
+def _get_cadc_meta(subject, path):
     """
     Gets contentType, contentLength and contentChecksum of a CADC artifact
-    :param cert:
+    :param subject: user credentials
     :param path:
     :return:
     """
-    client = CadcDataClient(net.Subject(cert))
+    client = CadcDataClient(subject)
     archive, file_id = path.split('/')
     return client.get_file_info(archive, file_id)
 
@@ -2350,22 +2351,12 @@ def get_arg_parser():
     :return: args parser
     """
 
-    parser = argparse.ArgumentParser()
+    parser = util.get_base_parser(subparsers=False,
+                                  version=version.version,
+                                  default_resource_id="ivo://cadc.nrc.ca/fits2caom2")
 
     parser.description = (
         'Augments an observation with information in one or more fits files.')
-
-    if version.version is not None:
-        parser.add_argument('-V', '--version', action='version',
-                            version=version)
-
-    log_group = parser.add_mutually_exclusive_group()
-    log_group.add_argument('-d', '--debug', action='store_true',
-                           help='debug messages')
-    log_group.add_argument('-q', '--quiet', action='store_true',
-                           help='run quietly')
-    log_group.add_argument('-v', '--verbose', action='store_true',
-                           help='verbose messages')
 
     parser.add_argument('--dumpconfig', action='store_true',
                         help=('output the utype to keyword mapping to '
@@ -2389,12 +2380,10 @@ def get_arg_parser():
     parser.add_argument('--local', nargs='+',
                         help=('list of files in local filesystem (same order '
                               'as uri)'))
-    parser.add_argument('--log', help='log file name > (instead of console)')
     parser.add_argument('--keep', action='store_true',
                         help='keep the locally stored files after ingestion')
     parser.add_argument('--test', action='store_true',
                         help='test mode, do not persist to database')
-    parser.add_argument('--cert', help='Proxy Cert&Key PEM file')
 
     parser.add_argument('--productID',
                         help='product ID of the plane in the observation',
@@ -2491,6 +2480,7 @@ def proc(args, obs_blueprints):
 
         plane = obs.planes[product_id]
 
+        subject = net.Subject.from_cmd_line_args(args)
         if args.local:
             file = args.local[i]
             if uri not in plane.artifacts.keys():
@@ -2508,7 +2498,7 @@ def proc(args, obs_blueprints):
                 parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
                                     blueprint)
         else:
-            headers = get_cadc_headers(uri, args.cert)
+            headers = get_cadc_headers(uri, subject)
 
             if uri not in plane.artifacts.keys():
                 plane.artifacts.add(
@@ -2517,7 +2507,7 @@ def proc(args, obs_blueprints):
                              release_type=ReleaseType.DATA))
             parser = FitsParser(headers, blueprint)
 
-        _update_artifact_meta(plane.artifacts[uri], args.cert)
+        _update_artifact_meta(plane.artifacts[uri], subject)
 
         if args.dumpconfig:
             print('Blueprint for {}: {}'.format(uri, blueprint))
