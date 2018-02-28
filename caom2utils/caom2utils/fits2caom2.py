@@ -91,6 +91,7 @@ from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice
 import logging
+import magic
 import re
 import sys
 from hashlib import md5
