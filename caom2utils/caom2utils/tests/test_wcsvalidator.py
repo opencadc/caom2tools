@@ -306,7 +306,8 @@ class SpatialTestUtil:
         ref = wcs.Coord2D(wcs.RefCoord(
             512.0, 10.0),  wcs.RefCoord(512.0, 20.0))
         #  Create Invalid function
-        axis.function = wcs.CoordFunction2D(dim, ref, 1.0e-3, 0.0, 0.0, 0.0)  # singular CD matrix
+        axis.function = wcs.CoordFunction2D(
+            dim, ref, 1.0e-3, 0.0, 0.0, 0.0)  # singular CD matrix
         return spatial_wcs
 
     @staticmethod
