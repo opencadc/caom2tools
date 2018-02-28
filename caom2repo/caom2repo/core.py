@@ -102,10 +102,12 @@ CAOM2REPO_OBS_CAPABILITY_ID =\
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
 APP_NAME = 'caom2repo'
 
+
 class CAOM2RepoClient(object):
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
-    def __init__(self, subject, logLevel=logging.INFO, resource_id=DEFAULT_RESOURCE_ID, host=None, agent=None):
+    def __init__(self, subject, logLevel=logging.INFO,
+                 resource_id=DEFAULT_RESOURCE_ID, host=None, agent=None):
         """
         Instance of a CAOM2RepoClient
         :param subject: the subject performing the action
@@ -113,17 +115,19 @@ class CAOM2RepoClient(object):
         :param server: Host server for the caom2repo service
         """
         self.level = logLevel
-        logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
-                            level=logLevel, stream=sys.stdout)
+        logging.basicConfig(
+            format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s ' +
+                   '%(funcName)s %(message)s',
+            level=logLevel, stream=sys.stdout)
         self.logger = logging.getLogger('CAOM2RepoClient')
         self.resource_id = resource_id
         self.host = host
         self._subject = subject
         if agent is None:
-            agent = "caom2-repo-client/{} caom2/{}".format(version.version, caom2_version)
+            agent = "caom2-repo-client/{} caom2/{}".format(version.version,
+                                                           caom2_version)
 
         self.agent = agent
-
 
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host)
@@ -209,15 +213,18 @@ class CAOM2RepoClient(object):
         observations = []
         if obs_file is not None:
             # get observation IDs from file, no batching
-            observations = self._get_obs_from_file(obs_file, start, end, halt_on_error)
+            observations = self._get_obs_from_file(obs_file, start, end,
+                                                   halt_on_error)
         else:
             # get observation IDs from caomrepo
             observations = self._get_observations(collection, self._start, end)
 
         while len(observations) > 0:
             if nthreads is None:
-                results = [self._process_observation_id(collection, observationID, halt_on_error)
-                           for observationID in observations]
+                results = [
+                    self._process_observation_id(collection, observationID,
+                                                 halt_on_error)
+                    for observationID in observations]
                 for v, u, s, f in results:
                     if v:
                         visited.append(v)
@@ -233,8 +240,10 @@ class CAOM2RepoClient(object):
                 try:
                     results = [p.apply_async(
                         multiprocess_observation_id,
-                        [collection, observationID, self.plugin, self._subject, self.level,
-                         self.resource_id, self.host, self.agent, halt_on_error])
+                        [collection, observationID, self.plugin, self._subject,
+                         self.level,
+                         self.resource_id, self.host, self.agent,
+                         halt_on_error])
                         for observationID in observations]
                     for r in results:
                         result = r.get(timeout=30)
@@ -261,7 +270,8 @@ class CAOM2RepoClient(object):
                 break
         return visited, updated, skipped, failed
 
-    def _process_observation_id(self, collection, observationID, halt_on_error):
+    def _process_observation_id(self, collection, observationID,
+                                halt_on_error):
         visited = None
         updated = None
         skipped = None
@@ -275,7 +285,8 @@ class CAOM2RepoClient(object):
                 skipped = observation.observation_id
             else:
                 self.post_observation(observation)
-                self.logger.debug('UPDATED {}'.format(observation.observation_id))
+                self.logger.debug(
+                    'UPDATED {}'.format(observation.observation_id))
                 updated = observation.observation_id
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
@@ -288,7 +299,8 @@ class CAOM2RepoClient(object):
                 raise e
         except Exception as e:
             failed = observationID
-            self.logger.error('FAILED {} - Reason: {}'.format(observationID, e))
+            self.logger.error(
+                'FAILED {} - Reason: {}'.format(observationID, e))
             if halt_on_error:
                 raise e
 
@@ -311,20 +323,25 @@ class CAOM2RepoClient(object):
                             # we have more than two tokens in line
                             raise Exception(
                                 'Extra token one line: {}'.format(l))
-                        elif (start and last_mod_datetime<start) or \
-                                (end and last_mod_datetime>end):
+                        elif (start and last_mod_datetime < start) or \
+                                (end and last_mod_datetime > end):
                             # last modified date is out of start/end range
-                            self.logger.info('last modified date is out of start/end range: {}'.format(l))
+                            self.logger.info(
+                                'last modified date is out of start/end ' +
+                                'range: {}'.format(l))
                         else:
-                            # two tokens in line: <observation id> <last modification date>
+                            # two tokens in line: <observation id> <last
+                            # modification date>
                             obs.append(obs_id)
                     except Exception as e:
                         failed.append(obs_id)
-                        self.logger.error('FAILED {} - Reason: {}'.format(obs_id, e))
+                        self.logger.error(
+                            'FAILED {} - Reason: {}'.format(obs_id, e))
                         if halt_on_error:
                             raise e
                 else:
-                    # only one token in line, line should contain observationID only
+                    # only one token in line, line should contain
+                    # observationID only
                     obs.append(obs_id)
 
         return obs
@@ -341,7 +358,8 @@ class CAOM2RepoClient(object):
 
         return matches_end_date
 
-    def _get_observations(self, collection, start=None, end=None, obs_file=None):
+    def _get_observations(self, collection, start=None, end=None,
+                          obs_file=None):
         """
         Returns a list of observations from the collection
         :param collection: name of the collection
@@ -473,6 +491,7 @@ class CAOM2RepoClient(object):
             (CAOM2REPO_OBS_CAPABILITY_ID, path))
         self.logger.info('Successfully deleted Observation {}\n')
 
+
 def init_worker():
     """
     An initializer that programs each worker process to ignore Control-C.
@@ -481,6 +500,7 @@ def init_worker():
     at time of writing of this function. https://bugs.python.org/issue8296
     """
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+
 
 def str2date(s):
     """
@@ -494,20 +514,24 @@ def str2date(s):
 
 
 def multiprocess_observation_id(collection, observationID, plugin, subject,
-                                log_level, resource_id, host, agent, halt_on_error):
+                                log_level, resource_id, host, agent,
+                                halt_on_error):
     """
     Multi-process version of CAOM2RepoClient._process_observation_id().
-    Each process handles Control-C via KeyboardInterrupt, which is not needed in
-    CAOM2RepoClient._process_observation_id().
+    Each process handles Control-C via KeyboardInterrupt, which is not needed
+    in CAOM2RepoClient._process_observation_id().
     :param collection: Name of the collection
     :param observationID: Observation identifier
-    :param plugin: path to python file that contains the algorithm to be applied to visited observations
+    :param plugin: path to python file that contains the algorithm to be
+        applied to visited observations
     :param subject: Subject performing the action
     :param log_level: Logging level
     :param resource_id: ID of the resource being access (URI format)
     :param host: Host server for the caom2repo service
-    :param agent: Name of the application that accesses the service and its version
-    :return: Tuple of observationID representing visited, updated, skipped and failed
+    :param agent: Name of the application that accesses the service and its
+        version
+    :return: Tuple of observationID representing visited, updated, skipped
+        and failed
     """
     visited = None
     updated = None
@@ -516,8 +540,10 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     observation = None
     # set up logging for each process
     subject = subject
-    logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
-                        level=log_level, stream=sys.stdout)
+    logging.basicConfig(
+        format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s ' +
+               '%(funcName)s %(message)s',
+        level=log_level, stream=sys.stdout)
     rootLogger = logging.getLogger(
         'multiprocess_observation_id(): {}'.format(observationID))
 
@@ -610,11 +636,14 @@ def main_app():
     visit_parser.add_argument(
         '--end', type=str2date,
         help='latest observation to visit (UTC IVOA format: YYYY-mm-ddTH:M:S)')
-    visit_parser.add_argument('--obs_file', help='file containing observations to be visited',
-                              type=argparse.FileType('r'))
     visit_parser.add_argument(
-        '--threads', type=int, choices=xrange(2,10),
-        help='number of working threads used by the visitor when getting observations, range is 2 to 10')
+        '--obs_file',
+        help='file containing observations to be visited',
+        type=argparse.FileType('r'))
+    visit_parser.add_argument(
+        '--threads', type=int, choices=xrange(2, 10),
+        help='number of working threads used by the visitor when getting ' +
+             'observations, range is 2 to 10')
     visit_parser.add_argument(
         '--halt-on-error', action='store_true',
         help='stop visitor on first update exception raised by plugin')
@@ -656,21 +685,26 @@ def main_app():
     if args.server:
         server = args.server
 
-    manager = multiprocessing.Manager()
-    logging.basicConfig(format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s %(funcName)s %(message)s',
-                        level=level, stream=sys.stdout)
+    multiprocessing.Manager()
+    logging.basicConfig(
+        format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s ' +
+               '%(funcName)s %(message)s',
+        level=level, stream=sys.stdout)
     logger = logging.getLogger('main_app')
     client = CAOM2RepoClient(subject, level, args.resource_id, host=server)
     if args.cmd == 'visit':
         print("Visit")
         logger.debug(
-            "Call visitor with plugin={}, start={}, end={}, collection={}, obs_file={}, threads={}".
+            "Call visitor with plugin={}, start={}, end={}, collection={}, " +
+            "obs_file={}, threads={}".
             format(args.plugin.name, args.start, args.end,
                    args.collection, args.obs_file, args.threads))
         try:
             (visited, updated, skipped, failed) = \
-                client.visit(args.plugin.name, args.collection, start=args.start,
-                             end=args.end, obs_file=args.obs_file, nthreads=args.threads,
+                client.visit(args.plugin.name, args.collection,
+                             start=args.start,
+                             end=args.end, obs_file=args.obs_file,
+                             nthreads=args.threads,
                              halt_on_error=args.halt_on_error)
         finally:
             if args.obs_file is not None:

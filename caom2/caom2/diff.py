@@ -159,8 +159,8 @@ def _get_collection_differences(expected, actual, parent):
     report = []
     if len(expected) != len(actual):
         report.append(
-            'Collection:: {}: length of expected {} != length of actual {}'.format(
-                parent, len(expected), len(actual)))
+            'Collection:: {}: length of expected {} != length of actual {}'.
+            format(parent, len(expected), len(actual)))
 
     if isinstance(actual, TypedList) or isinstance(actual, TypedSet):
         temp_report = _get_sequence_differences(expected, actual, parent)
@@ -214,8 +214,8 @@ def _get_sequence_differences(expected, actual, parent):
 
     actual_copy = list(actual)
     expected_copy = list(expected)
-    actual_copy.sort()  #TODO does sort work properly?
-    expected_copy.sort()  #TODO does sort work properly?
+    actual_copy.sort()  # TODO does sort work properly?
+    expected_copy.sort()  # TODO does sort work properly?
 
     if len(expected_copy) != len(actual_copy):
         report.append(
@@ -225,7 +225,8 @@ def _get_sequence_differences(expected, actual, parent):
 
     for index, e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, index)
-        temp_report = get_differences(e, actual_copy[index], label) # deep comparison
+        # deep comparison
+        temp_report = get_differences(e, actual_copy[index], label)
         if temp_report:
             report.extend(temp_report)
 
@@ -253,8 +254,7 @@ def _get_dict_differences(expected, actual, parent):
 
     for key in actual.items():
         report.append(
-            'Member:: {}.{}: unexpected.'.format(parent,
-                                                                   key))
+            'Member:: {}.{}: unexpected.'.format(parent, key))
 
     return report if len(report) > 0 else None
 
