@@ -76,6 +76,7 @@ from caom2 import artifact, wcs, chunk, part, caom_util, Axis, chunk, \
     PolarizationWCS, RefCoord, wcs
 from caom2.caom_util import TypedList, TypedOrderedDict
 from ..wcsvalidator import WcsPolarizationState
+import pytest
 import unittest
 
 
@@ -477,10 +478,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         p_range = CoordRange1D(start, end)
         axis_1d.range = p_range
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('11' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('11' in str(ex.value))
 
         # Polarization axis range contains invalid negative values
         start = RefCoord(float(-9.1), float(-8.9))
@@ -488,10 +489,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         n_range = CoordRange1D(start, end)
         axis_1d.range = n_range
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('-9' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('-9' in str(ex.value))
 
         # Polarization axis range contains an invalid value (0) within a range
         start = RefCoord(float(-8.1), float(-7.9))
@@ -499,10 +500,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         range = CoordRange1D(start, end)
         axis_1d.range = range
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('0' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('0' in str(ex.value))
 
     def test_bounds(self):
         # Polarization bounds is None, should not produce an error
@@ -539,10 +540,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         samples = caom_util.TypedList(CoordRange1D, p_range)
         axis_1d.bounds = CoordBounds1D(samples)
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('11' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('11' in str(ex.value))
 
         # Polarization axis bounds contains more than one invalid range
         start = RefCoord(float(0.9), float(1.1))
@@ -554,10 +555,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         samples = caom_util.TypedList(CoordRange1D, p_range, n_range)
         axis_1d.bounds = CoordBounds1D(samples)
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('-9' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('-9' in str(ex.value))
 
     def test_function(self):
         # Polarization function is None, should not produce an error
@@ -588,10 +589,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
         axis_1d.function = CoordFunction1D(naxis, delta, ref_coord)
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('Invalid naxis value' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('Invalid naxis value' in str(ex.value))
 
 
 class TestWcsPolarizationState(unittest.TestCase):
@@ -602,9 +603,9 @@ class TestWcsPolarizationState(unittest.TestCase):
         for i in range(-8, 0):
             WcsPolarizationState.to_value(i)
         # invalid keys
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             WcsPolarizationState.to_value(int(-9))
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             WcsPolarizationState.to_value(int(0))
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             WcsPolarizationState.to_value(int(11))
