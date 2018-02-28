@@ -2337,10 +2337,10 @@ def _get_file_meta(path):
     s = stat(path)
     meta['size'] = s.st_size
     meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
-    if path.find('header') == -1:
-        meta['type'] = 'application/octet-stream'
-    else:
+    if path.endswith('.header'):
         meta['type'] = 'text/plain'
+    else:
+        meta['type'] = 'application/octet-stream'
     return meta
 
 
