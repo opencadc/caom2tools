@@ -88,7 +88,7 @@ def test_obs_blueprint():
     print(ObsBlueprint())
 
     # default config with WCS info
-    assert str(ObsBlueprint(position_axis=(1, 2), energy_axis=3,
+    assert str(ObsBlueprint(position_axes=(1, 2), energy_axis=3,
                polarization_axis=4, time_axis=5)).count('\n') == 77
 
     ob = ObsBlueprint()

@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-9b95-d331dc5f6f4d">
+  <caom2:collection>CGPS</caom2:collection>
+  <caom2:observationID>myOBS</caom2:observationID>
+  <caom2:algorithm>
+    <caom2:name>exposure</caom2:name>
+  </caom2:algorithm>
+  <caom2:intent>science</caom2:intent>
+  <caom2:target>
+    <caom2:name>CGPS Mosaic MA1</caom2:name>
+    <caom2:standard>false</caom2:standard>
+  </caom2:target>
+  <caom2:instrument>
+    <caom2:name>DRAO ST</caom2:name>
+  </caom2:instrument>
+  <caom2:planes>
+    <caom2:plane caom2:id="00000000-0000-0000-a4ca-2a98226fb6d4">
+      <caom2:productID>myplane</caom2:productID>
+      <caom2:dataProductType>cube</caom2:dataProductType>
+      <caom2:calibrationLevel>2</caom2:calibrationLevel>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-8e40-c0df798b56fe">
+          <caom2:uri>ad:CGPS/CGPS_MA1_HI_line_image.fits</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/fits</caom2:contentType>
+          <caom2:contentLength>570435840</caom2:contentLength>
+          <caom2:contentChecksum>md5:990df291c1dec654572201a12a44db3f</caom2:contentChecksum>
+          <caom2:parts/>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+    <caom2:plane caom2:id="00000000-0000-0000-a4ca-2a98226fb6d5">
+      <caom2:productID>myplane2</caom2:productID>
+      <caom2:dataProductType>cube</caom2:dataProductType>
+      <caom2:calibrationLevel>2</caom2:calibrationLevel>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-8e40-c0df798b56ff">
+          <caom2:uri>ad:CGPS/CGPS_MA1_HI_line_beam.fits</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/fits</caom2:contentType>
+          <caom2:contentLength>570435840</caom2:contentLength>
+          <caom2:contentChecksum>md5:990df291c1dec654572201a12a44db3f</caom2:contentChecksum>
+          <caom2:parts/>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>

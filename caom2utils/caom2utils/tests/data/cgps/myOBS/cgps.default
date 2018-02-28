@@ -12,3 +12,5 @@ CTYPE1                  = GLON-CAR
 CTYPE2                  = GLAT-CAR
 CTYPE3                  = VOPT
 CTYPE4                  = STOKES
+plane.dataProductType   = cube
+plane.calibrationLevel  = 2
