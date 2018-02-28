@@ -80,7 +80,6 @@ from .. import caom_util
 from .. import chunk
 from .. import part
 from .. import plane
-from .. import observation
 
 
 class TestCaomUtil(unittest.TestCase):
