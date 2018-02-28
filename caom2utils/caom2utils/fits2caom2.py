@@ -2350,11 +2350,10 @@ def get_arg_parser():
     fits2caom2
     :return: args parser
     """
-
+    resource_id = "ivo://cadc.nrc.ca/fits2caom2"
     parser = util.get_base_parser(subparsers=False,
                                   version=version.version,
-                                  default_resource_id=
-                                  "ivo://cadc.nrc.ca/fits2caom2")
+                                  default_resource_id=resource_id)
 
     parser.description = (
         'Augments an observation with information in one or more fits files.')

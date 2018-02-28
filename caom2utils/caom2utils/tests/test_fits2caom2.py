@@ -816,7 +816,6 @@ def test_chunk_naxis():
     update_blueprint(test_blueprint, test_uri, config=test_config,
                      defaults=test_defaults, overrides=test_overrides)
     assert test_blueprint._get('Chunk.naxis') == '1', 'default value assigned'
-    test_parser = FitsParser([hdr1], test_blueprint)
+    FitsParser([hdr1], test_blueprint)
     assert hdr1['NAXIS'] == 1
     assert hdr1['ZNAXIS'] == 1
-
