@@ -215,12 +215,13 @@ def _validate_keywords(observation):
     if observation.telescope is not None:
         _validate_keyword('telescope.keywords', observation.telescope.keywords)
     if observation.instrument is not None:
-        _validate_keyword('instrument.keywords',
-                           observation.instrument.keywords)
+        _validate_keyword(
+            'instrument.keywords', observation.instrument.keywords)
     for plane_key in observation.planes.keys():
         if observation.planes[plane_key].provenance is not None:
-            _validate_keyword('provenance.keywords',
-                              observation.planes[plane_key].provenance.keywords)
+            _validate_keyword(
+                'provenance.keywords',
+                observation.planes[plane_key].provenance.keywords)
 
 
 def _validate_keyword(name, keywords):
@@ -238,8 +239,8 @@ def _assert_validate_keyword(caller, name, keyword):
     """
     Keywords can contain any valid UTF-8 character except the pipe (|). The
     pipe character is reserved for use as a separator in persistence
-    implementations so the list of keywords can be serialized in a single string
-    to support querying.
+    implementations so the list of keywords can be serialized in a single
+    string to support querying.
 
     :param caller: Logging parameter - identifies which class called this
         method.

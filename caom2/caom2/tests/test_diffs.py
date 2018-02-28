@@ -76,8 +76,6 @@ from .. import diff
 from .. import observation
 from . import caom_test_instances
 
-import pytest
-
 
 class TestCaomUtil(unittest.TestCase):
     def test_get_differences(self):
