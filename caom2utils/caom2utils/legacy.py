@@ -70,12 +70,11 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import str
-
 import logging
 import sys
 
 from . import fits2caom2
+import traceback
 
 APP_NAME = 'fits2caom2'
 
@@ -365,6 +364,8 @@ def main_app():
         fits2caom2.proc(args, obs_blueprint)
     except Exception as e:
         logging.error(e)
+        tb = traceback.format_exc()
+        logging.debug(tb)
         sys.exit(-1)
 
     logging.info("DONE")

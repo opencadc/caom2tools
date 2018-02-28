@@ -159,8 +159,8 @@ def _get_collection_differences(expected, actual, parent):
     report = []
     if len(expected) != len(actual):
         report.append(
-            'Collection:: {}: length of expected {} != length of actual {}'.format(
-                parent, len(expected), len(actual)))
+            'Collection:: {}: length of expected {} != length of actual {}'.
+            format(parent, len(expected), len(actual)))
 
     if isinstance(actual, TypedList) or isinstance(actual, TypedSet):
         temp_report = _get_sequence_differences(expected, actual, parent)
@@ -214,6 +214,8 @@ def _get_sequence_differences(expected, actual, parent):
 
     actual_copy = list(actual)
     expected_copy = list(expected)
+    actual_copy.sort()  # TODO does sort work properly?
+    expected_copy.sort()  # TODO does sort work properly?
 
     if len(expected_copy) != len(actual_copy):
         report.append(
@@ -221,30 +223,12 @@ def _get_sequence_differences(expected, actual, parent):
                 parent, len(expected_copy), len(actual_copy)))
         return report
 
-    match_found = False
-    for ex_index, e in enumerate(expected):
-        label = '{}[\'{}\']'.format(parent, ex_index)
-        for act_index, a in enumerate(actual):
-            temp_report = get_differences(e, a, label)
-            if temp_report is None:
-                match_found = True
-                actual_copy.remove(a)
-                expected_copy.remove(e)
-                break
-        if not match_found:
-            report.append(
-                'Sequence:: {} expected not found in actual'.format(label))
-        match_found = False
-
-    for e in enumerate(expected_copy):
-        label = '{}[\'{}\']'.format(parent, e)
-        report.append(
-            'Sequence:: {} expected not found in actual'.format(label))
-
-    for a in enumerate(actual_copy):
-        label = '{}[\'{}\']'.format(parent, a)
-        report.append(
-            'Sequence:: {} actual not found in expected'.format(label))
+    for index, e in enumerate(expected_copy):
+        label = '{}[\'{}\']'.format(parent, index)
+        # deep comparison
+        temp_report = get_differences(e, actual_copy[index], label)
+        if temp_report:
+            report.extend(temp_report)
 
     return report if len(report) > 0 else None
 
@@ -270,8 +254,7 @@ def _get_dict_differences(expected, actual, parent):
 
     for key in actual.items():
         report.append(
-            'Member:: {}.{}: unexpected.'.format(parent,
-                                                                   key))
+            'Member:: {}.{}: unexpected.'.format(parent, key))
 
     return report if len(report) > 0 else None
 
