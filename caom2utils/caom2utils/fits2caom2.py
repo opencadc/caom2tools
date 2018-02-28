@@ -2353,7 +2353,8 @@ def get_arg_parser():
 
     parser = util.get_base_parser(subparsers=False,
                                   version=version.version,
-                                  default_resource_id="ivo://cadc.nrc.ca/fits2caom2")
+                                  default_resource_id=
+                                  "ivo://cadc.nrc.ca/fits2caom2")
 
     parser.description = (
         'Augments an observation with information in one or more fits files.')
