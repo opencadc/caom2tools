@@ -74,6 +74,7 @@ from astropy.wcs import Wcsprm
 from caom2utils import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
 from .wcs_util import PolarizationWcsUtil
+from caom2 import PolarizationState
 import numpy as np
 
 
@@ -265,9 +266,15 @@ class WcsPolarizationState():
     A dictionary which maps an integer to a PolarizationState value.
     """
     MAP = {
-        1: "I", 2: "Q", 3: "U", 4: "V", 5: "POLI", 6: "FPOLI", 7: "POLA",
-        8: "EPOLI", 9: "CPOLI", 10: "NPOLI", -1: "RR", -2: "LL", -3: "RL",
-        -4: "LR", -5: "XX", -6: "YY", -7: "XY", -8: "YX"}
+        1: PolarizationState.I, 2: PolarizationState.Q,
+        3: PolarizationState.U, 4: PolarizationState.V,
+        5: PolarizationState.POLI, 6: PolarizationState.FPOLI,
+        7: PolarizationState.POLA, 8: PolarizationState.EPOLI,
+        9: PolarizationState.CPOLI, 10: PolarizationState.NPOLI,
+        -1: PolarizationState.RR, -2: PolarizationState.LL,
+        -3: PolarizationState.RL, -4: PolarizationState.LR,
+        -5: PolarizationState.XX, -6: PolarizationState.YY,
+        -7: PolarizationState.XY, -8: PolarizationState.YX}
 
     @staticmethod
     def to_value(key):
