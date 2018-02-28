@@ -3,7 +3,7 @@
   <caom2:collection>CGPS</caom2:collection>
   <caom2:observationID>myOBS</caom2:observationID>
   <caom2:algorithm>
-    <caom2:name>EXPOSURE</caom2:name>
+    <caom2:name>exposure</caom2:name>
   </caom2:algorithm>
   <caom2:intent>science</caom2:intent>
   <caom2:target>

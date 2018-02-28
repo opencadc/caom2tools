@@ -2,14 +2,13 @@ usage: fits2caom2 [-h] [-V] [-d | -q | -v] [--dumpconfig] [--ignorePartialWCS]
                   [-o OUT_OBS_XML]
                   (-i IN_OBS_XML | --observation collection observationID)
                   [--local LOCAL [LOCAL ...]] [--log LOG] [--keep] [--test]
-                  [--cert CERT] [--config CONFIG] [--default DEFAULT]
-                  [--override OVERRIDE]
-                  productID fileURI [fileURI ...]
+                  [--cert CERT] [--productID PRODUCTID] [--config CONFIG]
+                  [--default DEFAULT] [--override OVERRIDE]
+                  fileURI [fileURI ...]
 
 Augments an observation with information in one or more fits files.
 
 positional arguments:
-  productID             product ID of the plane in the observation
   fileURI               URI of a fits file
 
 optional arguments:
@@ -32,6 +31,8 @@ optional arguments:
   --keep                keep the locally stored files after ingestion
   --test                test mode, do not persist to database
   --cert CERT           Proxy Cert&Key PEM file
+  --productID PRODUCTID
+                        product ID of the plane in the observation
   --config CONFIG       optional CAOM2 utype to keyword config file to merge
                         with the internal configuration
   --default DEFAULT     file with default values for keywords
