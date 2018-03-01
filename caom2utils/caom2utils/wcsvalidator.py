@@ -74,7 +74,7 @@ from astropy.wcs import Wcsprm
 from caom2utils import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
 from .wcs_util import PolarizationWcsUtil
-from caom2 import PolarizationState
+from caom2 import Interval, PolarizationState
 import numpy as np
 
 
@@ -138,20 +138,9 @@ class WcsValidator():
                 # There's not much that can be validated about range & bounds
                 if position.axis.function is not None:
                     fn2D = position.axis.function
-                    naxis1_half = float(fn2D.dimension.naxis1/2)
-                    naxis2_half = float(fn2D.dimension.naxis2/2)
-
-                    wcsprm = Wcsprm()
-                    coord_array = np.array([[naxis1_half, naxis2_half]])
-                    sky_transform = wcsprm.p2s(coord_array, ORIGIN)
-                    pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
-
-                    transformed_coords = pix_transform['pixcrd']
-
-                    if not (transformed_coords[0][0] == naxis1_half
-                            and transformed_coords[0][1] == naxis2_half):
-                        error_string = "Could not transform centre coordinate"
-
+                    WcsValidator.check_transform(
+                        Interval(float(fn2D.dimension.naxis1/2),
+                                 float(fn2D.dimension.naxis2/2)))
             except Exception as e:
                 error_string = repr(e)
 
