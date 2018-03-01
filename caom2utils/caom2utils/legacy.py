@@ -70,12 +70,11 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from builtins import str
-
 import logging
 import sys
 
 from . import fits2caom2
+import traceback
 
 APP_NAME = 'fits2caom2'
 
@@ -315,37 +314,6 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
             return None
 
 
-def _dump_config(parser, uri):
-    f = None
-    try:
-        temp = uri.split('/')
-        mod_uri = temp[len(temp) - 1]
-        fname = './{}.mod.fits'.format(mod_uri)
-        logging.debug('Writing modified fits file to {}.'.format(fname))
-        f = open(fname, 'w')
-        for index, extension in enumerate(parser._headers):
-            f.write('\nHeader {}\n'.format(index))
-            f.write(extension.tostring('\n'))
-        f.close()
-        fname = './{}.blueprint.out'.format(mod_uri)
-        logging.debug('Writing blueprint to {}.'.format(fname))
-        f = open(fname, 'w')
-        f.write(str(parser.blueprint))
-        f.close()
-        fname = './{}.errors.out'.format(mod_uri)
-        logging.debug('Writing errors to {}.'.format(fname))
-        f = open(fname, 'w')
-        for ii in parser._errors:
-            f.write(ii)
-            f.write('\n')
-        f.close()
-    except EnvironmentError:
-        logging.warning('Failed to dump config. {}'.format(sys.exc_info()[1]))
-    finally:
-        if f:
-            f.close()
-
-
 def main_app():
     parser = fits2caom2.get_arg_parser()
 
@@ -396,6 +364,8 @@ def main_app():
         fits2caom2.proc(args, obs_blueprint)
     except Exception as e:
         logging.error(e)
+        tb = traceback.format_exc()
+        logging.debug(tb)
         sys.exit(-1)
 
     logging.info("DONE")

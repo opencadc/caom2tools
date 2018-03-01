@@ -69,12 +69,14 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from six.moves import range
 from caom2utils import WcsValidator, InvalidWCSError
-from caom2 import artifact, wcs, chunk, part, caom_util, Axis, chunk, \
+from caom2 import artifact, part, caom_util, Axis, chunk, \
     CoordAxis1D, CoordBounds1D, CoordFunction1D, CoordRange1D, \
     PolarizationWCS, RefCoord, wcs
 from caom2.caom_util import TypedList, TypedOrderedDict
 from ..wcsvalidator import WcsPolarizationState
+import pytest
 import unittest
 
 
@@ -174,7 +176,8 @@ class ArtifactWCSValidationTests(unittest.TestCase):
             c = a.parts['test_part'].chunks[0]
 
             # Not probably reasonable Chunks, but should still be valid
-            # Different combinations of this will be represented in different data sets
+            # Different combinations of this will be represented in
+            # different data sets
             c.position = None
             WcsValidator.validate_artifact(a)
 
@@ -300,9 +303,11 @@ class SpatialTestUtil:
         spatial_wcs = chunk.SpatialWCS(axis)
         spatial_wcs.equinox = None
         dim = wcs.Dimension2D(1024, 1024)
-        ref = wcs.Coord2D( wcs.RefCoord(512.0, 10.0),  wcs.RefCoord(512.0, 20.0))
+        ref = wcs.Coord2D(wcs.RefCoord(
+            512.0, 10.0),  wcs.RefCoord(512.0, 20.0))
         #  Create Invalid function
-        axis.function = wcs.CoordFunction2D(dim, ref, 1.0e-3, 0.0, 0.0, 0.0) # singular CD matrix
+        axis.function = wcs.CoordFunction2D(
+            dim, ref, 1.0e-3, 0.0, 0.0, 0.0)  # singular CD matrix
         return spatial_wcs
 
     @staticmethod
@@ -328,7 +333,8 @@ class SpatialTestUtil:
         # Simple frame set: 1000x1000 pixels, 1 pixel = 1.0e-3 deg
         dim = wcs.Dimension2D(1000, 1000)
         ref = wcs.Coord2D(wcs.RefCoord(px, sx), wcs.RefCoord(py, sy))
-        axis_2d.function = wcs.CoordFunction2D(dim, ref, 1.e-3, 0.0, 0.0, 1.0e-3)
+        axis_2d.function = wcs.CoordFunction2D(
+            dim, ref, 1.e-3, 0.0, 0.0, 1.0e-3)
         return spatial_wcs
 
 
@@ -375,7 +381,8 @@ class EnergyTestUtil:
         sx = float(400.0)
         nx = 200
         ds = float(1.0)
-        bad_energy = EnergyTestUtil.getTestFunction(True, px, sx * nx * ds, nx, ds)
+        bad_energy = EnergyTestUtil.getTestFunction(
+            True, px, sx * nx * ds, nx, ds)
         # Make function invalid
         c1 = wcs.RefCoord(0.5, 2000.0)
         bad_energy.axis.function = wcs.CoordFunction1D(100, 10.0, c1)
@@ -383,11 +390,11 @@ class EnergyTestUtil:
 
     @staticmethod
     def getTestRange(complete, px, sx, nx, ds):
-        axis =  wcs.CoordAxis1D(wcs.Axis("WAVE", "nm"))
+        axis = wcs.CoordAxis1D(wcs.Axis("WAVE", "nm"))
         spectral_wcs = chunk.SpectralWCS(axis, "TOPOCENT")
         if complete:
             spectral_wcs.bandpassName = BANDPASS_NAME
-            spectral_wcs.restwav = 6563.0e-10 # meters
+            spectral_wcs.restwav = 6563.0e-10  # meters
             spectral_wcs.resolvingPower = 33000.0
             spectral_wcs.transition = TRANSITION
 
@@ -403,7 +410,7 @@ class EnergyTestUtil:
         spectral_wcs = chunk.SpectralWCS(axis, "TOPOCENT")
         if complete:
             spectral_wcs.bandpassName = BANDPASS_NAME
-            spectral_wcs.restwav = 6563.0e-10; # meters
+            spectral_wcs.restwav = 6563.0e-10  # meters
             spectral_wcs.resolvingPower = 33000.0
             spectral_wcs.transition = TRANSITION
 
@@ -426,13 +433,13 @@ class ArtifactTestUtil():
 
         return test_chunk
 
-
     @staticmethod
     def get_test_artifact(ptype):
         # chunk.ProductType.SCIENCE is a common type
         if ptype is None:
             ptype = chunk.ProductType.SCIENCE
-        test_artifact = artifact.Artifact('uri:foo/bar', ptype, artifact.ReleaseType.DATA)
+        test_artifact = artifact.Artifact(
+            'uri:foo/bar', ptype, artifact.ReleaseType.DATA)
         chunks = TypedList(chunk.Chunk)
         chunks.append(ArtifactTestUtil.get_good_test_chunk(ptype))
 
@@ -476,10 +483,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         p_range = CoordRange1D(start, end)
         axis_1d.range = p_range
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('11' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('11' in str(ex.value))
 
         # Polarization axis range contains invalid negative values
         start = RefCoord(float(-9.1), float(-8.9))
@@ -487,10 +494,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         n_range = CoordRange1D(start, end)
         axis_1d.range = n_range
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('-9' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('-9' in str(ex.value))
 
         # Polarization axis range contains an invalid value (0) within a range
         start = RefCoord(float(-8.1), float(-7.9))
@@ -498,10 +505,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         range = CoordRange1D(start, end)
         axis_1d.range = range
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('0' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('0' in str(ex.value))
 
     def test_bounds(self):
         # Polarization bounds is None, should not produce an error
@@ -538,10 +545,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         samples = caom_util.TypedList(CoordRange1D, p_range)
         axis_1d.bounds = CoordBounds1D(samples)
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('11' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('11' in str(ex.value))
 
         # Polarization axis bounds contains more than one invalid range
         start = RefCoord(float(0.9), float(1.1))
@@ -553,10 +560,10 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         samples = caom_util.TypedList(CoordRange1D, p_range, n_range)
         axis_1d.bounds = CoordBounds1D(samples)
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('-9' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('-9' in str(ex.value))
 
     def test_function(self):
         # Polarization function is None, should not produce an error
@@ -587,23 +594,23 @@ class TestValidatePolarizationWcs(unittest.TestCase):
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
         axis_1d.function = CoordFunction1D(naxis, delta, ref_coord)
         polarization = PolarizationWCS(axis_1d)
-        with self.assertRaises(InvalidWCSError) as ex:
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_polarization_wcs(polarization)
-        self.assertTrue('Invalid Polarization WCS' in str(ex.exception))
-        self.assertTrue('Invalid naxis value' in str(ex.exception))
+        self.assertTrue('Invalid Polarization WCS' in str(ex.value))
+        self.assertTrue('Invalid naxis value' in str(ex.value))
 
 
 class TestWcsPolarizationState(unittest.TestCase):
     def test_all(self):
         # valid keys
-        for i in xrange(1, 11):
+        for i in range(1, 11):
             WcsPolarizationState.to_value(i)
-        for i in xrange(-8, 0):
+        for i in range(-8, 0):
             WcsPolarizationState.to_value(i)
         # invalid keys
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             WcsPolarizationState.to_value(int(-9))
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             WcsPolarizationState.to_value(int(0))
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             WcsPolarizationState.to_value(int(11))

@@ -1,38 +1,49 @@
-usage: fits2caom2 [-h] [-V] [-d | -q | -v] [--dumpconfig] [--ignorePartialWCS]
-                  [-o OUT_OBS_XML]
+usage: fits2caom2 [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
+                  [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v]
+                  [-V] [--dumpconfig] [--ignorePartialWCS] [-o OUT_OBS_XML]
                   (-i IN_OBS_XML | --observation collection observationID)
-                  [--local LOCAL [LOCAL ...]] [--log LOG] [--keep] [--test]
-                  [--cert CERT] [--config CONFIG] [--default DEFAULT]
-                  [--override OVERRIDE]
-                  productID fileURI [fileURI ...]
+                  [--local LOCAL [LOCAL ...]] [--keep] [--test]
+                  [--productID PRODUCTID] [--config CONFIG]
+                  [--default DEFAULT] [--override OVERRIDE]
+                  fileURI [fileURI ...]
 
 Augments an observation with information in one or more fits files.
 
 positional arguments:
-  productID             product ID of the plane in the observation
   fileURI               URI of a fits file
 
 optional arguments:
-  -h, --help            show this help message and exit
-  -V, --version         show program's version number and exit
-  -d, --debug           debug messages
-  -q, --quiet           run quietly
-  -v, --verbose         verbose messages
-  --dumpconfig          output the utype to keyword mapping to the console
-  --ignorePartialWCS    do not stop and exit upon finding partial WCS
-  -o OUT_OBS_XML, --out OUT_OBS_XML
-                        output of augmented observation in XML
-  -i IN_OBS_XML, --in IN_OBS_XML
-                        input of observation to be augmented in XML
-  --observation collection observationID
-                        observation in a collection
-  --local LOCAL [LOCAL ...]
-                        list of files in local filesystem (same order as uri)
-  --log LOG             log file name > (instead of console)
-  --keep                keep the locally stored files after ingestion
-  --test                test mode, do not persist to database
-  --cert CERT           Proxy Cert&Key PEM file
+  --cert CERT           location of your X509 certificate to use for
+                        authentication (unencrypted, in PEM format)
   --config CONFIG       optional CAOM2 utype to keyword config file to merge
                         with the internal configuration
+  -d, --debug           debug messages
   --default DEFAULT     file with default values for keywords
+  --dumpconfig          output the utype to keyword mapping to the console
+  -h, --help            show this help message and exit
+  --host HOST           base hostname for services - used mainly for testing
+                        (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
+  --ignorePartialWCS    do not stop and exit upon finding partial WCS
+  -i, --in IN_OBS_XML   input of observation to be augmented in XML
+  --keep                keep the locally stored files after ingestion
+  --local LOCAL [LOCAL ...]
+                        list of files in local filesystem (same order as uri)
+  -n                    use .netrc in $HOME for authentication
+  --netrc-file NETRC_FILE
+                        netrc file to use for authentication
+  --observation collection observationID
+                        observation in a collection
+  -o, --out OUT_OBS_XML
+                        output of augmented observation in XML
   --override OVERRIDE   file with override values for keywords
+  --productID PRODUCTID
+                        product ID of the plane in the observation
+  -q, --quiet           run quietly
+  --resource-id RESOURCE_ID
+                        resource identifier (default
+                        ivo://cadc.nrc.ca/fits2caom2)
+  --test                test mode, do not persist to database
+  -u, --user USER       name of user to authenticate. Note: application
+                        prompts for the corresponding password!
+  -v, --verbose         verbose messages
+  -V, --version         show program's version number and exit

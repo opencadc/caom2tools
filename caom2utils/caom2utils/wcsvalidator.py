@@ -70,15 +70,11 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-# from astropy.wcs import WCS
-# from cadcutils import version
-#from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
-# from caom2 import SpectralWCS,CoordAxis1D, Axis, CoordFunction1D, RefCoord
-# from caom2 import shape
 from astropy.wcs import Wcsprm
 from caom2utils import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
 from .wcs_util import PolarizationWcsUtil
+from caom2 import PolarizationState
 import numpy as np
 
 
@@ -119,7 +115,8 @@ class WcsValidator():
                 p = artifact.parts[pkey]
                 if p is not None:
                     for c in p.chunks:
-                        context = "{}[{}]: {} ".format(artifact.uri, p.name, str(c._id))
+                        context = "{}[{}]: {} ".format(
+                            artifact.uri, p.name, str(c._id))
                         WcsValidator.validate_chunk(context, c)
 
     @staticmethod
@@ -151,14 +148,17 @@ class WcsValidator():
 
                     transformed_coords = pix_transform['pixcrd']
 
-                    if not (transformed_coords[0][0] == naxis1_half and transformed_coords[0][1] == naxis2_half):
+                    if not (transformed_coords[0][0] == naxis1_half
+                            and transformed_coords[0][1] == naxis2_half):
                         error_string = "Could not transform centre coordinate"
 
             except Exception as e:
                 error_string = repr(e)
 
             if len(error_string) > 0:
-                raise InvalidWCSError("Invalid SpatialWCS: {}: {}".format(error_string, str(position)))
+                raise InvalidWCSError(
+                    "Invalid SpatialWCS: {}: {}".format(
+                        error_string, str(position)))
 
     @staticmethod
     def check_transform(coords):
@@ -169,8 +169,10 @@ class WcsValidator():
         pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
         transformed_coords = pix_transform['pixcrd']
 
-        if not (transformed_coords[0][0] == coords.lower and transformed_coords[0][1] == coords.upper):
-            raise ValueError("Could not transform coordinates pixel to sky, sky to pixel")
+        if not (transformed_coords[0][0] == coords.lower
+                and transformed_coords[0][1] == coords.upper):
+            raise ValueError(
+                "Could not transform coordinates pixel to sky, sky to pixel")
 
     @staticmethod
     def validate_spectral_wcs(energy):
@@ -197,34 +199,37 @@ class WcsValidator():
                 error_msg = repr(ex)
 
             if len(error_msg) > 0:
-                raise InvalidWCSError("Invalid Spectral WCS: {}: {}".format(error_msg,str(energy)))
+                raise InvalidWCSError(
+                    "Invalid Spectral WCS: {}: {}".format(
+                        error_msg, str(energy)))
 
     @staticmethod
     def validate_temporal_wcs(time):
         error_msg = ""
         if time is not None:
-            subinterval = None
             try:
                 time_axis = time.axis
 
                 if time_axis.range is not None:
-                    subinterval = TimeUtil.range1d_to_interval(time, time_axis.range)
+                    TimeUtil.range1d_to_interval(time, time_axis.range)
 
                 if time_axis.bounds is not None:
                     for cr in time_axis.bounds.samples:
-                        subinterval = TimeUtil.range1d_to_interval(time, cr)
+                        TimeUtil.range1d_to_interval(time, cr)
 
                 if time_axis.function is not None:
-                        subinterval = TimeUtil.function1d_to_interval(time, time_axis.function)
+                    TimeUtil.function1d_to_interval(time, time_axis.function)
 
             except Exception as e:
                 error_msg = repr(e)
 
             if len(error_msg) > 0:
-                raise InvalidWCSError("Invalid Temporal WCS: {}: {}".format(error_msg, str(time)))
+                raise InvalidWCSError(
+                    "Invalid Temporal WCS: {}: {}".format(
+                        error_msg, str(time)))
 
-    def _validate_range(self, range):
-        keys = PolarizationWcsUtil.get_keys(range)
+    def _validate_range(self, a_range):
+        keys = PolarizationWcsUtil.get_keys(a_range)
         if keys is not None:
             for key in keys:
                 WcsPolarizationState.to_value(key)
@@ -232,17 +237,17 @@ class WcsValidator():
     def _validate_bounds(self, bounds):
         sample_ranges = PolarizationWcsUtil.get_ranges_from_bounds(bounds)
         if len(sample_ranges) > 0:
-            for range in sample_ranges:
-                for key in range:
+            for srange in sample_ranges:
+                for key in srange:
                     WcsPolarizationState.to_value(key)
 
-    def _validate_function(self, function):
+    def _validate_function(self, a_function):
         naxis_range = \
-            PolarizationWcsUtil.get_range_from_function(function)
+            PolarizationWcsUtil.get_range_from_function(a_function)
         if naxis_range is not None:
             for pix in naxis_range:
                 WcsPolarizationState.to_value(
-                    int(round(wcs_util.pix2val(function, pix))))
+                    int(round(wcs_util.pix2val(a_function, pix))))
 
     @staticmethod
     def validate_polarization_wcs(polarization_wcs):
@@ -270,9 +275,15 @@ class WcsPolarizationState():
     A dictionary which maps an integer to a PolarizationState value.
     """
     MAP = {
-        1: "I", 2: "Q", 3: "U", 4: "V", 5: "POLI", 6: "FPOLI", 7: "POLA",
-        8: "EPOLI", 9: "CPOLI", 10: "NPOLI", -1: "RR", -2: "LL", -3: "RL",
-        -4: "LR", -5: "XX", -6: "YY", -7: "XY", -8: "YX"}
+        1: PolarizationState.I, 2: PolarizationState.Q,
+        3: PolarizationState.U, 4: PolarizationState.V,
+        5: PolarizationState.POLI, 6: PolarizationState.FPOLI,
+        7: PolarizationState.POLA, 8: PolarizationState.EPOLI,
+        9: PolarizationState.CPOLI, 10: PolarizationState.NPOLI,
+        -1: PolarizationState.RR, -2: PolarizationState.LL,
+        -3: PolarizationState.RL, -4: PolarizationState.LR,
+        -5: PolarizationState.XX, -6: PolarizationState.YY,
+        -7: PolarizationState.XY, -8: PolarizationState.YX}
 
     @staticmethod
     def to_value(key):

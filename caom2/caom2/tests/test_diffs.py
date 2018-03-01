@@ -76,8 +76,6 @@ from .. import diff
 from .. import observation
 from . import caom_test_instances
 
-import pytest
-
 
 class TestCaomUtil(unittest.TestCase):
     def test_get_differences(self):
@@ -86,7 +84,7 @@ class TestCaomUtil(unittest.TestCase):
             observation_id='test_observation_id',
             algorithm=observation.Algorithm('EXPOSURE'))
         report = diff.get_differences(expected_simple, expected_simple,
-                                           'obs')
+                                      'obs')
         self.assertTrue(report is None, repr(report))
 
         actual_simple = observation.SimpleObservation(
@@ -94,21 +92,21 @@ class TestCaomUtil(unittest.TestCase):
             observation_id='test_observation_id',
             algorithm=observation.Algorithm('EXPOSURE'))
         report = diff.get_differences(expected_simple, actual_simple,
-                                           'obs')
+                                      'obs')
         self.assertTrue(report is None, repr(report))
 
         act_plane = observation.Plane(product_id='test_product_id1')
         actual_simple.planes['test_product_id1'] = act_plane
 
         report = diff.get_differences(expected_simple, actual_simple,
-                                           'obs')
+                                      'obs')
         self.assertTrue(report is not None, repr(report))
         self.assertTrue(len(report) == 2, repr(report))
 
         ex_plane = observation.Plane(product_id='test_product_id2')
         expected_simple.planes['test_product_id2'] = ex_plane
         report = diff.get_differences(expected_simple, actual_simple,
-                                           'obs')
+                                      'obs')
         self.assertTrue(report is not None, repr(report))
         self.assertTrue(len(report) == 2, repr(report))
 
