@@ -83,9 +83,7 @@ IMPORTANT NOTE: The validate algorithms use introspection to automatically
 find the attributes that are part of the CAOM2 model. It is therefore very
 important that attributes that are not part of the model
 (http://www.opencadc.org/caom2) be prefixed with an '_' so that the validate
-algorithms ignore them in their computations. Equally important is to use the
-names of the attributes from the model (with the Python syntax) as the
-algorithm parses them in alphabetical order.
+algorithms ignore them in their computations.
 
 Perform validation of the content of an Observation."""
 
@@ -124,7 +122,7 @@ def validate(entity, acc=False, name=None):
     """
 
     if type(entity) is None:
-        logger.debug('Encoded empty entity {}'.format(entity.__name__))
+        logger.debug('Validated empty entity {}'.format(entity.__name__))
         return
 
     if (isinstance(entity, ObservationURI) or isinstance(entity, ChecksumURI)
@@ -133,8 +131,6 @@ def validate(entity, acc=False, name=None):
             or isinstance(entity, int) or isinstance(entity, str)
             or isinstance(entity, datetime) or isinstance(entity, Enum)
             or isinstance(entity, uuid.UUID)):
-        logger.debug('There is no validate call for {} of type {}.'.format(
-            entity, type(entity)))
         return
     elif isinstance(entity, CaomObject):
         if isinstance(entity, Observation):
@@ -147,11 +143,9 @@ def validate(entity, acc=False, name=None):
         if acc:
             validate_acc(entity)
     elif isinstance(entity, set) or \
+            isinstance(entity, list) or isinstance(entity, TypedList) or \
             (isinstance(entity, TypedSet) and not
                 isinstance(entity.key_type, CaomObject)):
-        for i in sorted(entity):
-            validate(i, acc)
-    elif isinstance(entity, list) or isinstance(entity, TypedList):
         for i in entity:
             validate(i, acc)
     elif isinstance(entity, TypedOrderedDict):
@@ -173,7 +167,7 @@ def validate_acc(entity):
     """
     assert isinstance(entity, CaomObject)
 
-    for i in sorted(dir(entity)):
+    for i in dir(entity):
         if not callable(getattr(entity, i)) and not i.startswith('_'):
             attribute = getattr(entity, i)
             if attribute is not None:
