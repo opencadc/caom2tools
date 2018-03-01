@@ -151,7 +151,9 @@ TIME_KEYWORDS = [
 
 POLARIZATION_CTYPES = ['STOKES']
 
-OBSERVABLE_CTYPES = ['observable']
+OBSERVABLE_CTYPES = [
+    'observable',
+    'FLUX']
 
 
 class HDULoggingFilter(logging.Filter):
@@ -1484,6 +1486,7 @@ class FitsParser(object):
         moving = self._get_from_list('Observation.target.moving', index=0)
         self.logger.debug('End CAOM2 Target augmentation.')
         if name:
+            self.logger.warning('standard is {}, moving is {}'.format(standard, moving))
             return Target(str(name), target_type, standard, redshift,
                           keywords, moving)
         else:
@@ -1763,13 +1766,14 @@ class FitsParser(object):
         :param from_value: Something that represents a boolean value
         :return: a python boolean value
         """
-        result = False
+        result = None
         # so far, these are the only options that are coming in from the
         # config files - may need to add more as more types are experienced
         if from_value == 'false':
             result = False
         elif from_value == 'true':
             result = True
+        self.logger.warning('result is {}'.format(result))
         return result
 
     def _to_data_product_type(self, value):
@@ -1950,7 +1954,7 @@ class WcsParser(object):
         else:
             chunk.time.naxis = naxis
 
-        chunk.time.exposure = self.header.get('EXPTIME')
+        chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
         chunk.time.resolution = self.header.get('TIMEDEL')
         chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
         chunk.time.trefpos = self.header.get('TREFPOS', None)

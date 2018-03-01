@@ -70,7 +70,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from caom2utils import legacy
-from caom2 import ObservationReader
+from caom2 import obs_reader_writer, ObservationReader, ObservationWriter
 from caom2.diff import get_differences
 
 import glob
@@ -82,6 +82,7 @@ from mock import patch, Mock
 from six.moves.urllib.parse import urlparse
 import six
 
+import pytest
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
@@ -92,6 +93,7 @@ def raise_exit_error():
 
 
 @patch('sys.exit', Mock(side_effect=ImportError))
+# @pytest.mark.skip('')
 def test_differences(directory):
     """
     Note: This tests is parametrized from conftest.py file. Directories
@@ -134,6 +136,7 @@ def test_differences(directory):
         print(sys.argv)
         legacy.main_app()
     actual = _read_observation(temp.name)  # actual observation
+    _write_obs(actual, '{}{}.actual'.format(directory, collection_id))
     _compare_observations(expected, actual, directory)
 
 
@@ -231,3 +234,17 @@ def _read_observation(fname):
     reader = ObservationReader(False)
     result = reader.read(fname)
     return result
+
+
+def _write_obs(obs, fname):
+    writer = ObservationWriter(False, False, "caom2",
+                               obs_reader_writer.CAOM23_NAMESPACE)
+    output = six.BytesIO()
+    writer.write(obs, output)
+    xml = output.getvalue()
+    output.close()
+    xml = xml.replace(b"caom2:id=\"", b"caom2:id=\"x")
+    f = open(fname, 'wb')
+    f.write(xml)
+    f.close()
+
