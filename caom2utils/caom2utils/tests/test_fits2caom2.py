@@ -98,6 +98,8 @@ sample_file_4axes_uri = 'caom:CGPS/TEST/4axes_obs.fits'
 java_config_file = os.path.join(TESTDATA_DIR, 'java.config')
 override_file = os.path.join(TESTDATA_DIR, 'test.override')
 test_override = os.path.join(TESTDATA_DIR, '4axes.override')
+text_file = os.path.join(TESTDATA_DIR, 'help.txt')
+text_override = os.path.join(TESTDATA_DIR, 'text.override')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
@@ -801,3 +803,52 @@ def _get_obs(from_xml_string):
     obsr = obs_reader_writer.ObservationReader()
     obs = obsr.read(None)
     return obs
+
+
+EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation""" + \
+    """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
+    """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
+    """xsi:type="caom2:SimpleObservation" """ + \
+    """caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+      <caom2:collection>test_collection_id</caom2:collection>
+  <caom2:observationID>test_observation_id</caom2:observationID>
+  <caom2:algorithm>
+    <caom2:name>exposure</caom2:name>
+  </caom2:algorithm>
+  <caom2:planes>
+    <caom2:plane caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+      <caom2:productID>test_product_id</caom2:productID>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+          <caom2:productType>thumbnail</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>text/plain</caom2:contentType>
+          <caom2:contentLength>1964</caom2:contentLength>
+          <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
+          <caom2:uri>file://""" + text_file + """</caom2:uri>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>
+"""
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_generic_parser():
+    """ Tests that GenericParser will be created."""
+
+    fname = 'file://{}'.format(text_file)
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+        sys.argv = ['fits2caom2', '--local', fname,
+                    '--observation', 'test_collection_id',
+                    'test_observation_id', '--productID', 'test_product_id',
+                    '--config', java_config_file, '--override', text_override,
+                    fname]
+        main_app()
+        if stdout_mock.getvalue():
+            expected = _get_obs(EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML)
+            actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
+            result = get_differences(expected, actual, 'Observation')
+            assert result is None

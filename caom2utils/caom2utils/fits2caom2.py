@@ -94,6 +94,12 @@ import logging
 import magic
 import re
 import sys
+# try:
+#     from abc import ABC, abstractmethod
+# except ImportError:
+#     import
+import abc
+from six import add_metaclass
 from hashlib import md5
 from os import stat
 from six.moves.urllib.parse import urlparse
@@ -1040,7 +1046,248 @@ class ObsBlueprint(object):
         return configed_axes
 
 
-class FitsParser(object):
+class Parser(abc.ABCMeta):
+    """
+    Abstract class to identify the methods for extracting CAOM2 related
+    information from metadata.
+    """
+    def __init__(self, obs_blueprint=None, logging_name=None):
+        if obs_blueprint:
+            self._blueprint = obs_blueprint
+        else:
+            self._blueprint = ObsBlueprint()
+        self._errors = []
+        self.logging_name = logging_name
+        self.logger = logging.getLogger(__name__)
+
+    @property
+    def blueprint(self):
+        return self._blueprint
+
+    @blueprint.setter
+    def blueprint(self, value):
+        self._blueprint = value
+
+    @abc.abstractmethod
+    def augment_observation(self, observation, artifact_uri, product_id=None):
+        """
+        Augments a given observation with plane structure only.
+        :param observation: existing CAOM2 observation to be augmented.
+        :param artifact_uri: the key for finding the artifact to augment
+        :param product_id: the key for finding for the plane to augment
+        """
+        assert observation
+        assert isinstance(observation, Observation)
+
+        plane = None
+        if not product_id:
+            product_id = self._get_from_list('Plane.productID', index=0)
+        assert product_id, 'product ID required'
+
+        for ii in observation.planes:
+            if observation.planes[ii].product_id == product_id:
+                plane = observation.planes[product_id]
+                break
+        if plane is None:
+            plane = Plane(str(product_id))
+            observation.planes[product_id] = plane
+        self.augment_plane(plane, artifact_uri)
+
+    @abc.abstractmethod
+    def augment_plane(self, plane, artifact_uri):
+        """
+        Augments a given plane with artifact structure only.
+        :param plane: existing CAOM2 plane to be augmented.
+        :param artifact_uri:
+        """
+        assert plane
+        assert isinstance(plane, Plane)
+        artifact = None
+        for ii in plane.artifacts:
+            artifact = plane.artifacts[ii]
+            if artifact.uri == artifact_uri:
+                break
+        if artifact is None or artifact.uri != artifact_uri:
+            artifact = Artifact(artifact_uri, self._to_product_type(
+                self._get_from_list('Artifact.productType', index=0)),
+                                self._to_release_type(self._get_from_list(
+                                    'Artifact.releaseType', index=0)))
+            plane.artifacts[artifact_uri] = artifact
+        self.augment_artifact(artifact)
+
+
+    @abc.abstractmethod
+    def augment_artifact(self, artifact):
+        """
+        Augments a given CAOM2 artifact with available FITS information
+        :param artifact: existing CAOM2 artifact to be augmented
+        """
+        assert artifact
+        assert isinstance(artifact, Artifact)
+
+        artifact.uri = self._get_from_list('Artifact.uri', index=0,
+                                           current=artifact.uri)
+        artifact.product_type = self._to_product_type(self._get_from_list(
+            'Artifact.productType', index=0, current=artifact.product_type))
+        artifact.release_type = self._to_release_type(self._get_from_list(
+            'Artifact.releaseType', index=0, current=artifact.release_type))
+        artifact.content_type = self._get_from_list(
+            'Artifact.contentType', index=0, current=artifact.content_type)
+        artifact.content_length = self._get_from_list(
+            'Artifact.contentLength', index=0, current=artifact.content_length)
+        artifact.content_checksum = _to_checksum_uri(self._get_from_list(
+            'Artifact.contentChecksum', index=0,
+            current=artifact.content_checksum))
+
+    def _get_set_from_list(self, lookup, index):
+        value = None
+        keywords = None
+        try:
+            keywords = self.blueprint._get(lookup)
+        except KeyError:
+            self.add_error(lookup, sys.exc_info()[1])
+            self.logger.debug(
+                'Could not find \'{}\' in fits2caom2 configuration.'.format(
+                    lookup))
+
+        # if isinstance(keywords, tuple):
+        #     for ii in keywords[0]:
+        #         try:
+        #             value = self.headers[index].get(ii)
+        #             break
+        #         except KeyError:
+        #             self.add_error(lookup, sys.exc_info()[1])
+        #             if keywords[1]:
+        #                 value = keywords[1]
+        #                 self.logger.debug(
+        #                     '{}: assigned default value {}.'.format(lookup,
+        #                                                             value))
+        # elif keywords:
+        #     value = keywords
+        #     self.logger.debug('{}: assigned value {}.'.format(lookup, value))
+        if keywords:
+            value = keywords
+            self.logger.debug('{}: assigned value {}.'.format(lookup, value))
+
+        return value
+
+    def _get_from_list(self, lookup, index, current=None):
+        value = None
+        try:
+            keywords = self.blueprint._get(lookup)
+        except KeyError:
+            self.add_error(lookup, sys.exc_info()[1])
+            self.logger.debug(
+                'Could not find {!r} in fits2caom2 configuration.'.format(
+                    lookup))
+            if current:
+                self.logger.debug(
+                    '{}: using current value of {!r}.'.format(lookup, current))
+                value = current
+            return value
+
+        # if isinstance(keywords, tuple):
+        #     for ii in keywords[0]:
+        #         try:
+        #             value = self.headers[index].get(ii)
+        #             if value:
+        #                 self.logger.debug(
+        #                     '{}: assigned value {} based on keyword {}.'.
+        #                         format(lookup, value, ii))
+        #                 break
+        #         except (KeyError, IndexError) as error:
+        #             if keywords[0].index(ii) == len(keywords[0]) - 1:
+        #                 self.add_error(lookup, sys.exc_info()[1])
+        #             # assign a default value, if one exists
+        #             if keywords[1]:
+        #                 value = keywords[1]
+        #                 self.logger.debug(
+        #                     '{}: assigned default value {}.'.format(lookup,
+        #                                                             value))
+        #     if value is None:
+        #         if current:
+        #             value = current
+        #             self.logger.debug(
+        #                 '{}: used current value {!r}.'.format(lookup, value))
+        #         else:
+        #             # assign a default value, if one exists
+        #             if keywords[1]:
+        #                 value = keywords[1]
+        #                 self.logger.debug(
+        #                     '{}: assigned default value {}.'.format(lookup,
+        #                                                             value))
+        #
+        if keywords:
+            value = keywords
+        elif current:
+            value = current
+
+        self.logger.debug('{}: value is {}'.format(lookup, value))
+        return value
+
+    def add_error(self, key, message):
+        self._errors.append(('{} {} {}'.format(
+            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), key, message)))
+
+    def _to_data_product_type(self, value):
+        return self._to_enum_type(value, DataProductType)
+
+    def _to_calibration_level(self, value):
+        return self._to_enum_type(value, CalibrationLevel)
+
+    def _to_product_type(self, value):
+        return self._to_enum_type(value, ProductType)
+
+    def _to_release_type(self, value):
+        return self._to_enum_type(value, ReleaseType)
+
+    def _to_enum_type(self, value, to_enum_type):
+        if value is None:
+            raise ValueError(
+                'Must set a value of {} for {}.'.format(to_enum_type.__name__,
+                                                        self.logging_name))
+        elif isinstance(value, to_enum_type):
+            return value
+        else:
+            return to_enum_type(value)
+
+
+class GenericParser(Parser):
+    """
+    Extract CAOM2 metadata from files with no WCS information.
+    """
+
+    def __init__(self, obs_blueprint=None):
+        super(GenericParser, self).__init__(obs_blueprint)
+        self.logger = logging.getLogger(__name__)
+
+    def augment_observation(self, observation, artifact_uri, product_id=None):
+        self.logger.debug(
+            'Begin generic CAOM2 observation augmentation for URI {}.'.format(
+                artifact_uri))
+        super(GenericParser, self).augment_observation(
+            observation, artifact_uri, product_id)
+        self.logger.debug(
+            'End generic CAOM2 observation augmentation for {}.'.format(artifact_uri))
+
+    def augment_plane(self, plane, artifact_uri):
+        self.logger.debug(
+            'Begin generic CAOM2 plane augmentation for {}.'.format(artifact_uri))
+        super(GenericParser, self).augment_plane(plane, artifact_uri)
+        self.logger.debug(
+            'End generic CAOM2 plane augmentation for {}.'.format(artifact_uri))
+
+    def augment_artifact(self, artifact):
+        self.logger.debug(
+            'Begin generic CAOM2 artifact augmentation for {}.'.format(
+                self.logging_name))
+        super(GenericParser, self).augment_artifact(artifact)
+        self.logger.debug(
+            'End generic CAOM2 artifact augmentation for {}.'.format(
+                self.logging_name))
+
+
+class FitsParser(Parser):
     """
     Parses a FITS file and extracts the CAOM2 related information which can
     be used to augment an existing CAOM2 observation, plane or artifact. The
@@ -1090,7 +1337,7 @@ class FitsParser(object):
         self._headers = []
         self.parts = 0
         self.file = ''
-        self._errors = []
+        # self._errors = []
         if isinstance(src, list):
             # assume this is the list of headers
             self._headers = src
@@ -1098,10 +1345,7 @@ class FitsParser(object):
             # assume file
             self.file = src
             self._headers = _get_headers_from_fits(self.file)
-        if obs_blueprint:
-            self._blueprint = obs_blueprint
-        else:
-            self.blueprint = ObsBlueprint()
+        super(FitsParser, self).__init__(obs_blueprint, self.file)
         self.apply_config_to_fits()
 
     @property
@@ -1122,35 +1366,16 @@ class FitsParser(object):
         self._blueprint = value
         self.apply_config_to_fits()
 
-    def add_error(self, key, message):
-        self._errors.append(('{} {} {}'.format(
-            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), key, message)))
-
     def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        assert artifact
-        assert isinstance(artifact, Artifact)
-
         self.logger.debug(
             'Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(
                 artifact.uri, len(self.headers)))
 
-        artifact.uri = self._get_from_list('Artifact.uri', index=0,
-                                           current=artifact.uri)
-        artifact.product_type = self._to_product_type(self._get_from_list(
-            'Artifact.productType', index=0, current=artifact.product_type))
-        artifact.release_type = self._to_release_type(self._get_from_list(
-            'Artifact.releaseType', index=0, current=artifact.release_type))
-        artifact.content_type = self._get_from_list(
-            'Artifact.contentType', index=0, current=artifact.content_type)
-        artifact.content_length = self._get_from_list(
-            'Artifact.contentLength', index=0, current=artifact.content_length)
-        artifact.content_checksum = _to_checksum_uri(self._get_from_list(
-            'Artifact.contentChecksum', index=0,
-            current=artifact.content_checksum))
+        super(FitsParser, self).augment_artifact(artifact)
 
         if self.blueprint.get_configed_axes_count() == 0:
             self.logger.debug(
@@ -1226,10 +1451,8 @@ class FitsParser(object):
         self.logger.debug(
             'Begin CAOM2 observation augmentation for URI {}.'.format(
                 artifact_uri))
-
-        assert observation
-        assert isinstance(observation, Observation)
-
+        super(FitsParser, self).augment_observation(observation, artifact_uri,
+                                                    product_id)
         members = self._get_members(observation)
         if members:
             for m in members.split():
@@ -1250,21 +1473,6 @@ class FitsParser(object):
         observation.target_position = self._get_target_position()
         observation.telescope = self._get_telescope()
         observation.environment = self._get_environment()
-
-        plane = None
-        if not product_id:
-            product_id = self._get_from_list('Plane.productID', index=0)
-        assert product_id, 'product ID required'
-
-        for ii in observation.planes:
-            if observation.planes[ii].product_id == product_id:
-                plane = observation.planes[product_id]
-                break
-        if plane is None:
-            plane = Plane(str(product_id))
-            observation.planes[product_id] = plane
-
-        self.augment_plane(plane, artifact_uri)
         self.logger.debug(
             'End CAOM2 observation augmentation for {}.'.format(artifact_uri))
 
@@ -1277,8 +1485,7 @@ class FitsParser(object):
         self.logger.debug(
             'Begin CAOM2 plane augmentation for {}.'.format(artifact_uri))
 
-        assert plane
-        assert isinstance(plane, Plane)
+        super(FitsParser, self).augment_plane(plane, artifact_uri)
 
         plane.meta_release = self._get_datetime(self._get_from_list(
             'Plane.metaRelease', index=0))
@@ -1292,21 +1499,6 @@ class FitsParser(object):
         plane.provenance = self._get_provenance()
         plane.metrics = self._get_metrics()
         plane.quality = self._get_quality()
-
-        artifact = None
-        for ii in plane.artifacts:
-            artifact = plane.artifacts[ii]
-            if artifact.uri == artifact_uri:
-                break
-
-        if artifact is None or artifact.uri != artifact_uri:
-            artifact = Artifact(artifact_uri, self._to_product_type(
-                self._get_from_list('Artifact.productType', index=0)),
-                                self._to_release_type(self._get_from_list(
-                                    'Artifact.releaseType', index=0)))
-            plane.artifacts[artifact_uri] = artifact
-
-        self.augment_artifact(artifact)
 
         self.logger.debug(
             'End CAOM2 plane augmentation for {}.'.format(artifact_uri))
@@ -1776,27 +1968,27 @@ class FitsParser(object):
         self.logger.warning('result is {}'.format(result))
         return result
 
-    def _to_data_product_type(self, value):
-        return self._to_enum_type(value, DataProductType)
-
-    def _to_calibration_level(self, value):
-        return self._to_enum_type(value, CalibrationLevel)
-
-    def _to_product_type(self, value):
-        return self._to_enum_type(value, ProductType)
-
-    def _to_release_type(self, value):
-        return self._to_enum_type(value, ReleaseType)
-
-    def _to_enum_type(self, value, to_enum_type):
-        if value is None:
-            raise ValueError(
-                'Must set a value of {} for {}.'.format(to_enum_type.__name__,
-                                                        self.file))
-        elif isinstance(value, to_enum_type):
-            return value
-        else:
-            return to_enum_type(value)
+    # def _to_data_product_type(self, value):
+    #     return self._to_enum_type(value, DataProductType)
+    #
+    # def _to_calibration_level(self, value):
+    #     return self._to_enum_type(value, CalibrationLevel)
+    #
+    # def _to_product_type(self, value):
+    #     return self._to_enum_type(value, ProductType)
+    #
+    # def _to_release_type(self, value):
+    #     return self._to_enum_type(value, ReleaseType)
+    #
+    # def _to_enum_type(self, value, to_enum_type):
+    #     if value is None:
+    #         raise ValueError(
+    #             'Must set a value of {} for {}.'.format(to_enum_type.__name__,
+    #                                                     self.file))
+    #     elif isinstance(value, to_enum_type):
+    #         return value
+    #     else:
+    #         return to_enum_type(value)
 
 
 class WcsParser(object):
@@ -2500,13 +2692,12 @@ def proc(args, obs_blueprints):
                              release_type=ReleaseType.DATA))
             if file.endswith('.fits'):
                 parser = FitsParser(file, blueprint)
-            elif file.find('.txt') != -1:
-                # explicitly ignore headers for txt files
-                parser = FitsParser([], blueprint)
-            else:
-                # assume headers file
+            elif file.find('.header') != -1:
                 parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
                                     blueprint)
+            else:
+                # explicitly ignore headers for txt and image files
+                parser = GenericParser(blueprint)
         else:
             headers = get_cadc_headers(uri, args.cert)
 

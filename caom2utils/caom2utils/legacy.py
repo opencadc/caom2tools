@@ -123,6 +123,9 @@ class ConvertFromJava(object):
 
 # Mimic the default java fits2caom2.config file content, to support the
 # indirection from named config values to named defaults and overrides.
+#
+# This is for drop-in functionality support only, and should not be relied on
+# going forward.
 _JAVA_CAOM2_CONFIG = {
     'CompositeObservation.members': 'members',
 
