@@ -77,10 +77,11 @@ from caom2 import artifact, part, caom_util, Axis, chunk, \
 from caom2.caom_util import TypedList, TypedOrderedDict
 from ..wcsvalidator import WcsPolarizationState
 import pytest
+import unittest
 
 
 # TemporalWCS validator tests
-class TemporalWCSValidatorTests():
+class TemporalWCSValidatorTests(unittest.TestCase):
     def test_temporalwcs_validator(self):
         good_temporal_wcs = TimeTestUtil.good_wcs()
         assert(good_temporal_wcs.axis.function is not None)
@@ -102,7 +103,7 @@ class TemporalWCSValidatorTests():
             WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
 
 
-class SpatialWCSValidatorTests():
+class SpatialWCSValidatorTests(unittest.TestCase):
     def test_spatialwcs_validator(self):
 
         spatialtest = SpatialTestUtil()
@@ -121,7 +122,7 @@ class SpatialWCSValidatorTests():
     #         WcsValidator.validate_spatial_wcs(position)
 
 
-class SpectralWCSValidatorTests():
+class SpectralWCSValidatorTests(unittest.TestCase):
     def test_spectralwcs_validator(self):
         energyTest = EnergyTestUtil()
         good_spectral_wcs = energyTest.good_wcs()
@@ -138,7 +139,7 @@ class SpectralWCSValidatorTests():
 
 
 # Artifact tests
-class ArtifactWCSValidationTests():
+class ArtifactWCSValidationTests(unittest.TestCase):
     def test_valid_wcs(self):
         a = None
         a = ArtifactTestUtil.get_test_artifact(chunk.ProductType.SCIENCE)
