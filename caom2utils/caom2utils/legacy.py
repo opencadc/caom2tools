@@ -76,6 +76,7 @@ import logging
 import sys
 
 from . import fits2caom2
+import traceback
 
 APP_NAME = 'fits2caom2'
 
@@ -89,7 +90,8 @@ class ConvertFromJava(object):
     """
 
     def __init__(self, blueprint, user_supplied_config):
-        # for a quick lookup of keywords referenced by the plan
+        # invert the dict for a quick lookup of keywords referenced by the plan,
+        # because the blueprint relies on the values, not the keys
         self._inverse_plan = {}
         for key, value in blueprint._plan.items():
             if isinstance(value, tuple):
@@ -99,7 +101,8 @@ class ConvertFromJava(object):
                     else:
                         self._inverse_plan[ii] = [key]
 
-        # for a quick lookup of config reference values
+        # invert the dict for a quick lookup of config reference values,
+        # because the blueprint relies on the values, not the keys
         self._inverse_user_supplied_config = {}
         if user_supplied_config:
             for k, v in user_supplied_config.items():
@@ -123,6 +126,9 @@ class ConvertFromJava(object):
 
 # Mimic the default java fits2caom2.config file content, to support the
 # indirection from named config values to named defaults and overrides.
+#
+# Drop-in use seems to expect that the default config file exists, and
+# therefore certain indirections also exist.
 #
 # This is for drop-in functionality support only, and should not be relied on
 # going forward.
@@ -455,6 +461,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
         logging.debug(
             'Setting user-supplied configuration for {}.'.format(artifact_uri))
         for key, value in config.items():
+            logging.warning('config key {} value {}'.format(key, value))
             try:
 
                 if value.isupper() and value.find('.') == -1:
@@ -571,6 +578,8 @@ def main_app():
         fits2caom2.proc(args, obs_blueprint)
     except Exception as e:
         logging.error(e)
+        tb = traceback.format_exc()
+        logging.debug(tb)
         sys.exit(-1)
 
     logging.info("DONE")

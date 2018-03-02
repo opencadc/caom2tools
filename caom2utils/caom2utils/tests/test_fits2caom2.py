@@ -694,6 +694,79 @@ def test_load_config_overrides():
     assert result == TEST_OVERRIDES
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_chunk_naxis():
+    hdr1 = fits.Header()
+    test_blueprint = ObsBlueprint()
+    test_blueprint.configure_time_axis(3)
+    test_uri = 'ad:CFHT/1709071g.fits.gz'
+    test_defaults = {'CTYPE3': 'TIME'}
+    test_config = {'Chunk.naxis': 'chunk.naxis'}
+    test_overrides = {'chunk.naxis': '1'}
+    update_blueprint(test_blueprint, test_uri, config=test_config,
+                     defaults=test_defaults, overrides=test_overrides)
+    assert test_blueprint._get('Chunk.naxis') == '1', 'default value assigned'
+    FitsParser([hdr1], test_blueprint)
+    assert hdr1['NAXIS'] == 1
+    assert hdr1['ZNAXIS'] == 1
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_multivalue_config():
+    hdr1 = fits.Header()
+    test_blueprint = ObsBlueprint()
+    test_blueprint.configure_position_axes((3,4))
+    test_uri = 'ad:CFHT/1709071g.fits.gz'
+    test_defaults = {}
+    test_config = {
+        'Chunk.position.axis.function.dimension.naxis1': 'naxis1,NAXIS1',
+        'Chunk.position.axis.function.dimension.naxis2': 'naxis2,NAXIS2',
+        'Chunk.position.axis.function.refCoord.coord1.pix': 'crpix1,CRPIX1',
+        'Chunk.position.axis.function.refCoord.coord2.pix': 'crpix2,CRPIX2',
+        'Chunk.position.axis.function.refCoord.coord1.val': 'crval1,CRVAL1',
+        'Chunk.position.axis.function.refCoord.coord2.val': 'crval2,CRVAL2',
+        'Chunk.position.axis.function.cd11': 'cd11,CD1_1',
+        'Chunk.position.axis.function.cd12': 'cd12,CD1_2',
+        'Chunk.position.axis.function.cd21': 'cd21,CD2_1',
+        'Chunk.position.axis.function.cd22': 'cd22,CD2_2'
+    }
+    test_overrides = {
+        'CTYPE3': 'RA---TAN',
+        'CTYPE4': 'DEC--TAN',
+        'CUNIT3': 'deg',
+        'CUNIT4': 'deg',
+        'CTYPE5': 'TIME',
+        'CUNIT5': 'd',
+        'CUNIT1': 'Angstrom',
+        'naxis1': '1',
+        'naxis2': '1',
+        'cd11': '-0.001388',
+        'cd12': '0.0',
+        'cd21': '0.0',
+        'cd22': '0.001388',
+        'crpix1': '1.0',
+        'crval1': '11.9415828064',
+        'crpix2': '1.0',
+        'crval2': '74.8357296676',
+        'NAXIS1': '4200',
+        'CTYPE1': 'WAVE',
+        'CUNIT1': 'Angstrom',
+        'CRVAL1': '4588',
+        'CDELT1': '0.036',
+        'CRPIX1': '2046',
+        'resolvingPower': '50977'
+    }
+
+    update_blueprint(test_blueprint, test_uri, config=test_config,
+                     defaults=test_defaults, overrides=test_overrides)
+    assert test_blueprint._get(
+        'Chunk.position.axis.function.dimension.naxis1') == '1', \
+        'multi-value config'
+    FitsParser([hdr1], test_blueprint)
+    assert hdr1['NAXIS1'] == 4200
+    assert hdr1['CTYPE1'] == 'WAVE'
+
+
 EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
     """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
@@ -824,7 +897,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>1964</caom2:contentLength>
+          <caom2:contentLength>2606</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://""" + text_file + """</caom2:uri>
         </caom2:artifact>
