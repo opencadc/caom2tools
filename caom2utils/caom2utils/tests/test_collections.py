@@ -82,8 +82,6 @@ from mock import patch, Mock
 from six.moves.urllib.parse import urlparse
 import six
 
-import pytest
-
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
@@ -93,7 +91,6 @@ def raise_exit_error():
 
 
 @patch('sys.exit', Mock(side_effect=ImportError))
-# @pytest.mark.skip('')
 def test_differences(directory):
     """
     Note: This tests is parametrized from conftest.py file. Directories
@@ -256,4 +253,3 @@ def _write_obs(obs, fname):
     f = open(fname, 'wb')
     f.write(xml)
     f.close()
-
