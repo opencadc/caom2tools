@@ -1111,7 +1111,6 @@ class Parser:
             plane.artifacts[artifact_uri] = artifact
         self.augment_artifact(artifact)
 
-
     @abstractmethod
     def augment_artifact(self, artifact):
         """
@@ -1145,22 +1144,6 @@ class Parser:
             self.logger.debug(
                 'Could not find \'{}\' in fits2caom2 configuration.'.format(
                     lookup))
-
-        # if isinstance(keywords, tuple):
-        #     for ii in keywords[0]:
-        #         try:
-        #             value = self.headers[index].get(ii)
-        #             break
-        #         except KeyError:
-        #             self.add_error(lookup, sys.exc_info()[1])
-        #             if keywords[1]:
-        #                 value = keywords[1]
-        #                 self.logger.debug(
-        #                     '{}: assigned default value {}.'.format(lookup,
-        #                                                             value))
-        # elif keywords:
-        #     value = keywords
-        #     self.logger.debug('{}: assigned value {}.'.format(lookup, value))
         if keywords:
             value = keywords
             self.logger.debug('{}: assigned value {}.'.format(lookup, value))
@@ -1181,38 +1164,6 @@ class Parser:
                     '{}: using current value of {!r}.'.format(lookup, current))
                 value = current
             return value
-
-        # if isinstance(keywords, tuple):
-        #     for ii in keywords[0]:
-        #         try:
-        #             value = self.headers[index].get(ii)
-        #             if value:
-        #                 self.logger.debug(
-        #                     '{}: assigned value {} based on keyword {}.'.
-        #                         format(lookup, value, ii))
-        #                 break
-        #         except (KeyError, IndexError) as error:
-        #             if keywords[0].index(ii) == len(keywords[0]) - 1:
-        #                 self.add_error(lookup, sys.exc_info()[1])
-        #             # assign a default value, if one exists
-        #             if keywords[1]:
-        #                 value = keywords[1]
-        #                 self.logger.debug(
-        #                     '{}: assigned default value {}.'.format(lookup,
-        #                                                             value))
-        #     if value is None:
-        #         if current:
-        #             value = current
-        #             self.logger.debug(
-        #                 '{}: used current value {!r}.'.format(lookup, value))
-        #         else:
-        #             # assign a default value, if one exists
-        #             if keywords[1]:
-        #                 value = keywords[1]
-        #                 self.logger.debug(
-        #                     '{}: assigned default value {}.'.format(lookup,
-        #                                                             value))
-        #
         if keywords:
             value = keywords
         elif current:
@@ -1264,14 +1215,17 @@ class GenericParser(Parser):
         super(GenericParser, self).augment_observation(
             observation, artifact_uri, product_id)
         self.logger.debug(
-            'End generic CAOM2 observation augmentation for {}.'.format(artifact_uri))
+            'End generic CAOM2 observation augmentation for {}.'.format(
+                artifact_uri))
 
     def augment_plane(self, plane, artifact_uri):
         self.logger.debug(
-            'Begin generic CAOM2 plane augmentation for {}.'.format(artifact_uri))
+            'Begin generic CAOM2 plane augmentation for {}.'.format(
+                artifact_uri))
         super(GenericParser, self).augment_plane(plane, artifact_uri)
         self.logger.debug(
-            'End generic CAOM2 plane augmentation for {}.'.format(artifact_uri))
+            'End generic CAOM2 plane augmentation for {}.'.format(
+                artifact_uri))
 
     def augment_artifact(self, artifact):
         self.logger.debug(
