@@ -73,7 +73,7 @@ CRPIX5                      = 0.500000
 CRVAL5                      = 57600.536713
 CDELT5                      = 0.000000
 
-?ad:DAO/dao_c122_2016_007942.fits
+?ad:DAO/dao_c122_2016_007942.fits.gz
 artifact.productType        = calibration
 
 ?ad:DAO/dao_c122_2016_007942_256.png

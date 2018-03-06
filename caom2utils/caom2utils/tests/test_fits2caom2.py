@@ -87,6 +87,7 @@ import os
 import sys
 
 import pytest
+import logging
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -372,7 +373,7 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert (bad_product_id == stderr_mock.getvalue())
+        assert bad_product_id == stderr_mock.getvalue()
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -381,7 +382,7 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert (missing_product_id == stderr_mock.getvalue())
+        assert missing_product_id == stderr_mock.getvalue()
 
     # missing required --observation
     """
@@ -709,62 +710,6 @@ def test_chunk_naxis():
     FitsParser([hdr1], test_blueprint)
     assert hdr1['NAXIS'] == 1
     assert hdr1['ZNAXIS'] == 1
-
-
-@pytest.mark.skipif(single_test, reason='Single test mode')
-def test_multivalue_config():
-    hdr1 = fits.Header()
-    test_blueprint = ObsBlueprint()
-    test_blueprint.configure_position_axes((3,4))
-    test_uri = 'ad:CFHT/1709071g.fits.gz'
-    test_defaults = {}
-    test_config = {
-        'Chunk.position.axis.function.dimension.naxis1': 'naxis1,NAXIS1',
-        'Chunk.position.axis.function.dimension.naxis2': 'naxis2,NAXIS2',
-        'Chunk.position.axis.function.refCoord.coord1.pix': 'crpix1,CRPIX1',
-        'Chunk.position.axis.function.refCoord.coord2.pix': 'crpix2,CRPIX2',
-        'Chunk.position.axis.function.refCoord.coord1.val': 'crval1,CRVAL1',
-        'Chunk.position.axis.function.refCoord.coord2.val': 'crval2,CRVAL2',
-        'Chunk.position.axis.function.cd11': 'cd11,CD1_1',
-        'Chunk.position.axis.function.cd12': 'cd12,CD1_2',
-        'Chunk.position.axis.function.cd21': 'cd21,CD2_1',
-        'Chunk.position.axis.function.cd22': 'cd22,CD2_2'
-    }
-    test_overrides = {
-        'CTYPE3': 'RA---TAN',
-        'CTYPE4': 'DEC--TAN',
-        'CUNIT3': 'deg',
-        'CUNIT4': 'deg',
-        'CTYPE5': 'TIME',
-        'CUNIT5': 'd',
-        'CUNIT1': 'Angstrom',
-        'naxis1': '1',
-        'naxis2': '1',
-        'cd11': '-0.001388',
-        'cd12': '0.0',
-        'cd21': '0.0',
-        'cd22': '0.001388',
-        'crpix1': '1.0',
-        'crval1': '11.9415828064',
-        'crpix2': '1.0',
-        'crval2': '74.8357296676',
-        'NAXIS1': '4200',
-        'CTYPE1': 'WAVE',
-        'CUNIT1': 'Angstrom',
-        'CRVAL1': '4588',
-        'CDELT1': '0.036',
-        'CRPIX1': '2046',
-        'resolvingPower': '50977'
-    }
-
-    update_blueprint(test_blueprint, test_uri, config=test_config,
-                     defaults=test_defaults, overrides=test_overrides)
-    assert test_blueprint._get(
-        'Chunk.position.axis.function.dimension.naxis1') == '1', \
-        'multi-value config'
-    FitsParser([hdr1], test_blueprint)
-    assert hdr1['NAXIS1'] == 4200
-    assert hdr1['CTYPE1'] == 'WAVE'
 
 
 EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>

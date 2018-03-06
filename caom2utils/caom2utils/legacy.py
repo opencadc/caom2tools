@@ -461,21 +461,12 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
         logging.debug(
             'Setting user-supplied configuration for {}.'.format(artifact_uri))
         for key, value in config.items():
-            logging.warning('config key {} value {}'.format(key, value))
             try:
-                lookups = value.split(',')
-                for lookup in lookups:
-                    logging.warning('index is {}'.format(lookup))
-                    if lookup.isupper() and lookup.find('.') == -1:
-                        # assume FITS keywords, in the 0th extension,
-                        # and add them to the blueprint
-                        for caom2_key in convert.get_caom2_elements(key):
-                            obs_blueprint.set_fits_attribute(caom2_key, [lookup])
-                    # else:
-                    #     # assume indirect lookup, add to the blueprint
-                    #     for caom2_key in convert.get_caom2_elements(key):
-                    #         logging.warning('caom2_key is {}'.format(caom2_key))
-                    #         obs_blueprint.set(caom2_key, [lookup])
+                if value.isupper() and value.find('.') == -1:
+                    # assume FITS keywords, in the 0th extension,
+                    # and add them to the blueprint
+                    for caom2_key in convert.get_caom2_elements(key):
+                        obs_blueprint.set_fits_attribute(caom2_key, [value])
             except ValueError:
                 errors.append(('{}: {}'.format(key, sys.exc_info()[1])))
         logging.debug(
@@ -578,7 +569,7 @@ def main_app():
             result = update_blueprint(obs_blueprint[uri], uri,
                                       config, defaults, overrides)
             if result:
-                logging.warning(
+                logging.debug(
                     'Errors parsing the config files: {}'.format(result))
 
     try:
@@ -586,7 +577,7 @@ def main_app():
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()
-        logging.error(tb)
+        logging.debug(tb)
         sys.exit(-1)
 
     logging.info("DONE")

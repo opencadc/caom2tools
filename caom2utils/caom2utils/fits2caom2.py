@@ -1342,7 +1342,7 @@ class FitsParser(Parser):
             self.file = src
             self._headers = _get_headers_from_fits(self.file)
         super(FitsParser, self).__init__(obs_blueprint, self.file)
-        self.apply_config_to_fits()
+        self.apply_blueprint_to_fits()
 
     @property
     def headers(self):
@@ -1360,7 +1360,7 @@ class FitsParser(Parser):
     @blueprint.setter
     def blueprint(self, value):
         self._blueprint = value
-        self.apply_config_to_fits()
+        self.apply_blueprint_to_fits()
 
     def augment_artifact(self, artifact):
         """
@@ -1499,7 +1499,7 @@ class FitsParser(Parser):
         self.logger.debug(
             'End CAOM2 plane augmentation for {}.'.format(artifact_uri))
 
-    def apply_config_to_fits(self):
+    def apply_blueprint_to_fits(self):
 
         # pointers that are short to type
         exts = self.blueprint._extensions
@@ -1677,7 +1677,6 @@ class FitsParser(Parser):
         moving = self._get_from_list('Observation.target.moving', index=0)
         self.logger.debug('End CAOM2 Target augmentation.')
         if name:
-            self.logger.warning('standard is {}, moving is {}'.format(standard, moving))
             return Target(str(name), target_type, standard, redshift,
                           keywords, moving)
         else:
@@ -1964,30 +1963,7 @@ class FitsParser(Parser):
             result = False
         elif from_value == 'true':
             result = True
-        self.logger.warning('result is {}'.format(result))
         return result
-
-    # def _to_data_product_type(self, value):
-    #     return self._to_enum_type(value, DataProductType)
-    #
-    # def _to_calibration_level(self, value):
-    #     return self._to_enum_type(value, CalibrationLevel)
-    #
-    # def _to_product_type(self, value):
-    #     return self._to_enum_type(value, ProductType)
-    #
-    # def _to_release_type(self, value):
-    #     return self._to_enum_type(value, ReleaseType)
-    #
-    # def _to_enum_type(self, value, to_enum_type):
-    #     if value is None:
-    #         raise ValueError(
-    #             'Must set a value of {} for {}.'.format(to_enum_type.__name__,
-    #                                                     self.file))
-    #     elif isinstance(value, to_enum_type):
-    #         return value
-    #     else:
-    #         return to_enum_type(value)
 
 
 class WcsParser(object):

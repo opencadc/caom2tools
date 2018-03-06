@@ -1,3 +1,4 @@
+
 <caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-3b81-0161dda4cb68">
   <caom2:collection>DAO</caom2:collection>
   <caom2:observationID>dao_c122_2016_007777</caom2:observationID>
@@ -109,14 +110,14 @@
                     <caom2:axis>
                       <caom2:axis>
                         <caom2:ctype>WAVE</caom2:ctype>
-                        <caom2:cunit>Angstrom</caom2:cunit>
+                        <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:function>
                         <caom2:naxis>4200</caom2:naxis>
-                        <caom2:delta>0.036</caom2:delta>
+                        <caom2:delta>3.6e-12</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>2046.0</caom2:pix>
-                          <caom2:val>4588.0</caom2:val>
+                          <caom2:val>4.588e-07</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
