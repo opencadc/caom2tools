@@ -77,6 +77,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from caom2.common import CaomObject
 from caom2.caom_util import TypedSet, TypedOrderedDict, TypedList
+from caom2 import Chunk
 
 
 __all__ = ['get_differences']
@@ -224,17 +225,28 @@ def _get_sequence_differences(expected, actual, parent):
     match_found = False
     for ex_index, e in enumerate(expected):
         label = '{}[\'{}\']'.format(parent, ex_index)
-        for act_index, a in enumerate(actual):
-            temp_report = get_differences(e, a, label)
-            if temp_report is None:
-                match_found = True
-                actual_copy.remove(a)
-                expected_copy.remove(e)
-                break
-        if not match_found:
-            report.append(
-                'Sequence:: {} expected not found in actual'.format(label))
-        match_found = False
+        if isinstance(e, Chunk):
+            if len(expected) > 1:
+                report.append('Sequence:: more Chunks than expected {}'.format(
+                    len(expected)))
+            temp_report = get_differences(e, actual[0])
+            if temp_report is not None:
+                report.extend(temp_report)
+            actual_copy.pop()
+            expected_copy.pop()
+            break
+        else:
+            for act_index, a in enumerate(actual):
+                temp_report = get_differences(e, a, label)
+                if temp_report is None:
+                    match_found = True
+                    actual_copy.remove(a)
+                    expected_copy.remove(e)
+                    break
+            if not match_found:
+                report.append(
+                    'Sequence:: {} expected not found in actual'.format(label))
+            match_found = False
 
     for e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, e)
