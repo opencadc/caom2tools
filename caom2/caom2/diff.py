@@ -203,11 +203,11 @@ def _get_sequence_differences(expected, actual, parent):
     """Reports on how two sequences are different."""
     report = []
     if not expected and actual:
-        report.extend('Sequence:: {} not expected'.format(parent))
+        report.append('Sequence:: {} not expected'.format(parent))
         return report
 
     if expected and not actual:
-        report.extend('Sequence:: {} not found'.format(parent))
+        report.append('Sequence:: {} not found'.format(parent))
         return report
 
     if not expected and not actual:
@@ -222,7 +222,6 @@ def _get_sequence_differences(expected, actual, parent):
                 parent, len(expected_copy), len(actual_copy)))
         return report
 
-    match_found = False
     for ex_index, e in enumerate(expected):
         label = '{}[\'{}\']'.format(parent, ex_index)
         if isinstance(e, Chunk):
@@ -236,6 +235,8 @@ def _get_sequence_differences(expected, actual, parent):
             expected_copy.pop()
             break
         else:
+            match_found = False
+            tracking_report = None
             for act_index, a in enumerate(actual):
                 temp_report = get_differences(e, a, label)
                 if temp_report is None:
@@ -243,10 +244,15 @@ def _get_sequence_differences(expected, actual, parent):
                     actual_copy.remove(a)
                     expected_copy.remove(e)
                     break
+                else:
+                    # pick the report with the least number of errors
+                    if tracking_report:
+                        if len(temp_report) < len(tracking_report):
+                            tracking_report = temp_report
+                    else:
+                        tracking_report = temp_report
             if not match_found:
-                report.append(
-                    'Sequence:: {} expected not found in actual'.format(label))
-            match_found = False
+                report.extend(tracking_report)
 
     for e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, e)
