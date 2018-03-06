@@ -253,4 +253,3 @@ def _write_obs(obs, fname):
     f = open(fname, 'wb')
     f.write(xml)
     f.close()
-
