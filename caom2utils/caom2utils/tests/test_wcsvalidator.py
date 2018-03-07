@@ -224,8 +224,6 @@ class TimeTestUtil:
     def bad_delta():
         axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
         temporal_wcs = chunk.TemporalWCS(axis_1d)
-        temporal_wcs.exposure = 300.0
-        temporal_wcs.resolution = 0.1
 
         # delta == 0.0 is bad
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
