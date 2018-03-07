@@ -91,16 +91,24 @@ class TemporalWCSValidatorTests(unittest.TestCase):
 
     def test_bad_temporalwcs(self):
         bad_temporal_wcs = TimeTestUtil.bad_ctype_wcs()
-        with pytest.raises(InvalidWCSError):
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
+        assert('unexpected TIMESYS, CTYPE' in str(ex))
 
         bad_temporal_wcs = TimeTestUtil.bad_cunit_wcs()
-        with pytest.raises(InvalidWCSError):
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
+        assert('unexpected CUNIT' in str(ex))
 
         bad_temporal_wcs = TimeTestUtil.bad_range_wcs()
-        with pytest.raises(InvalidWCSError):
+        with pytest.raises(InvalidWCSError) as ex:
             WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
+        assert('range.end not > range.start' in str(ex))
+
+        bad_temporal_wcs = TimeTestUtil.bad_delta()
+        with pytest.raises(InvalidWCSError) as ex:
+            WcsValidator.validate_temporal_wcs(bad_temporal_wcs)
+        assert('delta is 0.0' in str(ex))
 
 
 class SpatialWCSValidatorTests(unittest.TestCase):
@@ -211,6 +219,19 @@ class TimeTestUtil:
         badcunit = TimeTestUtil.good_wcs()
         badcunit.axis.axis.cunit = "foo"
         return badcunit
+
+    @staticmethod
+    def bad_delta():
+        axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
+        temporal_wcs = chunk.TemporalWCS(axis_1d)
+        temporal_wcs.exposure = 300.0
+        temporal_wcs.resolution = 0.1
+
+        # delta == 0.0 is bad
+        ref_coord = wcs.RefCoord(float(1.0), float(2.0))
+        temporal_wcs.axis.function = CoordFunction1D(int(100), 0.0, ref_coord)
+
+        return temporal_wcs
 
     @staticmethod
     def bad_range_wcs():
