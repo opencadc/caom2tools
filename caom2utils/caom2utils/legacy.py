@@ -80,8 +80,6 @@ import traceback
 
 APP_NAME = 'fits2caom2'
 
-__all__ = ['main_app', 'update_blueprint', 'apply_java_config']
-
 
 class ConvertFromJava(object):
     """
@@ -365,7 +363,7 @@ def load_config(file_name):
 
 def _update_axis_info(parser, defaults, overrides, config):
     # look for info regarding axis types in the default and override file
-    assert config is not None
+    assert config is not None, 'Empty config when updating axis info.'
     energy_axis = None
     polarization_axis = None
     time_axis = None

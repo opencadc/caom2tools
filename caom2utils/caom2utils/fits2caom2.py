@@ -93,7 +93,7 @@ from caom2 import ObservationURI, ObservableAxis, Slice
 import logging
 import re
 import sys
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 from six import add_metaclass
 from hashlib import md5
 from os import stat
@@ -867,7 +867,7 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0
+        assert extension >= 0, 'Extension count failure when setting a value.'
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -887,8 +887,9 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert isinstance(fits_attribute_list, list)
-        assert extension >= 0
+        assert isinstance(fits_attribute_list,
+                          list), 'Type mis-match for fits_attribute_list'
+        assert extension >= 0, 'Extension count failure when setting a value'
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -910,7 +911,7 @@ class ObsBlueprint(object):
         value or KeyError if the caom2 element does not exists.
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0
+        assert extension >= 0, 'Extension failure when adding FITS attribute.'
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -960,7 +961,7 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0
+        assert extension >= 0, 'Extension failure when setting default.'
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -990,7 +991,7 @@ class ObsBlueprint(object):
         :raises exceptions if the element or extension not found
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0
+        assert extension >= 0, 'Extension failure when deleting.'
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1042,10 +1043,9 @@ class ObsBlueprint(object):
 
 
 @add_metaclass(ABCMeta)
-class Parser:
+class GenericParser:
     """
-    Abstract class to identify the methods for extracting CAOM2 related
-    information from metadata.
+    Extract CAOM2 metadata from files with no WCS information.
     """
     def __init__(self, obs_blueprint=None, logging_name=None):
         if obs_blueprint:
@@ -1064,7 +1064,6 @@ class Parser:
     def blueprint(self, value):
         self._blueprint = value
 
-    @abstractmethod
     def augment_observation(self, observation, artifact_uri, product_id=None):
         """
         Augments a given observation with plane structure only.
@@ -1072,8 +1071,12 @@ class Parser:
         :param artifact_uri: the key for finding the artifact to augment
         :param product_id: the key for finding for the plane to augment
         """
-        assert observation
-        assert isinstance(observation, Observation)
+        self.logger.debug(
+            'Begin generic CAOM2 observation augmentation for URI {}.'.format(
+                artifact_uri))
+        assert observation, 'observation instance required.'
+        assert isinstance(observation,
+                          Observation), 'Observation type mis-match.'
 
         plane = None
         if not product_id:
@@ -1088,16 +1091,21 @@ class Parser:
             plane = Plane(str(product_id))
             observation.planes[product_id] = plane
         self.augment_plane(plane, artifact_uri)
+        self.logger.debug(
+            'End generic CAOM2 observation augmentation for {}.'.format(
+                artifact_uri))
 
-    @abstractmethod
     def augment_plane(self, plane, artifact_uri):
         """
         Augments a given plane with artifact structure only.
         :param plane: existing CAOM2 plane to be augmented.
         :param artifact_uri:
         """
-        assert plane
-        assert isinstance(plane, Plane)
+        self.logger.debug(
+            'Begin generic CAOM2 plane augmentation for {}.'.format(
+                artifact_uri))
+        assert plane, 'plane instance required.'
+        assert isinstance(plane, Plane), 'Plane type mis-match.'
         artifact = None
         for ii in plane.artifacts:
             artifact = plane.artifacts[ii]
@@ -1110,15 +1118,20 @@ class Parser:
                                     'Artifact.releaseType', index=0)))
             plane.artifacts[artifact_uri] = artifact
         self.augment_artifact(artifact)
+        self.logger.debug(
+            'End generic CAOM2 plane augmentation for {}.'.format(
+                artifact_uri))
 
-    @abstractmethod
     def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        assert artifact
-        assert isinstance(artifact, Artifact)
+        self.logger.debug(
+            'Begin generic CAOM2 artifact augmentation for {}.'.format(
+                self.logging_name))
+        assert artifact, 'artifact instance required.'
+        assert isinstance(artifact, Artifact), 'Artifact type mis-match'
 
         artifact.uri = self._get_from_list('Artifact.uri', index=0,
                                            current=artifact.uri)
@@ -1133,6 +1146,9 @@ class Parser:
         artifact.content_checksum = _to_checksum_uri(self._get_from_list(
             'Artifact.contentChecksum', index=0,
             current=artifact.content_checksum))
+        self.logger.debug(
+            'End generic CAOM2 artifact augmentation for {}.'.format(
+                self.logging_name))
 
     def _get_set_from_list(self, lookup, index):
         value = None
@@ -1199,45 +1215,7 @@ class Parser:
             return to_enum_type(value)
 
 
-class GenericParser(Parser):
-    """
-    Extract CAOM2 metadata from files with no WCS information.
-    """
-
-    def __init__(self, obs_blueprint=None):
-        super(GenericParser, self).__init__(obs_blueprint)
-        self.logger = logging.getLogger(__name__)
-
-    def augment_observation(self, observation, artifact_uri, product_id=None):
-        self.logger.debug(
-            'Begin generic CAOM2 observation augmentation for URI {}.'.format(
-                artifact_uri))
-        super(GenericParser, self).augment_observation(
-            observation, artifact_uri, product_id)
-        self.logger.debug(
-            'End generic CAOM2 observation augmentation for {}.'.format(
-                artifact_uri))
-
-    def augment_plane(self, plane, artifact_uri):
-        self.logger.debug(
-            'Begin generic CAOM2 plane augmentation for {}.'.format(
-                artifact_uri))
-        super(GenericParser, self).augment_plane(plane, artifact_uri)
-        self.logger.debug(
-            'End generic CAOM2 plane augmentation for {}.'.format(
-                artifact_uri))
-
-    def augment_artifact(self, artifact):
-        self.logger.debug(
-            'Begin generic CAOM2 artifact augmentation for {}.'.format(
-                self.logging_name))
-        super(GenericParser, self).augment_artifact(artifact)
-        self.logger.debug(
-            'End generic CAOM2 artifact augmentation for {}.'.format(
-                self.logging_name))
-
-
-class FitsParser(Parser):
+class FitsParser(GenericParser):
     """
     Parses a FITS file and extracts the CAOM2 related information which can
     be used to augment an existing CAOM2 observation, plane or artifact. The
@@ -1743,7 +1721,7 @@ class FitsParser(Parser):
                             '{}: assigned value {} based on keyword {}.'.
                             format(lookup, value, ii))
                         break
-                except (KeyError, IndexError) as error:
+                except (KeyError, IndexError):
                     if keywords[0].index(ii) == len(keywords[0]) - 1:
                         self.add_error(lookup, sys.exc_info()[1])
                     # assign a default value, if one exists
@@ -1962,8 +1940,8 @@ class WcsParser(object):
         Augments the energy information in a chunk
         :param chunk:
         """
-        assert chunk
-        assert isinstance(chunk, Chunk)
+        assert chunk, 'chunk instance required.'
+        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
         # get the energy axis
         energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
@@ -2010,8 +1988,8 @@ class WcsParser(object):
         """
         self.logger.debug('Begin Spatial WCS augmentation.')
 
-        assert chunk
-        assert isinstance(chunk, Chunk)
+        assert chunk, 'chunk instance required.'
+        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
         position_axes_indices = self._get_position_axis()
         if not position_axes_indices:
@@ -2047,8 +2025,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin TemporalWCS augmentation.')
-        assert chunk
-        assert isinstance(chunk, Chunk)
+        assert chunk, 'chunk instance required.'
+        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
         time_axis_index = self._get_axis_index(TIME_KEYWORDS)
 
@@ -2090,8 +2068,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin Polarization WCS augmentation.')
-        assert chunk
-        assert isinstance(chunk, Chunk)
+        assert chunk, 'chunk instance required.'
+        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
         polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
         if polarization_axis_index is None:
@@ -2123,8 +2101,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin Observable WCS augmentation.')
-        assert chunk
-        assert isinstance(chunk, Chunk)
+        assert chunk, 'chunk instance required.'
+        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
         observable_axis_index = self._get_axis_index(OBSERVABLE_CTYPES)
         if observable_axis_index is None:

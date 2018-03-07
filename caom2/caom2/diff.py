@@ -231,12 +231,12 @@ def _get_sequence_differences(expected, actual, parent):
             temp_report = get_differences(e, actual[0])
             if temp_report is not None:
                 report.extend(temp_report)
-            actual_copy.pop()
-            expected_copy.pop()
-            break
+            return report if len(report) > 0 else None
         else:
             match_found = False
             tracking_report = None
+            tracking_actual = None
+            tracking_expected = None
             for act_index, a in enumerate(actual):
                 temp_report = get_differences(e, a, label)
                 if temp_report is None:
@@ -249,10 +249,16 @@ def _get_sequence_differences(expected, actual, parent):
                     if tracking_report:
                         if len(temp_report) < len(tracking_report):
                             tracking_report = temp_report
+                            tracking_actual = a
+                            tracking_expected = e
                     else:
                         tracking_report = temp_report
+                        tracking_actual = a
+                        tracking_expected = e
             if not match_found:
                 report.extend(tracking_report)
+                actual_copy.remove(tracking_actual)
+                expected_copy.remove(tracking_expected)
 
     for e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, e)
