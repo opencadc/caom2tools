@@ -97,15 +97,18 @@ class TimeUtil:
         pass
 
     @staticmethod
-    def range1d_to_interval(temporal_wcs, axis_1d):
+    def range1d_to_interval(temporal_wcs, range_1d):
         TimeUtil.validate_wcs(temporal_wcs)
 
         # TODO: (comment pulled from Java code):
         # if mjdref has a value then the units of axis values could be any time
         # units, like days, hours, minutes, seconds, and smaller
         # since they are offsets from mjdref
-        a = axis_1d.getStart().val
-        b = axis_1d.getEnd().val
+        a = range_1d.start.val
+        b = range_1d.end.val
+        if b <= a:
+            raise ValueError("range.end not > range.start in Temporal WCS")
+
         if temporal_wcs.mjdref is not None:
             a += float(temporal_wcs.mjdref)
             b += float(temporal_wcs.mjdref)
@@ -126,6 +129,8 @@ class TimeUtil:
             p2 = float(function_1d.naxis + 0.5)
             a = pix2val(function_1d, p1)
             b = pix2val(function_1d, p2)
+            if function_1d.delta == 0.0:
+                raise ValueError('delta is 0.0')
 
             if temporal_wcs.mjdref is not None:
                 a += float(temporal_wcs.mjdref)
@@ -133,8 +138,9 @@ class TimeUtil:
 
             return shape.SubInterval(min(a, b), max(a, b))
 
-        except Exception:
-            raise ValueError("Invalid function in Temporal WCS")
+        except Exception as ex:
+            raise ValueError(
+                "Invalid function in Temporal WCS: {}".format(repr(ex)))
 
     @staticmethod
     def validate_wcs(temporal_wcs):
