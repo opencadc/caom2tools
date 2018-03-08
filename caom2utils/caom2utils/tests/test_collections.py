@@ -82,7 +82,6 @@ from mock import patch, Mock
 from six.moves.urllib.parse import urlparse
 import six
 
-
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
@@ -114,7 +113,7 @@ def test_differences(directory):
     assert defaults
     overrides = _get_parameter('override', directory)
     assert overrides
-    data_files = _get_file('header', directory)
+    data_files = _get_files(['header', 'png'], directory)
     assert data_files
     data_files_parameter = _get_data_files_parameter(data_files)
 
@@ -125,7 +124,7 @@ def test_differences(directory):
             return file_meta[1][(archive, file_id)]
         data_client_mock.return_value.get_file_info.side_effect = get_file_info
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('fits2caom2 '
+        sys.argv = ('fits2caom2 --dumpconfig '
                     '{} -o {} --observation {} {} {} {} {} {} {} '.format(
                         data_files_parameter, temp.name, expected.collection,
                         expected.observation_id,
@@ -213,6 +212,15 @@ def _get_file(pattern, dir_name):
         return files
     else:
         return None
+
+
+def _get_files(patterns, dir_name):
+    files = []
+    for pattern in patterns:
+        temp = _get_file(pattern, dir_name)
+        if temp:
+            files.extend(temp)
+    return files
 
 
 def _compare_observations(expected, actual, output_dir):

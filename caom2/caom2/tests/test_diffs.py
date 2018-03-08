@@ -66,7 +66,6 @@
 #
 # ***********************************************************************
 #
-
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -130,3 +129,22 @@ class TestCaomUtil(unittest.TestCase):
 
         report = diff.get_differences(seq1, seq2, 'samples')
         assert report is None
+
+        for k, v in enumerate(seq2.bounds.samples):
+            seq2.bounds.samples[k].pix = 0.0
+        report = diff.get_differences(seq1, seq2, 'samples')
+        assert report is not None
+        assert len(report) == 2
+
+    def test_chunks(self):
+        instances = caom_test_instances.Caom2TestInstances()
+        seq1 = instances.get_chunks()
+        seq2 = instances.get_chunks()
+
+        report = diff.get_differences(seq1, seq2, 'chunks')
+        assert report is None
+
+        seq2[0].observable.independent.bin = 0
+        report = diff.get_differences(seq1, seq2, 'chunks')
+        assert report is not None
+        assert len(report) == 1

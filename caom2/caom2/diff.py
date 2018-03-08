@@ -77,6 +77,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from caom2.common import CaomObject
 from caom2.caom_util import TypedSet, TypedOrderedDict, TypedList
+from caom2 import Chunk
 
 
 __all__ = ['get_differences']
@@ -202,11 +203,11 @@ def _get_sequence_differences(expected, actual, parent):
     """Reports on how two sequences are different."""
     report = []
     if not expected and actual:
-        report.extend('Sequence:: {} not expected'.format(parent))
+        report.append('Sequence:: {} not expected'.format(parent))
         return report
 
     if expected and not actual:
-        report.extend('Sequence:: {} not found'.format(parent))
+        report.append('Sequence:: {} not found'.format(parent))
         return report
 
     if not expected and not actual:
@@ -221,20 +222,43 @@ def _get_sequence_differences(expected, actual, parent):
                 parent, len(expected_copy), len(actual_copy)))
         return report
 
-    match_found = False
     for ex_index, e in enumerate(expected):
         label = '{}[\'{}\']'.format(parent, ex_index)
-        for act_index, a in enumerate(actual):
-            temp_report = get_differences(e, a, label)
-            if temp_report is None:
-                match_found = True
-                actual_copy.remove(a)
-                expected_copy.remove(e)
-                break
-        if not match_found:
-            report.append(
-                'Sequence:: {} expected not found in actual'.format(label))
-        match_found = False
+        if isinstance(e, Chunk):
+            if len(expected) > 1:
+                report.append('Sequence:: more Chunks than expected {}'.format(
+                    len(expected)))
+            temp_report = get_differences(e, actual[0])
+            if temp_report is not None:
+                report.extend(temp_report)
+            return report if len(report) > 0 else None
+        else:
+            match_found = False
+            tracking_report = None
+            tracking_actual = None
+            tracking_expected = None
+            for act_index, a in enumerate(actual):
+                temp_report = get_differences(e, a, label)
+                if temp_report is None:
+                    match_found = True
+                    actual_copy.remove(a)
+                    expected_copy.remove(e)
+                    break
+                else:
+                    # pick the report with the least number of errors
+                    if tracking_report:
+                        if len(temp_report) < len(tracking_report):
+                            tracking_report = temp_report
+                            tracking_actual = a
+                            tracking_expected = e
+                    else:
+                        tracking_report = temp_report
+                        tracking_actual = a
+                        tracking_expected = e
+            if not match_found:
+                report.extend(tracking_report)
+                actual_copy.remove(tracking_actual)
+                expected_copy.remove(tracking_expected)
 
     for e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, e)

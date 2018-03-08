@@ -1,0 +1,138 @@
+
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-eb90-0161dda50a92">
+  <caom2:collection>DAO</caom2:collection>
+  <caom2:observationID>dao_c122_2016_007830</caom2:observationID>
+  <caom2:metaRelease>2016-07-29T18:52:10.000</caom2:metaRelease>
+  <caom2:algorithm>
+    <caom2:name>exposure</caom2:name>
+  </caom2:algorithm>
+  <caom2:type>flat</caom2:type>
+  <caom2:intent>calibration</caom2:intent>
+  <caom2:proposal>
+    <caom2:id>DAO122_2016C1</caom2:id>
+    <caom2:pi>Koubsky</caom2:pi>
+  </caom2:proposal>
+  <caom2:target>
+    <caom2:name>FLAT</caom2:name>
+    <caom2:type>object</caom2:type>
+    <caom2:standard>false</caom2:standard>
+    <caom2:moving>false</caom2:moving>
+  </caom2:target>
+  <caom2:telescope>
+    <caom2:name>DAO 1.2-m</caom2:name>
+    <caom2:geoLocationX>-2331226.78834</caom2:geoLocationX>
+    <caom2:geoLocationY>-3532798.9829</caom2:geoLocationY>
+    <caom2:geoLocationZ>4755607.32183</caom2:geoLocationZ>
+  </caom2:telescope>
+  <caom2:instrument>
+    <caom2:name>McKellar Spectrograph</caom2:name>
+  </caom2:instrument>
+  <caom2:environment>
+    <caom2:humidity>46.5</caom2:humidity>
+    <caom2:photometric>false</caom2:photometric>
+  </caom2:environment>
+  <caom2:planes>
+    <caom2:plane caom2:id="00000000-0000-0000-eb90-0161dda5180d">
+      <caom2:productID>dao_c122_2016_007830</caom2:productID>
+      <caom2:metaRelease>2016-07-29T18:52:10.000</caom2:metaRelease>
+      <caom2:dataRelease>2016-07-29T18:52:34.000</caom2:dataRelease>
+      <caom2:dataProductType>spectrum</caom2:dataProductType>
+      <caom2:calibrationLevel>1</caom2:calibrationLevel>
+      <caom2:provenance>
+        <caom2:name>DAO unprocessed data</caom2:name>
+        <caom2:project>DAO Science Archive</caom2:project>
+        <caom2:producer>NRC Herzberg</caom2:producer>
+        <caom2:reference>http://www.cadc.hia.nrc.gc.ca/dao/</caom2:reference>
+      </caom2:provenance>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-eb90-0161dda5181c">
+          <caom2:uri>ad:DAO/dao_c122_2016_007830.fits.gz</caom2:uri>
+          <caom2:productType>calibration</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/fits</caom2:contentType>
+          <caom2:contentLength>395905</caom2:contentLength>
+          <caom2:contentChecksum>md5:b547dfa29f3d6ff99462294a72de2bf7</caom2:contentChecksum>
+          <caom2:parts>
+            <caom2:part caom2:id="00000000-0000-0000-eb90-0161dda51824">
+              <caom2:name>0</caom2:name>
+              <caom2:chunks>
+                <caom2:chunk caom2:id="00000000-0000-0000-eb90-0161dda51826">
+                  <caom2:naxis>2</caom2:naxis>
+                  <caom2:observableAxis>2</caom2:observableAxis>
+                  <caom2:energyAxis>1</caom2:energyAxis>
+                  <caom2:timeAxis>5</caom2:timeAxis>
+                  <caom2:observable>
+                    <caom2:dependent>
+                      <caom2:axis>
+                        <caom2:ctype>FLUX</caom2:ctype>
+                        <caom2:cunit>COUNTS</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:bin>1</caom2:bin>
+                    </caom2:dependent>
+                  </caom2:observable>
+                  <caom2:energy>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>WAVE</caom2:ctype>
+                        <caom2:cunit>m</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:function>
+                        <caom2:naxis>4200</caom2:naxis>
+                        <caom2:delta>1.5e-11</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>2046.0</caom2:pix>
+                          <caom2:val>6.6e-07</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                    <caom2:specsys>TOPOCENT</caom2:specsys>
+                    <caom2:ssysobs>TOPOCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>TOPOCENT</caom2:ssyssrc>
+                    <caom2:resolvingPower>17600.0</caom2:resolvingPower>
+                  </caom2:energy>
+                  <caom2:time>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>TIME</caom2:ctype>
+                        <caom2:cunit>d</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:function>
+                        <caom2:naxis>1</caom2:naxis>
+                        <caom2:delta>3.5e-05</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>57598.7862269</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                    <caom2:timesys>UTC</caom2:timesys>
+                    <caom2:exposure>3.0</caom2:exposure>
+                    <caom2:resolution>3.0</caom2:resolution>
+                  </caom2:time>
+                </caom2:chunk>
+              </caom2:chunks>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+        <caom2:artifact caom2:id="00000000-0000-0000-eb90-0161dda521e7">
+          <caom2:uri>ad:DAO/dao_c122_2016_007830_1024.png</caom2:uri>
+          <caom2:productType>preview</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>image/png</caom2:contentType>
+          <caom2:contentLength>20177</caom2:contentLength>
+          <caom2:contentChecksum>md5:a5fbb33b5dbef5ddd6930fc8b52ca2ba</caom2:contentChecksum>
+          <caom2:parts/>
+        </caom2:artifact>
+        <caom2:artifact caom2:id="00000000-0000-0000-eb90-0161dda51cd0">
+          <caom2:uri>ad:DAO/dao_c122_2016_007830_256.png</caom2:uri>
+          <caom2:productType>thumbnail</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>image/png</caom2:contentType>
+          <caom2:contentLength>11667</caom2:contentLength>
+          <caom2:contentChecksum>md5:76fc10891d56e7048f4ed613acb35996</caom2:contentChecksum>
+          <caom2:parts/>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>

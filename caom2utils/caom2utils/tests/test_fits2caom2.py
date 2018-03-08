@@ -98,6 +98,8 @@ sample_file_4axes_uri = 'caom:CGPS/TEST/4axes_obs.fits'
 java_config_file = os.path.join(TESTDATA_DIR, 'java.config')
 override_file = os.path.join(TESTDATA_DIR, 'test.override')
 test_override = os.path.join(TESTDATA_DIR, '4axes.override')
+text_file = os.path.join(TESTDATA_DIR, 'help.txt')
+text_override = os.path.join(TESTDATA_DIR, 'text.override')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
@@ -370,7 +372,7 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert (bad_product_id == stderr_mock.getvalue())
+        assert bad_product_id == stderr_mock.getvalue()
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -379,7 +381,7 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert (missing_product_id == stderr_mock.getvalue())
+        assert missing_product_id == stderr_mock.getvalue()
 
     # missing required --observation
     """
@@ -692,6 +694,23 @@ def test_load_config_overrides():
     assert result == TEST_OVERRIDES
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_chunk_naxis():
+    hdr1 = fits.Header()
+    test_blueprint = ObsBlueprint()
+    test_blueprint.configure_time_axis(3)
+    test_uri = 'ad:CFHT/1709071g.fits.gz'
+    test_defaults = {'CTYPE3': 'TIME'}
+    test_config = {'Chunk.naxis': 'chunk.naxis'}
+    test_overrides = {'chunk.naxis': '1'}
+    update_blueprint(test_blueprint, test_uri, config=test_config,
+                     defaults=test_defaults, overrides=test_overrides)
+    assert test_blueprint._get('Chunk.naxis') == '1', 'default value assigned'
+    FitsParser([hdr1], test_blueprint)
+    assert hdr1['NAXIS'] == 1
+    assert hdr1['ZNAXIS'] == 1
+
+
 EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
     """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
@@ -803,19 +822,50 @@ def _get_obs(from_xml_string):
     return obs
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
-def test_chunk_naxis():
+EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation""" + \
+    """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
+    """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
+    """xsi:type="caom2:SimpleObservation" """ + \
+    """caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+      <caom2:collection>test_collection_id</caom2:collection>
+  <caom2:observationID>test_observation_id</caom2:observationID>
+  <caom2:algorithm>
+    <caom2:name>exposure</caom2:name>
+  </caom2:algorithm>
+  <caom2:planes>
+    <caom2:plane caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+      <caom2:productID>test_product_id</caom2:productID>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+          <caom2:productType>thumbnail</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>text/plain</caom2:contentType>
+          <caom2:contentLength>2606</caom2:contentLength>
+          <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
+          <caom2:uri>file://""" + text_file + """</caom2:uri>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>
+"""
 
-    hdr1 = fits.Header()
-    test_blueprint = ObsBlueprint()
-    test_blueprint.configure_time_axis(3)
-    test_uri = 'ad:CFHT/1709071g.fits.gz'
-    test_defaults = {'CTYPE3': 'TIME'}
-    test_config = {'Chunk.naxis': 'chunk.naxis'}
-    test_overrides = {'chunk.naxis': '1'}
-    update_blueprint(test_blueprint, test_uri, config=test_config,
-                     defaults=test_defaults, overrides=test_overrides)
-    assert test_blueprint._get('Chunk.naxis') == '1', 'default value assigned'
-    FitsParser([hdr1], test_blueprint)
-    assert hdr1['NAXIS'] == 1
-    assert hdr1['ZNAXIS'] == 1
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_generic_parser():
+    """ Tests that GenericParser will be created."""
+
+    fname = 'file://{}'.format(text_file)
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+        sys.argv = ['fits2caom2', '--local', fname,
+                    '--observation', 'test_collection_id',
+                    'test_observation_id', '--productID', 'test_product_id',
+                    '--config', java_config_file, '--override', text_override,
+                    fname]
+        main_app()
+        if stdout_mock.getvalue():
+            expected = _get_obs(EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML)
+            actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
+            result = get_differences(expected, actual, 'Observation')
+            assert result is None
