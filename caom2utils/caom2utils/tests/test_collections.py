@@ -70,7 +70,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from caom2utils import legacy
-from caom2 import obs_reader_writer, ObservationReader, ObservationWriter
+from caom2 import ObservationReader
 from caom2.diff import get_differences
 
 import glob
