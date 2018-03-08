@@ -1,0 +1,84 @@
+CTYPE3                      = RA---TAN
+CTYPE4                      = DEC--TAN
+CUNIT3                      = deg
+CUNIT4                      = deg
+
+CTYPE5                      = TIME
+CUNIT5                      = d
+
+CUNIT1                      = Angstrom
+
+naxis1                      = 1
+naxis2                      = 1
+cd11                        = -0.001388
+cd12                        = 0.0
+cd21                        = 0.0
+cd22                        = 0.001388
+crpix1                      = 1.0
+crval1                      = 11.9415828064
+crpix2                      = 1.0
+crval2                      = 74.8357296676
+
+NAXIS1                      = 4200
+CTYPE1                      = WAVE
+CUNIT1                      = Angstrom
+CRVAL1                      = 4588
+CDELT1                      = 0.036
+CRPIX1                      = 2046
+resolvingPower              = 50977
+
+CRVAL2                      = 1
+CRPIX2                      = 1
+CTYPE2                      = FLUX
+CUNIT2                      = COUNTS
+CDELT2                      = 
+
+telescope.name              = DAO 1.2-m
+telescope.geoLocationX      = -2331226.7883358444
+telescope.geoLocationY      = -3532798.982897074
+telescope.geoLocationZ      = 4755607.321828939
+
+observation.telescope       = DAO 1.2-m
+INSTRUME                    = McKellar Spectrograph
+obs.intent                  = science
+
+WCSAXES                     = 5
+
+algorithm.name              = exposure
+
+target.type                 = object
+
+plane.calibrationLevel      = 1
+plane.dataProductType       = spectrum
+
+artifact.releaseType        = data
+
+proposal.pi                 = Gulliver
+proposal.id                 = DAO122_2016C5
+
+provenance.lastExecuted     = 
+provenance.project          = DAO Science Archive
+provenance.producer         = NRC Herzberg
+provenance.reference        = http://www.cadc.hia.nrc.gc.ca/dao/
+provenance.version          = 
+provenance.name             = DAO unprocessed data
+provenance.inputs           = 
+
+members          = 
+
+time.exposure               = 3600.000000
+time.resolution             = 3600.000000
+NAXIS5                      = 1
+CRPIX5                      = 0.500000
+CRVAL5                      = 57598.4482755
+CDELT5                      = 0.041667
+
+?ad:DAO/dao_c122_2016_007777.fits.gz
+artifact.productType        = science
+
+?ad:DAO/dao_c122_2016_007777_256.png
+artifact.productType        = thumbnail
+
+?ad:DAO/dao_c122_2016_007777_1024.png
+artifact.productType        = preview
+

@@ -72,8 +72,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import os
 
-from caom2.caom_validator import validate_obs, validate, validate_acc
-from caom2.caom_validator import _assert_validate_keyword
+from caom2utils.caomvalidator import validate_obs, validate, validate_acc
+from caom2utils.caomvalidator import _assert_validate_keyword
 from caom2.obs_reader_writer import ObservationReader
 from caom2.observation import SimpleObservation, CompositeObservation, Proposal
 from caom2.observation import Algorithm, Telescope, Instrument, Target
