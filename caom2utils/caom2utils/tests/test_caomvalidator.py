@@ -72,7 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import os
 
-from caom2utils.caomvalidator import validate_obs, validate, validate_acc
+from caom2utils.caomvalidator import validate, _validate_observation
 from caom2utils.caomvalidator import _assert_validate_keyword
 from caom2.obs_reader_writer import ObservationReader
 from caom2.observation import SimpleObservation, CompositeObservation, Proposal
@@ -99,10 +99,10 @@ def test_assert_validate_keyword():
     assert exception_raised
 
 
-def test_validate_obs():
+def test_validate_observation():
     obs = SimpleObservation('test_collection', 'test_obs_id',
                             Algorithm('test_name'))
-    validate_obs(obs)
+    _validate_observation(obs)
     obs = CompositeObservation('test_collection', 'test_obs_id',
                                Algorithm('test_name'),
                                proposal=Proposal('test_proposal'),
@@ -120,7 +120,7 @@ def test_validate_obs():
     obs.planes['test_plane'] = test_plane
     exception_raised = False
     try:
-        validate_obs(obs)
+        _validate_observation(obs)
     except AssertionError as e:
         # success test case
         assert str(e).find('provenance.keywords') != -1
@@ -144,16 +144,11 @@ def test_compatibility():
                 for part in artifact.parts.values():
                     for chunk in part.chunks:
                         validate(chunk)
-                        validate_acc(chunk)
                     validate(part)
-                    validate_acc(part)
                 validate(artifact)
-                validate_acc(artifact)
             validate(plane)
-            validate_acc(plane)
 
         validate(obs)
-        validate_acc(obs)
     except AssertionError:
         assert False, \
-            'validate or validate_acc should not raise an AssertionError.'
+            'validate should not raise an AssertionError.'

@@ -89,106 +89,170 @@ Perform validation of the content of an Observation."""
 
 from __future__ import (absolute_import, print_function, unicode_literals)
 
-from builtins import str, int
-
-
 import logging
-import uuid
 
-from aenum import Enum
-from datetime import datetime
-
-from caom2.caom_util import TypedList, TypedOrderedDict, TypedSet, int_32
-from caom2.common import CaomObject, ObservationURI
-from caom2.common import ChecksumURI
-from caom2.observation import Observation
+from caom2 import Observation, Plane, Artifact, Part, Chunk, Provenance
+from caom2 import Position, Time, Energy, Polarization
+from caom2utils import validate_wcs
 
 
-__all__ = ['validate_obs', 'validate', 'validate_acc']
+__all__ = ['validate']
 
 
 logger = logging.getLogger('caom_validate')
 
 
-def validate(entity, acc=False, name=None):
-    """
-    Validate the content of any CAOM2 entity.
-
-    Throws an AssertionError if the validate call fails.
-
-    :param entity: CAOM2 entity, descended from CaomObject.
-    :param acc: Boolean to indicate whether to validate the entities members.
-    :param name: Better logging for a better future.
-    """
-
-    if type(entity) is None:
-        logger.debug('Validated empty entity {}'.format(entity.__name__))
-        return
-
-    if (isinstance(entity, ObservationURI) or isinstance(entity, ChecksumURI)
-            or isinstance(entity, bytes) or isinstance(entity, bool)
-            or isinstance(entity, float) or isinstance(entity, int_32)
-            or isinstance(entity, int) or isinstance(entity, str)
-            or isinstance(entity, datetime) or isinstance(entity, Enum)
-            or isinstance(entity, uuid.UUID)):
-        return
-    elif isinstance(entity, CaomObject):
-        if isinstance(entity, Observation):
-            validate_obs(entity)
-        if hasattr(entity, 'validate') and callable(
-                getattr(entity, 'validate')):
-            logger.debug('Direct invocation of validate for {}'.format(
-                entity.__class__.__name__))
-            entity.validate()
-        if acc:
-            validate_acc(entity)
-    elif isinstance(entity, set) or \
-            isinstance(entity, list) or isinstance(entity, TypedList) or \
-            (isinstance(entity, TypedSet) and not
-                isinstance(entity.key_type, CaomObject)):
-        for i in entity:
-            validate(i, acc)
-    elif isinstance(entity, TypedOrderedDict):
-        for i in entity:
-            validate(entity[i], acc)
-    else:
-        raise AssertionError(
-            'Cannot find a validate behaviour for {} of type {}.'.format(
-                name, type(entity)))
+def validate(caom2_entity, deep=True):
+    if caom2_entity is not None:
+        if isinstance(caom2_entity, Observation):
+            _validate_observation(caom2_entity, deep)
+        elif isinstance(caom2_entity, Plane):
+            _validate_plane(caom2_entity, deep)
+        elif isinstance(caom2_entity, Artifact):
+            _validate_artifact(caom2_entity)
+        elif isinstance(caom2_entity, Part):
+            _validate_part(caom2_entity)
+        elif isinstance(caom2_entity, Chunk):
+            _validate_chunk(caom2_entity)
+        else:
+            raise AssertionError("Not a CAOM2 entity")
 
 
-def validate_acc(entity):
-    """
-    Validate the content of any CAOM2 entity, and it's children.
-
-    Throws an AssertionError if any of the validate calls fail.
-
-    :param entity: CAOM2 entity.
-    """
-    assert isinstance(entity, CaomObject)
-
-    for i in dir(entity):
-        if not callable(getattr(entity, i)) and not i.startswith('_'):
-            attribute = getattr(entity, i)
-            if attribute is not None:
-                logger.debug('Calling validate for {} of type {}'.format(
-                    i, type(attribute)))
-                validate(attribute, True, i)
-
-
-def validate_obs(observation):
+def _validate_observation(caom2_entity, deep=True):
     """
     Perform validation of the content of an Observation.
 
     Throws AssertionError if the keywords that are members of various
     observation and plane metadata do not meet structure criteria.
 
-    :param observation: The Observation (SimpleObservation or
+    :param caom2_entity: The Observation (SimpleObservation or
         CompositeObservation) to validate.
+    :param deep if True, also validate the 'has-a' members of an Observation.
     """
-    assert isinstance(observation, Observation)
-    if observation is not None:
-        _validate_keywords(observation)
+    assert isinstance(caom2_entity, Observation), 'Must be an Observation'
+    if caom2_entity is not None:
+        _validate_keywords(caom2_entity)
+
+    if deep:
+        pass  # TODO
+
+
+def _validate_plane(caom2_entity, deep=True):
+    """
+    Perform validation of the content of a Plane.
+
+    Throws AssertionError if the members of the plane metadata do not meet
+    structure criteria.
+
+    :param caom2_entity: The Plane to validate.
+    :param deep if True, also validate the 'has-a' members of a Plane.
+    """
+    assert caom2_entity, 'Must provide a plane for validation'
+    assert isinstance(caom2_entity, Plane), 'Must be a Plane'
+
+    if deep:
+        if caom2_entity.provenance is not None:
+            _validate_provenance(caom2_entity.provenance)
+        # Quality member is an enumerated type
+        # all Metrics members are already validated by constructor
+        if (caom2_entity._position is not None and
+                caom2_entity._position.bounds is not None):
+            _validate_bounds(caom2_entity._position)
+        if (caom2_entity._energy is not None and
+                caom2_entity._energy.bounds is not None):
+            _validate_bounds(caom2_entity._energy)
+        if (caom2_entity._time is not None and
+                caom2_entity._time.bounds is not None):
+            _validate_bounds(caom2_entity._time)
+        if caom2_entity._polarization is not None:
+            _validate_polarization(caom2_entity._polarization)
+
+
+def _validate_artifact(caom2_entity):
+    """
+    Perform validation of the content of an Artifact.
+
+    Throws AssertionError if the members of the artifact metadata do not meet
+    structure criteria.
+
+    :param caom2_entity: The Artifact to validate.
+    """
+    assert caom2_entity, 'Must provide an artifact for validation'
+    assert isinstance(caom2_entity, Artifact), 'Must be a Artifact'
+    if caom2_entity.parts is not None:
+        for value in caom2_entity.parts.items():
+            _validate_part(value)
+
+
+def _validate_part(caom2_entity):
+    """
+    Perform validation of the content of a Part.
+
+    Throws AssertionError if the members of the part metadata do not meet
+    structure criteria.
+
+    :param caom2_entity: The Part to validate.
+    """
+    assert caom2_entity, 'Must provide a part for validation'
+    assert isinstance(caom2_entity, Part), 'Must be a Part'
+    if caom2_entity.chunks is not None:
+        for k, value in enumerate(caom2_entity.chunks):
+            _validate_chunk(value)
+
+
+def _validate_chunk(caom2_entity):
+    """
+    Perform validation of the content of a Chunk.
+
+    Throws AssertionError if the members of the chunk metadata do not meet
+    structure criteria.
+
+    :param caom2_entity: The Chunk to validate.
+    """
+    assert caom2_entity, 'Must provide a chunk for validation'
+    assert isinstance(caom2_entity, Chunk), 'Must be a Chunk'
+    validate_wcs(caom2_entity)
+
+
+def _validate_provenance(caom2_entity):
+    """
+    Perform validation of the content of a Provenance.
+
+    Throws AssertionError if the members of the plane metadata do not meet
+    structure criteria.
+
+    :param caom2_entity: The Provenance to validate.
+    """
+    assert caom2_entity, 'Must provide a provenance for validation'
+    assert isinstance(caom2_entity, Provenance), 'Must be a Provenance'
+    if caom2_entity.keywords is not None:
+        _validate_keyword('plane.provenance', caom2_entity.keywords)
+
+
+def _validate_bounds(caom2_entity):
+    """
+    Perform validation of the content of a bounds entry.
+
+    Throws AssertionError if the members of the bounds metadata do not meet
+    structure criteria.
+
+    :param caom2_entity: The bounds to validate.
+    """
+    assert caom2_entity, 'Must provide a bounds for validation'
+    caom2_entity.validate()
+
+
+def _validate_polarization(caom2_entity):
+    """
+    Perform validation of the content of a Polarization.
+
+    Throws AssertionError if the members of the polarization metadata do not
+    meet structure criteria.
+
+    :param caom2_entity: The Polarization to validate.
+    """
+    assert caom2_entity, 'Must provide a polarization for validation'
+    assert isinstance(caom2_entity, Polarization), 'Must be a Polarization'
 
 
 def _validate_keywords(observation):
