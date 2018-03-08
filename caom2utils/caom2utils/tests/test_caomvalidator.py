@@ -72,12 +72,12 @@ from __future__ import (absolute_import, division, print_function,
 
 import os
 
-from caom2utils.caomvalidator import validate, _validate_observation
+from caom2utils import validate
 from caom2utils.caomvalidator import _assert_validate_keyword
-from caom2.obs_reader_writer import ObservationReader
-from caom2.observation import SimpleObservation, CompositeObservation, Proposal
-from caom2.observation import Algorithm, Telescope, Instrument, Target
-from caom2.plane import Plane, Provenance
+from caom2 import ObservationReader
+from caom2 import SimpleObservation, CompositeObservation, Proposal
+from caom2 import Algorithm, Telescope, Instrument, Target
+from caom2 import Plane, Provenance
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -102,7 +102,7 @@ def test_assert_validate_keyword():
 def test_validate_observation():
     obs = SimpleObservation('test_collection', 'test_obs_id',
                             Algorithm('test_name'))
-    _validate_observation(obs)
+    validate(obs)
     obs = CompositeObservation('test_collection', 'test_obs_id',
                                Algorithm('test_name'),
                                proposal=Proposal('test_proposal'),
@@ -120,7 +120,7 @@ def test_validate_observation():
     obs.planes['test_plane'] = test_plane
     exception_raised = False
     try:
-        _validate_observation(obs)
+        validate(obs)
     except AssertionError as e:
         # success test case
         assert str(e).find('provenance.keywords') != -1
@@ -152,3 +152,4 @@ def test_compatibility():
     except AssertionError:
         assert False, \
             'validate should not raise an AssertionError.'
+
