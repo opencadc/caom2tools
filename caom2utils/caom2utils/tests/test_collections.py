@@ -133,7 +133,6 @@ def test_differences(directory):
         print(sys.argv)
         legacy.main_app()
     actual = _read_observation(temp.name)  # actual observation
-    _write_obs(actual, '{}{}.actual'.format(directory, collection_id))
     _compare_observations(expected, actual, directory)
 
 
@@ -240,16 +239,3 @@ def _read_observation(fname):
     reader = ObservationReader(False)
     result = reader.read(fname)
     return result
-
-
-def _write_obs(obs, fname):
-    writer = ObservationWriter(False, False, "caom2",
-                               obs_reader_writer.CAOM23_NAMESPACE)
-    output = six.BytesIO()
-    writer.write(obs, output)
-    xml = output.getvalue()
-    output.close()
-    xml = xml.replace(b"caom2:id=\"", b"caom2:id=\"x")
-    f = open(fname, 'wb')
-    f.write(xml)
-    f.close()
