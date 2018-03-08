@@ -74,7 +74,8 @@ from astropy.wcs import Wcsprm
 from caom2utils import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
 from .wcs_util import PolarizationWcsUtil
-from caom2 import Artifact, Chunk, Interval, Observation, Part, Plane, PolarizationState
+from caom2 import Artifact, Chunk, Interval, Observation, Part, Plane, \
+    PolarizationState
 import numpy as np
 
 
@@ -112,11 +113,13 @@ def validate_wcs(caom2_entity):
         else:
             raise InvalidWCSError("Not a CAOM2 entity")
 
+
 def _validate_observation(obs):
     if obs is not None and obs.planes is not None:
         for pkey in obs.planes.keys():
             p = obs.planes[pkey]
             _validate_plane(p)
+
 
 def _validate_plane(plane):
     if plane is not None and plane.artifacts is not None:
@@ -124,15 +127,18 @@ def _validate_plane(plane):
             a = plane.artifacts[akey]
             _validate_artifact(a)
 
+
 def _validate_artifact(artifact):
     if artifact is not None:
         for pkey in artifact.parts.keys():
             _validate_part(artifact.parts[pkey])
 
+
 def _validate_part(part):
     if part is not None:
         for c in part.chunks:
             _validate_chunk(c)
+
 
 def _validate_chunk(chunk):
     """
@@ -142,6 +148,7 @@ def _validate_chunk(chunk):
     _validate_spectral_wcs(chunk.energy)
     _validate_temporal_wcs(chunk.time)
     _validate_polarization_wcs(chunk.polarization)
+
 
 def _validate_spatial_wcs(position):
     # position is a SpatialWCS
@@ -162,6 +169,7 @@ def _validate_spatial_wcs(position):
                 "Invalid SpatialWCS: {}: {}".format(
                     error_string, str(position)))
 
+
 def _check_transform(coords):
     # Coords is a shape.Subinterval
     wcsprm = Wcsprm()
@@ -174,6 +182,7 @@ def _check_transform(coords):
             and transformed_coords[0][1] == coords.upper):
         raise ValueError(
             "Could not transform coordinates pixel to sky, sky to pixel")
+
 
 def _validate_spectral_wcs(energy):
     error_msg = ""
@@ -203,6 +212,7 @@ def _validate_spectral_wcs(energy):
                 "Invalid Spectral WCS: {}: {}".format(
                     error_msg, str(energy)))
 
+
 def _validate_temporal_wcs(time):
     error_msg = ""
     if time is not None:
@@ -227,11 +237,13 @@ def _validate_temporal_wcs(time):
                 "Invalid Temporal WCS: {}: {}".format(
                     error_msg, str(time)))
 
+
 def _validate_range(a_range):
     keys = PolarizationWcsUtil.get_keys(a_range)
     if keys is not None:
         for key in keys:
             WcsPolarizationState.to_value(key)
+
 
 def _validate_bounds(bounds):
     sample_ranges = PolarizationWcsUtil.get_ranges_from_bounds(bounds)
@@ -240,6 +252,7 @@ def _validate_bounds(bounds):
             for key in srange:
                 WcsPolarizationState.to_value(key)
 
+
 def _validate_function(a_function):
     naxis_range = \
         PolarizationWcsUtil.get_range_from_function(a_function)
@@ -247,6 +260,7 @@ def _validate_function(a_function):
         for pix in naxis_range:
             WcsPolarizationState.to_value(
                 int(round(wcs_util.pix2val(a_function, pix))))
+
 
 def _validate_polarization_wcs(polarization_wcs):
     """

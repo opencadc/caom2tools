@@ -471,6 +471,7 @@ class PlaneTestUtil():
         test_plane.artifacts[uri3] = a3
         return test_plane
 
+
 class ArtifactTestUtil():
     def __init__(self):
         pass
