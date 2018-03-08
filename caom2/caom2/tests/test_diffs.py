@@ -66,7 +66,6 @@
 #
 # ***********************************************************************
 #
-
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -74,6 +73,7 @@ import unittest
 
 from .. import diff
 from .. import observation
+from . import caom_test_instances
 
 
 class TestCaomUtil(unittest.TestCase):
@@ -108,3 +108,43 @@ class TestCaomUtil(unittest.TestCase):
                                       'obs')
         self.assertTrue(report is not None, repr(report))
         self.assertTrue(len(report) == 2, repr(report))
+
+        instances = caom_test_instances.Caom2TestInstances()
+        instances.complete = True
+        obs1 = instances.get_composite_observation()
+        obs2 = instances.get_composite_observation()
+
+        report = diff.get_differences(obs1, obs2, 'caom_test_instances')
+        assert report is None
+
+        obs3 = instances.get_simple_observation()
+
+        report = diff.get_differences(obs1, obs3, 'caom_test_instances')
+        assert len(report) == 1
+
+    def test_samples(self):
+        instances = caom_test_instances.Caom2TestInstances()
+        seq1 = instances.get_coord_axis1d()
+        seq2 = instances.get_coord_axis1d()
+
+        report = diff.get_differences(seq1, seq2, 'samples')
+        assert report is None
+
+        for k, v in enumerate(seq2.bounds.samples):
+            seq2.bounds.samples[k].pix = 0.0
+        report = diff.get_differences(seq1, seq2, 'samples')
+        assert report is not None
+        assert len(report) == 2
+
+    def test_chunks(self):
+        instances = caom_test_instances.Caom2TestInstances()
+        seq1 = instances.get_chunks()
+        seq2 = instances.get_chunks()
+
+        report = diff.get_differences(seq1, seq2, 'chunks')
+        assert report is None
+
+        seq2[0].observable.independent.bin = 0
+        report = diff.get_differences(seq1, seq2, 'chunks')
+        assert report is not None
+        assert len(report) == 1
