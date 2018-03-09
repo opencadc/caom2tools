@@ -79,6 +79,8 @@ from caom2 import SimpleObservation, CompositeObservation, Proposal
 from caom2 import Algorithm, Telescope, Instrument, Target
 from caom2 import Plane, Provenance
 
+import pytest
+
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA = 'data'
@@ -118,14 +120,8 @@ def test_validate_observation():
     test_plane.provenance = Provenance('test_provenance')
     test_plane.provenance.keywords.add('pipe|denied')
     obs.planes['test_plane'] = test_plane
-    exception_raised = False
-    try:
-        validate(obs, False)
-    except AssertionError as e:
-        # success test case
-        assert str(e).find('provenance.keywords') != -1
-        exception_raised = True
-    assert exception_raised
+    with pytest.raises(AssertionError):
+        validate(obs)
 
 
 def test_compatibility():
@@ -152,4 +148,3 @@ def test_compatibility():
     except AssertionError:
         assert False, \
             'validate should not raise an AssertionError.'
-

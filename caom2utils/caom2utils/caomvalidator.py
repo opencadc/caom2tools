@@ -68,30 +68,16 @@
 #
 
 """
-This module contains the functionlity for validation of entities in CAOM2.
-Two types of validation are available:
-    validate - returns the validation of the entity, except its CAOM2
-               children
-    validate_acc - returns the accumulated validation of the entity attributes
-                   including those of the CAOM2 children.
+validate performs a validation on a CAOM2 element. By default deep=True
+triggering a validation of all the sub-elements in the tree.
+"""
 
-The validation represents the correctness of the state of the entity itself,
-while the accumulated validation represents the state of the entity, and
-all the children below.
-
-IMPORTANT NOTE: The validate algorithms use introspection to automatically
-find the attributes that are part of the CAOM2 model. It is therefore very
-important that attributes that are not part of the model
-(http://www.opencadc.org/caom2) be prefixed with an '_' so that the validate
-algorithms ignore them in their computations.
-
-Perform validation of the content of an Observation."""
 
 from __future__ import (absolute_import, print_function, unicode_literals)
 
 import logging
 
-from caom2 import Observation, Plane, Artifact, Part, Chunk, Provenance
+from caom2 import Observation, Plane, Artifact, Part, Chunk
 from caom2utils.polygonvalidator import validate_polygon
 from caom2utils import validate_wcs
 
@@ -229,6 +215,3 @@ def _validate_keyword(name, keywords):
         if keyword.find('|') != -1:
             raise AssertionError(
                 'invalid {}: may not contain pipe (|)'.format(name))
-
-
-
