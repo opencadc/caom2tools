@@ -70,15 +70,10 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import os
 import pytest
 
 from caom2 import shape
 from caom2utils.polygonvalidator import validate_multipolygon, validate_polygon
-
-
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-TEST_DATA = 'data'
 
 
 def test_open_polygon():
