@@ -73,10 +73,10 @@ import six
 
 import numpy as np
 from spherical_geometry import polygon
-from caom2 import Point, Polygon, MultiPolygon, SegmentType
+from caom2 import Point, Polygon, MultiPolygon, SegmentType, Circle
 
 
-__all__ = ['validate_polygon']
+__all__ = ['validate_polygon', 'validate_multipolygon']
 
 
 def validate_polygon(poly):
@@ -93,6 +93,10 @@ def validate_polygon(poly):
 
     :param poly: Polygon to be validated
     """
+    if not poly:
+        return
+    if isinstance(poly, Circle):
+        return
     points = poly.points
     if points:
         if len(points) < 3:

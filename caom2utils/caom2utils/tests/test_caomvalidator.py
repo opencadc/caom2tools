@@ -73,7 +73,7 @@ from __future__ import (absolute_import, division, print_function,
 import os
 
 from caom2utils import validate
-from caom2utils.caomvalidator import _assert_validate_keyword
+from caom2utils.caomvalidator import _validate_keyword
 from caom2 import ObservationReader
 from caom2 import SimpleObservation, CompositeObservation, Proposal
 from caom2 import Algorithm, Telescope, Instrument, Target
@@ -85,14 +85,14 @@ TEST_DATA = 'data'
 
 
 def test_assert_validate_keyword():
-    _assert_validate_keyword(__name__, 'test', 'foo')
-    _assert_validate_keyword(__name__, 'test', 'foo=42')
-    _assert_validate_keyword(__name__, 'test', 'foo:42')
-    _assert_validate_keyword(__name__, 'test', "tick'marks")
-    _assert_validate_keyword(__name__, 'test', 'has multiple spaces')
+    _validate_keyword('test', 'foo')
+    _validate_keyword('test', 'foo=42')
+    _validate_keyword('test', 'foo:42')
+    _validate_keyword('test', "tick'marks")
+    _validate_keyword('test', 'has multiple spaces')
     exception_raised = False
     try:
-        _assert_validate_keyword(__name__, 'test', 'pipe|denied')
+        _validate_keyword('test', 'pipe|denied')
     except AssertionError:
         # successful test case
         exception_raised = True
@@ -120,7 +120,7 @@ def test_validate_observation():
     obs.planes['test_plane'] = test_plane
     exception_raised = False
     try:
-        validate(obs)
+        validate(obs, False)
     except AssertionError as e:
         # success test case
         assert str(e).find('provenance.keywords') != -1
