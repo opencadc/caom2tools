@@ -73,10 +73,10 @@ import six
 
 import numpy as np
 from spherical_geometry import polygon
-from caom2 import Point, Polygon, MultiPolygon, SegmentType
+from caom2 import Point, Polygon, MultiPolygon, SegmentType, Circle
 
 
-__all__ = ['validate_polygon']
+__all__ = ['validate_polygon', 'validate_multipolygon']
 
 
 def validate_polygon(poly):
@@ -93,6 +93,10 @@ def validate_polygon(poly):
 
     :param poly: Polygon to be validated
     """
+    if not poly:
+        return
+    if isinstance(poly, Circle):
+        return
     points = poly.points
     if points:
         if len(points) < 3:
@@ -120,7 +124,7 @@ def validate_polygon(poly):
 
     # validate the samples
     if poly.samples is not None:
-        _validate_multipolygon(poly.samples)
+        validate_multipolygon(poly.samples)
 
 
 def _validate_self_intersection(spolygon):
@@ -194,7 +198,7 @@ def _validate_self_intersection_and_direction(ras, decs):
     _validate_is_clockwise(ras, lon)
 
 
-def _validate_multipolygon(mp):
+def validate_multipolygon(mp):
     """
     Performs a basic validation of the current object.
 
@@ -203,10 +207,12 @@ def _validate_multipolygon(mp):
     """
     # perform a quick validation of this multipolygon object to fail early
 
-    assert not isinstance(mp, MultiPolygon), \
+    if not mp:
+        return
+    assert isinstance(mp, MultiPolygon), \
         'MultiPoligon expected in validation received {}'.format(type(mp))
 
-    _validate_size_and_end_vertices()
+    _validate_size_and_end_vertices(mp)
 
     # perform a more detailed validation of this multipolygon object
     mp_validator = MultiPolygonValidator()
@@ -214,17 +220,17 @@ def _validate_multipolygon(mp):
         mp_validator.validate(mp.vertices[i])
 
 
-def _validate_size_and_end_vertices(self):
-    if len(self._vertices) < 4:
+def _validate_size_and_end_vertices(mp):
+    if len(mp.vertices) < 4:
         # triangle
         raise AssertionError('invalid polygon: {} vertices (min 4)'.format(
-            len(self._vertices)))
+            len(mp.vertices)))
 
-    if self._vertices[0].type != SegmentType.MOVE:
+    if mp.vertices[0].type != SegmentType.MOVE:
         raise AssertionError(
             'invalid polygon: first vertex is not a MOVE vertex')
 
-    if self._vertices[-1].type != SegmentType.CLOSE:
+    if mp.vertices[-1].type != SegmentType.CLOSE:
         raise AssertionError(
             'invalid polygon: last vertex is not a CLOSE vertex')
 

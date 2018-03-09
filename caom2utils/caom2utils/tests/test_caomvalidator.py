@@ -73,11 +73,13 @@ from __future__ import (absolute_import, division, print_function,
 import os
 
 from caom2utils import validate
-from caom2utils.caomvalidator import _assert_validate_keyword
+from caom2utils.caomvalidator import _validate_keyword
 from caom2 import ObservationReader
 from caom2 import SimpleObservation, CompositeObservation, Proposal
 from caom2 import Algorithm, Telescope, Instrument, Target
 from caom2 import Plane, Provenance
+
+import pytest
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -85,14 +87,14 @@ TEST_DATA = 'data'
 
 
 def test_assert_validate_keyword():
-    _assert_validate_keyword(__name__, 'test', 'foo')
-    _assert_validate_keyword(__name__, 'test', 'foo=42')
-    _assert_validate_keyword(__name__, 'test', 'foo:42')
-    _assert_validate_keyword(__name__, 'test', "tick'marks")
-    _assert_validate_keyword(__name__, 'test', 'has multiple spaces')
+    _validate_keyword('test', 'foo')
+    _validate_keyword('test', 'foo=42')
+    _validate_keyword('test', 'foo:42')
+    _validate_keyword('test', "tick'marks")
+    _validate_keyword('test', 'has multiple spaces')
     exception_raised = False
     try:
-        _assert_validate_keyword(__name__, 'test', 'pipe|denied')
+        _validate_keyword('test', 'pipe|denied')
     except AssertionError:
         # successful test case
         exception_raised = True
@@ -118,14 +120,8 @@ def test_validate_observation():
     test_plane.provenance = Provenance('test_provenance')
     test_plane.provenance.keywords.add('pipe|denied')
     obs.planes['test_plane'] = test_plane
-    exception_raised = False
-    try:
+    with pytest.raises(AssertionError):
         validate(obs)
-    except AssertionError as e:
-        # success test case
-        assert str(e).find('provenance.keywords') != -1
-        exception_raised = True
-    assert exception_raised
 
 
 def test_compatibility():
@@ -138,18 +134,17 @@ def test_compatibility():
     with open(source_file_path, 'r'):
         obs = reader.read(source_file_path)
 
-    try:
-        for plane in obs.planes.values():
-            for artifact in plane.artifacts.values():
-                for part in artifact.parts.values():
-                    for chunk in part.chunks:
-                        validate(chunk)
-                    validate(part)
-                validate(artifact)
-            validate(plane)
+    # shallow validates first
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    validate(chunk, False)
+                validate(part, False)
+            validate(artifact, False)
+        validate(plane, False)
 
-        validate(obs)
-    except AssertionError:
-        assert False, \
-            'validate should not raise an AssertionError.'
+    validate(obs, False)
 
+    # deep validate
+    validate(obs, True)

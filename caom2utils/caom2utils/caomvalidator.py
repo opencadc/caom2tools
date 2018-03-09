@@ -68,31 +68,17 @@
 #
 
 """
-This module contains the functionlity for validation of entities in CAOM2.
-Two types of validation are available:
-    validate - returns the validation of the entity, except its CAOM2
-               children
-    validate_acc - returns the accumulated validation of the entity attributes
-                   including those of the CAOM2 children.
+validate performs a validation on a CAOM2 element. By default deep=True
+triggering a validation of all the sub-elements in the tree.
+"""
 
-The validation represents the correctness of the state of the entity itself,
-while the accumulated validation represents the state of the entity, and
-all the children below.
-
-IMPORTANT NOTE: The validate algorithms use introspection to automatically
-find the attributes that are part of the CAOM2 model. It is therefore very
-important that attributes that are not part of the model
-(http://www.opencadc.org/caom2) be prefixed with an '_' so that the validate
-algorithms ignore them in their computations.
-
-Perform validation of the content of an Observation."""
 
 from __future__ import (absolute_import, print_function, unicode_literals)
 
 import logging
 
-from caom2 import Observation, Plane, Artifact, Part, Chunk, Provenance
-from caom2 import Polarization
+from caom2 import Observation, Plane, Artifact, Part, Chunk
+from caom2utils.polygonvalidator import validate_polygon
 from caom2utils import validate_wcs
 
 
@@ -109,9 +95,9 @@ def validate(caom2_entity, deep=True):
         elif isinstance(caom2_entity, Plane):
             _validate_plane(caom2_entity, deep)
         elif isinstance(caom2_entity, Artifact):
-            _validate_artifact(caom2_entity)
+            _validate_artifact(caom2_entity, deep)
         elif isinstance(caom2_entity, Part):
-            _validate_part(caom2_entity)
+            _validate_part(caom2_entity, deep)
         elif isinstance(caom2_entity, Chunk):
             _validate_chunk(caom2_entity)
         else:
@@ -130,11 +116,19 @@ def _validate_observation(caom2_entity, deep=True):
     :param deep if True, also validate the 'has-a' members of an Observation.
     """
     assert isinstance(caom2_entity, Observation), 'Must be an Observation'
-    if caom2_entity is not None:
-        _validate_keywords(caom2_entity)
-
+    if caom2_entity.proposal:
+        _validate_keyword('proposal.keywords', caom2_entity.proposal.keywords)
+    if caom2_entity.target:
+        _validate_keyword('target.keywords', caom2_entity.target.keywords)
+    if caom2_entity.telescope:
+        _validate_keyword('telescope.keywords',
+                          caom2_entity.telescope.keywords)
+    if caom2_entity.instrument:
+        _validate_keyword('telescope.instrument',
+                          caom2_entity.instrument.keywords)
     if deep:
-        pass  # TODO
+        for plane in caom2_entity.planes.values():
+            _validate_plane(plane)
 
 
 def _validate_plane(caom2_entity, deep=True):
@@ -150,25 +144,18 @@ def _validate_plane(caom2_entity, deep=True):
     assert caom2_entity, 'Must provide a plane for validation'
     assert isinstance(caom2_entity, Plane), 'Must be a Plane'
 
+    if caom2_entity.provenance:
+        _validate_keyword('provenance.keywords',
+                          caom2_entity.provenance.keywords)
+    if caom2_entity.position:
+        validate_polygon(caom2_entity.position.bounds)
+
     if deep:
-        if caom2_entity.provenance is not None:
-            _validate_provenance(caom2_entity.provenance)
-        # Quality member is an enumerated type
-        # all Metrics members are already validated by constructor
-        if (caom2_entity._position is not None and
-                caom2_entity._position.bounds is not None):
-            _validate_bounds(caom2_entity._position)
-        if (caom2_entity._energy is not None and
-                caom2_entity._energy.bounds is not None):
-            _validate_bounds(caom2_entity._energy)
-        if (caom2_entity._time is not None and
-                caom2_entity._time.bounds is not None):
-            _validate_bounds(caom2_entity._time)
-        if caom2_entity._polarization is not None:
-            _validate_polarization(caom2_entity._polarization)
+        for artifact in caom2_entity.artifacts.values():
+            _validate_artifact(artifact)
 
 
-def _validate_artifact(caom2_entity):
+def _validate_artifact(caom2_entity, deep=True):
     """
     Perform validation of the content of an Artifact.
 
@@ -179,12 +166,12 @@ def _validate_artifact(caom2_entity):
     """
     assert caom2_entity, 'Must provide an artifact for validation'
     assert isinstance(caom2_entity, Artifact), 'Must be a Artifact'
-    if caom2_entity.parts is not None:
-        for value in caom2_entity.parts.items():
+    if deep and caom2_entity.parts is not None:
+        for value in caom2_entity.parts.values():
             _validate_part(value)
 
 
-def _validate_part(caom2_entity):
+def _validate_part(caom2_entity, deep=True):
     """
     Perform validation of the content of a Part.
 
@@ -195,9 +182,10 @@ def _validate_part(caom2_entity):
     """
     assert caom2_entity, 'Must provide a part for validation'
     assert isinstance(caom2_entity, Part), 'Must be a Part'
-    if caom2_entity.chunks is not None:
-        for k, value in enumerate(caom2_entity.chunks):
-            _validate_chunk(value)
+
+    if deep and (caom2_entity.chunks is not None):
+        for chunk in caom2_entity.chunks:
+            _validate_chunk(chunk)
 
 
 def _validate_chunk(caom2_entity):
@@ -214,74 +202,6 @@ def _validate_chunk(caom2_entity):
     validate_wcs(caom2_entity)
 
 
-def _validate_provenance(caom2_entity):
-    """
-    Perform validation of the content of a Provenance.
-
-    Throws AssertionError if the members of the plane metadata do not meet
-    structure criteria.
-
-    :param caom2_entity: The Provenance to validate.
-    """
-    assert caom2_entity, 'Must provide a provenance for validation'
-    assert isinstance(caom2_entity, Provenance), 'Must be a Provenance'
-    if caom2_entity.keywords is not None:
-        _validate_keyword('plane.provenance', caom2_entity.keywords)
-
-
-def _validate_bounds(caom2_entity):
-    """
-    Perform validation of the content of a bounds entry.
-
-    Throws AssertionError if the members of the bounds metadata do not meet
-    structure criteria.
-
-    :param caom2_entity: The bounds to validate.
-    """
-    assert caom2_entity, 'Must provide a bounds for validation'
-    caom2_entity.validate()
-
-
-def _validate_polarization(caom2_entity):
-    """
-    Perform validation of the content of a Polarization.
-
-    Throws AssertionError if the members of the polarization metadata do not
-    meet structure criteria.
-
-    :param caom2_entity: The Polarization to validate.
-    """
-    assert caom2_entity, 'Must provide a polarization for validation'
-    assert isinstance(caom2_entity, Polarization), 'Must be a Polarization'
-
-
-def _validate_keywords(observation):
-    """
-    Perform validation for all the places where keywords are members of
-    Observations and Planes.
-
-    Throws AssertionError if the keywords that are members of various
-    observation and plane metadata do not meet structure criteria.
-
-    :param observation: The parent Observation (SimpleObservation or
-        CompositeObservation) to validate.
-    """
-    if observation.proposal is not None:
-        _validate_keyword('proposal.keywords', observation.proposal.keywords)
-    if observation.target is not None:
-        _validate_keyword('target.keywords', observation.target.keywords)
-    if observation.telescope is not None:
-        _validate_keyword('telescope.keywords', observation.telescope.keywords)
-    if observation.instrument is not None:
-        _validate_keyword(
-            'instrument.keywords', observation.instrument.keywords)
-    for plane_key in observation.planes.keys():
-        if observation.planes[plane_key].provenance is not None:
-            _validate_keyword(
-                'provenance.keywords',
-                observation.planes[plane_key].provenance.keywords)
-
-
 def _validate_keyword(name, keywords):
     """
     Perform validation for a Set of keywords.
@@ -289,24 +209,9 @@ def _validate_keyword(name, keywords):
     :param name: Logging parameter to identify where the keywords originate.
     :param keywords: Set of keyword values to validate.
     """
+    if not keywords:
+        return
     for keyword in keywords:
-        _assert_validate_keyword('', name, keyword)
-
-
-def _assert_validate_keyword(caller, name, keyword):
-    """
-    Keywords can contain any valid UTF-8 character except the pipe (|). The
-    pipe character is reserved for use as a separator in persistence
-    implementations so the list of keywords can be serialized in a single
-    string to support querying.
-
-    :param caller: Logging parameter - identifies which class called this
-        method.
-    :param name: Logging parameter - narrows the calling identification for
-        this method.
-    :param keyword: The parameter to check.
-    """
-    if keyword.find('|') != -1:
-        raise AssertionError(
-            '{}: invalid {}: may not contain pipe (|)'.format(caller, name))
-
+        if keyword.find('|') != -1:
+            raise AssertionError(
+                'invalid {}: may not contain pipe (|)'.format(name))

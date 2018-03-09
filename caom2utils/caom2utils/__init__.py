@@ -9,6 +9,7 @@ from .legacy import *  # noqa
 from .wcs_util import * # noqa
 from .wcsvalidator import * # noqa
 from .caomvalidator import * # noqa
+from .polygonvalidator import * # noqa
 
 
 import logging
