@@ -71,10 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import math
-import six
 
-import numpy as np
-from spherical_geometry import polygon
 from aenum import Enum
 
 from caom2.caom_util import int_32
@@ -464,7 +461,6 @@ class MultiPolygon(common.CaomObject):
         for i in range(len(self._vertices)):
             mp_validator.validate(self._vertices[i])
 
-
     class MultiPolygonValidator():
         """
         A class to validate the sequencing of vertices in a polygon,
@@ -506,8 +502,11 @@ class MultiPolygon(common.CaomObject):
             point = self._polygon.points[0]
             self._polygon.points.append(Point(point.cval1, point.cval2))
             # validate the polygons in the multipolygon
-            # the following statement should be replaced by: validate_polygon(self._polygon)
-            #self._polygon.validate()
+            # the following statement:
+            # self._polygon.validate()
+            # should be replaced by:
+            # validate_polygon(self._polygon)
+            # self._polygon.validate()
             # instantiate a new Polygon for the next iteration
             self._polygon = Polygon()
 
