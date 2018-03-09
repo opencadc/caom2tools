@@ -73,6 +73,7 @@ import six
 
 import numpy as np
 from spherical_geometry import polygon
+from caom2 import Point, Polygon, MultiPolygon, SegmentType
 
 
 __all__ = ['validate_polygon']
@@ -196,3 +197,92 @@ def _validate_self_intersection_and_direction(ras, decs):
     _validate_self_intersection(spolygon)
     lon, lat = six.next(spolygon.to_lonlat())
     _validate_is_clockwise(ras, lon)
+
+
+def _validate_multipolygon(mp):
+    """
+    Performs a basic validation of the current object.
+
+    An AssertionError is thrown if the object does not represent a
+    multi polygon
+    """
+    # perform a quick validation of this multipolygon object to fail early
+
+    assert not isinstance(mp, MultiPolygon), \
+        'MultiPoligon expected in validation received {}'.format(type(mp))
+
+    _validate_size_and_end_vertices()
+
+    # perform a more detailed validation of this multipolygon object
+    mp_validator = MultiPolygonValidator()
+    for i in range(len(mp.vertices)):
+        mp_validator.validate(mp.vertices[i])
+
+
+def _validate_size_and_end_vertices(self):
+    if len(self._vertices) < 4:
+        # triangle
+        raise AssertionError('invalid polygon: {} vertices (min 4)'.format(
+            len(self._vertices)))
+
+    if self._vertices[0].type != SegmentType.MOVE:
+        raise AssertionError(
+            'invalid polygon: first vertex is not a MOVE vertex')
+
+    if self._vertices[-1].type != SegmentType.CLOSE:
+        raise AssertionError(
+            'invalid polygon: last vertex is not a CLOSE vertex')
+
+
+class MultiPolygonValidator():
+    """
+    A class to validate the sequencing of vertices in a polygon,
+    as well as constructing and validating the polygon.
+
+    An AssertionError is thrown if an incorrect polygon is detected.
+    """
+
+    def __init__(self):
+        self._lines = 0
+        self._open_loop = False
+        self._polygon = Polygon()
+
+    def validate(self, vertex):
+        if vertex.type == SegmentType.MOVE:
+            self.validate_move(vertex)
+        elif vertex.type == SegmentType.CLOSE:
+            self.validate_close(vertex)
+        else:
+            self.validate_line(vertex)
+
+    def validate_move(self, vertex):
+        if self._open_loop:
+            raise AssertionError(
+                'invalid polygon: MOVE vertex when loop open')
+        self._lines = 0
+        self._open_loop = True
+        self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
+
+    def validate_close(self, vertex):
+        # close the polygon
+        if not self._open_loop:
+            raise AssertionError(
+                'invalid polygon: CLOSE vertex when loop close')
+        if self._lines < 2:
+            raise AssertionError(
+                'invalid polygon: minimum 2 lines required')
+        self._open_loop = False
+        # SphericalPolygon requires point[0] == point[-1]
+        point = self._polygon.points[0]
+        self._polygon.points.append(Point(point.cval1, point.cval2))
+        # validate the polygons in the multipolygon
+        validate_polygon(self._polygon)
+        # instantiate a new Polygon for the next iteration
+        self._polygon = Polygon()
+
+    def validate_line(self, vertex):
+        if not self._open_loop:
+            raise AssertionError(
+                'invalid polygon: LINE vertex when loop close')
+        self._lines += 1
+        self._polygon.points.append(Point(vertex.cval1, vertex.cval2))

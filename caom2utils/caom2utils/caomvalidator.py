@@ -90,14 +90,9 @@ Perform validation of the content of an Observation."""
 from __future__ import (absolute_import, print_function, unicode_literals)
 
 import logging
-import six
-import numpy as np
-from spherical_geometry import polygon
-from aenum import Enum
-import numpy as np
 
 from caom2 import Observation, Plane, Artifact, Part, Chunk, Provenance
-from caom2 import Point, Polygon, MultiPolygon, Polarization, SegmentType
+from caom2 import Polarization
 from caom2utils import validate_wcs
 
 
