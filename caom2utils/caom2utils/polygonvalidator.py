@@ -200,12 +200,11 @@ def _validate_self_intersection_and_direction(ras, decs):
 
 def validate_multipolygon(mp):
     """
-    Performs a basic validation of the current object.
+    Performs a basic validation of a multipolygon.
 
-    An AssertionError is thrown if the object does not represent a
-    multi polygon
+    An AssertionError is thrown if the multipolygon is invalid ie (invalid
+    indexes, invalid polygons etc.)
     """
-    # perform a quick validation of this multipolygon object to fail early
 
     if not mp:
         return
