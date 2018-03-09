@@ -95,9 +95,9 @@ def validate(caom2_entity, deep=True):
         elif isinstance(caom2_entity, Plane):
             _validate_plane(caom2_entity, deep)
         elif isinstance(caom2_entity, Artifact):
-            _validate_artifact(caom2_entity)
+            _validate_artifact(caom2_entity, deep)
         elif isinstance(caom2_entity, Part):
-            _validate_part(caom2_entity)
+            _validate_part(caom2_entity, deep)
         elif isinstance(caom2_entity, Chunk):
             _validate_chunk(caom2_entity)
         else:

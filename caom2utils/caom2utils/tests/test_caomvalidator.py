@@ -134,17 +134,17 @@ def test_compatibility():
     with open(source_file_path, 'r'):
         obs = reader.read(source_file_path)
 
-    try:
-        for plane in obs.planes.values():
-            for artifact in plane.artifacts.values():
-                for part in artifact.parts.values():
-                    for chunk in part.chunks:
-                        validate(chunk)
-                    validate(part)
-                validate(artifact)
-            validate(plane)
+    # shallow validates first
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    validate(chunk, False)
+                validate(part, False)
+            validate(artifact, False)
+        validate(plane, False)
 
-        validate(obs)
-    except AssertionError:
-        assert False, \
-            'validate should not raise an AssertionError.'
+    validate(obs, False)
+
+    # deep validate
+    validate(obs, True)
