@@ -124,12 +124,7 @@ def validate_polygon(poly):
 
     # validate the samples
     if poly.samples is not None:
-        validate_multipolygon(poly.samples)
-
-
-# Stub for now
-def validate_multipolygon(mpoly):
-    pass
+        _validate_multipolygon(poly.samples)
 
 
 def _validate_self_intersection(spolygon):
@@ -143,23 +138,23 @@ def _validate_self_intersection(spolygon):
 
     An AssertionError is thrown if the polygon contains self-intersecting
     segments.
+
+    :param spolygon: A SphericalPolygon to be validated
     """
-    if hasattr(spolygon, '__len__'):
-        # working with new version of spherical-geometry
-        if len(spolygon) > 1:
-            raise AssertionError(
-                'Polygon contains self intersecting segments')
-    else:
-        # working with current version of spherical-geometry
-        for p in spolygon.iter_polygons_flat():
-            for i in range(len(p._points) - 3):
-                A = p._points[i]
-                B = p._points[i + 1]
-                C = p._points[2:-2] if i == 0 else p._points[i + 2:-1]
-                D = p._points[3:-1] if i == 0 else p._points[i + 3:]
-                if np.any(polygon.great_circle_arc.intersects(A, B, C, D)):
-                    raise AssertionError(
-                        'Polygon contains self intersecting segments')
+    # Note: Current release is spherical-geometry 1.1.0. In the next release,
+    # spherical-geometry will detect and fix self segment intersection.
+    # Replace the block of codes below with the detection provided in the
+    # next release. For example, a function call that returns True if
+    # the polygon self intersects, and False otherwise.
+    for p in spolygon.iter_polygons_flat():
+        for i in range(len(p._points) - 3):
+            A = p._points[i]
+            B = p._points[i + 1]
+            C = p._points[2:-2] if i == 0 else p._points[i + 2:-1]
+            D = p._points[3:-1] if i == 0 else p._points[i + 3:]
+            if np.any(polygon.great_circle_arc.intersects(A, B, C, D)):
+                raise AssertionError(
+                    'Polygon contains self intersecting segments')
 
 
 def _validate_is_clockwise(orig_lon, lon):
@@ -196,7 +191,7 @@ def _validate_self_intersection_and_direction(ras, decs):
     An AssertionError is thrown if the polygon contains self-intersecting
     segments.
     """
-    # use SphericalPolygon to validate our polygon
+    # use SphericalPolygon from spherical-geometry to validate our polygon
     spolygon = polygon.SphericalPolygon.from_radec(ras, decs)
     _validate_self_intersection(spolygon)
     lon, lat = six.next(spolygon.to_lonlat())
