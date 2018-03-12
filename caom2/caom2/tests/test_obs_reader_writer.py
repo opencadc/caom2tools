@@ -396,6 +396,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertEqual(expected.name, actual.name)
         self.assertEqual(expected.target_type, actual.target_type)
         self.assertEqual(expected.redshift, actual.redshift)
+        self.assertEqual(expected.moving, actual.moving)
+        self.assertEqual(expected.standard, actual.standard)
         for keyword in expected.keywords:
             self.assertTrue(keyword in actual.keywords)
 

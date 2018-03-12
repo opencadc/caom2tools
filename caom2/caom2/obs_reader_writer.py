@@ -368,8 +368,6 @@ class ObservationReader(object):
             target_moving = self._get_child_text("moving", el, ns, False)
             if target_moving is not None:
                 target.moving = ("true" == target_moving)
-            target.moving = ("true" ==
-                             self._get_child_text("moving", el, ns, False))
             self._add_keywords(target.keywords, el, ns, False)
             return target
 
