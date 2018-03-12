@@ -119,7 +119,7 @@ def validate_polygon(poly):
             cval1s.append(points[0].cval1)
             cval2s.append(points[0].cval2)
 
-        # validate the polygons in the multipolygon
+        # validate self-segment intersection and clockwise direction
         _validate_self_intersection_and_direction(cval1s, cval2s)
 
     # validate the samples
@@ -249,13 +249,13 @@ class MultiPolygonValidator():
 
     def validate(self, vertex):
         if vertex.type == SegmentType.MOVE:
-            self.validate_move(vertex)
+            self._validate_move(vertex)
         elif vertex.type == SegmentType.CLOSE:
-            self.validate_close(vertex)
+            self._validate_close(vertex)
         else:
-            self.validate_line(vertex)
+            self._validate_line(vertex)
 
-    def validate_move(self, vertex):
+    def _validate_move(self, vertex):
         if self._open_loop:
             raise AssertionError(
                 'invalid polygon: MOVE vertex when loop open')
@@ -263,7 +263,7 @@ class MultiPolygonValidator():
         self._open_loop = True
         self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
 
-    def validate_close(self, vertex):
+    def _validate_close(self, vertex):
         # close the polygon
         if not self._open_loop:
             raise AssertionError(
@@ -280,7 +280,7 @@ class MultiPolygonValidator():
         # instantiate a new Polygon for the next iteration
         self._polygon = Polygon()
 
-    def validate_line(self, vertex):
+    def _validate_line(self, vertex):
         if not self._open_loop:
             raise AssertionError(
                 'invalid polygon: LINE vertex when loop close')
