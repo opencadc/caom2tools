@@ -9,7 +9,6 @@
   <caom2:target>
     <caom2:name>CGPS Mosaic MA1</caom2:name>
     <caom2:type>field</caom2:type>
-    <caom2:standard>false</caom2:standard>
   </caom2:target>
   <caom2:instrument>
     <caom2:name>DRAO ST</caom2:name>
