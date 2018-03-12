@@ -69,7 +69,7 @@
 
 """
 validate performs a validation on a CAOM2 element. By default deep=True
-triggering a validation of all the sub-elements in the tree.
+triggering a validation of all the sub-elements in the CAOM2 tree.
 """
 
 
@@ -85,10 +85,19 @@ from caom2utils import validate_wcs
 __all__ = ['validate']
 
 
-logger = logging.getLogger('caom_validate')
+logger = logging.getLogger('caomvalidator')
 
 
 def validate(caom2_entity, deep=True):
+    """
+    Perform validation of the content of a CAOM element.
+
+    Throws AssertionError if validation fails.
+
+    :param caom2_entity: CAOM element to perform the validation on. It
+    could be Observation, Plane, Artifact, Part or Chunk
+    :param deep if True, also validate the 'has-a' members of an element.
+    """
     if caom2_entity is not None:
         if isinstance(caom2_entity, Observation):
             _validate_observation(caom2_entity, deep)

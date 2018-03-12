@@ -459,9 +459,6 @@ class Observation(AbstractCaomEntity):
         caom_util.type_check(value, datetime, 'meta_release')
         self._meta_release = value
 
-    def validate(self, deep=True):
-        pass
-
 
 class Algorithm(CaomObject):
     """
