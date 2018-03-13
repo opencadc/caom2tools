@@ -1156,5 +1156,52 @@ class TestRoundTrip(unittest.TestCase):
 
 
 class TestSchemaValidator(unittest.TestCase):
-    def testSchemaValidator(self):
-        obs_reader_writer.SchemaValidator.validate_schema()
+    """ This class provides a means to validate the XML schema. """
+
+    def _create_observation(self):
+        obs = observation.SimpleObservation(
+            "SCHEMA_VALIDATOR_COLLECTION", "schemaValidatorObsID")
+        obs.intent = observation.ObservationIntentType.SCIENCE
+        return obs
+
+    def _write_observation(self, observation):
+        writer = obs_reader_writer.ObservationWriter(
+            True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
+        output = BytesIO()
+        writer.write(observation, output)
+        xml = output.getvalue()
+        output.close()
+        return xml
+
+    def _validate_with_intent_type(self, intent_type=None):
+        valid_observation = self._create_observation()
+        xml = self._write_observation(valid_observation)
+        if intent_type is not None:
+            xml = xml.replace(b'science', intent_type)
+        reader = obs_reader_writer.ObservationReader(True)
+        reader.read(BytesIO(xml))
+
+    def test_schema_validator(self):
+        """
+        This function is to catch unsupported extensions to our schema.
+        This function validates the schema by performing two simple observation
+        read-write round trips. One round trip uses a valid observation while
+        another uses an observation with an invalid value. The former should
+        pass while the latter should fail.
+        """
+        myself = TestSchemaValidator()
+        try:
+            # use a valid observation, should not catch any error
+            myself._validate_with_intent_type()
+        except Exception as ex:
+            raise AssertionError('Schema error: {}'.format(str(ex)))
+
+        try:
+            # use an invalid observation, should catch any error
+            myself._validate_with_intent_type(b'nosuchintent')
+            raise AssertionError(
+                'Schema failed to detect an error in ObservationIntentType.')
+        except Exception as ex:
+            if 'nosuchintent' not in str(ex):
+                raise AssertionError(
+                    'Schema error: {}'.format(str(ex)))
