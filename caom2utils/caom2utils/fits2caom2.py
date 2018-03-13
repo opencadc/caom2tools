@@ -1606,7 +1606,8 @@ class FitsParser(GenericParser):
         redshift = self._get_from_list('Observation.target.redshift', index=0)
         keywords = self._get_set_from_list('Observation.target.keywords',
                                            index=0)  # TODO
-        moving = self._get_from_list('Observation.target.moving', index=0)
+        moving = self._cast_as_bool(
+            self._get_from_list('Observation.target.moving', index=0))
         self.logger.debug('End CAOM2 Target augmentation.')
         if name:
             return Target(str(name), target_type, standard, redshift,
@@ -1666,8 +1667,8 @@ class FitsParser(GenericParser):
         ambient = _to_float(
             self._get_from_list('Observation.environment.ambientTemp',
                                 index=0))
-        photometric = self._get_from_list(
-            'Observation.environment.photometric', index=0)
+        photometric = self._cast_as_bool(self._get_from_list(
+            'Observation.environment.photometric', index=0))
 
         if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = Environment()
@@ -1743,7 +1744,7 @@ class FitsParser(GenericParser):
                             '{}: assigned default value {}.'.format(lookup,
                                                                     value))
 
-        elif keywords:
+        elif (keywords is not None) and (keywords != ''):
             value = keywords
         elif current:
             value = current
@@ -1888,6 +1889,8 @@ class FitsParser(GenericParser):
         :param from_value: Something that represents a boolean value
         :return: a python boolean value
         """
+        if isinstance(from_value, bool):
+            return from_value
         result = None
         # so far, these are the only options that are coming in from the
         # config files - may need to add more as more types are experienced

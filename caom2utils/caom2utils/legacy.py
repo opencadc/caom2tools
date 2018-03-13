@@ -154,6 +154,7 @@ _JAVA_CAOM2_CONFIG = {
     'Observation.target.standard': 'target.standard',
     'Observation.target.redshift': 'target.redshift',
     'Observation.target.keywords': 'target.keywords',
+    'Observation.target.moving': 'target.moving',
 
     'Observation.telescope.name': 'telescope.name',
     'Observation.telescope.geoLocationX': 'telescope.geoLocationX',

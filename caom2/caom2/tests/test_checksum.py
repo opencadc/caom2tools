@@ -141,6 +141,9 @@ def test_compatibility():
     with open(source_file_path, 'r'):
         obs = reader.read(source_file_path)
 
+    writer = obs_reader_writer.ObservationWriter(True)
+    writer.write(obs, '/tmp/test.xml')
+
     for plane in obs.planes.values():
         for artifact in plane.artifacts.values():
             for part in artifact.parts.values():
