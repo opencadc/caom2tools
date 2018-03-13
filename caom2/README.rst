@@ -18,6 +18,7 @@ To create a minimal Simple Observation
 --------------------------------------
 
 .. code:: python
+
         # make it compatible with Python 2 and 3
         from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -46,6 +47,8 @@ To create a minimal Simple Observation
 
         writer = ObservationWriter()
         writer.write(observation, sys.stdout)
+
+The output:
 
 .. code:: xml
 
@@ -82,6 +85,7 @@ To create a complete Observation
 --------------------------------------
 
 .. code:: python
+
     # make it compatible with Python 2 and 3
     from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -223,6 +227,8 @@ To create a complete Observation
 
     writer = ObservationWriter()
     writer.write(observation, sys.stdout)
+
+The output:
 
 .. code:: xml
 
