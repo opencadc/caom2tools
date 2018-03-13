@@ -79,7 +79,7 @@ from . import caom_util
 from . import common
 
 __all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point',
-           'Polygon', 'Vertex']
+           'Polygon', 'Vertex', 'MultiPolygon']
 
 
 class SegmentType(Enum):
@@ -252,6 +252,7 @@ class Interval(common.CaomObject):
         self.lower = lower
         self.upper = upper
         self.samples = samples
+        self.validate()
 
     def get_width(self):
         return self._upper - self._lower
@@ -322,6 +323,36 @@ class Interval(common.CaomObject):
             caom_util.type_check(value, list, 'samples', override=False)
         self._samples = value
 
+    def validate(self):
+        """
+        Performs a validation of the current object.
+
+        An AssertionError is thrown if the object does not represent an
+        Interval
+        """
+        if self._samples is not None:
+
+            if len(self._samples) == 0:
+                raise AssertionError(
+                    'invalid interval (samples cannot be empty)')
+
+            prev = None
+            for sample in self._samples:
+                if sample.lower < self._lower:
+                    raise AssertionError(
+                        'invalid interval: sample extends below lower bound: '
+                        '{} vs {}'.format(sample, self._lower))
+                if sample.upper > self._upper:
+                    raise AssertionError(
+                        'invalid interval: sample extends above upper bound: '
+                        '{} vs {}'.format(sample, self._upper))
+                if prev is not None:
+                    if sample.lower <= prev.upper:
+                        raise AssertionError(
+                            'invalid interval: sample overlaps previous '
+                            'sample:\n{}\nvs\n{}'.format(sample, prev))
+                prev = sample
+
 
 class Point(common.CaomObject):
     def __init__(self, cval1, cval2):
@@ -355,7 +386,7 @@ class Point(common.CaomObject):
 
 class Polygon(common.CaomObject):
     def __init__(self, points=None, samples=None):
-        if not points:
+        if points is None:
             self._points = []
         else:
             self._points = points
@@ -387,7 +418,7 @@ class Polygon(common.CaomObject):
 
 class MultiPolygon(common.CaomObject):
     def __init__(self, vertices=None):
-        if not vertices:
+        if vertices is None:
             self._vertices = []
         else:
             self._vertices = vertices
@@ -400,45 +431,6 @@ class MultiPolygon(common.CaomObject):
         type: list of Vertices
         """
         return self._vertices
-
-    def validate(self):
-        """
-        Performs a basic calidation of the current object.
-
-        TODO: check the clockwise direction
-
-        An AssertionError is thrown when the object does not represent a
-        multi polygon
-        """
-        if not self.vertices:
-            raise AssertionError('invalid polygon: no vertices')
-        lines = 0
-        if len(self._vertices) < 4:
-            # triangle
-            raise AssertionError('invalid polygon: {} vertices (min 4)'.format(
-                len(self._vertices)))
-
-        open_loop = False
-        for v in self._vertices:
-            if v.type == SegmentType.MOVE:
-                if open_loop:
-                    raise AssertionError(
-                        'invalid polygon: MOVE vertex when loop open')
-                lines = 0
-                open_loop = True
-            elif v.type == SegmentType.CLOSE:
-                if not open_loop:
-                    raise AssertionError(
-                        'invalid polygon: CLOSE vertex when loop close')
-                if lines < 2:
-                    raise AssertionError(
-                        'invalid polygon: minimum 2 lines required')
-                open_loop = False
-            else:
-                if not open_loop:
-                    raise AssertionError(
-                        'invalid polygon: LINE vertex when loop close')
-                lines += 1
 
 
 class Vertex(Point):

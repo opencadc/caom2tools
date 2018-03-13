@@ -71,6 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import math
+import pytest
 import unittest
 
 from .. import shape
@@ -150,9 +151,13 @@ class TestInterval(unittest.TestCase):
         upper1 = 2.1
         lower2 = 1.2
         upper2 = 2.2
-        samples = [shape.SubInterval(lower, upper),
-                   shape.SubInterval(lower1, upper1),
-                   shape.SubInterval(lower2, upper2)]
+        samples = [shape.SubInterval(lower, lower1),
+                   shape.SubInterval(lower2, upper),
+                   shape.SubInterval(upper1, upper2)]
+        invalid_samples_lower_mismatch = [shape.SubInterval(lower, upper)]
+        invalid_samples_upper_mismatch = [shape.SubInterval(lower, upper2)]
+        invalid_samples_middle_bounds_overlap = [
+            shape.SubInterval(lower, upper), shape.SubInterval(lower1, upper1)]
 
         self.assertRaises(TypeError, shape.Interval, None, None, None)
         self.assertRaises(TypeError, shape.Interval, None, None, 1.0)
@@ -166,9 +171,17 @@ class TestInterval(unittest.TestCase):
         self.assertRaises(TypeError, shape.Interval, "string1", "string2",
                           int(1))
         self.assertRaises(AssertionError, shape.Interval, 2.0, 1.0, None)
+        # validate errors
+        self.assertRaises(AssertionError, shape.Interval, lower, lower, [])
+        self.assertRaises(AssertionError, shape.Interval, lower1, upper,
+                          invalid_samples_lower_mismatch)
+        self.assertRaises(AssertionError, shape.Interval, lower, upper,
+                          invalid_samples_upper_mismatch)
+        self.assertRaises(AssertionError, shape.Interval, lower, upper2,
+                          invalid_samples_middle_bounds_overlap)
 
         # test cannot set interval with upper < lower
-        interval = shape.Interval(lower, upper, samples)
+        interval = shape.Interval(lower, upper2, samples)
         has_assertionError = False
         try:
             interval.upper = 0.5
@@ -259,116 +272,27 @@ class TestSubInterval(unittest.TestCase):
         shape.SubInterval(10.0, 15.0)
 
 
-class TestPolygon(unittest.TestCase):
+class TestVertex():
     def test_all(self):
-        p1 = shape.Point(1.0, 2.0)
-        p2 = shape.Point(2.0, 3.0)
-        p3 = shape.Point(3.0, 4.0)
-        p4 = shape.Point(0.0, 0.0)
-        points = [p1, p2, p3, p4]
-
-        v0 = shape.Vertex(1.0, 2.0, shape.SegmentType.MOVE)
-        v1 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
-        v2 = shape.Vertex(2.0, 3.0, shape.SegmentType.LINE)
-        v3 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
-        v4 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-        vl = [v0, v1, v2, v3, v4]
-        mp = shape.MultiPolygon(vl)
-
-        p = shape.Polygon(points=points, samples=mp)
-        actual_points = p.points
-        self.assertEqual(actual_points[0].cval1, 1.0)
-        self.assertEqual(actual_points[0].cval2, 2.0)
-        self.assertEqual(actual_points[1].cval1, 2.0)
-        self.assertEqual(actual_points[1].cval2, 3.0)
-        self.assertEqual(actual_points[2].cval1, 3.0)
-        self.assertEqual(actual_points[2].cval2, 4.0)
-        self.assertEqual(actual_points[3].cval1, 0.0)
-        self.assertEqual(actual_points[3].cval2, 0.0)
-
-        self.assertTrue(mp is p.samples)
-
-
-class TestMultiPolygon(unittest.TestCase):
-    def test_all(self):
-        v0 = shape.Vertex(1.0, 2.0, shape.SegmentType.MOVE)
-        v1 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
-        v2 = shape.Vertex(2.0, 3.0, shape.SegmentType.LINE)
-        v3 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
-        v4 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-        vl = [v0, v1, v2, v3, v4]
-
-        mp = shape.MultiPolygon(vl)
-        actual_vertices = mp.vertices
-        self.assertEqual(actual_vertices[0].cval1, 1.0)
-        self.assertEqual(actual_vertices[0].cval2, 2.0)
-        self.assertEqual(actual_vertices[0].type, shape.SegmentType.MOVE)
-        self.assertEqual(actual_vertices[1].cval1, 1.0)
-        self.assertEqual(actual_vertices[1].cval2, 2.0)
-        self.assertEqual(actual_vertices[1].type, shape.SegmentType.LINE)
-        self.assertEqual(actual_vertices[2].cval1, 2.0)
-        self.assertEqual(actual_vertices[2].cval2, 3.0)
-        self.assertEqual(actual_vertices[2].type, shape.SegmentType.LINE)
-        self.assertEqual(actual_vertices[3].cval1, 3.0)
-        self.assertEqual(actual_vertices[3].cval2, 4.0)
-        self.assertEqual(actual_vertices[3].type, shape.SegmentType.LINE)
-        self.assertEqual(actual_vertices[4].cval1, 0.0)
-        self.assertEqual(actual_vertices[4].cval2, 0.0)
-        self.assertEqual(actual_vertices[4].type, shape.SegmentType.CLOSE)
-
-        # test validate method
-        mp.validate()
-        mp.vertices[0].type = shape.SegmentType.CLOSE
-        with self.assertRaises(AssertionError):
-            mp.validate()
-        mp.vertices[0].type = shape.SegmentType.LINE
-        with self.assertRaises(AssertionError):
-            mp.validate()
-        mp.vertices[0].type = shape.SegmentType.MOVE
-        mp.vertices[1].type = shape.SegmentType.MOVE
-        with self.assertRaises(AssertionError):
-            mp.validate()
-        mp.vertices[1].type = shape.SegmentType.CLOSE
-        with self.assertRaises(AssertionError):
-            mp.validate()
-        mp.vertices[1].type = shape.SegmentType.LINE
-        mp.vertices[3].type = shape.SegmentType.CLOSE
-        with self.assertRaises(AssertionError):
-            mp.validate()
-        del mp.vertices[3]
-        # still works with 2 lines
-        mp.validate()
-        # but not with 1 single line
-        del mp.vertices[2]
-        with self.assertRaises(AssertionError):
-            mp.validate()
-
-        del mp.vertices[:]
-        with self.assertRaises(AssertionError):
-            mp.validate()
-
-
-class TestVertex(unittest.TestCase):
-    def test_all(self):
-        self.assertRaises(TypeError, shape.Vertex, None, None, None)
-        self.assertRaises(TypeError, shape.Vertex, 1.0, 2.0, None)
-        self.assertRaises(TypeError, shape.Vertex, 1.0, 2.0, 1.0)
-        self.assertRaises(TypeError, shape.Vertex, None, None,
-                          shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, None, 2.0,
-                          shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, 1.0, None,
-                          shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, None, "string",
-                          shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, "string", None,
-                          shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, None, int(1),
-                          shape.SegmentType.LINE)
-        self.assertRaises(TypeError, shape.Vertex, int(1), None,
-                          shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, None, None, None)
+        pytest.raises(TypeError, shape.Vertex, 1.0, 2.0, None)
+        pytest.raises(TypeError, shape.Vertex, 1.0, 2.0, 1.0)
+        pytest.raises(TypeError, shape.Vertex, None, None,
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, None, 2.0,
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, 1.0, None,
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, None, "string",
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, "string", None,
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, None, int(1),
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, int(1), None,
+                      shape.SegmentType.LINE)
 
         vertex = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
-        self.assertEqual(vertex.cval1, 1.0)
-        self.assertEqual(vertex.cval2, 2.0)
-        self.assertEqual(vertex.type, shape.SegmentType.LINE)
+        assert(vertex.cval1 == 1.0)
+        assert(vertex.cval2 == 2.0)
+        assert(vertex.type == shape.SegmentType.LINE)

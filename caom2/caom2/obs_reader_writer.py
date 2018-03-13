@@ -359,12 +359,14 @@ class ObservationReader(object):
             target_type = self._get_child_text("type", el, ns, False)
             if target_type:
                 target.target_type = observation.TargetType(target_type)
-            target.standard = ("true" ==
-                               self._get_child_text("standard", el, ns, False))
+            target_standard = self._get_child_text("standard", el, ns, False)
+            if target_standard is not None:
+                target.standard = ("true" == target_standard)
             target.redshift = (
                 self._get_child_text_as_float("redshift", el, ns, False))
-            target.moving = ("true" ==
-                             self._get_child_text("moving", el, ns, False))
+            target_moving = self._get_child_text("moving", el, ns, False)
+            if target_moving is not None:
+                target.moving = ("true" == target_moving)
             self._add_keywords(target.keywords, el, ns, False)
             return target
 
@@ -490,9 +492,9 @@ class ObservationReader(object):
                 self._get_child_text_as_float("wavelengthTau", el, ns, False))
             environment.ambient_temp = (
                 self._get_child_text_as_float("ambientTemp", el, ns, False))
-            environment.photometric = ("true" ==
-                                       self._get_child_text("photometric", el,
-                                                            ns, False))
+            photometric = self._get_child_text("photometric", el, ns, False)
+            if photometric is not None:
+                environment.photometric = ("true" == photometric)
             return environment
 
     def _add_members(self, members, parent, ns):

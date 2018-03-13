@@ -66,6 +66,10 @@ provenance.inputs           =
 
 members          = 
 
+environment.photometric     = false
+target.moving               = false
+target.standard             = false
+
 time.exposure               = 0.000000
 time.resolution             = 0.000000
 NAXIS5                      = 1

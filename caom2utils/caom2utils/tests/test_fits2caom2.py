@@ -464,6 +464,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 def test_augment_observation():
     test_obs_blueprint = ObsBlueprint(position_axes=(1, 2))
     test_obs_blueprint.set('Observation.target.name', 'CGPS Mosaic MA1')
+    test_obs_blueprint.set('Observation.target.standard', False)
     test_obs_blueprint.set('Observation.telescope.name', 'DRAO-ST')
     test_obs_blueprint.set('Observation.instrument.name', 'DRAO-ST')
     test_obs_blueprint.set('Observation.telescope.geoLocationX',
@@ -726,7 +727,6 @@ EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
   <caom2:intent>science</caom2:intent>
   <caom2:target>
     <caom2:name>CGPS Mosaic MA1</caom2:name>
-    <caom2:standard>false</caom2:standard>
   </caom2:target>
   <caom2:instrument>
     <caom2:name>DRAO ST</caom2:name>
