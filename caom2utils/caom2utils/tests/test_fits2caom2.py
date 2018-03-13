@@ -419,7 +419,6 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
   </caom2:proposal>
   <caom2:target>
     <caom2:name>CGPS Mosaic MA1</caom2:name>
-    <caom2:standard>false</caom2:standard>
   </caom2:target>
   <caom2:telescope>
     <caom2:name>DRAO-ST</caom2:name>
