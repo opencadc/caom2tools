@@ -69,7 +69,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from caom2utils import legacy
+from caom2utils import legacy, fits2caom2
 from caom2 import ObservationReader
 from caom2.diff import get_differences
 
@@ -107,33 +107,64 @@ def test_differences(directory):
     prod_id = [p.product_id for p in six.itervalues(expected.planes)][0]
     product_id = '--productID {}'.format(prod_id)
     collection_id = expected.collection
-    config = _get_parameter('config', directory)
-    assert config
-    defaults = _get_parameter('default', directory)
-    assert defaults
-    overrides = _get_parameter('override', directory)
-    assert overrides
-    data_files = _get_files(['header', 'png'], directory)
+    data_files = _get_files(['header', 'png', 'gif', 'cat'], directory)
     assert data_files
+    logging.error(data_files)
     data_files_parameter = _get_data_files_parameter(data_files)
 
     file_meta = _get_uris(collection_id, data_files, expected)
     assert file_meta
+
+    config = _get_parameter('config', directory)
+    if config is None:
+        blueprints = _get_parameter('blueprint', directory)
+        assert blueprints
+        cardinality = _get_cardinality(directory)
+        inputs = blueprints
+        application = 'caom2gen'
+        app_cmd = fits2caom2.caom2gen
+    else:
+        defaults = _get_parameter('default', directory)
+        assert defaults
+        overrides = _get_parameter('override', directory)
+        assert overrides
+        inputs = '{} {} {}'.format(config, defaults, overrides)
+        application = 'fits2caom2'
+        app_cmd = legacy.main_app
+        temp = ' '.join(file_meta[0])
+        cardinality = '{} {}'.format(product_id, temp)
+        return  # TODO shorter testing cycle
+
     with patch('caom2utils.fits2caom2.CadcDataClient') as data_client_mock:
         def get_file_info(archive, file_id):
             return file_meta[1][(archive, file_id)]
         data_client_mock.return_value.get_file_info.side_effect = get_file_info
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('fits2caom2 --dumpconfig '
-                    '{} -o {} --observation {} {} {} {} {} {} {} '.format(
-                        data_files_parameter, temp.name, expected.collection,
-                        expected.observation_id,
-                        config, defaults, overrides, product_id,
-                        ' '.join(file_meta[0]))).split()
+        sys.argv = ('{} '
+                    '{} -o {} --observation {} {} {} {} '.format(
+                        application, data_files_parameter, temp.name,
+                        expected.collection, expected.observation_id,
+                        inputs, cardinality)).split()
         print(sys.argv)
-        legacy.main_app()
+        app_cmd()
     actual = _read_observation(temp.name)  # actual observation
     _compare_observations(expected, actual, directory)
+
+
+def _run_fits2caom2():
+    pass
+
+
+def _run_caom2gen():
+    pass
+
+
+def _get_cardinality(directory):
+    # TODO - read this from an aptly named file in the directory
+    return '--lineage ' \
+           'productID/ad:CFHTMEGAPIPE/MegaPipe.080.156.Z.MP9801.fits ' \
+           'productID/ad:CFHTMEGAPIPE/MegaPipe.080.156.Z.MP9801.fits ' \
+           'productID/ad:CFHTMEGAPIPE/MegaPipe.080.156.Z.MP9801.fits '
 
 
 def _get_common(fnames):
@@ -201,7 +232,7 @@ def _get_uris(collection, fnames, obs):
                                 'Only ad type URIs supported')
                         archive, file_id = file_url.path.split('/')
                         file_meta[(archive, file_id)] = meta
-        return (uris, file_meta)
+        return uris, file_meta
     else:
         return None
 

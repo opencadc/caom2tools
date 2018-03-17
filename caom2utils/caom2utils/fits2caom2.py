@@ -93,6 +93,7 @@ from caom2 import ObservationURI, ObservableAxis, Slice
 import logging
 import re
 import sys
+import traceback
 from abc import ABCMeta
 from six import add_metaclass
 from hashlib import md5
@@ -102,7 +103,7 @@ from cadcutils import net, util
 from cadcdata import CadcDataClient
 from io import BytesIO
 
-APP_NAME = 'fits2caom2'
+APP_NAME = 'caom2gen'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
@@ -805,6 +806,24 @@ class ObsBlueprint(object):
             'CRVAL{}'.format(axis)
 
         self._time_axis_configed = True
+
+    def load_from_file(self, file_name):
+        """
+        Load a blueprint from a file. The expected format is the same as is
+        output by _serialize.
+
+        :param file_name: The fully-qualified pathname for the blueprint
+        file on disk.
+        """
+        with open(file_name) as file:
+            for line in file:
+                if line.find('=') != -1:
+                    key, value = line.split('=', 1)
+                    if value.find(' default = ') == -1:
+                        cleaned_up_value = value
+                    else:
+                        cleaned_up_value = (value.replace(' default = ', ''))
+                    self.set(key.strip(), cleaned_up_value)
 
     @classproperty
     def CAOM2_ELEMENTS(cls):
@@ -2448,10 +2467,181 @@ def _get_file_meta(path):
     return meta
 
 
-def get_arg_parser():
+def _lookup_blueprint(blueprints, uri):
+    if len(blueprints) == 1:
+        return blueprints[0]
+    else:
+        return blueprints[uri]
+
+
+def _extract_bits(cardinality):
+    return cardinality.split('/', 1)
+
+
+def caom2gen():
+    parser = _get_arg_parser()
+    # TODO - need to be able to support multiple blueprint arguments
+    # parser.add_argument('-b', '--blueprint', required=True,
+    parser.add_argument('-b', '--blueprint', nargs='+', required=True,
+                        help=('list of files with blueprints for CAOM2 '
+                              'construction, in serialized format. If the '
+                              'list is of length 1, the same blueprint will '
+                              'be applied to all file URIs. Otherwise, '
+                              'there must be a blueprint file per file URI.'))
+    parser.add_argument('--lineage', nargs='+',
+                        help=('productID/artifactURI. List of plane/artifact '
+                              'identifiers that will be'
+                              'created for the identified observation.'))
+
+    if len(sys.argv) < 2:
+        parser.print_usage(file=sys.stderr)
+        sys.stderr.write('{}: error: too few arguments\n'.format(APP_NAME))
+        sys.exit(-1)
+
+    args = parser.parse_args()
+    blueprints = {}
+    if len(args.blueprint) == 1:
+        # one blueprint to rule them all
+        blueprint = ObsBlueprint()
+        blueprint.load_from_file(args.blueprint[0])
+        for i, cardinality in enumerate(args.lineage):
+            product_id, uri = _extract_bits(cardinality)
+            blueprints[uri] = blueprint
+    else:
+        # there needs to be the same number of blueprints as plane/artifact
+        # identifiers
+        logging.error('l {} b {} {}'.format(len(args.lineage),
+                                            len(args.blueprint),
+                                            args.blueprint))
+        if len(args.lineage) != len(args.blueprint):
+            sys.stderr.write(
+                '{}: error: different number of blueprints and files.'.format(
+                    APP_NAME))
+            sys.exit(-1)
+
+        for i, cardinality in enumerate(args.lineage):
+            product_id, uri = _extract_bits(cardinality)
+            for j, bp in enumerate(args.blueprint):
+                blueprint = ObsBlueprint()
+                blueprint.load_from_file(bp)
+                blueprints[uri] = blueprint
+                break
+
+    try:
+        obs = _set_obs(args, blueprints)
+
+        for ii, cardinality in enumerate(args.lineage):
+        # for i, uri in enumerate(args.fileURI):
+            product_id, uri = _extract_bits(cardinality)
+            blueprint = _lookup_blueprint(blueprints, uri)
+            # # override the command-line argument for the plane product ID value
+            # product_id = blueprint._get('Plane.productID')
+            # if product_id is None or isinstance(product_id, tuple):
+            #     if args.productID:
+            #         product_id = args.productID
+            #     else:
+            #         msg = '{}{}'.format(
+            #             'A productID parameter is required if one is not ',
+            #             'identified in the blueprint.')
+            #         raise RuntimeError(msg)
+
+            if product_id not in obs.planes.keys():
+                obs.planes.add(Plane(product_id=str(product_id)))
+
+            plane = obs.planes[product_id]
+
+            subject = net.Subject.from_cmd_line_args(args)
+            if args.local:
+                file = args.local[i]
+                if uri not in plane.artifacts.keys():
+                    plane.artifacts.add(
+                        Artifact(uri=str(uri),
+                                 product_type=ProductType.SCIENCE,
+                                 release_type=ReleaseType.DATA))
+                if file.endswith('.fits'):
+                    parser = FitsParser(file, blueprint)
+                elif file.find('.header') != -1:
+                    parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
+                                        blueprint)
+                else:
+                    # explicitly ignore headers for txt and image files
+                    parser = GenericParser(blueprint)
+            else:
+                headers = get_cadc_headers(uri, subject)
+
+                if uri not in plane.artifacts.keys():
+                    plane.artifacts.add(
+                        Artifact(uri=str(uri),
+                                 product_type=ProductType.SCIENCE,
+                                 release_type=ReleaseType.DATA))
+                parser = FitsParser(headers, blueprint)
+
+            _update_artifact_meta(plane.artifacts[uri], subject)
+
+            if args.dumpconfig:
+                print('Blueprint for {}: {}'.format(uri, blueprint))
+
+            parser.augment_observation(observation=obs, artifact_uri=uri,
+                                       product_id=plane.product_id)
+
+            if len(parser._errors) > 0:
+                logging.debug(
+                    '{} errors encountered while processing {!r}.'.format(
+                        len(parser._errors), uri))
+
+        writer = ObservationWriter()
+        if args.out_obs_xml:
+            writer.write(obs, args.out_obs_xml)
+        else:
+            sys.stdout.flush()
+            writer.write(obs, sys.stdout)
+
+    except Exception as e:
+        logging.error(e)
+        tb = traceback.format_exc()
+        logging.debug(tb)
+        sys.exit(-1)
+
+    logging.debug(
+        'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
+
+
+def _set_obs(args, obs_blueprints):
+    obs = None
+    if args.in_obs_xml:
+        # append to existing observation
+        reader = ObservationReader(validate=True)
+        obs = reader.read(args.in_obs_xml)
+        if len(obs.planes) != 1:
+            if not args.productID:
+                msg = '{}{}{}'.format(
+                    'A productID parameter is required if ',
+                    'there are zero or more than one planes ',
+                    'in the input observation.')
+                raise RuntimeError(msg)
+    else:
+        # determine the type of observation to create by looking for the
+        # the CompositeObservation.members in the blueprints. If present
+        # in any of it assume composite
+        for bp in obs_blueprints.values():
+            if bp._get('CompositeObservation.members'):
+                obs = CompositeObservation(
+                    collection=str(args.observation[0]),
+                    observation_id=str(args.observation[1]),
+                    algorithm=Algorithm(str('composite')))
+                break
+    if not obs:
+        # build a simple observation
+        obs = SimpleObservation(collection=str(args.observation[0]),
+                                observation_id=str(args.observation[1]),
+                                algorithm=Algorithm(str('exposure')))
+    return obs
+
+
+def _get_arg_parser():
     """
-    Returns the arg parser with minimum arguments required to run
-    fits2caom2
+    Returns the arg parser with common arguments between
+    fits2caom2 and caom2gen
     :return: args parser
     """
     resource_id = "ivo://cadc.nrc.ca/fits2caom2"
@@ -2488,7 +2678,16 @@ def get_arg_parser():
                         help='keep the locally stored files after ingestion')
     parser.add_argument('--test', action='store_true',
                         help='test mode, do not persist to database')
+    return parser
 
+
+def get_arg_parser():
+    """
+    Returns the arg parser with minimum arguments required to run
+    fits2caom2
+    :return: args parser
+    """
+    parser = _get_arg_parser()
     parser.add_argument('--productID',
                         help='product ID of the plane in the observation',
                         required=False)
@@ -2537,34 +2736,7 @@ def proc(args, obs_blueprints):
                'URIs ({} vs {})').format(len(args.local), args.fileURI)
         raise RuntimeError(msg)
 
-    obs = None
-    if args.in_obs_xml:
-        # append to existing observation
-        reader = ObservationReader(validate=True)
-        obs = reader.read(args.in_obs_xml)
-        if len(obs.planes) != 1:
-            if not args.productID:
-                msg = '{}{}{}'.format(
-                    'A productID parameter is required if ',
-                    'there are zero or more than one planes ',
-                    'in the input observation.')
-                raise RuntimeError(msg)
-    else:
-        # determine the type of observation to create by looking for the
-        # the CompositeObservation.members in the blueprints. If present
-        # in any of it assume composite
-        for bp in obs_blueprints.values():
-            if bp._get('CompositeObservation.members'):
-                obs = CompositeObservation(
-                    collection=str(args.observation[0]),
-                    observation_id=str(args.observation[1]),
-                    algorithm=Algorithm(str('composite')))
-                break
-    if not obs:
-        # build a simple observation
-        obs = SimpleObservation(collection=str(args.observation[0]),
-                                observation_id=str(args.observation[1]),
-                                algorithm=Algorithm(str('exposure')))
+    obs = _set_obs(args, obs_blueprints)
 
     for i, uri in enumerate(args.fileURI):
         blueprint = obs_blueprints[uri]
