@@ -2647,18 +2647,20 @@ def _load_module(module):
         mname = mname.split('.')[0]
     pname = os.path.dirname(module)
     sys.path.append(pname)
-    return importlib.import_module(mname)
-    pass
+    try:
+        return importlib.import_module(mname)
+    except ModuleNotFoundError as e:
+        logging.error('Looking for {} in {}'.format(mname, pname))
+        raise e
 
 
 def caom2gen():
     parser = _get_arg_parser()
-    parser.add_argument('-m', '--module', help=('if the blueprint contains '
-                                                'function calls, call '
-                                                'importlib.import_module for'
-                                                'the named module. Provide a'
-                                                'fully qualified name.'))
-    parser.add_argument('-b', '--blueprint', nargs='+', required=True,
+    parser.add_argument('--module', help=('if the blueprint contains function '
+                                          'calls, call importlib.import_module '
+                                          'for the named module. Provide a '
+                                          'fully qualified name.'))
+    parser.add_argument('--blueprint', nargs='+', required=True,
                         help=('list of files with blueprints for CAOM2 '
                               'construction, in serialized format. If the '
                               'list is of length 1, the same blueprint will '
