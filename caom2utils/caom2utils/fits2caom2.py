@@ -1612,14 +1612,14 @@ class FitsParser(GenericParser):
         if ObsBlueprint.is_function(value):
             try:
                 execute = getattr(self.blueprint._module, value.strip('()'))
-                result = execute(self.headers)
+                result = execute(self._headers)
                 logging.debug(
                     'Calculated value of {} using {}'.format(result, value))
             except Exception as e:
                 logging.error(
-                    'Failed to execute {}.{}'.format(self.blueprint._module,
-                                                     value))
-                logging.debug('Input parameter was {}'.format(self.headers))
+                    'Failed to execute {}.{}'.format(
+                        self.blueprint._module.__name__, value))
+                logging.debug('Input parameter was {}'.format(self._headers))
                 tb = traceback.format_exc()
                 logging.error(tb)
                 logging.error(e)
