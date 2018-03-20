@@ -90,7 +90,9 @@ from caom2 import Instrument, Proposal, Target, Provenance, Metrics
 from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice
+import importlib
 import logging
+import os
 import re
 import sys
 import traceback
@@ -102,6 +104,7 @@ from six.moves.urllib.parse import urlparse
 from cadcutils import net, util
 from cadcdata import CadcDataClient
 from io import BytesIO
+import six
 
 APP_NAME = 'caom2gen'
 
@@ -432,7 +435,7 @@ class ObsBlueprint(object):
         elem) for elem in _CAOM2_ELEMENTS]))
 
     def __init__(self, position_axes=None, energy_axis=None,
-                 polarization_axis=None, time_axis=None):
+                 polarization_axis=None, time_axis=None, module=None):
         """
         Ctor
         :param position_axes: tuple of form (int, int) indicating the indexes
@@ -440,6 +443,8 @@ class ObsBlueprint(object):
         :param energy_axis: index of energy axis (int)
         :param polarization_axis: index of polarization axis (int)
         :param time_axis: index of time axis (int)
+        :param module: user-provided code, will be loaded with
+            importlib.import_module if a value is provided.
         """
 
         if position_axes and isinstance(position_axes, tuple) and\
@@ -507,6 +512,11 @@ class ObsBlueprint(object):
 
         if time_axis:
             self.configure_time_axis(time_axis)
+
+        if module:
+            self._module = module
+        else:
+            self._module = None
 
     def configure_position_axes(self, axes):
         """
@@ -809,8 +819,12 @@ class ObsBlueprint(object):
 
     def load_from_file(self, file_name):
         """
-        Load a blueprint from a file. The expected format is the same as is
-        output by _serialize.
+        Load a blueprint from a file. The expected input format is the same
+        as is output by _serialize. This means there's lots of stripping of
+        extra spaces, equals signs, and the word default. Also manage
+        square brackets as list construction.
+
+        Accept comments that start with '#'.
 
         :param file_name: The fully-qualified pathname for the blueprint
         file on disk.
@@ -818,12 +832,36 @@ class ObsBlueprint(object):
         with open(file_name) as file:
             for line in file:
                 if line.find('=') != -1:
+                    if line.find('#') != -1:
+                        if line.find('#') == 0:
+                            continue
+                        line = line.split('#')[0]
                     key, value = line.split('=', 1)
-                    if value.find(' default = ') == -1:
-                        cleaned_up_value = value
+                    if value.find('default') == -1:
+                        if value.find('[') == -1:
+                            cleaned_up_value = value.strip('\n').strip()
+                        else:
+                            temp_list = value.replace('[', ''). \
+                                replace(']', '').replace('\'', '').split(',')
+                            temp_list_2 = []
+                            for ii in temp_list:
+                                temp_list_2.append(ii.strip().strip('\n'))
+                            cleaned_up_value = (temp_list_2, None)
                     else:
-                        cleaned_up_value = (value.replace(' default = ', ''))
-                    self.set(key.strip(), cleaned_up_value)
+                        temp = value.replace('default', '').\
+                            replace('=', '').strip('\n').strip()
+                        default = temp.rsplit(',')[1]
+                        temp_list = temp.rsplit(',')[0].replace('[', '').\
+                            replace(']', '').replace('\'', '').split(',')
+                        if default.find('None') == -1:
+                            default = default.strip()
+                        else:
+                            default = None
+                        cleaned_up_value = (temp_list, default)
+                    if line.startswith('Chunk'):
+                        self._wcs_std[key.strip()] = cleaned_up_value
+                    else:
+                        self.set(key.strip(), cleaned_up_value)
 
     @classproperty
     def CAOM2_ELEMENTS(cls):
@@ -1059,6 +1097,16 @@ class ObsBlueprint(object):
         if self._obs_axis_configed:
             configed_axes += 1
         return configed_axes
+
+    @staticmethod
+    def is_tuple(value):
+        """Hide the blueprint structure from clients - they shouldn't need
+        to know that a value of type tuple requires special processing."""
+        return isinstance(value, tuple)
+
+    @staticmethod
+    def is_function(value):
+        return not ObsBlueprint.is_tuple(value) and value.find('()') != -1
 
 
 @add_metaclass(ABCMeta)
@@ -1460,7 +1508,7 @@ class FitsParser(GenericParser):
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
             if key in wcs_std:
-                if isinstance(value, tuple):
+                if ObsBlueprint.is_tuple(value):
                     # alternative attributes provided for standard wcs attrib.
                     for header in self.headers:
                         for v in value[0]:
@@ -1470,10 +1518,14 @@ class FitsParser(GenericParser):
                                 for keyword in keywords:
                                     _set_by_type(header, keyword,
                                                  str(header[v]))
+                elif ObsBlueprint.is_function(value):
+                    continue
                 else:
                     # value provided for standard wcs attribute
-                    if isinstance(wcs_std[key], tuple):
+                    if ObsBlueprint.is_tuple(wcs_std[key]):
                         keywords = wcs_std[key][0]
+                    elif ObsBlueprint.is_function(wcs_std[key]):
+                        continue
                     else:
                         keywords = wcs_std[key].split(',')
                     for keyword in keywords:
@@ -1492,7 +1544,7 @@ class FitsParser(GenericParser):
                                                                extension))
         # apply defaults to all extensions
         for key, value in plan.items():
-            if isinstance(value, tuple) and value[1]:
+            if ObsBlueprint.is_tuple(value) and value[1]:
                 # there is a default value set
                 for index, header in enumerate(self.headers):
                     for keyword in value[0]:
@@ -1539,7 +1591,39 @@ class FitsParser(GenericParser):
                             ('DP{}'.format(i) not in header):
                         header['DP{}'.format(i)] = 'NAXES: 1'
 
+        # lastly, apply the functions
+        if self.blueprint._module is not None:
+            for key, value in plan.items():
+                plan[key] = self._execute_external(value)
+            for extension in exts:
+                for key, value in exts[extension].items():
+                    exts[extension][key] = self._execute_external(value)
+
         return
+
+    def _execute_external(self, value):
+        """Execute a function supplied by a user, assign a value to a
+        blueprint entry. The input parameters passed to the function are the
+        headers as read in by astropy.
+
+        :param value the name of the function to apply.
+        """
+        result = ''
+        if ObsBlueprint.is_function(value):
+            try:
+                execute = getattr(self.blueprint._module, value.strip('()'))
+                result = execute(self.headers)
+                logging.debug(
+                    'Calculated value of {} using {}'.format(result, value))
+            except Exception as e:
+                logging.error(
+                    'Failed to execute {}.{}'.format(self.blueprint._module,
+                                                     value))
+                logging.debug('Input parameter was {}'.format(self.headers))
+                tb = traceback.format_exc()
+                logging.error(tb)
+                logging.error(e)
+        return result
 
     def _get_members(self, obs):
         """
@@ -2468,20 +2552,112 @@ def _get_file_meta(path):
 
 
 def _lookup_blueprint(blueprints, uri):
+    """
+    Blueprint handling may be one-per-observation, or one-per-URI. Find
+    the correct one here.
+    :param blueprints: The collection of blueprints provided by the user.
+    :param uri: Which blueprint to look for
+    :return: the blueprint to apply to Observation creation.
+    """
     if len(blueprints) == 1:
-        return blueprints[0]
+        return six.next(six.itervalues(blueprints))
     else:
         return blueprints[uri]
 
 
-def _extract_bits(cardinality):
+def _extract_ids(cardinality):
+    """
+    Localize cardinality structure knowledge.
+
+    :param cardinality:
+    :return: product_id, artifact URI
+    """
     return cardinality.split('/', 1)
+
+
+def _augment(obs, product_id, uri, args, blueprint, index):
+    """
+    Find or construct a plane and an artifact to go with the observation
+    under augmentation.
+
+    :param obs: Observation - target of CAOM2 model augmentation
+    :param product_id: Unique identifier for a plane in an Observation
+    :param args: Command line arguments.
+    :param uri: Unique identifier for an artifact in a plane
+    :param blueprint: Which blueprint to use when mapping from a telescope
+        data model to CAOM2
+    :param index: How to find the file in the input parameter local that is
+        the metadata augmentation source.
+    :return:
+    """
+    if product_id not in obs.planes.keys():
+        obs.planes.add(Plane(product_id=str(product_id)))
+
+    plane = obs.planes[product_id]
+
+    subject = net.Subject.from_cmd_line_args(args)
+    if args.local:
+        file = args.local[index]
+        if uri not in plane.artifacts.keys():
+            plane.artifacts.add(
+                Artifact(uri=str(uri),
+                         product_type=ProductType.SCIENCE,
+                         release_type=ReleaseType.DATA))
+        if file.endswith('.fits'):
+            parser = FitsParser(file, blueprint)
+        elif file.find('.header') != -1:
+            parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
+                                blueprint)
+        else:
+            # explicitly ignore headers for txt and image files
+            parser = GenericParser(blueprint)
+    else:
+        headers = get_cadc_headers(uri, subject)
+
+        if uri not in plane.artifacts.keys():
+            plane.artifacts.add(
+                Artifact(uri=str(uri),
+                         product_type=ProductType.SCIENCE,
+                         release_type=ReleaseType.DATA))
+        parser = FitsParser(headers, blueprint)
+
+    _update_artifact_meta(plane.artifacts[uri], subject)
+
+    if args.dumpconfig:
+        print('Blueprint for {}: {}'.format(uri, blueprint))
+
+    parser.augment_observation(observation=obs, artifact_uri=uri,
+                               product_id=plane.product_id)
+
+    if len(parser._errors) > 0:
+        logging.debug(
+            '{} errors encountered while processing {!r}.'.format(
+                len(parser._errors), uri))
+
+
+def _load_module(module):
+    """If a user provides code for execution during blueprint configuration,
+    add that code to the execution environment of the interpreter here.
+
+    :param module the fully-qualified path name to the source code from a
+        user.
+    """
+    mname = os.path.basename(module)
+    if mname.find('.') != -1:
+        mname = mname.split('.')[0]
+    pname = os.path.dirname(module)
+    sys.path.append(pname)
+    return importlib.import_module(mname)
+    pass
 
 
 def caom2gen():
     parser = _get_arg_parser()
-    # TODO - need to be able to support multiple blueprint arguments
-    # parser.add_argument('-b', '--blueprint', required=True,
+    parser.add_argument('-m', '--module', help=('if the blueprint contains '
+                                                'function calls, call '
+                                                'importlib.import_module for'
+                                                'the named module. Provide a'
+                                                'fully qualified name.'))
     parser.add_argument('-b', '--blueprint', nargs='+', required=True,
                         help=('list of files with blueprints for CAOM2 '
                               'construction, in serialized format. If the '
@@ -2499,13 +2675,18 @@ def caom2gen():
         sys.exit(-1)
 
     args = parser.parse_args()
+
+    module = None
+    if args.module:
+        module = _load_module(args.module)
+
     blueprints = {}
     if len(args.blueprint) == 1:
         # one blueprint to rule them all
-        blueprint = ObsBlueprint()
+        blueprint = ObsBlueprint(module=module)
         blueprint.load_from_file(args.blueprint[0])
         for i, cardinality in enumerate(args.lineage):
-            product_id, uri = _extract_bits(cardinality)
+            product_id, uri = _extract_ids(cardinality)
             blueprints[uri] = blueprint
     else:
         # there needs to be the same number of blueprints as plane/artifact
@@ -2520,9 +2701,9 @@ def caom2gen():
             sys.exit(-1)
 
         for i, cardinality in enumerate(args.lineage):
-            product_id, uri = _extract_bits(cardinality)
+            product_id, uri = _extract_ids(cardinality)
             for j, bp in enumerate(args.blueprint):
-                blueprint = ObsBlueprint()
+                blueprint = ObsBlueprint(module=module)
                 blueprint.load_from_file(bp)
                 blueprints[uri] = blueprint
                 break
@@ -2531,63 +2712,9 @@ def caom2gen():
         obs = _set_obs(args, blueprints)
 
         for ii, cardinality in enumerate(args.lineage):
-        # for i, uri in enumerate(args.fileURI):
-            product_id, uri = _extract_bits(cardinality)
+            product_id, uri = _extract_ids(cardinality)
             blueprint = _lookup_blueprint(blueprints, uri)
-            # # override the command-line argument for the plane product ID value
-            # product_id = blueprint._get('Plane.productID')
-            # if product_id is None or isinstance(product_id, tuple):
-            #     if args.productID:
-            #         product_id = args.productID
-            #     else:
-            #         msg = '{}{}'.format(
-            #             'A productID parameter is required if one is not ',
-            #             'identified in the blueprint.')
-            #         raise RuntimeError(msg)
-
-            if product_id not in obs.planes.keys():
-                obs.planes.add(Plane(product_id=str(product_id)))
-
-            plane = obs.planes[product_id]
-
-            subject = net.Subject.from_cmd_line_args(args)
-            if args.local:
-                file = args.local[i]
-                if uri not in plane.artifacts.keys():
-                    plane.artifacts.add(
-                        Artifact(uri=str(uri),
-                                 product_type=ProductType.SCIENCE,
-                                 release_type=ReleaseType.DATA))
-                if file.endswith('.fits'):
-                    parser = FitsParser(file, blueprint)
-                elif file.find('.header') != -1:
-                    parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
-                                        blueprint)
-                else:
-                    # explicitly ignore headers for txt and image files
-                    parser = GenericParser(blueprint)
-            else:
-                headers = get_cadc_headers(uri, subject)
-
-                if uri not in plane.artifacts.keys():
-                    plane.artifacts.add(
-                        Artifact(uri=str(uri),
-                                 product_type=ProductType.SCIENCE,
-                                 release_type=ReleaseType.DATA))
-                parser = FitsParser(headers, blueprint)
-
-            _update_artifact_meta(plane.artifacts[uri], subject)
-
-            if args.dumpconfig:
-                print('Blueprint for {}: {}'.format(uri, blueprint))
-
-            parser.augment_observation(observation=obs, artifact_uri=uri,
-                                       product_id=plane.product_id)
-
-            if len(parser._errors) > 0:
-                logging.debug(
-                    '{} errors encountered while processing {!r}.'.format(
-                        len(parser._errors), uri))
+            _augment(obs, product_id, uri, args, blueprint, ii)
 
         writer = ObservationWriter()
         if args.out_obs_xml:
@@ -2607,6 +2734,13 @@ def caom2gen():
 
 
 def _set_obs(args, obs_blueprints):
+    """
+    Determine whether to create a Simple or Composite Observation.
+
+    :param args: Command-line parameters.
+    :param obs_blueprints: Collection of blueprints provided to application.
+    :return: Initially constructed Observation.
+    """
     obs = None
     if args.in_obs_xml:
         # append to existing observation
@@ -2751,49 +2885,7 @@ def proc(args, obs_blueprints):
                     'identified in the blueprint.')
                 raise RuntimeError(msg)
 
-        if product_id not in obs.planes.keys():
-            obs.planes.add(Plane(product_id=str(product_id)))
-
-        plane = obs.planes[product_id]
-
-        subject = net.Subject.from_cmd_line_args(args)
-        if args.local:
-            file = args.local[i]
-            if uri not in plane.artifacts.keys():
-                plane.artifacts.add(
-                    Artifact(uri=str(uri),
-                             product_type=ProductType.SCIENCE,
-                             release_type=ReleaseType.DATA))
-            if file.endswith('.fits'):
-                parser = FitsParser(file, blueprint)
-            elif file.find('.header') != -1:
-                parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
-                                    blueprint)
-            else:
-                # explicitly ignore headers for txt and image files
-                parser = GenericParser(blueprint)
-        else:
-            headers = get_cadc_headers(uri, subject)
-
-            if uri not in plane.artifacts.keys():
-                plane.artifacts.add(
-                    Artifact(uri=str(uri),
-                             product_type=ProductType.SCIENCE,
-                             release_type=ReleaseType.DATA))
-            parser = FitsParser(headers, blueprint)
-
-        _update_artifact_meta(plane.artifacts[uri], subject)
-
-        if args.dumpconfig:
-            print('Blueprint for {}: {}'.format(uri, blueprint))
-
-        parser.augment_observation(observation=obs, artifact_uri=uri,
-                                   product_id=plane.product_id)
-
-        if len(parser._errors) > 0:
-            logging.debug(
-                '{} errors encountered while processing {!r}.'.format(
-                    len(parser._errors), uri))
+        _augment(obs, product_id, uri, args, blueprint, i)
 
     writer = ObservationWriter()
     if args.out_obs_xml:

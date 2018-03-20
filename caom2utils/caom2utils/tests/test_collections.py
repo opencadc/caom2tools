@@ -109,7 +109,6 @@ def test_differences(directory):
     collection_id = expected.collection
     data_files = _get_files(['header', 'png', 'gif', 'cat'], directory)
     assert data_files
-    logging.error(data_files)
     data_files_parameter = _get_data_files_parameter(data_files)
 
     file_meta = _get_uris(collection_id, data_files, expected)
@@ -119,8 +118,9 @@ def test_differences(directory):
     if config is None:
         blueprints = _get_parameter('blueprint', directory)
         assert blueprints
+        module = _get_parameter('module', directory)
         cardinality = _get_cardinality(directory)
-        inputs = blueprints
+        inputs = '{} {}'.format(blueprints, module)
         application = 'caom2gen'
         app_cmd = fits2caom2.caom2gen
     else:
@@ -133,7 +133,7 @@ def test_differences(directory):
         app_cmd = legacy.main_app
         temp = ' '.join(file_meta[0])
         cardinality = '{} {}'.format(product_id, temp)
-        return  # TODO shorter testing cycle
+        # return  # TODO shorter testing cycle
 
     with patch('caom2utils.fits2caom2.CadcDataClient') as data_client_mock:
         def get_file_info(archive, file_id):
