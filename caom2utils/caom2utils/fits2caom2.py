@@ -1594,14 +1594,17 @@ class FitsParser(GenericParser):
         # lastly, apply the functions
         if self.blueprint._module is not None:
             for key, value in plan.items():
-                plan[key] = self._execute_external(value)
+                if ObsBlueprint.is_function(value):
+                    plan[key] = self._execute_external(value, key)
             for extension in exts:
                 for key, value in exts[extension].items():
-                    exts[extension][key] = self._execute_external(value)
+                    if ObsBlueprint.is_function(value):
+                        exts[extension][key] = self._execute_external(value,
+                                                                      key)
 
         return
 
-    def _execute_external(self, value):
+    def _execute_external(self, value, key):
         """Execute a function supplied by a user, assign a value to a
         blueprint entry. The input parameters passed to the function are the
         headers as read in by astropy.
@@ -1609,20 +1612,20 @@ class FitsParser(GenericParser):
         :param value the name of the function to apply.
         """
         result = ''
-        if ObsBlueprint.is_function(value):
-            try:
-                execute = getattr(self.blueprint._module, value.strip('()'))
-                result = execute(self._headers)
-                logging.debug(
-                    'Calculated value of {} using {}'.format(result, value))
-            except Exception as e:
-                logging.error(
-                    'Failed to execute {}.{}'.format(
-                        self.blueprint._module.__name__, value))
-                logging.debug('Input parameter was {}'.format(self._headers))
-                tb = traceback.format_exc()
-                logging.error(tb)
-                logging.error(e)
+        try:
+            execute = getattr(self.blueprint._module, value.strip('()'))
+            result = execute(self._headers)
+            logging.debug(
+                'Key {} calculated value of {} using {}'.format(
+                    key, result, value))
+        except Exception as e:
+            logging.error(
+                'Failed to execute {}.{} for {}'.format(
+                    self.blueprint._module.__name__, value, key))
+            logging.debug('Input parameter was {}'.format(self._headers))
+            tb = traceback.format_exc()
+            logging.error(tb)
+            logging.error(e)
         return result
 
     def _get_members(self, obs):
@@ -2655,7 +2658,7 @@ def _load_module(module):
 
 
 def caom2gen():
-    parser = _get_arg_parser()
+    parser = _get_common_arg_parser()
     parser.add_argument('--module', help=('if the blueprint contains function '
                                           'calls, call importlib.import_module '
                                           'for the named module. Provide a '
@@ -2677,6 +2680,7 @@ def caom2gen():
         sys.exit(-1)
 
     args = parser.parse_args()
+    _set_arg_parser_logging(args)
 
     module = None
     if args.module:
@@ -2726,6 +2730,7 @@ def caom2gen():
             writer.write(obs, sys.stdout)
 
     except Exception as e:
+        logging.error('Failed caom2gen execution.')
         logging.error(e)
         tb = traceback.format_exc()
         logging.debug(tb)
@@ -2774,7 +2779,33 @@ def _set_obs(args, obs_blueprints):
     return obs
 
 
-def _get_arg_parser():
+def _set_arg_parser_logging(args):
+    logger = logging.getLogger()
+    if args.verbose:
+        logger.setLevel(logging.INFO)
+    elif args.debug:
+        logger.setLevel(logging.DEBUG)
+    elif args.quiet:
+        logger.setLevel(logging.ERROR)
+    else:
+        logger.setLevel(logging.WARN)
+
+    if logger.handlers:
+        handler = logger.handlers[0]
+        logger.removeHandler(handler)
+    handler = logging.StreamHandler()
+    handler.setFormatter(DispatchingFormatter({
+        'caom2utils.fits2caom2.WcsParser': logging.Formatter(
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s'),
+        'astropy': logging.Formatter(
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
+    },
+        logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
+    ))
+    logger.addHandler(handler)
+
+
+def _get_common_arg_parser():
     """
     Returns the arg parser with common arguments between
     fits2caom2 and caom2gen
@@ -2823,7 +2854,7 @@ def get_arg_parser():
     fits2caom2
     :return: args parser
     """
-    parser = _get_arg_parser()
+    parser = _get_common_arg_parser()
     parser.add_argument('--productID',
                         help='product ID of the plane in the observation',
                         required=False)
@@ -2843,29 +2874,7 @@ def proc(args, obs_blueprints):
     :return:
     """
 
-    logger = logging.getLogger()
-    if args.verbose:
-        logger.setLevel(logging.INFO)
-    elif args.debug:
-        logger.setLevel(logging.DEBUG)
-    elif args.quiet:
-        logger.setLevel(logging.ERROR)
-    else:
-        logger.setLevel(logging.WARN)
-
-    if logger.handlers:
-        handler = logger.handlers[0]
-        logger.removeHandler(handler)
-    handler = logging.StreamHandler()
-    handler.setFormatter(DispatchingFormatter({
-        'caom2utils.fits2caom2.WcsParser': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s'),
-        'astropy': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
-    },
-        logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
-    ))
-    logger.addHandler(handler)
+    _set_arg_parser_logging(args)
 
     if args.local and (len(args.local) != len(args.fileURI)):
         msg = ('number of local arguments not the same with file '
