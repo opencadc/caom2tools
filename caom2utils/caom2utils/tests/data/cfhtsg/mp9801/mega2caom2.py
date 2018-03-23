@@ -1,19 +1,17 @@
 from astropy.io import fits
 from re import findall, search, compile
 
-def image2ID(image) :
-    id = ''
-    if (type(image) is str) :
-        id=image.replace('.fits','')
+
+
+def uri2observationID(uri) :
+    id=search(r"(MegaPipe.\d\d\d.\d\d\d)",uri).group(0)
     return id
 
-def getInputs (image) :
-    ### open the image or just use the header provided
-    if (type(image) is str) :
-        hdul= fits.open(image)
-    else :
-        hdul=image
+def uri2planeproductID(uri) :
+    id=search(r"(MegaPipe.\d\d\d.\d\d\d.[A-Z]+\.MP\d{4})",uri).group(0)
+    return id
 
+def getInputs (hdul) :
     history= str(hdul[0].get('HISTORY'))
 
     ### find all the exposure numbers:
@@ -31,22 +29,13 @@ def getInputs (image) :
     return inputs
 
 
-def getMagnitudeLimit (image) :
-### open the image or just use the header provided
-    if (type(image) is str) :
-        hdul= fits.open(image)
-    else :
-        hdul=image
-
+def getMagnitudeLimit (hdul) :
 ### get the magnitude limit keywords 
-    # ml_5siga = float(hdul[0].header['ML_5SIGA'])
-    # ml_5sig2 = float(hdul[0].header['ML_5SIG2'])
-    # ml_5odet = float(hdul[0].header['ML_50DET'])
     ml_5siga = float(hdul[0].get('ML_5SIGA'))
     ml_5sig2 = float(hdul[0].get('ML_5SIG2'))
     ml_5odet = float(hdul[0].get('ML_50DET'))
-    if (type(image) is str) :
-        hdul.close
+    # if (type(image) is str) :
+    #     hdul.close
 ### return the first one that doesn't suck
     if (ml_5siga >0.000 and ml_5siga<30.000) : return ml_5siga
     if (ml_5sig2 >0.000 and ml_5sig2<30.000) : return ml_5sig2
@@ -57,11 +46,10 @@ def getMagnitudeLimit (image) :
 
 
 
-def getFilterWidth(image) :
+def getFilterWidth(uri) :
 ### given a string with a CFHT MegaCam filter name somewhere in it somewhere, 
 ### return the width of the filter in Angstroms
-
-    filter=search(r"([A-Z]+\.MP\d{4})",image).group(0)
+    filter=search(r"([A-Z]+\.MP\d{4})",uri).group(0)
 
     widthdict = { 'U.MP9301'       :  867.0,
                   'G.MP9401'       : 1624.0,
@@ -86,10 +74,10 @@ def getFilterWidth(image) :
     return widthdict[filter]
     
 
-def getFilterCentre(image) :
+def getFilterCentre(uri) :
 ### given a string with a CFHT MegaCam filter name somewhere in it somewhere, 
 ### return the centre of the filter in Angstroms
-    filter=search(r"([A-Z]+\.MP\d{4})",image).group(0)
+    filter=search(r"([A-Z]+\.MP\d{4})",uri).group(0)
     centredict = { 'U.MP9301'       : 3754.5, 
                    'G.MP9401'       : 4890.0, 
                    'R.MP9601'       : 6248.5, 

@@ -1800,9 +1800,9 @@ class FitsParser(GenericParser):
         # determine which of the two possible values for parameter the user
         # is hoping for
         parameter = ''
-        if value.index('uri') != -1:
+        if value.find('uri') != -1:
             parameter = self.uri
-        elif value.index('header') != -1:
+        elif value.find('header') != -1:
             parameter = self._headers
 
         result = ''

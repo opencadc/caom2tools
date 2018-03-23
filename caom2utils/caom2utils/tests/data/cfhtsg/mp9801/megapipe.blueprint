@@ -1,4 +1,4 @@
-Observation.observationID = image2ID(uri)
+Observation.observationID = uri2observationID(uri)
 Observation.type = OBJECT
 Observation.intent = science
 Observation.metaRelease = ['DATE'], default = None
@@ -9,6 +9,7 @@ Observation.telescope.name =  CFHT 3.6m
 Observation.telescope.geoLocationX =  -5464228.6
 Observation.telescope.geoLocationY =  -2493778.2
 Observation.telescope.geoLocationZ =  2150937.8
+Plane.productID =  uri2planeproductID(uri)
 Plane.metaRelease = ['DATE'], default = None
 Plane.dataRelease = ['DATE'], default = None
 Plane.dataProductType = image
@@ -16,13 +17,15 @@ Plane.calibrationLevel = 3
 Plane.provenance.name = MEGAPIPE
 Plane.provenance.version = 2.0
 Plane.provenance.producer = CADC
+Plane.provenance.runID = None
 Plane.provenance.reference = http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/megapipe/
 Plane.provenance.lastExecuted = ['DATE'], default = None
-Plane.provenance.inputs = getInputs(uri)
-Plane.metrics.magLimit = getMagnitudeLimit(uri)
+Plane.provenance.keywords = None
+Plane.provenance.inputs = getInputs(header)
+Plane.metrics.magLimit = getMagnitudeLimit(header)
 Artifact.productType = science
 Artifact.releaseType = data
-# Artifact.contentChecksum = ### get MD5SUM from AD
+Artifact.contentChecksum = ### get MD5SUM from AD
 Chunk.naxis = ['NAXIS'], default = 2
 Chunk.position.coordsys = ['RADESYS'], default = ICRS
 Chunk.position.equinox = ['EQUINOX'], default = 2000.0
