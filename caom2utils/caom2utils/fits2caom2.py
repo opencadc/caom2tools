@@ -495,7 +495,7 @@ class ObsBlueprint(object):
         # astropy.WCS package.
         self._wcs_std = {
             # 'Chunk.naxis': (['ZNAXIS', 'NAXIS'], None)
-            'Chunk.naxis': 'ZNAXIS, NAXIS'
+            'Chunk.naxis': 'ZNAXIS,NAXIS'
         }
         self._pos_axes_configed = False
         self._energy_axis_configed = False
