@@ -70,7 +70,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from caom2utils import legacy, fits2caom2
-from caom2 import ObservationReader
+from caom2 import ObservationReader, ObservationWriter
 from caom2.diff import get_differences
 
 import glob
@@ -116,7 +116,7 @@ def test_differences(directory):
 
     config = _get_parameter('config', directory)
     if config is None:
-        blueprints = _get_parameter('blueprint', directory)
+        blueprints = _get_multi_parameter('blueprint', directory)
         assert blueprints
         module = _get_parameter('module', directory)
         cardinality = _get_cardinality(directory)
@@ -148,6 +148,7 @@ def test_differences(directory):
         print(sys.argv)
         app_cmd()
     actual = _read_observation(temp.name)  # actual observation
+    _write_observation(actual)
     _compare_observations(expected, actual, directory)
 
 
@@ -161,10 +162,15 @@ def _run_caom2gen():
 
 def _get_cardinality(directory):
     # TODO - read this from an aptly named file in the directory
+    # return '--lineage ' \
+    #        'productID/ad:CFHTSG/MegaPipe.080.156.Z.MP9801.fits ' \
+    #        'productID/ad:CFHTSG/MegaPipe.080.156.Z.MP9801.fits ' \
+    #        'productID/ad:CFHTSG/MegaPipe.080.156.Z.MP9801.fits '
     return '--lineage ' \
-           'productID/ad:CFHTMEGAPIPE/MegaPipe.080.156.Z.MP9801.fits ' \
-           'productID/ad:CFHTMEGAPIPE/MegaPipe.080.156.Z.MP9801.fits ' \
-           'productID/ad:CFHTMEGAPIPE/MegaPipe.080.156.Z.MP9801.fits '
+           'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+           'MegaPipe.080.156.Z.MP9801.fits ' \
+           'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+           'MegaPipe.080.156.Z.MP9801.weight.fits '
 
 
 def _get_common(fnames):
@@ -193,6 +199,17 @@ def _get_parameter(extension, dir_name):
     fnames = _get_file(extension, dir_name)
     if fnames:
         result = '--{} {}'.format(extension, fnames[0])
+        return result
+    else:
+        return None
+
+
+def _get_multi_parameter(extension, dir_name):
+    fnames = _get_file(extension, dir_name)
+    if fnames:
+        result = '--{}'.format(extension)
+        for fname in fnames:
+            result = '{} {}'.format(result, fname)
         return result
     else:
         return None
@@ -255,6 +272,7 @@ def _get_files(patterns, dir_name):
 
 
 def _compare_observations(expected, actual, output_dir):
+
     result = get_differences(expected, actual, 'Observation')
     if result:
         msg = 'Differences found observation {} in {}\n{}'.\
@@ -270,3 +288,9 @@ def _read_observation(fname):
     reader = ObservationReader(False)
     result = reader.read(fname)
     return result
+
+
+def _write_observation(obs):
+    writer = ObservationWriter(True, False, 'caom2',
+                               'http://www.opencadc.org/caom2/xml/v2.3')
+    writer.write(obs, './x.xml')

@@ -1587,8 +1587,6 @@ class FitsParser(GenericParser):
         crpix = _to_float(
             self._get_from_list('Chunk.energy.axis.function.refCoord.pix',
                                 index))
-        logging.error(self._get_from_list('Chunk.energy.axis.function.refCoord.val',
-                                          index))
         crval = _to_float(
             self._get_from_list('Chunk.energy.axis.function.refCoord.val',
                                 index))
@@ -2853,10 +2851,18 @@ def _load_module(module):
 
 def caom2gen():
     parser = _get_common_arg_parser()
+
+    parser.add_argument('--no_validate', action='store_true',
+                        help=('by default, the application will validate the '
+                              'WCS information for an observation. '
+                              'Specifying this flag skips that step.'))
     parser.add_argument('--module', help=('if the blueprint contains function '
                                           'calls, call importlib.import_module '
                                           'for the named module. Provide a '
-                                          'fully qualified name.'))
+                                          'fully qualified name. Parameter '
+                                          'choices are the artifact URI (uri) '
+                                          'or a list of astropy Header'
+                                          'instances (header).'))
     parser.add_argument('--blueprint', nargs='+', required=True,
                         help=('list of files with blueprints for CAOM2 '
                               'construction, in serialized format. If the '
@@ -2883,6 +2889,7 @@ def caom2gen():
     blueprints = {}
     if len(args.blueprint) == 1:
         # one blueprint to rule them all
+        # logging.error('one blueprint to rule them all')
         blueprint = ObsBlueprint(module=module)
         blueprint.load_from_file(args.blueprint[0])
         for i, cardinality in enumerate(args.lineage):
@@ -2891,6 +2898,10 @@ def caom2gen():
     else:
         # there needs to be the same number of blueprints as plane/artifact
         # identifiers
+        # logging.error(
+        #     'lineage len {} and blueprint len {} is'.format(len(args.lineage),
+        #                                                     len(
+        #                                                         args.blueprint)))
         if len(args.lineage) != len(args.blueprint):
             sys.stderr.write(
                 '{}: error: different number of blueprints and files.'.format(
@@ -2912,6 +2923,9 @@ def caom2gen():
             product_id, uri = _extract_ids(cardinality)
             blueprint = _lookup_blueprint(blueprints, uri)
             _augment(obs, product_id, uri, args, blueprint, ii)
+
+        if not args.no_validate:
+            validate(obs)
 
         writer = ObservationWriter()
         if args.out_obs_xml:
