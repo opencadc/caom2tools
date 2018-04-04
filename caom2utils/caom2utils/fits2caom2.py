@@ -90,7 +90,7 @@ from caom2 import Instrument, Proposal, Target, Provenance, Metrics
 from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice
-from caom2utils.caomvalidator import validate
+# from caom2utils.caomvalidator import validate
 # from caom2utils.wcsvalidator import validate_wcs
 import importlib
 import logging
