@@ -90,8 +90,7 @@ from caom2 import Instrument, Proposal, Target, Provenance, Metrics
 from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice
-# from caom2utils.caomvalidator import validate
-# from caom2utils.wcsvalidator import validate_wcs
+from caom2utils.caomvalidator import validate
 import importlib
 import logging
 import os
@@ -2851,8 +2850,8 @@ def _augment(obs, product_id, uri, args, blueprint, index):
                 len(parser._errors), uri))
         logging.debug('{}'.format(parser._errors))
 
-    # if not args.no_validate:
-    #     validate(obs)
+    if not args.no_validate:
+        validate(obs)
 
 
 def _load_module(module):
