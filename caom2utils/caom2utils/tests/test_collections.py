@@ -109,10 +109,11 @@ def test_differences(directory):
     collection_id = expected.collection
     data_files = _get_files(['header', 'png', 'gif', 'cat'], directory)
     assert data_files
-    data_files_parameter = _get_data_files_parameter(data_files)
 
     file_meta = _get_uris(collection_id, data_files, expected)
     assert file_meta
+
+    data_files_parameter = _get_data_files_parameter(data_files)
 
     config = _get_parameter('config', directory)
     if config is None:
@@ -121,7 +122,7 @@ def test_differences(directory):
         module = _get_parameter('module', directory)
         cardinality = _get_cardinality(directory)
         inputs = '{} {}'.format(blueprints, module)
-        application = 'caom2gen'
+        application = '{} {} '.format('caom2gen', data_files_parameter)
         app_cmd = fits2caom2.caom2gen
     else:
         defaults = _get_parameter('default', directory)
@@ -129,7 +130,7 @@ def test_differences(directory):
         overrides = _get_parameter('override', directory)
         assert overrides
         inputs = '{} {} {}'.format(config, defaults, overrides)
-        application = 'fits2caom2'
+        application = '{} {}'.format('fits2caom2', data_files_parameter)
         app_cmd = legacy.main_app
         temp = ' '.join(file_meta[0])
         cardinality = '{} {}'.format(product_id, temp)
@@ -140,9 +141,8 @@ def test_differences(directory):
             return file_meta[1][(archive, file_id)]
         data_client_mock.return_value.get_file_info.side_effect = get_file_info
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('{} '
-                    '{} -o {} --observation {} {} {} {} '.format(
-                        application, data_files_parameter, temp.name,
+        sys.argv = ('{} -o {} --observation {} {} {} {} '.format(
+                        application, temp.name,
                         expected.collection, expected.observation_id,
                         inputs, cardinality)).split()
         print(sys.argv)
@@ -152,25 +152,15 @@ def test_differences(directory):
     _compare_observations(expected, actual, directory)
 
 
-def _run_fits2caom2():
-    pass
-
-
-def _run_caom2gen():
-    pass
-
-
 def _get_cardinality(directory):
     # TODO - read this from an aptly named file in the directory
-    # return '--lineage ' \
-    #        'productID/ad:CFHTSG/MegaPipe.080.156.Z.MP9801.fits ' \
-    #        'productID/ad:CFHTSG/MegaPipe.080.156.Z.MP9801.fits ' \
-    #        'productID/ad:CFHTSG/MegaPipe.080.156.Z.MP9801.fits '
     return '--lineage ' \
            'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
-           'MegaPipe.080.156.Z.MP9801.fits ' \
+           'MegaPipe.080.156.Z.MP9801.fits.gif ' \
            'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
-           'MegaPipe.080.156.Z.MP9801.weight.fits '
+           'MegaPipe.080.156.Z.MP9801.weight.fits ' \
+           'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+           'MegaPipe.080.156.Z.MP9801.fits'
 
 
 def _get_common(fnames):

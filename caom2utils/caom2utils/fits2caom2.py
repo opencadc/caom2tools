@@ -90,6 +90,8 @@ from caom2 import Instrument, Proposal, Target, Provenance, Metrics
 from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice
+from caom2utils.caomvalidator import validate
+# from caom2utils.wcsvalidator import validate_wcs
 import importlib
 import logging
 import os
@@ -1496,15 +1498,15 @@ class FitsParser(GenericParser):
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        self.logger.debug(
-            'Begin CAOM2 artifact augmentation for {} with {} HDUs.'.format(
-                artifact.uri, len(self.headers)))
-
         super(FitsParser, self).augment_artifact(artifact)
+
+        self.logger.debug(
+            'Begin artifact augmentation for {} with {} HDUs.'.format(
+                artifact.uri, len(self.headers)))
 
         if self.blueprint.get_configed_axes_count() == 0:
             self.logger.debug(
-                'No WCS Data. End CAOM2 artifact augmentation for {}.'.format(
+                'No WCS Data. End artifact augmentation for {}.'.format(
                     artifact.uri))
             return
 
@@ -1567,7 +1569,7 @@ class FitsParser(GenericParser):
                 wcs_parser.augment_observable(chunk)
 
         self.logger.debug(
-            'End CAOM2 artifact augmentation for {}.'.format(artifact.uri))
+            'End artifact augmentation for {}.'.format(artifact.uri))
 
     def _try_with_blueprint_values(self, chunk, index):
         ctype = self._get_from_list('Chunk.energy.axis.axis.ctype', index)
@@ -1627,11 +1629,11 @@ class FitsParser(GenericParser):
         :param artifact_uri: the key for finding the artifact to augment
         :param product_id: the key for finding for the plane to augment
         """
-        self.logger.debug(
-            'Begin CAOM2 observation augmentation for URI {}.'.format(
-                artifact_uri))
         super(FitsParser, self).augment_observation(observation, artifact_uri,
                                                     product_id)
+        self.logger.debug(
+            'Begin observation augmentation for URI {}.'.format(
+                artifact_uri))
         members = self._get_members(observation)
         if members:
             for m in members.split():
@@ -1653,7 +1655,7 @@ class FitsParser(GenericParser):
         observation.telescope = self._get_telescope()
         observation.environment = self._get_environment()
         self.logger.debug(
-            'End CAOM2 observation augmentation for {}.'.format(artifact_uri))
+            'End observation augmentation for {}.'.format(artifact_uri))
 
     def augment_plane(self, plane, artifact_uri):
         """
@@ -1661,10 +1663,9 @@ class FitsParser(GenericParser):
         :param plane: existing CAOM2 plane to be augmented.
         :param artifact_uri:
         """
-        self.logger.debug(
-            'Begin CAOM2 plane augmentation for {}.'.format(artifact_uri))
-
         super(FitsParser, self).augment_plane(plane, artifact_uri)
+        self.logger.debug(
+            'Begin plane augmentation for {}.'.format(artifact_uri))
 
         plane.meta_release = self._get_datetime(self._get_from_list(
             'Plane.metaRelease', index=0))
@@ -1680,7 +1681,7 @@ class FitsParser(GenericParser):
         plane.quality = self._get_quality()
 
         self.logger.debug(
-            'End CAOM2 plane augmentation for {}.'.format(artifact_uri))
+            'End plane augmentation for {}.'.format(artifact_uri))
 
     def apply_blueprint_to_fits(self):
 
@@ -1827,7 +1828,7 @@ class FitsParser(GenericParser):
         :return: members value
         """
         members = None
-        self.logger.debug('Begin CAOM2 Members augmentation.')
+        self.logger.debug('Begin Members augmentation.')
         if isinstance(obs, SimpleObservation) and \
            self.blueprint._get('CompositeObservation.members'):
             raise TypeError(
@@ -1836,7 +1837,7 @@ class FitsParser(GenericParser):
         elif isinstance(obs, CompositeObservation):
             members = self._get_from_list('CompositeObservation.members',
                                           index=0, current=obs.members)
-        self.logger.debug('End CAOM2 members augmentation.')
+        self.logger.debug('End Members augmentation.')
         return members
 
     def _get_algorithm(self, obs):
@@ -1844,11 +1845,11 @@ class FitsParser(GenericParser):
         Create an Algorithm instance populated with available FITS information.
         :return: Algorithm
         """
-        self.logger.debug('Begin CAOM2 Algorithm augmentation.')
+        self.logger.debug('Begin Algorithm augmentation.')
         # TODO DEFAULT VALUE
         name = self._get_from_list('Observation.algorithm.name', index=0,
                                    current=obs.algorithm.name)
-        self.logger.debug('End CAOM2 Algorithm augmentation.')
+        self.logger.debug('End Algorithm augmentation.')
         if name:
             return Algorithm(str(name))
         else:
@@ -1860,11 +1861,11 @@ class FitsParser(GenericParser):
         information.
         :return: Instrument
         """
-        self.logger.debug('Begin CAOM2 Instrument augmentation.')
+        self.logger.debug('Begin Instrument augmentation.')
         name = self._get_from_list('Observation.instrument.name', index=0)
         keywords = self._get_from_list('Observation.instrument.keywords',
                                        index=0)
-        self.logger.debug('End CAOM2 Instrument augmentation.')
+        self.logger.debug('End Instrument augmentation.')
         if name:
             instr = Instrument(str(name))
             if keywords:
@@ -1879,12 +1880,12 @@ class FitsParser(GenericParser):
         Create a Proposal instance populated with available FITS information.
         :return: Proposal
         """
-        self.logger.debug('Begin CAOM2 Proposal augmentation.')
+        self.logger.debug('Begin Proposal augmentation.')
         prop_id = self._get_from_list('Observation.proposal.id', index=0)
         pi = self._get_from_list('Observation.proposal.pi', index=0)
         project = self._get_from_list('Observation.proposal.project', index=0)
         title = self._get_from_list('Observation.proposal.title', index=0)
-        self.logger.debug('End CAOM2 Proposal augmentation.')
+        self.logger.debug('End Proposal augmentation.')
         if prop_id:
             return Proposal(str(prop_id), pi, project, title)
         else:
@@ -1895,7 +1896,7 @@ class FitsParser(GenericParser):
         Create a Target instance populated with available FITS information.
         :return: Target
         """
-        self.logger.debug('Begin CAOM2 Target augmentation.')
+        self.logger.debug('Begin Target augmentation.')
         name = self._get_from_list('Observation.target.name', index=0)
         target_type = self._get_from_list('Observation.target.type',
                                           index=0)
@@ -1906,7 +1907,7 @@ class FitsParser(GenericParser):
                                            index=0)  # TODO
         moving = self._cast_as_bool(
             self._get_from_list('Observation.target.moving', index=0))
-        self.logger.debug('End CAOM2 Target augmentation.')
+        self.logger.debug('End Target augmentation.')
         if name:
             return Target(str(name), target_type, standard, redshift,
                           keywords, moving)
@@ -1919,10 +1920,10 @@ class FitsParser(GenericParser):
         information.
         :return: Target Position
         """
-        self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
+        self.logger.debug('Begin TargetPosition augmentation.')
         # TODO don't know what to do here, since config file says this is
         # Chunk-level metadata
-        self.logger.debug('End CAOM2 TargetPosition augmentation.')
+        self.logger.debug('End TargetPosition augmentation.')
         return None
 
     def _get_telescope(self):
@@ -1930,7 +1931,7 @@ class FitsParser(GenericParser):
         Create a Telescope instance populated with available FITS information.
         :return: Telescope
         """
-        self.logger.debug('Begin CAOM2 Telescope augmentation.')
+        self.logger.debug('Begin Telescope augmentation.')
         name = self._get_from_list('Observation.telescope.name', index=0)
         geo_x = _to_float(
             self._get_from_list('Observation.telescope.geoLocationX', index=0))
@@ -1940,7 +1941,7 @@ class FitsParser(GenericParser):
             self._get_from_list('Observation.telescope.geoLocationZ', index=0))
         keywords = self._get_set_from_list('Observation.telescope.keywords',
                                            index=0)  # TODO
-        self.logger.debug('End CAOM2 Telescope augmentation.')
+        self.logger.debug('End Telescope augmentation.')
         if name:
             self.logger.debug('name is {}'.format(name))
             return Telescope(str(name), geo_x, geo_y, geo_z, keywords)
@@ -1953,7 +1954,7 @@ class FitsParser(GenericParser):
         information.
         :return: Environment
         """
-        self.logger.debug('Begin CAOM2 Environment augmentation.')
+        self.logger.debug('Begin Environment augmentation.')
         seeing = self._get_from_list('Observation.environment.seeing', index=0)
         humidity = _to_float(
             self._get_from_list('Observation.environment.humidity', index=0))
@@ -1977,7 +1978,7 @@ class FitsParser(GenericParser):
             enviro.wavelength_tau = wavelength_tau
             enviro.ambient_temp = ambient
             enviro.photometric = photometric
-            self.logger.debug('End CAOM2 Environment augmentation.')
+            self.logger.debug('End Environment augmentation.')
             return enviro
         else:
             return None
@@ -1988,9 +1989,9 @@ class FitsParser(GenericParser):
         information.
         :return: Requirements
         """
-        self.logger.debug('Begin CAOM2 Requirement augmentation.')
+        self.logger.debug('Begin Requirement augmentation.')
         flag = self._get_from_list('Observation.requirements.flag', index=0)
-        self.logger.debug('End CAOM2 Requirement augmentation.')
+        self.logger.debug('End Requirement augmentation.')
         if flag:
             return Requirements(flag)
         else:
@@ -2084,7 +2085,7 @@ class FitsParser(GenericParser):
         Create a Provenance instance populated with available FITS information.
         :return: Provenance
         """
-        self.logger.debug('Begin CAOM2 Provenance augmentation.')
+        self.logger.debug('Begin Provenance augmentation.')
         name = _to_str(
             self._get_from_list('Plane.provenance.name', index=0))
         p_version = _to_str(self._get_from_list('Plane.provenance.version',
@@ -2101,7 +2102,7 @@ class FitsParser(GenericParser):
             self._get_from_list('Plane.provenance.lastExecuted', index=0))
         keywords = self._get_from_list('Plane.provenance.keywords', index=0)
         inputs = self._get_from_list('Plane.provenance.inputs', index=0)
-        self.logger.debug('End CAOM2 Provenance augmentation.')
+        self.logger.debug('End Provenance augmentation.')
         if name:
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
@@ -2120,7 +2121,7 @@ class FitsParser(GenericParser):
         Create a Metrics instance populated with available FITS information.
         :return: Metrics
         """
-        self.logger.debug('Begin CAOM2 Metrics augmentation.')
+        self.logger.debug('Begin Metrics augmentation.')
         source_number_density = self._get_from_list(
             'Plane.metrics.sourceNumberDensity', index=0)
         background = self._get_from_list('Plane.metrics.background', index=0)
@@ -2140,7 +2141,7 @@ class FitsParser(GenericParser):
             metrics.mag_limit = mag_limit
         else:
             metrics = None
-        self.logger.debug('End CAOM2 Metrics augmentation.')
+        self.logger.debug('End Metrics augmentation.')
         return metrics
 
     def _get_quality(self):
@@ -2148,9 +2149,9 @@ class FitsParser(GenericParser):
         Create a Quality instance populated with available FITS information.
         :return: Quality
         """
-        self.logger.debug('Begin CAOM2 Quality augmentation.')
+        self.logger.debug('Begin Quality augmentation.')
         flag = self._get_from_list('Plane.dataQuality', index=0)
-        self.logger.debug('End CAOM2 Quality augmentation.')
+        self.logger.debug('End Quality augmentation.')
         if flag:
             return DataQuality(flag)
         else:
@@ -2702,7 +2703,8 @@ def _update_artifact_meta(artifact, subject=None):
         raise NotImplementedError('Only ad type URIs supported')
 
     checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
-    logging.debug("old - uri({}), encoding({}), size({}), type({})".
+    logging.debug('old artifact metadata - '
+                  'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
                          artifact.content_checksum,
                          artifact.content_length,
@@ -2710,7 +2712,8 @@ def _update_artifact_meta(artifact, subject=None):
     artifact.content_checksum = checksum
     artifact.content_length = int(metadata['size'])
     artifact.content_type = str(metadata['type'])
-    logging.debug("updated - uri({}), encoding({}), size({}), type({})".
+    logging.debug('updated artifact metadata - '
+                  'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
                          artifact.content_checksum,
                          artifact.content_length,
@@ -2760,6 +2763,21 @@ def _lookup_blueprint(blueprints, uri):
         return blueprints[uri]
 
 
+def _lookup_blueprint_name(index, blueprint_names):
+    """
+    Blueprint handling may be one-per-observation, or one-per-URI. Reference
+    the correct name of the file here.
+    :param blueprint_names: The collection of blueprint names provided by the
+        user.
+    :param index: Which blueprint to look for
+    :return: the blueprint to apply to Observation creation.
+    """
+    if len(blueprint_names) == 1:
+        return 'The One.'
+    else:
+        return blueprint_names[index]
+
+
 def _extract_ids(cardinality):
     """
     Localize cardinality structure knowledge.
@@ -2791,30 +2809,33 @@ def _augment(obs, product_id, uri, args, blueprint, index):
     plane = obs.planes[product_id]
 
     subject = net.Subject.from_cmd_line_args(args)
+    if uri not in plane.artifacts.keys():
+        plane.artifacts.add(
+            Artifact(uri=str(uri),
+                     product_type=ProductType.SCIENCE,
+                     release_type=ReleaseType.DATA))
     if args.local:
         file = args.local[index]
-        if uri not in plane.artifacts.keys():
-            plane.artifacts.add(
-                Artifact(uri=str(uri),
-                         product_type=ProductType.SCIENCE,
-                         release_type=ReleaseType.DATA))
         if file.endswith('.fits'):
+            logging.debug('Using a FitsParser for {}'.format(uri))
             parser = FitsParser(file, blueprint, uri=uri)
         elif file.find('.header') != -1:
+            logging.debug('Using a FitsParser for {}'.format(uri))
             parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
                                 blueprint, uri=uri)
         else:
             # explicitly ignore headers for txt and image files
+            logging.debug('Using a GenericParser for {}'.format(uri))
             parser = GenericParser(blueprint, uri=uri)
     else:
-        headers = get_cadc_headers(uri, subject)
-
-        if uri not in plane.artifacts.keys():
-            plane.artifacts.add(
-                Artifact(uri=str(uri),
-                         product_type=ProductType.SCIENCE,
-                         release_type=ReleaseType.DATA))
-        parser = FitsParser(headers, blueprint, uri=uri)
+        if uri.endswith('.fits'):
+            logging.debug('Using a FitsParser for {}'.format(uri))
+            headers = get_cadc_headers(uri, subject)
+            parser = FitsParser(headers, blueprint, uri=uri)
+        else:
+            # explicitly ignore headers for txt and image files
+            logging.debug('Using a GenericParser for {}'.format(uri))
+            parser = GenericParser(blueprint, uri=uri)
 
     _update_artifact_meta(plane.artifacts[uri], subject)
 
@@ -2828,6 +2849,10 @@ def _augment(obs, product_id, uri, args, blueprint, index):
         logging.debug(
             '{} errors encountered while processing {!r}.'.format(
                 len(parser._errors), uri))
+        logging.debug('{}'.format(parser._errors))
+
+    if not args.no_validate:
+        validate(obs)
 
 
 def _load_module(module):
@@ -2852,10 +2877,6 @@ def _load_module(module):
 def caom2gen():
     parser = _get_common_arg_parser()
 
-    parser.add_argument('--no_validate', action='store_true',
-                        help=('by default, the application will validate the '
-                              'WCS information for an observation. '
-                              'Specifying this flag skips that step.'))
     parser.add_argument('--module', help=('if the blueprint contains function '
                                           'calls, call importlib.import_module '
                                           'for the named module. Provide a '
@@ -2889,7 +2910,6 @@ def caom2gen():
     blueprints = {}
     if len(args.blueprint) == 1:
         # one blueprint to rule them all
-        # logging.error('one blueprint to rule them all')
         blueprint = ObsBlueprint(module=module)
         blueprint.load_from_file(args.blueprint[0])
         for i, cardinality in enumerate(args.lineage):
@@ -2898,34 +2918,36 @@ def caom2gen():
     else:
         # there needs to be the same number of blueprints as plane/artifact
         # identifiers
-        # logging.error(
-        #     'lineage len {} and blueprint len {} is'.format(len(args.lineage),
-        #                                                     len(
-        #                                                         args.blueprint)))
         if len(args.lineage) != len(args.blueprint):
+            logging.debug('Lineage: {}'.format(args.lineage))
+            logging.debug('Blueprints: {}'.format(args.blueprint))
             sys.stderr.write(
-                '{}: error: different number of blueprints and files.'.format(
-                    APP_NAME))
+                '{}: error: different number of blueprints '
+                '{}  and files {}.'.format(APP_NAME, len(args.blueprint),
+                                           len(args.lineage)))
             sys.exit(-1)
 
         for i, cardinality in enumerate(args.lineage):
             product_id, uri = _extract_ids(cardinality)
             for j, bp in enumerate(args.blueprint):
-                blueprint = ObsBlueprint(module=module)
-                blueprint.load_from_file(bp)
-                blueprints[uri] = blueprint
-                break
+                if i == j:
+                    logging.debug(
+                        'Loading blueprint for {} from {}'.format(uri, bp))
+                    blueprint = ObsBlueprint(module=module)
+                    blueprint.load_from_file(bp)
+                    blueprints[uri] = blueprint
+                    break
 
     try:
         obs = _set_obs(args, blueprints)
 
         for ii, cardinality in enumerate(args.lineage):
             product_id, uri = _extract_ids(cardinality)
+            bp_name = _lookup_blueprint_name(ii, args.blueprint)
             blueprint = _lookup_blueprint(blueprints, uri)
+            logging.debug('Begin augmentation for product_id {}, uri {},'
+                          'with blueprint {}'.format(product_id, uri, bp_name))
             _augment(obs, product_id, uri, args, blueprint, ii)
-
-        if not args.no_validate:
-            validate(obs)
 
         writer = ObservationWriter()
         if args.out_obs_xml:
@@ -3001,11 +3023,11 @@ def _set_arg_parser_logging(args):
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s'),
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s'),
         'astropy': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(message)s')
+            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s')
     },
-        logging.Formatter('%(levelname)s:%(name)-12s:%(message)s')
+        logging.Formatter('%(levelname)s:%(name)-12s:%(lineno)d:%(message)s')
     ))
     logger.addHandler(handler)
 
@@ -3027,6 +3049,11 @@ def _get_common_arg_parser():
     parser.add_argument('--dumpconfig', action='store_true',
                         help=('output the utype to keyword mapping to '
                               'the console'))
+
+    parser.add_argument('--no_validate', action='store_true',
+                        help=('by default, the application will validate the '
+                              'WCS information for an observation. '
+                              'Specifying this flag skips that step.'))
 
     parser.add_argument('--ignorePartialWCS', action='store_true',
                         help='do not stop and exit upon finding partial WCS')
