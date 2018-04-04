@@ -22,7 +22,7 @@ def getInputs (hdul) :
         exposures[i]='caom:CFHT/'+exposures[i]
         
         ### join them:
-    inputs=','.join(exposures)  
+    inputs=' '.join(exposures)
         
     ### complain about the syntax for join:
     ### just saying this has got the dumbest syntax for join in any language I've seen
