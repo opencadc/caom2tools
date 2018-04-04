@@ -2851,8 +2851,8 @@ def _augment(obs, product_id, uri, args, blueprint, index):
                 len(parser._errors), uri))
         logging.debug('{}'.format(parser._errors))
 
-    if not args.no_validate:
-        validate(obs)
+    # if not args.no_validate:
+    #     validate(obs)
 
 
 def _load_module(module):
