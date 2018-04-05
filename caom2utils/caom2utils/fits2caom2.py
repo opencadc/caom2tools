@@ -1548,6 +1548,8 @@ class FitsParser(GenericParser):
                                                   wcs_parser.wcs.wcs.naxis)
             if self.blueprint._pos_axes_configed:
                 wcs_parser.augment_position(chunk)
+                if chunk.position is None:
+                    self._try_position_with_blueprint(chunk, i)
             if self.blueprint._energy_axis_configed:
                 wcs_parser.augment_energy(chunk)
             if chunk.energy:
@@ -1559,67 +1561,233 @@ class FitsParser(GenericParser):
                     'Chunk.energy.resolvingPower', index=i))
             else:
                 if self.blueprint._energy_axis_configed:
-                    self._try_with_blueprint_values(chunk, i)
+                    self._try_energy_with_blueprint(chunk, i)
             if self.blueprint._time_axis_configed:
                 wcs_parser.augment_temporal(chunk)
+                if chunk.time is None:
+                    self._try_time_with_blueprint(chunk, i)
             if self.blueprint._pol_axis_configed:
                 wcs_parser.augment_polarization(chunk)
+                if chunk.polarization is None:
+                    self._try_polarization_with_blueprint(chunk, i)
             if self.blueprint._obs_axis_configed:
                 wcs_parser.augment_observable(chunk)
 
         self.logger.debug(
             'End artifact augmentation for {}.'.format(artifact.uri))
 
-    def _try_with_blueprint_values(self, chunk, index):
-        ctype = self._get_from_list('Chunk.energy.axis.axis.ctype', index)
-        cunit = self._get_from_list('Chunk.energy.axis.axis.cunit', index)
-        axis = Axis(ctype, cunit)
-        naxis = CoordAxis1D(axis)
+    def _try_position_with_blueprint(self, chunk, index):
+        self.logger.debug('Begin augmentation with blueprint for position.')
 
-        csyer = self._get_from_list('Chunk.energy.axis.error.syser', index)
-        crder = self._get_from_list('Chunk.energy.axis.error.rnder', index)
-        if csyer and crder:
-            naxis.error = CoordError(csyer, crder)
+        aug_x_axis = self._two_param_constructor(
+            'Chunk.position.axis.axis1.ctype',
+            'Chunk.position.axis.axis1.cunit', index, _to_str, Axis)
+        aug_y_axis = self._two_param_constructor(
+            'Chunk.position.axis.axis2.ctype',
+            'Chunk.position.axis.axis2.cunit', index, _to_str, Axis)
+        aug_x_error = self._two_param_constructor(
+            'Chunk.position.axis.axis1.csyer',
+            'Chunk.position.axis.axis1.crder', index, _to_str, CoordError)
+        aug_y_error = self._two_param_constructor(
+            'Chunk.position.axis.axis2.csyer',
+            'Chunk.position.axis.axis2.crder', index, _to_str, CoordError)
+        aug_dimension = self._two_param_constructor(
+            'Chunk.position.axis.function.dimension.naxis1',
+            'Chunk.position.axis.function.dimension.naxis2',
+            index, _to_int, Dimension2D)
+        aug_x_ref_coord = self._two_param_constructor(
+            'Chunk.position.axis.function.refCoord.coord1.pix',
+            'Chunk.position.axis.function.refCoord.coord1.val',
+            index, _to_float, RefCoord)
+        aug_y_ref_coord = self._two_param_constructor(
+            'Chunk.position.axis.function.refCoord.coord2.pix',
+            'Chunk.position.axis.function.refCoord.coord2.val',
+            index, _to_float, RefCoord)
+        aug_cd11 = _to_float(self._get_from_list(
+            'Chunk.position.axis.function.cd11', index))
+        aug_cd12 = _to_float(self._get_from_list(
+            'Chunk.position.axis.function.cd12', index))
+        aug_cd21 = _to_float(self._get_from_list(
+            'Chunk.position.axis.function.cd21', index))
+        aug_cd22 = _to_float(self._get_from_list(
+            'Chunk.position.axis.function.cd22', index))
 
-        delta = self._get_from_list('Chunk.energy.axis.function.delta', index)
-        length = _to_int(
-            self._get_from_list('Chunk.energy.axis.function.naxis', index))
+        aug_ref_coord = None
+        if aug_x_ref_coord is not None and aug_y_ref_coord is not None:
+            aug_ref_coord = Coord2D(aug_x_ref_coord, aug_y_ref_coord)
+            self.logger.debug(
+                'Creating position Coord2D for {}'.format(self.uri))
 
-        crpix = _to_float(
-            self._get_from_list('Chunk.energy.axis.function.refCoord.pix',
-                                index))
-        crval = _to_float(
-            self._get_from_list('Chunk.energy.axis.function.refCoord.val',
-                                index))
-        ref_coord = RefCoord(crpix, crval)
-        naxis.function = CoordFunction1D(length, delta, ref_coord)
+        aug_function = None
+        if (aug_dimension is not None and aug_ref_coord is not None and
+                aug_cd11 is not None and aug_cd12 is not None and
+                aug_cd21 is not None and aug_cd22 is not None):
+            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
+                                           aug_cd11, aug_cd12, aug_cd21,
+                                           aug_cd22)
+            self.logger.debug(
+                'Creating position CoordFunction2D for {}'.format(self.uri))
 
-        specsys = self._get_from_list('Chunk.energy.specsys', index)
+        aug_axis = None
+        if (aug_x_axis is not None and aug_y_axis is not None and
+            aug_function is not None):
+            aug_axis = CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error,
+                                   aug_y_error, None, None, aug_function)
+            self.logger.debug(
+                'Creating position CoordAxis2D for {}'.format(self.uri))
+
+        if aug_axis is not None:
+            if chunk.position:
+                chunk.position.axis = aug_axis
+            else:
+                chunk.position = SpatialWCS(aug_axis)
+
+        if chunk.position:
+            chunk.position.coordsys = self._get_from_list(
+                'Chunk.position.coordsys', index)
+            chunk.position.equinox = self._get_from_list(
+                'Chunk.position.equinox', index)
+            chunk.position.resolution = self._get_from_list(
+                'Chunk.position.resolution', index)
+        self.logger.debug('End augmentation with blueprint for position.')
+
+    def _try_time_with_blueprint(self, chunk, index):
+        self.logger.debug('Begin augmentation with blueprint for temporal.')
+
+        chunk.time_axis = self._get_from_list('Chunk.energyAxis', index)
+
+        aug_naxis = self._get_naxis('time', index)
+        if aug_naxis is not None:
+            if chunk.time:
+                chunk.time.naxis = aug_naxis
+            else:
+                chunk.time = TemporalWCS(aug_naxis)
+                self.logger.debug('Creating TemporalWCS for {} from blueprint'.
+                                  format(self.uri))
+        if chunk.time is not None:
+            chunk.time.exposure = _to_float(
+                self._get_from_list('Chunk.time.exposure', index))
+            chunk.time.resolution = _to_float(
+                self._get_from_list('Chunk.time.resolution', index))
+            chunk.time.timesys = _to_str(
+                self._get_from_list('Chunk.time.timesys', index))
+            chunk.time.trefpos = self._get_from_list('Chunk.time.trefpos',
+                                                     index)
+            chunk.time.mjdref = self._get_from_list('Chunk.time.mjdref', index)
+
+        self.logger.debug('End augmentation with blueprint for temporal.')
+
+    def _try_polarization_with_blueprint(self, chunk, index):
+        self.logger.debug('Begin augmentation with blueprint for polarization.')
+        chunk.polarization_axis = _to_int(
+            self._get_from_list('Chunk.polarizationAxis', index))
+        aug_naxis = self._get_naxis('polarization', index)
+        if aug_naxis is not None:
+            if chunk.polarization:
+                chunk.polarization.naxis = aug_naxis
+            else:
+                chunk.polarization = PolarizationWCS(aug_naxis)
+                self.logger.debug(
+                    'Creating PolarizationWCS for {} from blueprint'.
+                    format(self.uri))
+
+        self.logger.debug('End augmentation with blueprint for polarization.')
+
+    def _try_energy_with_blueprint(self, chunk, index):
+        self.logger.debug('Begin augmentation with blueprint for energy.')
+        aug_naxis = self._get_naxis('energy', index)
+
+        specsys = _to_str(self._get_from_list('Chunk.energy.specsys', index))
         if not chunk.energy:
-            chunk.energy = SpectralWCS(naxis, specsys)
+            chunk.energy = SpectralWCS(aug_naxis, specsys)
         else:
-            chunk.energy.naxis = naxis
+            chunk.energy.naxis = aug_naxis
             chunk.energy.specsys = specsys
 
-        chunk.energy.ssysobs = self._get_from_list('Chunk.energy.ssysobs',
-                                                   index)
-        chunk.energy.restfrq = self._get_from_list('Chunk.energy.restfrq',
-                                                   index)
-        chunk.energy.restwav = self._get_from_list('Chunk.energy.restwav',
-                                                   index)
-        chunk.energy.velosys = self._get_from_list('Chunk.energy.velosys',
-                                                   index)
-        chunk.energy.zsource = self._get_from_list('Chunk.energy.zsource',
-                                                   index)
-        chunk.energy.ssyssrc = self._get_from_list('Chunk.energy.ssyssrc',
-                                                   index)
-        chunk.energy.velang = self._get_from_list('Chunk.energy.velang', index)
-        chunk.energy.bandpass_name = self._get_from_list(
-            'Chunk.energy.bandpassName', index)
-        chunk.energy.transition = self._get_from_list(
-            'Chunk.energy.transition', index)
-        chunk.energy.resolving_power = _to_float(self._get_from_list(
-            'Chunk.energy.resolvingPower', index))
+        if chunk.energy is not None:
+            chunk.energy.ssysobs = self._get_from_list('Chunk.energy.ssysobs',
+                                                       index)
+            chunk.energy.restfrq = self._get_from_list('Chunk.energy.restfrq',
+                                                       index)
+            chunk.energy.restwav = self._get_from_list('Chunk.energy.restwav',
+                                                       index)
+            chunk.energy.velosys = self._get_from_list('Chunk.energy.velosys',
+                                                       index)
+            chunk.energy.zsource = self._get_from_list('Chunk.energy.zsource',
+                                                       index)
+            chunk.energy.ssyssrc = self._get_from_list('Chunk.energy.ssyssrc',
+                                                       index)
+            chunk.energy.velang = self._get_from_list('Chunk.energy.velang',
+                                                      index)
+            chunk.energy.bandpass_name = self._get_from_list(
+                'Chunk.energy.bandpassName', index)
+            chunk.energy.transition = self._get_from_list(
+                'Chunk.energy.transition', index)
+            chunk.energy.resolving_power = _to_float(self._get_from_list(
+                'Chunk.energy.resolvingPower', index))
+        self.logger.debug('End augmentation with blueprint for energy.')
+
+    def _two_param_constructor(self, lookup1, lookup2, index, to_type, ctor):
+        param1 = to_type(self._get_from_list(lookup1, index))
+        param2 = to_type(self._get_from_list(lookup2, index))
+        new_object = None
+        if param1 is not None and param2 is not None:
+            new_object = ctor(param1, param2)
+        return new_object
+
+    def _get_naxis(self, label, index):
+        self.logger.debug(
+            'Begin {} naxis construction from blueprint.'.format(label))
+
+        aug_axis_ctype = self._get_from_list(
+            'Chunk.{}.axis.axis.ctype'.format(label), index)
+        aug_axis_cunit = self._get_from_list(
+            'Chunk.{}.axis.axis.cunit'.format(label), index)
+        aug_axis = None
+        if aug_axis_ctype is not None:
+            aug_axis = Axis(aug_axis_ctype, aug_axis_cunit)
+            self.logger.debug(
+                'Creating polarization Axis for {} from blueprint'.
+                    format(self.uri))
+
+        aug_error = self._two_param_constructor(
+            'Chunk.{}.axis.error.syser'.format(label),
+            'Chunk.{}.axis.error.rnder'.format(label),
+            index, _to_float, CoordError)
+        aug_error = self._two_param_constructor(
+            'Chunk.{}.axis.error.syser'.format(label),
+            'Chunk.{}.axis.error.rnder'.format(label),
+            index, _to_float, CoordError)
+        aug_ref_coord = self._two_param_constructor(
+            'Chunk.{}.axis.function.refCoord.pix'.format(label),
+            'Chunk.{}.axis.function.refCoord.val'.format(label),
+            index, _to_float, RefCoord)
+        aug_delta = _to_float(
+            self._get_from_list('Chunk.{}.axis.function.delta'.format(label),
+                                index))
+        aug_length = _to_int(
+            self._get_from_list('Chunk.{}.axis.function.naxis'.format(label),
+                                index))
+
+        aug_function = None
+        if (aug_length is not None and aug_delta is not None and
+                aug_ref_coord is not None):
+            aug_function = \
+                CoordFunction1D(aug_length, aug_delta, aug_ref_coord)
+            self.logger.debug(
+                'Creating {} function for {} from blueprint'.
+                    format(label, self.uri))
+
+        aug_naxis = None
+        if aug_axis is not None and aug_function is not None:
+            aug_naxis = CoordAxis1D(aug_axis, aug_error, None, None,
+                                    aug_function)
+            self.logger.debug(
+                'Creating {} CoordAxis1D for {} from blueprint'.
+                    format(label, self.uri))
+        self.logger.debug(
+            'End {} naxis construction from blueprint.'.format(label))
+        return aug_naxis
 
     def augment_observation(self, observation, artifact_uri, product_id=None):
         """
