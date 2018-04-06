@@ -72,9 +72,10 @@
               <caom2:chunks>
                 <caom2:chunk caom2:id="00000000-0000-0000-852c-51e771dbec7d">
                   <caom2:naxis>2</caom2:naxis>
-                  <caom2:observableAxis>4</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
+                  <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -122,14 +123,14 @@
                     <caom2:axis>
                       <caom2:axis>
                         <caom2:ctype>WAVE</caom2:ctype>
-                        <caom2:cunit>Angstrom</caom2:cunit>
+                        <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:function>
                         <caom2:naxis>1</caom2:naxis>
-                        <caom2:delta>1848.0</caom2:delta>
+                        <caom2:delta>1.8480000000000001e-07</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>0.5</caom2:pix>
-                          <caom2:val>9083.0</caom2:val>
+                          <caom2:val>9.083000000000001e-07</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
@@ -154,9 +155,10 @@
               <caom2:chunks>
                 <caom2:chunk caom2:id="00000000-0000-0000-9122-ab49aae62348">
                   <caom2:naxis>2</caom2:naxis>
-                  <caom2:observableAxis>4</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
+                  <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -204,14 +206,14 @@
                     <caom2:axis>
                       <caom2:axis>
                         <caom2:ctype>WAVE</caom2:ctype>
-                        <caom2:cunit>Angstrom</caom2:cunit>
+                        <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:function>
                         <caom2:naxis>1</caom2:naxis>
-                        <caom2:delta>1848.0</caom2:delta>
+                        <caom2:delta>1.8480000000000001e-07</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>0.5</caom2:pix>
-                          <caom2:val>9083.0</caom2:val>
+                          <caom2:val>9.083000000000001e-07</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>

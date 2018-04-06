@@ -436,7 +436,8 @@ class ObsBlueprint(object):
         elem) for elem in _CAOM2_ELEMENTS]))
 
     def __init__(self, position_axes=None, energy_axis=None,
-                 polarization_axis=None, time_axis=None, module=None):
+                 polarization_axis=None, time_axis=None,
+                 obs_axis=None, module=None):
         """
         Ctor
         :param position_axes: tuple of form (int, int) indicating the indexes
@@ -444,6 +445,7 @@ class ObsBlueprint(object):
         :param energy_axis: index of energy axis (int)
         :param polarization_axis: index of polarization axis (int)
         :param time_axis: index of time axis (int)
+        :param obs_axis: index of observable axis (int)
         :param module: user-provided code, will be loaded with
             importlib.import_module if a value is provided.
         """
@@ -514,6 +516,9 @@ class ObsBlueprint(object):
 
         if time_axis:
             self.configure_time_axis(time_axis)
+
+        if obs_axis:
+            self.configure_observable_axis(obs_axis)
 
         if module:
             self._module = module
@@ -829,7 +834,7 @@ class ObsBlueprint(object):
         self._time_axis_configed = True
 
     def _guess_axis_info(self):
-        # look for info regarding axis types in the blueprint wcs_std
+        """Look for info regarding axis types in the blueprint wcs_std"""
         energy_axis = None
         polarization_axis = None
         time_axis = None
@@ -843,35 +848,29 @@ class ObsBlueprint(object):
         dec_axis_expected = False
         obs_axis_expected = False
 
-        count = 1
         for ii in self._plan:
-            if ii.startswith('Chunk.energy') and not energy_axis_expected:
+            if ii.startswith('Chunk.position') and ii.endswith(
+                'axis1.ctype') and not ra_axis_expected:
+                ra_axis_expected = True
+                # assume a default ordering
+                ra_axis = 1
+            elif ii.startswith('Chunk.position') and ii.endswith(
+                'axis2.ctype') and not dec_axis_expected:
+                dec_axis_expected = True
+                dec_axis = 2
+            elif ii.startswith('Chunk.energy') and not energy_axis_expected:
                 energy_axis_expected = True
-                energy_axis = count
-                count += 1
+                energy_axis = 3
+            elif ii.startswith('Chunk.time') and not time_axis_expected:
+                time_axis_expected = True
+                time_axis = 4
             elif ii.startswith(
                     'Chunk.polarization') and not polarization_axis_expected:
                 polarization_axis_expected = True
-                polarization_axis = count
-                count += 1
-            elif ii.startswith('Chunk.time') and not time_axis_expected:
-                time_axis_expected = True
-                time_axis = count
-                count += 1
-            elif ii.startswith('Chunk.position') and ii.endswith(
-                    'axis1.ctype') and not ra_axis_expected:
-                ra_axis_expected = True
-                ra_axis = count
-                count += 1
-            elif ii.startswith('Chunk.position') and ii.endswith(
-                    'axis2.ctype') and not dec_axis_expected:
-                dec_axis_expected = True
-                dec_axis = count
-                count += 1
+                polarization_axis = 5
             elif ii.startswith('Chunk.observable') and not obs_axis_expected:
                 obs_axis_expected = True
-                obs_axis = count
-                count += 1
+                obs_axis = 6
 
         for ii in self._plan:
             if isinstance(self._plan[ii], tuple):
@@ -932,15 +931,12 @@ class ObsBlueprint(object):
                 self.configure_position_axes(('1', '2'), False)
 
         if time_axis_expected:
-            self._time_axis_configed = True
             self.configure_time_axis(time_axis, False)
 
         if energy_axis_expected:
-            self._energy_axis_configed = True
             self.configure_energy_axis(energy_axis, False)
 
         if polarization_axis_expected:
-            self._pol_axis_configed = True
             self.configure_polarization_axis(polarization_axis, False)
 
         if obs_axis_expected:
@@ -1233,8 +1229,8 @@ class ObsBlueprint(object):
 
     @staticmethod
     def is_function(value):
-        return (not ObsBlueprint.is_tuple(value) and value.find('(') != -1
-                and value.find(')') != -1)
+        return (not ObsBlueprint.is_tuple(value) and isinstance(value, str)
+                and value.find('(') != -1 and value.find(')') != -1)
 
 
 @add_metaclass(ABCMeta)
@@ -2340,7 +2336,7 @@ class FitsParser(GenericParser):
                     prov.keywords.add(k)
             if inputs:
                 for i in inputs.split():
-                    prov.inputs.add(PlaneURI(i))
+                    prov.inputs.add(PlaneURI(str(i)))
             self.logger.debug('End Provenance augmentation.')
             return prov
         else:
@@ -2764,8 +2760,8 @@ class WcsParser(object):
         elif (xindex is None) and (yindex is None):
             return None
         else:
-            raise ValueError('Found only one position axis ra/dec: {}/{}'.
-                             format(xindex, yindex))
+            raise ValueError('Found only one position axis ra/dec: {}/{} in {}'.
+                             format(xindex, yindex, self.file))
 
     def _get_ref_coord(self, index):
         aug_crpix = _to_float(self._sanitize(self.wcs.crpix[index]))
