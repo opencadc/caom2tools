@@ -1461,7 +1461,6 @@ class FitsParser(GenericParser):
         self._headers = []
         self.parts = 0
         self.file = ''
-        # self._errors = []
         if isinstance(src, list):
             # assume this is the list of headers
             self._headers = src
@@ -1577,6 +1576,16 @@ class FitsParser(GenericParser):
             'End artifact augmentation for {}.'.format(artifact.uri))
 
     def _try_position_with_blueprint(self, chunk, index):
+        """
+        A mechanism to augment the Position WCS completely from the blueprint,
+        without recourse to astropy WCS information. Do nothing if  the
+        WCS information cannot be correctly created.
+
+        :param chunk: The chunk to modify with the addition of position
+            information.
+        :param index: The index in the blueprint for looking up plan
+            information.
+        """
         self.logger.debug('Begin augmentation with blueprint for position.')
 
         aug_x_axis = self._two_param_constructor(
@@ -1652,6 +1661,16 @@ class FitsParser(GenericParser):
         self.logger.debug('End augmentation with blueprint for position.')
 
     def _try_time_with_blueprint(self, chunk, index):
+        """
+        A mechanism to augment the Time WCS completely from the blueprint,
+        without recourse to astropy WCS information. Do nothing if  the
+        WCS information cannot be correctly created.
+
+        :param chunk: The chunk to modify with the addition of time
+            information.
+        :param index: The index in the blueprint for looking up plan
+            information.
+        """
         self.logger.debug('Begin augmentation with blueprint for temporal.')
 
         chunk.time_axis = self._get_from_list('Chunk.energyAxis', index)
@@ -1678,6 +1697,16 @@ class FitsParser(GenericParser):
         self.logger.debug('End augmentation with blueprint for temporal.')
 
     def _try_polarization_with_blueprint(self, chunk, index):
+        """
+        A mechanism to augment the Polarization WCS completely from the
+        blueprint, without recourse to astropy WCS information. Do nothing if
+        the WCS information cannot be correctly created.
+
+        :param chunk: The chunk to modify with the addition of polarization
+            information.
+        :param index: The index in the blueprint for looking up plan
+            information.
+        """
         self.logger.debug('Begin augmentation with blueprint for polarization.')
         chunk.polarization_axis = _to_int(
             self._get_from_list('Chunk.polarizationAxis', index))
@@ -1694,6 +1723,16 @@ class FitsParser(GenericParser):
         self.logger.debug('End augmentation with blueprint for polarization.')
 
     def _try_energy_with_blueprint(self, chunk, index):
+        """
+        A mechanism to augment the Energy WCS completely from the blueprint,
+        without recourse to astropy WCS information. Do nothing if the
+        WCS information cannot be correctly created.
+
+        :param chunk: The chunk to modify with the addition of energy
+            information.
+        :param index: The index in the blueprint for looking up plan
+            information.
+        """
         self.logger.debug('Begin augmentation with blueprint for energy.')
         aug_naxis = self._get_naxis('energy', index)
 
@@ -1728,6 +1767,21 @@ class FitsParser(GenericParser):
         self.logger.debug('End augmentation with blueprint for energy.')
 
     def _two_param_constructor(self, lookup1, lookup2, index, to_type, ctor):
+        """
+        Helper function to build from the blueprint, a CAOM2 entity that
+        has two required parameters.
+
+        :param lookup1: Blueprint lookup text for the first constructor
+            parameter.
+        :param lookup2: Blueprint lookup text for the second constructor
+            parameter.
+        :param index:  Which index in the blueprint to do the lookup on.
+        :param to_type: Function to cast the blueprint value to a particular
+            type.
+        :param ctor: The constructor that has two parameters to build.
+        :return: The instance returned by the constructor, or None if any of
+            the values are undefined.
+        """
         param1 = to_type(self._get_from_list(lookup1, index))
         param2 = to_type(self._get_from_list(lookup2, index))
         new_object = None
@@ -1736,6 +1790,14 @@ class FitsParser(GenericParser):
         return new_object
 
     def _get_naxis(self, label, index):
+        """Helper function to construct a CoordAxis1D instance, with all
+        it's members, from the blueprint.
+
+        :param label: axis name - must be one of 'energy', 'time', or
+        'polarization', as it's used for the blueprint lookup.
+        :param index: which blueprint index to find a value in
+        :return an instance of CoordAxis1D
+        """
         self.logger.debug(
             'Begin {} naxis construction from blueprint.'.format(label))
 
@@ -1959,7 +2021,7 @@ class FitsParser(GenericParser):
     def _execute_external(self, value, key):
         """Execute a function supplied by a user, assign a value to a
         blueprint entry. The input parameters passed to the function are the
-        headers as read in by astropy.
+        headers as read in by astropy, or the artifact uri.
 
         :param value the name of the function to apply.
         """
@@ -3049,14 +3111,15 @@ def caom2gen():
                                           'for the named module. Provide a '
                                           'fully qualified name. Parameter '
                                           'choices are the artifact URI (uri) '
-                                          'or a list of astropy Header'
+                                          'or a list of astropy Header '
                                           'instances (header).'))
     parser.add_argument('--blueprint', nargs='+', required=True,
                         help=('list of files with blueprints for CAOM2 '
                               'construction, in serialized format. If the '
                               'list is of length 1, the same blueprint will '
-                              'be applied to all file URIs. Otherwise, '
-                              'there must be a blueprint file per file URI.'))
+                              'be applied to all lineage entries. Otherwise, '
+                              'there must be a blueprint file per lineage '
+                              'entry.'))
     parser.add_argument('--lineage', nargs='+',
                         help=('productID/artifactURI. List of plane/artifact '
                               'identifiers that will be'
