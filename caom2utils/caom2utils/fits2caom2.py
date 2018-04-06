@@ -850,12 +850,12 @@ class ObsBlueprint(object):
 
         for ii in self._plan:
             if ii.startswith('Chunk.position') and ii.endswith(
-                'axis1.ctype') and not ra_axis_expected:
+                    'axis1.ctype') and not ra_axis_expected:
                 ra_axis_expected = True
                 # assume a default ordering
                 ra_axis = 1
             elif ii.startswith('Chunk.position') and ii.endswith(
-                'axis2.ctype') and not dec_axis_expected:
+                    'axis2.ctype') and not dec_axis_expected:
                 dec_axis_expected = True
                 dec_axis = 2
             elif ii.startswith('Chunk.energy') and not energy_axis_expected:
@@ -2760,7 +2760,8 @@ class WcsParser(object):
         elif (xindex is None) and (yindex is None):
             return None
         else:
-            raise ValueError('Found only one position axis ra/dec: {}/{} in {}'.
+            raise ValueError('Found only one position axis ra/dec: {}/{} in '
+                             '{}'.
                              format(xindex, yindex, self.file))
 
     def _get_ref_coord(self, index):
