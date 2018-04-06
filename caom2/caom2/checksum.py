@@ -311,7 +311,6 @@ def checksum_diff():
     with the ones specified in that observation
     """
 
-
     parser = argparse.ArgumentParser(
         description='Compare observation checksum')
     parser.add_argument('file', help='Observation file',
@@ -363,6 +362,6 @@ def _print_diff(elem, debug=False):
                                            elem.acc_meta_checksum.checksum,
                                            actual.checksum))
         else:
-            print('{}: {} {} != {} [MISMATCH]'.format(elem_type, elem._id,
-                                                      elem.acc_meta_checksum.checksum,
-                                                      actual.checksum))
+            print('{}: {} {} != {} [MISMATCH]'.
+                  format(elem_type, elem._id, elem.acc_meta_checksum.checksum,
+                         actual.checksum))
