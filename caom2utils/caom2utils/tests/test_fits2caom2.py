@@ -374,7 +374,8 @@ def test_augment_artifact_time_from_blueprint():
     test_blueprint.set('Chunk.time.axis.error.syser', '1e-07')
     test_blueprint.set('Chunk.time.axis.error.rnder', '1e-07')
     test_blueprint.set('Chunk.time.axis.function.refCoord.pix', '0.5')
-    test_blueprint.set('Chunk.time.axis.function.refCoord.val', '56789.4298069')
+    test_blueprint.set('Chunk.time.axis.function.refCoord.val',
+                       '56789.4298069')
     test_blueprint.set('Chunk.time.axis.function.delta', '2.31481e-07')
     test_blueprint.set('Chunk.time.axis.function.naxis', '1')
     test_fitsparser = FitsParser(sample_file_4axes, test_blueprint,

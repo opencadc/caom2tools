@@ -1639,7 +1639,7 @@ class FitsParser(GenericParser):
 
         aug_axis = None
         if (aug_x_axis is not None and aug_y_axis is not None and
-            aug_function is not None):
+                aug_function is not None):
             aug_axis = CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error,
                                    aug_y_error, None, None, aug_function)
             self.logger.debug(
@@ -1707,7 +1707,8 @@ class FitsParser(GenericParser):
         :param index: The index in the blueprint for looking up plan
             information.
         """
-        self.logger.debug('Begin augmentation with blueprint for polarization.')
+        self.logger.debug('Begin augmentation with blueprint for '
+                          'polarization.')
         chunk.polarization_axis = _to_int(
             self._get_from_list('Chunk.polarizationAxis', index))
         aug_naxis = self._get_naxis('polarization', index)
@@ -1810,7 +1811,7 @@ class FitsParser(GenericParser):
             aug_axis = Axis(aug_axis_ctype, aug_axis_cunit)
             self.logger.debug(
                 'Creating polarization Axis for {} from blueprint'.
-                    format(self.uri))
+                format(self.uri))
 
         aug_error = self._two_param_constructor(
             'Chunk.{}.axis.error.syser'.format(label),
@@ -1838,7 +1839,7 @@ class FitsParser(GenericParser):
                 CoordFunction1D(aug_length, aug_delta, aug_ref_coord)
             self.logger.debug(
                 'Creating {} function for {} from blueprint'.
-                    format(label, self.uri))
+                format(label, self.uri))
 
         aug_naxis = None
         if aug_axis is not None and aug_function is not None:
@@ -1846,7 +1847,7 @@ class FitsParser(GenericParser):
                                     aug_function)
             self.logger.debug(
                 'Creating {} CoordAxis1D for {} from blueprint'.
-                    format(label, self.uri))
+                format(label, self.uri))
         self.logger.debug(
             'End {} naxis construction from blueprint.'.format(label))
         return aug_naxis
@@ -3107,7 +3108,8 @@ def caom2gen():
     parser = _get_common_arg_parser()
 
     parser.add_argument('--module', help=('if the blueprint contains function '
-                                          'calls, call importlib.import_module '
+                                          'calls, call '
+                                          'importlib.import_module '
                                           'for the named module. Provide a '
                                           'fully qualified name. Parameter '
                                           'choices are the artifact URI (uri) '
