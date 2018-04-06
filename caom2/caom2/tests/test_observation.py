@@ -74,6 +74,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import unittest
 from datetime import datetime
+from builtins import str
 
 from .. import caom_util
 from .. import observation
