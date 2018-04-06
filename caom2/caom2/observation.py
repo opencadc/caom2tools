@@ -518,7 +518,7 @@ class SimpleObservation(Observation):
 
     """
     DEFAULT_ALGORITHM_NAME = 'exposure'
-    
+
     def __init__(self,
                  collection,
                  observation_id,
