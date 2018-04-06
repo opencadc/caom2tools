@@ -74,6 +74,9 @@ import logging
 import struct
 import uuid
 from datetime import datetime
+import argparse
+import sys
+from . import obs_reader_writer
 
 from aenum import Enum
 from builtins import bytes, int, str
@@ -300,3 +303,66 @@ def update_caom_checksum(checksum, entity, parent=None):
             if getattr(entity, i) is not None:
                 atrib = '{}.{}'.format(parent, i) if parent is not None else i
                 update_checksum(checksum, getattr(entity, i), atrib)
+
+
+def checksum_diff():
+    """
+    Calculates the checksum of elements in an observation and compares it
+    with the ones specified in that observation
+    """
+
+
+    parser = argparse.ArgumentParser(
+        description='Compare observation checksum')
+    parser.add_argument('file', help='Observation file',
+                        type=argparse.FileType('r'))
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Display details')
+
+    args = parser.parse_args()
+    if len(sys.argv) < 2:
+        parser.print_usage(file=sys.stderr)
+        sys.stderr.write("caom2_checksum: error: too few arguments")
+        sys.exit(-1)
+
+    reader = obs_reader_writer.ObservationReader(True)
+    obs = reader.read(args.file)
+    args.file.close()
+
+    print('Start checking')
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    _print_diff(chunk, args.debug)
+                _print_diff(part, args.debug)
+            _print_diff(artifact, args.debug)
+        _print_diff(plane, args.debug)
+    _print_diff(obs, args.debug)
+
+
+def _print_diff(elem, debug=False):
+    elem_type = str(type(elem)).split('.')[1]
+    actual = get_meta_checksum(elem)
+    if elem.meta_checksum == actual:
+        print('{}: {} {} == {}'.format(elem_type, elem._id,
+                                       elem.meta_checksum.checksum,
+                                       actual.checksum))
+    else:
+        print('{}: {} {} != {} [MISMATCH]'.format(elem_type, elem._id,
+                                                  elem.meta_checksum.checksum,
+                                                  actual.checksum))
+        if debug:
+            print(elem)
+
+    if elem_type != 'chunk':
+        # do the accummulated checksums
+        actual = get_acc_meta_checksum(elem)
+        if elem.acc_meta_checksum == actual:
+            print('{}: {} {} == {}'.format(elem_type, elem._id,
+                                           elem.acc_meta_checksum.checksum,
+                                           actual.checksum))
+        else:
+            print('{}: {} {} != {} [MISMATCH]'.format(elem_type, elem._id,
+                                                      elem.acc_meta_checksum.checksum,
+                                                      actual.checksum))

@@ -198,6 +198,7 @@ class Observation(AbstractCaomEntity):
 
         self.collection = collection
         self.observation_id = observation_id
+        assert algorithm, 'Algorithm required'
         self.algorithm = algorithm
 
         self._uri = ObservationURI.get_observation_uri(collection,
@@ -516,13 +517,11 @@ class SimpleObservation(Observation):
     "exposure"
 
     """
-
-    _ALGORITHM = Algorithm("exposure")
-
+    DEFAULT_ALGORITHM_NAME = 'exposure'
     def __init__(self,
                  collection,
                  observation_id,
-                 algorithm=None,
+                 algorithm=DEFAULT_ALGORITHM_NAME,
                  sequence_number=None,
                  intent=None,
                  type=None,
@@ -541,8 +540,6 @@ class SimpleObservation(Observation):
 
         observation_id - A UNIQUE identifier with in that collection
         """
-        if algorithm is None:
-            algorithm = SimpleObservation._ALGORITHM
         super(SimpleObservation, self).__init__(collection,
                                                 observation_id,
                                                 algorithm,
@@ -563,12 +560,13 @@ class SimpleObservation(Observation):
     def algorithm(self):
         """The algorithm that built the observation, for SimpleObservation
         this is always 'exposure'"""
-
         return super(SimpleObservation, self).algorithm
 
     @algorithm.setter
-    def algorithm(self, value=_ALGORITHM):
+    def algorithm(self, value):
         # build an Algorithm type if passed a string...
+        if value is None:
+            raise ValueError('Algorithm name required')
         if isinstance(value, str):
             value = Algorithm(value)
         caom_util.type_check(value, Algorithm, 'algorithm', override=False)
@@ -600,9 +598,6 @@ class CompositeObservation(Observation):
                  environment=None,
                  target_position=None
                  ):
-        if algorithm == SimpleObservation._ALGORITHM:
-            raise ValueError(
-                "E{0} (reserved for SimpleObservation)".format(algorithm))
         super(CompositeObservation, self).__init__(collection,
                                                    observation_id,
                                                    algorithm,
@@ -627,8 +622,10 @@ class CompositeObservation(Observation):
     @algorithm.setter
     def algorithm(self, value):
         if value is None:
-            raise ValueError
-        if value == SimpleObservation._ALGORITHM:
+            raise ValueError('Algorithm name required')
+        if isinstance(value, str):
+            value = Algorithm(value)
+        if value.name == SimpleObservation.DEFAULT_ALGORITHM_NAME:
             raise ValueError("cannot set CompositeObservation.algorithm to {0}"
                              " (reserved for SimpleObservation)".format(value))
         self._algorithm = value
