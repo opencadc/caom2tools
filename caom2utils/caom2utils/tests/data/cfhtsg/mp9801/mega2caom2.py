@@ -30,6 +30,25 @@ def getInputs(hdul):
     return inputs
 
 
+def getProvInputs(hdul):
+    history = str(hdul[0].get('HISTORY'))
+
+    # find all the exposure numbers:
+    exposures = findall(r'\d{6,7}', history)
+
+    # add the caom:CFHT/ bits:
+    for i, value in enumerate(exposures):
+        exposures[i] = 'caom:CFHT/' + exposures[i] + '/' + exposures[i] + 'p'
+
+        # join them:
+    inputs = ' '.join(exposures)
+
+    # complain about the syntax for join:
+    # just saying this has got the dumbest syntax for join in any
+    # language I've seen
+    return inputs
+
+
 def getMagnitudeLimit(hdul):
     # get the magnitude limit keywords
     ml_5siga = float(hdul[0].get('ML_5SIGA'))

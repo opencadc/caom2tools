@@ -2066,7 +2066,7 @@ class FitsParser(GenericParser):
                  'simple observation'))
         elif isinstance(obs, CompositeObservation):
             members = self._get_from_list('CompositeObservation.members',
-                                          index=0, current=obs.members)
+                                          index=0)
         self.logger.debug('End Members augmentation.')
         return members
 
@@ -2332,7 +2332,6 @@ class FitsParser(GenericParser):
             self._get_from_list('Plane.provenance.lastExecuted', index=0))
         keywords = self._get_from_list('Plane.provenance.keywords', index=0)
         inputs = self._get_from_list('Plane.provenance.inputs', index=0)
-        self.logger.debug('End Provenance augmentation.')
         if name:
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
@@ -2342,8 +2341,11 @@ class FitsParser(GenericParser):
             if inputs:
                 for i in inputs.split():
                     prov.inputs.add(PlaneURI(i))
+            self.logger.debug('End Provenance augmentation.')
             return prov
         else:
+            self.logger.debug(
+                'End Provenance augmentation - no provenance information.')
             return None
 
     def _get_metrics(self):
@@ -3047,15 +3049,15 @@ def _augment(obs, product_id, uri, args, blueprint, index):
     if args.local:
         file = args.local[index]
         if file.endswith('.fits'):
-            logging.debug('Using a FitsParser for {}'.format(uri))
+            logging.debug('Using a FitsParser for {}'.format(file))
             parser = FitsParser(file, blueprint, uri=uri)
         elif file.find('.header') != -1:
-            logging.debug('Using a FitsParser for {}'.format(uri))
+            logging.debug('Using a FitsParser for {}'.format(file))
             parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
                                 blueprint, uri=uri)
         else:
             # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(uri))
+            logging.debug('Using a GenericParser for {}'.format(file))
             parser = GenericParser(blueprint, uri=uri)
     else:
         if uri.endswith('.fits'):
@@ -3177,7 +3179,7 @@ def caom2gen():
             product_id, uri = _extract_ids(cardinality)
             bp_name = _lookup_blueprint_name(ii, args.blueprint)
             blueprint = _lookup_blueprint(blueprints, uri)
-            logging.debug('Begin augmentation for product_id {}, uri {},'
+            logging.debug('Begin augmentation for product_id {}, uri {}, '
                           'with blueprint {}'.format(product_id, uri, bp_name))
             _augment(obs, product_id, uri, args, blueprint, ii)
 

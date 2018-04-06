@@ -13,13 +13,6 @@ Plane.metaRelease = ['DATE'], default = None
 Plane.dataRelease = ['DATE'], default = None
 Plane.dataProductType = image
 Plane.calibrationLevel = 3
-Plane.provenance.name = MEGAPIPE
-Plane.provenance.version = 2.0
-Plane.provenance.producer = CADC
-Plane.provenance.runID = None
-Plane.provenance.reference = http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/megapipe/
-Plane.provenance.lastExecuted = ['DATE'], default = None
-Plane.provenance.keywords = None
 Artifact.productType = science
 Artifact.releaseType = data
 Chunk.naxis = ['NAXIS'], default = 2

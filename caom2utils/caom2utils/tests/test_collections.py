@@ -154,13 +154,15 @@ def test_differences(directory):
 
 def _get_cardinality(directory):
     # TODO - read this from an aptly named file in the directory
+    # The blueprints are named to reverse sort so that this
+    # alignment of product id / artifact URI works
     return '--lineage ' \
-           'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
-           'MegaPipe.080.156.Z.MP9801.fits.gif ' \
            'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
            'MegaPipe.080.156.Z.MP9801.weight.fits ' \
            'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
-           'MegaPipe.080.156.Z.MP9801.fits'
+           'MegaPipe.080.156.Z.MP9801.fits ' \
+           'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+           'MegaPipe.080.156.Z.MP9801.fits.gif'
 
 
 def _get_common(fnames):
@@ -247,6 +249,7 @@ def _get_uris(collection, fnames, obs):
 def _get_file(pattern, dir_name):
     files = glob.glob('{}/*.{}'.format(dir_name, pattern))
     if files:
+        files.sort(reverse=True)
         return files
     else:
         return None

@@ -20,7 +20,7 @@ Plane.provenance.runID = None
 Plane.provenance.reference = http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/megapipe/
 Plane.provenance.lastExecuted = ['DATE'], default = None
 Plane.provenance.keywords = None
-Plane.provenance.inputs = getInputs(header)
+Plane.provenance.inputs = getProvInputs(header)
 Plane.metrics.magLimit = getMagnitudeLimit(header)
 Artifact.productType = science
 Artifact.releaseType = data

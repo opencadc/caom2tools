@@ -9,9 +9,4 @@ Observation.telescope.geoLocationY =  -2493778.2
 Observation.telescope.geoLocationZ =  2150937.8
 Plane.dataProductType = image
 Plane.calibrationLevel = 3
-Plane.provenance.name = MEGAPIPE
-Plane.provenance.version = 2.0
-Plane.provenance.producer = CADC
-Plane.provenance.reference = http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/megapipe/
-Plane.provenance.lastExecuted = ['DATE'], default = None
 Artifact.productType = science
