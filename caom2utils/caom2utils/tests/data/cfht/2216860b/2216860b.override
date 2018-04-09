@@ -20,7 +20,7 @@ time.resolution=       0.000000000000
 time.exposure=       0.000000000000
 CRVAL5 = 58062.0443605
 CRPIX5 = 0.5
-CDELT5 = 0.01
+CDELT5 = 0.0
 NAXIS5 = 1
 CTYPE2 = observable
 
