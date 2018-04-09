@@ -87,6 +87,7 @@ import os
 import sys
 
 import pytest
+import logging
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -142,8 +143,14 @@ def test_augment_energy():
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     energy = artifact.parts['0'].chunks[0].energy
+    logging.error(energy)
     ex = _get_from_str_xml(EXPECTED_ENERGY_XML,
                            ObservationReader()._get_spectral_wcs, 'energy')
+    logging.error('blank')
+    logging.error('blank')
+    logging.error('blank')
+    logging.error('blank')
+    logging.error(ex)
     result = get_differences(ex, energy)
     assert result is None
 
