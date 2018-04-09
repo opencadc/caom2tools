@@ -108,7 +108,7 @@ class TemporalWCSValidatorTests(unittest.TestCase):
         bad_temporal_wcs = TimeTestUtil.bad_delta()
         with pytest.raises(InvalidWCSError) as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('delta is 0.0' in str(ex))
+        assert('delta must be greater than 0.0' in str(ex))
 
 
 class SpatialWCSValidatorTests(unittest.TestCase):
@@ -251,9 +251,10 @@ class TimeTestUtil:
         axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
         temporal_wcs = chunk.TemporalWCS(axis_1d)
 
-        # delta == 0.0 is bad
+        # delta < 0.0 is bad
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
-        temporal_wcs.axis.function = CoordFunction1D(int(100), 0.0, ref_coord)
+        temporal_wcs.axis.function = CoordFunction1D(
+            int(100), -0.01, ref_coord)
 
         return temporal_wcs
 
