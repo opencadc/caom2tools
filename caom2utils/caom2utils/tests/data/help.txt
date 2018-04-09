@@ -1,6 +1,7 @@
 usage: fits2caom2 [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                   [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v]
-                  [-V] [--dumpconfig] [--ignorePartialWCS] [-o OUT_OBS_XML]
+                  [-V] [--dumpconfig] [--no_validate] [--ignorePartialWCS]
+                  [-o OUT_OBS_XML]
                   (-i IN_OBS_XML | --observation collection observationID)
                   [--local LOCAL [LOCAL ...]] [--keep] [--test]
                   [--productID PRODUCTID] [--config CONFIG]
@@ -31,6 +32,9 @@ optional arguments:
   -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
+  --no_validate         by default, the application will validate the WCS
+                        information for an observation. Specifying this flag
+                        skips that step.
   --observation collection observationID
                         observation in a collection
   -o, --out OUT_OBS_XML

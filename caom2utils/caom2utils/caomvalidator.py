@@ -79,7 +79,7 @@ import logging
 
 from caom2 import Observation, Plane, Artifact, Part, Chunk
 from caom2utils.polygonvalidator import validate_polygon
-from caom2utils import validate_wcs
+from caom2utils.wcsvalidator import validate_wcs
 
 
 __all__ = ['validate']

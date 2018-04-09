@@ -74,6 +74,7 @@ from caom2utils import ObsBlueprint
 import pytest
 
 
+# @pytest.mark.skip('')
 def test_obs_blueprint():
     # test the CAOM2_ELEMENTS property
     assert ObsBlueprint.CAOM2_ELEMENTS == ObsBlueprint._CAOM2_ELEMENTS
