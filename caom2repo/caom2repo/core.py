@@ -456,7 +456,7 @@ class CAOM2RepoClient(object):
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.post(
             (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
-        self.logger.debug('Successfully updated Observation\n')
+        self.logger.debug('Successfully updated Observation')
 
     def put_observation(self, observation):
         """
@@ -476,7 +476,7 @@ class CAOM2RepoClient(object):
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.put(
             (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
-        self.logger.debug('Successfully put Observation\n')
+        self.logger.debug('Successfully put Observation')
 
     def delete_observation(self, collection, observation_id):
         """
@@ -489,7 +489,7 @@ class CAOM2RepoClient(object):
         self.logger.debug('DELETE {}'.format(path))
         self._repo_client.delete(
             (CAOM2REPO_OBS_CAPABILITY_ID, path))
-        self.logger.info('Successfully deleted Observation {}\n')
+        self.logger.info('Successfully deleted Observation')
 
 
 def init_worker():
