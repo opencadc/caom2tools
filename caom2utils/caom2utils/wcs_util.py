@@ -129,8 +129,9 @@ class TimeUtil:
             p2 = float(function_1d.naxis + 0.5)
             a = pix2val(function_1d, p1)
             b = pix2val(function_1d, p2)
-            if function_1d.delta == 0.0:
-                raise ValueError('delta is 0.0')
+            if function_1d.delta < 0.0:
+                raise ValueError(
+                    '{} delta must be greater than 0.0'.format(function_1d))
 
             if temporal_wcs.mjdref is not None:
                 a += float(temporal_wcs.mjdref)
