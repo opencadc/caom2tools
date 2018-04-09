@@ -3098,7 +3098,7 @@ def _load_module(module):
     sys.path.append(pname)
     try:
         return importlib.import_module(mname)
-    except ModuleNotFoundError as e:
+    except ImportError as e:
         logging.error('Looking for {} in {}'.format(mname, pname))
         raise e
 
