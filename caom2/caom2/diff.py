@@ -116,7 +116,8 @@ def get_differences(expected, actual, parent=None):
             isinstance(expected, set)):
         temp_report = _get_collection_differences(expected, actual, parent)
     elif isinstance(expected, CaomObject):
-        assert isinstance(actual, CaomObject)
+        assert isinstance(actual, CaomObject), \
+            'Expecting instance of CaomObject'
         temp_report = _get_object_differences(expected, actual, parent)
     else:
         if expected != actual:
