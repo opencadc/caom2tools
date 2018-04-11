@@ -833,8 +833,11 @@ class ObsBlueprint(object):
 
         self._time_axis_configed = True
 
-    def _guess_axis_info(self):
-        """Look for info regarding axis types in the blueprint wcs_std"""
+    def _guess_axis_info_from_plan(self):
+        """Look for info regarding axis types in the blueprint wcs_std.
+        Configure the blueprint according to the guesses.
+        """
+        # a data structure to carry around twelve bits of data at a time:
         # the first item in the set is the ctype index, and the second is
         # whether or not the index means anything, resulting in a
         # call to the blueprint configure_* methods if it's True.
@@ -847,32 +850,47 @@ class ObsBlueprint(object):
             'time': (0, False)}
 
         for ii in self._plan:
-            if ii.startswith('Chunk.position') and ii.endswith('axis1.ctype'):
-                axis_info['ra'] = (1, True)
-            elif ii.startswith('Chunk.position') and \
-                    ii.endswith('axis2.ctype'):
-                axis_info['dec'] = (2, True)
-            elif ii.startswith('Chunk.energy'):
-                axis_info['energy'] = (3, True)
-            elif ii.startswith('Chunk.time'):
-                axis_info['time'] = (4, True)
-            elif ii.startswith('Chunk.polarization'):
-                axis_info['polarization'] = (5, True)
-            elif ii.startswith('Chunk.observable'):
-                axis_info['obs'] = (6, True)
-
-        for ii in self._plan:
             if isinstance(self._plan[ii], tuple):
                 for value in self._plan[ii][0]:
                     if (value.startswith('CTYPE')) and value[-1].isdigit():
                         value = value.split('-')[0]
-                        self._guess_axis_info_from_ctypes(ii, value[-1],
+                        self._guess_axis_info_from_ctypes(ii, int(value[-1]),
                                                           axis_info)
             else:
                 value = self._plan[ii]
                 if (value.startswith('CTYPE')) and value[-1].isdigit():
                     value = value.split('-')[0]
-                    self._guess_axis_info_from_ctypes(ii, value[-1], axis_info)
+                    self._guess_axis_info_from_ctypes(ii, int(value[-1]),
+                                                      axis_info)
+
+        configured_index = 0
+        for ii in self._plan:
+            if ii.startswith('Chunk.position') and ii.endswith('axis1.ctype') \
+                    and not axis_info['ra'][1]:
+                configured_index = self._get_configured_index(axis_info, 'ra')
+                axis_info['ra'] = (configured_index, True)
+            elif ii.startswith('Chunk.position') and \
+                    ii.endswith('axis2.ctype') and not axis_info['dec'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'dec')
+                axis_info['dec'] = (configured_index, True)
+            elif ii.startswith('Chunk.energy') and not axis_info['energy'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'energy')
+                axis_info['energy'] = (configured_index, True)
+            elif ii.startswith('Chunk.time') and not axis_info['time'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'time')
+                axis_info['time'] = (configured_index, True)
+            elif ii.startswith('Chunk.polarization') \
+                    and not axis_info['polarization'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'polarization')
+                axis_info['polarization'] = (configured_index, True)
+            elif ii.startswith('Chunk.observable') and not axis_info['obs'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'obs')
+                axis_info['obs'] = (configured_index, True)
 
         if axis_info['ra'][1] and axis_info['dec'][1]:
             self.configure_position_axes(
@@ -883,13 +901,13 @@ class ObsBlueprint(object):
                              format(axis_info['ra'][0], axis_info['dec'][0]))
         else:
             # assume that positional axis are 1 and 2 by default
-            if axis_info['time'][0] in ['1', '2'] or \
-                    axis_info['energy'][0] in ['1', '2'] or \
-                    axis_info['polarization'][0] in ['1', '2'] or \
-                    axis_info['obs'][0] in ['1', '2']:
+            if axis_info['time'][0] in [1, 2] or \
+                    axis_info['energy'][0] in [1, 2] or \
+                    axis_info['polarization'][0] in [1, 2] or \
+                    axis_info['obs'][0] in [1, 2]:
                 raise ValueError('Cannot determine the positional axis')
             else:
-                self.configure_position_axes(('1', '2'), False)
+                self.configure_position_axes((1, 2), False)
 
         if axis_info['time'][1]:
             self.configure_time_axis(axis_info['time'][0], False)
@@ -902,37 +920,71 @@ class ObsBlueprint(object):
             self.configure_observable_axis(axis_info['obs'][0], False)
 
     def _guess_axis_info_from_ctypes(self, lookup, counter, axis_info):
+        """
+        Check for the presence of blueprint keys in the plan, and whether or
+        not they indicate an index in their configuration.
+
+        :param lookup: Blueprint plan key.
+        :param counter: Value to set the index to for an axis.
+        :param axis_info: local data structure to pass around what is
+            configured, and what is it's value.
+        """
         if lookup.startswith('Chunk.energy'):
             axis_info['energy'] = (counter, True)
-            self._check_dual_sets(axis_info, 'energy')
         elif lookup.startswith('Chunk.polarization'):
             axis_info['polarization'] = (counter, True)
-            self._check_dual_sets(axis_info, 'polarization')
         elif lookup.startswith('Chunk.time'):
             axis_info['time'] = (counter, True)
-            self._check_dual_sets(axis_info, 'time')
         elif lookup.startswith('Chunk.position') and lookup.endswith(
                 'axis1.ctype'):
             axis_info['ra'] = (counter, True)
-            self._check_dual_sets(axis_info, 'ra')
         elif lookup.startswith('Chunk.position') and lookup.endswith(
                 'axis2.ctype'):
             axis_info['dec'] = (counter, True)
-            self._check_dual_sets(axis_info, 'dec')
         elif lookup.startswith('Chunk.observable'):
             axis_info['obs'] = (counter, True)
-            self._check_dual_sets(axis_info, 'obs')
         else:
             raise ValueError(
                 'Unrecognized axis type: {}'.format(lookup))
 
-    def _check_dual_sets(self, axis_info, lookup):
+    def _get_configured_index(self, axis_info, lookup):
+        """Find the next available index value among those that are not set.
+
+        :param axis_info: local data structure to pass around what is
+            configured, and what is it's value."""
+        DEFAULT_INDICES = {'ra': 1,
+                           'dec': 2,
+                           'energy': 3,
+                           'time': 4,
+                           'polarization': 5,
+                           'obs': 6}
+
+        # the logic - if the default index is already used, assign the lowest
+        # index that is unused, otherwise use the default index
+
+        max_index = 0
+        min_index = 7
+        default_index = DEFAULT_INDICES[lookup]
+        default_used = False
         for axis in axis_info:
-            if axis == axis_info[lookup]:
-                continue
-            if axis[1] and axis_info[lookup][0] == axis[0]:
-                raise ValueError('Conflicting indices for {} and {}'.format(
-                    axis, lookup))
+            # do two unrelated things in this for loop
+            # 1. determine where to start counting
+            if axis_info[axis][1]:
+                max_index = max(max_index, axis_info[axis][0])
+                min_index = min(min_index, axis_info[axis][0])
+            # 2. determine if the default is used
+            if axis_info[axis][1] and default_index == axis_info[axis][0]:
+                default_used = True
+
+        configured_index = 0
+        if default_used:
+            if min_index == 1:
+                configured_index = max_index + 1
+            else:
+                configured_index = min(1, min_index)
+        else:
+            configured_index = default_index
+        return configured_index
 
     def load_from_file(self, file_name):
         """
@@ -977,7 +1029,7 @@ class ObsBlueprint(object):
                         else:
                             cleaned_up_value = value.strip('\n').strip()
                     self.set(key.strip(), cleaned_up_value)
-        self._guess_axis_info()
+        self._guess_axis_info_from_plan()
 
     @classproperty
     def CAOM2_ELEMENTS(cls):
