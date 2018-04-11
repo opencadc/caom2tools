@@ -1267,14 +1267,14 @@ class ObsBlueprint(object):
         return configed_axes
 
     @staticmethod
-    def is_fits_with_default(value):
+    def is_fits(value):
         """Hide the blueprint structure from clients - they shouldn't need
         to know that a value of type tuple requires special processing."""
         return isinstance(value, tuple)
 
     @staticmethod
     def is_function(value):
-        return (not ObsBlueprint.is_fits_with_default(value)
+        return (not ObsBlueprint.is_fits(value)
                 and isinstance(value, str) and '(' in value and ')' in value)
 
 
@@ -1972,7 +1972,7 @@ class FitsParser(GenericParser):
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
             if key in wcs_std:
-                if ObsBlueprint.is_fits_with_default(value):
+                if ObsBlueprint.is_fits(value):
                     # alternative attributes provided for standard wcs attrib.
                     for header in self.headers:
                         for v in value[0]:
@@ -1986,7 +1986,7 @@ class FitsParser(GenericParser):
                     continue
                 else:
                     # value provided for standard wcs attribute
-                    if ObsBlueprint.is_fits_with_default(wcs_std[key]):
+                    if ObsBlueprint.is_fits(wcs_std[key]):
                         keywords = wcs_std[key][0]
                     elif ObsBlueprint.is_function(wcs_std[key]):
                         continue
@@ -2008,7 +2008,7 @@ class FitsParser(GenericParser):
                                                                extension))
         # apply defaults to all extensions
         for key, value in plan.items():
-            if ObsBlueprint.is_fits_with_default(value) and value[1]:
+            if ObsBlueprint.is_fits(value) and value[1]:
                 # there is a default value set
                 for index, header in enumerate(self.headers):
                     for keyword in value[0]:
