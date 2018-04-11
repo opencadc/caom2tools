@@ -2163,7 +2163,7 @@ class FitsParser(GenericParser):
             self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
             aug_point = Point(x, y)
             aug_target_position = TargetPosition(aug_point, coordsys)
-            aug_target_position.equinox = equinox
+            aug_target_position.equinox = _to_float(equinox)
             return aug_target_position
             self.logger.debug('End CAOM2 TargetPosition augmentation.')
         return None
@@ -2186,7 +2186,11 @@ class FitsParser(GenericParser):
         self.logger.debug('End Telescope augmentation.')
         if name:
             self.logger.debug('name is {}'.format(name))
-            return Telescope(str(name), geo_x, geo_y, geo_z, keywords)
+            aug_tel = Telescope(str(name), geo_x, geo_y, geo_z)
+            if keywords:
+                for k in keywords.split():
+                    aug_tel.keywords.add(k)
+            return aug_tel
         else:
             return None
 
@@ -2796,7 +2800,9 @@ class WcsParser(object):
     def _get_ref_coord(self, index):
         aug_crpix = _to_float(self._sanitize(self.wcs.crpix[index]))
         aug_crval = _to_float(self._sanitize(self.wcs.crval[index]))
-        aug_ref_coord = RefCoord(aug_crpix, aug_crval)
+        aug_ref_coord = None
+        if aug_crpix is not None and aug_crval is not None:
+            aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
 
     def _get_axis_length(self, for_axis):
@@ -3021,19 +3027,21 @@ def _lookup_blueprint(blueprints, uri):
         return blueprints[uri]
 
 
-def _lookup_blueprint_name(index, blueprint_names):
+def _lookup_blueprint_name(index, args):
     """
     Blueprint handling may be one-per-observation, or one-per-URI. Reference
     the correct name of the file here.
-    :param blueprint_names: The collection of blueprint names provided by the
-        user.
+    :param args: Input arguments, may contain a list of blueprint names.
     :param index: Which blueprint to look for
     :return: the blueprint to apply to Observation creation.
     """
-    if len(blueprint_names) == 1:
-        return 'The One.'
+    if 'blueprint' in args:
+        if len(args.blueprint) == 1:
+            return 'The One.'
+        else:
+            return args.blueprint[index]
     else:
-        return blueprint_names[index]
+        return 'Generated'
 
 
 def _extract_ids(cardinality):
@@ -3072,6 +3080,10 @@ def _augment(obs, product_id, uri, args, blueprint, index):
             Artifact(uri=str(uri),
                      product_type=ProductType.SCIENCE,
                      release_type=ReleaseType.DATA))
+
+    if args.dumpconfig:
+        print('Blueprint for {}: {}'.format(uri, blueprint))
+
     if args.local:
         file = args.local[index]
         if file.endswith('.fits'):
@@ -3096,9 +3108,9 @@ def _augment(obs, product_id, uri, args, blueprint, index):
             parser = GenericParser(blueprint, uri=uri)
 
     _update_artifact_meta(plane.artifacts[uri], subject)
-
-    if args.dumpconfig:
-        print('Blueprint for {}: {}'.format(uri, blueprint))
+    #
+    # if args.dumpconfig:
+    #     print('Blueprint for {}: {}'.format(uri, blueprint))
 
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
@@ -3133,28 +3145,14 @@ def _load_module(module):
 
 
 def caom2gen():
-    # parser = _get_common_arg_parser()
-    #
-    # parser.add_argument('--module', help=('if the blueprint contains function '
-    #                                       'calls, call '
-    #                                       'importlib.import_module '
-    #                                       'for the named module. Provide a '
-    #                                       'fully qualified name. Parameter '
-    #                                       'choices are the artifact URI (uri) '
-    #                                       'or a list of astropy Header '
-    #                                       'instances (header).'))
-    # parser.add_argument('--blueprint', nargs='+', required=True,
-    #                     help=('list of files with blueprints for CAOM2 '
-    #                           'construction, in serialized format. If the '
-    #                           'list is of length 1, the same blueprint will '
-    #                           'be applied to all lineage entries. Otherwise, '
-    #                           'there must be a blueprint file per lineage '
-    #                           'entry.'))
-    # parser.add_argument('--lineage', nargs='+',
-    #                     help=('productID/artifactURI. List of plane/artifact '
-    #                           'identifiers that will be'
-    #                           'created for the identified observation.'))
     parser = get_gen_proc_arg_parser()
+    parser.add_argument('--blueprint', nargs='+', required=True,
+                        help=('list of files with blueprints for CAOM2 '
+                              'construction, in serialized format. If the '
+                              'list is of length 1, the same blueprint will '
+                              'be applied to all lineage entries. Otherwise, '
+                              'there must be a blueprint file per lineage '
+                              'entry.'))
 
     if len(sys.argv) < 2:
         parser.print_usage(file=sys.stderr)
@@ -3162,71 +3160,43 @@ def caom2gen():
         sys.exit(-1)
 
     args = parser.parse_args()
-    # _set_arg_parser_logging(args)
-    #
-    # module = None
-    # if args.module:
-    #     module = _load_module(args.module)
-    #
-    # blueprints = {}
-    # if len(args.blueprint) == 1:
-    #     # one blueprint to rule them all
-    #     blueprint = ObsBlueprint(module=module)
-    #     blueprint.load_from_file(args.blueprint[0])
-    #     for i, cardinality in enumerate(args.lineage):
-    #         product_id, uri = _extract_ids(cardinality)
-    #         blueprints[uri] = blueprint
-    # else:
-    #     # there needs to be the same number of blueprints as plane/artifact
-    #     # identifiers
-    #     if len(args.lineage) != len(args.blueprint):
-    #         logging.debug('Lineage: {}'.format(args.lineage))
-    #         logging.debug('Blueprints: {}'.format(args.blueprint))
-    #         sys.stderr.write(
-    #             '{}: error: different number of blueprints '
-    #             '{}  and files {}.'.format(APP_NAME, len(args.blueprint),
-    #                                        len(args.lineage)))
-    #         sys.exit(-1)
-    #
-    #     for i, cardinality in enumerate(args.lineage):
-    #         product_id, uri = _extract_ids(cardinality)
-    #         for j, bp in enumerate(args.blueprint):
-    #             if i == j:
-    #                 logging.debug(
-    #                     'Loading blueprint for {} from {}'.format(uri, bp))
-    #                 blueprint = ObsBlueprint(module=module)
-    #                 blueprint.load_from_file(bp)
-    #                 blueprints[uri] = blueprint
-    #                 break
-    #
-    # try:
-    #     obs = _set_obs(args, blueprints)
-    #
-    #     for ii, cardinality in enumerate(args.lineage):
-    #         product_id, uri = _extract_ids(cardinality)
-    #         bp_name = _lookup_blueprint_name(ii, args.blueprint)
-    #         blueprint = _lookup_blueprint(blueprints, uri)
-    #         logging.debug('Begin augmentation for product_id {}, uri {}, '
-    #                       'with blueprint {}'.format(product_id, uri, bp_name))
-    #         _augment(obs, product_id, uri, args, blueprint, ii)
-    #
-    #     writer = ObservationWriter()
-    #     if args.out_obs_xml:
-    #         writer.write(obs, args.out_obs_xml)
-    #     else:
-    #         sys.stdout.flush()
-    #         writer.write(obs, sys.stdout)
-    #
-    # except Exception as e:
-    #     logging.error('Failed caom2gen execution.')
-    #     logging.error(e)
-    #     tb = traceback.format_exc()
-    #     logging.debug(tb)
-    #     sys.exit(-1)
-    #
-    # logging.debug(
-    #     'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
-    gen_proc(args)
+    _set_arg_parser_logging(args)
+
+    module = None
+    if args.module:
+        module = _load_module(args.module)
+
+    blueprints = {}
+    if len(args.blueprint) == 1:
+        # one blueprint to rule them all
+        blueprint = ObsBlueprint(module=module)
+        blueprint.load_from_file(args.blueprint[0])
+        for i, cardinality in enumerate(args.lineage):
+            product_id, uri = _extract_ids(cardinality)
+            blueprints[uri] = blueprint
+    else:
+        # there needs to be the same number of blueprints as plane/artifact
+        # identifiers
+        if len(args.lineage) != len(args.blueprint):
+            logging.debug('Lineage: {}'.format(args.lineage))
+            logging.debug('Blueprints: {}'.format(args.blueprint))
+            sys.stderr.write(
+                '{}: error: different number of blueprints '
+                '{}  and files {}.'.format(APP_NAME, len(args.blueprint),
+                                           len(args.lineage)))
+            sys.exit(-1)
+
+        for i, cardinality in enumerate(args.lineage):
+            product_id, uri = _extract_ids(cardinality)
+            for j, bp in enumerate(args.blueprint):
+                if i == j:
+                    logging.debug(
+                        'Loading blueprint for {} from {}'.format(uri, bp))
+                    blueprint = ObsBlueprint(module=module)
+                    blueprint.load_from_file(bp)
+                    blueprints[uri] = blueprint
+                    break
+    gen_proc(args, blueprints)
 
 
 def _set_obs(args, obs_blueprints):
@@ -3400,53 +3370,22 @@ def proc(args, obs_blueprints):
         writer.write(obs, sys.stdout)
 
 
-def gen_proc(args):
+def gen_proc(args, blueprints):
     _set_arg_parser_logging(args)
 
     module = None
     if args.module:
         module = _load_module(args.module)
 
-    blueprints = {}
-    if len(args.blueprint) == 1:
-        # one blueprint to rule them all
-        blueprint = ObsBlueprint(module=module)
-        blueprint.load_from_file(args.blueprint[0])
-        for i, cardinality in enumerate(args.lineage):
-            product_id, uri = _extract_ids(cardinality)
-            blueprints[uri] = blueprint
-    else:
-        # there needs to be the same number of blueprints as plane/artifact
-        # identifiers
-        if len(args.lineage) != len(args.blueprint):
-            logging.debug('Lineage: {}'.format(args.lineage))
-            logging.debug('Blueprints: {}'.format(args.blueprint))
-            sys.stderr.write(
-                '{}: error: different number of blueprints '
-                '{}  and files {}.'.format(APP_NAME, len(args.blueprint),
-                                           len(args.lineage)))
-            sys.exit(-1)
-
-        for i, cardinality in enumerate(args.lineage):
-            product_id, uri = _extract_ids(cardinality)
-            for j, bp in enumerate(args.blueprint):
-                if i == j:
-                    logging.debug(
-                        'Loading blueprint for {} from {}'.format(uri, bp))
-                    blueprint = ObsBlueprint(module=module)
-                    blueprint.load_from_file(bp)
-                    blueprints[uri] = blueprint
-                    break
-
     try:
         obs = _set_obs(args, blueprints)
 
         for ii, cardinality in enumerate(args.lineage):
             product_id, uri = _extract_ids(cardinality)
-            bp_name = _lookup_blueprint_name(ii, args.blueprint)
+            bp_name = _lookup_blueprint_name(ii, args)
             blueprint = _lookup_blueprint(blueprints, uri)
             logging.debug('Begin augmentation for product_id {}, uri {}, '
-                          'with blueprint {}'.format(product_id, uri, bp_name))
+                         'with blueprint {}'.format(product_id, uri, bp_name))
             _augment(obs, product_id, uri, args, blueprint, ii)
 
         writer = ObservationWriter()
@@ -3482,13 +3421,6 @@ def get_gen_proc_arg_parser():
                                           'choices are the artifact URI (uri) '
                                           'or a list of astropy Header '
                                           'instances (header).'))
-    parser.add_argument('--blueprint', nargs='+', required=True,
-                        help=('list of files with blueprints for CAOM2 '
-                              'construction, in serialized format. If the '
-                              'list is of length 1, the same blueprint will '
-                              'be applied to all lineage entries. Otherwise, '
-                              'there must be a blueprint file per lineage '
-                              'entry.'))
     parser.add_argument('--lineage', nargs='+',
                         help=('productID/artifactURI. List of plane/artifact '
                               'identifiers that will be'
