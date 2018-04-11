@@ -74,14 +74,18 @@ from __future__ import (absolute_import, division, print_function,
 
 import hashlib
 import os
+import sys
 from uuid import UUID
 
 from builtins import int, str
 
 from caom2 import obs_reader_writer, get_meta_checksum, get_acc_meta_checksum
+from caom2 import update_meta_checksum
 from caom2.caom_util import str2ivoa
-from caom2.checksum import update_checksum, int_32
+from caom2.checksum import update_checksum, int_32, checksum_diff
 import tempfile
+from mock import patch
+from six import StringIO
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA = 'data'
@@ -319,6 +323,23 @@ def test_compatibility():
     assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
     achunk.naxis = old_val
 
+    # update the checksums and everything should match again
+    update_meta_checksum(obs)
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    assert chunk.meta_checksum == get_meta_checksum(chunk)
+                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
+                        chunk)
+                assert part.meta_checksum == get_meta_checksum(part)
+                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
+            assert artifact.meta_checksum == get_meta_checksum(artifact)
+            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
+                artifact)
+        assert plane.meta_checksum == get_meta_checksum(plane)
+        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+
 
 def test_rountrip():
     source_file_path = os.path.join(THIS_DIR, TEST_DATA,
@@ -353,3 +374,27 @@ def test_rountrip():
     # check observation
     assert obs.meta_checksum == get_meta_checksum(obs)
     assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
+
+
+def test_checksum_diff():
+    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
+                                    'SampleComposite-CAOM-2.3.xml')
+    output_file = tempfile.TemporaryFile()
+    sys.argv = 'caom2_checksum -d -o {} {}'.format(
+        output_file.name, source_file_path).split()
+    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+        checksum_diff()
+        output = stdout_mock.getvalue()
+    assert 'mismatch' not in output, '{} should have correct checksum'.format(
+        source_file_path)
+    assert 'chunk' in output
+    assert 'part' in output
+    assert 'artifact' in output
+    assert 'plane' in output
+    assert 'observation' in output
+
+    # original observation and the one outputed should be identical
+    reader = obs_reader_writer.ObservationReader()
+    expected = reader.read(source_file_path)
+    actual = reader.read(output_file.name)
+    assert get_acc_meta_checksum(expected) == get_acc_meta_checksum(actual)
