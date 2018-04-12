@@ -1257,20 +1257,6 @@ class ObsBlueprint(object):
         else:
             return self._plan[caom2_element]
 
-    def get_configed_axes_count(self):
-        configed_axes = 0
-        if self._pos_axes_configed:
-            configed_axes += 2
-        if self._energy_axis_configed:
-            configed_axes += 1
-        if self._time_axis_configed:
-            configed_axes += 1
-        if self._pol_axis_configed:
-            configed_axes += 1
-        if self._obs_axis_configed:
-            configed_axes += 1
-        return configed_axes
-
     @staticmethod
     def is_fits(value):
         """Hide the blueprint structure from clients - they shouldn't need
@@ -1552,12 +1538,6 @@ class FitsParser(GenericParser):
         self.logger.debug(
             'Begin artifact augmentation for {} with {} HDUs.'.format(
                 artifact.uri, len(self.headers)))
-
-        if self.blueprint.get_configed_axes_count() == 0:
-            self.logger.debug(
-                'No WCS Data. End artifact augmentation for {}.'.format(
-                    artifact.uri))
-            return
 
         for i, header in enumerate(self.headers):
             ii = str(i)
