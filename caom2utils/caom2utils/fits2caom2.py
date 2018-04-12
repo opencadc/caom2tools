@@ -3196,7 +3196,14 @@ def caom2gen():
                     blueprint.load_from_file(bp)
                     blueprints[uri] = blueprint
                     break
-    gen_proc(args, blueprints)
+    try:
+        gen_proc(args, blueprints)
+    except Exception as e:
+        logging.error('Failed caom2gen execution.')
+        logging.error(e)
+        tb = traceback.format_exc()
+        logging.error(tb)
+        sys.exit(-1)
 
 
 def _set_obs(args, obs_blueprints):
@@ -3377,30 +3384,22 @@ def gen_proc(args, blueprints):
     if args.module:
         module = _load_module(args.module)
 
-    try:
-        obs = _set_obs(args, blueprints)
+    obs = _set_obs(args, blueprints)
 
-        for ii, cardinality in enumerate(args.lineage):
-            product_id, uri = _extract_ids(cardinality)
-            bp_name = _lookup_blueprint_name(ii, args)
-            blueprint = _lookup_blueprint(blueprints, uri)
-            logging.debug('Begin augmentation for product_id {}, uri {}, '
-                         'with blueprint {}'.format(product_id, uri, bp_name))
-            _augment(obs, product_id, uri, args, blueprint, ii)
+    for ii, cardinality in enumerate(args.lineage):
+        product_id, uri = _extract_ids(cardinality)
+        bp_name = _lookup_blueprint_name(ii, args)
+        blueprint = _lookup_blueprint(blueprints, uri)
+        logging.debug('Begin augmentation for product_id {}, uri {}, '
+                     'with blueprint {}'.format(product_id, uri, bp_name))
+        _augment(obs, product_id, uri, args, blueprint, ii)
 
-        writer = ObservationWriter()
-        if args.out_obs_xml:
-            writer.write(obs, args.out_obs_xml)
-        else:
-            sys.stdout.flush()
-            writer.write(obs, sys.stdout)
-
-    except Exception as e:
-        logging.error('Failed caom2gen execution.')
-        logging.error(e)
-        tb = traceback.format_exc()
-        logging.debug(tb)
-        sys.exit(-1)
+    writer = ObservationWriter()
+    if args.out_obs_xml:
+        writer.write(obs, args.out_obs_xml)
+    else:
+        sys.stdout.flush()
+        writer.write(obs, sys.stdout)
 
     logging.debug(
         'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
