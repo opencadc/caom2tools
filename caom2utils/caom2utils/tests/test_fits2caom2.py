@@ -401,6 +401,33 @@ def test_get_wcs_values():
     assert w.wcs.has_cd() is False
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_ignore_partial_wcs():
+    hdr = get_test_header(sample_file_4axes)[0].header
+    hdr.remove('NAXIS1')
+    hdr.remove('NAXIS3')
+    hdr.remove('NAXIS4')
+
+    # make a failing call, followed by a successful call to augment_*
+    for i in ['augment_energy', 'augment_position', 'augment_polarization',
+              'augment_temporal']:
+        test_parser = WcsParser(hdr, sample_file_4axes, 0)
+        exception_func = getattr(test_parser, i)
+        exception_caught = False
+        try:
+            exception_func(Chunk())
+        except ValueError:
+            exception_caught = True
+        assert exception_caught, 'ValueError not raised by {}'.format(i)
+        test_parser = WcsParser(hdr, sample_file_4axes, 0,
+                                ignore_partial_wcs=True)
+        non_exception_func = getattr(test_parser, i)
+        non_exception_func(Chunk())
+        # make the header behave like there's a time axis for the
+        # augment_temporal call
+        hdr.set('CTYPE3', 'TIME')
+
+
 def get_test_header(test_file):
     test_input = os.path.join(TESTDATA_DIR, test_file)
     hdulist = fits.open(test_input)
