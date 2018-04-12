@@ -104,18 +104,25 @@ def get_differences(expected, actual, parent=None):
                                                            type(actual)))
         return report
 
+    if parent:
+        parent = '{}.{}'.format(parent, expected.__class__.__name__)
+    else:
+        parent = expected.__class__.__name__
+
+    temp_report = None
     if (isinstance(expected, TypedOrderedDict) or
         isinstance(expected, TypedList) or
-            isinstance(expected, TypedSet)):
+            isinstance(expected, TypedSet) or
+            isinstance(expected, set)):
         temp_report = _get_collection_differences(expected, actual, parent)
-    else:
-        assert isinstance(expected, CaomObject)
-        assert isinstance(actual, CaomObject)
-        if parent:
-            parent = '{}.{}'.format(parent, expected.__class__.__name__)
-        else:
-            parent = expected.__class__.__name__
+    elif isinstance(expected, CaomObject):
+        assert isinstance(actual, CaomObject), \
+            'Expecting instance of CaomObject'
         temp_report = _get_object_differences(expected, actual, parent)
+    else:
+        if expected != actual:
+            temp_report = ['Value:: {} expected is {}, actual is {}'.format(
+                expected, actual, parent)]
 
     if temp_report:
         report.extend(temp_report)
@@ -163,7 +170,8 @@ def _get_collection_differences(expected, actual, parent):
             'Collection:: {}: length of expected {} != length of actual {}'.
             format(parent, len(expected), len(actual)))
 
-    if isinstance(actual, TypedList) or isinstance(actual, TypedSet):
+    if (isinstance(actual, TypedList) or isinstance(actual, TypedSet)
+            or isinstance(actual, set)):
         temp_report = _get_sequence_differences(expected, actual, parent)
     else:
         temp_report = _get_mapping_differences(expected, actual, parent)
@@ -330,7 +338,8 @@ def _get_dict(entity):
         if (isinstance(attribute, TypedOrderedDict) or
                 isinstance(attribute, TypedList) or
                 isinstance(attribute, TypedSet) or
-                isinstance(attribute, CaomObject)):
+                isinstance(attribute, CaomObject) or
+                isinstance(attribute, set)):
             caom_collections[i] = attribute
         else:
             attributes[i] = attribute

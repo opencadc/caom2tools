@@ -79,8 +79,11 @@ from ..wcsvalidator import WcsPolarizationState
 import pytest
 import unittest
 
+single_test = False
+
 
 # TemporalWCS validator tests
+@pytest.mark.skipif(single_test, reason='Single test mode')
 class TemporalWCSValidatorTests(unittest.TestCase):
     def test_temporalwcs_validator(self):
         good_temporal_wcs = TimeTestUtil.good_wcs()
@@ -108,9 +111,10 @@ class TemporalWCSValidatorTests(unittest.TestCase):
         bad_temporal_wcs = TimeTestUtil.bad_delta()
         with pytest.raises(InvalidWCSError) as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('delta is 0.0' in str(ex))
+        assert('delta must be greater than 0.0' in str(ex))
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 class SpatialWCSValidatorTests(unittest.TestCase):
     def test_spatialwcs_validator(self):
 
@@ -130,6 +134,7 @@ class SpatialWCSValidatorTests(unittest.TestCase):
     #         WcsValidator.validate_spatial_wcs(position)
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 class SpectralWCSValidatorTests(unittest.TestCase):
     def test_spectralwcs_validator(self):
         energyTest = EnergyTestUtil()
@@ -147,6 +152,7 @@ class SpectralWCSValidatorTests(unittest.TestCase):
 
 
 # validate_wcs tests
+@pytest.mark.skipif(single_test, reason='Single test mode')
 class ValidateWCSTests(unittest.TestCase):
     def test_None(self):
         # CAOM2 entity is None
@@ -251,9 +257,10 @@ class TimeTestUtil:
         axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
         temporal_wcs = chunk.TemporalWCS(axis_1d)
 
-        # delta == 0.0 is bad
+        # delta < 0.0 is bad
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
-        temporal_wcs.axis.function = CoordFunction1D(int(100), 0.0, ref_coord)
+        temporal_wcs.axis.function = CoordFunction1D(
+            int(100), -0.01, ref_coord)
 
         return temporal_wcs
 
@@ -517,6 +524,7 @@ class PartTestUtil():
         return test_part
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 class TestValidatePolarizationWcs():
     def test_none_polarization_wcs(self):
         # Polarization is None, should not produce an error
@@ -668,6 +676,7 @@ class TestValidatePolarizationWcs():
         assert('Invalid naxis value' in str(ex.value))
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
 class TestWcsPolarizationState():
     def test_all(self):
         # valid keys
