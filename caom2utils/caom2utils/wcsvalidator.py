@@ -71,17 +71,17 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from astropy.wcs import Wcsprm
-from caom2utils import TimeUtil, EnergyUtil, ORIGIN
+from caom2utils.wcs_util import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
 from .wcs_util import PolarizationWcsUtil
 from caom2 import Artifact, Chunk, Interval, Observation, Part, Plane, \
     PolarizationState
 import numpy as np
+import logging
 
-
-# from caom2util import TimeUtil
 
 APP_NAME = 'wcsvalidator'
+logger = logging.getLogger(APP_NAME)
 
 __all__ = ['validate_wcs', 'InvalidWCSError']
 
@@ -102,14 +102,19 @@ def validate_wcs(caom2_entity):
     if caom2_entity is not None:
         if isinstance(caom2_entity, Observation):
             _validate_observation(caom2_entity)
+            logger.debug('observation validation succeeded.')
         elif isinstance(caom2_entity, Plane):
             _validate_plane(caom2_entity)
+            logger.debug('plane validation succeeded.')
         elif isinstance(caom2_entity, Artifact):
             _validate_artifact(caom2_entity)
+            logger.debug('artifact validation succeeded.')
         elif isinstance(caom2_entity, Part):
             _validate_part(caom2_entity)
+            logger.debug('part validation succeeded.')
         elif isinstance(caom2_entity, Chunk):
             _validate_chunk(caom2_entity)
+            logger.debug('chunk validation succeeded.')
         else:
             raise InvalidWCSError("Not a CAOM2 entity")
 
@@ -161,6 +166,7 @@ def _validate_spatial_wcs(position):
                 _check_transform(
                     Interval(float(fn2D.dimension.naxis1/2),
                              float(fn2D.dimension.naxis2/2)))
+                logger.debug('position_axis.function succeeded.')
         except Exception as e:
             error_string = repr(e)
 
@@ -194,15 +200,18 @@ def _validate_spectral_wcs(energy):
             if energy_axis.range is not None:
                 si = EnergyUtil.range1d_to_interval(energy_axis.range)
                 _check_transform(si)
+                logger.debug('time_axis.range succeeded.')
 
             if energy_axis.bounds is not None:
                 for tile in energy_axis.bounds.samples:
                     si = EnergyUtil.range1d_to_interval(tile)
                     _check_transform(si)
+                logger.debug('time_axis.bounds succeeded.')
 
             if energy_axis.function is not None:
                 si = EnergyUtil.function1d_to_interval(energy)
                 _check_transform(si)
+                logger.debug('time_axis.function succeeded.')
 
         except Exception as ex:
             error_msg = repr(ex)
@@ -220,14 +229,20 @@ def _validate_temporal_wcs(time):
             time_axis = time.axis
 
             if time_axis.range is not None:
+                logger.debug('time_axis.range to interval validation.')
                 TimeUtil.range1d_to_interval(time, time_axis.range)
+                logger.debug('time_axis.range to interval succeeded.')
 
             if time_axis.bounds is not None:
+                logger.debug('time_axis.bounds to interval validation.')
                 for cr in time_axis.bounds.samples:
                     TimeUtil.range1d_to_interval(time, cr)
+                logger.debug('time_axis.bounds to interval succeeded.')
 
             if time_axis.function is not None:
+                logger.debug('time_axis.function to interval validation.')
                 TimeUtil.function1d_to_interval(time, time_axis.function)
+                logger.debug('time_axis.function to interval succeeded.')
 
         except Exception as e:
             error_msg = repr(e)
@@ -274,8 +289,11 @@ def _validate_polarization_wcs(polarization_wcs):
         try:
             axis = polarization_wcs.axis
             _validate_range(axis.range)
+            logger.debug('polarization_axis.range succeeded.')
             _validate_bounds(axis.bounds)
+            logger.debug('polarization_axis.bounds succeeded.')
             _validate_function(axis.function)
+            logger.debug('polarization_axis.function succeeded.')
         except Exception as e:
             raise InvalidWCSError(
                 "Invalid Polarization WCS: {}".format(str(e)))

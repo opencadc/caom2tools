@@ -77,7 +77,7 @@ from caom2utils.legacy import load_config
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
-from caom2 import get_differences, obs_reader_writer, ObservationReader
+from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from lxml import etree
 
 from mock import Mock, patch
@@ -148,6 +148,28 @@ def test_augment_energy():
     assert result is None
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_augment_artifact_energy_from_blueprint():
+    test_blueprint = ObsBlueprint(energy_axis=1)
+    test_blueprint.set('Chunk.energyAxis', 1)
+    test_blueprint.set('Chunk.energy.specsys', 'LSRK')
+    test_blueprint.set('Chunk.energy.axis.axis.ctype', 'VRAD')
+    test_blueprint.set('Chunk.energy.axis.axis.cunit', 'm / s')
+    test_blueprint.set('Chunk.energy.axis.function.refCoord.pix', '145.0')
+    test_blueprint.set('Chunk.energy.axis.function.refCoord.val', '-60000.0')
+    test_blueprint.set('Chunk.energy.axis.function.delta', '-824.46002')
+    test_blueprint.set('Chunk.energy.axis.function.naxis', '1')
+    test_fitsparser = FitsParser(sample_file_4axes, test_blueprint,
+                                 uri='ad:TEST/test_blueprint')
+    test_chunk = Chunk()
+    test_fitsparser._try_energy_with_blueprint(test_chunk, 0)
+    ex = _get_from_str_xml(EXPECTED_ENERGY_XML,
+                           ObservationReader()._get_spectral_wcs,
+                           'energy')
+    result = get_differences(ex, test_chunk.energy)
+    assert result is None
+
+
 EXPECTED_POLARIZATION_XML = \
     '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:polarization>
@@ -182,6 +204,26 @@ def test_augment_polarization():
                            'polarization')
     result = get_differences(ex, polarization)
     assert result is None, result
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_augment_artifact_polarization_from_blueprint():
+    test_blueprint = ObsBlueprint(polarization_axis=1)
+    test_blueprint.set('Chunk.polarizationAxis', '1')
+    test_blueprint.set('Chunk.polarization.axis.axis.ctype', 'STOKES')
+    test_blueprint.set('Chunk.polarization.axis.function.refCoord.pix', '1.0')
+    test_blueprint.set('Chunk.polarization.axis.function.refCoord.val', '1.0')
+    test_blueprint.set('Chunk.polarization.axis.function.delta', '1.0')
+    test_blueprint.set('Chunk.polarization.axis.function.naxis', '1')
+    test_fitsparser = FitsParser(sample_file_4axes, test_blueprint,
+                                 uri='test_parser')
+    test_chunk = Chunk()
+    test_fitsparser._try_polarization_with_blueprint(test_chunk, 0)
+    ex = _get_from_str_xml(EXPECTED_POLARIZATION_XML,
+                           ObservationReader()._get_polarization_wcs,
+                           'polarization')
+    result = get_differences(ex, test_chunk.polarization)
+    assert result is None
 
 
 EXPECTED_POSITION_XML = \
@@ -224,8 +266,8 @@ EXPECTED_POSITION_XML = \
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_artifact():
-    test_fitsparser = FitsParser(sample_file_4axes,
-                                 ObsBlueprint(position_axes=(1, 2)))
+    test_blueprint = ObsBlueprint(position_axes=(1, 2))
+    test_fitsparser = FitsParser(sample_file_4axes, test_blueprint)
     artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes),
                         ProductType.SCIENCE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
@@ -235,6 +277,37 @@ def test_augment_artifact():
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.position is not None
+    ex = _get_from_str_xml(EXPECTED_POSITION_XML,
+                           ObservationReader()._get_spatial_wcs, 'position')
+    result = get_differences(ex, test_chunk.position)
+    assert result is None
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_augment_artifact_position_from_blueprint():
+    test_blueprint = ObsBlueprint(position_axes=(1, 2))
+    test_blueprint.set('Chunk.positionAxis1', '1')
+    test_blueprint.set('Chunk.positionAxis2', '2')
+    test_blueprint.set('Chunk.position.axis.axis1.ctype', 'GLON-CAR')
+    test_blueprint.set('Chunk.position.axis.axis1.cunit', 'deg')
+    test_blueprint.set('Chunk.position.axis.axis2.ctype', 'GLAT-CAR')
+    test_blueprint.set('Chunk.position.axis.axis2.cunit', 'deg')
+    test_blueprint.set('Chunk.position.axis.function.cd11', '-0.004999999')
+    test_blueprint.set('Chunk.position.axis.function.cd12', '0.0')
+    test_blueprint.set('Chunk.position.axis.function.cd21', '0.0')
+    test_blueprint.set('Chunk.position.axis.function.cd22', '0.004999999')
+    test_blueprint.set('Chunk.position.axis.function.dimension.naxis1', '1')
+    test_blueprint.set('Chunk.position.axis.function.dimension.naxis2', '1')
+    test_blueprint.set('Chunk.position.axis.range.start.coord1.pix', '513.0')
+    test_blueprint.set('Chunk.position.axis.range.start.coord1.val',
+                       '128.7499990027')
+    test_blueprint.set('Chunk.position.axis.range.start.coord2.pix', '513.0')
+    test_blueprint.set('Chunk.position.axis.range.start.coord2.val',
+                       '-0.9999999922536')
+    test_fitsparser = FitsParser(sample_file_4axes, test_blueprint,
+                                 uri='test_parser')
+    test_chunk = Chunk()
+    test_fitsparser._try_position_with_blueprint(test_chunk, 0)
     ex = _get_from_str_xml(EXPECTED_POSITION_XML,
                            ObservationReader()._get_spatial_wcs, 'position')
     result = get_differences(ex, test_chunk.position)
@@ -283,6 +356,32 @@ def test_augment_artifact_time():
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.time is not None
+    ex = _get_from_str_xml(EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME,
+                           ObservationReader()._get_temporal_wcs, 'time')
+    result = get_differences(ex, test_chunk.time)
+    assert result is None
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_augment_artifact_time_from_blueprint():
+    test_blueprint = ObsBlueprint(time_axis=1)
+    test_blueprint.set('Chunk.timeAxis', '1')
+    test_blueprint.set('Chunk.time.exposure', '0.02')
+    test_blueprint.set('Chunk.time.resolution', '0.02')
+    test_blueprint.set('Chunk.time.timesys', 'UTC')
+    test_blueprint.set('Chunk.time.axis.axis.ctype', 'TIME')
+    test_blueprint.set('Chunk.time.axis.axis.cunit', 'd')
+    test_blueprint.set('Chunk.time.axis.error.syser', '1e-07')
+    test_blueprint.set('Chunk.time.axis.error.rnder', '1e-07')
+    test_blueprint.set('Chunk.time.axis.function.refCoord.pix', '0.5')
+    test_blueprint.set('Chunk.time.axis.function.refCoord.val',
+                       '56789.4298069')
+    test_blueprint.set('Chunk.time.axis.function.delta', '2.31481e-07')
+    test_blueprint.set('Chunk.time.axis.function.naxis', '1')
+    test_fitsparser = FitsParser(sample_file_4axes, test_blueprint,
+                                 uri='ad:TEST/test_blueprint')
+    test_chunk = Chunk()
+    test_fitsparser._try_time_with_blueprint(test_chunk, 0)
     ex = _get_from_str_xml(EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME,
                            ObservationReader()._get_temporal_wcs, 'time')
     result = get_differences(ex, test_chunk.time)
@@ -841,7 +940,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2606</caom2:contentLength>
+          <caom2:contentLength>2832</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://""" + text_file + """</caom2:uri>
         </caom2:artifact>

@@ -1,0 +1,78 @@
+SIMPLE  =                    T / file does conform to FITS standard             
+BITPIX  =                   16 / number of bits per data pixel                  
+NAXIS   =                    0 / number of data axes                            
+EXTEND  =                    T / FITS dataset may contain extensions            
+COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy
+COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H 
+END                                                                             
+XTENSION= 'BINTABLE'           / binary table extension                         
+BITPIX  =                    8 / 8-bit bytes                                    
+NAXIS   =                    2 / 2-dimensional binary table                     
+NAXIS1  =                   32 / width of table in bytes                        
+NAXIS2  =               160000 / number of rows in table                        
+PCOUNT  =             34842571 / size of special data area                      
+GCOUNT  =                    1 / one data group (required keyword)              
+TFIELDS =                    4 / number of fields in each row                   
+TTYPE1  = 'COMPRESSED_DATA'    / label for field   1                            
+TFORM1  = '1PB(17) '           / data format of field: variable length array    
+TTYPE2  = 'UNCOMPRESSED_DATA'  / label for field   2                            
+TFORM2  = '1PE(625)'           / data format of field: variable length array    
+TTYPE3  = 'ZSCALE  '           / label for field   3                            
+TFORM3  = '1D      '           / data format of field: 8-byte DOUBLE            
+TTYPE4  = 'ZZERO   '           / label for field   4                            
+TFORM4  = '1D      '           / data format of field: 8-byte DOUBLE            
+EXTNAME = 'COMPRESSED_IMAGE'   / name of this binary table extension            
+ZIMAGE  =                    T / extension contains compressed image            
+ZBITPIX =                  -32 / data type of original image                    
+ZNAXIS  =                    2 / dimension of original image                    
+ZNAXIS1 =                10000 / length of original image axis                  
+ZNAXIS2 =                10000 / length of original image axis                  
+ZTILE1  =                   25 / size of tiles to be compressed                 
+ZTILE2  =                   25 / size of tiles to be compressed                 
+ZCMPTYPE= 'RICE_1  '           / compression algorithm                          
+ZNAME1  = 'BLOCKSIZE'          / compression block size                         
+ZVAL1   =                   32 / pixels per block                               
+ZNAME2  = 'NOISEBIT'           / floating point quantization level              
+ZVAL2   =                   40 / floating point quantization level              
+EQUINOX =   2.000000000000E+03 / Mean equinox                                   
+MJD-OBS =   5.697440864650E+04 / Modified Julian date at start                  
+RADESYS = 'ICRS    '           / Astrometric system                             
+CTYPE1  = 'RA---TAN'           / WCS projection type for this axis              
+CUNIT1  = 'deg     '           / Axis unit                                      
+CRVAL1  =   4.089362379000E+01 / World coordinate on this axis                  
+CRPIX1  =   5.000000000000E+03 / Reference pixel on this axis                   
+CD1_1   =  -5.160234650248E-05 / Linear projection matrix                       
+CD1_2   =   0.000000000000E+00 / Linear projection matrix                       
+CTYPE2  = 'DEC--TAN'           / WCS projection type for this axis              
+CUNIT2  = 'deg     '           / Axis unit                                      
+CRVAL2  =  -1.200000000000E+01 / World coordinate on this axis                  
+CRPIX2  =   5.000000000000E+03 / Reference pixel on this axis                   
+CD2_1   =   0.000000000000E+00 / Linear projection matrix                       
+CD2_2   =   5.160234650248E-05 / Linear projection matrix                       
+FILTER  = 'Z.MP9801'                                                            
+EXPTIME =   0.000000000000E+00 / Maximum equivalent exposure time (s)           
+GAIN    =   0.000000000000E+00 / Maximum equivalent gain (e-/ADU)               
+SATURATE=   0.000000000000E+00 / Saturation Level (ADU)                         
+COMMENT                                                                         
+SOFTNAME= 'SWarp   '           / The software that processed those data         
+SOFTVERS= '2.38.0  '           / Version of the software                        
+SOFTDATE= '2018-03-06'         / Release date of the software                   
+SOFTAUTH= '2010-2012 IAP/CNRS/UPMC' / Maintainer of the software                
+SOFTINST= 'IAP  http://www.iap.fr' / Institute                                  
+COMMENT                                                                         
+AUTHOR  = 'gwyn    '           / Who ran the software                           
+ORIGIN  = 'canfar-b8681978-c52f-4df5-856c-04ec7af0c5b3' / Where it was done     
+DATE    = '2018-03-14T16:36:50' / When it was started (GMT)                     
+COMBINET= 'MEDIAN  '           / COMBINE_TYPE config parameter for SWarp        
+COMMENT                                                                         
+COMMENT  Propagated FITS keywords                                               
+OBJECT  = 'Bad Pixels Map'                                                      
+COMMENT                                                                         
+COMMENT  Axis-dependent config parameters                                       
+RESAMPT1= 'LANCZOS3'           / RESAMPLING_TYPE config parameter               
+CENTERT1= 'ALL     '           / CENTER_TYPE config parameter                   
+PSCALET1= 'MEDIAN  '           / PIXELSCALE_TYPE config parameter               
+RESAMPT2= 'LANCZOS3'           / RESAMPLING_TYPE config parameter               
+CENTERT2= 'ALL     '           / CENTER_TYPE config parameter                   
+PSCALET2= 'MEDIAN  '           / PIXELSCALE_TYPE config parameter               
+END                                                                             

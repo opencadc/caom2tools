@@ -74,6 +74,7 @@ from caom2utils import ObsBlueprint
 import pytest
 
 
+# @pytest.mark.skip('')
 def test_obs_blueprint():
     # test the CAOM2_ELEMENTS property
     assert ObsBlueprint.CAOM2_ELEMENTS == ObsBlueprint._CAOM2_ELEMENTS
@@ -89,13 +90,15 @@ def test_obs_blueprint():
 
     # default config with WCS info
     assert str(ObsBlueprint(position_axes=(1, 2), energy_axis=3,
-               polarization_axis=4, time_axis=5)).count('\n') == 77
+               polarization_axis=4, time_axis=5,
+                            obs_axis=6)).count('\n') == 80
 
     ob = ObsBlueprint()
     ob.configure_position_axes(axes=(1, 2))
     ob.configure_energy_axis(axis=3)
     ob.configure_polarization_axis(axis=4)
     ob.configure_time_axis(axis=5)
+    ob.configure_observable_axis(axis=6)
 
     # set attribute
     ob.set('Observation.instrument.name', 'NIRI')
@@ -232,3 +235,35 @@ def test_obs_blueprint():
     # delete element from a non-existent extension
     with pytest.raises(ValueError):
         ob.delete('Chunk.energy.transition', extension=66)
+
+
+def test_load_from_file_configure():
+    ob = ObsBlueprint()
+    assert not ob._pos_axes_configed, \
+        'Failure to initialize configure_position_axes'
+    assert not ob._energy_axis_configed, \
+        'Failure to initialize configure_energy_axis'
+    ob.set_fits_attribute('Chunk.position.axis.axis1.ctype', ['CTYPE1'])
+    ob.set_fits_attribute('Chunk.position.axis.axis2.ctype', ['CTYPE2'])
+    ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
+    ob._guess_axis_info_from_plan()
+    assert ob._pos_axes_configed, 'Failure to call configure_position_axes'
+    assert ob._energy_axis_configed, 'Failure to call configure_energy_axis'
+    assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
+        ob._wcs_std['Chunk.energy.axis.axis.ctype']
+
+    ob = ObsBlueprint()
+    ob.set_fits_attribute('Chunk.position.axis.axis1.ctype', ['CTYPE3'])
+    ob.set_fits_attribute('Chunk.position.axis.axis2.ctype', ['CTYPE4'])
+    ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
+    ob._guess_axis_info_from_plan()
+    assert ob._pos_axes_configed, 'Failure to call configure_position_axes'
+    assert ob._energy_axis_configed, 'Failure to call configure_energy_axis'
+    assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE1', \
+        ob._wcs_std['Chunk.energy.axis.axis.ctype']
+
+    ob = ObsBlueprint()
+    ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
+    ob._guess_axis_info_from_plan()
+    assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
+        ob._wcs_std['Chunk.energy.axis.axis.ctype']

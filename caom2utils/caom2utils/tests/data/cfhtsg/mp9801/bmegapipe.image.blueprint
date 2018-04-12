@@ -1,0 +1,55 @@
+CompositeObservation.members = getInputs(headers)
+Observation.type = OBJECT
+Observation.intent = science
+Observation.metaRelease = ['DATE'], default = None
+Observation.algorithm.name = MEGAPIPE
+Observation.instrument.name = MegaPrime
+Observation.target.standard = false
+Observation.telescope.name =  CFHT 3.6m
+Observation.telescope.geoLocationX =  -5464228.6
+Observation.telescope.geoLocationY =  -2493778.2
+Observation.telescope.geoLocationZ =  2150937.8
+Plane.metaRelease = ['DATE'], default = None
+Plane.dataRelease = ['DATE'], default = None
+Plane.dataProductType = image
+Plane.calibrationLevel = 3
+Plane.provenance.name = MEGAPIPE
+Plane.provenance.version = 2.0
+Plane.provenance.producer = CADC
+Plane.provenance.runID = None
+Plane.provenance.reference = http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/megapipe/
+Plane.provenance.lastExecuted = ['DATE'], default = None
+Plane.provenance.keywords = None
+Plane.provenance.inputs = getProvInputs(header)
+Plane.metrics.magLimit = getMagnitudeLimit(header)
+Artifact.productType = science
+Artifact.releaseType = data
+Artifact.contentChecksum = ### get MD5SUM from AD
+Chunk.naxis = ['NAXIS'], default = 2
+Chunk.position.coordsys = ['RADESYS'], default = ICRS
+Chunk.position.equinox = ['EQUINOX'], default = 2000.0
+Chunk.position.axis.axis1.ctype = ['CTYPE1'], default = RA---TAN
+Chunk.position.axis.axis1.cunit = ['CUNIT1'], default = deg
+Chunk.position.axis.axis2.ctype = ['CTYPE2'], default = DEC--TAN
+Chunk.position.axis.axis2.cunit = ['CUNIT2'], default = deg
+Chunk.position.axis.function.cd11 = ['CD1_1'], default = -5.160234650248E-05
+Chunk.position.axis.function.cd12 = ['CD1_2'], default = 0.0
+Chunk.position.axis.function.cd21 = ['CD2_1'], default = 0.0
+Chunk.position.axis.function.cd22 = ['CD2_2'], default =  5.160234650248E-05
+Chunk.position.axis.function.dimension.naxis1 = ['NAXIS1'], default = 10000
+Chunk.position.axis.function.dimension.naxis2 = ['NAXIS2'], default = 10000
+Chunk.position.axis.function.refCoord.coord1.pix = ['CRPIX1'], default=5000
+Chunk.position.axis.function.refCoord.coord1.val = ['CRVAL1']
+Chunk.position.axis.function.refCoord.coord2.pix = ['CRPIX2'], default = 5000
+Chunk.position.axis.function.refCoord.coord2.val = ['CRVAL2']
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.bandpassName = ['FILTER']
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = Angstrom
+Chunk.energy.axis.function.naxis = 1
+Chunk.energy.axis.function.delta = getFilterWidth(uri)
+Chunk.energy.axis.function.refCoord.pix = 0.5
+Chunk.energy.axis.function.refCoord.val = getFilterCentre(uri)
+Chunk.observable.axis.axis.ctype = observable
+Chunk.observable.axis.axis.cunit = counts
+Chunk.observable.axis.function.refCoord.pix = 2
