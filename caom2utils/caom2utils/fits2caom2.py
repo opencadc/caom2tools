@@ -838,114 +838,158 @@ class ObsBlueprint(object):
 
         self._time_axis_configed = True
 
-    def _guess_axis_info(self):
-        """Look for info regarding axis types in the blueprint wcs_std"""
-        energy_axis = None
-        polarization_axis = None
-        time_axis = None
-        ra_axis = None
-        dec_axis = None
-        obs_axis = None
-        energy_axis_expected = False
-        polarization_axis_expected = False
-        time_axis_expected = False
-        ra_axis_expected = False
-        dec_axis_expected = False
-        obs_axis_expected = False
-
-        for ii in self._plan:
-            if ii.startswith('Chunk.position') and ii.endswith(
-                    'axis1.ctype') and not ra_axis_expected:
-                ra_axis_expected = True
-                # assume a default ordering
-                ra_axis = 1
-            elif ii.startswith('Chunk.position') and ii.endswith(
-                    'axis2.ctype') and not dec_axis_expected:
-                dec_axis_expected = True
-                dec_axis = 2
-            elif ii.startswith('Chunk.energy') and not energy_axis_expected:
-                energy_axis_expected = True
-                energy_axis = 3
-            elif ii.startswith('Chunk.time') and not time_axis_expected:
-                time_axis_expected = True
-                time_axis = 4
-            elif ii.startswith(
-                    'Chunk.polarization') and not polarization_axis_expected:
-                polarization_axis_expected = True
-                polarization_axis = 5
-            elif ii.startswith('Chunk.observable') and not obs_axis_expected:
-                obs_axis_expected = True
-                obs_axis = 6
+    def _guess_axis_info_from_plan(self):
+        """Look for info regarding axis types in the blueprint wcs_std.
+        Configure the blueprint according to the guesses.
+        """
+        # a data structure to carry around twelve bits of data at a time:
+        # the first item in the set is the ctype index, and the second is
+        # whether or not the index means anything, resulting in a
+        # call to the blueprint configure_* methods if it's True.
+        axis_info = {
+            'dec': (0, False),
+            'energy': (0, False),
+            'obs': (0, False),
+            'polarization': (0, False),
+            'ra': (0, False),
+            'time': (0, False)}
 
         for ii in self._plan:
             if isinstance(self._plan[ii], tuple):
                 for value in self._plan[ii][0]:
                     if (value.startswith('CTYPE')) and value[-1].isdigit():
                         value = value.split('-')[0]
-                        if ii.startswith('Chunk.energy'):
-                            energy_axis = value[-1]
-                        elif ii.startswith('Chunk.polarization'):
-                            polarization_axis = value[-1]
-                        elif ii.startswith('Chunk.time'):
-                            time_axis = value[-1]
-                        elif ii.startswith('Chunk.position') and ii.endswith(
-                                'axis1.ctype'):
-                            ra_axis = value[-1]
-                        elif ii.startswith('Chunk.position') and ii.endswith(
-                                'axis2.ctype'):
-                            dec_axis = value[-1]
-                        elif ii.startswith('Chunk.observable'):
-                            obs_axis = value[-1]
-                        else:
-                            raise ValueError(
-                                'Unrecognized axis type: {}'.format(ii))
+                        self._guess_axis_info_from_ctypes(ii, int(value[-1]),
+                                                          axis_info)
             else:
                 value = self._plan[ii]
                 if (value.startswith('CTYPE')) and value[-1].isdigit():
                     value = value.split('-')[0]
-                    if ii.startswith('Chunk.energy'):
-                        energy_axis = value[-1]
-                    elif ii.startswith('Chunk.polarization'):
-                        polarization_axis = value[-1]
-                    elif ii.startswith('Chunk.time'):
-                        time_axis = value[-1]
-                    elif ii.startswith('Chunk.position') and ii.endswith(
-                            'axis1.ctype'):
-                        ra_axis = value[-1]
-                    elif ii.startswith('Chunk.position') and ii.endswith(
-                            'axis2.ctype'):
-                        dec_axis = value[-1]
-                    elif ii.startswith('Chunk.observable'):
-                        obs_axis = value[-1]
-                    else:
-                        raise ValueError(
-                            'Unrecognized axis type: {}'.format(ii))
+                    self._guess_axis_info_from_ctypes(ii, int(value[-1]),
+                                                      axis_info)
 
-        if ra_axis and dec_axis:
-            self.configure_position_axes((ra_axis, dec_axis), False)
-        elif ra_axis or dec_axis:
+        configured_index = 0
+        for ii in self._plan:
+            if ii.startswith('Chunk.position') and ii.endswith('axis1.ctype') \
+                    and not axis_info['ra'][1]:
+                configured_index = self._get_configured_index(axis_info, 'ra')
+                axis_info['ra'] = (configured_index, True)
+            elif ii.startswith('Chunk.position') and \
+                    ii.endswith('axis2.ctype') and not axis_info['dec'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'dec')
+                axis_info['dec'] = (configured_index, True)
+            elif ii.startswith('Chunk.energy') and not axis_info['energy'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'energy')
+                axis_info['energy'] = (configured_index, True)
+            elif ii.startswith('Chunk.time') and not axis_info['time'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'time')
+                axis_info['time'] = (configured_index, True)
+            elif ii.startswith('Chunk.polarization') \
+                    and not axis_info['polarization'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'polarization')
+                axis_info['polarization'] = (configured_index, True)
+            elif ii.startswith('Chunk.observable') and not axis_info['obs'][1]:
+                configured_index = self._get_configured_index(axis_info,
+                                                              'obs')
+                axis_info['obs'] = (configured_index, True)
+
+        if axis_info['ra'][1] and axis_info['dec'][1]:
+            self.configure_position_axes(
+                (axis_info['ra'][0], axis_info['dec'][0]), False)
+        elif axis_info['ra'][1] or axis_info['dec'][1]:
             raise ValueError('Only one positional axis found '
                              '(ra/dec): {}/{}'.
-                             format(ra_axis, dec_axis))
+                             format(axis_info['ra'][0], axis_info['dec'][0]))
         else:
             # assume that positional axis are 1 and 2 by default
-            if time_axis in ['1', '2'] or energy_axis in ['1', '2'] or \
-                    polarization_axis in ['1', '2'] or obs_axis in ['1', '2']:
+            if axis_info['time'][0] in [1, 2] or \
+                    axis_info['energy'][0] in [1, 2] or \
+                    axis_info['polarization'][0] in [1, 2] or \
+                    axis_info['obs'][0] in [1, 2]:
                 raise ValueError('Cannot determine the positional axis')
             else:
-                self.configure_position_axes(('1', '2'), False)
+                self.configure_position_axes((1, 2), False)
 
-        if time_axis_expected:
-            self.configure_time_axis(time_axis, False)
+        if axis_info['time'][1]:
+            self.configure_time_axis(axis_info['time'][0], False)
+        if axis_info['energy'][1]:
+            self.configure_energy_axis(axis_info['energy'][0], False)
+        if axis_info['polarization'][1]:
+            self.configure_polarization_axis(axis_info['polarization'][0],
+                                             False)
+        if axis_info['obs'][1]:
+            self.configure_observable_axis(axis_info['obs'][0], False)
 
-        if energy_axis_expected:
-            self.configure_energy_axis(energy_axis, False)
+    def _guess_axis_info_from_ctypes(self, lookup, counter, axis_info):
+        """
+        Check for the presence of blueprint keys in the plan, and whether or
+        not they indicate an index in their configuration.
 
-        if polarization_axis_expected:
-            self.configure_polarization_axis(polarization_axis, False)
+        :param lookup: Blueprint plan key.
+        :param counter: Value to set the index to for an axis.
+        :param axis_info: local data structure to pass around what is
+            configured, and what is it's value.
+        """
+        if lookup.startswith('Chunk.energy'):
+            axis_info['energy'] = (counter, True)
+        elif lookup.startswith('Chunk.polarization'):
+            axis_info['polarization'] = (counter, True)
+        elif lookup.startswith('Chunk.time'):
+            axis_info['time'] = (counter, True)
+        elif lookup.startswith('Chunk.position') and lookup.endswith(
+                'axis1.ctype'):
+            axis_info['ra'] = (counter, True)
+        elif lookup.startswith('Chunk.position') and lookup.endswith(
+                'axis2.ctype'):
+            axis_info['dec'] = (counter, True)
+        elif lookup.startswith('Chunk.observable'):
+            axis_info['obs'] = (counter, True)
+        else:
+            raise ValueError(
+                'Unrecognized axis type: {}'.format(lookup))
 
-        if obs_axis_expected:
-            self.configure_observable_axis(obs_axis, False)
+    def _get_configured_index(self, axis_info, lookup):
+        """Find the next available index value among those that are not set.
+
+        :param axis_info: local data structure to pass around what is
+            configured, and what is it's value."""
+        DEFAULT_INDICES = {'ra': 1,
+                           'dec': 2,
+                           'energy': 3,
+                           'time': 4,
+                           'polarization': 5,
+                           'obs': 6}
+
+        # the logic - if the default index is already used, assign the lowest
+        # index that is unused, otherwise use the default index
+
+        max_index = 0
+        min_index = 7
+        default_index = DEFAULT_INDICES[lookup]
+        default_used = False
+        for axis in axis_info:
+            # do two unrelated things in this for loop
+            # 1. determine where to start counting
+            if axis_info[axis][1]:
+                max_index = max(max_index, axis_info[axis][0])
+                min_index = min(min_index, axis_info[axis][0])
+            # 2. determine if the default is used
+            if axis_info[axis][1] and default_index == axis_info[axis][0]:
+                default_used = True
+
+        configured_index = 0
+        if default_used:
+            if min_index == 1:
+                configured_index = max_index + 1
+            else:
+                configured_index = min(1, min_index)
+        else:
+            configured_index = default_index
+        return configured_index
 
     def load_from_file(self, file_name):
         """
@@ -961,35 +1005,36 @@ class ObsBlueprint(object):
         """
         with open(file_name) as file:
             for line in file:
-                if line.find('=') != -1:
-                    if line.find('#') != -1:
+                if '=' in line:
+                    if '#' in line:
                         if line.find('#') == 0:
+                            # ignore lines starting with a comment
                             continue
                         line = line.split('#')[0]
                     key, value = line.split('=', 1)
-                    if value.find('default') == -1:
-                        if value.find('[') == -1:
-                            cleaned_up_value = value.strip('\n').strip()
+                    if 'default' in value:
+                        temp = value.replace('default', ''). \
+                            replace('=', '').strip('\n').strip()
+                        default = temp.rsplit(',')[1]
+                        temp_list = temp.rsplit(',')[0].replace('[', ''). \
+                            replace(']', '').replace('\'', '').split(',')
+                        if 'None' in default:
+                            default = None
                         else:
+                            default = default.strip()
+                        cleaned_up_value = (temp_list, default)
+                    else:
+                        if '[' in value:
                             temp_list = value.replace('[', ''). \
                                 replace(']', '').replace('\'', '').split(',')
                             temp_list_2 = []
                             for ii in temp_list:
                                 temp_list_2.append(ii.strip().strip('\n'))
                             cleaned_up_value = (temp_list_2, None)
-                    else:
-                        temp = value.replace('default', '').\
-                            replace('=', '').strip('\n').strip()
-                        default = temp.rsplit(',')[1]
-                        temp_list = temp.rsplit(',')[0].replace('[', '').\
-                            replace(']', '').replace('\'', '').split(',')
-                        if default.find('None') == -1:
-                            default = default.strip()
                         else:
-                            default = None
-                        cleaned_up_value = (temp_list, default)
+                            cleaned_up_value = value.strip('\n').strip()
                     self.set(key.strip(), cleaned_up_value)
-        self._guess_axis_info()
+        self._guess_axis_info_from_plan()
 
     @classproperty
     def CAOM2_ELEMENTS(cls):
@@ -1227,15 +1272,15 @@ class ObsBlueprint(object):
         return configed_axes
 
     @staticmethod
-    def is_tuple(value):
+    def is_fits(value):
         """Hide the blueprint structure from clients - they shouldn't need
         to know that a value of type tuple requires special processing."""
         return isinstance(value, tuple)
 
     @staticmethod
     def is_function(value):
-        return (not ObsBlueprint.is_tuple(value) and isinstance(value, str)
-                and value.find('(') != -1 and value.find(')') != -1)
+        return (not ObsBlueprint.is_fits(value) and isinstance(value, str)
+                and isinstance(value, str) and '(' in value and ')' in value)
 
 
 @add_metaclass(ABCMeta)
@@ -1578,9 +1623,8 @@ class FitsParser(GenericParser):
 
     def _try_position_with_blueprint(self, chunk, index):
         """
-        A mechanism to augment the Position WCS completely from the blueprint,
-        without recourse to astropy WCS information. Do nothing if  the
-        WCS information cannot be correctly created.
+        A mechanism to augment the Position WCS completely from the blueprint.
+        Do nothing if the WCS information cannot be correctly created.
 
         :param chunk: The chunk to modify with the addition of position
             information.
@@ -1663,9 +1707,8 @@ class FitsParser(GenericParser):
 
     def _try_time_with_blueprint(self, chunk, index):
         """
-        A mechanism to augment the Time WCS completely from the blueprint,
-        without recourse to astropy WCS information. Do nothing if  the
-        WCS information cannot be correctly created.
+        A mechanism to augment the Time WCS completely from the blueprint.
+        Do nothing if the WCS information cannot be correctly created.
 
         :param chunk: The chunk to modify with the addition of time
             information.
@@ -1700,8 +1743,8 @@ class FitsParser(GenericParser):
     def _try_polarization_with_blueprint(self, chunk, index):
         """
         A mechanism to augment the Polarization WCS completely from the
-        blueprint, without recourse to astropy WCS information. Do nothing if
-        the WCS information cannot be correctly created.
+        blueprint. Do nothing if the WCS information cannot be correctly
+        created.
 
         :param chunk: The chunk to modify with the addition of polarization
             information.
@@ -1726,9 +1769,8 @@ class FitsParser(GenericParser):
 
     def _try_energy_with_blueprint(self, chunk, index):
         """
-        A mechanism to augment the Energy WCS completely from the blueprint,
-        without recourse to astropy WCS information. Do nothing if the
-        WCS information cannot be correctly created.
+        A mechanism to augment the Energy WCS completely from the blueprint.
+        Do nothing if the WCS information cannot be correctly created.
 
         :param chunk: The chunk to modify with the addition of energy
             information.
@@ -1935,7 +1977,7 @@ class FitsParser(GenericParser):
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
             if key in wcs_std:
-                if ObsBlueprint.is_tuple(value):
+                if ObsBlueprint.is_fits(value):
                     # alternative attributes provided for standard wcs attrib.
                     for header in self.headers:
                         for v in value[0]:
@@ -1949,7 +1991,7 @@ class FitsParser(GenericParser):
                     continue
                 else:
                     # value provided for standard wcs attribute
-                    if ObsBlueprint.is_tuple(wcs_std[key]):
+                    if ObsBlueprint.is_fits(wcs_std[key]):
                         keywords = wcs_std[key][0]
                     elif ObsBlueprint.is_function(wcs_std[key]):
                         continue
@@ -1971,7 +2013,7 @@ class FitsParser(GenericParser):
                                                                extension))
         # apply defaults to all extensions
         for key, value in plan.items():
-            if ObsBlueprint.is_tuple(value) and value[1]:
+            if ObsBlueprint.is_fits(value) and value[1]:
                 # there is a default value set
                 for index, header in enumerate(self.headers):
                     for keyword in value[0]:
@@ -2030,23 +2072,33 @@ class FitsParser(GenericParser):
         # determine which of the two possible values for parameter the user
         # is hoping for
         parameter = ''
-        if value.find('uri') != -1:
+        if 'uri' in value:
             parameter = self.uri
-        elif value.find('header') != -1:
+        elif 'header' in value:
             parameter = self._headers
 
         result = ''
+        execute = None
         try:
             execute = getattr(self.blueprint._module, value.split('(')[0])
+        except Exception as e:
+            msg = 'Failed to find {}.{} for {}'.format(
+                    self.blueprint._module.__name__, value.split('(')[0], key)
+            logging.error(msg)
+            self._errors.append(msg)
+            tb = traceback.format_exc()
+            logging.error(tb)
+            logging.error(e)
+        try:
             result = execute(parameter)
             logging.debug(
                 'Key {} calculated value of {} using {}'.format(
                     key, result, value))
         except Exception as e:
-            logging.error(
-                'Failed to execute {}.{} for {}'.format(
-                    self.blueprint._module.__name__, value, key))
+            msg = 'Failed to execute {} for {}'.format(execute.__name__, key)
+            logging.error(msg)
             logging.debug('Input parameter was {}'.format(parameter))
+            self._errors.append(msg)
             tb = traceback.format_exc()
             logging.error(tb)
             logging.error(e)
@@ -2164,8 +2216,8 @@ class FitsParser(GenericParser):
             aug_point = Point(x, y)
             aug_target_position = TargetPosition(aug_point, coordsys)
             aug_target_position.equinox = _to_float(equinox)
-            return aug_target_position
             self.logger.debug('End CAOM2 TargetPosition augmentation.')
+            return aug_target_position
         return None
 
     def _get_telescope(self):
@@ -3044,14 +3096,14 @@ def _lookup_blueprint_name(index, args):
         return 'Generated'
 
 
-def _extract_ids(cardinality):
+def _extract_ids(cardinalty):
     """
     Localize cardinality structure knowledge.
 
-    :param cardinality:
+    :param cardinalty:
     :return: product_id, artifact URI
     """
-    return cardinality.split('/', 1)
+    return cardinalty.split('/', 1)
 
 
 def _augment(obs, product_id, uri, args, blueprint, index):
@@ -3089,7 +3141,7 @@ def _augment(obs, product_id, uri, args, blueprint, index):
         if file.endswith('.fits'):
             logging.debug('Using a FitsParser for {}'.format(file))
             parser = FitsParser(file, blueprint, uri=uri)
-        elif file.find('.header') != -1:
+        elif '.header' in file:
             logging.debug('Using a FitsParser for {}'.format(file))
             parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
                                 blueprint, uri=uri)
@@ -3108,9 +3160,6 @@ def _augment(obs, product_id, uri, args, blueprint, index):
             parser = GenericParser(blueprint, uri=uri)
 
     _update_artifact_meta(plane.artifacts[uri], subject)
-    #
-    # if args.dumpconfig:
-    #     print('Blueprint for {}: {}'.format(uri, blueprint))
 
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
@@ -3133,7 +3182,7 @@ def _load_module(module):
         user.
     """
     mname = os.path.basename(module)
-    if mname.find('.') != -1:
+    if '.' in mname:
         mname = mname.split('.')[0]
     pname = os.path.dirname(module)
     sys.path.append(pname)
@@ -3188,22 +3237,39 @@ def caom2gen():
 
         for i, cardinality in enumerate(args.lineage):
             product_id, uri = _extract_ids(cardinality)
-            for j, bp in enumerate(args.blueprint):
-                if i == j:
-                    logging.debug(
-                        'Loading blueprint for {} from {}'.format(uri, bp))
-                    blueprint = ObsBlueprint(module=module)
-                    blueprint.load_from_file(bp)
-                    blueprints[uri] = blueprint
-                    break
+            logging.debug('Loading blueprint for {} from {}'.format(
+                uri, args.blueprint[i]))
+            blueprint = ObsBlueprint(module=module)
+            blueprint.load_from_file(args.blueprint[i])
+            blueprints[uri] = blueprint
+
     try:
-        gen_proc(args, blueprints)
+        obs = _set_obs(args, blueprints)
+
+        for ii, cardinality in enumerate(args.lineage):
+            product_id, uri = _extract_ids(cardinality)
+            bp_name = _lookup_blueprint_name(ii, args.blueprint)
+            blueprint = _lookup_blueprint(blueprints, uri)
+            logging.debug('Begin augmentation for product_id {}, uri {}, '
+                          'with blueprint {}'.format(product_id, uri, bp_name))
+            _augment(obs, product_id, uri, args, blueprint, ii)
+
+        writer = ObservationWriter()
+        if args.out_obs_xml:
+            writer.write(obs, args.out_obs_xml)
+        else:
+            sys.stdout.flush()
+            writer.write(obs, sys.stdout)
+
     except Exception as e:
         logging.error('Failed caom2gen execution.')
         logging.error(e)
         tb = traceback.format_exc()
-        logging.error(tb)
+        logging.debug(tb)
         sys.exit(-1)
+
+    logging.debug(
+        'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
 
 
 def _set_obs(args, obs_blueprints):
@@ -3219,13 +3285,6 @@ def _set_obs(args, obs_blueprints):
         # append to existing observation
         reader = ObservationReader(validate=True)
         obs = reader.read(args.in_obs_xml)
-        if len(obs.planes) != 1:
-            if not args.productID:
-                msg = '{}{}{}'.format(
-                    'A productID parameter is required if ',
-                    'there are zero or more than one planes ',
-                    'in the input observation.')
-                raise RuntimeError(msg)
     else:
         # determine the type of observation to create by looking for the
         # the CompositeObservation.members in the blueprints. If present
@@ -3353,6 +3412,14 @@ def proc(args, obs_blueprints):
         raise RuntimeError(msg)
 
     obs = _set_obs(args, obs_blueprints)
+
+    if args.in_obs_xml and len(obs.planes) != 1:
+        if not args.productID:
+            msg = '{}{}{}'.format(
+                'A productID parameter is required if ',
+                'there are zero or more than one planes ',
+                'in the input observation.')
+            raise RuntimeError(msg)
 
     for i, uri in enumerate(args.fileURI):
         blueprint = obs_blueprints[uri]

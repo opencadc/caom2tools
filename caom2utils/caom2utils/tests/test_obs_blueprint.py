@@ -235,3 +235,35 @@ def test_obs_blueprint():
     # delete element from a non-existent extension
     with pytest.raises(ValueError):
         ob.delete('Chunk.energy.transition', extension=66)
+
+
+def test_load_from_file_configure():
+    ob = ObsBlueprint()
+    assert not ob._pos_axes_configed, \
+        'Failure to initialize configure_position_axes'
+    assert not ob._energy_axis_configed, \
+        'Failure to initialize configure_energy_axis'
+    ob.set_fits_attribute('Chunk.position.axis.axis1.ctype', ['CTYPE1'])
+    ob.set_fits_attribute('Chunk.position.axis.axis2.ctype', ['CTYPE2'])
+    ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
+    ob._guess_axis_info_from_plan()
+    assert ob._pos_axes_configed, 'Failure to call configure_position_axes'
+    assert ob._energy_axis_configed, 'Failure to call configure_energy_axis'
+    assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
+        ob._wcs_std['Chunk.energy.axis.axis.ctype']
+
+    ob = ObsBlueprint()
+    ob.set_fits_attribute('Chunk.position.axis.axis1.ctype', ['CTYPE3'])
+    ob.set_fits_attribute('Chunk.position.axis.axis2.ctype', ['CTYPE4'])
+    ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
+    ob._guess_axis_info_from_plan()
+    assert ob._pos_axes_configed, 'Failure to call configure_position_axes'
+    assert ob._energy_axis_configed, 'Failure to call configure_energy_axis'
+    assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE1', \
+        ob._wcs_std['Chunk.energy.axis.axis.ctype']
+
+    ob = ObsBlueprint()
+    ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
+    ob._guess_axis_info_from_plan()
+    assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
+        ob._wcs_std['Chunk.energy.axis.axis.ctype']
