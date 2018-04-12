@@ -74,15 +74,20 @@ import logging
 import struct
 import uuid
 from datetime import datetime
+import argparse
+import sys
+from . import obs_reader_writer
 
 from aenum import Enum
 from builtins import bytes, int, str
 
 from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict, int_32
-from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI, \
-    ChecksumURI
+from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI
+from caom2.common import ChecksumURI
+from caom2.observation import Observation
 
-__all__ = ['get_meta_checksum', 'get_acc_meta_checksum']
+__all__ = ['get_meta_checksum', 'get_acc_meta_checksum',
+           'update_meta_checksum']
 
 """
 This modules contains the functionality for calculating the checksums
@@ -91,6 +96,8 @@ corresponding to entites in CAOM2. Two types of checksums are available:
                         its CAOM2 children
     get_acc_meta_checksum - returns the accumulated checksum of the entity
                         attributes including those of the CAOM2 children
+    update_meta_checksum - updates the meta_checksum and acc_meta_checksum of
+                        all the elements of an observation
 
 The checksums can be used to get the state of the entity: the metachecksum
 represents the state the entity itself while the accumulated metachecksum
@@ -154,6 +161,29 @@ def get_acc_meta_checksum(entity):
     md5 = hashlib.md5()
     update_acc_checksum(md5, entity)
     return ChecksumURI('md5:{}'.format(md5.hexdigest()))
+
+
+def update_meta_checksum(obs):
+    """
+    Convenience function that updates the meta_checksum and acc_meta_checksum
+    of an observation and all it's entities
+    :param obs: observation to be updated
+    """
+    assert isinstance(obs, Observation), 'Observation required'
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    chunk.meta_checksum = get_meta_checksum(chunk)
+                    chunk.acc_meta_checksum = get_acc_meta_checksum(chunk)
+                part.meta_checksum = get_meta_checksum(part)
+                part.acc_meta_checksum = get_acc_meta_checksum(part)
+            artifact.meta_checksum = get_meta_checksum(artifact)
+            artifact.acc_meta_checksum = get_acc_meta_checksum(artifact)
+        plane.meta_checksum = get_meta_checksum(plane)
+        plane.acc_meta_checksum = get_acc_meta_checksum(plane)
+    obs.meta_checksum = get_meta_checksum(obs)
+    obs.acc_meta_checksum = get_acc_meta_checksum(obs)
 
 
 def update_acc_checksum(checksum, entity):
@@ -286,6 +316,7 @@ def update_caom_checksum(checksum, entity, parent=None):
         update_checksum(checksum, entity._id)
 
     # determine the excluded fields if necessary
+    checksum_excluded_fields = []
     if not hasattr(update_caom_checksum, "checksum_excluded_fields"):
         # this is a way to do it statically
         checksum_excluded_fields = [i for i in dir(AbstractCaomEntity)
@@ -300,3 +331,81 @@ def update_caom_checksum(checksum, entity, parent=None):
             if getattr(entity, i) is not None:
                 atrib = '{}.{}'.format(parent, i) if parent is not None else i
                 update_checksum(checksum, getattr(entity, i), atrib)
+
+
+def checksum_diff():
+    """
+    Calculates the checksum of elements in an observation and compares it
+    with the ones specified in that observation
+    """
+
+    parser = argparse.ArgumentParser(
+        description='Compare observation checksum')
+    parser.add_argument('file', help='Observation file',
+                        type=argparse.FileType('r'))
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Display details')
+    parser.add_argument('-o', '--output', required=False,
+                        help='save checked file in this file')
+
+    args = parser.parse_args()
+    if len(sys.argv) < 2:
+        parser.print_usage(file=sys.stderr)
+        sys.stderr.write("caom2_checksum: error: too few arguments")
+        sys.exit(-1)
+
+    reader = obs_reader_writer.ObservationReader(True)
+    obs = reader.read(args.file)
+    args.file.close()
+
+    print('Start checking')
+    mistmatches = 0
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    mistmatches += _print_diff(chunk, args.debug)
+                mistmatches += _print_diff(part, args.debug)
+            mistmatches += _print_diff(artifact, args.debug)
+        mistmatches += _print_diff(plane, args.debug)
+    mistmatches += _print_diff(obs, args.debug)
+
+    if args.output:
+        update_meta_checksum(obs)
+        writer = obs_reader_writer.ObservationWriter(validate=True)
+        writer.write(obs, args.output)
+
+    print("Total: {} mistmatches".format(mistmatches))
+    if mistmatches > 0:
+        sys.exit(-1)
+
+
+def _print_diff(elem, debug=False):
+    elem_type = str(type(elem)).split('.')[1]
+    actual = get_meta_checksum(elem)
+    mistmatches = 0
+    if elem.meta_checksum == actual:
+        print('{}: {} {} == {}'.format(elem_type, elem._id,
+                                       elem.meta_checksum.checksum,
+                                       actual.checksum))
+    else:
+        print('{}: {} {} != {} [MISMATCH]'.format(elem_type, elem._id,
+                                                  elem.meta_checksum.checksum,
+                                                  actual.checksum))
+        mistmatches += 1
+        if debug:
+            print(elem)
+
+    if elem_type != 'chunk':
+        # do the accummulated checksums
+        actual = get_acc_meta_checksum(elem)
+        if elem.acc_meta_checksum == actual:
+            print('{}: {} {} == {}'.format(elem_type, elem._id,
+                                           elem.acc_meta_checksum.checksum,
+                                           actual.checksum))
+        else:
+            print('{}: {} {} != {} [MISMATCH]'.
+                  format(elem_type, elem._id, elem.acc_meta_checksum.checksum,
+                         actual.checksum))
+            mistmatches += 1
+    return mistmatches

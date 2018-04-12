@@ -74,6 +74,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import unittest
 from datetime import datetime
+from builtins import str
 
 from .. import caom_util
 from .. import observation
@@ -223,7 +224,8 @@ class TestObservation(unittest.TestCase):
 
 class TestSimpleObservation(unittest.TestCase):
     def test_all(self):
-        algorithm = observation.SimpleObservation._ALGORITHM
+        algorithm = observation.Algorithm(
+            observation.SimpleObservation.DEFAULT_ALGORITHM_NAME)
         obs = observation.SimpleObservation("GSA", "A12345")
         self.assertEqual("GSA", obs.collection, "Collection")
         self.assertEqual("A12345", obs.observation_id, "Observation ID")
@@ -303,7 +305,8 @@ class TestSimpleObservation(unittest.TestCase):
     def test_complete_init(self):
         collection = "CFHT"
         observation_id = "543210"
-        algorithm = observation.SimpleObservation._ALGORITHM
+        algorithm = observation.Algorithm(
+            observation.SimpleObservation.DEFAULT_ALGORITHM_NAME)
         sequence_number = int(3)
         intent = observation.ObservationIntentType.SCIENCE
         obs_type = "foo"
@@ -380,7 +383,8 @@ class TestCompositeObservation(unittest.TestCase):
         # try to set algorithm to an invalid value
         exception = False
         try:
-            obs.algorithm = observation.SimpleObservation._ALGORITHM
+            obs.algorithm = observation.Algorithm(
+                observation.SimpleObservation.DEFAULT_ALGORITHM_NAME)
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
@@ -475,7 +479,7 @@ class TestCompositeObservation(unittest.TestCase):
     def test_complete_init(self):
         collection = "CFHT"
         observation_id = "543210"
-        algorithm = "algo"
+        algorithm = observation.Algorithm("algo")
         sequence_number = int(3)
         intent = observation.ObservationIntentType.SCIENCE
         obs_type = "foo"
@@ -550,7 +554,8 @@ class TestCompositeObservation(unittest.TestCase):
         obs.algorithm = algorithm2
         self.assertIsNotNone(obs.algorithm, "Algorithm")
         self.assertNotEqual(algorithm, obs.algorithm, "Algorithm")
-        self.assertEqual(algorithm2, obs.algorithm, "Algorithm")
+        self.assertEqual(observation.Algorithm(algorithm2),
+                         obs.algorithm, "Algorithm")
 
 
 class TestAlgorithm(unittest.TestCase):
