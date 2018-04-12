@@ -379,7 +379,7 @@ def test_rountrip():
 def test_checksum_diff():
     source_file_path = os.path.join(THIS_DIR, TEST_DATA,
                                     'SampleComposite-CAOM-2.3.xml')
-    output_file = tempfile.TemporaryFile()
+    output_file = tempfile.NamedTemporaryFile()
     sys.argv = 'caom2_checksum -d -o {} {}'.format(
         output_file.name, source_file_path).split()
     with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
