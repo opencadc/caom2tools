@@ -2876,14 +2876,11 @@ class WcsParser(object):
         return aug_ref_coord
 
     def _get_axis_length(self, for_axis):
-        result = -1
-        try:
-            # try ZNAXIS first in order to get the size of the original
-            # image in case it was FITS compressed
-            result = int(self._sanitize(
-                self.header.get('ZNAXIS{}'.format(for_axis))))
-            return result
-        except TypeError:
+        # try ZNAXIS first in order to get the size of the original
+        # image in case it was FITS compressed
+        result = _to_int(self._sanitize(
+            self.header.get('ZNAXIS{}'.format(for_axis))))
+        if result is None:
             result = _to_int(self._sanitize(
                 self.header.get('NAXIS{}'.format(for_axis))))
         if result is None:
