@@ -586,7 +586,7 @@ class ObsBlueprint(object):
             self.set('Chunk.position.axis.function.refCoord.coord2.val',
                      (['CRVAL{}'.format(axes[1])], None))
 
-        self._wcs_std['Chunk.position.coordsys'] = 'RADECSYS'
+        self._wcs_std['Chunk.position.coordsys'] = 'RADESYS'
         self._wcs_std['Chunk.position.equinox'] = 'EQUINOX'
 
         self._wcs_std['Chunk.position.axis.axis1.ctype'] = \
@@ -2790,6 +2790,7 @@ class WcsParser(object):
             aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
                                            aug_cd11, aug_cd12,
                                            aug_cd21, aug_cd22)
+            self.logger.debug('End CoordFunction2D augmentation.')
         else:
             aug_function = None
 
@@ -2798,6 +2799,7 @@ class WcsParser(object):
                                self._get_coord_error(xindex),
                                self._get_coord_error(yindex),
                                None, None, aug_function)
+        self.logger.debug('End CoordAxis2D augmentation.')
         return aug_axis
 
     def _get_cd(self, x_index, y_index):
