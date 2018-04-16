@@ -49,7 +49,7 @@
       <caom2:artifacts>
         <caom2:artifact caom2:id="00000000-0000-0000-8f53-345a5f36bd75">
           <caom2:uri>ad:CFHTSG/MegaPipe.080.156.Z.MP9801.fits.gif</caom2:uri>
-          <caom2:productType>science</caom2:productType>
+          <caom2:productType>preview</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>image/gif</caom2:contentType>
           <caom2:contentLength>348598</caom2:contentLength>
@@ -57,7 +57,7 @@
         </caom2:artifact>
         <caom2:artifact caom2:id="00000000-0000-0000-9444-dfe9f1c0cd51">
           <caom2:uri>ad:CFHTSG/MegaPipe.080.156.Z.MP9801.weight.fits</caom2:uri>
-          <caom2:productType>science</caom2:productType>
+          <caom2:productType>weight</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>39971520</caom2:contentLength>
