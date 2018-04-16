@@ -74,6 +74,7 @@ from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint
 from caom2utils.legacy import load_config
+from caom2utils import _visit, _load_module
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -101,10 +102,11 @@ override_file = os.path.join(TESTDATA_DIR, 'test.override')
 test_override = os.path.join(TESTDATA_DIR, '4axes.override')
 text_file = os.path.join(TESTDATA_DIR, 'help.txt')
 text_override = os.path.join(TESTDATA_DIR, 'text.override')
+test_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin.py')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
-single_test = False
+single_test = True
 
 
 class MyExitError(Exception):
@@ -996,3 +998,10 @@ def test_generic_parser():
             actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
             result = get_differences(expected, actual, 'Observation')
             assert result is None
+
+
+# @pytest.mark.skipif(single_test, reason='Single test mode')
+def test_visit():
+    test_obs = _get_obs(EXPECTED_FILE_SCHEME_XML)
+    test_plugin = _load_module(test_plugin_module)
+    _visit(test_plugin, test_obs, subject=None)

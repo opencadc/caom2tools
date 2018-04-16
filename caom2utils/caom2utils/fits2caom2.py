@@ -111,7 +111,8 @@ APP_NAME = 'caom2gen'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
-           'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser']
+           'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser' ,
+           '_visit', '_load_module']
 
 POSITION_CTYPES = [
     ['RA',
@@ -3203,6 +3204,7 @@ def _load_module(module):
     """
     mname = os.path.basename(module)
     if '.' in mname:
+        # remove extension from the provided name
         mname = mname.split('.')[0]
     pname = os.path.dirname(module)
     sys.path.append(pname)
@@ -3264,22 +3266,7 @@ def caom2gen():
             blueprints[uri] = blueprint
 
     try:
-        obs = _set_obs(args, blueprints)
-
-        for ii, cardinality in enumerate(args.lineage):
-            product_id, uri = _extract_ids(cardinality)
-            bp_name = _lookup_blueprint_name(ii, args.blueprint)
-            blueprint = _lookup_blueprint(blueprints, uri)
-            logging.debug('Begin augmentation for product_id {}, uri {}, '
-                          'with blueprint {}'.format(product_id, uri, bp_name))
-            _augment(obs, product_id, uri, args, blueprint, ii)
-
-        writer = ObservationWriter()
-        if args.out_obs_xml:
-            writer.write(obs, args.out_obs_xml)
-        else:
-            sys.stdout.flush()
-            writer.write(obs, sys.stdout)
+        gen_proc(args, blueprints)
 
     except Exception as e:
         logging.error('Failed caom2gen execution.')
@@ -3464,12 +3451,17 @@ def proc(args, obs_blueprints):
         writer.write(obs, sys.stdout)
 
 
+def _visit(plugin, obs, subject):
+    if plugin.update(observation=obs, subject=subject):
+        pass
+    else:
+        logging.error('Finished executing plugin {} update method on '
+                      'observation {}'.format(
+            plugin.__name__, obs.observation_id))
+
+
 def gen_proc(args, blueprints):
     _set_arg_parser_logging(args)
-
-    module = None
-    if args.module:
-        module = _load_module(args.module)
 
     obs = _set_obs(args, blueprints)
 
@@ -3481,6 +3473,10 @@ def gen_proc(args, blueprints):
                      'with blueprint {}'.format(product_id, uri, bp_name))
         _augment(obs, product_id, uri, args, blueprint, ii)
 
+    if args.plugin:
+        plugin = _load_module(args.plugin)
+        _visit(plugin, obs, subject=None)
+
     writer = ObservationWriter()
     if args.out_obs_xml:
         writer.write(obs, args.out_obs_xml)
@@ -3488,8 +3484,8 @@ def gen_proc(args, blueprints):
         sys.stdout.flush()
         writer.write(obs, sys.stdout)
 
-    logging.debug(
-        'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
+    # logging.debug(
+    #     'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
 
 
 def get_gen_proc_arg_parser():
@@ -3506,7 +3502,19 @@ def get_gen_proc_arg_parser():
                                           'fully qualified name. Parameter '
                                           'choices are the artifact URI (uri) '
                                           'or a list of astropy Header '
-                                          'instances (header).'))
+                                          'instances (header). This will '
+                                          'allow the update of a single '
+                                          'blueprint entry with a single '
+                                          'call.'))
+    parser.add_argument('--plugin', help=('if this parameter is specified, '
+                                          'call importlib.import_module '
+                                          'for the named module. Then '
+                                          'execute the method "update", '
+                                          'with the signature "observation", '
+                                          '"**kwargs". This will allow '
+                                          'for the update of multiple '
+                                          'observation data members with one '
+                                          'call.'))
     parser.add_argument('--lineage', nargs='+',
                         help=('productID/artifactURI. List of plane/artifact '
                               'identifiers that will be'
