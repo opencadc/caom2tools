@@ -194,15 +194,17 @@ def type_check(value, value_type, variable, override=None):
         if vtype != newstr or not isinstance(value, str):
             if override is not False:
                 raise TypeError(
-                    "Expected {} or {} for {}, received {}".format(vtype,
-                                                                   override,
-                                                                   variable,
-                                                                   type(value)))
+                    "Expected {} or {} for {}, received {}".format(
+                        vtype,
+                        override,
+                        variable,
+                        type(value)))
             else:
                 raise TypeError(
-                    "Expected {} for {}, received {}".format(vtype,
-                                                             variable,
-                                                             type(value)))
+                    "Expected {} for {}, received {}".format(
+                        vtype,
+                        variable,
+                        type(value)))
     return True
 
 
