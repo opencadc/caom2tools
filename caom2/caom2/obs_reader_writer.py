@@ -1841,12 +1841,9 @@ class ObservationWriter(object):
         self._add_element("name", target.name, element)
         if target.target_type is not None:
             self._add_element("type", target.target_type.value, element)
-        if target.standard is not None:
-            self._add_element("standard", str(target.standard).lower(),
-                              element)
+        self._add_boolean_element("standard", target.standard, element)
         self._add_element("redshift", target.redshift, element)
-        if target.moving is not None:
-            self._add_element("moving", str(target.moving).lower(), element)
+        self._add_boolean_element("moving", target.moving, element)
         self._add_keywords_element(target.keywords, element)
 
     def _add_target_position_element(self, target_position, parent):
@@ -1900,9 +1897,8 @@ class ObservationWriter(object):
         self._add_element("tau", environment.tau, element)
         self._add_element("wavelengthTau", environment.wavelength_tau, element)
         self._add_element("ambientTemp", environment.ambient_temp, element)
-        if environment.photometric is not None:
-            self._add_element("photometric",
-                              str(environment.photometric).lower(), element)
+        self._add_boolean_element("photometric", environment.photometric,
+                                  element)
 
     def _add_members_element(self, members, parent):
         if members is None or \
@@ -1971,8 +1967,8 @@ class ObservationWriter(object):
         self._add_dimension2d_element("dimension", position.dimension, element)
         self._add_element("resolution", position.resolution, element)
         self._add_element("sampleSize", position.sample_size, element)
-        self._add_element("timeDependent",
-                          str(position.time_dependent).lower(), element)
+        self._add_boolean_element("timeDependent", position.time_dependent,
+                                  element)
 
     def _add_energy_element(self, energy, parent):
         if energy is None:
@@ -2470,6 +2466,13 @@ class ObservationWriter(object):
                 element.text = repr(value)
             else:
                 element.text = str(value)
+
+    def _add_boolean_element(self, name, value, parent):
+        if value is None:
+            return
+
+        element = self._get_caom_element(name, parent)
+        element.text = str(value).lower()
 
     def _add_datetime_element(self, name, value, parent):
         if value is None:
