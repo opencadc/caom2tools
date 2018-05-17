@@ -1,4 +1,4 @@
-usage: caom2-repo [-h] [-V] [-s SERVER] {create,read,update,delete,visit} ...
+usage: caom2-repo [-h] [-V] {create,read,update,delete,visit} ...
 
 Client for a CAOM2 repo. In addition to CRUD (Create, Read, Update and Delete) operations it also implements a visitor operation that allows for updating multiple observations in a collection
 
@@ -13,5 +13,3 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -V, --version         show program's version number and exit
-  -s SERVER, --server SERVER
-                        URL of the CAOM2 repo server

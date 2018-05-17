@@ -86,7 +86,7 @@ import uuid
 from datetime import datetime
 
 import six
-from builtins import bytes, int
+from builtins import bytes, int, str as newstr
 
 
 __all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
@@ -190,18 +190,22 @@ def type_check(value, value_type, variable, override=None):
     vtype = value_type
     if value_type == int_32:
         vtype = int
+    if value_type == newstr and isinstance(value, str):
+        vtype = str
     if not isinstance(value, vtype) and value is not override:
         if override is not False:
             raise TypeError(
-                "Expected {} or {} for {}, received {}".format(vtype,
-                                                               override,
-                                                               variable,
-                                                               type(value)))
+                "Expected {} or {} for {}, received {}".format(
+                    vtype,
+                    override,
+                    variable,
+                    type(value)))
         else:
             raise TypeError(
-                "Expected {} for {}, received {}".format(vtype,
-                                                         variable,
-                                                         type(value)))
+                "Expected {} for {}, received {}".format(
+                    vtype,
+                    variable,
+                    type(value)))
     return True
 
 
