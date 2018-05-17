@@ -71,12 +71,9 @@
 from caom2.observation import Observation
 
 
-class ObservationUpdater(object):
-    """Plugin that does not update the observation"""
-
-    def update(self, observation, **kwargs):
-        """
-        Processes an observation and updates it
-        """
-        assert isinstance(observation, Observation), (
-            "observation {} is not an Observation".format(observation))
+def update(observation, **kwargs):
+    """
+    Processes an observation and updates it
+    """
+    assert isinstance(observation, Observation), (
+        "observation {} is not an Observation".format(observation))

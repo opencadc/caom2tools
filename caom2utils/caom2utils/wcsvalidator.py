@@ -181,13 +181,11 @@ def _check_transform(coords):
     wcsprm = Wcsprm()
     coord_array = np.array([[coords.lower, coords.upper]])
     sky_transform = wcsprm.p2s(coord_array, ORIGIN)
-    pix_transform = wcsprm.s2p(sky_transform['world'], ORIGIN)
-    transformed_coords = pix_transform['pixcrd']
-
-    if not (transformed_coords[0][0] == coords.lower
-            and transformed_coords[0][1] == coords.upper):
-        raise ValueError(
-            "Could not transform coordinates pixel to sky, sky to pixel")
+    wcsprm.s2p(sky_transform['world'], ORIGIN)
+    # Per instruction from JJK/PD (standup, 19/04/18), if this transform
+    # to and from works, that is sufficient to indicate the input data is
+    # correct. There is no need to compare that the values provided as
+    # input are the same as the values that exist after the transform.
 
 
 def _validate_spectral_wcs(energy):
@@ -198,20 +196,23 @@ def _validate_spectral_wcs(energy):
             si = None
 
             if energy_axis.range is not None:
+                logger.debug('energy_axis.range to interval validation.')
                 si = EnergyUtil.range1d_to_interval(energy_axis.range)
                 _check_transform(si)
-                logger.debug('time_axis.range succeeded.')
+                logger.debug('energy_axis.range succeeded.')
 
             if energy_axis.bounds is not None:
+                logger.debug('energy_axis.bounds to interval validation.')
                 for tile in energy_axis.bounds.samples:
                     si = EnergyUtil.range1d_to_interval(tile)
                     _check_transform(si)
-                logger.debug('time_axis.bounds succeeded.')
+                logger.debug('energy_axis.bounds succeeded.')
 
             if energy_axis.function is not None:
+                logger.debug('energy_axis.function to interval validation.')
                 si = EnergyUtil.function1d_to_interval(energy)
                 _check_transform(si)
-                logger.debug('time_axis.function succeeded.')
+                logger.debug('energy_axis.function succeeded.')
 
         except Exception as ex:
             error_msg = repr(ex)
