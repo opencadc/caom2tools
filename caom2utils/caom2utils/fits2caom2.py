@@ -3445,7 +3445,7 @@ def caom2gen():
         'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
 
 
-def _set_obs_args(args, obs_blueprints):
+def _set_obs(args, obs_blueprints):
     """
     Determine whether to create a Simple or Composite Observation.
 
@@ -3453,28 +3453,11 @@ def _set_obs_args(args, obs_blueprints):
     :param obs_blueprints: Collection of blueprints provided to application.
     :return: Initially constructed Observation.
     """
-    obs_xml = None
-    if args.in_obs_xml:
-        obs_xml = args.in_obs_xml
-    return _set_obs(obs_blueprints, obs_xml, str(args.observation[0]),
-                    str(args.observation[1]))
-
-
-def _set_obs(obs_blueprints, obs_xml, collection, observation_id):
-    """
-    Determine whether to create a Simple or Composite Observation.
-
-    :param obs_blueprints: Collection of blueprints provided to application.
-    :param obs_xml:
-    :param collection:
-    :param observation_id:
-    :return: Initially constructed Observation.
-    """
     obs = None
-    if obs_xml is not None:
+    if args.in_obs_xml:
         # append to existing observation
         reader = ObservationReader(validate=True)
-        obs = reader.read(obs_xml)
+        obs = reader.read(args.in_obs_xml)
     else:
         # determine the type of observation to create by looking for the
         # the CompositeObservation.members in the blueprints. If present
@@ -3482,14 +3465,14 @@ def _set_obs(obs_blueprints, obs_xml, collection, observation_id):
         for bp in obs_blueprints.values():
             if bp._get('CompositeObservation.members'):
                 obs = CompositeObservation(
-                    collection=collection,
-                    observation_id=observation_id,
+                    collection=args.observation[0],
+                    observation_id=args.observation[1],
                     algorithm=Algorithm(str('composite')))
                 break
     if not obs:
         # build a simple observation
-        obs = SimpleObservation(collection=collection,
-                                observation_id=observation_id,
+        obs = SimpleObservation(collection=args.observation[0],
+                                observation_id=args.observation[1],
                                 algorithm=Algorithm(str('exposure')))
     return obs
 
@@ -3674,14 +3657,13 @@ def _visit(plugn, parser, obs, **kwargs):
                 tb = traceback.format_exc()
                 logging.debug(tb)
     else:
-        logging.debug('Not a FitsParser, no plugin execution for {}.'.format(
-            obs.observation_id))
+        logging.debug('Not a FitsParser, no plugin execution.')
 
 
 def gen_proc(args, blueprints, **kwargs):
     _set_arg_parser_logging(args)
 
-    obs = _set_obs_args(args, blueprints)
+    obs = _set_obs(args, blueprints)
 
     for ii, cardinality in enumerate(args.lineage):
         product_id, uri = _extract_ids(cardinality)
