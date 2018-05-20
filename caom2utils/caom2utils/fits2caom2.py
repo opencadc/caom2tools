@@ -1756,8 +1756,8 @@ class FitsParser(GenericParser):
         if chunk.position:
             chunk.position.coordsys = self._get_from_list(
                 'Chunk.position.coordsys', index)
-            chunk.position.equinox = self._get_from_list(
-                'Chunk.position.equinox', index)
+            chunk.position.equinox = _to_float(self._get_from_list(
+                'Chunk.position.equinox', index))
             chunk.position.resolution = self._get_from_list(
                 'Chunk.position.resolution', index)
         self.logger.debug('End augmentation with blueprint for position.')
