@@ -3530,7 +3530,6 @@ def _get_common_arg_parser():
                         help='do not stop and exit upon finding partial WCS')
 
     parser.add_argument('-o', '--out', dest='out_obs_xml',
-                        type=argparse.FileType('wb'),
                         help='output of augmented observation in XML',
                         required=False)
 
@@ -3717,15 +3716,17 @@ def get_gen_proc_arg_parser():
     return parser
 
 
-def augment(blueprints, no_validate, dump_config, ignore_partial_wcs, plugin,
-            out_obs_xml, in_obs_xml,
-            collection, observation, product_id, uri, netrc, file_name,
-            **kwargs):
+def augment(blueprints, no_validate=False, dump_config=False,
+            ignore_partial_wcs=None, plugin=None, out_obs_xml=None,
+            in_obs_xml=None, collection=None, observation=None, product_id=None,
+            uri=None, netrc=False, file_name=None, **kwargs):
+
     logger = logging.getLogger()
     # logger.setLevel(logging.DEBUG)
-    logging.info('Begin augment.')
+    logging.debug(
+        'Begin augmentation for product_id {}, uri {}'.format(product_id,
+                                                              uri))
     params = kwargs['params']
-    # visit_args = params['visit_args']
 
     for ii in blueprints:
         blueprint = blueprints[ii]
@@ -3793,9 +3794,17 @@ def augment(blueprints, no_validate, dump_config, ignore_partial_wcs, plugin,
                     len(parser._errors), uri))
             logging.debug('{}'.format(parser._errors))
 
+        if dump_config:
+            print('Blueprint for {}: {}'.format(uri, blueprint))
+
+    if not no_validate:
+        try:
+            validate(obs)
+        except InvalidWCSError as e:
+            logging.error(e)
+            tb = traceback.format_exc()
+            logging.error(tb)
+
     writer = ObservationWriter()
     writer.write(obs, out_obs_xml)
-    logging.debug(
-        'Begin augmentation for product_id {}, uri {}'.format(product_id,
-                                                              uri))
     logging.info('Done augment.')
