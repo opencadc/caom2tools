@@ -114,7 +114,7 @@ APP_NAME = 'caom2gen'
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
-           '_visit', '_load_plugin', 'GenericParser', 'gen_proc_no_args']
+           '_visit', '_load_plugin', 'GenericParser', 'augment']
 
 POSITION_CTYPES = [
     ['RA',
@@ -3717,102 +3717,85 @@ def get_gen_proc_arg_parser():
     return parser
 
 
-def _augment_pipeline(blueprint, collection, observation, product_id, uri,
-                      out_obs_xml, netrc, in_obs_xml, plugin, no_validate,
-                      **kwargs):
-    """Least amount of assumptions about what exists."""
+def augment(blueprints, no_validate, dump_config, ignore_partial_wcs, plugin,
+            out_obs_xml, in_obs_xml,
+            collection, observation, product_id, uri, netrc, file_name,
+            **kwargs):
+    logger = logging.getLogger()
+    # logger.setLevel(logging.DEBUG)
+    logging.info('Begin augment.')
+    params = kwargs['params']
+    # visit_args = params['visit_args']
 
-    if in_obs_xml is not None:
-        reader = ObservationReader(validate=True)
-        obs = reader.read(in_obs_xml)
-    else:
-        if blueprint._get('CompositeObservation.members'):
-            obs = CompositeObservation(
-                collection=collection,
-                observation_id=observation,
-                algorithm=Algorithm(str('composite')))
+    for ii in blueprints:
+        blueprint = blueprints[ii]
+        if in_obs_xml is not None:
+            reader = ObservationReader(validate=True)
+            obs = reader.read(in_obs_xml)
         else:
-            obs = SimpleObservation(collection=collection,
-                                    observation_id=observation,
-                                    algorithm=Algorithm(str('exposure')))
+            if blueprint._get('CompositeObservation.members'):
+                obs = CompositeObservation(
+                    collection=collection,
+                    observation_id=observation,
+                    algorithm=Algorithm(str('composite')))
+            else:
+                obs = SimpleObservation(collection=collection,
+                                        observation_id=observation,
+                                        algorithm=Algorithm(str('exposure')))
 
-    if product_id not in obs.planes.keys():
-        obs.planes.add(Plane(product_id=str(product_id)))
+        if product_id not in obs.planes.keys():
+            obs.planes.add(Plane(product_id=str(product_id)))
 
-    plane = obs.planes[product_id]
+        plane = obs.planes[product_id]
 
-    subject = net.Subject(username=None, certificate=None, netrc=netrc)
-    if uri not in plane.artifacts.keys():
-        plane.artifacts.add(
-            Artifact(uri=str(uri),
-                     product_type=ProductType.SCIENCE,
-                     release_type=ReleaseType.DATA))
+        subject = net.Subject(username=None, certificate=None, netrc=netrc)
+        if uri not in plane.artifacts.keys():
+            plane.artifacts.add(
+                Artifact(uri=str(uri),
+                         product_type=ProductType.SCIENCE,
+                         release_type=ReleaseType.DATA))
 
-    if uri.endswith('.fits') or uri.endswith('.fits.gz'):
-        logging.debug('Using a FitsParser for {}'.format(uri))
-        headers = get_cadc_headers(uri, subject)
-        logging.debug(headers)
-        parser = FitsParser(headers, blueprint, uri=uri,
-                            ignore_partial_wcs=True)
-    else:
-        # explicitly ignore headers for txt and image files
-        logging.debug('Using a GenericParser for {}'.format(uri))
-        parser = GenericParser(blueprint, uri=uri)
+        if file_name is not None and '.header' in file_name:
+            logging.debug('Using a FitsParser for {}'.format(file_name))
+            parser = FitsParser(get_cadc_headers('file://{}'.format(file_name)),
+                                blueprint, uri=uri,
+                                ignore_partial_wcs=ignore_partial_wcs)
+        elif uri.endswith('.fits') or uri.endswith('.fits.gz'):
+            logging.debug('Using a FitsParser for {}'.format(uri))
+            headers = get_cadc_headers(uri, subject)
+            # logging.debug(headers)
+            parser = FitsParser(headers, blueprint, uri=uri,
+                                ignore_partial_wcs=True)
+        else:
+            # explicitly ignore headers for txt and image files
+            logging.debug('Using a GenericParser for {}'.format(uri))
+            parser = GenericParser(blueprint, uri=uri)
 
-    _update_artifact_meta(plane.artifacts[uri], subject)
-    parser.augment_observation(observation=obs, artifact_uri=uri,
-                               product_id=plane.product_id)
+        _update_artifact_meta(plane.artifacts[uri], subject)
+        parser.augment_observation(observation=obs, artifact_uri=uri,
+                                   product_id=plane.product_id)
 
-    if plugin is not None:
-        # kwargs['headers'] = parser.headers
-        # _visit(args.plugin, plugin, obs, **kwargs)
-        # plugin = params['plugin']
-        _visit(plugin, parser, obs, **kwargs)
+        if plugin is not None:
+            kwargs = params['visit_args']
+            _visit(plugin, parser, obs, **kwargs)
 
-    if not no_validate:
-        try:
-            validate(obs)
-        except InvalidWCSError as e:
-            logging.error(e)
-            tb = traceback.format_exc()
-            logging.error(tb)
+        if not no_validate:
+            try:
+                validate(obs)
+            except InvalidWCSError as e:
+                logging.error(e)
+                tb = traceback.format_exc()
+                logging.error(tb)
 
-    if len(parser._errors) > 0:
-        logging.debug(
-            '{} errors encountered while processing {!r}.'.format(
-                len(parser._errors), uri))
-        logging.debug('{}'.format(parser._errors))
+        if len(parser._errors) > 0:
+            logging.debug(
+                '{} errors encountered while processing {!r}.'.format(
+                    len(parser._errors), uri))
+            logging.debug('{}'.format(parser._errors))
 
     writer = ObservationWriter()
     writer.write(obs, out_obs_xml)
-
-
-def gen_proc_no_args(**kwargs):
-    logger = logging.getLogger()
-    # logger.setLevel(logging.DEBUG)
-    logger.setLevel(logging.DEBUG)
-    logging.info('Begin gen_proc_no_args.')
-    params = kwargs['params']
-    collection = params['collection']
-    observation = params['observation']
-    product_id = params['product_id']
-    uri = params['uri']
-    visit_args = params['visit_args']
-    blueprints = params['blueprints']
-    out_obs_xml = params['out_obs_xml']
-    in_obs_xml = None
-    if 'in_obs_xml' in params:
-        in_obs_xml = params['in_obs_xml']
-    netrc = params['netrc']
-    no_validate = params['no_validate']
-    plugin = None
-    if 'plugin' in params:
-        plugin = params['plugin']
-    _augment_pipeline(blueprints[uri], collection, observation, product_id, uri,
-                      out_obs_xml, netrc, in_obs_xml, plugin, no_validate,
-                      **visit_args)
-    # for ii, cardinality in enumerate(lineage):
     logging.debug(
         'Begin augmentation for product_id {}, uri {}'.format(product_id,
                                                               uri))
-    logging.info('Done gen_proc_no_args.')
+    logging.info('Done augment.')
