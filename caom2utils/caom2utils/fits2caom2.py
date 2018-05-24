@@ -90,7 +90,7 @@ from caom2 import Instrument, Proposal, Target, Provenance, Metrics
 from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
-from caom2 import CoordRange2D, ValueCoord2D
+from caom2 import CoordRange2D
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -1277,6 +1277,7 @@ class ObsBlueprint(object):
         value."""
         return value is None or (
                     isinstance(value, str) and 'None' in value.strip())
+
 
 @add_metaclass(ABCMeta)
 class GenericParser:
@@ -2724,7 +2725,8 @@ class WcsParser(object):
             else:
                 delta = self.wcs.cdelt[time_axis_index]
             aug_function = CoordFunction1D(
-                self._get_axis_length(time_axis_index + 1), delta, aug_ref_coord)
+                self._get_axis_length(time_axis_index + 1),
+                delta, aug_ref_coord)
             naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
             if not chunk.time:
                 chunk.time = TemporalWCS(naxis)
@@ -2778,8 +2780,6 @@ class WcsParser(object):
                 chunk.polarization = PolarizationWCS(naxis)
             else:
                 chunk.polarization.naxis = naxis
-
-            # TODO naxis.range = self._get_coord_range_1d(polarization_axis_index)
 
             self.logger.debug('End Polarization WCS augmentation.')
         except ValueError as e:
@@ -3589,7 +3589,7 @@ def _visit(plugn, parser, obs, **kwargs):
                 try:
                     if plgin.update(observation=obs, **kwargs):
                         logging.debug(
-                            'Finished executing plugin {!r} update '   
+                            'Finished executing plugin {!r} update '
                             'method on observation {!r}'.format(
                                 plugn, obs.observation_id))
                 except Exception as e:
@@ -3679,9 +3679,9 @@ def get_gen_proc_arg_parser():
 
 def augment(blueprints, no_validate=False, dump_config=False,
             ignore_partial_wcs=None, plugin=None, out_obs_xml=None,
-            in_obs_xml=None, collection=None, observation=None, product_id=None,
-            uri=None, netrc=False, file_name=None, verbose=False,
-            debug=False, quiet=False, **kwargs):
+            in_obs_xml=None, collection=None, observation=None,
+            product_id=None, uri=None, netrc=False, file_name=None,
+            verbose=False, debug=False, quiet=False, **kwargs):
     """
     Observation creation and agumentation. The method parameters are all the
     possible command-line parameters for fits2caom2 and caom2gen.

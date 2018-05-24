@@ -90,7 +90,6 @@ import os
 import sys
 
 import pytest
-import logging
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -1140,7 +1139,7 @@ EXPECTED_POS_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencad
 def test_augment_artifact_bounds_range_from_blueprint():
     test_blueprint = ObsBlueprint(energy_axis=1, time_axis=2,
                                   polarization_axis=3,
-                                  position_axes=(4,5))
+                                  position_axes=(4, 5))
     test_blueprint.set('Chunk.energy.axis.range.start.pix', '145.0')
     test_blueprint.set('Chunk.energy.axis.range.start.val', '-60000.0')
     test_blueprint.set('Chunk.energy.axis.range.end.pix', '-824.46002')
@@ -1217,7 +1216,7 @@ def test_augment_artifact_bounds_range_from_blueprint():
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-def test_visit():
+def test_visit_import():
     try:
         sys.argv = ['fits2caom2', '--local', 'fname', '--observation',
                     'test_collection_id', 'test_observation_id']
