@@ -3191,7 +3191,9 @@ def _extract_ids(cardinalty):
     return cardinalty.split('/', 1)
 
 
-def _augment(obs, product_id, uri, args, blueprint, index, **kwargs):
+def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
+             ignore_partial_wcs=False, validate_wcs=True, plugin=None,
+             local=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3206,39 +3208,33 @@ def _augment(obs, product_id, uri, args, blueprint, index, **kwargs):
         the metadata augmentation source.
     :return:
     """
+    if dumpconfig:
+        print('Blueprint for {}: {}'.format(uri, blueprint))
+
     if product_id not in obs.planes.keys():
         obs.planes.add(Plane(product_id=str(product_id)))
 
     plane = obs.planes[product_id]
 
-    subject = net.Subject.from_cmd_line_args(args)
     if uri not in plane.artifacts.keys():
         plane.artifacts.add(
             Artifact(uri=str(uri),
                      product_type=ProductType.SCIENCE,
                      release_type=ReleaseType.DATA))
 
-    if args.dumpconfig:
-        print('Blueprint for {}: {}'.format(uri, blueprint))
-
-    ignore_partial_wcs = False
-    if args.ignorePartialWCS:
-        ignore_partial_wcs = True
-
-    if args.local:
-        file = args.local[index]
-        if file.endswith('.fits'):
-            logging.debug('Using a FitsParser for {}'.format(file))
-            parser = FitsParser(file, blueprint, uri=uri,
-                                ignore_partial_wcs=ignore_partial_wcs)
-        elif '.header' in file:
-            logging.debug('Using a FitsParser for {}'.format(file))
-            parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
+    if local:
+        if '.header' in local:
+            logging.debug('Using a FitsParser for {}'.format(local))
+            parser = FitsParser(get_cadc_headers('file://{}'.format(local)),
                                 blueprint, uri=uri,
+                                ignore_partial_wcs=ignore_partial_wcs)
+        elif local.endswith('.fits') or local.endswith('.fits.gz'):
+            logging.debug('Using a FitsParser for {}'.format(local))
+            parser = FitsParser(local, blueprint, uri=uri,
                                 ignore_partial_wcs=ignore_partial_wcs)
         else:
             # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(file))
+            logging.debug('Using a GenericParser for {}'.format(local))
             parser = GenericParser(blueprint, uri=uri)
     else:
         if uri.endswith('.fits'):
@@ -3256,98 +3252,9 @@ def _augment(obs, product_id, uri, args, blueprint, index, **kwargs):
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
 
-    if hasattr(args, 'plugin') and args.plugin:
-        _visit(args.plugin, parser, obs, **kwargs)
-
-    if not args.no_validate:
-        try:
-            validate(obs)
-        except InvalidWCSError as e:
-            logging.error(e)
-            tb = traceback.format_exc()
-            logging.error(tb)
-
-    if len(parser._errors) > 0:
-        logging.debug(
-            '{} errors encountered while processing {!r}.'.format(
-                len(parser._errors), uri))
-        logging.debug('{}'.format(parser._errors))
-
-
-def _augment_no_args(obs, product_id, uri, blueprint, local, index, **kwargs):
-    """
-    Find or construct a plane and an artifact to go with the observation
-    under augmentation.
-
-    :param obs: Observation - target of CAOM2 model augmentation
-    :param product_id: Unique identifier for a plane in an Observation
-    :param uri: Unique identifier for an artifact in a plane
-    :param blueprint: Which blueprint to use when mapping from a telescope
-        data model to CAOM2
-    :param index: How to find the file in the input parameter local that is
-        the metadata augmentation source.
-    :return:
-    """
-    params = kwargs['params']
-    if product_id not in obs.planes.keys():
-        obs.planes.add(Plane(product_id=str(product_id)))
-
-    plane = obs.planes[product_id]
-
-    # subject = net.Subject.from_cmd_line_args(args)
-    subject = None
-    if uri not in plane.artifacts.keys():
-        plane.artifacts.add(
-            Artifact(uri=str(uri),
-                     product_type=ProductType.SCIENCE,
-                     release_type=ReleaseType.DATA))
-
-    dump_config = params['dump_config']
-    if dump_config:
-        print('Blueprint for {}: {}'.format(uri, blueprint))
-
-    ignore_partial_wcs = params['ignore_partial_wcs']
-
-    if local:
-        file = local[index]
-        if file.endswith('.fits'):
-            logging.debug('Using a FitsParser for {}'.format(file))
-            parser = FitsParser(file, blueprint, uri=uri,
-                                ignore_partial_wcs=ignore_partial_wcs)
-        elif '.header' in file:
-            logging.debug('Using a FitsParser for {}'.format(file))
-            parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
-                                blueprint, uri=uri,
-                                ignore_partial_wcs=ignore_partial_wcs)
-        else:
-            # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(file))
-            parser = GenericParser(blueprint, uri=uri)
-    else:
-        if uri.endswith('.fits'):
-            logging.debug('Using a FitsParser for {}'.format(uri))
-            headers = get_cadc_headers(uri, subject)
-            parser = FitsParser(headers, blueprint, uri=uri,
-                                ignore_partial_wcs=ignore_partial_wcs)
-        else:
-            # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(uri))
-            parser = GenericParser(blueprint, uri=uri)
-
-    # _update_artifact_meta(plane.artifacts[uri], subject)
-
-    parser.augment_observation(observation=obs, artifact_uri=uri,
-                               product_id=plane.product_id)
-
-    # if hasattr(args, 'plugin') and args.plugin:
-    #     plugin = _load_plugin(args.plugin)
-    #     kwargs['headers'] = parser.headers
-    #     _visit(args.plugin, plugin, obs, **kwargs)
-    plugin = params['plugin']
     _visit(plugin, parser, obs, **kwargs)
 
-    no_validate = params['no_validate']
-    if not no_validate:
+    if validate_wcs:
         try:
             validate(obs)
         except InvalidWCSError as e:
@@ -3398,7 +3305,7 @@ def caom2gen():
         sys.exit(-1)
 
     args = parser.parse_args()
-    _set_arg_parser_logging(args)
+    _set_logging(args.verbose, args.debug, args.quiet)
 
     module = None
     if args.module:
@@ -3445,19 +3352,25 @@ def caom2gen():
         'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
 
 
-def _set_obs(args, obs_blueprints):
+def _set_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
     """
-    Determine whether to create a Simple or Composite Observation.
+    Determine whether to create a Simple or Composite Observation, or to
+    read an existing Observation from an input file.
 
-    :param args: Command-line parameters.
     :param obs_blueprints: Collection of blueprints provided to application.
+    :param in_obs_xml: Existing observation information, contains the
+        collection and obs_id values.
+    :param collection: This plus the obs_id is a unique key for an
+        observation.
+    :param obs_id: This plus the collection is a unique key for an
+        observation.
     :return: Initially constructed Observation.
     """
     obs = None
-    if args.in_obs_xml:
+    if in_obs_xml:
         # append to existing observation
         reader = ObservationReader(validate=True)
-        obs = reader.read(args.in_obs_xml)
+        obs = reader.read(in_obs_xml)
     else:
         # determine the type of observation to create by looking for the
         # the CompositeObservation.members in the blueprints. If present
@@ -3465,25 +3378,25 @@ def _set_obs(args, obs_blueprints):
         for bp in obs_blueprints.values():
             if bp._get('CompositeObservation.members'):
                 obs = CompositeObservation(
-                    collection=args.observation[0],
-                    observation_id=args.observation[1],
+                    collection=collection,
+                    observation_id=obs_id,
                     algorithm=Algorithm(str('composite')))
                 break
     if not obs:
         # build a simple observation
-        obs = SimpleObservation(collection=args.observation[0],
-                                observation_id=args.observation[1],
+        obs = SimpleObservation(collection=collection,
+                                observation_id=obs_id,
                                 algorithm=Algorithm(str('exposure')))
     return obs
 
 
-def _set_arg_parser_logging(args):
+def _set_logging(verbose, debug, quiet):
     logger = logging.getLogger()
-    if args.verbose:
+    if verbose:
         logger.setLevel(logging.INFO)
-    elif args.debug:
+    elif debug:
         logger.setLevel(logging.DEBUG)
-    elif args.quiet:
+    elif quiet:
         logger.setLevel(logging.ERROR)
     else:
         logger.setLevel(logging.WARN)
@@ -3567,7 +3480,15 @@ def get_arg_parser():
 def proc(args, obs_blueprints):
     """
     Function to process an observation according to command line arguments
-    and a dictionary of blueprints
+    and a dictionary of blueprints.
+
+    This implementation mirrors the Java implementation of fits2caom2, and
+    the command line arguments it handles are productID and fileURI or
+    local.
+
+    There is no support for plugin execution to modify the blueprint with
+    this access point.
+
     :param args: argparse args object containing the user supplied arguments.
     Arguments correspond to the parser returned by the get_arg_parser function
     :param obs_blueprints: dictionary of blueprints reguired to process the
@@ -3576,14 +3497,18 @@ def proc(args, obs_blueprints):
     :return:
     """
 
-    _set_arg_parser_logging(args)
+    _set_logging(args.verbose, args.debug, args.quiet)
 
     if args.local and (len(args.local) != len(args.fileURI)):
         msg = ('number of local arguments not the same with file '
                'URIs ({} vs {})').format(len(args.local), args.fileURI)
         raise RuntimeError(msg)
 
-    obs = _set_obs(args, obs_blueprints)
+    if args.in_obs_xml:
+        obs = _set_obs(obs_blueprints, args.in_obs_xml)
+    else:
+        obs = _set_obs(obs_blueprints, None, args.observation[0],
+                       args.observation[1])
 
     if args.in_obs_xml and len(obs.planes) != 1:
         if not args.productID:
@@ -3592,6 +3517,11 @@ def proc(args, obs_blueprints):
                 'there are zero or more than one planes ',
                 'in the input observation.')
             raise RuntimeError(msg)
+
+    subject = net.Subject.from_cmd_line_args(args)
+    validate_wcs = True
+    if args.no_validate:
+        validate_wcs = False
 
     for i, uri in enumerate(args.fileURI):
         blueprint = obs_blueprints[uri]
@@ -3606,7 +3536,13 @@ def proc(args, obs_blueprints):
                     'identified in the blueprint.')
                 raise RuntimeError(msg)
 
-        _augment(obs, product_id, uri, args, blueprint, i)
+        file_name = None
+        if args.local:
+            file_name = args.local[i]
+
+        _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
+                 args.ignorePartialWCS, validate_wcs, plugin=None,
+                 local=file_name)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3636,42 +3572,63 @@ def _load_plugin(plugin_name):
 
 
 def _visit(plugn, parser, obs, **kwargs):
-    if isinstance(parser, FitsParser):
-        # TODO make a check that's necessary under both calling conditions
-        # here
-        if len(plugn) > 0:
-            logging.debug(
-                'Begin plugin execution {!r} update method on '
-                'observation {!r}'.format(plugn, obs.observation_id))
-            plgin = _load_plugin(plugn)
-            kwargs['headers'] = parser.headers
-            try:
-                if plgin.update(observation=obs, **kwargs):
-                    logging.debug(
-                        'Finished executing plugin {!r} update '   
-                        'method on observation {!r}'.format(
-                            plugn, obs.observation_id))
-            except Exception as e:
-                logging.debug(e)
-                tb = traceback.format_exc()
-                logging.debug(tb)
-    else:
-        logging.debug('Not a FitsParser, no plugin execution.')
+    if plugn is not None:
+        if isinstance(parser, FitsParser):
+            # TODO make a check that's necessary under both calling conditions
+            # here
+            if len(plugn) > 0:
+                logging.debug(
+                    'Begin plugin execution {!r} update method on '
+                    'observation {!r}'.format(plugn, obs.observation_id))
+                plgin = _load_plugin(plugn)
+                kwargs['headers'] = parser.headers
+                try:
+                    if plgin.update(observation=obs, **kwargs):
+                        logging.debug(
+                            'Finished executing plugin {!r} update '   
+                            'method on observation {!r}'.format(
+                                plugn, obs.observation_id))
+                except Exception as e:
+                    logging.debug(e)
+                    tb = traceback.format_exc()
+                    logging.debug(tb)
+        else:
+            logging.debug('Not a FitsParser, no plugin execution.')
 
 
 def gen_proc(args, blueprints, **kwargs):
-    _set_arg_parser_logging(args)
+    """The implementation that expects a product ID to be provided as
+    part of the lineage parameter, and blueprints as input parameters,
+    and a plugin parameter, that supports external programmatic blueprint
+    modification."""
+    _set_logging(args.verbose, args.debug, args.quiet)
 
-    obs = _set_obs(args, blueprints)
+    if args.in_obs_xml:
+        obs = _set_obs(blueprints, args.in_obs_xml)
+    else:
+        obs = _set_obs(blueprints, None, args.observation[0],
+                       args.observation[1])
+
+    subject = net.Subject.from_cmd_line_args(args)
+    validate_wcs = True
+    if args.no_validate:
+        validate_wcs = False
 
     for ii, cardinality in enumerate(args.lineage):
         product_id, uri = _extract_ids(cardinality)
-        # bp_name = _lookup_blueprint_name(ii, args)
         blueprint = _lookup_blueprint(blueprints, uri)
         logging.debug(
             'Begin augmentation for product_id {}, uri {}'.format(product_id,
                                                                   uri))
-        _augment(obs, product_id, uri, args, blueprint, ii, **kwargs)
+
+        file_name = None
+        if args.local:
+            file_name = args.local[ii]
+
+        _augment(obs, product_id, uri, blueprint, subject,
+                 args.dumpconfig, args.ignorePartialWCS, validate_wcs,
+                 args.plugin, file_name,
+                 **kwargs)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3719,91 +3676,28 @@ def get_gen_proc_arg_parser():
 def augment(blueprints, no_validate=False, dump_config=False,
             ignore_partial_wcs=None, plugin=None, out_obs_xml=None,
             in_obs_xml=None, collection=None, observation=None, product_id=None,
-            uri=None, netrc=False, file_name=None, **kwargs):
-
-    logger = logging.getLogger()
-    # logger.setLevel(logging.DEBUG)
+            uri=None, netrc=False, file_name=None, verbose=False,
+            debug=False, quiet=False, **kwargs):
+    """
+    Observation creation and agumentation. The method parameters are all the
+    possible command-line parameters for fits2caom2 and caom2gen.
+    """
+    _set_logging(verbose, debug, quiet)
     logging.debug(
         'Begin augmentation for product_id {}, uri {}'.format(product_id,
                                                               uri))
     params = kwargs['params']
+    kwargs = params['visit_args']
+
+    obs = _set_obs(blueprints, in_obs_xml, collection, observation)
+    subject = net.Subject(username=None, certificate=None, netrc=netrc)
+    validate_wcs = True
+    if no_validate is not None:
+        validate_wcs = not no_validate
 
     for ii in blueprints:
-        blueprint = blueprints[ii]
-        if in_obs_xml is not None:
-            reader = ObservationReader(validate=True)
-            obs = reader.read(in_obs_xml)
-        else:
-            if blueprint._get('CompositeObservation.members'):
-                obs = CompositeObservation(
-                    collection=collection,
-                    observation_id=observation,
-                    algorithm=Algorithm(str('composite')))
-            else:
-                obs = SimpleObservation(collection=collection,
-                                        observation_id=observation,
-                                        algorithm=Algorithm(str('exposure')))
-
-        if product_id not in obs.planes.keys():
-            obs.planes.add(Plane(product_id=str(product_id)))
-
-        plane = obs.planes[product_id]
-
-        subject = net.Subject(username=None, certificate=None, netrc=netrc)
-        if uri not in plane.artifacts.keys():
-            plane.artifacts.add(
-                Artifact(uri=str(uri),
-                         product_type=ProductType.SCIENCE,
-                         release_type=ReleaseType.DATA))
-
-        if file_name is not None and '.header' in file_name:
-            logging.debug('Using a FitsParser for {}'.format(file_name))
-            parser = FitsParser(get_cadc_headers('file://{}'.format(file_name)),
-                                blueprint, uri=uri,
-                                ignore_partial_wcs=ignore_partial_wcs)
-        elif uri.endswith('.fits') or uri.endswith('.fits.gz'):
-            logging.debug('Using a FitsParser for {}'.format(uri))
-            headers = get_cadc_headers(uri, subject)
-            # logging.debug(headers)
-            parser = FitsParser(headers, blueprint, uri=uri,
-                                ignore_partial_wcs=True)
-        else:
-            # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(uri))
-            parser = GenericParser(blueprint, uri=uri)
-
-        _update_artifact_meta(plane.artifacts[uri], subject)
-        parser.augment_observation(observation=obs, artifact_uri=uri,
-                                   product_id=plane.product_id)
-
-        if plugin is not None:
-            kwargs = params['visit_args']
-            _visit(plugin, parser, obs, **kwargs)
-
-        if not no_validate:
-            try:
-                validate(obs)
-            except InvalidWCSError as e:
-                logging.error(e)
-                tb = traceback.format_exc()
-                logging.error(tb)
-
-        if len(parser._errors) > 0:
-            logging.debug(
-                '{} errors encountered while processing {!r}.'.format(
-                    len(parser._errors), uri))
-            logging.debug('{}'.format(parser._errors))
-
-        if dump_config:
-            print('Blueprint for {}: {}'.format(uri, blueprint))
-
-    if not no_validate:
-        try:
-            validate(obs)
-        except InvalidWCSError as e:
-            logging.error(e)
-            tb = traceback.format_exc()
-            logging.error(tb)
+        _augment(obs, product_id, uri, blueprints[ii], subject, dump_config,
+                 ignore_partial_wcs, validate_wcs, plugin, file_name, **kwargs)
 
     writer = ObservationWriter()
     writer.write(obs, out_obs_xml)
