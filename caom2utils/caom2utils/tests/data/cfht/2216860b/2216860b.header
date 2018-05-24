@@ -97,7 +97,7 @@ TIMEEND = '1:03:55.902'        / Time at end of observation (UTC)
 MJDEND  =        58062.0446018 / Modified Julian Date at end of observation     
 LSTEND  = '17:40:11.78'        / Sidereal time at end of exposure               
 EQUINOX =               2000.0 / Equinox of coordinates                         
-RADECSYS= 'FK5     '           / Coordinate system for equinox (FK4/FK5/GAPPT)  
+RADESYS = 'FK5     '           / Coordinate system for equinox (FK4/FK5/GAPPT)  
 COMMENT RA/DEC are current actual telescope position                            
 COMMENT including handset corrections                                           
 RA      = '17:39:50.83'        / Telescope right ascension                      

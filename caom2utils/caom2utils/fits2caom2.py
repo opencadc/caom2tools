@@ -547,7 +547,7 @@ class ObsBlueprint(object):
             return
 
         if override:
-            self.set('Chunk.position.coordsys', (['RADECSYS', 'RADESYS'],
+            self.set('Chunk.position.coordsys', (['RADESYS', 'RADECSYS'],
                                                  None))
             self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
             self.set('Chunk.position.axis.axis1.ctype',
@@ -3200,12 +3200,16 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
 
     :param obs: Observation - target of CAOM2 model augmentation
     :param product_id: Unique identifier for a plane in an Observation
-    :param args: Command line arguments.
     :param uri: Unique identifier for an artifact in a plane
     :param blueprint: Which blueprint to use when mapping from a telescope
         data model to CAOM2
-    :param index: How to find the file in the input parameter local that is
-        the metadata augmentation source.
+    :param subject: authorization for any metdata access
+    :param dumpconfig: print the blueprint to stdout
+    :param ignore_partial_wcs: avoid this error with input files
+    :param validate_wcs: if true, call the validate method on the constructed
+        observation, which checks that the WCS in the CAOM model is valid,
+    :param plugin: what code to use for modifying a CAOM instance
+    :param local: the input is the name of a file on disk
     :return:
     """
     if dumpconfig:
@@ -3224,7 +3228,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
 
     if local:
         if '.header' in local:
-            logging.debug('Using a FitsParser for {}'.format(local))
+            logging.debug('Using a FitsParser for local file {}'.format(local))
             parser = FitsParser(get_cadc_headers('file://{}'.format(local)),
                                 blueprint, uri=uri,
                                 ignore_partial_wcs=ignore_partial_wcs)
@@ -3237,7 +3241,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             logging.debug('Using a GenericParser for {}'.format(local))
             parser = GenericParser(blueprint, uri=uri)
     else:
-        if uri.endswith('.fits'):
+        if uri.endswith('.fits') or uri.endswith('.fits.gz'):
             logging.debug('Using a FitsParser for {}'.format(uri))
             headers = get_cadc_headers(uri, subject)
             parser = FitsParser(headers, blueprint, uri=uri,
