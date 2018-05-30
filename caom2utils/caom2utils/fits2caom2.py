@@ -2525,16 +2525,19 @@ class FitsParser(GenericParser):
                 return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
             except ValueError:
                 try:
-                    return datetime.strptime(from_value,
-                                             '%Y-%m-%d %H:%M:%S.%f')
+                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S.%f')
                 except ValueError:
                     try:
-                        return datetime.strptime(from_value, '%Y-%m-%d')
+                        return datetime.strptime(from_value,
+                                                 '%Y-%m-%d %H:%M:%S.%f')
                     except ValueError:
-                        self.logger.error(
-                            'Cannot parse datetime {}'.format(from_value))
-                        self.add_error('get_datetime', sys.exc_info()[1])
-                        return None
+                        try:
+                            return datetime.strptime(from_value, '%Y-%m-%d')
+                        except ValueError:
+                            self.logger.error(
+                                'Cannot parse datetime {}'.format(from_value))
+                            self.add_error('get_datetime', sys.exc_info()[1])
+                            return None
         else:
             return None
 
