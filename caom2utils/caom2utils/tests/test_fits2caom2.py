@@ -74,7 +74,7 @@ from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, get_gen_proc_arg_parser
 from caom2utils.legacy import load_config
-from caom2utils import _visit, _load_plugin
+from caom2utils.fits2caom2 import _visit, _load_plugin
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -418,12 +418,8 @@ def test_ignore_partial_wcs():
               'augment_temporal']:
         test_parser = WcsParser(hdr, sample_file_4axes, 0)
         exception_func = getattr(test_parser, i)
-        exception_caught = False
-        try:
+        with pytest.raises(ValueError):
             exception_func(Chunk())
-        except ValueError:
-            exception_caught = True
-        assert exception_caught, 'ValueError not raised by {}'.format(i)
         test_parser = WcsParser(hdr, sample_file_4axes, 0,
                                 ignore_partial_wcs=True)
         non_exception_func = getattr(test_parser, i)
@@ -1007,21 +1003,11 @@ def test_generic_parser():
 def test_visit():
     test_obs = _get_obs(EXPECTED_FILE_SCHEME_XML)
 
-    exception_raised = False
-    try:
-        test_plugin = _load_plugin('nonexistent.py')
-    except ImportError as e:
-        exception_raised = True
-    assert exception_raised, 'Loading a non-existent plugin should cause ' \
-                             'an ImportError.'
+    with pytest.raises(ImportError):
+        _load_plugin('nonexistent.py')
 
-    exception_raised = False
-    try:
-        test_plugin = _load_plugin(non_conformant_plugin_module)
-    except ImportError as e:
-        exception_raised = True
-    assert exception_raised, 'Loading a plugin with no \'update\' should ' \
-                             'cause an ImportError.'
+    with pytest.raises(ImportError):
+        _load_plugin(non_conformant_plugin_module)
 
     test_plugin = _load_plugin(test_plugin_module)
     _visit('update_function', test_plugin, test_obs, subject=None)

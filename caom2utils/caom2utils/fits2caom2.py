@@ -114,7 +114,7 @@ APP_NAME = 'caom2gen'
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
-           '_visit', '_load_plugin', 'GenericParser', 'augment']
+           'GenericParser', 'augment']
 
 POSITION_CTYPES = [
     ['RA',
@@ -2072,13 +2072,15 @@ class FitsParser(GenericParser):
             if ObsBlueprint.is_fits(value) and value[1]:
                 # there is a default value set
                 for index, header in enumerate(self.headers):
-                    for keyword in value[0]:
-                        if not header.get(keyword):
-                            # apply a default if a value does not already exist
-                            _set_by_type(header, keyword, value[1])
-                            logging.debug(
-                                '{}: set default value of {} in HDU {}.'.
-                                format(keyword, value[1], index))
+                    for keywords in value[0]:
+                        for keyword in keywords.split(','):
+                            if not header.get(keyword.strip()):
+                                # apply a default if a value does not already
+                                # exist
+                                _set_by_type(header, keyword.strip(), value[1])
+                                logging.debug(
+                                    '{}: set default value of {} in HDU {}.'.
+                                    format(keyword, value[1], index))
 
         # TODO wcs in astropy ignores cdelt attributes when it finds a cd
         # attribute even if it's in a different axis
@@ -2525,7 +2527,8 @@ class FitsParser(GenericParser):
                 return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
             except ValueError:
                 try:
-                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S.%f')
+                    return datetime.strptime(from_value,
+                                             '%Y-%m-%dT%H:%M:%S.%f')
                 except ValueError:
                     try:
                         return datetime.strptime(from_value,
@@ -2627,7 +2630,6 @@ class WcsParser(object):
             naxis.function = CoordFunction1D(
                 self._get_axis_length(energy_axis_index + 1), delta,
                 self._get_ref_coord(energy_axis_index))
-            # TODO naxis.range = self._get_coord_range_1d(energy_axis_index)
 
             specsys = _to_str(self.wcs.specsys)
             if not chunk.energy:
@@ -2735,8 +2737,6 @@ class WcsParser(object):
                 chunk.time = TemporalWCS(naxis)
             else:
                 chunk.time.naxis = naxis
-
-            # TODO naxis.range = self._get_coord_range_1d(time_axis_index)
 
             chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
             chunk.time.resolution = self.header.get('TIMEDEL')
@@ -2912,16 +2912,6 @@ class WcsParser(object):
             aug_coord_error = CoordError(aug_csyer, aug_crder)
         return aug_coord_error
 
-    def _get_coord_range_1d(self, index):
-        # TODO - is this the right thing? It doesn't seem so, based on
-        # the keywords involved .... ugh
-        aug_coord_range = None
-        aug_start = self._get_ref_coord(index)
-        aug_end = self._get_ref_coord(index)
-        if aug_start and aug_end:
-            aug_coord_range = CoordRange1D(aug_start, aug_end)
-        return aug_coord_range
-
     def _get_dimension(self, xindex, yindex):
         aug_dimension = None
         aug_dim1 = _to_int(self._get_axis_length(xindex + 1))
@@ -3012,9 +3002,10 @@ def _to_checksum_uri(value):
 
 
 def _set_by_type(header, keyword, value):
-    """astropy documentations says that the type of the second
+    """astropy documentation says that the type of the second
     parameter in the 'set' call is 'str', and then warns of expectations
-    for floating-point values."""
+    for floating-point values when the code does that, so make float values
+    into floats, and int values into ints."""
     float_value = None
     int_value = None
 
@@ -3169,29 +3160,14 @@ def _lookup_blueprint(blueprints, uri):
         return blueprints[uri]
 
 
-def _lookup_blueprint_name(index, blueprints):
-    """
-    Blueprint handling may be one-per-observation, or one-per-URI. Reference
-    the correct name of the file here.
-    :param blueprints: Dictionary of blueprints
-    :param index: Which blueprint to look for
-    :return: the blueprint to apply to Observation creation.
-    """
-    if len(blueprints) == 1:
-        return 'The One.'
-    else:
-        if blueprints[index] is not None:
-            return index
-
-
-def _extract_ids(cardinalty):
+def _extract_ids(cardinality):
     """
     Localize cardinality structure knowledge.
 
-    :param cardinalty:
+    :param cardinality:
     :return: product_id, artifact URI
     """
-    return cardinalty.split('/', 1)
+    return cardinality.split('/', 1)
 
 
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
@@ -3359,7 +3335,7 @@ def caom2gen():
         'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
 
 
-def _set_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
+def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
     """
     Determine whether to create a Simple or Composite Observation, or to
     read an existing Observation from an input file.
@@ -3512,9 +3488,9 @@ def proc(args, obs_blueprints):
         raise RuntimeError(msg)
 
     if args.in_obs_xml:
-        obs = _set_obs(obs_blueprints, args.in_obs_xml)
+        obs = _gen_obs(obs_blueprints, args.in_obs_xml)
     else:
-        obs = _set_obs(obs_blueprints, None, args.observation[0],
+        obs = _gen_obs(obs_blueprints, None, args.observation[0],
                        args.observation[1])
 
     if args.in_obs_xml and len(obs.planes) != 1:
@@ -3611,9 +3587,9 @@ def gen_proc(args, blueprints, **kwargs):
     _set_logging(args.verbose, args.debug, args.quiet)
 
     if args.in_obs_xml:
-        obs = _set_obs(blueprints, args.in_obs_xml)
+        obs = _gen_obs(blueprints, args.in_obs_xml)
     else:
-        obs = _set_obs(blueprints, None, args.observation[0],
+        obs = _gen_obs(blueprints, None, args.observation[0],
                        args.observation[1])
 
     subject = net.Subject.from_cmd_line_args(args)
@@ -3688,15 +3664,48 @@ def augment(blueprints, no_validate=False, dump_config=False,
     """
     Observation creation and agumentation. The method parameters are all the
     possible command-line parameters for fits2caom2 and caom2gen.
+
+    :param blueprints list of files with blueprints for CAOM2 construction,
+        in serialized format. If the list is of length 1, the same blueprint
+        will be applied to all lineage entries. Otherwise, there must be a
+        blueprint file per lineage entry.
+    :param no_validate by default, the application will validate the WCS
+        information for an observation. Specifying this flag skips that step.
+    :param dump_config output the utype to keyword mapping to the console
+    :param ignore_partial_wcs do not stop and exit upon finding partial WCS
+    :param plugin if this parameter is specified, call importlib.import_module
+        for the named module. Then execute the method "update", with the
+        signature (Observation, **kwargs). This will allow for the update of
+        multiple observation data members with one call.
+    :param out_obs_xml output of augmented observation in XML
+    :param in_obs_xml input of observation to be augmented in XML
+    :param collection which set of CAOM entries are being modelled
+    :param observation observation in a collection
+    :param product_id product ID of the plane in the observation
+    :param uri URI of a fits file
+    :param netrc netrc file to use for authentication
+    :param file_name file in local filesystem to be used as input for
+        augmentation
+    :param verbose logging level control
+    :param debug logging level control - very noisy
+    :param quiet logging level control - only errors
+    :param **kwargs externally constructed arguments to the _visit method,
+        invoked from the plugin.
     """
     _set_logging(verbose, debug, quiet)
     logging.debug(
         'Begin augmentation for product_id {}, uri {}'.format(product_id,
                                                               uri))
+
+    # The 'visit_args' are a dictionary within the 'params' dictionary.
+    # They are set by the collection-specific implementation, as they are
+    # dependent on that collection-specific implementation. The args to the
+    # visit function are not set in fits2caom2.
+
     params = kwargs['params']
     kwargs = params['visit_args']
 
-    obs = _set_obs(blueprints, in_obs_xml, collection, observation)
+    obs = _gen_obs(blueprints, in_obs_xml, collection, observation)
     subject = net.Subject(username=None, certificate=None, netrc=netrc)
     validate_wcs = True
     if no_validate is not None:
