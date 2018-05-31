@@ -1278,6 +1278,21 @@ class ObsBlueprint(object):
         return value is None or (
                     isinstance(value, str) and 'None' in value.strip())
 
+    def get_configed_axes_count(self):
+        """:return how many axes have been configured to read from WCS"""
+        configed_axes = 0
+        if self._pos_axes_configed:
+            configed_axes += 2
+        if self._energy_axis_configed:
+            configed_axes += 1
+        if self._time_axis_configed:
+            configed_axes += 1
+        if self._polarization_axis_configed:
+            configed_axes += 1
+        if self._obs_axis_configed:
+            configed_axes += 1
+        return configed_axes
+
 
 @add_metaclass(ABCMeta)
 class GenericParser:
@@ -1548,6 +1563,11 @@ class FitsParser(GenericParser):
         self.logger.debug(
             'Begin artifact augmentation for {} with {} HDUs.'.format(
                 artifact.uri, len(self.headers)))
+
+        if self.blueprint.get_configed_axes_count() == 0:
+            raise TypeError(
+                'No WCS Data. End artifact augmentation for {}.'.format(
+                    artifact.uri))
 
         for i, header in enumerate(self.headers):
             ii = str(i)
@@ -3661,37 +3681,6 @@ def augment(blueprints, no_validate=False, dump_config=False,
             in_obs_xml=None, collection=None, observation=None,
             product_id=None, uri=None, netrc=False, file_name=None,
             verbose=False, debug=False, quiet=False, **kwargs):
-    """
-    Observation creation and agumentation. The method parameters are all the
-    possible command-line parameters for fits2caom2 and caom2gen.
-
-    :param blueprints list of files with blueprints for CAOM2 construction,
-        in serialized format. If the list is of length 1, the same blueprint
-        will be applied to all lineage entries. Otherwise, there must be a
-        blueprint file per lineage entry.
-    :param no_validate by default, the application will validate the WCS
-        information for an observation. Specifying this flag skips that step.
-    :param dump_config output the utype to keyword mapping to the console
-    :param ignore_partial_wcs do not stop and exit upon finding partial WCS
-    :param plugin if this parameter is specified, call importlib.import_module
-        for the named module. Then execute the method "update", with the
-        signature (Observation, **kwargs). This will allow for the update of
-        multiple observation data members with one call.
-    :param out_obs_xml output of augmented observation in XML
-    :param in_obs_xml input of observation to be augmented in XML
-    :param collection which set of CAOM entries are being modelled
-    :param observation observation in a collection
-    :param product_id product ID of the plane in the observation
-    :param uri URI of a fits file
-    :param netrc netrc file to use for authentication
-    :param file_name file in local filesystem to be used as input for
-        augmentation
-    :param verbose logging level control
-    :param debug logging level control - very noisy
-    :param quiet logging level control - only errors
-    :param **kwargs externally constructed arguments to the _visit method,
-        invoked from the plugin.
-    """
     _set_logging(verbose, debug, quiet)
     logging.debug(
         'Begin augmentation for product_id {}, uri {}'.format(product_id,
@@ -3718,3 +3707,6 @@ def augment(blueprints, no_validate=False, dump_config=False,
     writer = ObservationWriter()
     writer.write(obs, out_obs_xml)
     logging.info('Done augment.')
+
+
+augment.__doc__ = get_gen_proc_arg_parser().format_help()

@@ -1009,11 +1009,11 @@ def test_visit():
     with pytest.raises(ImportError):
         _load_plugin(non_conformant_plugin_module)
 
-    test_plugin = _load_plugin(test_plugin_module)
-    _visit('update_function', test_plugin, test_obs, subject=None)
-
-    test_plugin = _load_plugin(test_class_plugin_module)
-    _visit('update_method', test_plugin, test_obs, subject=None)
+    test_fitsparser = FitsParser(sample_file_4axes,
+                                 ObsBlueprint(polarization_axis=1))
+    kwargs = {}
+    _visit(test_plugin_module, test_fitsparser, test_obs, **kwargs)
+    _visit(test_class_plugin_module, test_fitsparser, test_obs, **kwargs)
 
 
 EXPECTED_ENERGY_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
@@ -1202,12 +1202,14 @@ def test_augment_artifact_bounds_range_from_blueprint():
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-def test_visit_import():
+def test_visit_generic_parser():
     try:
         sys.argv = ['fits2caom2', '--local', 'fname', '--observation',
                     'test_collection_id', 'test_observation_id']
         test_parser = GenericParser()
+        test_plugin = __name__
         test_args = get_gen_proc_arg_parser().parse_args()
-        _visit(test_args, test_parser, None)
+        kwargs = {}
+        _visit(test_plugin, test_args, test_parser, **kwargs)
     except BaseException as e:
         assert False, 'should not get here {}'.format(e)
