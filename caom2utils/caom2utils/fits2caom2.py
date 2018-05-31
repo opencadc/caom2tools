@@ -82,15 +82,17 @@ from caom2.caom_util import int_32
 from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
 from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
-from caom2 import CoordAxis2D, PolarizationWCS, TemporalWCS
+from caom2 import CoordAxis2D, CoordRange1D, PolarizationWCS, TemporalWCS
 from caom2 import ObservationReader, ObservationWriter, Algorithm
 from caom2 import ReleaseType, ProductType, ObservationIntentType
 from caom2 import DataProductType, Telescope, Environment
 from caom2 import Instrument, Proposal, Target, Provenance, Metrics
 from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
-from caom2 import ObservationURI, ObservableAxis, Slice
+from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
+from caom2 import CoordRange2D
 from caom2utils.caomvalidator import validate
+from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
 import logging
 import os
@@ -111,7 +113,8 @@ APP_NAME = 'caom2gen'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
-           'POLARIZATION_CTYPES']
+           'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
+           'GenericParser', 'augment']
 
 POSITION_CTYPES = [
     ['RA',
@@ -273,6 +276,11 @@ class ObsBlueprint(object):
         'Observation.target.redshift',
         'Observation.target.keywords',
         'Observation.target.moving',
+
+        'Observation.target_position.point.cval1',
+        'Observation.target_position.point.cval2',
+        'Observation.target_position.coordsys',
+        'Observation.target_position.equinox',
 
         'Observation.telescope.name',
         'Observation.telescope.geoLocationX',
@@ -503,7 +511,7 @@ class ObsBlueprint(object):
         self._pos_axes_configed = False
         self._energy_axis_configed = False
         self._time_axis_configed = False
-        self._pol_axis_configed = False
+        self._polarization_axis_configed = False
         self._obs_axis_configed = False
         if position_axes:
             self.configure_position_axes(position_axes)
@@ -539,7 +547,7 @@ class ObsBlueprint(object):
             return
 
         if override:
-            self.set('Chunk.position.coordsys', (['RADECSYS', 'RADESYS'],
+            self.set('Chunk.position.coordsys', (['RADESYS', 'RADECSYS'],
                                                  None))
             self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
             self.set('Chunk.position.axis.axis1.ctype',
@@ -581,7 +589,7 @@ class ObsBlueprint(object):
             self.set('Chunk.position.axis.function.refCoord.coord2.val',
                      (['CRVAL{}'.format(axes[1])], None))
 
-        self._wcs_std['Chunk.position.coordsys'] = 'RADECSYS'
+        self._wcs_std['Chunk.position.coordsys'] = 'RADESYS'
         self._wcs_std['Chunk.position.equinox'] = 'EQUINOX'
 
         self._wcs_std['Chunk.position.axis.axis1.ctype'] = \
@@ -704,7 +712,7 @@ class ObsBlueprint(object):
         :param override: Set to False when reading from a file.
         :return:
         """
-        if self._pol_axis_configed:
+        if self._polarization_axis_configed:
             self.logger.debug(
                 'Attempt to configure already-configured polarization axis.')
             return
@@ -736,7 +744,7 @@ class ObsBlueprint(object):
         self._wcs_std['Chunk.polarization.axis.function.refCoord.val'] = \
             'CRVAL{}'.format(axis)
 
-        self._pol_axis_configed = True
+        self._polarization_axis_configed = True
 
     def configure_observable_axis(self, axis, override=True):
         """
@@ -1252,20 +1260,6 @@ class ObsBlueprint(object):
         else:
             return self._plan[caom2_element]
 
-    def get_configed_axes_count(self):
-        configed_axes = 0
-        if self._pos_axes_configed:
-            configed_axes += 2
-        if self._energy_axis_configed:
-            configed_axes += 1
-        if self._time_axis_configed:
-            configed_axes += 1
-        if self._pol_axis_configed:
-            configed_axes += 1
-        if self._obs_axis_configed:
-            configed_axes += 1
-        return configed_axes
-
     @staticmethod
     def is_fits(value):
         """Hide the blueprint structure from clients - they shouldn't need
@@ -1274,8 +1268,30 @@ class ObsBlueprint(object):
 
     @staticmethod
     def is_function(value):
-        return (not ObsBlueprint.is_fits(value)
+        return (not ObsBlueprint.is_fits(value) and isinstance(value, str)
                 and isinstance(value, str) and '(' in value and ')' in value)
+
+    @staticmethod
+    def has_no_value(value):
+        """If functions return None, try not to update the WCS with this
+        value."""
+        return value is None or (
+                    isinstance(value, str) and 'None' in value.strip())
+
+    def get_configed_axes_count(self):
+        """:return how many axes have been configured to read from WCS"""
+        configed_axes = 0
+        if self._pos_axes_configed:
+            configed_axes += 2
+        if self._energy_axis_configed:
+            configed_axes += 1
+        if self._time_axis_configed:
+            configed_axes += 1
+        if self._polarization_axis_configed:
+            configed_axes += 1
+        if self._obs_axis_configed:
+            configed_axes += 1
+        return configed_axes
 
 
 @add_metaclass(ABCMeta)
@@ -1492,11 +1508,15 @@ class FitsParser(GenericParser):
 
     """
 
-    def __init__(self, src, obs_blueprint=None, uri=None):
+    def __init__(self, src, obs_blueprint=None, uri=None,
+                 ignore_partial_wcs=False):
         """
         Ctor
         :param src: List of headers (dictionary of FITS keywords:value) with
         one header for each extension or a FITS input file.
+        :param obs_blueprint: externally provided blueprint
+        :param uri: which artifact augmentation is based on
+        :param ignore_partial_wcs: pass through to WcsParser
         """
         self.logger = logging.getLogger(__name__)
         self._headers = []
@@ -1512,6 +1532,7 @@ class FitsParser(GenericParser):
         super(FitsParser, self).__init__(obs_blueprint, self.file, uri)
         # for command-line parameter to module execution
         self.uri = uri
+        self.ignore_partial_wcs = ignore_partial_wcs
         self.apply_blueprint_to_fits()
 
     @property
@@ -1544,10 +1565,9 @@ class FitsParser(GenericParser):
                 artifact.uri, len(self.headers)))
 
         if self.blueprint.get_configed_axes_count() == 0:
-            self.logger.debug(
+            raise TypeError(
                 'No WCS Data. End artifact augmentation for {}.'.format(
                     artifact.uri))
-            return
 
         for i, header in enumerate(self.headers):
             ii = str(i)
@@ -1567,13 +1587,15 @@ class FitsParser(GenericParser):
                 continue
 
             part = artifact.parts[ii]
+            part.product_type = self._get_from_list('Part.productType', i)
 
             # each Part has one Chunk
             if not part.chunks:
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
 
-            wcs_parser = WcsParser(header, self.file, ii)
+            wcs_parser = WcsParser(header, self.file, ii,
+                                   self.ignore_partial_wcs)
             # NOTE: astropy.wcs does not distinguished between WCS axes and
             # data array axes. naxis in astropy.wcs represents in fact the
             # number of WCS axes, whereas chunk.axis represents the naxis
@@ -1606,15 +1628,76 @@ class FitsParser(GenericParser):
                 wcs_parser.augment_temporal(chunk)
                 if chunk.time is None:
                     self._try_time_with_blueprint(chunk, i)
-            if self.blueprint._pol_axis_configed:
+            if self.blueprint._polarization_axis_configed:
                 wcs_parser.augment_polarization(chunk)
                 if chunk.polarization is None:
                     self._try_polarization_with_blueprint(chunk, i)
             if self.blueprint._obs_axis_configed:
                 wcs_parser.augment_observable(chunk)
 
+            # try to set smaller bits of the chunk WCS elements from the
+            # blueprint
+            self._try_range_with_blueprint(chunk, i)
+
         self.logger.debug(
             'End artifact augmentation for {}.'.format(artifact.uri))
+
+    def _try_range_with_blueprint(self, chunk, index):
+        """Use the blueprint to set elements and attributes that
+        are not in the scope of astropy and fits, and therefore are not
+        covered by the WcsParser class. Per PD 19/04/18, bounds and
+        range are not covered by WCS keywords."""
+
+        for i in ['energy', 'time', 'polarization']:
+            axis_configed = getattr(self.blueprint,
+                                    '_{}_axis_configed'.format(i))
+            if axis_configed:
+                wcs = getattr(chunk, i)
+                if wcs is not None and wcs.axis is not None:
+                    if wcs.axis.range is None:
+                        self._try_range(wcs, index, i)
+        self._try_position_range(chunk, index)
+
+    def _try_range(self, wcs, index, lookup):
+        self.logger.debug('Try to set the range for {}'.format(lookup))
+        aug_range_start = self._two_param_constructor(
+            'Chunk.{}.axis.range.start.pix'.format(lookup),
+            'Chunk.{}.axis.range.start.val'.format(lookup),
+            index, _to_float, RefCoord)
+        aug_range_end = self._two_param_constructor(
+            'Chunk.{}.axis.range.end.pix'.format(lookup),
+            'Chunk.{}.axis.range.end.val'.format(lookup),
+            index, _to_float, RefCoord)
+        if aug_range_start and aug_range_end:
+            wcs.axis.range = CoordRange1D(aug_range_start, aug_range_end)
+            self.logger.debug('Completed setting range for {}'.format(lookup))
+
+    def _try_position_range(self, chunk, index):
+        self.logger.debug('Try to set the range for position')
+        if (self.blueprint._pos_axes_configed and chunk.position is not None
+                and chunk.position.axis is not None):
+            aug_range_c1_start = self._two_param_constructor(
+                'Chunk.position.axis.range.start.coord1.pix',
+                'Chunk.position.axis.range.start.coord1.val',
+                index, _to_float, RefCoord)
+            aug_range_c1_end = self._two_param_constructor(
+                'Chunk.position.axis.range.end.coord1.pix',
+                'Chunk.position.axis.range.end.coord1.val',
+                index, _to_float, RefCoord)
+            aug_range_c2_start = self._two_param_constructor(
+                'Chunk.position.axis.range.start.coord2.pix',
+                'Chunk.position.axis.range.start.coord2.val',
+                index, _to_float, RefCoord)
+            aug_range_c2_end = self._two_param_constructor(
+                'Chunk.position.axis.range.end.coord2.pix',
+                'Chunk.position.axis.range.end.coord2.val',
+                index, _to_float, RefCoord)
+            if (aug_range_c1_start and aug_range_c1_end and aug_range_c2_start
+                    and aug_range_c2_end):
+                chunk.position.axis.range = CoordRange2D(
+                    Coord2D(aug_range_c1_start, aug_range_c1_end),
+                    Coord2D(aug_range_c2_start, aug_range_c2_end))
+                self.logger.debug('Completed setting range for position')
 
     def _try_position_with_blueprint(self, chunk, index):
         """
@@ -1635,11 +1718,11 @@ class FitsParser(GenericParser):
             'Chunk.position.axis.axis2.ctype',
             'Chunk.position.axis.axis2.cunit', index, _to_str, Axis)
         aug_x_error = self._two_param_constructor(
-            'Chunk.position.axis.axis1.csyer',
-            'Chunk.position.axis.axis1.crder', index, _to_str, CoordError)
+            'Chunk.position.axis.error1.syser',
+            'Chunk.position.axis.error1.rnder', index, _to_float, CoordError)
         aug_y_error = self._two_param_constructor(
-            'Chunk.position.axis.axis2.csyer',
-            'Chunk.position.axis.axis2.crder', index, _to_str, CoordError)
+            'Chunk.position.axis.error2.syser',
+            'Chunk.position.axis.error2.rnder', index, _to_float, CoordError)
         aug_dimension = self._two_param_constructor(
             'Chunk.position.axis.function.dimension.naxis1',
             'Chunk.position.axis.function.dimension.naxis2',
@@ -1694,8 +1777,8 @@ class FitsParser(GenericParser):
         if chunk.position:
             chunk.position.coordsys = self._get_from_list(
                 'Chunk.position.coordsys', index)
-            chunk.position.equinox = self._get_from_list(
-                'Chunk.position.equinox', index)
+            chunk.position.equinox = _to_float(self._get_from_list(
+                'Chunk.position.equinox', index))
             chunk.position.resolution = self._get_from_list(
                 'Chunk.position.resolution', index)
         self.logger.debug('End augmentation with blueprint for position.')
@@ -1855,10 +1938,6 @@ class FitsParser(GenericParser):
             'Chunk.{}.axis.error.syser'.format(label),
             'Chunk.{}.axis.error.rnder'.format(label),
             index, _to_float, CoordError)
-        aug_error = self._two_param_constructor(
-            'Chunk.{}.axis.error.syser'.format(label),
-            'Chunk.{}.axis.error.rnder'.format(label),
-            index, _to_float, CoordError)
         aug_ref_coord = self._two_param_constructor(
             'Chunk.{}.axis.function.refCoord.pix'.format(label),
             'Chunk.{}.axis.function.refCoord.val'.format(label),
@@ -1984,6 +2063,8 @@ class FitsParser(GenericParser):
                                                  str(header[v]))
                 elif ObsBlueprint.is_function(value):
                     continue
+                elif ObsBlueprint.has_no_value(value):
+                    continue
                 else:
                     # value provided for standard wcs attribute
                     if ObsBlueprint.is_fits(wcs_std[key]):
@@ -2011,13 +2092,15 @@ class FitsParser(GenericParser):
             if ObsBlueprint.is_fits(value) and value[1]:
                 # there is a default value set
                 for index, header in enumerate(self.headers):
-                    for keyword in value[0]:
-                        if not header.get(keyword):
-                            # apply a default if a value does not already exist
-                            _set_by_type(header, keyword, value[1])
-                            logging.debug(
-                                '{}: set default value of {} in HDU {}.'.
-                                format(keyword, value[1], index))
+                    for keywords in value[0]:
+                        for keyword in keywords.split(','):
+                            if not header.get(keyword.strip()):
+                                # apply a default if a value does not already
+                                # exist
+                                _set_by_type(header, keyword.strip(), value[1])
+                                logging.debug(
+                                    '{}: set default value of {} in HDU {}.'.
+                                    format(keyword, value[1], index))
 
         # TODO wcs in astropy ignores cdelt attributes when it finds a cd
         # attribute even if it's in a different axis
@@ -2198,10 +2281,21 @@ class FitsParser(GenericParser):
         information.
         :return: Target Position
         """
-        self.logger.debug('Begin TargetPosition augmentation.')
-        # TODO don't know what to do here, since config file says this is
-        # Chunk-level metadata
-        self.logger.debug('End TargetPosition augmentation.')
+        x = self._get_from_list('Observation.target_position.point.cval1',
+                                index=0)
+        y = self._get_from_list('Observation.target_position.point.cval2',
+                                index=0)
+        coordsys = self._get_from_list('Observation.target_position.coordsys',
+                                       index=0)
+        equinox = self._get_from_list('Observation.target_position.equinox',
+                                      index=0)
+        if x and y:
+            self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
+            aug_point = Point(x, y)
+            aug_target_position = TargetPosition(aug_point, coordsys)
+            aug_target_position.equinox = _to_float(equinox)
+            self.logger.debug('End CAOM2 TargetPosition augmentation.')
+            return aug_target_position
         return None
 
     def _get_telescope(self):
@@ -2222,7 +2316,11 @@ class FitsParser(GenericParser):
         self.logger.debug('End Telescope augmentation.')
         if name:
             self.logger.debug('name is {}'.format(name))
-            return Telescope(str(name), geo_x, geo_y, geo_z, keywords)
+            aug_tel = Telescope(str(name), geo_x, geo_y, geo_z)
+            if keywords:
+                for k in keywords.split():
+                    aug_tel.keywords.add(k)
+            return aug_tel
         else:
             return None
 
@@ -2450,15 +2548,19 @@ class FitsParser(GenericParser):
             except ValueError:
                 try:
                     return datetime.strptime(from_value,
-                                             '%Y-%m-%d %H:%M:%S.%f')
+                                             '%Y-%m-%dT%H:%M:%S.%f')
                 except ValueError:
                     try:
-                        return datetime.strptime(from_value, '%Y-%m-%d')
+                        return datetime.strptime(from_value,
+                                                 '%Y-%m-%d %H:%M:%S.%f')
                     except ValueError:
-                        self.logger.error(
-                            'Cannot parse datetime {}'.format(from_value))
-                        self.add_error('get_datetime', sys.exc_info()[1])
-                        return None
+                        try:
+                            return datetime.strptime(from_value, '%Y-%m-%d')
+                        except ValueError:
+                            self.logger.error(
+                                'Cannot parse datetime {}'.format(from_value))
+                            self.add_error('get_datetime', sys.exc_info()[1])
+                            return None
         else:
             return None
 
@@ -2494,11 +2596,14 @@ class WcsParser(object):
     POLARIZATION_AXIS = 'polarization'
     TIME_AXIS = 'time'
 
-    def __init__(self, header, file, extension):
+    def __init__(self, header, file, extension, ignore_partial_wcs=False):
         """
 
         :param header: FITS extension header
         :param file: name of FITS file
+        :param extension: which HDU
+        :param ignore_partial_wcs: If True, do not let ValueErrors escape the
+        WCS axes methods of this class.
         """
 
         # add the HDU extension to logging messages from this class
@@ -2516,51 +2621,61 @@ class WcsParser(object):
         self.header = header
         self.file = file
         self.extension = extension
+        self.ignore_partial_wcs = ignore_partial_wcs
 
     def augment_energy(self, chunk):
         """
         Augments the energy information in a chunk
         :param chunk:
         """
+        self.logger.debug('Begin Energy WCS augmentation.')
         assert chunk, 'chunk instance required.'
         assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
-        # get the energy axis
-        energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
+        try:
+            # get the energy axis
+            energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
 
-        if energy_axis_index is None:
-            self.logger.debug('No WCS Energy info.')
-            return
+            if energy_axis_index is None:
+                self.logger.debug('No WCS Energy info.')
+                return
 
-        chunk.energy_axis = energy_axis_index + 1
-        naxis = CoordAxis1D(self._get_axis(energy_axis_index))
-        naxis.error = self._get_coord_error(energy_axis_index)
-        if self.wcs.has_cd():
-            delta = self.wcs.cd[energy_axis_index][energy_axis_index]
-        else:
-            delta = self.wcs.cdelt[energy_axis_index]
-        naxis.function = CoordFunction1D(
-            self._get_axis_length(energy_axis_index + 1), delta,
-            self._get_ref_coord(energy_axis_index))
+            chunk.energy_axis = energy_axis_index + 1
+            naxis = CoordAxis1D(self._get_axis(energy_axis_index))
+            naxis.error = self._get_coord_error(energy_axis_index)
+            if self.wcs.has_cd():
+                delta = self.wcs.cd[energy_axis_index][energy_axis_index]
+            else:
+                delta = self.wcs.cdelt[energy_axis_index]
+            naxis.function = CoordFunction1D(
+                self._get_axis_length(energy_axis_index + 1), delta,
+                self._get_ref_coord(energy_axis_index))
 
-        specsys = str(self.wcs.specsys)
-        if not chunk.energy:
-            chunk.energy = SpectralWCS(naxis, specsys)
-        else:
-            chunk.energy.naxis = naxis
-            chunk.energy.specsys = specsys
+            specsys = _to_str(self.wcs.specsys)
+            if not chunk.energy:
+                chunk.energy = SpectralWCS(naxis, specsys)
+            else:
+                chunk.energy.naxis = naxis
+                chunk.energy.specsys = specsys
 
-        chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.ssysobs))
-        # TODO not sure why, but wcs returns 0.0 when the FITS keywords for the
-        # following two keywords are actually not present in the header
-        if self._sanitize(self.wcs.restfrq) != 0:
-            chunk.energy.restfrq = self._sanitize(self.wcs.restfrq)
-        if self._sanitize(self.wcs.restwav) != 0:
-            chunk.energy.restwav = self._sanitize(self.wcs.restwav)
-        chunk.energy.velosys = self._sanitize(self.wcs.velosys)
-        chunk.energy.zsource = self._sanitize(self.wcs.zsource)
-        chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.ssyssrc))
-        chunk.energy.velang = self._sanitize(self.wcs.velangl)
+            chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.ssysobs))
+            # TODO not sure why, but wcs returns 0.0 when the FITS keywords
+            # for the following two keywords are actually not present in
+            # the header
+            if self._sanitize(self.wcs.restfrq) != 0:
+                chunk.energy.restfrq = self._sanitize(self.wcs.restfrq)
+            if self._sanitize(self.wcs.restwav) != 0:
+                chunk.energy.restwav = self._sanitize(self.wcs.restwav)
+            chunk.energy.velosys = self._sanitize(self.wcs.velosys)
+            chunk.energy.zsource = self._sanitize(self.wcs.zsource)
+            chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.ssyssrc))
+            chunk.energy.velang = self._sanitize(self.wcs.velangl)
+            self.logger.debug('End Energy WCS augmentation.')
+        except ValueError as e:
+            if self.ignore_partial_wcs:
+                self.logger.debug('Ignore energy WCS failure.')
+            else:
+                raise e
 
     def augment_position(self, chunk):
         """
@@ -2573,23 +2688,29 @@ class WcsParser(object):
         assert chunk, 'chunk instance required.'
         assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
-        position_axes_indices = self._get_position_axis()
-        if not position_axes_indices:
-            self.logger.debug('No Spatial WCS found')
-            return
+        try:
+            position_axes_indices = self._get_position_axis()
+            if not position_axes_indices:
+                self.logger.debug('No Spatial WCS found')
+                return
 
-        chunk.position_axis_1 = position_axes_indices[0]
-        chunk.position_axis_2 = position_axes_indices[1]
-        axis = self._get_spatial_axis(chunk.position_axis_1 - 1,
-                                      chunk.position_axis_2 - 1)
-        if chunk.position:
-            chunk.position.axis = axis
-        else:
-            chunk.position = SpatialWCS(axis)
+            chunk.position_axis_1 = position_axes_indices[0]
+            chunk.position_axis_2 = position_axes_indices[1]
+            axis = self._get_spatial_axis(chunk.position_axis_1 - 1,
+                                          chunk.position_axis_2 - 1)
+            if chunk.position:
+                chunk.position.axis = axis
+            else:
+                chunk.position = SpatialWCS(axis)
 
-        chunk.position.coordsys = _to_str(self._sanitize(self.wcs.radesys))
-        chunk.position.equinox = self._sanitize(self.wcs.equinox)
-        self.logger.debug('End Spatial WCS augmentation.')
+            chunk.position.coordsys = _to_str(self._sanitize(self.wcs.radesys))
+            chunk.position.equinox = self._sanitize(self.wcs.equinox)
+            self.logger.debug('End Spatial WCS augmentation.')
+        except ValueError as e:
+            if self.ignore_partial_wcs:
+                self.logger.debug('Ignore position WCS failure.')
+            else:
+                raise e
 
     def augment_temporal(self, chunk):
         """
@@ -2610,38 +2731,45 @@ class WcsParser(object):
         assert chunk, 'chunk instance required.'
         assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
-        time_axis_index = self._get_axis_index(TIME_KEYWORDS)
+        try:
+            time_axis_index = self._get_axis_index(TIME_KEYWORDS)
 
-        if time_axis_index is None:
-            self.logger.debug('No WCS Time info.')
-            return
+            if time_axis_index is None:
+                self.logger.debug('No WCS Time info.')
+                return
 
-        chunk.time_axis = time_axis_index + 1
-        # set chunk.time
-        self.logger.debug('Begin temporal axis augmentation.')
+            chunk.time_axis = time_axis_index + 1
+            # set chunk.time
+            self.logger.debug('Begin temporal axis augmentation.')
 
-        aug_naxis = self._get_axis(time_axis_index)
-        aug_error = self._get_coord_error(time_axis_index)
-        aug_ref_coord = self._get_ref_coord(time_axis_index)
-        if self.wcs.has_cd():
-            delta = self.wcs.cd[time_axis_index][time_axis_index]
-        else:
-            delta = self.wcs.cdelt[time_axis_index]
-        aug_function = CoordFunction1D(
-            self._get_axis_length(time_axis_index + 1), delta, aug_ref_coord)
-        naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
-        if not chunk.time:
-            chunk.time = TemporalWCS(naxis)
-        else:
-            chunk.time.naxis = naxis
+            aug_naxis = self._get_axis(time_axis_index)
+            aug_error = self._get_coord_error(time_axis_index)
+            aug_ref_coord = self._get_ref_coord(time_axis_index)
+            if self.wcs.has_cd():
+                delta = self.wcs.cd[time_axis_index][time_axis_index]
+            else:
+                delta = self.wcs.cdelt[time_axis_index]
+            aug_function = CoordFunction1D(
+                self._get_axis_length(time_axis_index + 1),
+                delta, aug_ref_coord)
+            naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
+            if not chunk.time:
+                chunk.time = TemporalWCS(naxis)
+            else:
+                chunk.time.naxis = naxis
 
-        chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
-        chunk.time.resolution = self.header.get('TIMEDEL')
-        chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
-        chunk.time.trefpos = self.header.get('TREFPOS', None)
-        chunk.time.mjdref = self.header.get('MJDREF',
-                                            self.header.get('MJDDATE'))
-        self.logger.debug('End TemporalWCS augmentation.')
+            chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
+            chunk.time.resolution = self.header.get('TIMEDEL')
+            chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
+            chunk.time.trefpos = self.header.get('TREFPOS', None)
+            chunk.time.mjdref = self.header.get('MJDREF',
+                                                self.header.get('MJDDATE'))
+            self.logger.debug('End TemporalWCS augmentation.')
+        except ValueError as e:
+            if self.ignore_partial_wcs:
+                self.logger.debug('Ignore temporal WCS failure.')
+            else:
+                raise e
 
     def augment_polarization(self, chunk):
         """
@@ -2653,32 +2781,42 @@ class WcsParser(object):
         assert chunk, 'chunk instance required.'
         assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
-        polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
-        if polarization_axis_index is None:
-            self.logger.debug('No WCS Polarization info')
-            return
+        try:
+            polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
+            if polarization_axis_index is None:
+                self.logger.debug('No WCS Polarization info')
+                return
 
-        chunk.polarization_axis = polarization_axis_index + 1
+            chunk.polarization_axis = polarization_axis_index + 1
 
-        naxis = CoordAxis1D(self._get_axis(polarization_axis_index))
-        if self.wcs.has_cd():
-            delta = self.wcs.cd[polarization_axis_index][
-                polarization_axis_index]
-        else:
-            delta = self.wcs.cdelt[polarization_axis_index]
-        naxis.function = CoordFunction1D(
-            self._get_axis_length(polarization_axis_index + 1),
-            delta,
-            self._get_ref_coord(polarization_axis_index))
-        if not chunk.polarization:
-            chunk.polarization = PolarizationWCS(naxis)
-        else:
-            chunk.polarization.naxis = naxis
-        self.logger.debug('End Polarization WCS augmentation.')
+            naxis = CoordAxis1D(self._get_axis(polarization_axis_index))
+            if self.wcs.has_cd():
+                delta = self.wcs.cd[polarization_axis_index][
+                    polarization_axis_index]
+            else:
+                delta = self.wcs.cdelt[polarization_axis_index]
+            naxis.function = CoordFunction1D(
+                self._get_axis_length(polarization_axis_index + 1),
+                delta,
+                self._get_ref_coord(polarization_axis_index))
+            if not chunk.polarization:
+                chunk.polarization = PolarizationWCS(naxis)
+            else:
+                chunk.polarization.naxis = naxis
+
+            self.logger.debug('End Polarization WCS augmentation.')
+        except ValueError as e:
+            if self.ignore_partial_wcs:
+                self.logger.debug('Ignore polarization WCS failure.')
+            else:
+                raise e
 
     def augment_observable(self, chunk):
         """
-        Augments a chunk with an observable axis
+        Augments a chunk with an observable axis.
+
+        There is no partial WCS failure to ignore on this axis.
+
         :param chunk:
         :return:
         """
@@ -2750,6 +2888,7 @@ class WcsParser(object):
             aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
                                            aug_cd11, aug_cd12,
                                            aug_cd21, aug_cd22)
+            self.logger.debug('End CoordFunction2D augmentation.')
         else:
             aug_function = None
 
@@ -2758,6 +2897,7 @@ class WcsParser(object):
                                self._get_coord_error(xindex),
                                self._get_coord_error(yindex),
                                None, None, aug_function)
+        self.logger.debug('End CoordAxis2D augmentation.')
         return aug_axis
 
     def _get_cd(self, x_index, y_index):
@@ -2788,7 +2928,7 @@ class WcsParser(object):
         aug_coord_error = None
         aug_csyer = self._sanitize(self.wcs.csyer[index])
         aug_crder = self._sanitize(self.wcs.crder[index])
-        if aug_csyer and aug_crder:
+        if aug_csyer is not None and aug_crder is not None:
             aug_coord_error = CoordError(aug_csyer, aug_crder)
         return aug_coord_error
 
@@ -2819,27 +2959,22 @@ class WcsParser(object):
     def _get_ref_coord(self, index):
         aug_crpix = _to_float(self._sanitize(self.wcs.crpix[index]))
         aug_crval = _to_float(self._sanitize(self.wcs.crval[index]))
-        aug_ref_coord = RefCoord(aug_crpix, aug_crval)
+        aug_ref_coord = None
+        if aug_crpix is not None and aug_crval is not None:
+            aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
 
     def _get_axis_length(self, for_axis):
-        result = -1
-        try:
-            # try ZNAXIS first in order to get the size of the original
-            # image in case it was FITS compressed
-            result = int(self._sanitize(
-                self.header.get('ZNAXIS{}'.format(for_axis))))
-            return result
-        except TypeError:
-            try:
-                result = _to_int(self._sanitize(
-                    self.header.get('NAXIS{}'.format(for_axis))))
-            except ValueError:
-                self.logger.debug(
-                    'Could not find axis length for axis {}'.format(
-                        for_axis))
-        if isinstance(result, tuple):
-            result = result[0]
+        # try ZNAXIS first in order to get the size of the original
+        # image in case it was FITS compressed
+        result = _to_int(self._sanitize(
+            self.header.get('ZNAXIS{}'.format(for_axis))))
+        if result is None:
+            result = _to_int(self._sanitize(
+                self.header.get('NAXIS{}'.format(for_axis))))
+        if result is None:
+            msg = 'Could not find axis length for axis {}'.format(for_axis)
+            raise ValueError(msg)
         return result
 
     def _sanitize(self, value):
@@ -2887,9 +3022,10 @@ def _to_checksum_uri(value):
 
 
 def _set_by_type(header, keyword, value):
-    """astropy documentations says that the type of the second
+    """astropy documentation says that the type of the second
     parameter in the 'set' call is 'str', and then warns of expectations
-    for floating-point values."""
+    for floating-point values when the code does that, so make float values
+    into floats, and int values into ints."""
     float_value = None
     int_value = None
 
@@ -3044,21 +3180,6 @@ def _lookup_blueprint(blueprints, uri):
         return blueprints[uri]
 
 
-def _lookup_blueprint_name(index, blueprint_names):
-    """
-    Blueprint handling may be one-per-observation, or one-per-URI. Reference
-    the correct name of the file here.
-    :param blueprint_names: The collection of blueprint names provided by the
-        user.
-    :param index: Which blueprint to look for
-    :return: the blueprint to apply to Observation creation.
-    """
-    if len(blueprint_names) == 1:
-        return 'The One.'
-    else:
-        return blueprint_names[index]
-
-
 def _extract_ids(cardinality):
     """
     Localize cardinality structure knowledge.
@@ -3069,50 +3190,61 @@ def _extract_ids(cardinality):
     return cardinality.split('/', 1)
 
 
-def _augment(obs, product_id, uri, args, blueprint, index):
+def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
+             ignore_partial_wcs=False, validate_wcs=True, plugin=None,
+             local=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
 
     :param obs: Observation - target of CAOM2 model augmentation
     :param product_id: Unique identifier for a plane in an Observation
-    :param args: Command line arguments.
     :param uri: Unique identifier for an artifact in a plane
     :param blueprint: Which blueprint to use when mapping from a telescope
         data model to CAOM2
-    :param index: How to find the file in the input parameter local that is
-        the metadata augmentation source.
+    :param subject: authorization for any metdata access
+    :param dumpconfig: print the blueprint to stdout
+    :param ignore_partial_wcs: avoid this error with input files
+    :param validate_wcs: if true, call the validate method on the constructed
+        observation, which checks that the WCS in the CAOM model is valid,
+    :param plugin: what code to use for modifying a CAOM instance
+    :param local: the input is the name of a file on disk
     :return:
     """
+    if dumpconfig:
+        print('Blueprint for {}: {}'.format(uri, blueprint))
+
     if product_id not in obs.planes.keys():
         obs.planes.add(Plane(product_id=str(product_id)))
 
     plane = obs.planes[product_id]
 
-    subject = net.Subject.from_cmd_line_args(args)
     if uri not in plane.artifacts.keys():
         plane.artifacts.add(
             Artifact(uri=str(uri),
                      product_type=ProductType.SCIENCE,
                      release_type=ReleaseType.DATA))
-    if args.local:
-        file = args.local[index]
-        if file.endswith('.fits'):
-            logging.debug('Using a FitsParser for {}'.format(file))
-            parser = FitsParser(file, blueprint, uri=uri)
-        elif '.header' in file:
-            logging.debug('Using a FitsParser for {}'.format(file))
-            parser = FitsParser(get_cadc_headers('file://{}'.format(file)),
-                                blueprint, uri=uri)
+
+    if local:
+        if '.header' in local:
+            logging.debug('Using a FitsParser for local file {}'.format(local))
+            parser = FitsParser(get_cadc_headers('file://{}'.format(local)),
+                                blueprint, uri=uri,
+                                ignore_partial_wcs=ignore_partial_wcs)
+        elif local.endswith('.fits') or local.endswith('.fits.gz'):
+            logging.debug('Using a FitsParser for {}'.format(local))
+            parser = FitsParser(local, blueprint, uri=uri,
+                                ignore_partial_wcs=ignore_partial_wcs)
         else:
             # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(file))
+            logging.debug('Using a GenericParser for {}'.format(local))
             parser = GenericParser(blueprint, uri=uri)
     else:
-        if uri.endswith('.fits'):
+        if uri.endswith('.fits') or uri.endswith('.fits.gz'):
             logging.debug('Using a FitsParser for {}'.format(uri))
             headers = get_cadc_headers(uri, subject)
-            parser = FitsParser(headers, blueprint, uri=uri)
+            parser = FitsParser(headers, blueprint, uri=uri,
+                                ignore_partial_wcs=ignore_partial_wcs)
         else:
             # explicitly ignore headers for txt and image files
             logging.debug('Using a GenericParser for {}'.format(uri))
@@ -3120,20 +3252,24 @@ def _augment(obs, product_id, uri, args, blueprint, index):
 
     _update_artifact_meta(plane.artifacts[uri], subject)
 
-    if args.dumpconfig:
-        print('Blueprint for {}: {}'.format(uri, blueprint))
-
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
+
+    _visit(plugin, parser, obs, **kwargs)
+
+    if validate_wcs:
+        try:
+            validate(obs)
+        except InvalidWCSError as e:
+            logging.error(e)
+            tb = traceback.format_exc()
+            logging.error(tb)
 
     if len(parser._errors) > 0:
         logging.debug(
             '{} errors encountered while processing {!r}.'.format(
                 len(parser._errors), uri))
         logging.debug('{}'.format(parser._errors))
-
-    if not args.no_validate:
-        validate(obs)
 
 
 def _load_module(module):
@@ -3145,27 +3281,19 @@ def _load_module(module):
     """
     mname = os.path.basename(module)
     if '.' in mname:
+        # remove extension from the provided name
         mname = mname.split('.')[0]
     pname = os.path.dirname(module)
     sys.path.append(pname)
     try:
         return importlib.import_module(mname)
     except ImportError as e:
-        logging.error('Looking for {} in {}'.format(mname, pname))
+        logging.debug('Looking for {!r} in {!r}'.format(mname, pname))
         raise e
 
 
 def caom2gen():
-    parser = _get_common_arg_parser()
-
-    parser.add_argument('--module', help=('if the blueprint contains function '
-                                          'calls, call '
-                                          'importlib.import_module '
-                                          'for the named module. Provide a '
-                                          'fully qualified name. Parameter '
-                                          'choices are the artifact URI (uri) '
-                                          'or a list of astropy Header '
-                                          'instances (header).'))
+    parser = get_gen_proc_arg_parser()
     parser.add_argument('--blueprint', nargs='+', required=True,
                         help=('list of files with blueprints for CAOM2 '
                               'construction, in serialized format. If the '
@@ -3173,10 +3301,6 @@ def caom2gen():
                               'be applied to all lineage entries. Otherwise, '
                               'there must be a blueprint file per lineage '
                               'entry.'))
-    parser.add_argument('--lineage', nargs='+',
-                        help=('productID/artifactURI. List of plane/artifact '
-                              'identifiers that will be'
-                              'created for the identified observation.'))
 
     if len(sys.argv) < 2:
         parser.print_usage(file=sys.stderr)
@@ -3184,7 +3308,7 @@ def caom2gen():
         sys.exit(-1)
 
     args = parser.parse_args()
-    _set_arg_parser_logging(args)
+    _set_logging(args.verbose, args.debug, args.quiet)
 
     module = None
     if args.module:
@@ -3219,23 +3343,7 @@ def caom2gen():
             blueprints[uri] = blueprint
 
     try:
-        obs = _set_obs(args, blueprints)
-
-        for ii, cardinality in enumerate(args.lineage):
-            product_id, uri = _extract_ids(cardinality)
-            bp_name = _lookup_blueprint_name(ii, args.blueprint)
-            blueprint = _lookup_blueprint(blueprints, uri)
-            logging.debug('Begin augmentation for product_id {}, uri {}, '
-                          'with blueprint {}'.format(product_id, uri, bp_name))
-            _augment(obs, product_id, uri, args, blueprint, ii)
-
-        writer = ObservationWriter()
-        if args.out_obs_xml:
-            writer.write(obs, args.out_obs_xml)
-        else:
-            sys.stdout.flush()
-            writer.write(obs, sys.stdout)
-
+        gen_proc(args, blueprints)
     except Exception as e:
         logging.error('Failed caom2gen execution.')
         logging.error(e)
@@ -3247,19 +3355,25 @@ def caom2gen():
         'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
 
 
-def _set_obs(args, obs_blueprints):
+def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
     """
-    Determine whether to create a Simple or Composite Observation.
+    Determine whether to create a Simple or Composite Observation, or to
+    read an existing Observation from an input file.
 
-    :param args: Command-line parameters.
     :param obs_blueprints: Collection of blueprints provided to application.
+    :param in_obs_xml: Existing observation information, contains the
+        collection and obs_id values.
+    :param collection: This plus the obs_id is a unique key for an
+        observation.
+    :param obs_id: This plus the collection is a unique key for an
+        observation.
     :return: Initially constructed Observation.
     """
     obs = None
-    if args.in_obs_xml:
+    if in_obs_xml:
         # append to existing observation
         reader = ObservationReader(validate=True)
-        obs = reader.read(args.in_obs_xml)
+        obs = reader.read(in_obs_xml)
     else:
         # determine the type of observation to create by looking for the
         # the CompositeObservation.members in the blueprints. If present
@@ -3267,25 +3381,25 @@ def _set_obs(args, obs_blueprints):
         for bp in obs_blueprints.values():
             if bp._get('CompositeObservation.members'):
                 obs = CompositeObservation(
-                    collection=str(args.observation[0]),
-                    observation_id=str(args.observation[1]),
+                    collection=collection,
+                    observation_id=obs_id,
                     algorithm=Algorithm(str('composite')))
                 break
     if not obs:
         # build a simple observation
-        obs = SimpleObservation(collection=str(args.observation[0]),
-                                observation_id=str(args.observation[1]),
+        obs = SimpleObservation(collection=collection,
+                                observation_id=obs_id,
                                 algorithm=Algorithm(str('exposure')))
     return obs
 
 
-def _set_arg_parser_logging(args):
+def _set_logging(verbose, debug, quiet):
     logger = logging.getLogger()
-    if args.verbose:
+    if verbose:
         logger.setLevel(logging.INFO)
-    elif args.debug:
+    elif debug:
         logger.setLevel(logging.DEBUG)
-    elif args.quiet:
+    elif quiet:
         logger.setLevel(logging.ERROR)
     else:
         logger.setLevel(logging.WARN)
@@ -3332,7 +3446,6 @@ def _get_common_arg_parser():
                         help='do not stop and exit upon finding partial WCS')
 
     parser.add_argument('-o', '--out', dest='out_obs_xml',
-                        type=argparse.FileType('wb'),
                         help='output of augmented observation in XML',
                         required=False)
 
@@ -3370,7 +3483,15 @@ def get_arg_parser():
 def proc(args, obs_blueprints):
     """
     Function to process an observation according to command line arguments
-    and a dictionary of blueprints
+    and a dictionary of blueprints.
+
+    This implementation mirrors the Java implementation of fits2caom2, and
+    the command line arguments it handles are productID and fileURI or
+    local.
+
+    There is no support for plugin execution to modify the blueprint with
+    this access point.
+
     :param args: argparse args object containing the user supplied arguments.
     Arguments correspond to the parser returned by the get_arg_parser function
     :param obs_blueprints: dictionary of blueprints reguired to process the
@@ -3379,14 +3500,18 @@ def proc(args, obs_blueprints):
     :return:
     """
 
-    _set_arg_parser_logging(args)
+    _set_logging(args.verbose, args.debug, args.quiet)
 
     if args.local and (len(args.local) != len(args.fileURI)):
         msg = ('number of local arguments not the same with file '
                'URIs ({} vs {})').format(len(args.local), args.fileURI)
         raise RuntimeError(msg)
 
-    obs = _set_obs(args, obs_blueprints)
+    if args.in_obs_xml:
+        obs = _gen_obs(obs_blueprints, args.in_obs_xml)
+    else:
+        obs = _gen_obs(obs_blueprints, None, args.observation[0],
+                       args.observation[1])
 
     if args.in_obs_xml and len(obs.planes) != 1:
         if not args.productID:
@@ -3395,6 +3520,11 @@ def proc(args, obs_blueprints):
                 'there are zero or more than one planes ',
                 'in the input observation.')
             raise RuntimeError(msg)
+
+    subject = net.Subject.from_cmd_line_args(args)
+    validate_wcs = True
+    if args.no_validate:
+        validate_wcs = False
 
     for i, uri in enumerate(args.fileURI):
         blueprint = obs_blueprints[uri]
@@ -3409,7 +3539,13 @@ def proc(args, obs_blueprints):
                     'identified in the blueprint.')
                 raise RuntimeError(msg)
 
-        _augment(obs, product_id, uri, args, blueprint, i)
+        file_name = None
+        if args.local:
+            file_name = args.local[i]
+
+        _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
+                 args.ignorePartialWCS, validate_wcs, plugin=None,
+                 local=file_name)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3417,3 +3553,160 @@ def proc(args, obs_blueprints):
     else:
         sys.stdout.flush()
         writer.write(obs, sys.stdout)
+
+
+def _load_plugin(plugin_name):
+    plgin = _load_module(plugin_name)
+    if hasattr(plgin, 'update'):
+        pass
+    elif hasattr(plgin, 'ObservationUpdater'):
+        # for backwards compatibility with caom2repo
+        plgin = getattr(plgin, 'ObservationUpdater')()
+
+    if not hasattr(plgin, 'update'):
+        msg = 'The plugin {} is not correct.  It must provide one ' \
+                      'of:\n' \
+                      '1 - a function named update, or\n' \
+                      '2 - a class ObservationUpdater with a function named ' \
+                      'update.\n In either case, the update signature needs ' \
+                      'to be (Observation, **kwargs).'.format(plugin_name)
+        raise ImportError(msg)
+    return plgin
+
+
+def _visit(plugn, parser, obs, **kwargs):
+    if plugn is not None:
+        if isinstance(parser, FitsParser):
+            # TODO make a check that's necessary under both calling conditions
+            # here
+            if len(plugn) > 0:
+                logging.debug(
+                    'Begin plugin execution {!r} update method on '
+                    'observation {!r}'.format(plugn, obs.observation_id))
+                plgin = _load_plugin(plugn)
+                kwargs['headers'] = parser.headers
+                try:
+                    if plgin.update(observation=obs, **kwargs):
+                        logging.debug(
+                            'Finished executing plugin {!r} update '
+                            'method on observation {!r}'.format(
+                                plugn, obs.observation_id))
+                except Exception as e:
+                    logging.debug(e)
+                    tb = traceback.format_exc()
+                    logging.debug(tb)
+        else:
+            logging.debug('Not a FitsParser, no plugin execution.')
+
+
+def gen_proc(args, blueprints, **kwargs):
+    """The implementation that expects a product ID to be provided as
+    part of the lineage parameter, and blueprints as input parameters,
+    and a plugin parameter, that supports external programmatic blueprint
+    modification."""
+    _set_logging(args.verbose, args.debug, args.quiet)
+
+    if args.in_obs_xml:
+        obs = _gen_obs(blueprints, args.in_obs_xml)
+    else:
+        obs = _gen_obs(blueprints, None, args.observation[0],
+                       args.observation[1])
+
+    subject = net.Subject.from_cmd_line_args(args)
+    validate_wcs = True
+    if args.no_validate:
+        validate_wcs = False
+
+    for ii, cardinality in enumerate(args.lineage):
+        product_id, uri = _extract_ids(cardinality)
+        blueprint = _lookup_blueprint(blueprints, uri)
+        logging.debug(
+            'Begin augmentation for product_id {}, uri {}'.format(product_id,
+                                                                  uri))
+
+        file_name = None
+        if args.local:
+            file_name = args.local[ii]
+
+        _augment(obs, product_id, uri, blueprint, subject,
+                 args.dumpconfig, args.ignorePartialWCS, validate_wcs,
+                 args.plugin, file_name,
+                 **kwargs)
+
+    writer = ObservationWriter()
+    if args.out_obs_xml:
+        writer.write(obs, args.out_obs_xml)
+    else:
+        sys.stdout.flush()
+        writer.write(obs, sys.stdout)
+
+
+def get_gen_proc_arg_parser():
+    """
+    Returns the arg parser with minimum arguments required to run
+    caom2gen
+    :return: args parser
+    """
+    parser = _get_common_arg_parser()
+    parser.add_argument('--module', help=('if the blueprint contains function '
+                                          'calls, call '
+                                          'importlib.import_module '
+                                          'for the named module. Provide a '
+                                          'fully qualified name. Parameter '
+                                          'choices are the artifact URI (uri) '
+                                          'or a list of astropy Header '
+                                          'instances (header). This will '
+                                          'allow the update of a single '
+                                          'blueprint entry with a single '
+                                          'call.'))
+    parser.add_argument('--plugin', help=('if this parameter is specified, '
+                                          'call importlib.import_module '
+                                          'for the named module. Then '
+                                          'execute the method "update", '
+                                          'with the signature '
+                                          '(Observation, **kwargs). '
+                                          'This will allow '
+                                          'for the update of multiple '
+                                          'observation data members with one '
+                                          'call.'))
+    parser.add_argument('--lineage', nargs='+',
+                        help=('productID/artifactURI. List of plane/artifact '
+                              'identifiers that will be'
+                              'created for the identified observation.'))
+    return parser
+
+
+def augment(blueprints, no_validate=False, dump_config=False,
+            ignore_partial_wcs=None, plugin=None, out_obs_xml=None,
+            in_obs_xml=None, collection=None, observation=None,
+            product_id=None, uri=None, netrc=False, file_name=None,
+            verbose=False, debug=False, quiet=False, **kwargs):
+    _set_logging(verbose, debug, quiet)
+    logging.debug(
+        'Begin augmentation for product_id {}, uri {}'.format(product_id,
+                                                              uri))
+
+    # The 'visit_args' are a dictionary within the 'params' dictionary.
+    # They are set by the collection-specific implementation, as they are
+    # dependent on that collection-specific implementation. The args to the
+    # visit function are not set in fits2caom2.
+
+    params = kwargs['params']
+    kwargs = params['visit_args']
+
+    obs = _gen_obs(blueprints, in_obs_xml, collection, observation)
+    subject = net.Subject(username=None, certificate=None, netrc=netrc)
+    validate_wcs = True
+    if no_validate is not None:
+        validate_wcs = not no_validate
+
+    for ii in blueprints:
+        _augment(obs, product_id, uri, blueprints[ii], subject, dump_config,
+                 ignore_partial_wcs, validate_wcs, plugin, file_name, **kwargs)
+
+    writer = ObservationWriter()
+    writer.write(obs, out_obs_xml)
+    logging.info('Done augment.')
+
+
+augment.__doc__ = get_gen_proc_arg_parser().format_help()

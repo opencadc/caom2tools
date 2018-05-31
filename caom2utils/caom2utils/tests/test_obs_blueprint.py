@@ -100,6 +100,14 @@ def test_obs_blueprint():
     ob.configure_time_axis(axis=5)
     ob.configure_observable_axis(axis=6)
 
+    # test that configuring something that's already configured doesn't break
+    # anything
+    ob.configure_position_axes(axes=(1, 2))
+    ob.configure_energy_axis(axis=3)
+    ob.configure_polarization_axis(axis=4)
+    ob.configure_time_axis(axis=5)
+    ob.configure_observable_axis(axis=6)
+
     # set attribute
     ob.set('Observation.instrument.name', 'NIRI')
     assert ob._plan['Observation.instrument.name'] == 'NIRI'
