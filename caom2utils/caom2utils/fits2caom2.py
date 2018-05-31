@@ -1508,15 +1508,13 @@ class FitsParser(GenericParser):
 
     """
 
-    def __init__(self, src, obs_blueprint=None, uri=None,
-                 ignore_partial_wcs=False):
+    def __init__(self, src, obs_blueprint=None, uri=None):
         """
         Ctor
         :param src: List of headers (dictionary of FITS keywords:value) with
         one header for each extension or a FITS input file.
         :param obs_blueprint: externally provided blueprint
         :param uri: which artifact augmentation is based on
-        :param ignore_partial_wcs: pass through to WcsParser
         """
         self.logger = logging.getLogger(__name__)
         self._headers = []
@@ -1532,7 +1530,6 @@ class FitsParser(GenericParser):
         super(FitsParser, self).__init__(obs_blueprint, self.file, uri)
         # for command-line parameter to module execution
         self.uri = uri
-        self.ignore_partial_wcs = ignore_partial_wcs
         self.apply_blueprint_to_fits()
 
     @property
@@ -1594,8 +1591,7 @@ class FitsParser(GenericParser):
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
 
-            wcs_parser = WcsParser(header, self.file, ii,
-                                   self.ignore_partial_wcs)
+            wcs_parser = WcsParser(header, self.file, ii)
             # NOTE: astropy.wcs does not distinguished between WCS axes and
             # data array axes. naxis in astropy.wcs represents in fact the
             # number of WCS axes, whereas chunk.axis represents the naxis
@@ -2596,13 +2592,12 @@ class WcsParser(object):
     POLARIZATION_AXIS = 'polarization'
     TIME_AXIS = 'time'
 
-    def __init__(self, header, file, extension, ignore_partial_wcs=False):
+    def __init__(self, header, file, extension):
         """
 
         :param header: FITS extension header
         :param file: name of FITS file
         :param extension: which HDU
-        :param ignore_partial_wcs: If True, do not let ValueErrors escape the
         WCS axes methods of this class.
         """
 
@@ -2621,7 +2616,6 @@ class WcsParser(object):
         self.header = header
         self.file = file
         self.extension = extension
-        self.ignore_partial_wcs = ignore_partial_wcs
 
     def augment_energy(self, chunk):
         """
@@ -2632,50 +2626,44 @@ class WcsParser(object):
         assert chunk, 'chunk instance required.'
         assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
-        try:
-            # get the energy axis
-            energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
+        # get the energy axis
+        energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
 
-            if energy_axis_index is None:
-                self.logger.debug('No WCS Energy info.')
-                return
+        if energy_axis_index is None:
+            self.logger.debug('No WCS Energy info.')
+            return
 
-            chunk.energy_axis = energy_axis_index + 1
-            naxis = CoordAxis1D(self._get_axis(energy_axis_index))
-            naxis.error = self._get_coord_error(energy_axis_index)
-            if self.wcs.has_cd():
-                delta = self.wcs.cd[energy_axis_index][energy_axis_index]
-            else:
-                delta = self.wcs.cdelt[energy_axis_index]
-            naxis.function = CoordFunction1D(
-                self._get_axis_length(energy_axis_index + 1), delta,
-                self._get_ref_coord(energy_axis_index))
+        chunk.energy_axis = energy_axis_index + 1
+        naxis = CoordAxis1D(self._get_axis(energy_axis_index))
+        naxis.error = self._get_coord_error(energy_axis_index)
+        if self.wcs.has_cd():
+            delta = self.wcs.cd[energy_axis_index][energy_axis_index]
+        else:
+            delta = self.wcs.cdelt[energy_axis_index]
+        naxis.function = CoordFunction1D(
+            self._get_axis_length(energy_axis_index + 1), delta,
+            self._get_ref_coord(energy_axis_index))
 
-            specsys = _to_str(self.wcs.specsys)
-            if not chunk.energy:
-                chunk.energy = SpectralWCS(naxis, specsys)
-            else:
-                chunk.energy.naxis = naxis
-                chunk.energy.specsys = specsys
+        specsys = _to_str(self.wcs.specsys)
+        if not chunk.energy:
+            chunk.energy = SpectralWCS(naxis, specsys)
+        else:
+            chunk.energy.naxis = naxis
+            chunk.energy.specsys = specsys
 
-            chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.ssysobs))
-            # TODO not sure why, but wcs returns 0.0 when the FITS keywords
-            # for the following two keywords are actually not present in
-            # the header
-            if self._sanitize(self.wcs.restfrq) != 0:
-                chunk.energy.restfrq = self._sanitize(self.wcs.restfrq)
-            if self._sanitize(self.wcs.restwav) != 0:
-                chunk.energy.restwav = self._sanitize(self.wcs.restwav)
-            chunk.energy.velosys = self._sanitize(self.wcs.velosys)
-            chunk.energy.zsource = self._sanitize(self.wcs.zsource)
-            chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.ssyssrc))
-            chunk.energy.velang = self._sanitize(self.wcs.velangl)
-            self.logger.debug('End Energy WCS augmentation.')
-        except ValueError as e:
-            if self.ignore_partial_wcs:
-                self.logger.debug('Ignore energy WCS failure.')
-            else:
-                raise e
+        chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.ssysobs))
+        # TODO not sure why, but wcs returns 0.0 when the FITS keywords
+        # for the following two keywords are actually not present in
+        # the header
+        if self._sanitize(self.wcs.restfrq) != 0:
+            chunk.energy.restfrq = self._sanitize(self.wcs.restfrq)
+        if self._sanitize(self.wcs.restwav) != 0:
+            chunk.energy.restwav = self._sanitize(self.wcs.restwav)
+        chunk.energy.velosys = self._sanitize(self.wcs.velosys)
+        chunk.energy.zsource = self._sanitize(self.wcs.zsource)
+        chunk.energy.ssyssrc = _to_str(self._sanitize(self.wcs.ssyssrc))
+        chunk.energy.velang = self._sanitize(self.wcs.velangl)
+        self.logger.debug('End Energy WCS augmentation.')
 
     def augment_position(self, chunk):
         """
@@ -2688,29 +2676,23 @@ class WcsParser(object):
         assert chunk, 'chunk instance required.'
         assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
-        try:
-            position_axes_indices = self._get_position_axis()
-            if not position_axes_indices:
-                self.logger.debug('No Spatial WCS found')
-                return
+        position_axes_indices = self._get_position_axis()
+        if not position_axes_indices:
+            self.logger.debug('No Spatial WCS found')
+            return
 
-            chunk.position_axis_1 = position_axes_indices[0]
-            chunk.position_axis_2 = position_axes_indices[1]
-            axis = self._get_spatial_axis(chunk.position_axis_1 - 1,
-                                          chunk.position_axis_2 - 1)
-            if chunk.position:
-                chunk.position.axis = axis
-            else:
-                chunk.position = SpatialWCS(axis)
+        chunk.position_axis_1 = position_axes_indices[0]
+        chunk.position_axis_2 = position_axes_indices[1]
+        axis = self._get_spatial_axis(chunk.position_axis_1 - 1,
+                                      chunk.position_axis_2 - 1)
+        if chunk.position:
+            chunk.position.axis = axis
+        else:
+            chunk.position = SpatialWCS(axis)
 
-            chunk.position.coordsys = _to_str(self._sanitize(self.wcs.radesys))
-            chunk.position.equinox = self._sanitize(self.wcs.equinox)
-            self.logger.debug('End Spatial WCS augmentation.')
-        except ValueError as e:
-            if self.ignore_partial_wcs:
-                self.logger.debug('Ignore position WCS failure.')
-            else:
-                raise e
+        chunk.position.coordsys = _to_str(self._sanitize(self.wcs.radesys))
+        chunk.position.equinox = self._sanitize(self.wcs.equinox)
+        self.logger.debug('End Spatial WCS augmentation.')
 
     def augment_temporal(self, chunk):
         """
@@ -2731,45 +2713,39 @@ class WcsParser(object):
         assert chunk, 'chunk instance required.'
         assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
-        try:
-            time_axis_index = self._get_axis_index(TIME_KEYWORDS)
+        time_axis_index = self._get_axis_index(TIME_KEYWORDS)
 
-            if time_axis_index is None:
-                self.logger.debug('No WCS Time info.')
-                return
+        if time_axis_index is None:
+            self.logger.debug('No WCS Time info.')
+            return
 
-            chunk.time_axis = time_axis_index + 1
-            # set chunk.time
-            self.logger.debug('Begin temporal axis augmentation.')
+        chunk.time_axis = time_axis_index + 1
+        # set chunk.time
+        self.logger.debug('Begin temporal axis augmentation.')
 
-            aug_naxis = self._get_axis(time_axis_index)
-            aug_error = self._get_coord_error(time_axis_index)
-            aug_ref_coord = self._get_ref_coord(time_axis_index)
-            if self.wcs.has_cd():
-                delta = self.wcs.cd[time_axis_index][time_axis_index]
-            else:
-                delta = self.wcs.cdelt[time_axis_index]
-            aug_function = CoordFunction1D(
-                self._get_axis_length(time_axis_index + 1),
-                delta, aug_ref_coord)
-            naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
-            if not chunk.time:
-                chunk.time = TemporalWCS(naxis)
-            else:
-                chunk.time.naxis = naxis
+        aug_naxis = self._get_axis(time_axis_index)
+        aug_error = self._get_coord_error(time_axis_index)
+        aug_ref_coord = self._get_ref_coord(time_axis_index)
+        if self.wcs.has_cd():
+            delta = self.wcs.cd[time_axis_index][time_axis_index]
+        else:
+            delta = self.wcs.cdelt[time_axis_index]
+        aug_function = CoordFunction1D(
+            self._get_axis_length(time_axis_index + 1),
+            delta, aug_ref_coord)
+        naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
+        if not chunk.time:
+            chunk.time = TemporalWCS(naxis)
+        else:
+            chunk.time.naxis = naxis
 
-            chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
-            chunk.time.resolution = self.header.get('TIMEDEL')
-            chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
-            chunk.time.trefpos = self.header.get('TREFPOS', None)
-            chunk.time.mjdref = self.header.get('MJDREF',
-                                                self.header.get('MJDDATE'))
-            self.logger.debug('End TemporalWCS augmentation.')
-        except ValueError as e:
-            if self.ignore_partial_wcs:
-                self.logger.debug('Ignore temporal WCS failure.')
-            else:
-                raise e
+        chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
+        chunk.time.resolution = self.header.get('TIMEDEL')
+        chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
+        chunk.time.trefpos = self.header.get('TREFPOS', None)
+        chunk.time.mjdref = self.header.get('MJDREF',
+                                            self.header.get('MJDDATE'))
+        self.logger.debug('End TemporalWCS augmentation.')
 
     def augment_polarization(self, chunk):
         """
@@ -2781,41 +2757,33 @@ class WcsParser(object):
         assert chunk, 'chunk instance required.'
         assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
 
-        try:
-            polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
-            if polarization_axis_index is None:
-                self.logger.debug('No WCS Polarization info')
-                return
+        polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
+        if polarization_axis_index is None:
+            self.logger.debug('No WCS Polarization info')
+            return
 
-            chunk.polarization_axis = polarization_axis_index + 1
+        chunk.polarization_axis = polarization_axis_index + 1
 
-            naxis = CoordAxis1D(self._get_axis(polarization_axis_index))
-            if self.wcs.has_cd():
-                delta = self.wcs.cd[polarization_axis_index][
-                    polarization_axis_index]
-            else:
-                delta = self.wcs.cdelt[polarization_axis_index]
-            naxis.function = CoordFunction1D(
-                self._get_axis_length(polarization_axis_index + 1),
-                delta,
-                self._get_ref_coord(polarization_axis_index))
-            if not chunk.polarization:
-                chunk.polarization = PolarizationWCS(naxis)
-            else:
-                chunk.polarization.naxis = naxis
+        naxis = CoordAxis1D(self._get_axis(polarization_axis_index))
+        if self.wcs.has_cd():
+            delta = self.wcs.cd[polarization_axis_index][
+                polarization_axis_index]
+        else:
+            delta = self.wcs.cdelt[polarization_axis_index]
+        naxis.function = CoordFunction1D(
+            self._get_axis_length(polarization_axis_index + 1),
+            delta,
+            self._get_ref_coord(polarization_axis_index))
+        if not chunk.polarization:
+            chunk.polarization = PolarizationWCS(naxis)
+        else:
+            chunk.polarization.naxis = naxis
 
-            self.logger.debug('End Polarization WCS augmentation.')
-        except ValueError as e:
-            if self.ignore_partial_wcs:
-                self.logger.debug('Ignore polarization WCS failure.')
-            else:
-                raise e
+        self.logger.debug('End Polarization WCS augmentation.')
 
     def augment_observable(self, chunk):
         """
         Augments a chunk with an observable axis.
-
-        There is no partial WCS failure to ignore on this axis.
 
         :param chunk:
         :return:
@@ -3191,8 +3159,7 @@ def _extract_ids(cardinality):
 
 
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
-             ignore_partial_wcs=False, validate_wcs=True, plugin=None,
-             local=None, **kwargs):
+             validate_wcs=True, plugin=None, local=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3204,7 +3171,6 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         data model to CAOM2
     :param subject: authorization for any metdata access
     :param dumpconfig: print the blueprint to stdout
-    :param ignore_partial_wcs: avoid this error with input files
     :param validate_wcs: if true, call the validate method on the constructed
         observation, which checks that the WCS in the CAOM model is valid,
     :param plugin: what code to use for modifying a CAOM instance
@@ -3229,12 +3195,10 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         if '.header' in local:
             logging.debug('Using a FitsParser for local file {}'.format(local))
             parser = FitsParser(get_cadc_headers('file://{}'.format(local)),
-                                blueprint, uri=uri,
-                                ignore_partial_wcs=ignore_partial_wcs)
+                                blueprint, uri=uri)
         elif local.endswith('.fits') or local.endswith('.fits.gz'):
             logging.debug('Using a FitsParser for {}'.format(local))
-            parser = FitsParser(local, blueprint, uri=uri,
-                                ignore_partial_wcs=ignore_partial_wcs)
+            parser = FitsParser(local, blueprint, uri=uri)
         else:
             # explicitly ignore headers for txt and image files
             logging.debug('Using a GenericParser for {}'.format(local))
@@ -3243,8 +3207,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):
             logging.debug('Using a FitsParser for {}'.format(uri))
             headers = get_cadc_headers(uri, subject)
-            parser = FitsParser(headers, blueprint, uri=uri,
-                                ignore_partial_wcs=ignore_partial_wcs)
+            parser = FitsParser(headers, blueprint, uri=uri)
         else:
             # explicitly ignore headers for txt and image files
             logging.debug('Using a GenericParser for {}'.format(uri))
@@ -3442,9 +3405,6 @@ def _get_common_arg_parser():
                               'WCS information for an observation. '
                               'Specifying this flag skips that step.'))
 
-    parser.add_argument('--ignorePartialWCS', action='store_true',
-                        help='do not stop and exit upon finding partial WCS')
-
     parser.add_argument('-o', '--out', dest='out_obs_xml',
                         help='output of augmented observation in XML',
                         required=False)
@@ -3459,10 +3419,6 @@ def _get_common_arg_parser():
     parser.add_argument('--local', nargs='+',
                         help=('list of files in local filesystem (same order '
                               'as uri)'))
-    parser.add_argument('--keep', action='store_true',
-                        help='keep the locally stored files after ingestion')
-    parser.add_argument('--test', action='store_true',
-                        help='test mode, do not persist to database')
     return parser
 
 
@@ -3544,8 +3500,7 @@ def proc(args, obs_blueprints):
             file_name = args.local[i]
 
         _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
-                 args.ignorePartialWCS, validate_wcs, plugin=None,
-                 local=file_name)
+                 validate_wcs, plugin=None, local=file_name)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3628,10 +3583,8 @@ def gen_proc(args, blueprints, **kwargs):
         if args.local:
             file_name = args.local[ii]
 
-        _augment(obs, product_id, uri, blueprint, subject,
-                 args.dumpconfig, args.ignorePartialWCS, validate_wcs,
-                 args.plugin, file_name,
-                 **kwargs)
+        _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
+                 validate_wcs, args.plugin, file_name, **kwargs)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3676,11 +3629,10 @@ def get_gen_proc_arg_parser():
     return parser
 
 
-def augment(blueprints, no_validate=False, dump_config=False,
-            ignore_partial_wcs=None, plugin=None, out_obs_xml=None,
-            in_obs_xml=None, collection=None, observation=None,
-            product_id=None, uri=None, netrc=False, file_name=None,
-            verbose=False, debug=False, quiet=False, **kwargs):
+def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
+            out_obs_xml=None, in_obs_xml=None, collection=None,
+            observation=None, product_id=None, uri=None, netrc=False,
+            file_name=None, verbose=False, debug=False, quiet=False, **kwargs):
     _set_logging(verbose, debug, quiet)
     logging.debug(
         'Begin augmentation for product_id {}, uri {}'.format(product_id,
@@ -3702,7 +3654,7 @@ def augment(blueprints, no_validate=False, dump_config=False,
 
     for ii in blueprints:
         _augment(obs, product_id, uri, blueprints[ii], subject, dump_config,
-                 ignore_partial_wcs, validate_wcs, plugin, file_name, **kwargs)
+                 validate_wcs, plugin, file_name, **kwargs)
 
     writer = ObservationWriter()
     writer.write(obs, out_obs_xml)
