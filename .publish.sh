@@ -32,6 +32,9 @@ echo "password = ${PYPI_PASSWORD}" >> .pypirc
 echo "Publish on pypi"
 twine upload --config-file .pypirc dist/* || { echo "Errors publishing $TRAVIS_TAG"; exit -1; }
 
+# give it time to become available on pypi
+sleep 10
+
 # check version available
 pip uninstall -y $product
 pip install --upgrade --pre $product==$version || { echo "$TRAVIS_TAG not installed on pypi" ; exit -1; } 

@@ -112,7 +112,9 @@ class CAOM2RepoClient(object):
         Instance of a CAOM2RepoClient
         :param subject: the subject performing the action
         :type cadcutils.auth.Subject
-        :param server: Host server for the caom2repo service
+        :param resource_id: the resource ID of the service
+        :param host: Host for the caom2repo service
+        :param agent: The name of the agent (to be used in server logging)
         """
         self.level = logLevel
         logging.basicConfig(
@@ -587,8 +589,6 @@ def main_app():
         'and Delete) operations it also implements a visitor operation that '
         'allows for updating multiple observations in a collection')
 
-    parser.add_argument("-s", "--server", help='URL of the CAOM2 repo server')
-
     parser.formatter_class = argparse.RawTextHelpFormatter
 
     subparsers = parser.add_subparsers(dest='cmd')
@@ -681,9 +681,9 @@ def main_app():
         level = logging.WARN
 
     subject = net.Subject.from_cmd_line_args(args)
-    server = None
-    if args.server:
-        server = args.server
+    host = None
+    if args.host:
+        host = args.host
 
     multiprocessing.Manager()
     logging.basicConfig(
@@ -691,7 +691,7 @@ def main_app():
                '%(funcName)s %(message)s',
         level=level, stream=sys.stdout)
     logger = logging.getLogger('main_app')
-    client = CAOM2RepoClient(subject, level, args.resource_id, host=server)
+    client = CAOM2RepoClient(subject, level, args.resource_id, host=host)
     if args.cmd == 'visit':
         print("Visit")
         logger.debug(
