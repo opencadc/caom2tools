@@ -547,8 +547,7 @@ class ObsBlueprint(object):
             return
 
         if override:
-            self.set('Chunk.position.coordsys', (['RADESYS', 'RADECSYS'],
-                                                 None))
+            self.set('Chunk.position.coordsys', (['RADESYS'], None))
             self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
             self.set('Chunk.position.axis.axis1.ctype',
                      (['CTYPE{}'.format(axes[0])], None))
@@ -1109,29 +1108,6 @@ class ObsBlueprint(object):
         else:
             self._plan[caom2_element] = value
 
-    def set_fits_attribute(self, caom2_element, fits_attribute_list,
-                           extension=0):
-        """
-        Associates a CAOM2 element with a FITS attribute
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
-        :param fits_attribute_list: list of FITS attributes the element is
-        potentially mapped to.
-        :param extension: extension number (used only for Chunk elements)
-        """
-        ObsBlueprint.check_caom2_element(caom2_element)
-        assert isinstance(fits_attribute_list,
-                          list), 'Type mis-match for fits_attribute_list'
-        assert extension >= 0, 'Extension count failure when setting a value'
-        if extension:
-            ObsBlueprint.check_chunk(caom2_element)
-            if extension not in self._extensions:
-                self._extensions[extension] = {}
-            self._extensions[extension][caom2_element] = (fits_attribute_list,
-                                                          None)
-        else:
-            self._plan[caom2_element] = (fits_attribute_list, None)
-
     def add_fits_attribute(self, caom2_element, fits_attribute, extension=0):
         """
         Adds a FITS attribute in the list of other FITS attributes associated
@@ -1152,31 +1128,31 @@ class ObsBlueprint(object):
                     'No extension {} in the blueprint'.format(extension))
             else:
                 if caom2_element in self._extensions[extension]:
-                    if isinstance(self._extensions[extension][caom2_element],
-                                  tuple):
-                        self._extensions[extension][caom2_element][0].\
-                            insert(0, fits_attribute)
+                    if (isinstance(self._extensions[extension][caom2_element],
+                                   tuple)):
+                        if (fits_attribute not in
+                                self._extensions[extension][caom2_element][0]):
+                            self._extensions[extension][caom2_element][0].\
+                                insert(0, fits_attribute)
                     else:
                         raise AttributeError(
                             ('No FITS attributes in extension {} associated '
                              'with keyword {}').format(extension,
                                                        caom2_element))
                 else:
-                    raise KeyError(
-                        ('Keyword {} not found in the extension {} of '
-                         'the blueprint').format(caom2_element, extension))
+                    self._extensions[extension][caom2_element] = \
+                        ([fits_attribute], None)
         else:
             if caom2_element in self._plan:
                 if isinstance(self._plan[caom2_element], tuple):
-                    self._plan[caom2_element][0].insert(0, fits_attribute)
+                    if fits_attribute not in self._plan[caom2_element][0]:
+                        self._plan[caom2_element][0].insert(0, fits_attribute)
                 else:
                     raise AttributeError(
                         'No FITS attributes associated with keyword {}'.
                         format(caom2_element))
             else:
-                raise KeyError(
-                    'Keyword {} not found in the blueprint'.
-                    format(caom2_element))
+                self._plan[caom2_element] = ([fits_attribute], None)
 
     def set_default(self, caom2_element, default, extension=0):
         """
@@ -1237,6 +1213,29 @@ class ObsBlueprint(object):
         else:
             if caom2_element in self._plan:
                 del self._plan[caom2_element]
+
+    def clear(self, caom2_element, extension=0):
+        """
+        Clears the value for an element in the blueprint by resetting it to an
+        empty list with no default.
+
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param extension: extension number
+        :raises exceptions if the element or extension not found
+        """
+        ObsBlueprint.check_caom2_element(caom2_element)
+        assert extension >= 0, 'Extension failure when deleting.'
+        if extension:
+            ObsBlueprint.check_chunk(caom2_element)
+            if extension not in self._extensions:
+                raise ValueError('Extension {} not configured in blueprint'.
+                                 format(extension))
+            if caom2_element in self._extensions[extension]:
+                self._extensions[extension][caom2_element] = ([], None)
+        else:
+            if caom2_element in self._plan:
+                self._plan[caom2_element] = ([], None)
 
     def _get(self, caom2_element, extension=0):
         """
@@ -1402,22 +1401,6 @@ class GenericParser:
         self.logger.debug(
             'End generic CAOM2 artifact augmentation for {}.'.format(
                 self.logging_name))
-
-    def _get_set_from_list(self, lookup, index):
-        value = None
-        keywords = None
-        try:
-            keywords = self.blueprint._get(lookup)
-        except KeyError:
-            self.add_error(lookup, sys.exc_info()[1])
-            self.logger.debug(
-                'Could not find \'{}\' in fits2caom2 configuration.'.format(
-                    lookup))
-        if keywords:
-            value = keywords
-            self.logger.debug('{}: assigned value {}.'.format(lookup, value))
-
-        return value
 
     def _get_from_list(self, lookup, index, current=None):
         value = None
@@ -2844,21 +2827,24 @@ class WcsParser(object):
         aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
                                 self._get_ref_coord(yindex))
 
-        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
-            self._get_cd(xindex, yindex)
-
-        if aug_dimension is not None and \
-                aug_ref_coord is not None and \
-                aug_cd11 is not None and \
-                aug_cd12 is not None and \
-                aug_cd21 is not None and \
-                aug_cd22 is not None:
-            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
-                                           aug_cd11, aug_cd12,
-                                           aug_cd21, aug_cd22)
-            self.logger.debug('End CoordFunction2D augmentation.')
+        if self.wcs.has_pc():
+            pass
         else:
-            aug_function = None
+            aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
+                self._get_cd(xindex, yindex)
+
+            if aug_dimension is not None and \
+                    aug_ref_coord is not None and \
+                    aug_cd11 is not None and \
+                    aug_cd12 is not None and \
+                    aug_cd21 is not None and \
+                    aug_cd22 is not None:
+                aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
+                                               aug_cd11, aug_cd12,
+                                               aug_cd21, aug_cd22)
+                self.logger.debug('End CoordFunction2D augmentation.')
+            else:
+                aug_function = None
 
         aug_axis = CoordAxis2D(self._get_axis(xindex),
                                self._get_axis(yindex),
@@ -2885,10 +2871,10 @@ class WcsParser(object):
         except AttributeError:
             self.logger.debug(
                 'Error searching for CD* values {}'.format(sys.exc_info()[1]))
-            cd11 = -1.0  # TODO what if neither of these are defined?
-            cd12 = -1.0
-            cd21 = -1.0
-            cd22 = -1.0
+            cd11 = None
+            cd12 = None
+            cd21 = None
+            cd22 = None
 
         return cd11, cd12, cd21, cd22
 
@@ -3192,7 +3178,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                      release_type=ReleaseType.DATA))
 
     if local:
-        if '.header' in local:
+        if '.header' in local and '.txt' not in local:
             logging.debug('Using a FitsParser for local file {}'.format(local))
             parser = FitsParser(get_cadc_headers('file://{}'.format(local)),
                                 blueprint, uri=uri)
