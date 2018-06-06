@@ -3265,6 +3265,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             logging.error(e)
             tb = traceback.format_exc()
             logging.error(tb)
+            raise e
 
     if len(parser._errors) > 0:
         logging.debug(
