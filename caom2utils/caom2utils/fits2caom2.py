@@ -3241,13 +3241,14 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             parser = GenericParser(blueprint, uri=uri)
     else:
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):
-            logging.debug('Using a FitsParser for {}'.format(uri))
+            logging.debug('Using a FitsParser for remote file {}'.format(uri))
             headers = get_cadc_headers(uri, subject)
             parser = FitsParser(headers, blueprint, uri=uri,
                                 ignore_partial_wcs=ignore_partial_wcs)
         else:
             # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(uri))
+            logging.debug(
+                'Using a GenericParser for remote file {}'.format(uri))
             parser = GenericParser(blueprint, uri=uri)
 
     _update_artifact_meta(plane.artifacts[uri], subject)
