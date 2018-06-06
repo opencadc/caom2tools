@@ -2827,24 +2827,21 @@ class WcsParser(object):
         aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
                                 self._get_ref_coord(yindex))
 
-        if self.wcs.has_pc():
-            pass
-        else:
-            aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
-                self._get_cd(xindex, yindex)
+        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
+            self._get_cd(xindex, yindex)
 
-            if aug_dimension is not None and \
-                    aug_ref_coord is not None and \
-                    aug_cd11 is not None and \
-                    aug_cd12 is not None and \
-                    aug_cd21 is not None and \
-                    aug_cd22 is not None:
-                aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
-                                               aug_cd11, aug_cd12,
-                                               aug_cd21, aug_cd22)
-                self.logger.debug('End CoordFunction2D augmentation.')
-            else:
-                aug_function = None
+        if aug_dimension is not None and \
+                aug_ref_coord is not None and \
+                aug_cd11 is not None and \
+                aug_cd12 is not None and \
+                aug_cd21 is not None and \
+                aug_cd22 is not None:
+            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
+                                           aug_cd11, aug_cd12,
+                                           aug_cd21, aug_cd22)
+            self.logger.debug('End CoordFunction2D augmentation.')
+        else:
+            aug_function = None
 
         aug_axis = CoordAxis2D(self._get_axis(xindex),
                                self._get_axis(yindex),
