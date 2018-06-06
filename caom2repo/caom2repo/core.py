@@ -411,7 +411,7 @@ class CAOM2RepoClient(object):
             self.plugin = getattr(py_mod, expected_class)()
         else:
             raise Exception(
-                'Cannot find ObservationUpdater class in pluging file ' +
+                'Cannot find ObservationUpdater class in plugin file ' +
                 filepath)
 
         if not hasattr(self.plugin, 'update'):

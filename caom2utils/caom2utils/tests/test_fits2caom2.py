@@ -72,12 +72,15 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
-from caom2utils import ObsBlueprint
+from caom2utils import ObsBlueprint, GenericParser, get_gen_proc_arg_parser
 from caom2utils.legacy import load_config
+from caom2utils.fits2caom2 import _visit, _load_plugin
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
+from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
+from caom2 import Axis, CoordAxis1D, CoordAxis2D
 from lxml import etree
 
 from mock import Mock, patch
@@ -100,6 +103,9 @@ override_file = os.path.join(TESTDATA_DIR, 'test.override')
 test_override = os.path.join(TESTDATA_DIR, '4axes.override')
 text_file = os.path.join(TESTDATA_DIR, 'help.txt')
 text_override = os.path.join(TESTDATA_DIR, 'text.override')
+test_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin.py')
+test_class_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin_class.py')
+non_conformant_plugin_module = os.path.join(TESTDATA_DIR, 'nonconformant.py')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
@@ -145,7 +151,7 @@ def test_augment_energy():
     ex = _get_from_str_xml(EXPECTED_ENERGY_XML,
                            ObservationReader()._get_spectral_wcs, 'energy')
     result = get_differences(ex, energy)
-    assert result is None
+    assert result is None, repr(energy)
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
@@ -398,6 +404,29 @@ def test_get_wcs_values():
     result = getattr(w, '_naxis1')
     assert result == 1
     assert w.wcs.has_cd() is False
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_ignore_partial_wcs():
+    hdr = get_test_header(sample_file_4axes)[0].header
+    hdr.remove('NAXIS1')
+    hdr.remove('NAXIS3')
+    hdr.remove('NAXIS4')
+
+    # make a failing call, followed by a successful call to augment_*
+    for i in ['augment_energy', 'augment_position', 'augment_polarization',
+              'augment_temporal']:
+        test_parser = WcsParser(hdr, sample_file_4axes, 0)
+        exception_func = getattr(test_parser, i)
+        with pytest.raises(ValueError):
+            exception_func(Chunk())
+        test_parser = WcsParser(hdr, sample_file_4axes, 0,
+                                ignore_partial_wcs=True)
+        non_exception_func = getattr(test_parser, i)
+        non_exception_func(Chunk())
+        # make the header behave like there's a time axis for the
+        # augment_temporal call
+        hdr.set('CTYPE3', 'TIME')
 
 
 def get_test_header(test_file):
@@ -968,3 +997,219 @@ def test_generic_parser():
             actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
             result = get_differences(expected, actual, 'Observation')
             assert result is None
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_visit():
+    test_obs = _get_obs(EXPECTED_FILE_SCHEME_XML)
+
+    with pytest.raises(ImportError):
+        _load_plugin('nonexistent.py')
+
+    with pytest.raises(ImportError):
+        _load_plugin(non_conformant_plugin_module)
+
+    test_fitsparser = FitsParser(sample_file_4axes,
+                                 ObsBlueprint(polarization_axis=1))
+    kwargs = {}
+    _visit(test_plugin_module, test_fitsparser, test_obs, **kwargs)
+    _visit(test_class_plugin_module, test_fitsparser, test_obs, **kwargs)
+
+
+EXPECTED_ENERGY_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:energy>
+    <caom2:axis>
+      <caom2:axis>
+        <caom2:ctype>WAVE</caom2:ctype>
+        <caom2:cunit>m</caom2:cunit>
+      </caom2:axis>
+      <caom2:range>
+        <caom2:start>
+          <caom2:pix>145.0</caom2:pix>
+          <caom2:val>-60000.0</caom2:val>
+        </caom2:start>
+        <caom2:end>
+          <caom2:pix>-824.46002</caom2:pix>
+          <caom2:val>1</caom2:val>
+        </caom2:end>
+      </caom2:range>
+    </caom2:axis>
+    <caom2:specsys>TOPOCENT</caom2:specsys>
+  </caom2:energy>
+</caom2:import>
+'''
+
+EXPECTED_TIME_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:time>
+    <caom2:axis>
+      <caom2:axis>
+        <caom2:ctype>TIME</caom2:ctype>
+        <caom2:cunit>d</caom2:cunit>
+      </caom2:axis>
+      <caom2:range>
+        <caom2:start>
+          <caom2:pix>145.0</caom2:pix>
+          <caom2:val>-60000.0</caom2:val>
+        </caom2:start>
+        <caom2:end>
+          <caom2:pix>-824.46002</caom2:pix>
+          <caom2:val>1</caom2:val>
+        </caom2:end>
+      </caom2:range>
+    </caom2:axis>
+  </caom2:time>
+</caom2:import>
+'''
+
+EXPECTED_POL_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:polarization>
+    <caom2:axis>
+      <caom2:axis>
+        <caom2:ctype>STOKES</caom2:ctype>
+      </caom2:axis>
+      <caom2:range>
+        <caom2:start>
+          <caom2:pix>145.0</caom2:pix>
+          <caom2:val>-60000.0</caom2:val>
+        </caom2:start>
+        <caom2:end>
+          <caom2:pix>-824.46002</caom2:pix>
+          <caom2:val>1</caom2:val>
+        </caom2:end>
+      </caom2:range>
+    </caom2:axis>
+  </caom2:polarization>
+</caom2:import>
+'''
+
+EXPECTED_POS_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
+  <caom2:position>
+    <caom2:axis>
+      <caom2:axis1>
+        <caom2:ctype>RA</caom2:ctype>
+        <caom2:cunit>deg</caom2:cunit>
+      </caom2:axis1>
+      <caom2:axis2>
+        <caom2:ctype>DEC</caom2:ctype>
+        <caom2:cunit>deg</caom2:cunit>
+      </caom2:axis2>
+      <caom2:range>
+        <caom2:start>
+            <caom2:coord1>
+              <caom2:pix>145.0</caom2:pix>
+              <caom2:val>-60000.0</caom2:val>
+            </caom2:coord1>
+            <caom2:coord2>
+              <caom2:pix>-824.46002</caom2:pix>
+              <caom2:val>1</caom2:val>
+            </caom2:coord2>
+        </caom2:start>
+        <caom2:end>
+            <caom2:coord1>
+              <caom2:pix>145.0</caom2:pix>
+              <caom2:val>-60000.0</caom2:val>
+            </caom2:coord1>
+            <caom2:coord2>
+              <caom2:pix>-824.46002</caom2:pix>
+              <caom2:val>1</caom2:val>
+            </caom2:coord2>
+        </caom2:end>
+      </caom2:range>
+    </caom2:axis>
+  </caom2:position>
+</caom2:import>
+'''
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_augment_artifact_bounds_range_from_blueprint():
+    test_blueprint = ObsBlueprint(energy_axis=1, time_axis=2,
+                                  polarization_axis=3,
+                                  position_axes=(4, 5))
+    test_blueprint.set('Chunk.energy.axis.range.start.pix', '145.0')
+    test_blueprint.set('Chunk.energy.axis.range.start.val', '-60000.0')
+    test_blueprint.set('Chunk.energy.axis.range.end.pix', '-824.46002')
+    test_blueprint.set('Chunk.energy.axis.range.end.val', '1')
+    test_blueprint.set('Chunk.time.axis.range.start.pix', '145.0')
+    test_blueprint.set('Chunk.time.axis.range.start.val', '-60000.0')
+    test_blueprint.set('Chunk.time.axis.range.end.pix', '-824.46002')
+    test_blueprint.set('Chunk.time.axis.range.end.val', '1')
+    test_blueprint.set('Chunk.polarization.axis.range.start.pix', '145.0')
+    test_blueprint.set('Chunk.polarization.axis.range.start.val', '-60000.0')
+    test_blueprint.set('Chunk.polarization.axis.range.end.pix', '-824.46002')
+    test_blueprint.set('Chunk.polarization.axis.range.end.val', '1')
+    test_blueprint.set('Chunk.position.axis.range.start.coord1.pix', '145.0')
+    test_blueprint.set(
+        'Chunk.position.axis.range.start.coord1.val', '-60000.0')
+    test_blueprint.set(
+        'Chunk.position.axis.range.end.coord1.pix', '-824.46002')
+    test_blueprint.set('Chunk.position.axis.range.end.coord1.val', '1')
+    test_blueprint.set('Chunk.position.axis.range.start.coord2.pix', '145.0')
+    test_blueprint.set(
+        'Chunk.position.axis.range.start.coord2.val', '-60000.0')
+    test_blueprint.set(
+        'Chunk.position.axis.range.end.coord2.pix', '-824.46002')
+    test_blueprint.set('Chunk.position.axis.range.end.coord2.val', '1')
+    test_fitsparser = FitsParser(sample_file_4axes, test_blueprint,
+                                 uri='ad:TEST/test_blueprint')
+    test_chunk = Chunk()
+    test_chunk.energy = SpectralWCS(CoordAxis1D(Axis('WAVE', 'm')), 'TOPOCENT')
+    test_chunk.time = TemporalWCS(CoordAxis1D(Axis('TIME', 'd')))
+    test_chunk.polarization = PolarizationWCS(CoordAxis1D(Axis('STOKES')))
+    test_chunk.position = SpatialWCS(CoordAxis2D(Axis('RA', 'deg'),
+                                                 Axis('DEC', 'deg')))
+    test_fitsparser._try_range_with_blueprint(test_chunk, 0)
+
+    assert test_chunk.energy.axis.range is not None, \
+        'chunk.energy.axis.range should be declared'
+    assert test_chunk.time.axis.range is not None, \
+        'chunk.time.axis.range should be declared'
+    assert test_chunk.polarization.axis.range is not None, \
+        'chunk.polarization.axis.range should be declared'
+    assert test_chunk.position.axis.range is not None, \
+        'chunk.position.axis.range should be declared'
+    ex = _get_from_str_xml(EXPECTED_ENERGY_RANGE_BOUNDS_XML,
+                           ObservationReader()._get_spectral_wcs,
+                           'energy')
+    assert ex is not None, \
+        'energy string from expected output should be declared'
+    result = get_differences(ex, test_chunk.energy)
+    assert result is None
+
+    ex = _get_from_str_xml(EXPECTED_TIME_RANGE_BOUNDS_XML,
+                           ObservationReader()._get_temporal_wcs,
+                           'time')
+    assert ex is not None, \
+        'time string from expected output should be declared'
+    result = get_differences(ex, test_chunk.time)
+    assert result is None
+
+    ex = _get_from_str_xml(EXPECTED_POL_RANGE_BOUNDS_XML,
+                           ObservationReader()._get_polarization_wcs,
+                           'polarization')
+    assert ex is not None, \
+        'polarization string from expected output should be declared'
+    result = get_differences(ex, test_chunk.polarization)
+    assert result is None
+
+    ex = _get_from_str_xml(EXPECTED_POS_RANGE_BOUNDS_XML,
+                           ObservationReader()._get_spatial_wcs,
+                           'position')
+    assert ex is not None, \
+        'position string from expected output should be declared'
+    result = get_differences(ex, test_chunk.position)
+    assert result is None
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_visit_generic_parser():
+    try:
+        sys.argv = ['fits2caom2', '--local', 'fname', '--observation',
+                    'test_collection_id', 'test_observation_id']
+        test_parser = GenericParser()
+        test_plugin = __name__
+        test_args = get_gen_proc_arg_parser().parse_args()
+        kwargs = {}
+        _visit(test_plugin, test_args, test_parser, **kwargs)
+    except BaseException as e:
+        assert False, 'should not get here {}'.format(e)

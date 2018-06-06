@@ -9,4 +9,4 @@ Observation.telescope.geoLocationY =  -2493778.2
 Observation.telescope.geoLocationZ =  2150937.8
 Plane.dataProductType = image
 Plane.calibrationLevel = 3
-Artifact.productType = science
+Artifact.productType = preview
