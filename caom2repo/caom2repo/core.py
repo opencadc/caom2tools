@@ -714,9 +714,14 @@ def main_app():
             format(len(visited), len(updated), len(skipped), len(failed)))
 
     elif args.cmd == 'create':
-        logger.info("Create")
-        obs_reader = ObservationReader()
-        client.put_observation(obs_reader.read(args.observation))
+        with args.observation as observation:
+            try:
+                logger.info("Create")
+                obs_reader = ObservationReader()
+                client.put_observation(obs_reader.read(observation))
+            finally:
+                if observation is not None:
+                    observation.close()
     elif args.cmd == 'read':
         logger.info("Read")
         observation = client.get_observation(args.collection,
@@ -727,10 +732,15 @@ def main_app():
         else:
             observation_writer.write(observation, sys.stdout)
     elif args.cmd == 'update':
-        logger.info("Update")
-        obs_reader = ObservationReader()
-        # TODO not sure if need to read in string first
-        client.post_observation(obs_reader.read(args.observation))
+        with args.observation as observation:
+            try:
+                logger.info("Update")
+                obs_reader = ObservationReader()
+                # TODO not sure if need to read in string first
+                client.post_observation(obs_reader.read(observation))
+            finally:
+                if observation is not None:
+                    observation.close()
     else:
         logger.info("Delete")
         client.delete_observation(collection=args.collection,
