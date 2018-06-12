@@ -106,8 +106,8 @@ class TimeUtil:
         # since they are offsets from mjdref
         a = range_1d.start.val
         b = range_1d.end.val
-        if b <= a:
-            raise ValueError("range.end not > range.start in Temporal WCS")
+        if b < a:
+            raise ValueError("range.end not >= range.start in Temporal WCS")
 
         if temporal_wcs.mjdref is not None:
             a += float(temporal_wcs.mjdref)

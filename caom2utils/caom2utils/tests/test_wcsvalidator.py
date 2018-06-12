@@ -106,7 +106,7 @@ class TemporalWCSValidatorTests(unittest.TestCase):
         bad_temporal_wcs = TimeTestUtil.bad_range_wcs()
         with pytest.raises(InvalidWCSError) as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('range.end not > range.start' in str(ex))
+        assert('range.end not >= range.start' in str(ex))
 
         bad_temporal_wcs = TimeTestUtil.bad_delta()
         with pytest.raises(InvalidWCSError) as ex:
@@ -281,8 +281,8 @@ class TimeTestUtil:
         c3 = wcs.RefCoord(px + nx * 0.66, sx + nx * ds * 0.66)
         c4 = wcs.RefCoord(px + nx, sx + nx * ds)
         temporal_wcs.axis.bounds = wcs.CoordBounds1D()
-        temporal_wcs.axis.bounds.samples.append(wcs.CoordRange1D(c1, c2))
-        temporal_wcs.axis.bounds.samples.append(wcs.CoordRange1D(c3, c4))
+        temporal_wcs.axis.bounds.samples.append(wcs.CoordRange1D(c1, c3))
+        temporal_wcs.axis.bounds.samples.append(wcs.CoordRange1D(c4, c2))
 
         return temporal_wcs
 
