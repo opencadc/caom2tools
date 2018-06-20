@@ -3397,15 +3397,6 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
 
 def _set_logging(verbose, debug, quiet):
     logger = logging.getLogger()
-    if verbose:
-        logger.setLevel(logging.INFO)
-    elif debug:
-        logger.setLevel(logging.DEBUG)
-    elif quiet:
-        logger.setLevel(logging.ERROR)
-    else:
-        logger.setLevel(logging.WARN)
-
     if logger.handlers:
         handler = logger.handlers[0]
         logger.removeHandler(handler)
@@ -3419,6 +3410,18 @@ def _set_logging(verbose, debug, quiet):
         logging.Formatter('%(levelname)s:%(name)-12s:%(lineno)d:%(message)s')
     ))
     logger.addHandler(handler)
+    if verbose:
+        logger.setLevel(logging.INFO)
+        handler.setLevel(logging.INFO)
+    elif debug:
+        logger.setLevel(logging.DEBUG)
+        handler.setLevel(logging.DEBUG)
+    elif quiet:
+        logger.setLevel(logging.ERROR)
+        handler.setLevel(logging.ERROR)
+    else:
+        logger.setLevel(logging.WARN)
+        handler.setLevel(logging.WARN)
 
 
 def _get_common_arg_parser():
