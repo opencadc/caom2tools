@@ -1,11 +1,9 @@
 usage: fits2caom2 [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                   [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v]
-                  [-V] [--dumpconfig] [--no_validate] [--ignorePartialWCS]
-                  [-o OUT_OBS_XML]
+                  [-V] [--dumpconfig] [--no_validate] [-o OUT_OBS_XML]
                   (-i IN_OBS_XML | --observation collection observationID)
-                  [--local LOCAL [LOCAL ...]] [--keep] [--test]
-                  [--productID PRODUCTID] [--config CONFIG]
-                  [--default DEFAULT] [--override OVERRIDE]
+                  [--local LOCAL [LOCAL ...]] [--productID PRODUCTID]
+                  [--config CONFIG] [--default DEFAULT] [--override OVERRIDE]
                   fileURI [fileURI ...]
 
 Augments an observation with information in one or more fits files.
@@ -24,9 +22,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --host HOST           base hostname for services - used mainly for testing
                         (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-  --ignorePartialWCS    do not stop and exit upon finding partial WCS
   -i, --in IN_OBS_XML   input of observation to be augmented in XML
-  --keep                keep the locally stored files after ingestion
   --local LOCAL [LOCAL ...]
                         list of files in local filesystem (same order as uri)
   -n                    use .netrc in $HOME for authentication
@@ -46,7 +42,6 @@ optional arguments:
   --resource-id RESOURCE_ID
                         resource identifier (default
                         ivo://cadc.nrc.ca/fits2caom2)
-  --test                test mode, do not persist to database
   -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
