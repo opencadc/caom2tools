@@ -3103,14 +3103,15 @@ def _get_headers_from_fits(path):
     return headers
 
 
-def _update_artifact_meta(artifact, subject=None):
+def _update_artifact_meta(uri, artifact, subject=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
     :param subject: User credentials
     :return:
     """
-    file_url = urlparse(artifact.uri)
+    logging.error('got this uri {}'.format(uri))
+    file_url = urlparse(uri)
     if file_url.scheme == 'ad':
         metadata = _get_cadc_meta(subject, file_url.path)
     elif file_url.scheme == 'file':
@@ -3225,10 +3226,12 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                      product_type=ProductType.SCIENCE,
                      release_type=ReleaseType.DATA))
 
+    meta_uri = uri
     if local:
+        meta_uri = 'file://{}'.format(local)
         if '.header' in local:
             logging.debug('Using a FitsParser for local file {}'.format(local))
-            parser = FitsParser(get_cadc_headers('file://{}'.format(local)),
+            parser = FitsParser(get_cadc_headers(meta_uri),
                                 blueprint, uri=uri,
                                 ignore_partial_wcs=ignore_partial_wcs)
         elif local.endswith('.fits') or local.endswith('.fits.gz'):
@@ -3251,7 +3254,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 'Using a GenericParser for remote file {}'.format(uri))
             parser = GenericParser(blueprint, uri=uri)
 
-    _update_artifact_meta(plane.artifacts[uri], subject)
+    _update_artifact_meta(meta_uri, plane.artifacts[uri], subject)
 
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
@@ -3705,6 +3708,7 @@ def augment(blueprints, no_validate=False, dump_config=False,
     if no_validate is not None:
         validate_wcs = not no_validate
 
+    logging.error('file name is {}'.format(file_name))
     for ii in blueprints:
         _augment(obs, product_id, uri, blueprints[ii], subject, dump_config,
                  ignore_partial_wcs, validate_wcs, plugin, file_name, **kwargs)
