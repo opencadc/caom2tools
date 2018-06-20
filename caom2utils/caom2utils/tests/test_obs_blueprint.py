@@ -72,6 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 from caom2utils import ObsBlueprint
 
 import pytest
+import sys
 
 
 # @pytest.mark.skip('')
@@ -130,8 +131,12 @@ def test_obs_blueprint():
     ob.set_default('Observation.proposal.id', 'NOPROP')
     assert ob._plan['Observation.proposal.id'][0] == ['PROP2', 'PROP', 'RUNID']
     assert ob._plan['Observation.proposal.id'][1] == 'NOPROP'
-    assert ("Observation.proposal.id = ['PROP2', 'PROP', 'RUNID'], "
-            "default = NOPROP") in str(ob)
+    if sys.version.startswith('2.7.'):
+        assert ("Observation.proposal.id = ['PROP2', 'PROP', u'RUNID'], "
+                "default = NOPROP") in str(ob)
+    else:
+        assert ("Observation.proposal.id = ['PROP2', 'PROP', 'RUNID'], "
+                "default = NOPROP") in str(ob)
 
     # set in extension
     ob.set('Chunk.energy.velang', 33, extension=1)
