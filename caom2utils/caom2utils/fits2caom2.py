@@ -3359,11 +3359,14 @@ def _set_logging(verbose, debug, quiet):
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
-            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s'),
+            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:'
+            '%(lineno)d:%(message)s'),
         'astropy': logging.Formatter(
-            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s')
+            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:'
+            '%(lineno)d:%(message)s')
     },
-        logging.Formatter('%(asctime)s:%(levelname)s:%(name)-12s:%(lineno)d:%(message)s')
+        logging.Formatter('%(asctime)s:%(levelname)s:%(name)-12s:'
+                          '%(lineno)d:%(message)s')
     ))
     logger.addHandler(handler)
     if verbose:
