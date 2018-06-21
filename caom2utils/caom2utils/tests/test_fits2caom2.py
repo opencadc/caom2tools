@@ -406,29 +406,6 @@ def test_get_wcs_values():
     assert w.wcs.has_cd() is False
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
-def test_ignore_partial_wcs():
-    hdr = get_test_header(sample_file_4axes)[0].header
-    hdr.remove('NAXIS1')
-    hdr.remove('NAXIS3')
-    hdr.remove('NAXIS4')
-
-    # make a failing call, followed by a successful call to augment_*
-    for i in ['augment_energy', 'augment_position', 'augment_polarization',
-              'augment_temporal']:
-        test_parser = WcsParser(hdr, sample_file_4axes, 0)
-        exception_func = getattr(test_parser, i)
-        with pytest.raises(ValueError):
-            exception_func(Chunk())
-        test_parser = WcsParser(hdr, sample_file_4axes, 0,
-                                ignore_partial_wcs=True)
-        non_exception_func = getattr(test_parser, i)
-        non_exception_func(Chunk())
-        # make the header behave like there's a time axis for the
-        # augment_temporal call
-        hdr.set('CTYPE3', 'TIME')
-
-
 def get_test_header(test_file):
     test_input = os.path.join(TESTDATA_DIR, test_file)
     hdulist = fits.open(test_input)
@@ -500,7 +477,7 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert bad_product_id == stderr_mock.getvalue()
+        assert stderr_mock.getvalue().endswith(bad_product_id)
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -509,7 +486,7 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert missing_product_id == stderr_mock.getvalue()
+        assert stderr_mock.getvalue().endswith(missing_product_id)
 
     # missing required --observation
     """
@@ -969,7 +946,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2832</caom2:contentLength>
+          <caom2:contentLength>2555</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://""" + text_file + """</caom2:uri>
         </caom2:artifact>

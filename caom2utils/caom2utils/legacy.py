@@ -452,7 +452,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                     # assume FITS keywords, in the 0th extension,
                     # and add them to the blueprint
                     for caom2_key in convert.get_caom2_elements(key):
-                        obs_blueprint.set_fits_attribute(caom2_key, [value])
+                        obs_blueprint.add_fits_attribute(caom2_key, value)
             except ValueError:
                 errors.append(('{}: {}'.format(key, sys.exc_info()[1])))
         logging.debug(
