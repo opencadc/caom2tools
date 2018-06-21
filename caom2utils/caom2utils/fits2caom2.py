@@ -3110,12 +3110,15 @@ def _update_artifact_meta(uri, artifact, subject=None):
     :param subject: User credentials
     :return:
     """
-    logging.error('got this uri {}'.format(uri))
     file_url = urlparse(uri)
     if file_url.scheme == 'ad':
         metadata = _get_cadc_meta(subject, file_url.path)
     elif file_url.scheme == 'file':
-        metadata = _get_file_meta(file_url.path)
+        if file_url.path.endswith('.header'):
+            # if header is on disk, get the content_* from ad
+            metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
+        else:
+            metadata = _get_file_meta(file_url.path)
     else:
         # TODO add hook to support other service providers
         raise NotImplementedError('Only ad type URIs supported')
@@ -3162,6 +3165,10 @@ def _get_file_meta(path):
     meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
     if path.endswith('.header') or path.endswith('.txt'):
         meta['type'] = 'text/plain'
+    elif path.endswith('.gif'):
+        meta['type'] = 'image/gif'
+    elif path.endswith('.png'):
+        meta['type'] = 'image/png'
     else:
         meta['type'] = 'application/octet-stream'
     return meta
@@ -3406,11 +3413,11 @@ def _set_logging(verbose, debug, quiet):
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s'),
+            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s'),
         'astropy': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s')
+            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s')
     },
-        logging.Formatter('%(levelname)s:%(name)-12s:%(lineno)d:%(message)s')
+        logging.Formatter('%(asctime)s:%(levelname)s:%(name)-12s:%(lineno)d:%(message)s')
     ))
     logger.addHandler(handler)
     if verbose:
@@ -3708,7 +3715,6 @@ def augment(blueprints, no_validate=False, dump_config=False,
     if no_validate is not None:
         validate_wcs = not no_validate
 
-    logging.error('file name is {}'.format(file_name))
     for ii in blueprints:
         _augment(obs, product_id, uri, blueprints[ii], subject, dump_config,
                  ignore_partial_wcs, validate_wcs, plugin, file_name, **kwargs)
