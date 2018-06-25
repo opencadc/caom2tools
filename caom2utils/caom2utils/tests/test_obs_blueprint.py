@@ -174,6 +174,12 @@ def test_obs_blueprint():
     assert 'Observation.target.redshift' not in ob._plan
     assert ob._get('Observation.target.redshift') is None
 
+    # bintable :)
+    ob.add_table_attribute('CompositeObservation.members', 'FICS', extension=1)
+    result = ob._get('CompositeObservation.members', extension=1)
+    assert result is not None
+    assert len(result) == 3, len(result)
+
     # delete attributes
     assert len(ob._plan) != 0
     assert len(ob._extensions) != 0
@@ -187,6 +193,7 @@ def test_obs_blueprint():
     # delete attributes from extensions
     ob.delete('Chunk.energy.velang', extension=1)
     ob.delete('Chunk.energy.axis.axis.ctype', extension=1)
+    ob.delete('CompositeObservation.members', extension=1)
     ob.delete('Chunk.energy.velang', extension=2)
     assert len(ob._extensions) == 0
 

@@ -1154,6 +1154,60 @@ class ObsBlueprint(object):
             else:
                 self._plan[caom2_element] = ([fits_attribute], None)
 
+    def add_table_attribute(self, caom2_element, ttype_attribute, extension=0,
+                            index=None):
+        """
+        Adds a FITS BINTABLE TTYPE* lookup, to a list of other FITS attributes
+        associated with an caom2 element. This does not co-exist with
+        non-table attributes.
+
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param ttype_attribute: name of TTYPE attribute element is mapped to
+        :param extension: extension number (used only for Chunk elements)
+        :param index: which row values to return. If index is None, all row
+            values will be returned as a comma-separated list.
+        :raises AttributeError if the caom2 element has already an associated
+        value or KeyError if the caom2 element does not exists.
+        """
+        ObsBlueprint.check_caom2_element(caom2_element)
+        assert extension >= 0, 'Extension failure when adding TTYPE attribute.'
+        if extension:
+            if extension in self._extensions:
+                if caom2_element in self._extensions[extension]:
+                    logging.error('element exists')
+                    if (ObsBlueprint.is_table(
+                            self._extensions[extension][caom2_element])):
+                        if (ttype_attribute not in
+                                self._extensions[extension][caom2_element][1]):
+                            self._extensions[extension][caom2_element][1]. \
+                                insert(0, ttype_attribute)
+                    else:
+                        raise AttributeError(
+                            ('No TTYPE attributes in extension {} associated '
+                             'with keyword {}').format(extension,
+                                                       caom2_element))
+                else:
+                    logging.error('element does not exist')
+                    self._extensions[extension][caom2_element] = \
+                        ('BINTABLE', [ttype_attribute], index)
+            else:
+                self._extensions[extension] = {}
+                self._extensions[extension][caom2_element] = \
+                    ('BINTABLE', [ttype_attribute], index)
+        else:
+            if caom2_element in self._plan:
+                if ObsBlueprint.is_table(self._plan[caom2_element]):
+                    if ttype_attribute not in self._plan[caom2_element][1]:
+                        self._plan[caom2_element][1].insert(0, ttype_attribute)
+                else:
+                    raise AttributeError(
+                        'No TTYPE attributes associated with keyword {}'.
+                            format(caom2_element))
+            else:
+                self._plan[caom2_element] = (
+                    'BINTABLE', [ttype_attribute], None)
+
     def set_default(self, caom2_element, default, extension=0):
         """
         Sets the default value of a caom2 element that is associated with FITS
@@ -1202,7 +1256,9 @@ class ObsBlueprint(object):
         ObsBlueprint.check_caom2_element(caom2_element)
         assert extension >= 0, 'Extension failure when deleting.'
         if extension:
-            ObsBlueprint.check_chunk(caom2_element)
+            # TODO - figure out what the implications of removing the following
+            # check are
+            # ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 raise ValueError('Extension {} not configured in blueprint'.
                                  format(extension))
@@ -1248,7 +1304,9 @@ class ObsBlueprint(object):
         """
         ObsBlueprint.check_caom2_element(caom2_element)
         if extension:
-            ObsBlueprint.check_chunk(caom2_element)
+            # TODO - figure out what the implications of removing the
+            # following check are
+            # ObsBlueprint.check_chunk(caom2_element)
             if (extension in self._extensions) and \
                     (caom2_element in self._extensions[extension]):
                 return self._extensions[extension][caom2_element]
@@ -1264,6 +1322,12 @@ class ObsBlueprint(object):
         """Hide the blueprint structure from clients - they shouldn't need
         to know that a value of type tuple requires special processing."""
         return isinstance(value, tuple)
+
+    @staticmethod
+    def is_table(value):
+        """Hide the blueprint structure from clients - they shouldn't need
+        to know that a value of type tuple requires special processing."""
+        return ObsBlueprint.is_fits(value) and value[0] is 'BINTABLE'
 
     @staticmethod
     def is_function(value):
@@ -2060,6 +2124,8 @@ class FitsParser(GenericParser):
         for extension in exts:
             hdr = self.headers[extension]
             for key, value in exts[extension].items():
+                if ObsBlueprint.is_table(value):
+                    continue
                 keywords = wcs_std[key].split(',')
                 for keyword in keywords:
                     _set_by_type(hdr, keyword, value)
@@ -2175,8 +2241,14 @@ class FitsParser(GenericParser):
                 ('Cannot apply blueprint for CompositeObservation to a '
                  'simple observation'))
         elif isinstance(obs, CompositeObservation):
-            members = self._get_from_list('CompositeObservation.members',
-                                          index=0)
+            lookup = self.blueprint._get('CompositeObservation.members',
+                                         extension=1)
+            if ObsBlueprint.is_table(lookup):
+                members = self._get_from_table('CompositeObservation.members',
+                                               extension=1)
+            else:
+                members = self._get_from_list('CompositeObservation.members',
+                                              index=0)
         self.logger.debug('End Members augmentation.')
         return members
 
@@ -2405,6 +2477,17 @@ class FitsParser(GenericParser):
 
         self.logger.debug('{}: value is {}'.format(lookup, value))
         return value
+
+    def _get_from_table(self, lookup, extension):
+        # TODO - this is just proof of concept
+        if self.file is not None and self.file != '':
+            x = fits.open(self.file)
+            y = ''
+            for ii in x[1].data[0]['FICS']:
+                y = 'caom:OMM/{} {}'.format(ii, y)
+            logging.error(y)
+            x.close()
+            return y
 
     def _get_set_from_list(self, lookup, index):
         value = None
@@ -3327,6 +3410,7 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
         observation.
     :return: Initially constructed Observation.
     """
+    logging.error('gen_obs entry')
     obs = None
     if in_obs_xml:
         # append to existing observation
@@ -3337,7 +3421,8 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
         # the CompositeObservation.members in the blueprints. If present
         # in any of it assume composite
         for bp in obs_blueprints.values():
-            if bp._get('CompositeObservation.members'):
+            if bp._get('CompositeObservation.members', extension=1):
+                logging.error('composite')
                 obs = CompositeObservation(
                     collection=collection,
                     observation_id=obs_id,
