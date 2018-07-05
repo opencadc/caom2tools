@@ -1155,11 +1155,13 @@ class ObsBlueprint(object):
                 self._plan[caom2_element] = ([fits_attribute], None)
 
     def add_table_attribute(self, caom2_element, ttype_attribute, extension=0,
-                            index=None):
+                            index=0):
         """
         Adds a FITS BINTABLE TTYPE* lookup, to a list of other FITS attributes
         associated with an caom2 element. This does not co-exist with
         non-table attributes.
+
+        There is no support for default values for table attributes.
 
         :param caom2_element: name CAOM2 element (as in
         ObsBlueprint.CAOM2_ELEMEMTS)
@@ -1175,7 +1177,6 @@ class ObsBlueprint(object):
         if extension:
             if extension in self._extensions:
                 if caom2_element in self._extensions[extension]:
-                    logging.error('element exists')
                     if (ObsBlueprint.is_table(
                             self._extensions[extension][caom2_element])):
                         if (ttype_attribute not in
@@ -1188,7 +1189,6 @@ class ObsBlueprint(object):
                              'with keyword {}').format(extension,
                                                        caom2_element))
                 else:
-                    logging.error('element does not exist')
                     self._extensions[extension][caom2_element] = \
                         ('BINTABLE', [ttype_attribute], index)
             else:
@@ -1621,7 +1621,15 @@ class FitsParser(GenericParser):
             #    Only primary headers for 1 extension files or the extensions
             # for multiple extension files can have data and therefore
             # corresponding parts
-            if (i > 0) or (len(self.headers) == 1):
+            #
+            # OMM stacks break that assumption. They have two extensions, the
+            # first has the necessary metadata for the observation, and the
+            # second has the provenance metadata.
+            #
+            if ((i > 0) or (len(self.headers) == 1) or (
+                    len(self.headers) == 2 and (
+                    self.headers[1]['XTENSION'] == 'BINTABLE') and i == 0
+                    and self.headers[1]['EXTNAME'] == 'PROVENANCE')):
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
@@ -2122,6 +2130,10 @@ class FitsParser(GenericParser):
 
         # apply overrides to the remaining extensions
         for extension in exts:
+            if extension >= len(self.headers):
+                logging.error('More extensions configured {} than headers '
+                              '{}'.format(extension, len(self.headers)))
+                continue
             hdr = self.headers[extension]
             for key, value in exts[extension].items():
                 if ObsBlueprint.is_table(value):
@@ -2244,8 +2256,16 @@ class FitsParser(GenericParser):
             lookup = self.blueprint._get('CompositeObservation.members',
                                          extension=1)
             if ObsBlueprint.is_table(lookup):
-                members = self._get_from_table('CompositeObservation.members',
-                                               extension=1)
+                member_list = self._get_from_table(
+                    'CompositeObservation.members', 1)
+                # ensure the members are good little ObservationURIs
+                if member_list.startswith('caom:'):
+                    members = member_list
+                else:
+                    members = ''
+                    for ii in member_list.split():
+                        members = 'caom:{}/{} {}'.format(
+                            obs.collection, ii, members)
             else:
                 members = self._get_from_list('CompositeObservation.members',
                                               index=0)
@@ -2479,15 +2499,42 @@ class FitsParser(GenericParser):
         return value
 
     def _get_from_table(self, lookup, extension):
-        # TODO - this is just proof of concept
-        if self.file is not None and self.file != '':
-            x = fits.open(self.file)
-            y = ''
-            for ii in x[1].data[0]['FICS']:
-                y = 'caom:OMM/{} {}'.format(ii, y)
-            logging.error(y)
-            x.close()
-            return y
+        """
+        Return a space-delimited list of all the row values from a column.
+
+        This is a straight FITS BINTABLE lookup. There is no support for
+        default values. Unless someone provides a compelling use case.
+
+        :param lookup: where to find the column name
+        :param extension: which extension
+        :return: A string, which is a space-delimited list of all the values.
+        """
+        value = ''
+        try:
+            keywords = self.blueprint._get(lookup, extension)
+        except KeyError:
+            self.add_error(lookup, sys.exc_info()[1])
+            self.logger.debug(
+                'Could not find {!r} in fits2caom2 configuration.'.format(
+                    lookup))
+            return value  # TODO what to return when failing lookup
+
+        if isinstance(keywords, tuple) and keywords[0] == 'BINTABLE':
+
+            # BINTABLE, so need to retrieve the data from the file
+            if self.file is not None and self.file != '':
+                with fits.open(self.file) as fits_data:
+                    if fits_data[extension].header['XTENSION'] != 'BINTABLE':
+                        raise ValueError(
+                            'Got {} when looking for a BINTABLE '
+                            'extension.'.format(
+                                fits_data[extension].header['XTENSION']))
+                    for ii in keywords[1]:
+                        for jj in fits_data[extension].data[keywords[2]][ii]:
+                            value = '{} {}'.format(jj, value)
+
+        self.logger.debug('{}: value is {}'.format(lookup, value))
+        return value
 
     def _get_set_from_list(self, lookup, index):
         value = None
@@ -3410,7 +3457,6 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
         observation.
     :return: Initially constructed Observation.
     """
-    logging.error('gen_obs entry')
     obs = None
     if in_obs_xml:
         # append to existing observation
@@ -3422,7 +3468,6 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
         # in any of it assume composite
         for bp in obs_blueprints.values():
             if bp._get('CompositeObservation.members', extension=1):
-                logging.error('composite')
                 obs = CompositeObservation(
                     collection=collection,
                     observation_id=obs_id,
