@@ -2255,7 +2255,7 @@ class FitsParser(GenericParser):
         elif isinstance(obs, CompositeObservation):
             lookup = self.blueprint._get('CompositeObservation.members',
                                          extension=1)
-            if ObsBlueprint.is_table(lookup):
+            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
                 member_list = self._get_from_table(
                     'CompositeObservation.members', 1)
                 # ensure the members are good little ObservationURIs
