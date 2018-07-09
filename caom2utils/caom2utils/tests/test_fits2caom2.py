@@ -516,7 +516,7 @@ def test_help():
 
 EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
-        """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
+        """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.3" """ + \
         """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
         """xsi:type="caom2:SimpleObservation" caom2:id="123">
   <caom2:collection>collection</caom2:collection>
