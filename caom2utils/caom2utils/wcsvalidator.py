@@ -74,7 +74,7 @@ from astropy.wcs import Wcsprm
 from caom2utils.wcs_util import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
 from .wcs_util import PolarizationWcsUtil
-from caom2 import Artifact, Chunk, Interval, Observation, Part, Plane, \
+from caom2 import Artifact, Chunk, Observation, Part, Plane, \
     PolarizationState
 import numpy as np
 import logging

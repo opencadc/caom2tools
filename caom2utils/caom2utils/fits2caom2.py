@@ -1617,26 +1617,15 @@ class FitsParser(GenericParser):
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            # Assumption:
-            #    Only primary headers for 1 extension files or the extensions
-            # for multiple extension files can have data and therefore
-            # corresponding parts
-            #
-            # OMM stacks break that assumption. They have two extensions, the
-            # first has the necessary metadata for the observation, and the
-            # second has the provenance metadata.
-            #
-            if ((i > 0) or (len(self.headers) == 1) or (
-                    len(self.headers) == 2 and (
-                    self.headers[1]['XTENSION'] == 'BINTABLE') and i == 0
-                    and self.headers[1]['EXTNAME'] == 'PROVENANCE')):
-                if ii not in artifact.parts.keys():
-                    artifact.parts.add(Part(ii))  # TODO use extension name?
-                    self.logger.debug('Part created for HDU {}.'.format(ii))
-            else:
+            create_empty_part = self._determine_chunk_count(i)
+            if create_empty_part:
                 artifact.parts.add(Part(ii))
                 self.logger.debug('Create empty part for HDU {}'.format(ii))
                 continue
+            else:
+                if ii not in artifact.parts.keys():
+                    artifact.parts.add(Part(ii))  # TODO use extension name?
+                    self.logger.debug('Part created for HDU {}.'.format(ii))
 
             part = artifact.parts[ii]
             part.product_type = self._get_from_list('Part.productType', i)
@@ -1692,6 +1681,50 @@ class FitsParser(GenericParser):
 
         self.logger.debug(
             'End artifact augmentation for {}.'.format(artifact.uri))
+
+    def _determine_chunk_count(self, i):
+        """The logic to determine whether or not to create an empty part
+        extracted into its own method, because it's getting more complex as
+        additional collections are considered.
+
+        Assumption:
+           Only primary headers for 1 extension files or the extensions
+        for multiple extension files can have data and therefore
+        corresponding parts
+
+        OMM stacks break that assumption. They have two extensions, the
+        first has the necessary metadata for the observation, and the
+        second has the provenance metadata.
+
+        :param i header index
+        :return boolean True if the part should have 0 chunks.
+        """
+        if len(self.headers) == 2:
+            xtension = self.headers[1]['XTENSION']
+            extname = self.headers[1]['EXTNAME']
+            if 'BINTABLE' in xtension:
+                if 'PROVENANCE' in extname:  # OMM
+                    if i == 0:
+                        result = False
+                    else:
+                        result = True
+                elif ('COMPRESSED IMAGE' in extname or  # CFHT
+                      'COMPRESSED_IMAGE' in extname):   # Megapipe
+                    if i == 0:
+                        result = True
+                    else:
+                        result = False
+                else:
+                    raise NotImplementedError(
+                        'This is also an unanticipated circumstance.')
+            else:
+                raise NotImplementedError(
+                    'This is an unanticipated circumstance.')
+        elif (i > 0) or (len(self.headers) == 1):
+            result = False
+        else:
+            result = True
+        return result
 
     def _try_range_with_blueprint(self, chunk, index):
         """Use the blueprint to set elements and attributes that

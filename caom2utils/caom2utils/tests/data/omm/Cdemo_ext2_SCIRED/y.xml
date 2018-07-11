@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-80a9-e59f7bb85513">
+  <caom2:collection>OMM</caom2:collection>
+  <caom2:observationID>Cdemo_ext2_SCIRED</caom2:observationID>
+  <caom2:metaRelease>2018-05-21T02:07:22.0</caom2:metaRelease>
+  <caom2:algorithm>
+    <caom2:name>composite</caom2:name>
+  </caom2:algorithm>
+  <caom2:type>OBJECT</caom2:type>
+  <caom2:intent>science</caom2:intent>
+  <caom2:target>
+    <caom2:name>NGC4214</caom2:name>
+  </caom2:target>
+  <caom2:telescope>
+    <caom2:name>OMM-1.6m</caom2:name>
+  </caom2:telescope>
+  <caom2:instrument>
+    <caom2:name>CPAPIR</caom2:name>
+  </caom2:instrument>
+  <caom2:planes>
+    <caom2:plane caom2:id="00000000-0000-0000-b1d1-8a0104a69a85">
+      <caom2:productID>Cdemo_ext2_SCIRED</caom2:productID>
+      <caom2:metaRelease>2019-11-19T00:00:00.000</caom2:metaRelease>
+      <caom2:dataRelease>2019-11-19T00:00:00.000</caom2:dataRelease>
+      <caom2:dataProductType>image</caom2:dataProductType>
+      <caom2:calibrationLevel>2</caom2:calibrationLevel>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-9444-dfe9f1c0cd51">
+          <caom2:uri>ad:OMM/Cdemo_ext2_SCIRED.fits.gz</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/octet-stream</caom2:contentType>
+          <caom2:contentLength>48346560</caom2:contentLength>
+          <caom2:contentChecksum>md5:6372df8f4312d3452895246aba777852</caom2:contentChecksum>
+          <caom2:parts>
+            <caom2:part caom2:id="00000000-0000-0000-bee0-5a74244b9e39">
+              <caom2:name>0</caom2:name>
+              <caom2:chunks>
+                <caom2:chunk caom2:id="00000000-0000-0000-852c-51e771dbec7d">
+                  <caom2:naxis>2</caom2:naxis>
+                </caom2:chunk>
+              </caom2:chunks>
+            </caom2:part>
+            <caom2:part caom2:id="00000000-0000-0000-9043-3a5b0d5f7597">
+              <caom2:name>1</caom2:name>
+              <caom2:chunks/>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>

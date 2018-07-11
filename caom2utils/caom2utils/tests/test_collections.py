@@ -107,7 +107,7 @@ def test_differences(directory):
     prod_id = [p.product_id for p in six.itervalues(expected.planes)][0]
     product_id = '--productID {}'.format(prod_id)
     collection_id = expected.collection
-    data_files = _get_files(['header', 'png', 'gif', 'cat'], directory)
+    data_files = _get_files(['header', 'png', 'gif', 'cat', 'fits'], directory)
     assert data_files
 
     file_meta = _get_uris(collection_id, data_files, expected)
@@ -156,13 +156,18 @@ def _get_cardinality(directory):
     # TODO - read this from an aptly named file in the directory
     # The blueprints are named to reverse sort so that this
     # alignment of product id / artifact URI works
-    return '--lineage ' \
-           'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
-           'MegaPipe.080.156.Z.MP9801.weight.fits ' \
-           'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
-           'MegaPipe.080.156.Z.MP9801.fits ' \
-           'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
-           'MegaPipe.080.156.Z.MP9801.fits.gif'
+    if '/cfhtsg/' in directory:
+        return '--lineage ' \
+               'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+               'MegaPipe.080.156.Z.MP9801.weight.fits ' \
+               'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+               'MegaPipe.080.156.Z.MP9801.fits ' \
+               'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+               'MegaPipe.080.156.Z.MP9801.fits.gif'
+    elif '/omm/' in directory:
+        return '--lineage Cdemo_ext2_SCIRED/ad:OMM/Cdemo_ext2_SCIRED.fits.gz'
+    else:
+        return ''
 
 
 def _get_common(fnames):
