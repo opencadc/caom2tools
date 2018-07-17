@@ -3346,8 +3346,10 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                      release_type=ReleaseType.DATA))
 
     meta_uri = uri
+    visit_local = None
     if local:
         meta_uri = 'file://{}'.format(local)
+        visit_local = local
         if '.header' in local:
             logging.debug('Using a FitsParser for local file {}'.format(local))
             parser = FitsParser(get_cadc_headers(meta_uri),
@@ -3375,7 +3377,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
 
-    _visit(plugin, parser, obs, **kwargs)
+    _visit(plugin, parser, obs, visit_local, **kwargs)
 
     if validate_wcs:
         try:
@@ -3693,7 +3695,7 @@ def _load_plugin(plugin_name):
     return plgin
 
 
-def _visit(plugn, parser, obs, **kwargs):
+def _visit(plugn, parser, obs, visit_local, **kwargs):
     if plugn is not None:
         if isinstance(parser, FitsParser):
             # TODO make a check that's necessary under both calling conditions
@@ -3704,6 +3706,8 @@ def _visit(plugn, parser, obs, **kwargs):
                     'observation {!r}'.format(plugn, obs.observation_id))
                 plgin = _load_plugin(plugn)
                 kwargs['headers'] = parser.headers
+                if visit_local is not None:
+                    kwargs['fqn'] = visit_local
                 try:
                     if plgin.update(observation=obs, **kwargs):
                         logging.debug(
