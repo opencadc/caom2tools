@@ -98,6 +98,7 @@ import logging
 import os
 import re
 import sys
+import tempfile
 import traceback
 from abc import ABCMeta
 from six import add_metaclass
@@ -106,6 +107,7 @@ from os import stat
 from six.moves.urllib.parse import urlparse
 from cadcutils import net, util
 from cadcdata import CadcDataClient
+from vos import Client
 from io import BytesIO
 import six
 
@@ -114,7 +116,7 @@ APP_NAME = 'caom2gen'
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
-           'GenericParser', 'augment']
+           'GenericParser', 'augment', 'get_vos_headers']
 
 POSITION_CTYPES = [
     ['RA',
@@ -1674,6 +1676,8 @@ class FitsParser(GenericParser):
                     self._try_polarization_with_blueprint(chunk, i)
             if self.blueprint._obs_axis_configed:
                 wcs_parser.augment_observable(chunk)
+                if chunk.observable is None and chunk.observable_axis is None:
+                    self._try_observable_with_blueprint(chunk, i)
 
             # try to set smaller bits of the chunk WCS elements from the
             # blueprint
@@ -1927,6 +1931,30 @@ class FitsParser(GenericParser):
                     'Creating PolarizationWCS for {} from blueprint'.
                     format(self.uri))
 
+        self.logger.debug('End augmentation with blueprint for polarization.')
+
+    def _try_observable_with_blueprint(self, chunk, index):
+        """
+        A mechanism to augment the Observable WCS completely from the
+        blueprint. Do nothing if the WCS information cannot be correctly
+        created.
+
+        :param chunk: The chunk to modify with the addition of observable
+            information.
+        :param index: The index in the blueprint for looking up plan
+            information.
+        """
+        self.logger.debug('Begin augmentation with blueprint for '
+                          'observable.')
+        chunk.observable_axis = _to_int(
+            self._get_from_list('Chunk.observableAxis', index))
+        aug_axis = self._two_param_constructor(
+            'Chunk.observable.dependent.axis.ctype',
+            'Chunk.observable.dependent.axis.cunit', index, _to_str, Axis)
+        aug_bin = _to_int(
+            self._get_from_list('Chunk.observable.dependent.bin', index))
+        if aug_axis is not None and aug_bin is not None:
+            chunk.observable = ObservableAxis(Slice(aug_axis, aug_bin))
         self.logger.debug('End augmentation with blueprint for polarization.')
 
     def _try_energy_with_blueprint(self, chunk, index):
@@ -3198,6 +3226,34 @@ def get_cadc_headers(uri, subject=None):
     return headers
 
 
+def get_vos_headers(uri, subject=None):
+    """
+    Creates the FITS headers object from a vospace file. 
+    The function uses cutouts to retrieve the miniumum amount of data,
+     minimizing the transfer time.
+    :param uri: vos URI
+    :param subject: user credentials. Anonymous if subject is None
+    :return: List of headers corresponding to each extension. Each header is
+    of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
+    """
+    if uri.startswith('vos'):
+        if subject is not None and subject.certificate is not None:
+            client = Client(subject.certificate)
+        else:
+            client = Client()
+
+        # make the smallest cutout possible, to get the least amount of data
+        # transferred, then transfer it to a temporary file
+        #
+        uri_with_cutout = '{}[1:1,1:1]'.format(uri)
+        temp_filename = tempfile.NamedTemporaryFile()
+        client.copy(uri_with_cutout, temp_filename.name)
+        return _get_headers_from_fits(temp_filename.name)
+    else:
+        # this should be a programming error by now
+        raise NotImplementedError('Only ad type URIs supported')
+
+
 def _make_headers_from_string(fits_header):
     """Create a list of fits.Header instances from a string.
     ":param fits_header a string of keyword/value pairs"""
@@ -3227,6 +3283,8 @@ def _update_artifact_meta(uri, artifact, subject=None):
     file_url = urlparse(uri)
     if file_url.scheme == 'ad':
         metadata = _get_cadc_meta(subject, file_url.path)
+    elif file_url.scheme == 'vos':
+        metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
         if file_url.path.endswith('.header'):
             # if header is on disk, get the content_* from ad
@@ -3277,15 +3335,37 @@ def _get_file_meta(path):
     s = stat(path)
     meta['size'] = s.st_size
     meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
-    if path.endswith('.header') or path.endswith('.txt'):
-        meta['type'] = 'text/plain'
-    elif path.endswith('.gif'):
-        meta['type'] = 'image/gif'
-    elif path.endswith('.png'):
-        meta['type'] = 'image/png'
-    else:
-        meta['type'] = 'application/octet-stream'
+    meta['type'] = _get_type(path)
     return meta
+
+
+def _get_vos_meta(subject, uri):
+    """
+    Gets contentType, contentLength and contentChecksum of a VOS artifact
+    :param subject: user credentials
+    :param uri:
+    :return:
+    """
+    if subject is not None and subject.certificate is not None:
+        client = Client(subject.certificate)
+    else:
+        client = Client()
+    node = client.get_node(uri, limit=None, force=False)
+    return {'size': node.props['length'],
+            'md5sum': node.props['MD5'],
+            'type': _get_type(uri)}
+
+
+def _get_type(path):
+    """Basic header extension to content_type lookup."""
+    if path.endswith('.header') or path.endswith('.txt'):
+        return 'text/plain'
+    elif path.endswith('.gif'):
+        return 'image/gif'
+    elif path.endswith('.png'):
+        return 'image/png'
+    else:
+        return 'application/octet-stream'
 
 
 def _lookup_blueprint(blueprints, uri):
@@ -3348,23 +3428,30 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     meta_uri = uri
     visit_local = None
     if local:
-        meta_uri = 'file://{}'.format(local)
-        visit_local = local
-        if '.header' in local:
-            logging.debug('Using a FitsParser for local file {}'.format(local))
-            parser = FitsParser(get_cadc_headers(meta_uri),
-                                blueprint, uri=uri)
-        elif local.endswith('.fits') or local.endswith('.fits.gz'):
-            logging.debug('Using a FitsParser for {}'.format(local))
-            parser = FitsParser(local, blueprint, uri=uri)
+        if uri.startswith('vos'):
+            if '.fits' in local or '.fits.gz' in local:
+                parser = FitsParser(get_vos_headers(uri), blueprint, uri=uri)
         else:
-            # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(local))
-            parser = GenericParser(blueprint, uri=uri)
+            meta_uri = 'file://{}'.format(local)
+            visit_local = local
+            if '.header' in local:
+                logging.debug('Using a FitsParser for local file {}'.format(local))
+                parser = FitsParser(get_cadc_headers(meta_uri),
+                                    blueprint, uri=uri)
+            elif local.endswith('.fits') or local.endswith('.fits.gz'):
+                logging.debug('Using a FitsParser for {}'.format(local))
+                parser = FitsParser(local, blueprint, uri=uri)
+            else:
+                # explicitly ignore headers for txt and image files
+                logging.debug('Using a GenericParser for {}'.format(local))
+                parser = GenericParser(blueprint, uri=uri)
     else:
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):
+            if uri.startswith('vos'):
+                headers = get_vos_headers(uri, subject)
+            else:
+                headers = get_cadc_headers(uri, subject)
             logging.debug('Using a FitsParser for remote file {}'.format(uri))
-            headers = get_cadc_headers(uri, subject)
             parser = FitsParser(headers, blueprint, uri=uri)
         else:
             # explicitly ignore headers for txt and image files

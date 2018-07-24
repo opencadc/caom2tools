@@ -72,15 +72,16 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
-from caom2utils import ObsBlueprint, GenericParser, get_gen_proc_arg_parser
+from caom2utils import ObsBlueprint, GenericParser, get_vos_headers
 from caom2utils.legacy import load_config
-from caom2utils.fits2caom2 import _visit, _load_plugin
+from caom2utils.fits2caom2 import _visit, _load_plugin, _update_artifact_meta
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
 from caom2 import Axis, CoordAxis1D, CoordAxis2D
+from cadcutils import net
 from lxml import etree
 
 from mock import Mock, patch
@@ -106,6 +107,7 @@ text_override = os.path.join(TESTDATA_DIR, 'text.override')
 test_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin.py')
 test_class_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin_class.py')
 non_conformant_plugin_module = os.path.join(TESTDATA_DIR, 'nonconformant.py')
+testproxy = os.path.join(TESTDATA_DIR, 'test_proxy.pem')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
@@ -989,8 +991,10 @@ def test_visit():
     test_fitsparser = FitsParser(sample_file_4axes,
                                  ObsBlueprint(polarization_axis=1))
     kwargs = {}
-    _visit(test_plugin_module, test_fitsparser, test_obs, **kwargs)
-    _visit(test_class_plugin_module, test_fitsparser, test_obs, **kwargs)
+    _visit(test_plugin_module, test_fitsparser, test_obs, visit_local=None,
+           **kwargs)
+    _visit(test_class_plugin_module, test_fitsparser, test_obs,
+           visit_local=None, **kwargs)
 
 
 EXPECTED_ENERGY_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
@@ -1185,8 +1189,35 @@ def test_visit_generic_parser():
                     'test_collection_id', 'test_observation_id']
         test_parser = GenericParser()
         test_plugin = __name__
-        test_args = get_gen_proc_arg_parser().parse_args()
         kwargs = {}
-        _visit(test_plugin, test_args, test_parser, **kwargs)
+        test_obs = SimpleObservation(collection='test_collection',
+                                     observation_id='test_obs_id',
+                                     algorithm=Algorithm(str('exposure')))
+        _visit(test_plugin, test_parser, test_obs, visit_local=None, **kwargs)
     except BaseException as e:
         assert False, 'should not get here {}'.format(e)
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_get_vos_headers():
+    test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
+               'dao_c122_2016_012725.fits'
+    test_headers = get_vos_headers(test_uri, subject=None)
+    assert test_headers is not None
+    assert len(test_headers) == 1
+    assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_get_vos_meta():
+    test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
+               'dao_c122_2016_012725.fits'
+    test_artifact = Artifact(test_uri, ProductType.SCIENCE, ReleaseType.DATA)
+    test_subject = net.Subject(certificate=testproxy)
+    _update_artifact_meta(test_uri, test_artifact, subject=test_subject)
+    assert test_artifact is not None
+    assert test_artifact.content_checksum.uri == \
+           'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
+    assert test_artifact.content_length == 682560, 'length wrong'
+    assert test_artifact.content_type == 'application/octet-stream', \
+        'content_type wrong'

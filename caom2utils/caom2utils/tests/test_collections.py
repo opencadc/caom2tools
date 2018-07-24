@@ -121,7 +121,10 @@ def test_differences(directory):
         assert blueprints
         module = _get_parameter('module', directory)
         cardinality = _get_cardinality(directory)
-        inputs = '{} {}'.format(blueprints, module)
+        if module is not None:
+            inputs = '{} {}'.format(blueprints, module)
+        else:
+            inputs = blueprints
         application = '{} {} '.format('caom2gen', data_files_parameter)
         app_cmd = fits2caom2.caom2gen
     else:
@@ -166,6 +169,9 @@ def _get_cardinality(directory):
                'MegaPipe.080.156.Z.MP9801.fits.gif'
     elif '/omm/' in directory:
         return '--lineage Cdemo_ext2_SCIRED/ad:OMM/Cdemo_ext2_SCIRED.fits.gz'
+    elif 'apass/catalog' in directory:
+        return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' \
+               'Examples/DAO/dao_c122_2016_012725.fits'
     else:
         return ''
 
