@@ -90,6 +90,7 @@ def _init_config():
     test_config.netrc_file = os.path.join(TESTDATA_DIR, 'test_netrc')
     test_config.work_file = 'todo.txt'
     test_config.logging_level = 'DEBUG'
+    test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
     return test_config
 
 
@@ -110,7 +111,8 @@ def test_meta_execute():
     ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
     exec_cmd_orig = mc.exec_cmd
 
-    test_storage_name = ec.StorageName('test_obs_id', collection_pattern=None)
+    test_storage_name = ec.StorageName(
+        'test_obs_id', 'OMM', collection_pattern=None)
     test_config = _init_config()
     try:
         # run the test
@@ -130,10 +132,11 @@ def test_meta_execute():
 
 
 def test_meta_local_execute():
-    test_obs_id = ec.StorageName('test_obs_id', collection_pattern=None)
+    test_obs_id = ec.StorageName(
+        'test_obs_id', 'OMM', collection_pattern=None)
     test_output_fname = os.path.join(
         TESTDATA_DIR,
-        StorageName(test_obs_id,
+        StorageName(test_obs_id,'OMM',
                     collection_pattern=None).get_model_file_name())
 
     # clean up from previous tests
@@ -153,7 +156,7 @@ def test_meta_local_execute():
         try:
             test_executor = ec.Collection2CaomLocalMeta(
                 test_config, test_obs_id,
-                StorageName(test_obs_id,
+                StorageName(test_obs_id, 'OMM',
                             collection_pattern=None).get_file_name())
             test_executor.execute(None)
         except CadcException as e:
@@ -249,7 +252,7 @@ def test_meta_local_execute():
 
 
 def test_data_store():
-    test_obs_id = ec.StorageName('test_obs_id', collection_pattern=None)
+    test_obs_id = ec.StorageName('test_obs_id', 'OMM', collection_pattern=None)
     test_config = _init_config()
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
@@ -259,7 +262,7 @@ def test_data_store():
         # run the test
         test_executor = ec.Collection2CaomStore(
             test_config, test_obs_id,
-            StorageName(test_obs_id,
+            StorageName(test_obs_id, 'OMM',
                         collection_pattern=None).get_compressed_file_name())
         try:
             test_executor.execute(None)
@@ -272,10 +275,10 @@ def test_data_store():
 
 
 def test_scrape():
-    test_obs_id = ec.StorageName('test_obs_id', collection_pattern=None)
+    test_obs_id = ec.StorageName('test_obs_id', 'OMM', collection_pattern=None)
     test_output_fname = os.path.join(
         TESTDATA_DIR,
-        StorageName(test_obs_id,
+        StorageName(test_obs_id, 'OMM',
                     collection_pattern=None).get_model_file_name())
 
     # clean up from previous tests
@@ -293,7 +296,7 @@ def test_scrape():
     try:
         test_executor = ec.Collection2CaomScrape(
             test_config, test_obs_id,
-            StorageName(test_obs_id,
+            StorageName(test_obs_id, 'OMM',
                         collection_pattern=None).get_compressed_file_name())
         try:
             test_executor.execute(None)
@@ -338,7 +341,7 @@ def test_scrape():
 
 
 def test_organize_executes():
-    test_obs_id = ec.StorageName('test_obs_id',
+    test_obs_id = ec.StorageName('test_obs_id', 'OMM',
                                  collection_pattern='test_obs_id')
     test_config = _init_config()
     test_config.use_local_files = True
@@ -408,6 +411,79 @@ def test_organize_executes():
         mc.exec_cmd_orig = exec_cmd_orig
 
 
+def test_organize_executes_client():
+    test_obs_id = ec.StorageName('test_obs_id', 'OMM',
+                                 collection_pattern='test_obs_id')
+    test_config = _init_config()
+    test_config.use_local_files = True
+    log_file_directory = os.path.join(THIS_DIR, 'logs')
+    test_config.log_file_directory = log_file_directory
+    success_log_file_name = 'success_log.txt'
+    test_config.success_log_file_name = success_log_file_name
+    failure_log_file_name = 'failure_log.txt'
+    test_config.failure_log_file_name = failure_log_file_name
+    retry_file_name = 'retries.txt'
+    test_config.retry_file_name = retry_file_name
+    exec_cmd_orig = mc.exec_cmd_info
+
+    try:
+        mc.exec_cmd_info = \
+            Mock(return_value='INFO:cadc-data:info\n'
+                              'File C170324_0054_SCI_prev.jpg:\n'
+                              '    archive: OMM\n'
+                              '   encoding: None\n'
+                              '    lastmod: Mon, 25 Jun 2018 16:52:07 GMT\n'
+                              '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
+                              '       name: C120902_sh2-132_J_old_SCIRED.fits.gz\n'
+                              '       size: 754408\n'
+                              '       type: image/jpeg\n'
+                              '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
+                              '      usize: 754408\n'.encode('utf-8'))
+
+        test_config.task_types = [mc.TaskType.SCRAPE]
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe.choose_client(test_obs_id, StorageName.is_valid)
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0], ec.Collection2CaomScrape)
+
+        test_config.task_types = [mc.TaskType.STORE,
+                                  mc.TaskType.INGEST,
+                                  mc.TaskType.MODIFY]
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe.choose_client(test_obs_id, StorageName.is_valid)
+        assert executors is not None
+        assert len(executors) == 4
+        assert isinstance(executors[0], ec.Collection2CaomStoreClient), \
+            type(executors[0])
+        assert isinstance(executors[1], ec.Collection2CaomLocalMetaClient)
+        assert isinstance(executors[2], ec.Collection2CaomLocalDataClient)
+        assert isinstance(
+            executors[3], ec.Collection2CaomCompareChecksumClient)
+
+        test_config.use_local_files = False
+        test_config.task_types = [mc.TaskType.INGEST,
+                                  mc.TaskType.MODIFY]
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe.choose_client(test_obs_id, StorageName.is_valid)
+        assert executors is not None
+        assert len(executors) == 2
+        assert isinstance(executors[0], ec.Collection2CaomMetaClient)
+        assert isinstance(executors[1], ec.Collection2CaomDataClient)
+
+        test_config.task_types = [mc.TaskType.SCRAPE,
+                                  mc.TaskType.MODIFY]
+        test_config.use_local_files = True
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe.choose_client(test_obs_id, StorageName.is_valid)
+        assert executors is not None
+        assert len(executors) == 2
+        assert isinstance(executors[0], ec.Collection2CaomScrape)
+        assert isinstance(executors[1], ec.Collection2CaomDataScrape)
+    finally:
+        mc.exec_cmd_orig = exec_cmd_orig
+
+
 def test_data_cmd_info():
     exec_cmd_orig = mc.exec_cmd_info
     try:
@@ -424,7 +500,8 @@ def test_data_cmd_info():
                               '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
                               '      usize: 754408\n')
         test_config = _init_config()
-        test_obs_id = ec.StorageName('TEST_OBS_ID', collection_pattern=None)
+        test_obs_id = ec.StorageName(
+            'TEST_OBS_ID', 'OMM', collection_pattern=None)
         test_executor = ec.Collection2CaomMeta(test_config, test_obs_id)
         test_executor._find_file_name_storage()
         assert test_executor.fname is not None, test_executor.fname

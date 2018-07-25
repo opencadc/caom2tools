@@ -162,6 +162,10 @@ class Config(object):
         # the fully qualified name for the file
         self.retry_fqn = None
 
+        # for the love of pete, don't use these from the config.yml file
+        # they're here for programmatic passing around, and nothing else
+        self.proxy = None
+
     @property
     def working_directory(self):
         return self._working_directory
@@ -298,6 +302,14 @@ class Config(object):
         if self.log_file_directory is not None:
             self.retry_fqn = os.path.join(
                 self.log_file_directory, self.retry_file_name)
+
+    @property
+    def proxy(self):
+        return self._proxy
+
+    @proxy.setter
+    def proxy(self, value):
+        self._proxy = value
 
     @staticmethod
     def _lookup(config, lookup, default):
@@ -542,3 +554,41 @@ def compare_checksum(netrc_fqn, collection, fqn):
         raise CadcException(
             '{} md5sum not the same as the one in the ad '
             '{} collection.'.format(fqn, collection))
+
+
+def compare_checksum_client(client, collection, fqn):
+    """
+    Raise CadcException if the checksum of a file in ad is not the same as
+    the checksum of a file on disk.
+
+    :param client: access to CADC data service
+    :param collection: archive file has been stored to
+    :param fqn: Fully-qualified name of the file for which to get the metadata.
+    """
+    fname = os.path.basename(fqn)
+    try:
+        local_meta = get_file_meta(fqn)
+        ad_meta = client.get_file_info(collection, fname)
+    except Exception as e:
+        raise CadcException('Could not find md5 checksum for {} in the ad {} '
+                            'collection. {}'.format(fqn, collection, e))
+
+    if ((fqn.endswith('.gz') and local_meta['md5sum'] !=
+         ad_meta['md5sum']) or (
+            not fqn.endswith('.gz') and local_meta['md5sum'] !=
+            ad_meta['umd5sum'])):
+        raise CadcException(
+            '{} md5sum not the same as the one in the ad '
+            '{} collection.'.format(fqn, collection))
+
+
+def create_dir(dir_name):
+    """Create the working area if it does not already exist."""
+    if not os.path.exists(dir_name):
+        os.mkdir(dir_name)
+        if not os.path.exists(dir_name):
+            raise CadcException(
+                'Could not mkdir {}'.format(dir_name))
+        if not os.access(dir_name, os.W_OK | os.X_OK):
+            raise CadcException(
+                '{} is not writeable.'.format(dir_name))
