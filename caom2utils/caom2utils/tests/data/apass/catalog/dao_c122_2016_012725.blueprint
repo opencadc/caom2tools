@@ -1,0 +1,64 @@
+Observation.metaRelease = ['DATE-OBS']
+
+Observation.telescope.name = DAO 1.2-m
+Observation.telescope.geoLocationX = -2331226.7883358444
+Observation.telescope.geoLocationY = -3532798.982897074
+Observation.telescope.geoLocationZ = 4755607.321828939
+
+Observation.proposal.pi = Gulliver
+Observation.proposal.id = DAO122_2016C5
+
+Observation.target.type = object
+Observation.environment.humidity = ['REL_HUMI']
+
+Plane.dataProductType = spectrum
+Plane.calibrationLevel = 1
+Plane.metaRelease = ['DATE-OBS']
+
+Plane.provenance.project = DAO Science Archive
+Plane.provenance.producer = NRC Herzberg
+Plane.provenance.reference = http://www.cadc.hia.nrc.gc.ca/dao/
+Plane.provenance.name = DAO unprocessed data
+
+Chunk.position.coordsys = FK5
+Chunk.position.equinox = ['EQUINOX']
+Chunk.position.axis.axis1.ctype = ['CTYPE3'], default=RA---TAN
+Chunk.position.axis.axis2.ctype = ['CTYPE4'], default=DEC--TAN
+Chunk.position.axis.axis1.cunit = deg
+Chunk.position.axis.axis2.cunit = deg
+Chunk.position.axis.function.cd11 = -0.001388
+Chunk.position.axis.function.cd12 = 0.0
+Chunk.position.axis.function.cd21 = 0.0
+Chunk.position.axis.function.cd22 = 0.001388
+Chunk.position.axis.function.dimension.naxis1 = 1
+Chunk.position.axis.function.dimension.naxis2 = 1
+Chunk.position.axis.function.refCoord.coord1.pix = 1.0
+Chunk.position.axis.function.refCoord.coord1.val = 161.050494075
+Chunk.position.axis.function.refCoord.coord2.pix = 1.0
+Chunk.position.axis.function.refCoord.coord2.val = 19.7557158733
+
+Chunk.energy.specsys = ['SPECSYS'], default=TOPOCENT
+Chunk.energy.ssysobs = ['SSYSOBS'], default=TOPOCENT
+Chunk.energy.ssyssrc = ['SSYSSRC'], default=TOPOCENT
+Chunk.energy.resolvingPower = 17600
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = Angstrom
+Chunk.energy.axis.function.naxis = 4200
+Chunk.energy.axis.function.delta = 0.15
+Chunk.energy.axis.function.refCoord.pix = 2046
+Chunk.energy.axis.function.refCoord.val = 6600
+
+Chunk.observableAxis = 2
+Chunk.observable.dependent.axis.ctype = FLUX
+Chunk.observable.dependent.axis.cunit = COUNTS
+Chunk.observable.dependent.bin = 1
+
+Chunk.time.exposure = 1800.00000
+Chunk.time.resolution = 1800.00000
+Chunk.time.timesys = UTC
+Chunk.time.axis.axis.ctype = ['CTYPE5'], default=TIME
+Chunk.time.axis.axis.cunit = d
+Chunk.time.axis.function.naxis = 1
+Chunk.time.axis.function.delta = 0.020833
+Chunk.time.axis.function.refCoord.pix = 0.500000
+Chunk.time.axis.function.refCoord.val = 57723.6006366
