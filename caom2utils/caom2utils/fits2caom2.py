@@ -1210,9 +1210,9 @@ class ObsBlueprint(object):
                     if ttype_attribute not in self._plan[caom2_element][1]:
                         self._plan[caom2_element][1].insert(0, ttype_attribute)
                 else:
-                    raise AttributeError(
-                        'No TTYPE attributes associated with keyword {}'.
-                            format(caom2_element))
+                    raise AttributeError('No TTYPE attributes associated '
+                                         'with keyword {}'.format(
+                                            caom2_element))
             else:
                 self._plan[caom2_element] = (
                     'BINTABLE', [ttype_attribute], None)
@@ -3203,7 +3203,7 @@ def get_cadc_headers(uri, subject=None):
 
 def get_vos_headers(uri, subject=None):
     """
-    Creates the FITS headers object from a vospace file. 
+    Creates the FITS headers object from a vospace file.
     The function uses cutouts to retrieve the miniumum amount of data,
      minimizing the transfer time.
     :param uri: vos URI
@@ -3410,7 +3410,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             meta_uri = 'file://{}'.format(local)
             visit_local = local
             if '.header' in local:
-                logging.debug('Using a FitsParser for local file {}'.format(local))
+                logging.debug(
+                    'Using a FitsParser for local file {}'.format(local))
                 parser = FitsParser(get_cadc_headers(meta_uri),
                                     blueprint, uri=uri)
             elif local.endswith('.fits') or local.endswith('.fits.gz'):
