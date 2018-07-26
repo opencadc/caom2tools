@@ -124,7 +124,8 @@ def _validate_observation(caom2_entity, deep=True):
         CompositeObservation) to validate.
     :param deep if True, also validate the 'has-a' members of an Observation.
     """
-    assert isinstance(caom2_entity, Observation), 'Must be an Observation'
+    if not isinstance(caom2_entity, Observation):
+        raise ValueError('{} must be an Observation'.format(caom2_entity))
     if caom2_entity.proposal:
         _validate_keyword('proposal.keywords', caom2_entity.proposal.keywords)
     if caom2_entity.target:
@@ -150,8 +151,8 @@ def _validate_plane(caom2_entity, deep=True):
     :param caom2_entity: The Plane to validate.
     :param deep if True, also validate the 'has-a' members of a Plane.
     """
-    assert caom2_entity, 'Must provide a plane for validation'
-    assert isinstance(caom2_entity, Plane), 'Must be a Plane'
+    if caom2_entity is None or not isinstance(caom2_entity, Plane):
+        raise ValueError('{} must be a valid Plane'.format(caom2_entity))
 
     if caom2_entity.provenance:
         _validate_keyword('provenance.keywords',
@@ -173,8 +174,9 @@ def _validate_artifact(caom2_entity, deep=True):
 
     :param caom2_entity: The Artifact to validate.
     """
-    assert caom2_entity, 'Must provide an artifact for validation'
-    assert isinstance(caom2_entity, Artifact), 'Must be a Artifact'
+    if caom2_entity is None or not isinstance(caom2_entity, Artifact):
+        raise ValueError(
+            '{} must be a valid artifact.'.format(caom2_entity))
     if deep and caom2_entity.parts is not None:
         for value in caom2_entity.parts.values():
             _validate_part(value)
@@ -189,8 +191,8 @@ def _validate_part(caom2_entity, deep=True):
 
     :param caom2_entity: The Part to validate.
     """
-    assert caom2_entity, 'Must provide a part for validation'
-    assert isinstance(caom2_entity, Part), 'Must be a Part'
+    if caom2_entity is None or not isinstance(caom2_entity, Part):
+        raise ValueError('{} must be a valid Part.'.format(caom2_entity))
 
     if deep and (caom2_entity.chunks is not None):
         for chunk in caom2_entity.chunks:
@@ -206,8 +208,8 @@ def _validate_chunk(caom2_entity):
 
     :param caom2_entity: The Chunk to validate.
     """
-    assert caom2_entity, 'Must provide a chunk for validation'
-    assert isinstance(caom2_entity, Chunk), 'Must be a Chunk'
+    if caom2_entity is None or not isinstance(caom2_entity, Chunk):
+        raise ValueError('{} must be a valid Chunk.'.format(caom2_entity))
     validate_wcs(caom2_entity)
 
 

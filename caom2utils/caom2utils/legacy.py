@@ -364,7 +364,8 @@ def load_config(file_name):
 
 def _update_axis_info(parser, defaults, overrides, config):
     # look for info regarding axis types in the default and override file
-    assert config is not None, 'Empty config when updating axis info.'
+    if config is None:
+        raise ValueError('Empty config when updating axis info.')
     energy_axis = None
     polarization_axis = None
     time_axis = None

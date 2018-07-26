@@ -175,8 +175,8 @@ def test_obs_blueprint():
     assert ob._get('Observation.target.redshift') is None
 
     # bintable :)
-    ob.add_table_attribute('CompositeObservation.members', 'FICS', extension=1)
-    result = ob._get('CompositeObservation.members', extension=1)
+    ob.add_table_attribute('CompositeObservation.members', 'FICS', extension=0)
+    result = ob._get('CompositeObservation.members', extension=0)
     assert result is not None
     assert len(result) == 3, len(result)
 
@@ -193,7 +193,7 @@ def test_obs_blueprint():
     # delete attributes from extensions
     ob.delete('Chunk.energy.velang', extension=1)
     ob.delete('Chunk.energy.axis.axis.ctype', extension=1)
-    ob.delete('CompositeObservation.members', extension=1)
+    ob.delete('CompositeObservation.members', extension=0)
     ob.delete('Chunk.energy.velang', extension=2)
     assert len(ob._extensions) == 0
 
@@ -308,3 +308,4 @@ def test_load_from_file_configure():
     ob._guess_axis_info_from_plan()
     assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
         ob._wcs_std['Chunk.energy.axis.axis.ctype']
+
