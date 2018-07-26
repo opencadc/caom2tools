@@ -114,3 +114,16 @@ def test_compare_checksum(mock_get_file_info):
     f.close()
     with pytest.raises(mc.CadcException):
         mc.compare_checksum(test_netrc, 'OMM', test_file)
+
+
+def test_decompose_lineage():
+    test_product_id = 'product_id'
+    test_uri = 'ad:STARS/galaxies.fits.gz'
+    test_lineage = '{}/{}'.format(test_product_id, test_uri)
+    actual_product_id, actual_uri = mc.decompose_lineage(test_lineage)
+    assert actual_product_id == test_product_id, 'expected {}'.format(
+        test_product_id)
+    assert actual_uri == test_uri, 'expected {}'.format(test_uri)
+
+    with pytest.raises(mc.CadcException):
+        mc.decompose_lineage('')

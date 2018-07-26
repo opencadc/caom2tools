@@ -82,7 +82,8 @@ from cadcdata import CadcDataClient
 
 __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'exec_cmd', 'exec_cmd_redirect', 'exec_cmd_info',
-           'get_cadc_meta', 'get_file_meta', 'compare_checksum']
+           'get_cadc_meta', 'get_file_meta', 'compare_checksum',
+           'decompose_lineage']
 
 
 class CadcException(Exception):
@@ -90,12 +91,12 @@ class CadcException(Exception):
 
 
 class TaskType(Enum):
-    """The possible steps in the OMM pipeline."""
+    """The possible steps in a Collection pipeline."""
     STORE = 'store'
     SCRAPE = 'scrape'
     INGEST = 'ingest'
     MODIFY = 'modify'
-    UNKNOWN = 'unknown'
+    CHECKSUM = 'checksum'
 
 
 class Config(object):
@@ -592,3 +593,15 @@ def create_dir(dir_name):
         if not os.access(dir_name, os.W_OK | os.X_OK):
             raise CadcException(
                 '{} is not writeable.'.format(dir_name))
+
+
+def decompose_lineage(lineage):
+    """Returns a product id and an artifact uri from the command line."""
+    try:
+        result = lineage.split('/', 1)
+        return result[0], result[1]
+    except Exception as e:
+        logging.debug('Lineage {} caused error {}. Expected '
+                      'product_id/ad:COLLECTION/FILE_NAME'.format(
+            lineage, e))
+        raise CadcException('Expected product_id/ad:COLLECTION/FILE_NAME')

@@ -87,7 +87,12 @@ __all__ = ['OrganizeExecutes', 'StorageName']
 class StorageName(object):
     """Naming rules:
     - support mixed-case file name storage
-    - support gzipped and not zipped file names"""
+    - support gzipped and not zipped file names
+
+    This class assumes the obs_id is part of the file name. This assumption
+    may be broken in the future, in which case lots of CaomExecute
+    implementations will need to be re-addressed somehow.
+    """
 
     def __init__(self, obs_id, collection, collection_pattern):
         self.obs_id = obs_id
@@ -890,7 +895,7 @@ class Collection2CaomCompareChecksum(CaomExecute):
 
     def __init__(self, config, storage_name, file_name):
         super(Collection2CaomCompareChecksum, self).__init__(
-            config, mc.TaskType.UNKNOWN, storage_name)
+            config, mc.TaskType.CHECKSUM, storage_name)
         self._define_local_dirs()
         self.fname = file_name
 
@@ -916,7 +921,7 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
     def __init__(self, config, obs_id, file_name, cadc_data_client,
                  caom_repo_client):
         super(Collection2CaomCompareChecksumClient, self).__init__(
-            config, mc.TaskType.UNKNOWN, obs_id,
+            config, mc.TaskType.CHECKSUM, obs_id,
             cadc_data_client, caom_repo_client)
         self._define_local_dirs()
         self.fname = file_name
