@@ -1198,7 +1198,7 @@ def test_visit_generic_parser():
         kwargs = {}
         test_obs = SimpleObservation(collection='test_collection',
                                      observation_id='test_obs_id',
-                                     algorithm=Algorithm(str('exposure')))
+                                     algorithm=Algorithm('exposure'))
         _visit(test_plugin, test_parser, test_obs, visit_local=None, **kwargs)
     except BaseException as e:
         assert False, 'should not get here {}'.format(e)
