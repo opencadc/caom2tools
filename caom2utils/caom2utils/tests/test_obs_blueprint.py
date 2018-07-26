@@ -86,13 +86,13 @@ def test_obs_blueprint():
     assert elems != ObsBlueprint.CAOM2_ELEMENTS
 
     # default config (one entry per row...)
-    assert str(ObsBlueprint()).count('\n') == 20
+    assert str(ObsBlueprint()).count('\n') == 21
     print(ObsBlueprint())
 
     # default config with WCS info
     assert str(ObsBlueprint(position_axes=(1, 2), energy_axis=3,
                polarization_axis=4, time_axis=5,
-                            obs_axis=6)).count('\n') == 80
+                            obs_axis=6)).count('\n') == 81
 
     ob = ObsBlueprint()
     ob.configure_position_axes(axes=(1, 2))
@@ -175,8 +175,8 @@ def test_obs_blueprint():
     assert ob._get('Observation.target.redshift') is None
 
     # bintable :)
-    ob.add_table_attribute('CompositeObservation.members', 'FICS', extension=1)
-    result = ob._get('CompositeObservation.members', extension=1)
+    ob.add_table_attribute('CompositeObservation.members', 'FICS', extension=0)
+    result = ob._get('CompositeObservation.members', extension=0)
     assert result is not None
     assert len(result) == 3, len(result)
 
@@ -193,7 +193,7 @@ def test_obs_blueprint():
     # delete attributes from extensions
     ob.delete('Chunk.energy.velang', extension=1)
     ob.delete('Chunk.energy.axis.axis.ctype', extension=1)
-    ob.delete('CompositeObservation.members', extension=1)
+    ob.delete('CompositeObservation.members', extension=0)
     ob.delete('Chunk.energy.velang', extension=2)
     assert len(ob._extensions) == 0
 
@@ -308,3 +308,20 @@ def test_load_from_file_configure():
     ob._guess_axis_info_from_plan()
     assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
         ob._wcs_std['Chunk.energy.axis.axis.ctype']
+
+
+def test_has_chunk():
+    # the CFHT case
+    ob = ObsBlueprint()
+    ob.configure_position_axes((1, 2))
+    ob.set('Chunk', '{ignore}')
+    ob.set('Chunk.position.axis.axis1.ctype', 'RA---SIN', 1)
+    assert not ob.has_chunk(0)
+    assert ob.has_chunk(1)
+
+    # the OMM case
+    ob = ObsBlueprint()
+    ob.configure_position_axes((1, 2))
+    ob.set('Chunk', '{ignore}', 1)
+    assert ob.has_chunk(0)
+    assert not ob.has_chunk(1)

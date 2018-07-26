@@ -72,7 +72,8 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
-from caom2utils import ObsBlueprint, GenericParser, get_vos_headers
+# from caom2utils import ObsBlueprint, GenericParser, get_vos_headers
+from caom2utils import ObsBlueprint, GenericParser
 from caom2utils.legacy import load_config
 from caom2utils.fits2caom2 import _visit, _load_plugin, _update_artifact_meta
 
@@ -82,6 +83,10 @@ from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
 from caom2 import Axis, CoordAxis1D, CoordAxis2D
 from cadcutils import net
+
+import caom2utils
+
+import vos
 from lxml import etree
 
 from mock import Mock, patch
@@ -479,7 +484,8 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert stderr_mock.getvalue().endswith(bad_product_id)
+        result = stderr_mock.getvalue()
+        assert result.endswith(bad_product_id)
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -1192,7 +1198,7 @@ def test_visit_generic_parser():
         kwargs = {}
         test_obs = SimpleObservation(collection='test_collection',
                                      observation_id='test_obs_id',
-                                     algorithm=Algorithm(str('exposure')))
+                                     algorithm=Algorithm('exposure'))
         _visit(test_plugin, test_parser, test_obs, visit_local=None, **kwargs)
     except BaseException as e:
         assert False, 'should not get here {}'.format(e)
@@ -1202,22 +1208,57 @@ def test_visit_generic_parser():
 def test_get_vos_headers():
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
-    test_headers = get_vos_headers(test_uri, subject=None)
-    assert test_headers is not None
-    assert len(test_headers) == 1
-    assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
+    client_orig = vos.Client
+    get_orig = caom2utils.fits2caom2._get_headers_from_fits
+
+    try:
+        caom2utils.fits2caom2._get_headers_from_fits = Mock(
+            side_effect=_get_headers)
+        vos.Client = Mock()
+        test_headers = caom2utils.get_vos_headers(test_uri, subject=None)
+        assert test_headers is not None
+        assert len(test_headers) == 1
+        assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
+    finally:
+        vos.Client = client_orig
+        caom2utils.fits2caom2._get_headers_from_fits = get_orig
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
 def test_get_vos_meta():
-    test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
-               'dao_c122_2016_012725.fits'
-    test_artifact = Artifact(test_uri, ProductType.SCIENCE, ReleaseType.DATA)
-    test_subject = net.Subject(certificate=testproxy)
-    _update_artifact_meta(test_uri, test_artifact, subject=test_subject)
-    assert test_artifact is not None
-    assert test_artifact.content_checksum.uri == \
-           'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
-    assert test_artifact.content_length == 682560, 'length wrong'
-    assert test_artifact.content_type == 'application/octet-stream', \
-        'content_type wrong'
+    get_orig = caom2utils.get_vos_headers
+    try:
+        caom2utils.get_vos_headers = Mock(
+            return_value={'md5sum': '5b00b00d4b06aba986c3663d09aa581f',
+                          'size': 682560,
+                          'type': 'application/octet-stream'})
+        test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
+                   'dao_c122_2016_012725.fits'
+        test_artifact = Artifact(test_uri, ProductType.SCIENCE,
+                                 ReleaseType.DATA)
+        test_subject = net.Subject(certificate=testproxy)
+        _update_artifact_meta(test_uri, test_artifact, subject=test_subject)
+        assert test_artifact is not None
+        assert test_artifact.content_checksum.uri == \
+            'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
+        assert test_artifact.content_length == 682560, 'length wrong'
+        assert test_artifact.content_type == 'application/octet-stream', \
+            'content_type wrong'
+    finally:
+        caom2utils.get_vos_headers = get_orig
+
+
+def _get_headers(subject):
+    x = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
+BITPIX  =                  -32 / Bits per pixel
+NAXIS   =                    2 / Number of dimensions
+NAXIS1  =                 2048 /
+NAXIS2  =                 2048 /
+DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
+END
+"""
+    delim = '\nEND'
+    extensions = \
+        [e + delim for e in x.split(delim) if e.strip()]
+    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    return headers

@@ -43,7 +43,11 @@
             </caom2:part>
             <caom2:part caom2:id="00000000-0000-0000-9043-3a5b0d5f7597">
               <caom2:name>1</caom2:name>
-              <caom2:chunks/>
+              <caom2:chunks>
+                <caom2:chunk caom2:id="00000000-0000-0000-97ef-e09bd2e745b4">
+                  <caom2:naxis>2</caom2:naxis>
+                </caom2:chunk>
+              </caom2:chunks>
             </caom2:part>
           </caom2:parts>
         </caom2:artifact>

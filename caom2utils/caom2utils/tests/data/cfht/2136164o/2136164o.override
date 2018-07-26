@@ -36,4 +36,5 @@ DATE = 2017-07-02T10:16:09
 DATE = 2017-07-02T10:16:09
 CRUNID = 17As01
 plane.dataProductType = image
+Chunk = {ignore}
 

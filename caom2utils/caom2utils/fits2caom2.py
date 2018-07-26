@@ -331,6 +331,7 @@ class ObsBlueprint(object):
         'Part.name',
         'Part.productType',
 
+        'Chunk',
         'Chunk.naxis',
         'Chunk.observableAxis',
         'Chunk.positionAxis1',
@@ -496,7 +497,8 @@ class ObsBlueprint(object):
                'Plane.provenance.project': (['ADC_ARCH'], None),
                'Plane.provenance.producer': (['ORIGIN'], None),
                'Plane.provenance.reference': (['XREFER'], None),
-               'Plane.provenance.lastExecuted': (['DATE-FTS'], None)
+               'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
+               'Chunk': 'include'
                }
         # using the tmp to make sure that the keywords are valid
         for key in tmp:
@@ -507,7 +509,6 @@ class ObsBlueprint(object):
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            # 'Chunk.naxis': (['ZNAXIS', 'NAXIS'], None)
             'Chunk.naxis': 'ZNAXIS,NAXIS'
         }
         self._pos_axes_configed = False
@@ -1072,6 +1073,12 @@ class ObsBlueprint(object):
             raise ValueError(
                 "Extension number refers to Chunk elements only")
 
+    @staticmethod
+    def check_extension(extension):
+        if extension is not None and extension < 0:
+            raise ValueError(
+                'Extension count failure. {} should be >= 0'.format(extension))
+
     def __str__(self):
         plan = self._serialize(self._plan)
 
@@ -1101,7 +1108,7 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension count failure when setting a value.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1122,7 +1129,7 @@ class ObsBlueprint(object):
         value or KeyError if the caom2 element does not exists.
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when adding FITS attribute.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1175,7 +1182,7 @@ class ObsBlueprint(object):
         value or KeyError if the caom2 element does not exists.
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when adding TTYPE attribute.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             if extension in self._extensions:
                 if caom2_element in self._extensions[extension]:
@@ -1203,9 +1210,9 @@ class ObsBlueprint(object):
                     if ttype_attribute not in self._plan[caom2_element][1]:
                         self._plan[caom2_element][1].insert(0, ttype_attribute)
                 else:
-                    raise AttributeError(
-                        'No TTYPE attributes associated with keyword {}'.
-                            format(caom2_element))
+                    raise AttributeError('No TTYPE attributes associated '
+                                         'with keyword {}'.format(
+                                            caom2_element))
             else:
                 self._plan[caom2_element] = (
                     'BINTABLE', [ttype_attribute], None)
@@ -1226,7 +1233,7 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when setting default.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1256,11 +1263,9 @@ class ObsBlueprint(object):
         :raises exceptions if the element or extension not found
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when deleting.'
+        ObsBlueprint.check_extension(extension)
         if extension:
-            # TODO - figure out what the implications of removing the following
-            # check are
-            # ObsBlueprint.check_chunk(caom2_element)
+            ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 raise ValueError('Extension {} not configured in blueprint'.
                                  format(extension))
@@ -1283,7 +1288,7 @@ class ObsBlueprint(object):
         :raises exceptions if the element or extension not found
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when deleting.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1300,15 +1305,13 @@ class ObsBlueprint(object):
         Returns the source associated with a CAOM2 element
         :param caom2_element: name CAOM2 element (as in
         ObsBlueprint.CAOM2_ELEMEMTS)
-        :param extension: extension number (used only for Chunk elements)
+        :param extension: extension number
         :return: Tuple of the form (list_of_associated_fits_attributes,
         default_value) OR the actual value associated with the CAOM2 element
         """
         ObsBlueprint.check_caom2_element(caom2_element)
+        ObsBlueprint.check_extension(extension)
         if extension:
-            # TODO - figure out what the implications of removing the
-            # following check are
-            # ObsBlueprint.check_chunk(caom2_element)
             if (extension in self._extensions) and \
                     (caom2_element in self._extensions[extension]):
                 return self._extensions[extension][caom2_element]
@@ -1318,6 +1321,22 @@ class ObsBlueprint(object):
             return None
         else:
             return self._plan[caom2_element]
+
+    def has_chunk(self, extension):
+        """What does the plan say about creating chunks for an
+        extension?
+
+        :return True if there should be a chunk to go along with a part
+        """
+        value = ''
+        if extension is not None and extension in self._extensions:
+            if 'Chunk' in self._extensions[extension]:
+                value = self._extensions[extension]['Chunk']
+        elif 'Chunk' in self._plan:
+            if ((extension is not None and extension == 0) or (
+                    extension is None)):
+                value = self._plan['Chunk']
+        return not value == '{ignore}'
 
     @staticmethod
     def is_fits(value):
@@ -1341,7 +1360,7 @@ class ObsBlueprint(object):
         """If functions return None, try not to update the WCS with this
         value."""
         return value is None or (
-                    isinstance(value, str) and 'None' in value.strip())
+                isinstance(value, str) and 'None' in value.strip())
 
     def get_configed_axes_count(self):
         """:return how many axes have been configured to read from WCS"""
@@ -1392,14 +1411,15 @@ class GenericParser:
         self.logger.debug(
             'Begin generic CAOM2 observation augmentation for URI {}.'.format(
                 artifact_uri))
-        assert observation, 'observation instance required.'
-        assert isinstance(observation,
-                          Observation), 'Observation type mis-match.'
+        if observation is None or not isinstance(observation, Observation):
+            raise ValueError(
+                'Observation type mis-match for {}.'.format(observation))
 
         plane = None
         if not product_id:
             product_id = self._get_from_list('Plane.productID', index=0)
-        assert product_id, 'product ID required'
+        if product_id is None:
+            raise ValueError('product ID required')
 
         for ii in observation.planes:
             if observation.planes[ii].product_id == product_id:
@@ -1422,8 +1442,8 @@ class GenericParser:
         self.logger.debug(
             'Begin generic CAOM2 plane augmentation for {}.'.format(
                 artifact_uri))
-        assert plane, 'plane instance required.'
-        assert isinstance(plane, Plane), 'Plane type mis-match.'
+        if plane is None or not isinstance(plane, Plane):
+            raise ValueError('Plane type mis-match for {}'.format(plane))
         artifact = None
         for ii in plane.artifacts:
             artifact = plane.artifacts[ii]
@@ -1448,8 +1468,9 @@ class GenericParser:
         self.logger.debug(
             'Begin generic CAOM2 artifact augmentation for {}.'.format(
                 self.logging_name))
-        assert artifact, 'artifact instance required.'
-        assert isinstance(artifact, Artifact), 'Artifact type mis-match'
+        if artifact is None or not isinstance(artifact, Artifact):
+            raise ValueError(
+                'Artifact type mis-match for {}'.format(artifact))
 
         artifact.uri = self._get_from_list('Artifact.uri', index=0,
                                            current=artifact.uri)
@@ -1619,20 +1640,20 @@ class FitsParser(GenericParser):
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            create_empty_part = self._determine_chunk_count(i)
-            if create_empty_part:
-                artifact.parts.add(Part(ii))
-                self.logger.debug('Create empty part for HDU {}'.format(ii))
-                continue
-            else:
+            if self.blueprint.has_chunk(i):
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
+            else:
+                artifact.parts.add(Part(ii))
+                self.logger.debug('Create empty part for HDU {}'.format(ii))
+                continue
 
             part = artifact.parts[ii]
             part.product_type = self._get_from_list('Part.productType', i)
 
-            # each Part has one Chunk
+            # each Part has one Chunk, if it's not an empty part as determined
+            # just previously
             if not part.chunks:
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
@@ -1685,50 +1706,6 @@ class FitsParser(GenericParser):
 
         self.logger.debug(
             'End artifact augmentation for {}.'.format(artifact.uri))
-
-    def _determine_chunk_count(self, i):
-        """The logic to determine whether or not to create an empty part
-        extracted into its own method, because it's getting more complex as
-        additional collections are considered.
-
-        Assumption:
-           Only primary headers for 1 extension files or the extensions
-        for multiple extension files can have data and therefore
-        corresponding parts
-
-        OMM stacks break that assumption. They have two extensions, the
-        first has the necessary metadata for the observation, and the
-        second has the provenance metadata.
-
-        :param i header index
-        :return boolean True if the part should have 0 chunks.
-        """
-        if len(self.headers) == 2:
-            xtension = self.headers[1]['XTENSION']
-            extname = self.headers[1]['EXTNAME']
-            if 'BINTABLE' in xtension:
-                if 'PROVENANCE' in extname:  # OMM
-                    if i == 0:
-                        result = False
-                    else:
-                        result = True
-                elif ('COMPRESSED IMAGE' in extname or  # CFHT
-                      'COMPRESSED_IMAGE' in extname):   # Megapipe
-                    if i == 0:
-                        result = True
-                    else:
-                        result = False
-                else:
-                    raise NotImplementedError(
-                        'This is also an unanticipated circumstance.')
-            else:
-                raise NotImplementedError(
-                    'This is an unanticipated circumstance.')
-        elif (i > 0) or (len(self.headers) == 1):
-            result = False
-        else:
-            result = True
-        return result
 
     def _try_range_with_blueprint(self, chunk, index):
         """Use the blueprint to set elements and attributes that
@@ -2323,10 +2300,9 @@ class FitsParser(GenericParser):
                 if member_list.startswith('caom:'):
                     members = member_list
                 else:
-                    members = ''
-                    for ii in member_list.split():
-                        members = 'caom:{}/{} {}'.format(
-                            obs.collection, ii, members)
+                    members = ' '.join(['caom:{}/{}'.format(
+                        obs.collection, i) if not i.startswith('caom') else i
+                                        for i in member_list.split()])
             else:
                 members = self._get_from_list('CompositeObservation.members',
                                               index=0)
@@ -2573,12 +2549,12 @@ class FitsParser(GenericParser):
         value = ''
         try:
             keywords = self.blueprint._get(lookup, extension)
-        except KeyError:
+        except KeyError as e:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(
                 'Could not find {!r} in fits2caom2 configuration.'.format(
                     lookup))
-            return value  # TODO what to return when failing lookup
+            raise e
 
         if isinstance(keywords, tuple) and keywords[0] == 'BINTABLE':
 
@@ -2797,8 +2773,8 @@ class WcsParser(object):
         :param chunk:
         """
         self.logger.debug('Begin Energy WCS augmentation.')
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         # get the energy axis
         energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
@@ -2846,9 +2822,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin Spatial WCS augmentation.')
-
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         position_axes_indices = self._get_position_axis()
         if not position_axes_indices:
@@ -2884,8 +2859,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin TemporalWCS augmentation.')
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         time_axis_index = self._get_axis_index(TIME_KEYWORDS)
 
@@ -2928,8 +2903,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin Polarization WCS augmentation.')
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
         if polarization_axis_index is None:
@@ -2963,8 +2938,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin Observable WCS augmentation.')
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         observable_axis_index = self._get_axis_index(OBSERVABLE_CTYPES)
         if observable_axis_index is None:
@@ -3228,7 +3203,7 @@ def get_cadc_headers(uri, subject=None):
 
 def get_vos_headers(uri, subject=None):
     """
-    Creates the FITS headers object from a vospace file. 
+    Creates the FITS headers object from a vospace file.
     The function uses cutouts to retrieve the miniumum amount of data,
      minimizing the transfer time.
     :param uri: vos URI
@@ -3251,7 +3226,7 @@ def get_vos_headers(uri, subject=None):
         return _get_headers_from_fits(temp_filename.name)
     else:
         # this should be a programming error by now
-        raise NotImplementedError('Only ad type URIs supported')
+        raise NotImplementedError('Only vos type URIs supported')
 
 
 def _make_headers_from_string(fits_header):
@@ -3293,7 +3268,7 @@ def _update_artifact_meta(uri, artifact, subject=None):
             metadata = _get_file_meta(file_url.path)
     else:
         # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad type URIs supported')
+        raise NotImplementedError('Only ad and vos type URIs supported')
 
     checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug('old artifact metadata - '
@@ -3435,7 +3410,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             meta_uri = 'file://{}'.format(local)
             visit_local = local
             if '.header' in local:
-                logging.debug('Using a FitsParser for local file {}'.format(local))
+                logging.debug(
+                    'Using a FitsParser for local file {}'.format(local))
                 parser = FitsParser(get_cadc_headers(meta_uri),
                                     blueprint, uri=uri)
             elif local.endswith('.fits') or local.endswith('.fits.gz'):
