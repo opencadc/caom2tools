@@ -331,6 +331,7 @@ class ObsBlueprint(object):
         'Part.name',
         'Part.productType',
 
+        'Chunk',
         'Chunk.naxis',
         'Chunk.observableAxis',
         'Chunk.positionAxis1',
@@ -496,7 +497,8 @@ class ObsBlueprint(object):
                'Plane.provenance.project': (['ADC_ARCH'], None),
                'Plane.provenance.producer': (['ORIGIN'], None),
                'Plane.provenance.reference': (['XREFER'], None),
-               'Plane.provenance.lastExecuted': (['DATE-FTS'], None)
+               'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
+               'Chunk': 'include'
                }
         # using the tmp to make sure that the keywords are valid
         for key in tmp:
@@ -507,7 +509,6 @@ class ObsBlueprint(object):
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            # 'Chunk.naxis': (['ZNAXIS', 'NAXIS'], None)
             'Chunk.naxis': 'ZNAXIS,NAXIS'
         }
         self._pos_axes_configed = False
@@ -1321,6 +1322,22 @@ class ObsBlueprint(object):
         else:
             return self._plan[caom2_element]
 
+    def has_chunk(self, extension):
+        """What does the plan say about creating chunks for an
+        extension?
+
+        :return True if there should be a chunk to go along with a part
+        """
+        value = ''
+        if extension is not None and extension in self._extensions:
+            if 'Chunk' in self._extensions[extension]:
+                value = self._extensions[extension]['Chunk']
+        elif 'Chunk' in self._plan:
+            if ((extension is not None and extension == 0) or (
+                    extension is None)):
+                value = self._plan['Chunk']
+        return not value == '{ignore}'
+
     @staticmethod
     def is_fits(value):
         """Hide the blueprint structure from clients - they shouldn't need
@@ -1337,12 +1354,6 @@ class ObsBlueprint(object):
     def is_function(value):
         return (not ObsBlueprint.is_fits(value) and isinstance(value, str)
                 and isinstance(value, str) and '(' in value and ')' in value)
-
-    @staticmethod
-    def is_ignore(value):
-        """If functions return None, try not to update the WCS with this
-        value."""
-        return value is not None and value == '{ignore}'
 
     @staticmethod
     def has_no_value(value):
@@ -1629,20 +1640,20 @@ class FitsParser(GenericParser):
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            create_empty_part = self._has_chunks(i)
-            if create_empty_part:
-                artifact.parts.add(Part(ii))
-                self.logger.debug('Create empty part for HDU {}'.format(ii))
-                continue
-            else:
+            if self.blueprint.has_chunk(i):
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
+            else:
+                artifact.parts.add(Part(ii))
+                self.logger.debug('Create empty part for HDU {}'.format(ii))
+                continue
 
             part = artifact.parts[ii]
             part.product_type = self._get_from_list('Part.productType', i)
 
-            # each Part has one Chunk
+            # each Part has one Chunk, if it's not an empty part as determined
+            # just previously
             if not part.chunks:
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
@@ -1695,44 +1706,6 @@ class FitsParser(GenericParser):
 
         self.logger.debug(
             'End artifact augmentation for {}.'.format(artifact.uri))
-
-    def _has_chunks(self, i):
-        """The logic to determine whether or not to create an empty part has
-        been confined to the blueprint, identifying chunks by extension.
-        If chunk for an extension is set to 'ignore', create an empty part.
-
-        :param i header index
-        :return boolean True if the part should have 0 chunks.
-        """
-        value = self._get_from_list('Chunk', i)
-        return ObsBlueprint.is_ignore(value)
-
-        # if len(self.headers) == 2:
-        #     xtension = self.headers[1]['XTENSION']
-        #     extname = self.headers[1]['EXTNAME']
-        #     if 'BINTABLE' in xtension:
-        #         if 'PROVENANCE' in extname:  # OMM
-        #             if i == 0:
-        #                 result = False
-        #             else:
-        #                 result = True
-        #         elif ('COMPRESSED IMAGE' in extname or  # CFHT
-        #               'COMPRESSED_IMAGE' in extname):   # Megapipe
-        #             if i == 0:
-        #                 result = True
-        #             else:
-        #                 result = False
-        #         else:
-        #             raise NotImplementedError(
-        #                 'This is also an unanticipated circumstance.')
-        #     else:
-        #         raise NotImplementedError(
-        #             'This is an unanticipated circumstance.')
-        # elif (i > 0) or (len(self.headers) == 1):
-        #     result = False
-        # else:
-        #     result = True
-        # return result
 
     def _try_range_with_blueprint(self, chunk, index):
         """Use the blueprint to set elements and attributes that

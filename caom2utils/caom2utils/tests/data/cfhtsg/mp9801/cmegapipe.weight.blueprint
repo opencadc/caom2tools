@@ -43,3 +43,4 @@ Chunk.energy.axis.function.refCoord.val = getFilterCentre(uri)
 Chunk.observable.axis.axis.ctype = observable
 Chunk.observable.axis.axis.cunit = counts
 Chunk.observable.axis.function.refCoord.pix = 2
+Chunk = {ignore}

@@ -86,13 +86,13 @@ def test_obs_blueprint():
     assert elems != ObsBlueprint.CAOM2_ELEMENTS
 
     # default config (one entry per row...)
-    assert str(ObsBlueprint()).count('\n') == 20
+    assert str(ObsBlueprint()).count('\n') == 21
     print(ObsBlueprint())
 
     # default config with WCS info
     assert str(ObsBlueprint(position_axes=(1, 2), energy_axis=3,
                polarization_axis=4, time_axis=5,
-                            obs_axis=6)).count('\n') == 80
+                            obs_axis=6)).count('\n') == 81
 
     ob = ObsBlueprint()
     ob.configure_position_axes(axes=(1, 2))
@@ -309,3 +309,19 @@ def test_load_from_file_configure():
     assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
         ob._wcs_std['Chunk.energy.axis.axis.ctype']
 
+
+def test_has_chunk():
+    # the CFHT case
+    ob = ObsBlueprint()
+    ob.configure_position_axes((1, 2))
+    ob.set('Chunk', '{ignore}')
+    ob.set('Chunk.position.axis.axis1.ctype', 'RA---SIN', 1)
+    assert not ob.has_chunk(0)
+    assert ob.has_chunk(1)
+
+    # the OMM case
+    ob = ObsBlueprint()
+    ob.configure_position_axes((1, 2))
+    ob.set('Chunk', '{ignore}', 1)
+    assert ob.has_chunk(0)
+    assert not ob.has_chunk(1)
