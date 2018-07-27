@@ -3538,7 +3538,7 @@ def caom2gen():
         sys.exit(-1)
 
     logging.debug(
-        'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
+        'Done {} processing.'.format(APP_NAME))
 
 
 def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
