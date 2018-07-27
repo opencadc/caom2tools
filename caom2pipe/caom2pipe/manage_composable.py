@@ -83,7 +83,7 @@ from cadcdata import CadcDataClient
 __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'exec_cmd', 'exec_cmd_redirect', 'exec_cmd_info',
            'get_cadc_meta', 'get_file_meta', 'compare_checksum',
-           'decompose_lineage']
+           'decompose_lineage', 'check_param']
 
 
 class CadcException(Exception):
@@ -605,3 +605,9 @@ def decompose_lineage(lineage):
                       'product_id/ad:COLLECTION/FILE_NAME'.format(
             lineage, e))
         raise CadcException('Expected product_id/ad:COLLECTION/FILE_NAME')
+
+
+def check_param(param, param_type):
+    if param is None or not isinstance(param, param_type):
+        raise CadcException(
+            'Parameter {} failed check for {}'.format(param, param_type))
