@@ -131,6 +131,9 @@ class StorageName(object):
     def get_log_file(self):
         return '{}.log'.format(self.obs_id)
 
+    def get_product_id(self):
+        return self.obs_id
+
     def is_valid(self):
         pattern = re.compile(self.collection_pattern)
         return pattern.match(self.obs_id)
@@ -160,8 +163,9 @@ class CaomExecute(object):
         self.logging_level_param = self._set_logging_level_param(
             config.logging_level)
         self.obs_id = storage_name.get_obs_id()
-        self.fname = storage_name.get_file_name()
+        self.product_id = storage_name.get_product_id()
         self.uri = storage_name.get_file_uri()
+        self.fname = storage_name.get_file_name()
         self.command_name = command_name
         self.root_dir = config.working_directory
         self.collection = config.collection
@@ -346,25 +350,35 @@ class CaomExecute(object):
         plugin = self._find_fits2caom2_plugin()
         cmd = '{} {} --netrc {} --observation {} {} --out {} ' \
               '--plugin {} --lineage {}/{}'.format(self.command_name,
-            self.logging_level_param, self.netrc_fqn, self.collection,
-            self.obs_id, self.model_fqn, plugin, self.obs_id, self.uri)
+                                                   self.logging_level_param,
+                                                   self.netrc_fqn,
+                                                   self.collection,
+                                                   self.obs_id, self.model_fqn,
+                                                   plugin, self.product_id,
+                                                   self.uri)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_client(self):
         plugin = self._find_fits2caom2_plugin()
         cmd = '{} {} --cert {} --observation {} {} --out {} ' \
               '--plugin {} --lineage {}/{}'.format(self.command_name,
-            self.logging_level_param, self.cert, self.collection,
-            self.obs_id, self.model_fqn, plugin, self.obs_id, self.uri)
+                                                   self.logging_level_param,
+                                                   self.cert, self.collection,
+                                                   self.obs_id, self.model_fqn,
+                                                   plugin, self.product_id,
+                                                   self.uri)
         mc.exec_cmd(cmd)
 
-    def _fits2caom2_cmd_in_out_client(self, observation):
+    def _fits2caom2_cmd_in_out_client(self):
         plugin = self._find_fits2caom2_plugin()
         # TODO add an input parameter
-        cmd = '{} {} --cert {} --observation {} {} --out {} ' \
+        cmd = '{} {} --cert {} --in {} --out {} ' \
               '--plugin {} --lineage {}/{}'.format(self.command_name,
-            self.logging_level_param, self.cert, self.collection,
-            self.obs_id, self.model_fqn, plugin, self.obs_id, self.uri)
+                                                   self.logging_level_param,
+                                                   self.cert, self.model_fqn,
+                                                   self.model_fqn,
+                                                   plugin, self.product_id,
+                                                   self.uri)
         mc.exec_cmd(cmd)
 
     def _cadc_data_get_client(self):
@@ -390,14 +404,6 @@ class CaomExecute(object):
         except Exception as e:
             raise mc.CadcException(
                 'Did not retrieve {}'.format(fqn))
-
-    def _repo_cmd_update_client(self, observation):
-        try:
-            self.caom_repo_client.update(observation)
-        except Exception as e:
-            raise mc.CadcException(
-                'Could not update the observation record for {} in ()'.format(
-                    self.obs_id, self.resource_id))
 
     def _write_model(self, observation):
         writer = obs_reader_writer.ObservationWriter()
@@ -498,8 +504,11 @@ class Collection2CaomMetaCreateClient(CaomExecute):
                           'will retrieve the headers')
         self._fits2caom2_cmd_client()
 
+        self.logger.debug('read the xml into memory from the file')
+        observation = self._read_model()
+
         self.logger.debug('store the xml')
-        self._repo_cmd_create_client()
+        self._repo_cmd_create_client(observation)
 
         self.logger.debug('clean up the workspace')
         self._cleanup()
@@ -533,9 +542,15 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
         observation = CaomExecute.repo_cmd_get_client(
             self.caom_repo_client, self.collection, self.obs_id)
 
+        self.logger.debug('write the observation to disk for next step')
+        self._write_model(observation)
+
         self.logger.debug('generate the xml, as the main_app will retrieve '
                           'the headers')
-        self._fits2caom2_cmd_in_out_client(observation)
+        self._fits2caom2_cmd_in_out_client()
+
+        self.logger.debug('read the xml from disk')
+        observation = self._read_model()
 
         self.logger.debug('store the xml')
         self._repo_cmd_update_client(observation)
@@ -1324,7 +1339,6 @@ def _unset_file_logging(config, log_h):
 def _do_one(config, organizer, organizer_choose, storage_name, command_name, obs_id,
             file_name=None):
     sname = storage_name(obs_id, file_name)
-    logging.error('!!!{}'.format(type(sname)))
     log_h = _set_up_file_logging(config, sname)
     try:
         executors = organizer_choose(sname, command_name, obs_id, file_name)
