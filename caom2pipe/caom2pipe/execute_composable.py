@@ -1429,9 +1429,9 @@ def run_by_file(storage_name, command_name, collection, map_todo, use_client=Fal
         logging.error(tb)
 
 
-def run_single(config, storage_name, obs_id, file_name):
+def run_single(config, storage_name, command_name, obs_id, file_name):
     import sys
-    organizer = OrganizeExecutes(config, storage_name)
+    organizer = OrganizeExecutes(config)
     result = _do_one(config, organizer, organizer.choose_client, storage_name,
-                     command_name, obs_id,                     file_name)
+                     command_name, obs_id, file_name)
     sys.exit(result)
