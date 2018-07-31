@@ -95,6 +95,7 @@ class TaskType(Enum):
     STORE = 'store'
     SCRAPE = 'scrape'
     INGEST = 'ingest'
+    AUGMENT = 'augment'
     MODIFY = 'modify'
     CHECKSUM = 'checksum'
 

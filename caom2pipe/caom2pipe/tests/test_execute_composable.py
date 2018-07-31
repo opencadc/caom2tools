@@ -82,6 +82,19 @@ from caom2pipe import manage_composable as mc
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
+TEST_OBS = SimpleObservation(collection='test_collection',
+                             observation_id='test_obs_id',
+                             algorithm=Algorithm(str('exposure')))
+
+
+class TestStorageName(ec.StorageName):
+    def __init__(self):
+        super(TestStorageName, self).__init__('test_obs_id', 'TEST', '*')
+
+    @staticmethod
+    def is_valid(file_name):
+        return True
+
 
 def _init_config():
     test_config = mc.Config()
@@ -117,7 +130,8 @@ def test_meta_execute():
     try:
         # run the test
         mc.exec_cmd = Mock()
-        test_executor = ec.Collection2CaomMeta(test_config, test_storage_name)
+        test_executor = ec.Collection2CaomMeta(test_config, test_storage_name,
+                                               'command_name')
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -132,16 +146,9 @@ def test_meta_execute():
 
 
 def test_meta_local_execute():
-    test_obs_id = ec.StorageName(
-        'test_obs_id', 'OMM', collection_pattern=None)
-    test_output_fname = os.path.join(
-        TESTDATA_DIR,
-        StorageName(test_obs_id,'OMM',
-                    collection_pattern=None).get_model_file_name())
-
     # clean up from previous tests
-    if os.path.exists(test_output_fname):
-        os.remove(test_output_fname)
+    if os.path.exists(TestStorageName().get_model_file_name()):
+        os.remove(TestStorageName().get_model_file_name())
     netrc = os.path.join(TESTDATA_DIR, 'test_netrc')
     assert os.path.exists(netrc)
     exec_cmd_orig = mc.exec_cmd
@@ -155,9 +162,7 @@ def test_meta_local_execute():
     try:
         try:
             test_executor = ec.Collection2CaomLocalMeta(
-                test_config, test_obs_id,
-                StorageName(test_obs_id, 'OMM',
-                            collection_pattern=None).get_file_name())
+                test_config, TestStorageName(), 'command_name')
             test_executor.execute(None)
         except CadcException as e:
             assert False, e
@@ -252,18 +257,13 @@ def test_meta_local_execute():
 
 
 def test_data_store():
-    test_obs_id = ec.StorageName('test_obs_id', 'OMM', collection_pattern=None)
     test_config = _init_config()
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
-
     try:
-
         # run the test
-        test_executor = ec.Collection2CaomStore(
-            test_config, test_obs_id,
-            StorageName(test_obs_id, 'OMM',
-                        collection_pattern=None).get_compressed_file_name())
+        test_executor = ec.Collection2CaomStore(test_config, TestStorageName(),
+                                                'command_name')
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -275,15 +275,9 @@ def test_data_store():
 
 
 def test_scrape():
-    test_obs_id = ec.StorageName('test_obs_id', 'OMM', collection_pattern=None)
-    test_output_fname = os.path.join(
-        TESTDATA_DIR,
-        StorageName(test_obs_id, 'OMM',
-                    collection_pattern=None).get_model_file_name())
-
     # clean up from previous tests
-    if os.path.exists(test_output_fname):
-        os.remove(test_output_fname)
+    if os.path.exists(TestStorageName().get_model_file_name()):
+        os.remove(TestStorageName().get_model_file_name())
     netrc = os.path.join(TESTDATA_DIR, 'test_netrc')
     assert os.path.exists(netrc)
 
@@ -295,9 +289,7 @@ def test_scrape():
 
     try:
         test_executor = ec.Collection2CaomScrape(
-            test_config, test_obs_id,
-            StorageName(test_obs_id, 'OMM',
-                        collection_pattern=None).get_compressed_file_name())
+            test_config, TestStorageName(), 'command_name')
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -341,8 +333,7 @@ def test_scrape():
 
 
 def test_organize_executes():
-    test_obs_id = ec.StorageName('test_obs_id', 'OMM',
-                                 collection_pattern='test_obs_id')
+    test_obs_id = TestStorageName()
     test_config = _init_config()
     test_config.use_local_files = True
     log_file_directory = os.path.join(THIS_DIR, 'logs')
@@ -371,7 +362,7 @@ def test_organize_executes():
 
         test_config.task_types = [mc.TaskType.SCRAPE]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, StorageName.is_valid)
+        executors = test_oe.choose(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -380,7 +371,7 @@ def test_organize_executes():
                                   mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, StorageName.is_valid)
+        executors = test_oe.choose(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 4
         assert isinstance(executors[0], ec.Collection2CaomStore)
@@ -392,7 +383,7 @@ def test_organize_executes():
         test_config.task_types = [mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, StorageName.is_valid)
+        executors = test_oe.choose(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomMeta)
@@ -402,7 +393,7 @@ def test_organize_executes():
                                   mc.TaskType.MODIFY]
         test_config.use_local_files = True
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, StorageName.is_valid)
+        executors = test_oe.choose(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -412,8 +403,7 @@ def test_organize_executes():
 
 
 def test_organize_executes_client():
-    test_obs_id = ec.StorageName('test_obs_id', 'OMM',
-                                 collection_pattern='test_obs_id')
+    test_obs_id = TestStorageName()
     test_config = _init_config()
     test_config.use_local_files = True
     log_file_directory = os.path.join(THIS_DIR, 'logs')
@@ -442,7 +432,7 @@ def test_organize_executes_client():
 
         test_config.task_types = [mc.TaskType.SCRAPE]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, StorageName.is_valid)
+        executors = test_oe.choose_client(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -451,7 +441,7 @@ def test_organize_executes_client():
                                   mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, StorageName.is_valid)
+        executors = test_oe.choose_client(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 4
         assert isinstance(executors[0], ec.Collection2CaomStoreClient), \
@@ -465,23 +455,49 @@ def test_organize_executes_client():
         test_config.task_types = [mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, StorageName.is_valid)
+        executors = test_oe.choose_client(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 2
-        assert isinstance(executors[0], ec.Collection2CaomMetaClient)
+        assert isinstance(executors[0], ec.Collection2CaomMetaDeleteClient)
         assert isinstance(executors[1], ec.Collection2CaomDataClient)
 
         test_config.task_types = [mc.TaskType.SCRAPE,
                                   mc.TaskType.MODIFY]
         test_config.use_local_files = True
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, StorageName.is_valid)
+        executors = test_oe.choose_client(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomScrape)
         assert isinstance(executors[1], ec.Collection2CaomDataScrape)
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
+
+
+def test_organize_executes_client_augment():
+    test_obs_id = TestStorageName()
+    test_config = _init_config()
+    repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
+    try:
+
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=None)
+
+        test_config.task_types = [mc.TaskType.AUGMENT]
+        test_config.use_local_files = False
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe.choose_client(test_obs_id, 'command_name')
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0], ec.Collection2CaomMetaCreateClient)
+
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=TEST_OBS)
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe.choose_client(test_obs_id, 'command_name')
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0], ec.Collection2CaomMetaUpdateClient)
+    finally:
+        ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
 def test_data_cmd_info():
@@ -500,9 +516,8 @@ def test_data_cmd_info():
                               '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
                               '      usize: 754408\n')
         test_config = _init_config()
-        test_obs_id = ec.StorageName(
-            'TEST_OBS_ID', 'OMM', collection_pattern=None)
-        test_executor = ec.Collection2CaomMeta(test_config, test_obs_id)
+        test_executor = ec.Collection2CaomMeta(test_config, TestStorageName(),
+                                               'command_name')
         test_executor._find_file_name_storage()
         assert test_executor.fname is not None, test_executor.fname
         assert test_executor.fname == 'C120902_sh2-132_J_old_SCIRED.fits.gz', \
@@ -577,9 +592,10 @@ def _get_test_file_meta(path):
 
 
 def _read_obs(arg1):
-    return SimpleObservation(collection='test_collection',
-                             observation_id='test_obs_id',
-                             algorithm=Algorithm(str('exposure')))
+    return TEST_OBS
+    # return SimpleObservation(collection='test_collection',
+    #                          observation_id='test_obs_id',
+    #                          algorithm=Algorithm(str('exposure')))
 
 
 def _get_file_headers(fname):

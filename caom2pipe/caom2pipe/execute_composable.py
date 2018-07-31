@@ -71,10 +71,12 @@ import logging
 import os
 import re
 import site
+import traceback
 
+from argparse import ArgumentParser
 from datetime import datetime
 
-from cadcutils import net
+from cadcutils import net, exceptions
 from cadcdata import CadcDataClient
 from caom2repo import CAOM2RepoClient
 from caom2 import obs_reader_writer
@@ -146,8 +148,8 @@ class CaomExecute(object):
     """Abstract class that defines the operations common to all Execute
     classes."""
 
-    def __init__(self, config, task_type, storage_name, cadc_data_client=None,
-                 caom_repo_client=None, cert=None):
+    def __init__(self, config, task_type, storage_name, command_name,
+                 cadc_data_client=None, caom_repo_client=None, cert=None):
         self.logger = logging.getLogger()
         self.logger.setLevel(config.logging_level)
         formatter = logging.Formatter(
@@ -157,8 +159,10 @@ class CaomExecute(object):
             handler.setFormatter(formatter)
         self.logging_level_param = self._set_logging_level_param(
             config.logging_level)
-        self.storage_name = storage_name
         self.obs_id = storage_name.get_obs_id()
+        self.fname = storage_name.get_file_name()
+        self.uri = storage_name.get_file_uri()
+        self.command_name = command_name
         self.root_dir = config.working_directory
         self.collection = config.collection
         self.working_dir = os.path.join(self.root_dir, self.obs_id)
@@ -224,12 +228,12 @@ class CaomExecute(object):
                                   self.model_fqn)
         mc.exec_cmd(repo_cmd)
 
-    def _define_local_dirs(self):
+    def _define_local_dirs(self, storage_name):
         """when files are on disk don't worry about a separate directory
         per observation"""
         self.working_dir = self.root_dir
         self.model_fqn = os.path.join(
-            self.working_dir, self.storage_name.get_model_file_name())
+            self.working_dir, storage_name.get_model_file_name())
 
     def _find_file_name_storage(self):
         ad_lookup = self._data_cmd_info()
@@ -274,22 +278,23 @@ class CaomExecute(object):
 
     def _fits2caom2_cmd_local(self):
         fqn = os.path.join(self.working_dir, self.fname)
-        uri = self.storage_name.get_file_uri()
         plugin = self._find_fits2caom2_plugin()
-        cmd = 'omm2caom2 {} --netrc {} --observation {} {} --out {} ' \
+        cmd = '{} {} --netrc {} --observation {} {} --out {} ' \
               '--plugin {} --local {} --lineage {}/{}'.format(
+                self.command_name,
                 self.logging_level_param, self.netrc_fqn, self.collection,
-                self.obs_id, self.model_fqn, plugin, fqn, self.obs_id, uri)
+                self.obs_id, self.model_fqn, plugin, fqn, self.obs_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_local_client(self):
         fqn = os.path.join(self.working_dir, self.fname)
-        uri = self.storage_name.get_file_uri()
         plugin = self._find_fits2caom2_plugin()
-        cmd = 'omm2caom2 {} --cert {} --observation {} {} --out {} ' \
+        cmd = '{} {} --cert {} --observation {} {} --out {} ' \
               '--plugin {} --local {} --lineage {}/{}'.format(
-            self.logging_level_param, self.cert, self.collection,
-            self.obs_id, self.model_fqn, plugin, fqn, self.obs_id, uri)
+                self.command_name, self.logging_level_param, self.cert,
+                self.collection,
+                self.obs_id, self.model_fqn, plugin, fqn, self.obs_id,
+                self.uri)
         mc.exec_cmd(cmd)
 
     def _compare_checksums(self, fname):
@@ -308,8 +313,10 @@ class CaomExecute(object):
         return observation
 
     def _find_file_name_storage_client(self):
+        # file_info = self.cadc_data_client.get_file_info(
+        #     self.collection, self.obs_id)
         file_info = self.cadc_data_client.get_file_info(
-            self.collection, self.obs_id)
+            self.collection, self.fname)
         self.fname = file_info['name']
 
     def _repo_cmd_delete_client(self):
@@ -319,31 +326,45 @@ class CaomExecute(object):
         except Exception as e:
             pass  # TODO for now
 
-    def _repo_cmd_client(self):
+    def _repo_cmd_create_client(self, observation):
         try:
-            observation = self._read_model()
             self.caom_repo_client.create(observation)
         except Exception as e:
             raise mc.CadcException(
-                'Could not create an observation record for {} in ()'.format(
+                'Could not create an observation record for {} in {}'.format(
+                    self.obs_id, self.resource_id))
+
+    def _repo_cmd_update_client(self, observation):
+        try:
+            self.caom_repo_client.update(observation)
+        except Exception as e:
+            raise mc.CadcException(
+                'Could not update an observation record for {} in {}'.format(
                     self.obs_id, self.resource_id))
 
     def _fits2caom2_cmd(self):
-        uri = self.storage_name.get_file_uri()
         plugin = self._find_fits2caom2_plugin()
-        cmd = 'omm2caom2 {} --netrc {} --observation {} {} --out {} ' \
-              '--plugin {} --lineage {}/{}'.format(
+        cmd = '{} {} --netrc {} --observation {} {} --out {} ' \
+              '--plugin {} --lineage {}/{}'.format(self.command_name,
             self.logging_level_param, self.netrc_fqn, self.collection,
-            self.obs_id, self.model_fqn, plugin, self.obs_id, uri)
+            self.obs_id, self.model_fqn, plugin, self.obs_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_client(self):
-        uri = self.storage_name.get_file_uri()
         plugin = self._find_fits2caom2_plugin()
-        cmd = 'omm2caom2 {} --cert {} --observation {} {} --out {} ' \
-              '--plugin {} --lineage {}/{}'.format(
+        cmd = '{} {} --cert {} --observation {} {} --out {} ' \
+              '--plugin {} --lineage {}/{}'.format(self.command_name,
             self.logging_level_param, self.cert, self.collection,
-            self.obs_id, self.model_fqn, plugin, self.obs_id, uri)
+            self.obs_id, self.model_fqn, plugin, self.obs_id, self.uri)
+        mc.exec_cmd(cmd)
+
+    def _fits2caom2_cmd_in_out_client(self, observation):
+        plugin = self._find_fits2caom2_plugin()
+        # TODO add an input parameter
+        cmd = '{} {} --cert {} --observation {} {} --out {} ' \
+              '--plugin {} --lineage {}/{}'.format(self.command_name,
+            self.logging_level_param, self.cert, self.collection,
+            self.obs_id, self.model_fqn, plugin, self.obs_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _cadc_data_get_client(self):
@@ -370,14 +391,6 @@ class CaomExecute(object):
             raise mc.CadcException(
                 'Did not retrieve {}'.format(fqn))
 
-    def _repo_cmd_read_client(self):
-        try:
-            return self.caom_repo_client.read(self.collection, self.obs_id)
-        except Exception as e:
-            raise mc.CadcException(
-                'Could not create an observation record for {} in ()'.format(
-                    self.obs_id, self.resource_id))
-
     def _repo_cmd_update_client(self, observation):
         try:
             self.caom_repo_client.update(observation)
@@ -390,10 +403,10 @@ class CaomExecute(object):
         writer = obs_reader_writer.ObservationWriter()
         writer.write(observation, self.model_fqn)
 
-    @staticmethod
-    def _find_fits2caom2_plugin():
+    def _find_fits2caom2_plugin(self):
         packages = site.getsitepackages()
-        return os.path.join(packages[0], 'omm2caom2/omm2caom2.py')
+        return os.path.join(packages[0], '{}/{}.py'.format(self.command_name,
+                                                           self.command_name))
 
     @staticmethod
     def _set_logging_level_param(logging_level):
@@ -407,14 +420,26 @@ class CaomExecute(object):
             result = ''
         return result
 
+    @staticmethod
+    def repo_cmd_get_client(caom_repo_client, collection, observation_id):
+        try:
+            observation = caom_repo_client.read(collection, observation_id)
+            return observation
+        except exceptions.NotFoundException as e:
+            return None
+        except Exception as e2:
+            raise mc.CadcException(
+                'Could not retrieve an observation record for {}.'.format(
+                    observation_id))
+
 
 class Collection2CaomMeta(CaomExecute):
     """Defines the pipeline step for OMM ingestion of metadata into CAOM2.
     This requires access to only header information."""
 
-    def __init__(self, config, storage_name):
+    def __init__(self, config, storage_name, command_name):
         super(Collection2CaomMeta, self).__init__(
-            config, mc.TaskType.INGEST, storage_name)
+            config, mc.TaskType.INGEST, storage_name, command_name)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -446,14 +471,92 @@ class Collection2CaomMeta(CaomExecute):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
-class Collection2CaomMetaClient(CaomExecute):
+class Collection2CaomMetaCreateClient(CaomExecute):
     """Defines the pipeline step for Collection ingestion of metadata into CAOM.
-    This requires access to only header information."""
+    This requires access to only header information.
 
-    def __init__(self, config, obs_id,
+    This pipeline step will execute a caom2-repo create."""
+
+    def __init__(self, config, storage_name, command_name,
+                 cadc_data_client, caom_repo_client):
+        super(Collection2CaomMetaCreateClient, self).__init__(
+            config, mc.TaskType.AUGMENT, storage_name, command_name,
+            cadc_data_client, caom_repo_client, config.proxy)
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('Find the file name as stored.')
+        self._find_file_name_storage_client()
+
+        self.logger.debug('create the work space, if it does not exist')
+        self._create_dir()
+
+        self.logger.debug('the observation does not exist, so go '
+                          'straight to generating the xml, as the main_app '
+                          'will retrieve the headers')
+        self._fits2caom2_cmd_client()
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_create_client()
+
+        self.logger.debug('clean up the workspace')
+        self._cleanup()
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class Collection2CaomMetaUpdateClient(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into CAOM.
+    This requires access to only header information.
+
+    This pipeline step will execute a caom2-repo update."""
+
+    def __init__(self, config, storage_name, command_name,
+                 cadc_data_client, caom_repo_client):
+        super(Collection2CaomMetaUpdateClient, self).__init__(
+            config, mc.TaskType.AUGMENT, storage_name, command_name,
+            cadc_data_client, caom_repo_client, config.proxy)
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('Find the file name as stored.')
+        self._find_file_name_storage_client()
+
+        self.logger.debug('create the work space, if it does not exist')
+        self._create_dir()
+
+        self.logger.debug('retrieve the existing observation, if it exists')
+        observation = CaomExecute.repo_cmd_get_client(
+            self.caom_repo_client, self.collection, self.obs_id)
+
+        self.logger.debug('generate the xml, as the main_app will retrieve '
+                          'the headers')
+        self._fits2caom2_cmd_in_out_client(observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_update_client(observation)
+
+        self.logger.debug('clean up the workspace')
+        self._cleanup()
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class Collection2CaomMetaDeleteClient(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into CAOM.
+    This requires access to only header information.
+
+    This pipeline step will always delete the record from caom2repo before
+    creating a new version."""
+
+    def __init__(self, config, storage_name, command_name,
                  cadc_data_client, caom_repo_client, cert):
-        super(Collection2CaomMetaClient, self).__init__(
-            config, mc.TaskType.INGEST, obs_id,
+        super(Collection2CaomMetaDeleteClient, self).__init__(
+            config, mc.TaskType.INGEST, storage_name, command_name,
             cadc_data_client, caom_repo_client, cert)
 
     def execute(self, context):
@@ -476,7 +579,7 @@ class Collection2CaomMetaClient(CaomExecute):
         self._fits2caom2_cmd_client()
 
         self.logger.debug('store the xml')
-        self._repo_cmd_client()
+        self._repo_cmd_create_client()
 
         self.logger.debug('clean up the workspace')
         self._cleanup()
@@ -488,11 +591,11 @@ class Collection2CaomLocalMeta(CaomExecute):
     """Defines the pipeline step for ingestion of metadata into CAOM.
     The file containing the metadata is located on disk."""
 
-    def __init__(self, config, storage_name, file_name):
+    def __init__(self, config, storage_name, command_name):
         super(Collection2CaomLocalMeta, self).__init__(
-            config, mc.TaskType.INGEST, storage_name)
-        self._define_local_dirs()
-        self.fname = file_name
+            config, mc.TaskType.INGEST, storage_name, command_name)
+        self._define_local_dirs(storage_name)
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -518,13 +621,13 @@ class Collection2CaomLocalMetaClient(CaomExecute):
     """Defines the pipeline step for Collection ingestion of metadata into
     CAOM. The file containing the metadata is located on disk."""
 
-    def __init__(self, config, obs_id, file_name,
+    def __init__(self, config, storage_name, command_name,
                  cadc_data_client, caom_repo_client, cert):
         super(Collection2CaomLocalMetaClient, self).__init__(
-            config, mc.TaskType.INGEST, obs_id,
+            config, mc.TaskType.INGEST, storage_name, command_name,
             cadc_data_client, caom_repo_client, cert)
-        self._define_local_dirs()
-        self.fname = file_name
+        self._define_local_dirs(storage_name)
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -549,12 +652,15 @@ class Collection2CaomData(CaomExecute):
     and previews into CAOM2. These are all the operations that require
     access to the file on disk, not just the header data. """
 
-    def __init__(self, config, storage_name, preview=None, footprint=None):
+    def __init__(self, config, storage_name, command_name, preview=None,
+                 footprint=None):
         super(Collection2CaomData, self).__init__(
-            config, mc.TaskType.MODIFY, storage_name)
+            config, mc.TaskType.MODIFY, storage_name, command_name)
         self.log_file_directory = config.log_file_directory
         self.preview = preview
         self.footprint = footprint
+        self.prev_fname = storage_name.get_prev()
+        self.thumb_fname = storage_name.get_thumb()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -600,17 +706,17 @@ class Collection2CaomData(CaomExecute):
     def _generate_previews(self, observation):
         kwargs = {'working_directory': self.working_dir}
         self.preview.visit(observation, **kwargs)
-        prev = self.storage_name.get_prev()
-        thumb = self.storage_name.get_thumb()
         cwd = os.getcwd()
         try:
             os.chdir(self.working_dir)
-            self._data_cmd_put(prev)
-            self._data_cmd_put(thumb)
+            self._data_cmd_put(self.prev_fname)
+            self._data_cmd_put(self.thumb_fname)
         finally:
             os.chdir(cwd)
-        self._compare_checksums(os.path.join(self.working_dir, prev))
-        self._compare_checksums(os.path.join(self.working_dir, thumb))
+        self._compare_checksums(
+            os.path.join(self.working_dir, self.prev_fname))
+        self._compare_checksums(
+            os.path.join(self.working_dir, self.thumb_fname))
 
     def _cadc_data_get(self):
         """Retrieve a collection file, even if it already exists. This might
@@ -643,15 +749,17 @@ class Collection2CaomDataClient(CaomExecute):
     footprints and previews into CAOM. These are all the operations that
     require access to the file on disk, not just the header data. """
 
-    def __init__(self, config, obs_id,
+    def __init__(self, config, storage_name, command_name,
                  cadc_data_client, caom_repo_client, preview=None,
                  footprint=None):
         super(Collection2CaomDataClient, self).__init__(
-            config, mc.TaskType.MODIFY, obs_id,
+            config, mc.TaskType.MODIFY, storage_name, command_name,
             cadc_data_client, caom_repo_client)
         self.log_file_directory = config.log_file_directory
         self.preview = preview
         self.footprint = footprint
+        self.prev_fname = storage_name.get_prev()
+        self.thumb_fname = storage_name.get_thumb()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -695,17 +803,17 @@ class Collection2CaomDataClient(CaomExecute):
     def _generate_previews_client(self, observation):
         kwargs = {'working_directory': self.working_dir}
         self.preview.visit(observation, **kwargs)
-        prev = self.storage_name.get_prev()
-        thumb = self.storage_name.get_thumb()
         cwd = os.getcwd()
         try:
             os.chdir(self.working_dir)
-            self._data_cmd_put_client(prev)
-            self._data_cmd_put_client(thumb)
+            self._data_cmd_put_client(self.prev_fname)
+            self._data_cmd_put_client(self.thumb_fname)
         finally:
             os.chdir(cwd)
-        self._compare_checksums_client(os.path.join(self.working_dir, prev))
-        self._compare_checksums_client(os.path.join(self.working_dir, thumb))
+        self._compare_checksums_client(
+            os.path.join(self.working_dir, self.prev_fname))
+        self._compare_checksums_client(
+            os.path.join(self.working_dir, self.thumb_fname))
 
 
 class Collection2CaomLocalData(Collection2CaomData):
@@ -714,11 +822,12 @@ class Collection2CaomLocalData(Collection2CaomData):
     access to the file on disk. This class assumes it has access to the
     files on disk."""
 
-    def __init__(self, config, storage_name, file_name, preview, footprint):
+    def __init__(self, config, storage_name, command_name, preview, footprint):
         super(Collection2CaomLocalData, self).__init__(config, storage_name,
+                                                       command_name,
                                                        preview, footprint)
-        self._define_local_dirs()
-        self.fname = file_name
+        self._define_local_dirs(storage_name)
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -750,14 +859,14 @@ class Collection2CaomLocalDataClient(Collection2CaomDataClient):
     require access to the file on disk. This class assumes it has access to
     the files on disk."""
 
-    def __init__(self, config, obs_id, file_name,
+    def __init__(self, config, storage_name, command_name,
                  cadc_data_client, caom_repo_client):
         super(Collection2CaomLocalDataClient, self).__init__(
-            config, obs_id,
+            config, storage_name, command_name,
             cadc_data_client=cadc_data_client,
             caom_repo_client=caom_repo_client)
-        self._define_local_dirs()
-        self.fname = file_name
+        self._define_local_dirs(storage_name)
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -781,15 +890,15 @@ class Collection2CaomStore(CaomExecute):
     """Defines the pipeline step for OMM storage of a file. This requires
     access to the file on disk. It will gzip compress the file."""
 
-    def __init__(self, config, storage_name, file_name):
+    def __init__(self, config, storage_name, command_name):
         super(Collection2CaomStore, self).__init__(
-            config, mc.TaskType.STORE, storage_name)
+            config, mc.TaskType.STORE, storage_name, command_name)
         # when files are on disk don't worry about a separate directory
         # per observation
         self.working_dir = self.root_dir
         self.storage_host = config.storage_host
         self.stream = config.stream
-        self.fname = file_name
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -813,17 +922,17 @@ class Collection2CaomStoreClient(CaomExecute):
     """Defines the pipeline step for Collection storage of a file. This requires
     access to the file on disk."""
 
-    def __init__(self, config, obs_id, file_name,
+    def __init__(self, config, storage_name, command_name,
                  cadc_data_client, caom_repo_client):
         super(Collection2CaomStoreClient, self).__init__(
-            config, mc.TaskType.STORE, obs_id,
+            config, mc.TaskType.STORE, storage_name, command_name,
             cadc_data_client, caom_repo_client)
         # when files are on disk don't worry about a separate directory
         # per observation
         self.working_dir = self.root_dir
         self.storage_host = config.storage_host
         self.stream = config.stream
-        self.fname = file_name
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -839,11 +948,11 @@ class Collection2CaomScrape(CaomExecute):
     observation. The file containing the metadata is located on disk.
     No record is written to a web service."""
 
-    def __init__(self, config, storage_name, file_name):
+    def __init__(self, config, storage_name, command_name):
         super(Collection2CaomScrape, self).__init__(
-            config, mc.TaskType.SCRAPE, storage_name)
-        self._define_local_dirs()
-        self.fname = file_name
+            config, mc.TaskType.SCRAPE, storage_name, command_name)
+        self._define_local_dirs(storage_name)
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -863,9 +972,9 @@ class Collection2CaomDataScrape(Collection2CaomLocalData):
     assumes the 'Scrape' task has been done previously, so the model
     instance exists on disk."""
 
-    def __init__(self, config, storage_name, file_name, preview, footprint):
+    def __init__(self, config, storage_name, command_name, preview, footprint):
         super(Collection2CaomDataScrape, self).__init__(
-            config, storage_name, file_name, preview, footprint)
+            config, storage_name, command_name, preview, footprint)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -893,11 +1002,11 @@ class Collection2CaomCompareChecksum(CaomExecute):
     files on local disk.
     """
 
-    def __init__(self, config, storage_name, file_name):
+    def __init__(self, config, storage_name, command_name):
         super(Collection2CaomCompareChecksum, self).__init__(
-            config, mc.TaskType.CHECKSUM, storage_name)
-        self._define_local_dirs()
-        self.fname = file_name
+            config, mc.TaskType.CHECKSUM, storage_name, command_name)
+        self._define_local_dirs(storage_name)
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} '
@@ -918,13 +1027,13 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
     files on local disk.
     """
 
-    def __init__(self, config, obs_id, file_name, cadc_data_client,
+    def __init__(self, config, storage_name, command_name, cadc_data_client,
                  caom_repo_client):
         super(Collection2CaomCompareChecksumClient, self).__init__(
-            config, mc.TaskType.CHECKSUM, obs_id,
+            config, mc.TaskType.CHECKSUM, storage_name, command_name,
             cadc_data_client, caom_repo_client)
-        self._define_local_dirs()
-        self.fname = file_name
+        self._define_local_dirs(storage_name)
+        self.fname = storage_name.get_file_name()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} '
@@ -939,7 +1048,6 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
 
 class OrganizeExecutes(object):
     """How to turn on/off various steps in the OMM pipeline."""
-
     def __init__(self, config, todo_file=None):
         self.config = config
         self.task_types = config.task_types
@@ -960,7 +1068,8 @@ class OrganizeExecutes(object):
             self.failure_fqn = config.failure_fqn
             self.retry_fqn = config.retry_fqn
 
-        if config.log_to_file:
+        if self.config.log_to_file:
+            mc.create_dir(self.config.log_file_directory)
             failure = open(self.failure_fqn, 'w')
             failure.close()
             retry = open(self.retry_fqn, 'w')
@@ -968,18 +1077,26 @@ class OrganizeExecutes(object):
             success = open(self.success_fqn, 'w')
             success.close()
         self.success_count = 0
+        self.complete_record_count = 0
 
-    def choose(self, obs_id, is_valid, file_name=None, preview=None,
-               footprint=None):
+    @property
+    def complete_record_count(self):
+        return self._complete_record_count
+
+    @complete_record_count.setter
+    def complete_record_count(self, value):
+        self._complete_record_count = value
+
+    def choose(self, storage_name, command_name, preview=None, footprint=None):
         executors = []
-        if is_valid(obs_id):
+        if storage_name.is_valid(storage_name.get_obs_id()):
             for task_type in self.task_types:
                 self.logger.debug(task_type)
                 if task_type == mc.TaskType.SCRAPE:
                     if self.config.use_local_files:
                         executors.append(
                             Collection2CaomScrape(
-                                self.config, obs_id, file_name))
+                                self.config, storage_name, command_name))
                     else:
                         raise mc.CadcException(
                             'use_local_files must be True with '
@@ -988,7 +1105,7 @@ class OrganizeExecutes(object):
                     if self.config.use_local_files:
                         executors.append(
                             Collection2CaomStore(
-                                self.config, obs_id, file_name))
+                                self.config, storage_name, command_name))
                     else:
                         raise mc.CadcException(
                             'use_local_files must be True with '
@@ -997,27 +1114,27 @@ class OrganizeExecutes(object):
                     if self.config.use_local_files:
                         executors.append(
                             Collection2CaomLocalMeta(
-                                self.config, obs_id, file_name))
+                                self.config, storage_name, command_name))
                     else:
                         executors.append(
-                            Collection2CaomMeta(self.config, obs_id))
+                            Collection2CaomMeta(self.config, storage_name, command_name))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
                         if isinstance(executors[0], Collection2CaomScrape):
                             executors.append(
-                                Collection2CaomDataScrape(self.config, obs_id,
-                                                          file_name,
+                                Collection2CaomDataScrape(self.config,
+                                                          storage_name, command_name,
                                                           preview=preview,
                                                           footprint=footprint))
                         else:
                             executors.append(
-                                Collection2CaomLocalData(self.config, obs_id,
-                                                         file_name,
+                                Collection2CaomLocalData(self.config,
+                                                         storage_name, command_name,
                                                          preview=preview,
                                                          footprint=footprint))
                     else:
                         executors.append(
-                            Collection2CaomData(self.config, obs_id,
+                            Collection2CaomData(self.config, storage_name, command_name,
                                                 preview=preview,
                                                 footprint=footprint))
                 else:
@@ -1027,16 +1144,18 @@ class OrganizeExecutes(object):
                     mc.TaskType.SCRAPE not in self.task_types):
                 executors.append(
                     Collection2CaomCompareChecksum(
-                        self.config, obs_id, file_name))
+                        self.config, storage_name, command_name))
         else:
-            logging.error('{} failed naming validation check.'.format(obs_id))
-            self.capture_failure(obs_id, file_name, 'Invalid observation ID')
+            logging.error('{} failed naming validation check.'.format(
+                storage_name.get_obs_id()))
+            self.capture_failure(storage_name.get_obs_id(),
+                                 storage_name.get_file_name(),
+                                 'Invalid observation ID')
         return executors
 
-    def choose_client(self, obs_id, is_valid, file_name=None, preview=None,
-                      footprint=None):
+    def choose_client(self, storage_name, command_name, preview=None, footprint=None):
         executors = []
-        if is_valid(obs_id):
+        if storage_name.is_valid(storage_name.get_obs_id()):
             subject = net.Subject(username=None, certificate=self.config.proxy)
             cadc_data_client = CadcDataClient(subject)
             caom_repo_client = CAOM2RepoClient(
@@ -1047,7 +1166,7 @@ class OrganizeExecutes(object):
                     if self.config.use_local_files:
                         executors.append(
                             Collection2CaomScrape(
-                                self.config, obs_id, file_name))
+                                self.config, storage_name, command_name))
                     else:
                         raise mc.CadcException(
                             'use_local_files must be True with '
@@ -1056,7 +1175,7 @@ class OrganizeExecutes(object):
                     if self.config.use_local_files:
                         executors.append(
                             Collection2CaomStoreClient(
-                                self.config, obs_id, file_name,
+                                self.config, storage_name, command_name,
                                 cadc_data_client, caom_repo_client))
                     else:
                         raise mc.CadcException(
@@ -1066,31 +1185,43 @@ class OrganizeExecutes(object):
                     if self.config.use_local_files:
                         executors.append(
                             Collection2CaomLocalMetaClient(
-                                self.config, obs_id, file_name,
+                                self.config, storage_name, command_name,
                                 cadc_data_client, caom_repo_client,
                                 self.config.proxy))
                     else:
-                        executors.append(Collection2CaomMetaClient(
-                            self.config, obs_id,
+                        executors.append(Collection2CaomMetaDeleteClient(
+                            self.config, storage_name, command_name,
                             cadc_data_client, caom_repo_client,
                             self.config.proxy))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
                         if isinstance(executors[0], Collection2CaomScrape):
                             executors.append(
-                                Collection2CaomDataScrape(self.config, obs_id,
-                                                          file_name,
+                                Collection2CaomDataScrape(self.config,
+                                                          storage_name, command_name,
                                                           preview=preview,
                                                           footprint=footprint))
                         else:
                             executors.append(
                                 Collection2CaomLocalDataClient(
-                                    self.config, obs_id, file_name,
+                                    self.config, storage_name, command_name,
                                     cadc_data_client, caom_repo_client))
                     else:
                         executors.append(Collection2CaomDataClient(
-                            self.config, obs_id,
+                            self.config, storage_name, command_name,
                             cadc_data_client, caom_repo_client))
+                elif task_type == mc.TaskType.AUGMENT:
+                    observation = CaomExecute.repo_cmd_get_client(
+                        caom_repo_client, self.config.collection,
+                        storage_name.get_obs_id())
+                    if observation is None:
+                        executors.append(Collection2CaomMetaCreateClient(
+                            self.config, storage_name, command_name, cadc_data_client,
+                            caom_repo_client))
+                    else:
+                        executors.append(Collection2CaomMetaUpdateClient(
+                            self.config, storage_name, command_name, cadc_data_client,
+                            caom_repo_client))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1098,12 +1229,14 @@ class OrganizeExecutes(object):
                     mc.TaskType.SCRAPE not in self.task_types):
                 executors.append(
                     Collection2CaomCompareChecksumClient(
-                        self.config, obs_id, file_name,
+                        self.config, storage_name, command_name,
                         cadc_data_client, caom_repo_client))
         else:
-            logging.error(
-                '{} failed naming validation check.'.format(obs_id, ))
-            self.capture_failure(obs_id, file_name, 'Invalid observation ID')
+            logging.error('{} failed naming validation check.'.format(
+                storage_name.get_obs_id()))
+            self.capture_failure(storage_name.get_obs_id(),
+                                 storage_name.get_file_name(),
+                                 'Invalid observation ID')
         return executors
 
     def capture_failure(self, obs_id, file_name, e):
@@ -1131,6 +1264,8 @@ class OrganizeExecutes(object):
             try:
                 success.write(
                     '{} {} {}\n'.format(datetime.now(), obs_id, file_name))
+                logging.info('Progress - processed {} of {} records.'.format(
+                    self.success_count, self.complete_record_count))
             finally:
                 success.close()
 
@@ -1162,3 +1297,127 @@ class OrganizeExecutes(object):
             return 'XML Syntax Exception'
         else:
             return e
+
+
+def _set_up_file_logging(config, storage_name):
+    log_h = None
+    if config.log_to_file:
+        log_fqn = os.path.join(config.working_directory,
+                               storage_name.get_log_file())
+        if config.log_file_directory is not None:
+            log_fqn = os.path.join(config.log_file_directory,
+                                   storage_name.get_log_file())
+        log_h = logging.FileHandler(log_fqn)
+        formatter = logging.Formatter(
+            '%(asctime)s:%(levelname)s:%(name)-12s:%(lineno)d:%(message)s')
+        log_h.setLevel(config.logging_level)
+        log_h.setFormatter(formatter)
+        logging.getLogger().addHandler(log_h)
+    return log_h
+
+
+def _unset_file_logging(config, log_h):
+    if config.log_to_file:
+        logging.getLogger().removeHandler(log_h)
+
+
+def _do_one(config, organizer, organizer_choose, storage_name, command_name, obs_id,
+            file_name=None):
+    sname = storage_name(obs_id, file_name)
+    logging.error('!!!{}'.format(type(sname)))
+    log_h = _set_up_file_logging(config, sname)
+    try:
+        executors = organizer_choose(sname, command_name, obs_id, file_name)
+        for executor in executors:
+            logging.info(
+                'Step {} for {}'.format(executor.task_type, obs_id))
+            executor.execute(context=None)
+        if len(executors) > 0:
+            organizer.capture_success(obs_id, file_name)
+            return 0
+        else:
+            logging.info('No executors for {}'.format(obs_id))
+            return -1  # cover the case where file name validation fails
+    except Exception as e:
+        organizer.capture_failure(obs_id, file_name,
+                                  e=traceback.format_exc())
+        logging.info('Execution failed for {} with {}'.format(obs_id, e))
+        logging.error(traceback.format_exc())
+        return -1
+    finally:
+        _unset_file_logging(config, log_h)
+
+
+def _run_todo_file(config, organizer, storage_name, command_name, map_todo=None, use_client=False, proxy=None):
+    with open(organizer.todo_fqn) as f:
+        todo_list_length = sum(1 for _ in f)
+    organizer.complete_record_count = todo_list_length
+    with open(organizer.todo_fqn) as f:
+        for line in f:
+            obs_id, file_name = map_todo(line.strip())
+            logging.info('Process observation id {}'.format(obs_id))
+            if use_client:
+                config.proxy = proxy
+                _do_one(config, organizer, organizer.choose_client,
+                        storage_name, command_name, obs_id, file_name)
+            else:
+                _do_one(config, organizer, organizer.choose, storage_name, command_name,
+                        obs_id, file_name)
+
+
+def _run_local_files(config, organizer, storage_name, command_name, use_client=False, proxy=None):
+    file_list = os.listdir(config.working_directory)
+    todo_list = []
+    for f in file_list:
+        if f.endswith('.fits') or f.endswith('.fits.gz'):
+            todo_list.append(f)
+
+    organizer.complete_record_count = len(todo_list)
+    for do_file in todo_list:
+        logging.info('Process file {}'.format(do_file))
+        obs_id = storage_name.remove_extensions(do_file)
+        if use_client:
+            config.proxy = proxy
+            _do_one(config, organizer, organizer.choose_client, storage_name, command_name,
+                    obs_id, do_file)
+        else:
+            _do_one(config, organizer, organizer.choose, storage_name, command_name, obs_id,
+                    do_file)
+
+
+def run_by_file(storage_name, command_name, collection, map_todo, use_client=False, proxy=None):
+    try:
+        config = mc.Config()
+        config.get_executors()
+        config.collection = collection
+        logging.debug(config)
+        logger = logging.getLogger()
+        logger.setLevel(config.logging_level)
+        if config.use_local_files:
+            organize = OrganizeExecutes(config)
+            _run_local_files(config, organize, storage_name, command_name, use_client, proxy)
+        else:
+            parser = ArgumentParser()
+            parser.add_argument('--todo',
+                                help='Fully-qualified todo file name.')
+            args = parser.parse_args()
+            if args.todo is not None:
+                organize = OrganizeExecutes(config, args.todo)
+            else:
+                organize = OrganizeExecutes(config)
+            _run_todo_file(
+                config, organize, storage_name, command_name, map_todo, use_client, proxy)
+        logging.info('Done, processed {} of {} correctly.'.format(
+            organize.success_count, organize.complete_record_count))
+    except Exception as e:
+        logging.error(e)
+        tb = traceback.format_exc()
+        logging.error(tb)
+
+
+def run_single(config, storage_name, obs_id, file_name):
+    import sys
+    organizer = OrganizeExecutes(config, storage_name)
+    result = _do_one(config, organizer, organizer.choose_client, storage_name,
+                     command_name, obs_id,                     file_name)
+    sys.exit(result)
