@@ -98,6 +98,7 @@ import logging
 import os
 import re
 import sys
+import tempfile
 import traceback
 from abc import ABCMeta
 from six import add_metaclass
@@ -106,6 +107,7 @@ from os import stat
 from six.moves.urllib.parse import urlparse
 from cadcutils import net, util
 from cadcdata import CadcDataClient
+from vos import Client
 from io import BytesIO
 import six
 
@@ -114,7 +116,7 @@ APP_NAME = 'caom2gen'
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
-           'GenericParser', 'augment']
+           'GenericParser', 'augment', 'get_vos_headers']
 
 POSITION_CTYPES = [
     ['RA',
@@ -329,6 +331,7 @@ class ObsBlueprint(object):
         'Part.name',
         'Part.productType',
 
+        'Chunk',
         'Chunk.naxis',
         'Chunk.observableAxis',
         'Chunk.positionAxis1',
@@ -494,7 +497,8 @@ class ObsBlueprint(object):
                'Plane.provenance.project': (['ADC_ARCH'], None),
                'Plane.provenance.producer': (['ORIGIN'], None),
                'Plane.provenance.reference': (['XREFER'], None),
-               'Plane.provenance.lastExecuted': (['DATE-FTS'], None)
+               'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
+               'Chunk': 'include'
                }
         # using the tmp to make sure that the keywords are valid
         for key in tmp:
@@ -505,7 +509,6 @@ class ObsBlueprint(object):
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
         self._wcs_std = {
-            # 'Chunk.naxis': (['ZNAXIS', 'NAXIS'], None)
             'Chunk.naxis': 'ZNAXIS,NAXIS'
         }
         self._pos_axes_configed = False
@@ -1070,6 +1073,12 @@ class ObsBlueprint(object):
             raise ValueError(
                 "Extension number refers to Chunk elements only")
 
+    @staticmethod
+    def check_extension(extension):
+        if extension is not None and extension < 0:
+            raise ValueError(
+                'Extension count failure. {} should be >= 0'.format(extension))
+
     def __str__(self):
         plan = self._serialize(self._plan)
 
@@ -1099,7 +1108,7 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension count failure when setting a value.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1120,7 +1129,7 @@ class ObsBlueprint(object):
         value or KeyError if the caom2 element does not exists.
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when adding FITS attribute.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1154,6 +1163,60 @@ class ObsBlueprint(object):
             else:
                 self._plan[caom2_element] = ([fits_attribute], None)
 
+    def add_table_attribute(self, caom2_element, ttype_attribute, extension=0,
+                            index=0):
+        """
+        Adds a FITS BINTABLE TTYPE* lookup, to a list of other FITS attributes
+        associated with an caom2 element. This does not co-exist with
+        non-table attributes.
+
+        There is no support for default values for table attributes.
+
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param ttype_attribute: name of TTYPE attribute element is mapped to
+        :param extension: extension number (used only for Chunk elements)
+        :param index: which row values to return. If index is None, all row
+            values will be returned as a comma-separated list.
+        :raises AttributeError if the caom2 element has already an associated
+        value or KeyError if the caom2 element does not exists.
+        """
+        ObsBlueprint.check_caom2_element(caom2_element)
+        ObsBlueprint.check_extension(extension)
+        if extension:
+            if extension in self._extensions:
+                if caom2_element in self._extensions[extension]:
+                    if (ObsBlueprint.is_table(
+                            self._extensions[extension][caom2_element])):
+                        if (ttype_attribute not in
+                                self._extensions[extension][caom2_element][1]):
+                            self._extensions[extension][caom2_element][1]. \
+                                insert(0, ttype_attribute)
+                    else:
+                        raise AttributeError(
+                            ('No TTYPE attributes in extension {} associated '
+                             'with keyword {}').format(extension,
+                                                       caom2_element))
+                else:
+                    self._extensions[extension][caom2_element] = \
+                        ('BINTABLE', [ttype_attribute], index)
+            else:
+                self._extensions[extension] = {}
+                self._extensions[extension][caom2_element] = \
+                    ('BINTABLE', [ttype_attribute], index)
+        else:
+            if caom2_element in self._plan:
+                if ObsBlueprint.is_table(self._plan[caom2_element]):
+                    if ttype_attribute not in self._plan[caom2_element][1]:
+                        self._plan[caom2_element][1].insert(0, ttype_attribute)
+                else:
+                    raise AttributeError('No TTYPE attributes associated '
+                                         'with keyword {}'.format(
+                                            caom2_element))
+            else:
+                self._plan[caom2_element] = (
+                    'BINTABLE', [ttype_attribute], None)
+
     def set_default(self, caom2_element, default, extension=0):
         """
         Sets the default value of a caom2 element that is associated with FITS
@@ -1170,7 +1233,7 @@ class ObsBlueprint(object):
         :param extension: extension number (used only for Chunk elements)
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when setting default.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1200,7 +1263,7 @@ class ObsBlueprint(object):
         :raises exceptions if the element or extension not found
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when deleting.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1225,7 +1288,7 @@ class ObsBlueprint(object):
         :raises exceptions if the element or extension not found
         """
         ObsBlueprint.check_caom2_element(caom2_element)
-        assert extension >= 0, 'Extension failure when deleting.'
+        ObsBlueprint.check_extension(extension)
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
@@ -1242,13 +1305,13 @@ class ObsBlueprint(object):
         Returns the source associated with a CAOM2 element
         :param caom2_element: name CAOM2 element (as in
         ObsBlueprint.CAOM2_ELEMEMTS)
-        :param extension: extension number (used only for Chunk elements)
+        :param extension: extension number
         :return: Tuple of the form (list_of_associated_fits_attributes,
         default_value) OR the actual value associated with the CAOM2 element
         """
         ObsBlueprint.check_caom2_element(caom2_element)
+        ObsBlueprint.check_extension(extension)
         if extension:
-            ObsBlueprint.check_chunk(caom2_element)
             if (extension in self._extensions) and \
                     (caom2_element in self._extensions[extension]):
                 return self._extensions[extension][caom2_element]
@@ -1259,11 +1322,33 @@ class ObsBlueprint(object):
         else:
             return self._plan[caom2_element]
 
+    def has_chunk(self, extension):
+        """What does the plan say about creating chunks for an
+        extension?
+
+        :return True if there should be a chunk to go along with a part
+        """
+        value = ''
+        if extension is not None and extension in self._extensions:
+            if 'Chunk' in self._extensions[extension]:
+                value = self._extensions[extension]['Chunk']
+        elif 'Chunk' in self._plan:
+            if ((extension is not None and extension == 0) or (
+                    extension is None)):
+                value = self._plan['Chunk']
+        return not value == '{ignore}'
+
     @staticmethod
     def is_fits(value):
         """Hide the blueprint structure from clients - they shouldn't need
         to know that a value of type tuple requires special processing."""
         return isinstance(value, tuple)
+
+    @staticmethod
+    def is_table(value):
+        """Hide the blueprint structure from clients - they shouldn't need
+        to know that a value of type tuple requires special processing."""
+        return ObsBlueprint.is_fits(value) and value[0] is 'BINTABLE'
 
     @staticmethod
     def is_function(value):
@@ -1275,7 +1360,7 @@ class ObsBlueprint(object):
         """If functions return None, try not to update the WCS with this
         value."""
         return value is None or (
-                    isinstance(value, str) and 'None' in value.strip())
+                isinstance(value, str) and 'None' in value.strip())
 
     def get_configed_axes_count(self):
         """:return how many axes have been configured to read from WCS"""
@@ -1326,14 +1411,15 @@ class GenericParser:
         self.logger.debug(
             'Begin generic CAOM2 observation augmentation for URI {}.'.format(
                 artifact_uri))
-        assert observation, 'observation instance required.'
-        assert isinstance(observation,
-                          Observation), 'Observation type mis-match.'
+        if observation is None or not isinstance(observation, Observation):
+            raise ValueError(
+                'Observation type mis-match for {}.'.format(observation))
 
         plane = None
         if not product_id:
             product_id = self._get_from_list('Plane.productID', index=0)
-        assert product_id, 'product ID required'
+        if product_id is None:
+            raise ValueError('product ID required')
 
         for ii in observation.planes:
             if observation.planes[ii].product_id == product_id:
@@ -1356,8 +1442,8 @@ class GenericParser:
         self.logger.debug(
             'Begin generic CAOM2 plane augmentation for {}.'.format(
                 artifact_uri))
-        assert plane, 'plane instance required.'
-        assert isinstance(plane, Plane), 'Plane type mis-match.'
+        if plane is None or not isinstance(plane, Plane):
+            raise ValueError('Plane type mis-match for {}'.format(plane))
         artifact = None
         for ii in plane.artifacts:
             artifact = plane.artifacts[ii]
@@ -1382,8 +1468,9 @@ class GenericParser:
         self.logger.debug(
             'Begin generic CAOM2 artifact augmentation for {}.'.format(
                 self.logging_name))
-        assert artifact, 'artifact instance required.'
-        assert isinstance(artifact, Artifact), 'Artifact type mis-match'
+        if artifact is None or not isinstance(artifact, Artifact):
+            raise ValueError(
+                'Artifact type mis-match for {}'.format(artifact))
 
         artifact.uri = self._get_from_list('Artifact.uri', index=0,
                                            current=artifact.uri)
@@ -1553,11 +1640,7 @@ class FitsParser(GenericParser):
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            # Assumption:
-            #    Only primary headers for 1 extension files or the extensions
-            # for multiple extension files can have data and therefore
-            # corresponding parts
-            if (i > 0) or (len(self.headers) == 1):
+            if self.blueprint.has_chunk(i):
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
@@ -1569,7 +1652,8 @@ class FitsParser(GenericParser):
             part = artifact.parts[ii]
             part.product_type = self._get_from_list('Part.productType', i)
 
-            # each Part has one Chunk
+            # each Part has one Chunk, if it's not an empty part as determined
+            # just previously
             if not part.chunks:
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
@@ -1613,6 +1697,8 @@ class FitsParser(GenericParser):
                     self._try_polarization_with_blueprint(chunk, i)
             if self.blueprint._obs_axis_configed:
                 wcs_parser.augment_observable(chunk)
+                if chunk.observable is None and chunk.observable_axis is None:
+                    self._try_observable_with_blueprint(chunk, i)
 
             # try to set smaller bits of the chunk WCS elements from the
             # blueprint
@@ -1822,6 +1908,30 @@ class FitsParser(GenericParser):
                     'Creating PolarizationWCS for {} from blueprint'.
                     format(self.uri))
 
+        self.logger.debug('End augmentation with blueprint for polarization.')
+
+    def _try_observable_with_blueprint(self, chunk, index):
+        """
+        A mechanism to augment the Observable WCS completely from the
+        blueprint. Do nothing if the WCS information cannot be correctly
+        created.
+
+        :param chunk: The chunk to modify with the addition of observable
+            information.
+        :param index: The index in the blueprint for looking up plan
+            information.
+        """
+        self.logger.debug('Begin augmentation with blueprint for '
+                          'observable.')
+        chunk.observable_axis = _to_int(
+            self._get_from_list('Chunk.observableAxis', index))
+        aug_axis = self._two_param_constructor(
+            'Chunk.observable.dependent.axis.ctype',
+            'Chunk.observable.dependent.axis.cunit', index, _to_str, Axis)
+        aug_bin = _to_int(
+            self._get_from_list('Chunk.observable.dependent.bin', index))
+        if aug_axis is not None and aug_bin is not None:
+            chunk.observable = ObservableAxis(Slice(aug_axis, aug_bin))
         self.logger.debug('End augmentation with blueprint for polarization.')
 
     def _try_energy_with_blueprint(self, chunk, index):
@@ -2058,8 +2168,14 @@ class FitsParser(GenericParser):
 
         # apply overrides to the remaining extensions
         for extension in exts:
+            if extension >= len(self.headers):
+                logging.error('More extensions configured {} than headers '
+                              '{}'.format(extension, len(self.headers)))
+                continue
             hdr = self.headers[extension]
             for key, value in exts[extension].items():
+                if ObsBlueprint.is_table(value):
+                    continue
                 keywords = wcs_std[key].split(',')
                 for keyword in keywords:
                     _set_by_type(hdr, keyword, value)
@@ -2175,8 +2291,21 @@ class FitsParser(GenericParser):
                 ('Cannot apply blueprint for CompositeObservation to a '
                  'simple observation'))
         elif isinstance(obs, CompositeObservation):
-            members = self._get_from_list('CompositeObservation.members',
-                                          index=0)
+            lookup = self.blueprint._get('CompositeObservation.members',
+                                         extension=1)
+            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
+                member_list = self._get_from_table(
+                    'CompositeObservation.members', 1)
+                # ensure the members are good little ObservationURIs
+                if member_list.startswith('caom:'):
+                    members = member_list
+                else:
+                    members = ' '.join(['caom:{}/{}'.format(
+                        obs.collection, i) if not i.startswith('caom') else i
+                                        for i in member_list.split()])
+            else:
+                members = self._get_from_list('CompositeObservation.members',
+                                              index=0)
         self.logger.debug('End Members augmentation.')
         return members
 
@@ -2406,6 +2535,44 @@ class FitsParser(GenericParser):
         self.logger.debug('{}: value is {}'.format(lookup, value))
         return value
 
+    def _get_from_table(self, lookup, extension):
+        """
+        Return a space-delimited list of all the row values from a column.
+
+        This is a straight FITS BINTABLE lookup. There is no support for
+        default values. Unless someone provides a compelling use case.
+
+        :param lookup: where to find the column name
+        :param extension: which extension
+        :return: A string, which is a space-delimited list of all the values.
+        """
+        value = ''
+        try:
+            keywords = self.blueprint._get(lookup, extension)
+        except KeyError as e:
+            self.add_error(lookup, sys.exc_info()[1])
+            self.logger.debug(
+                'Could not find {!r} in fits2caom2 configuration.'.format(
+                    lookup))
+            raise e
+
+        if isinstance(keywords, tuple) and keywords[0] == 'BINTABLE':
+
+            # BINTABLE, so need to retrieve the data from the file
+            if self.file is not None and self.file != '':
+                with fits.open(self.file) as fits_data:
+                    if fits_data[extension].header['XTENSION'] != 'BINTABLE':
+                        raise ValueError(
+                            'Got {} when looking for a BINTABLE '
+                            'extension.'.format(
+                                fits_data[extension].header['XTENSION']))
+                    for ii in keywords[1]:
+                        for jj in fits_data[extension].data[keywords[2]][ii]:
+                            value = '{} {}'.format(jj, value)
+
+        self.logger.debug('{}: value is {}'.format(lookup, value))
+        return value
+
     def _get_set_from_list(self, lookup, index):
         value = None
         keywords = None
@@ -2606,8 +2773,8 @@ class WcsParser(object):
         :param chunk:
         """
         self.logger.debug('Begin Energy WCS augmentation.')
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         # get the energy axis
         energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
@@ -2655,9 +2822,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin Spatial WCS augmentation.')
-
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         position_axes_indices = self._get_position_axis()
         if not position_axes_indices:
@@ -2693,8 +2859,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin TemporalWCS augmentation.')
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         time_axis_index = self._get_axis_index(TIME_KEYWORDS)
 
@@ -2737,8 +2903,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin Polarization WCS augmentation.')
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
         if polarization_axis_index is None:
@@ -2772,8 +2938,8 @@ class WcsParser(object):
         :return:
         """
         self.logger.debug('Begin Observable WCS augmentation.')
-        assert chunk, 'chunk instance required.'
-        assert isinstance(chunk, Chunk), 'Chunk type mis-match.'
+        if chunk is None or not isinstance(chunk, Chunk):
+            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
 
         observable_axis_index = self._get_axis_index(OBSERVABLE_CTYPES)
         if observable_axis_index is None:
@@ -3035,6 +3201,34 @@ def get_cadc_headers(uri, subject=None):
     return headers
 
 
+def get_vos_headers(uri, subject=None):
+    """
+    Creates the FITS headers object from a vospace file.
+    The function uses cutouts to retrieve the miniumum amount of data,
+     minimizing the transfer time.
+    :param uri: vos URI
+    :param subject: user credentials. Anonymous if subject is None
+    :return: List of headers corresponding to each extension. Each header is
+    of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
+    """
+    if uri.startswith('vos'):
+        if subject is not None and subject.certificate is not None:
+            client = Client(subject.certificate)
+        else:
+            client = Client()
+
+        # make the smallest cutout possible, to get the least amount of data
+        # transferred, then transfer it to a temporary file
+        #
+        uri_with_cutout = '{}[1:1,1:1]'.format(uri)
+        temp_filename = tempfile.NamedTemporaryFile()
+        client.copy(uri_with_cutout, temp_filename.name)
+        return _get_headers_from_fits(temp_filename.name)
+    else:
+        # this should be a programming error by now
+        raise NotImplementedError('Only vos type URIs supported')
+
+
 def _make_headers_from_string(fits_header):
     """Create a list of fits.Header instances from a string.
     ":param fits_header a string of keyword/value pairs"""
@@ -3054,21 +3248,27 @@ def _get_headers_from_fits(path):
     return headers
 
 
-def _update_artifact_meta(artifact, subject=None):
+def _update_artifact_meta(uri, artifact, subject=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
     :param subject: User credentials
     :return:
     """
-    file_url = urlparse(artifact.uri)
+    file_url = urlparse(uri)
     if file_url.scheme == 'ad':
         metadata = _get_cadc_meta(subject, file_url.path)
+    elif file_url.scheme == 'vos':
+        metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
-        metadata = _get_file_meta(file_url.path)
+        if file_url.path.endswith('.header'):
+            # if header is on disk, get the content_* from ad
+            metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
+        else:
+            metadata = _get_file_meta(file_url.path)
     else:
         # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad type URIs supported')
+        raise NotImplementedError('Only ad and vos type URIs supported')
 
     checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug('old artifact metadata - '
@@ -3110,11 +3310,37 @@ def _get_file_meta(path):
     s = stat(path)
     meta['size'] = s.st_size
     meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
-    if path.endswith('.header') or path.endswith('.txt'):
-        meta['type'] = 'text/plain'
-    else:
-        meta['type'] = 'application/octet-stream'
+    meta['type'] = _get_type(path)
     return meta
+
+
+def _get_vos_meta(subject, uri):
+    """
+    Gets contentType, contentLength and contentChecksum of a VOS artifact
+    :param subject: user credentials
+    :param uri:
+    :return:
+    """
+    if subject is not None and subject.certificate is not None:
+        client = Client(subject.certificate)
+    else:
+        client = Client()
+    node = client.get_node(uri, limit=None, force=False)
+    return {'size': node.props['length'],
+            'md5sum': node.props['MD5'],
+            'type': _get_type(uri)}
+
+
+def _get_type(path):
+    """Basic header extension to content_type lookup."""
+    if path.endswith('.header') or path.endswith('.txt'):
+        return 'text/plain'
+    elif path.endswith('.gif'):
+        return 'image/gif'
+    elif path.endswith('.png'):
+        return 'image/png'
+    else:
+        return 'application/octet-stream'
 
 
 def _lookup_blueprint(blueprints, uri):
@@ -3174,22 +3400,34 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                      product_type=ProductType.SCIENCE,
                      release_type=ReleaseType.DATA))
 
+    meta_uri = uri
+    visit_local = None
     if local:
-        if '.header' in local and '.txt' not in local:
-            logging.debug('Using a FitsParser for local file {}'.format(local))
-            parser = FitsParser(get_cadc_headers('file://{}'.format(local)),
-                                blueprint, uri=uri)
-        elif local.endswith('.fits') or local.endswith('.fits.gz'):
-            logging.debug('Using a FitsParser for {}'.format(local))
-            parser = FitsParser(local, blueprint, uri=uri)
+        if uri.startswith('vos'):
+            if '.fits' in local or '.fits.gz' in local:
+                parser = FitsParser(get_vos_headers(uri), blueprint, uri=uri)
         else:
-            # explicitly ignore headers for txt and image files
-            logging.debug('Using a GenericParser for {}'.format(local))
-            parser = GenericParser(blueprint, uri=uri)
+            meta_uri = 'file://{}'.format(local)
+            visit_local = local
+            if '.header' in local:
+                logging.debug(
+                    'Using a FitsParser for local file {}'.format(local))
+                parser = FitsParser(get_cadc_headers(meta_uri),
+                                    blueprint, uri=uri)
+            elif local.endswith('.fits') or local.endswith('.fits.gz'):
+                logging.debug('Using a FitsParser for {}'.format(local))
+                parser = FitsParser(local, blueprint, uri=uri)
+            else:
+                # explicitly ignore headers for txt and image files
+                logging.debug('Using a GenericParser for {}'.format(local))
+                parser = GenericParser(blueprint, uri=uri)
     else:
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):
+            if uri.startswith('vos'):
+                headers = get_vos_headers(uri, subject)
+            else:
+                headers = get_cadc_headers(uri, subject)
             logging.debug('Using a FitsParser for remote file {}'.format(uri))
-            headers = get_cadc_headers(uri, subject)
             parser = FitsParser(headers, blueprint, uri=uri)
         else:
             # explicitly ignore headers for txt and image files
@@ -3197,12 +3435,12 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 'Using a GenericParser for remote file {}'.format(uri))
             parser = GenericParser(blueprint, uri=uri)
 
-    _update_artifact_meta(plane.artifacts[uri], subject)
+    _update_artifact_meta(meta_uri, plane.artifacts[uri], subject)
 
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
 
-    _visit(plugin, parser, obs, **kwargs)
+    _visit(plugin, parser, obs, visit_local, **kwargs)
 
     if validate_wcs:
         try:
@@ -3300,7 +3538,7 @@ def caom2gen():
         sys.exit(-1)
 
     logging.debug(
-        'Done {} processing for {}'.format(APP_NAME, args.observation[1]))
+        'Done {} processing.'.format(APP_NAME))
 
 
 def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
@@ -3327,7 +3565,7 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
         # the CompositeObservation.members in the blueprints. If present
         # in any of it assume composite
         for bp in obs_blueprints.values():
-            if bp._get('CompositeObservation.members'):
+            if bp._get('CompositeObservation.members', extension=1):
                 obs = CompositeObservation(
                     collection=collection,
                     observation_id=obs_id,
@@ -3343,28 +3581,34 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
 
 def _set_logging(verbose, debug, quiet):
     logger = logging.getLogger()
-    if verbose:
-        logger.setLevel(logging.INFO)
-    elif debug:
-        logger.setLevel(logging.DEBUG)
-    elif quiet:
-        logger.setLevel(logging.ERROR)
-    else:
-        logger.setLevel(logging.WARN)
-
     if logger.handlers:
         handler = logger.handlers[0]
         logger.removeHandler(handler)
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s'),
+            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:'
+            '%(lineno)d:%(message)s'),
         'astropy': logging.Formatter(
-            '%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:%(lineno)d:%(message)s')
+            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:'
+            '%(lineno)d:%(message)s')
     },
-        logging.Formatter('%(levelname)s:%(name)-12s:%(lineno)d:%(message)s')
+        logging.Formatter('%(asctime)s:%(levelname)s:%(name)-12s:'
+                          '%(lineno)d:%(message)s')
     ))
     logger.addHandler(handler)
+    if verbose:
+        logger.setLevel(logging.INFO)
+        handler.setLevel(logging.INFO)
+    elif debug:
+        logger.setLevel(logging.DEBUG)
+        handler.setLevel(logging.DEBUG)
+    elif quiet:
+        logger.setLevel(logging.ERROR)
+        handler.setLevel(logging.ERROR)
+    else:
+        logger.setLevel(logging.WARN)
+        handler.setLevel(logging.WARN)
 
 
 def _get_common_arg_parser():
@@ -3514,7 +3758,7 @@ def _load_plugin(plugin_name):
     return plgin
 
 
-def _visit(plugn, parser, obs, **kwargs):
+def _visit(plugn, parser, obs, visit_local, **kwargs):
     if plugn is not None:
         if isinstance(parser, FitsParser):
             # TODO make a check that's necessary under both calling conditions
@@ -3525,6 +3769,8 @@ def _visit(plugn, parser, obs, **kwargs):
                     'observation {!r}'.format(plugn, obs.observation_id))
                 plgin = _load_plugin(plugn)
                 kwargs['headers'] = parser.headers
+                if visit_local is not None:
+                    kwargs['fqn'] = visit_local
                 try:
                     if plgin.update(observation=obs, **kwargs):
                         logging.debug(
