@@ -72,7 +72,6 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
-# from caom2utils import ObsBlueprint, GenericParser, get_vos_headers
 from caom2utils import ObsBlueprint, GenericParser
 from caom2utils.legacy import load_config
 from caom2utils.fits2caom2 import _visit, _load_plugin, _update_artifact_meta
@@ -82,7 +81,6 @@ from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
 from caom2 import Axis, CoordAxis1D, CoordAxis2D
-from cadcutils import net
 
 import caom2utils
 
@@ -112,7 +110,6 @@ text_override = os.path.join(TESTDATA_DIR, 'text.override')
 test_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin.py')
 test_class_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin_class.py')
 non_conformant_plugin_module = os.path.join(TESTDATA_DIR, 'nonconformant.py')
-testproxy = os.path.join(TESTDATA_DIR, 'test_proxy.pem')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
@@ -485,7 +482,7 @@ def test_help():
         with pytest.raises(MyExitError):
             main_app()
         result = stderr_mock.getvalue()
-        assert result.endswith(bad_product_id)
+        assert result.endswith(bad_product_id), result
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -1227,17 +1224,18 @@ def test_get_vos_headers():
 @pytest.mark.skipif(single_test, reason='Single test mode')
 def test_get_vos_meta():
     get_orig = caom2utils.get_vos_headers
+    node_orig = vos.Client.get_node
     try:
         caom2utils.get_vos_headers = Mock(
             return_value={'md5sum': '5b00b00d4b06aba986c3663d09aa581f',
                           'size': 682560,
                           'type': 'application/octet-stream'})
+        vos.Client.get_node = Mock(side_effect=_get_node)
         test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                    'dao_c122_2016_012725.fits'
         test_artifact = Artifact(test_uri, ProductType.SCIENCE,
                                  ReleaseType.DATA)
-        test_subject = net.Subject(certificate=testproxy)
-        _update_artifact_meta(test_uri, test_artifact, subject=test_subject)
+        _update_artifact_meta(test_uri, test_artifact, subject=None)
         assert test_artifact is not None
         assert test_artifact.content_checksum.uri == \
             'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
@@ -1246,6 +1244,7 @@ def test_get_vos_meta():
             'content_type wrong'
     finally:
         caom2utils.get_vos_headers = get_orig
+        vos.Client.get_node = node_orig
 
 
 def _get_headers(subject):
@@ -1262,3 +1261,10 @@ END
         [e + delim for e in x.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
+
+
+def _get_node(uri, limit, force):
+    node = vos.Node('abc')
+    node.props = {'MD5': '5b00b00d4b06aba986c3663d09aa581f',
+                  'length': 682560}
+    return node
