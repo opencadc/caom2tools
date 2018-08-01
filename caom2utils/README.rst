@@ -40,7 +40,7 @@ fits2caom2
 
     usage: fits2caom2 [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                       [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v]
-                      [-V] [--dumpconfig] [--no_validate] [--ignorePartialWCS]
+                      [-V] [--dumpconfig] [--no_validate]
                       [-o OUT_OBS_XML]
                       (-i IN_OBS_XML | --observation collection observationID)
                       [--local LOCAL [LOCAL ...]] [--keep] [--test]
@@ -64,7 +64,6 @@ fits2caom2
       -h, --help                              show this help message and exit
       --host HOST                             base hostname for services - used mainly for testing
                                               (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-      --ignorePartialWCS                      do not stop and exit upon finding partial WCS
       -i, --in IN_OBS_XML                     input of observation to be augmented in XML
       --keep                                  keep the locally stored files after ingestion
       --local LOCAL [ LOCAL ...]              
@@ -95,7 +94,7 @@ caom2gen
 
     usage: caom2gen [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                     [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v] [-V]
-                    [--dumpconfig] [--no_validate] [--ignorePartialWCS]
+                    [--dumpconfig] [--no_validate]
                     [-o OUT_OBS_XML]
                     (-i IN_OBS_XML | --observation collection observationID)
                     [--local LOCAL [LOCAL ...]] [--keep] [--test]
@@ -119,7 +118,6 @@ caom2gen
       -h, --help            show this help message and exit
       --host HOST           base hostname for services - used mainly for testing
                             (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
-      --ignorePartialWCS    do not stop and exit upon finding partial WCS
       -i, --in IN_OBS_XML   input of observation to be augmented in XML
       --keep                keep the locally stored files after ingestion
       --lineage LINEAGE [LINEAGE ...]

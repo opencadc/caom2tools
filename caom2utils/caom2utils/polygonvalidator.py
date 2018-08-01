@@ -183,8 +183,9 @@ def validate_multipolygon(mp):
 
     if not mp:
         return
-    assert isinstance(mp, MultiPolygon), \
-        'MultiPoligon expected in validation received {}'.format(type(mp))
+    if not isinstance(mp, MultiPolygon):
+        raise ValueError(
+            'MultiPoligon expected in validation received {}'.format(type(mp)))
 
     _validate_size_and_end_vertices(mp)
 
