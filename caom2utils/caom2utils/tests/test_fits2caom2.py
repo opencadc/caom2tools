@@ -72,7 +72,6 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
-# from caom2utils import ObsBlueprint, GenericParser, get_vos_headers
 from caom2utils import ObsBlueprint, GenericParser
 from caom2utils.legacy import load_config
 from caom2utils.fits2caom2 import _visit, _load_plugin, _update_artifact_meta
@@ -82,7 +81,6 @@ from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
 from caom2 import Axis, CoordAxis1D, CoordAxis2D
-from cadcutils import net
 
 import caom2utils
 
@@ -484,7 +482,7 @@ def test_help():
         with pytest.raises(MyExitError):
             main_app()
         result = stderr_mock.getvalue()
-        assert result.endswith(bad_product_id)
+        assert result.endswith(bad_product_id), result
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -1268,5 +1266,5 @@ END
 def _get_node(uri, limit, force):
     node = vos.Node('abc')
     node.props = {'MD5': '5b00b00d4b06aba986c3663d09aa581f',
-             'length': 682560}
+                  'length': 682560}
     return node
