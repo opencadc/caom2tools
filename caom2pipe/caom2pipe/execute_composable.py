@@ -346,6 +346,15 @@ class CaomExecute(object):
                 'Could not update an observation record for {} in {}'.format(
                     self.obs_id, self.resource_id))
 
+    def _repo_cmd_read_client(self):
+        """Retrieve the existing observaton model metadata."""
+        try:
+            return self.caom_repo_client.read(self.collection, self.obs_id)
+        except Exception as e:
+            raise mc.CadcException(
+                'Could not read observation record for {} in {}'.format(
+                    self.obs_id, self.resource_id))
+
     def _fits2caom2_cmd(self):
         plugin = self._find_fits2caom2_plugin()
         cmd = '{} {} --netrc {} --observation {} {} --out {} ' \
@@ -593,8 +602,11 @@ class Collection2CaomMetaDeleteClient(CaomExecute):
                           'the headers')
         self._fits2caom2_cmd_client()
 
+        self.logger.debug('read the xml into memory from the file')
+        observation = self._read_model()
+
         self.logger.debug('store the xml')
-        self._repo_cmd_create_client()
+        self._repo_cmd_create_client(observation)
 
         self.logger.debug('clean up the workspace')
         self._cleanup()
@@ -1168,7 +1180,8 @@ class OrganizeExecutes(object):
                                  'Invalid observation ID')
         return executors
 
-    def choose_client(self, storage_name, command_name, preview=None, footprint=None):
+    def choose_client(self, storage_name, command_name, preview=None,
+                      footprint=None):
         executors = []
         if storage_name.is_valid(storage_name.get_obs_id()):
             subject = net.Subject(username=None, certificate=self.config.proxy)
@@ -1213,29 +1226,34 @@ class OrganizeExecutes(object):
                         if isinstance(executors[0], Collection2CaomScrape):
                             executors.append(
                                 Collection2CaomDataScrape(self.config,
-                                                          storage_name, command_name,
+                                                          storage_name,
+                                                          command_name,
                                                           preview=preview,
                                                           footprint=footprint))
                         else:
                             executors.append(
                                 Collection2CaomLocalDataClient(
                                     self.config, storage_name, command_name,
-                                    cadc_data_client, caom_repo_client))
+                                    cadc_data_client, caom_repo_client,
+                                    preview, footprint))
                     else:
                         executors.append(Collection2CaomDataClient(
                             self.config, storage_name, command_name,
-                            cadc_data_client, caom_repo_client))
+                            cadc_data_client, caom_repo_client, preview,
+                            footprint))
                 elif task_type == mc.TaskType.AUGMENT:
                     observation = CaomExecute.repo_cmd_get_client(
                         caom_repo_client, self.config.collection,
                         storage_name.get_obs_id())
                     if observation is None:
                         executors.append(Collection2CaomMetaCreateClient(
-                            self.config, storage_name, command_name, cadc_data_client,
+                            self.config, storage_name, command_name,
+                            cadc_data_client,
                             caom_repo_client))
                     else:
                         executors.append(Collection2CaomMetaUpdateClient(
-                            self.config, storage_name, command_name, cadc_data_client,
+                            self.config, storage_name, command_name,
+                            cadc_data_client,
                             caom_repo_client))
                 else:
                     raise mc.CadcException(
@@ -1336,12 +1354,13 @@ def _unset_file_logging(config, log_h):
         logging.getLogger().removeHandler(log_h)
 
 
-def _do_one(config, organizer, organizer_choose, storage_name, command_name, obs_id,
-            file_name=None):
+def _do_one(config, organizer, organizer_choose, storage_name, command_name,
+            obs_id,
+            file_name=None, preview=None, footprint=None):
     sname = storage_name(obs_id, file_name)
     log_h = _set_up_file_logging(config, sname)
     try:
-        executors = organizer_choose(sname, command_name, obs_id, file_name)
+        executors = organizer_choose(sname, command_name, preview, footprint)
         for executor in executors:
             logging.info(
                 'Step {} for {}'.format(executor.task_type, obs_id))
@@ -1362,7 +1381,9 @@ def _do_one(config, organizer, organizer_choose, storage_name, command_name, obs
         _unset_file_logging(config, log_h)
 
 
-def _run_todo_file(config, organizer, storage_name, command_name, map_todo=None, use_client=False, proxy=None):
+def _run_todo_file(config, organizer, storage_name, command_name, map_todo=None,
+                   use_client=False, proxy=None, preview=None,
+                   footprint=None):
     with open(organizer.todo_fqn) as f:
         todo_list_length = sum(1 for _ in f)
     organizer.complete_record_count = todo_list_length
@@ -1373,13 +1394,18 @@ def _run_todo_file(config, organizer, storage_name, command_name, map_todo=None,
             if use_client:
                 config.proxy = proxy
                 _do_one(config, organizer, organizer.choose_client,
-                        storage_name, command_name, obs_id, file_name)
+                        storage_name, command_name, obs_id, file_name,
+                        preview=preview, footprint=footprint)
             else:
-                _do_one(config, organizer, organizer.choose, storage_name, command_name,
-                        obs_id, file_name)
+                _do_one(config, organizer, organizer.choose, storage_name,
+                        command_name,
+                        obs_id, file_name,
+                        preview=preview, footprint=footprint)
 
 
-def _run_local_files(config, organizer, storage_name, command_name, use_client=False, proxy=None):
+def _run_local_files(config, organizer, storage_name, command_name,
+                     use_client=False, proxy=None, preview=None,
+                     footprint=None):
     file_list = os.listdir(config.working_directory)
     todo_list = []
     for f in file_list:
@@ -1392,14 +1418,18 @@ def _run_local_files(config, organizer, storage_name, command_name, use_client=F
         obs_id = storage_name.remove_extensions(do_file)
         if use_client:
             config.proxy = proxy
-            _do_one(config, organizer, organizer.choose_client, storage_name, command_name,
-                    obs_id, do_file)
+            _do_one(config, organizer, organizer.choose_client, storage_name,
+                    command_name,
+                    obs_id, do_file, preview=preview, footprint=footprint)
         else:
-            _do_one(config, organizer, organizer.choose, storage_name, command_name, obs_id,
-                    do_file)
+            _do_one(config, organizer, organizer.choose, storage_name,
+                    command_name, obs_id,
+                    do_file, preview=preview, footprint=footprint)
 
 
-def run_by_file(storage_name, command_name, collection, map_todo, use_client=False, proxy=None):
+def run_by_file(storage_name, command_name, collection, map_todo,
+                use_client=False, proxy=None, preview=None,
+                footprint=None):
     try:
         config = mc.Config()
         config.get_executors()
@@ -1409,7 +1439,8 @@ def run_by_file(storage_name, command_name, collection, map_todo, use_client=Fal
         logger.setLevel(config.logging_level)
         if config.use_local_files:
             organize = OrganizeExecutes(config)
-            _run_local_files(config, organize, storage_name, command_name, use_client, proxy)
+            _run_local_files(config, organize, storage_name, command_name,
+                             use_client, proxy)
         else:
             parser = ArgumentParser()
             parser.add_argument('--todo',
@@ -1420,7 +1451,8 @@ def run_by_file(storage_name, command_name, collection, map_todo, use_client=Fal
             else:
                 organize = OrganizeExecutes(config)
             _run_todo_file(
-                config, organize, storage_name, command_name, map_todo, use_client, proxy)
+                config, organize, storage_name, command_name, map_todo,
+                use_client, proxy, preview=preview, footprint=footprint)
         logging.info('Done, processed {} of {} correctly.'.format(
             organize.success_count, organize.complete_record_count))
     except Exception as e:
@@ -1429,9 +1461,11 @@ def run_by_file(storage_name, command_name, collection, map_todo, use_client=Fal
         logging.error(tb)
 
 
-def run_single(config, storage_name, command_name, obs_id, file_name):
+def run_single(config, storage_name, command_name, obs_id, file_name,
+               preview=None, footprint=None):
     import sys
     organizer = OrganizeExecutes(config)
     result = _do_one(config, organizer, organizer.choose_client, storage_name,
-                     command_name, obs_id, file_name)
+                     command_name, obs_id, file_name,
+                     preview=preview, footprint=footprint)
     sys.exit(result)
