@@ -887,11 +887,13 @@ class Collection2CaomLocalDataClient(Collection2CaomDataClient):
     the files on disk."""
 
     def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client):
+                 cadc_data_client, caom_repo_client, preview=None,
+                 footprint=None):
         super(Collection2CaomLocalDataClient, self).__init__(
             config, storage_name, command_name,
             cadc_data_client=cadc_data_client,
-            caom_repo_client=caom_repo_client)
+            caom_repo_client=caom_repo_client, preview=preview,
+            footprint=footprint)
         self._define_local_dirs(storage_name)
         self.fname = storage_name.get_file_name()
 
