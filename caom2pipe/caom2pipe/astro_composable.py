@@ -69,20 +69,29 @@
 
 import logging
 
+from astropy.coordinates import EarthLocation
 from astropy.time import Time, TimeDelta
 
 __all__ = ['convert_time', 'get_datetime']
 
 
-def convert_time(headers):
-    logging.debug('Begin convert_time.')
+def find_time_bounds(headers):
+    logging.debug('Begin find_time_bounds.')
     date = headers[0].get('DATE-OBS')
     exposure = headers[0].get('TEXP')
-    if date is not None and exposure is not None:
+    return convert_time(date, exposure)
+
+
+def convert_time(start_time, exposure):
+    logging.debug('Begin convert_time.')
+    if start_time is not None and exposure is not None:
         logging.debug(
-            'Use date {} and exposure {} to convert time.'.format(date,
+            'Use date {} and exposure {} to convert time.'.format(start_time,
                                                                   exposure))
-        t_start = Time(date)
+        if type(start_time) is float:
+            t_start = Time(start_time, format='mjd')
+        else:
+            t_start = Time(start_time)
         dt = TimeDelta(exposure, format='sec')
         t_end = t_start + dt
         t_start.format = 'mjd'
@@ -111,3 +120,9 @@ def get_datetime(from_value):
             return None
     else:
         return None
+
+
+def get_location(latitude, longitude, elevation):
+    result = EarthLocation.from_geodetic(
+        longitude, latitude, elevation, 'WGS84')
+    return result.x.value, result.y.value, result.z.value

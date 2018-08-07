@@ -83,7 +83,7 @@ from caom2 import obs_reader_writer
 from caom2pipe import manage_composable as mc
 
 
-__all__ = ['OrganizeExecutes', 'StorageName']
+__all__ = ['OrganizeExecutes', 'StorageName', 'CaomName']
 
 
 class StorageName(object):
@@ -145,6 +145,24 @@ class StorageName(object):
     def remove_extensions(name):
         return name.replace('.fits', '').replace('.gz', '').replace('.header',
                                                                     '')
+
+
+class CaomName(object):
+    """The naming rules for making and decomposing CAOM URIs, all isolated in 
+    one class. There are probably OMM assumptions built in, but those will
+    slowly go away :). """
+
+    def __init__(self, uri):
+        self.uri = uri
+
+    def get_file_id(self):
+        return self.uri.split('/')[1].split('.')[0]
+
+    def get_file_name(self):
+        return self.uri.split('/')[1]
+
+    def get_uncomp_file_name(self):
+        return self.get_file_name().replace('.gz', '')
 
 
 class CaomExecute(object):

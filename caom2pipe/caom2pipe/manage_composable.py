@@ -338,7 +338,6 @@ class Config(object):
                'failure_fqn:: \'{}\' ' \
                'retry_file_name:: \'{}\' ' \
                'retry_fqn:: \'{}\' ' \
-               'retry_count:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
                 self.collection, self.task_types, self.stream,
@@ -346,7 +345,7 @@ class Config(object):
                 self.log_file_directory, self.success_log_file_name,
                 self.success_fqn, self.failure_log_file_name,
                 self.failure_fqn, self.retry_file_name, self.retry_fqn,
-                self.retry_count, self.logging_level)
+                self.logging_level)
 
     @staticmethod
     def _set_task_types(config, default=None):
@@ -387,7 +386,6 @@ class Config(object):
                                                       'failure_log.txt')
             self.retry_file_name = self._lookup(config, 'retry_file_name',
                                                 'retries.txt')
-            self.retry_count = self._lookup(config, 'retry_count', 0)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -527,6 +525,8 @@ def get_file_meta(fqn):
         meta['type'] = 'image/gif'
     elif fqn.endswith('.png'):
         meta['type'] = 'image/png'
+    elif fqn.endswith('.jpg'):
+        meta['type'] = 'image/jpeg'
     else:
         meta['type'] = 'application/octet-stream'
     return meta

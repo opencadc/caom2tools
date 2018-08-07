@@ -78,7 +78,7 @@ def test_convert_time():
     hdr1 = fits.Header()
     hdr1['DATE-OBS'] = '2012-09-03T01:04:44'
     hdr1['TEXP'] = 20.000
-    mjd_start, mjd_end = ac.convert_time([hdr1])
+    mjd_start, mjd_end = ac.find_time_bounds([hdr1])
     assert mjd_start is not None
     assert mjd_end is not None
     assert math.isclose(mjd_start, 56173.044953703706), mjd_start
@@ -97,3 +97,10 @@ def test_get_datetime():
     result = ac.get_datetime('2006-12-12')
     assert result is not None
     assert result == '2006-12-12 00:00:00.000'
+
+
+def test_get_location():
+    x, y, z = ac.get_location(21.0, -32.0, 12)
+    assert x == 5051887.288718968, x
+    assert y == -3156769.536020791, y
+    assert z == 2271399.319625149, z

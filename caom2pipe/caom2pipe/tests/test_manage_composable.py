@@ -72,11 +72,17 @@ import pytest
 
 from mock import Mock, patch
 
+from caom2pipe import execute_composable as ec
 from caom2pipe import manage_composable as mc
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+
+
+def test_map_todo():
+    """For a mock."""
+    return ''
 
 
 def test_config_class():
@@ -85,6 +91,24 @@ def test_config_class():
     test_config.get_executors()
     assert test_config is not None
     assert test_config.work_file == 'todo.txt'
+
+
+def test_run_by_file():
+    try:
+        os.getcwd = Mock(return_value=TESTDATA_DIR)
+        todo_file = os.path.join(os.getcwd(), 'todo.txt')
+        f = open(todo_file, 'w')
+        f.write('')
+        f.close()
+        ec.run_by_file(ec.StorageName, 'collection2caom2', 'collection',
+                       test_map_todo)
+    except mc.CadcException as e:
+        assert False, 'but the work list is empty {}'.format(e)
+
+
+def test_exec_cmd():
+    test_cmd = 'ls'
+    mc.exec_cmd(test_cmd)
 
 
 def test_exec_cmd_redirect():
