@@ -94,12 +94,17 @@ class StorageName(object):
     This class assumes the obs_id is part of the file name. This assumption
     may be broken in the future, in which case lots of CaomExecute
     implementations will need to be re-addressed somehow.
+
+    This class assumes the file name in storage, and the file name on disk
+    are not necessarily the same thing.
     """
 
-    def __init__(self, obs_id, collection, collection_pattern):
+    def __init__(self, obs_id, collection, collection_pattern,
+                 fname_on_disk=None):
         self.obs_id = obs_id
         self.collection = collection
         self.collection_pattern = collection_pattern
+        self.fname_on_disk = fname_on_disk
 
     def get_file_uri(self):
         return 'ad:{}/{}.gz'.format(self.collection, self.get_file_name())
@@ -133,6 +138,9 @@ class StorageName(object):
 
     def get_product_id(self):
         return self.obs_id
+
+    def get_fname_on_disk(self):
+        return self.fname_on_disk
 
     def is_valid(self):
         pattern = re.compile(self.collection_pattern)
@@ -640,7 +648,7 @@ class Collection2CaomLocalMeta(CaomExecute):
         super(Collection2CaomLocalMeta, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -672,7 +680,7 @@ class Collection2CaomLocalMetaClient(CaomExecute):
             config, mc.TaskType.INGEST, storage_name, command_name,
             cadc_data_client, caom_repo_client, cert)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -872,7 +880,7 @@ class Collection2CaomLocalData(Collection2CaomData):
                                                        command_name,
                                                        preview, footprint)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -913,7 +921,7 @@ class Collection2CaomLocalDataClient(Collection2CaomDataClient):
             caom_repo_client=caom_repo_client, preview=preview,
             footprint=footprint)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -999,7 +1007,7 @@ class Collection2CaomScrape(CaomExecute):
         super(Collection2CaomScrape, self).__init__(
             config, mc.TaskType.SCRAPE, storage_name, command_name)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -1053,7 +1061,7 @@ class Collection2CaomCompareChecksum(CaomExecute):
         super(Collection2CaomCompareChecksum, self).__init__(
             config, mc.TaskType.CHECKSUM, storage_name, command_name)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} '
@@ -1080,7 +1088,7 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
             config, mc.TaskType.CHECKSUM, storage_name, command_name,
             cadc_data_client, caom_repo_client)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} '
@@ -1136,7 +1144,7 @@ class OrganizeExecutes(object):
 
     def choose(self, storage_name, command_name, preview=None, footprint=None):
         executors = []
-        if storage_name.is_valid(storage_name.get_obs_id()):
+        if storage_name.is_valid():
             for task_type in self.task_types:
                 self.logger.debug(task_type)
                 if task_type == mc.TaskType.SCRAPE:
@@ -1203,7 +1211,7 @@ class OrganizeExecutes(object):
     def choose_client(self, storage_name, command_name, preview=None,
                       footprint=None):
         executors = []
-        if storage_name.is_valid(storage_name.get_obs_id()):
+        if storage_name.is_valid():
             subject = net.Subject(username=None, certificate=self.config.proxy)
             cadc_data_client = CadcDataClient(subject)
             caom_repo_client = CAOM2RepoClient(
@@ -1460,7 +1468,7 @@ def run_by_file(storage_name, command_name, collection, map_todo,
         if config.use_local_files:
             organize = OrganizeExecutes(config)
             _run_local_files(config, organize, storage_name, command_name,
-                             use_client, proxy)
+                             use_client, proxy, preview, footprint)
         else:
             parser = ArgumentParser()
             parser.add_argument('--todo',

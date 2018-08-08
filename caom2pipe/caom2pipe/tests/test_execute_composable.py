@@ -89,10 +89,10 @@ TEST_OBS = SimpleObservation(collection='test_collection',
 
 class TestStorageName(ec.StorageName):
     def __init__(self):
-        super(TestStorageName, self).__init__('test_obs_id', 'TEST', '*')
+        super(TestStorageName, self).__init__(
+            'test_obs_id', 'TEST', '*', 'test_file.fits')
 
-    @staticmethod
-    def is_valid(file_name):
+    def is_valid(self):
         return True
 
 
