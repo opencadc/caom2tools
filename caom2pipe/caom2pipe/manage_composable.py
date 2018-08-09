@@ -83,7 +83,8 @@ from cadcdata import CadcDataClient
 __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'exec_cmd', 'exec_cmd_redirect', 'exec_cmd_info',
            'get_cadc_meta', 'get_file_meta', 'compare_checksum',
-           'decompose_lineage', 'check_param']
+           'decompose_lineage', 'check_param', 'read_csv_file',
+           'read_url_file']
 
 
 class CadcException(Exception):
@@ -612,3 +613,32 @@ def check_param(param, param_type):
     if param is None or not isinstance(param, param_type):
         raise CadcException(
             'Parameter {} failed check for {}'.format(param, param_type))
+
+
+def read_csv_file(fqn):
+    results = []
+    try:
+        import csv
+        with open(fqn) as csv_file:
+            reader = csv.reader(csv_file)
+            for row in reader:
+                if row[0].startswith('#'):
+                    continue
+                results.append(row)
+    except Exception as e:
+        logging.error('Could not read from csv file {}'.format(fqn))
+        raise CadcException(e)
+    return results
+
+
+def read_url_file(from_url):
+    results = []
+    try:
+        import urllib.request as request
+        local_filename, headers = request.urlretrieve(from_url)
+        with open(local_filename) as url_content:
+            results = url_content.readlines()
+    except Exception as e:
+        logging.error('Could not read from url {}'.format(from_url))
+        raise CadcException(e)
+    return results

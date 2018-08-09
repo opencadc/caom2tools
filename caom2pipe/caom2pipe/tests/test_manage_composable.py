@@ -151,3 +151,31 @@ def test_decompose_lineage():
 
     with pytest.raises(mc.CadcException):
         mc.decompose_lineage('')
+
+
+def test_read_csv_file():
+    # bad read
+    with pytest.raises(mc.CadcException):
+        mc.read_csv_file(None)
+
+    # good read
+    test_file_name = os.path.join(TESTDATA_DIR, 'test_csv.csv')
+    content = mc.read_csv_file(test_file_name)
+    assert content is not None, 'empty results returned'
+    assert len(content) == 1, 'missed the comment and the header'
+    assert len(content[0]) == 24, 'missed the content'
+
+
+def test_read_url_file():
+    # bad read
+    with pytest.raises(mc.CadcException):
+        mc.read_url_file(None)
+
+    # good read
+    test_file_name = 'file://{}'.format(
+        os.path.join(TESTDATA_DIR, 'test_csv.csv'))
+    test_content = mc.read_url_file(test_file_name)
+    assert test_content is not None, 'empty results returned'
+    assert len(test_content) == 3, 'ignoring the comment and the header'
+    assert len(test_content[2]) == 357, \
+        'missed the content, it is just a string'

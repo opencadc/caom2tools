@@ -205,6 +205,7 @@ class CaomExecute(object):
         self.caom_repo_client = caom_repo_client
         self.stream = config.stream
         self.cert = cert
+        self.visitors = None
 
     def _create_dir(self):
         """Create the working area if it does not already exist."""
@@ -449,6 +450,16 @@ class CaomExecute(object):
         return os.path.join(packages[0], '{}/{}.py'.format(self.command_name,
                                                            self.command_name))
 
+    def _visit_meta(self, observation):
+        kwargs = {'working_directory': self.working_dir}
+        if self.visitors is not None:
+            for visitor in self.visitors:
+                try:
+                    self.logger.debug('Visit for {}'.format(visitor))
+                    visitor.visit(observation, **kwargs)
+                except Exception as e:
+                    raise mc.CadcException(e)
+
     @staticmethod
     def _set_logging_level_param(logging_level):
         lookup = {logging.DEBUG: '--debug',
@@ -558,10 +569,11 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
     This pipeline step will execute a caom2-repo update."""
 
     def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client):
+                 cadc_data_client, caom_repo_client, visitors=None):
         super(Collection2CaomMetaUpdateClient, self).__init__(
             config, mc.TaskType.AUGMENT, storage_name, command_name,
             cadc_data_client, caom_repo_client, config.proxy)
+        self.visitors = visitors
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -586,6 +598,9 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
 
         self.logger.debug('read the xml from disk')
         observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(observation)
 
         self.logger.debug('store the xml')
         self._repo_cmd_update_client(observation)
@@ -1142,7 +1157,8 @@ class OrganizeExecutes(object):
     def complete_record_count(self, value):
         self._complete_record_count = value
 
-    def choose(self, storage_name, command_name, preview=None, footprint=None):
+    def choose(self, storage_name, command_name, preview=None, footprint=None,
+               visitors=None):
         executors = []
         if storage_name.is_valid():
             for task_type in self.task_types:
@@ -1209,7 +1225,7 @@ class OrganizeExecutes(object):
         return executors
 
     def choose_client(self, storage_name, command_name, preview=None,
-                      footprint=None):
+                      footprint=None, visitors=None):
         executors = []
         if storage_name.is_valid():
             subject = net.Subject(username=None, certificate=self.config.proxy)
@@ -1282,7 +1298,7 @@ class OrganizeExecutes(object):
                         executors.append(Collection2CaomMetaUpdateClient(
                             self.config, storage_name, command_name,
                             cadc_data_client,
-                            caom_repo_client))
+                            caom_repo_client, visitors))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1384,11 +1400,12 @@ def _unset_file_logging(config, log_h):
 
 def _do_one(config, organizer, organizer_choose, storage_name, command_name,
             obs_id,
-            file_name=None, preview=None, footprint=None):
+            file_name=None, preview=None, footprint=None, visitors=None):
     sname = storage_name(obs_id, file_name)
     log_h = _set_up_file_logging(config, sname)
     try:
-        executors = organizer_choose(sname, command_name, preview, footprint)
+        executors = organizer_choose(sname, command_name, preview, footprint,
+                                     visitors)
         for executor in executors:
             logging.info(
                 'Step {} for {}'.format(executor.task_type, obs_id))
@@ -1411,7 +1428,7 @@ def _do_one(config, organizer, organizer_choose, storage_name, command_name,
 
 def _run_todo_file(config, organizer, storage_name, command_name, map_todo=None,
                    use_client=False, proxy=None, preview=None,
-                   footprint=None):
+                   footprint=None, visitors=None):
     with open(organizer.todo_fqn) as f:
         todo_list_length = sum(1 for _ in f)
     organizer.complete_record_count = todo_list_length
@@ -1423,17 +1440,19 @@ def _run_todo_file(config, organizer, storage_name, command_name, map_todo=None,
                 config.proxy = proxy
                 _do_one(config, organizer, organizer.choose_client,
                         storage_name, command_name, obs_id, file_name,
-                        preview=preview, footprint=footprint)
+                        preview=preview, footprint=footprint,
+                        visitors=visitors)
             else:
                 _do_one(config, organizer, organizer.choose, storage_name,
                         command_name,
                         obs_id, file_name,
-                        preview=preview, footprint=footprint)
+                        preview=preview, footprint=footprint,
+                        visitors=visitors)
 
 
 def _run_local_files(config, organizer, storage_name, command_name,
                      use_client=False, proxy=None, preview=None,
-                     footprint=None):
+                     footprint=None, visitors=None):
     file_list = os.listdir(config.working_directory)
     todo_list = []
     for f in file_list:
@@ -1448,16 +1467,18 @@ def _run_local_files(config, organizer, storage_name, command_name,
             config.proxy = proxy
             _do_one(config, organizer, organizer.choose_client, storage_name,
                     command_name,
-                    obs_id, do_file, preview=preview, footprint=footprint)
+                    obs_id, do_file, preview=preview, footprint=footprint,
+                    visitors=visitors)
         else:
             _do_one(config, organizer, organizer.choose, storage_name,
                     command_name, obs_id,
-                    do_file, preview=preview, footprint=footprint)
+                    do_file, preview=preview, footprint=footprint,
+                    visitors=visitors)
 
 
 def run_by_file(storage_name, command_name, collection, map_todo,
                 use_client=False, proxy=None, preview=None,
-                footprint=None):
+                footprint=None, visitors=None):
     try:
         config = mc.Config()
         config.get_executors()
@@ -1468,7 +1489,7 @@ def run_by_file(storage_name, command_name, collection, map_todo,
         if config.use_local_files:
             organize = OrganizeExecutes(config)
             _run_local_files(config, organize, storage_name, command_name,
-                             use_client, proxy, preview, footprint)
+                             use_client, proxy, preview, footprint, visitors)
         else:
             parser = ArgumentParser()
             parser.add_argument('--todo',
@@ -1480,7 +1501,8 @@ def run_by_file(storage_name, command_name, collection, map_todo,
                 organize = OrganizeExecutes(config)
             _run_todo_file(
                 config, organize, storage_name, command_name, map_todo,
-                use_client, proxy, preview=preview, footprint=footprint)
+                use_client, proxy, preview=preview, footprint=footprint,
+                visitors=visitors)
         logging.info('Done, processed {} of {} correctly.'.format(
             organize.success_count, organize.complete_record_count))
     except Exception as e:
@@ -1490,10 +1512,10 @@ def run_by_file(storage_name, command_name, collection, map_todo,
 
 
 def run_single(config, storage_name, command_name, obs_id, file_name,
-               preview=None, footprint=None):
+               preview=None, footprint=None, visitors=None):
     import sys
     organizer = OrganizeExecutes(config)
     result = _do_one(config, organizer, organizer.choose_client, storage_name,
                      command_name, obs_id, file_name,
-                     preview=preview, footprint=footprint)
+                     preview=preview, footprint=footprint, visitors=visitors)
     sys.exit(result)

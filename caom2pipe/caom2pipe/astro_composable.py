@@ -72,7 +72,10 @@ import logging
 from astropy.coordinates import EarthLocation
 from astropy.time import Time, TimeDelta
 
-__all__ = ['convert_time', 'get_datetime']
+from caom2pipe import manage_composable as mc
+
+
+__all__ = ['convert_time', 'get_datetime', 'build_plane_time', 'get_location']
 
 
 def find_time_bounds(headers):
@@ -116,8 +119,13 @@ def get_datetime(from_value):
             result = Time(from_value)
             return result
         except ValueError:
-            logging.error('Cannot parse datetime {}'.format(from_value))
-            return None
+            try:
+                # VLASS has a format astropy fails to understand
+                from datetime import datetime
+                return Time(datetime.strptime(from_value, '%y-%b-%d %H:%M:%S'))
+            except ValueError:
+                logging.error('Cannot parse datetime {}'.format(from_value))
+                return None
     else:
         return None
 
@@ -126,3 +134,20 @@ def get_location(latitude, longitude, elevation):
     result = EarthLocation.from_geodetic(
         longitude, latitude, elevation, 'WGS84')
     return result.x.value, result.y.value, result.z.value
+
+
+def build_plane_time(start_date, end_date, exposure_time):
+    """Calculate the plane-level bounding box for time."""
+    start_date.format = 'mjd'
+    end_date.format = 'mjd'
+    from caom2 import Interval, Time, shape
+    time_bounds = Interval(mc.to_float(start_date.value),
+                           mc.to_float(end_date.value),
+                           samples=[
+                               shape.SubInterval(mc.to_float(start_date.value),
+                                                 mc.to_float(end_date.value))])
+    return Time(bounds=time_bounds,
+                dimension=1,
+                resolution=exposure_time.to('second').value,
+                sample_size=exposure_time.to('day').value,
+                exposure=exposure_time.to('second').value)

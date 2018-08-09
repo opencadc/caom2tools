@@ -104,3 +104,13 @@ def test_get_location():
     assert x == 5051887.288718968, x
     assert y == -3156769.536020791, y
     assert z == 2271399.319625149, z
+
+
+def test_build_plane_time():
+    start = ac.get_datetime('2012-09-03T01:04:44')
+    end = ac.get_datetime('2012-09-03T03:04:44')
+    exposure = end - start
+    result = ac.build_plane_time(start, end, exposure)
+    assert result is not None, 'expected a value'
+    assert result.bounds is not None, 'expected a bounds value'
+    assert result.exposure == 7199.999999999994, 'wrong exposure value'
