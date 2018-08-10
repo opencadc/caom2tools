@@ -156,7 +156,7 @@ class StorageName(object):
 
 
 class CaomName(object):
-    """The naming rules for making and decomposing CAOM URIs, all isolated in 
+    """The naming rules for making and decomposing CAOM URIs, all isolated in
     one class. There are probably OMM assumptions built in, but those will
     slowly go away :). """
 
@@ -314,7 +314,8 @@ class CaomExecute(object):
               '--plugin {} --local {} --lineage {}/{}'.format(
                 self.command_name,
                 self.logging_level_param, self.netrc_fqn, self.collection,
-                self.obs_id, self.model_fqn, plugin, fqn, self.obs_id, self.uri)
+                self.obs_id, self.model_fqn, plugin, fqn, self.obs_id,
+                self.uri)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_local_client(self):
@@ -1188,25 +1189,28 @@ class OrganizeExecutes(object):
                                 self.config, storage_name, command_name))
                     else:
                         executors.append(
-                            Collection2CaomMeta(self.config, storage_name, command_name))
+                            Collection2CaomMeta(self.config, storage_name,
+                                                command_name))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
                         if isinstance(executors[0], Collection2CaomScrape):
                             executors.append(
                                 Collection2CaomDataScrape(self.config,
-                                                          storage_name, command_name,
+                                                          storage_name,
+                                                          command_name,
                                                           preview=preview,
                                                           footprint=footprint))
                         else:
                             executors.append(
                                 Collection2CaomLocalData(self.config,
-                                                         storage_name, command_name,
+                                                         storage_name,
+                                                         command_name,
                                                          preview=preview,
                                                          footprint=footprint))
                     else:
                         executors.append(
-                            Collection2CaomData(self.config, storage_name, command_name,
-                                                preview=preview,
+                            Collection2CaomData(self.config, storage_name,
+                                                command_name, preview=preview,
                                                 footprint=footprint))
                 else:
                     raise mc.CadcException(
@@ -1426,8 +1430,8 @@ def _do_one(config, organizer, organizer_choose, storage_name, command_name,
         _unset_file_logging(config, log_h)
 
 
-def _run_todo_file(config, organizer, storage_name, command_name, map_todo=None,
-                   use_client=False, proxy=None, preview=None,
+def _run_todo_file(config, organizer, storage_name, command_name,
+                   map_todo=None, use_client=False, proxy=None, preview=None,
                    footprint=None, visitors=None):
     with open(organizer.todo_fqn) as f:
         todo_list_length = sum(1 for _ in f)

@@ -73,8 +73,8 @@ from mock import Mock
 
 from astropy.io import fits
 
-from caom2 import obs_reader_writer, SimpleObservation, Algorithm
-from caom2pipe import CadcException, StorageName
+from caom2 import SimpleObservation, Algorithm
+from caom2pipe import CadcException
 from caom2pipe import execute_composable as ec
 from caom2pipe import manage_composable as mc
 
@@ -232,7 +232,8 @@ def test_meta_local_execute():
 #     try:
 #         omm_footprint_augmentation.visit = Mock()
 #         omm_preview_augmentation.visit = Mock()
-#         obs_reader_writer.ObservationReader.read = Mock(side_effect=_read_obs)
+#         obs_reader_writer.ObservationReader.read = Mock(
+#             side_effect=_read_obs)
 #
 #         test_config = _init_config()
 #         # run the test
@@ -309,7 +310,8 @@ def test_scrape():
 #     try:
 #         omm_footprint_augmentation.visit = Mock()
 #         omm_preview_augmentation.visit = Mock()
-#         obs_reader_writer.ObservationReader.read = Mock(side_effect=_read_obs)
+#         obs_reader_writer.ObservationReader.read = Mock(
+#             side_effect=_read_obs)
 #
 #         test_config = _init_config()
 #
@@ -354,7 +356,8 @@ def test_organize_executes():
                               '   encoding: None\n'
                               '    lastmod: Mon, 25 Jun 2018 16:52:07 GMT\n'
                               '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
-                              '       name: C120902_sh2-132_J_old_SCIRED.fits.gz\n'
+                              '       name: C120902_sh2-132_J_old_'
+                              'SCIRED.fits.gz\n'
                               '       size: 754408\n'
                               '       type: image/jpeg\n'
                               '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
@@ -424,7 +427,8 @@ def test_organize_executes_client():
                               '   encoding: None\n'
                               '    lastmod: Mon, 25 Jun 2018 16:52:07 GMT\n'
                               '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
-                              '       name: C120902_sh2-132_J_old_SCIRED.fits.gz\n'
+                              '       name: C120902_sh2-132_J_old_'
+                              'SCIRED.fits.gz\n'
                               '       size: 754408\n'
                               '       type: image/jpeg\n'
                               '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
@@ -510,7 +514,8 @@ def test_data_cmd_info():
                               '   encoding: None\n'
                               '    lastmod: Mon, 25 Jun 2018 16:52:07 GMT\n'
                               '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
-                              '       name: C120902_sh2-132_J_old_SCIRED.fits.gz\n'
+                              '       name: C120902_sh2-132_J_old_'
+                              'SCIRED.fits.gz\n'
                               '       size: 754408\n'
                               '       type: image/jpeg\n'
                               '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
@@ -566,11 +571,11 @@ def _communicate():
 
 
 def _get_headers(uri, subject):
-    x = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017      
-BITPIX  =                  -32 / Bits per pixel                                 
-NAXIS   =                    2 / Number of dimensions                           
-NAXIS1  =                 2048 /                                                
-NAXIS2  =                 2048 /                                                
+    x = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
+BITPIX  =                  -32 / Bits per pixel
+NAXIS   =                    2 / Number of dimensions
+NAXIS1  =                 2048 /
+NAXIS2  =                 2048 /
 DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
 END
 """

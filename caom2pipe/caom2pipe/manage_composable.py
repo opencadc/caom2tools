@@ -374,8 +374,8 @@ class Config(object):
                 self._lookup(config, 'use_local_files', False))
             self.logging_level = self._lookup(config, 'logging_level', 'DEBUG')
             self.log_to_file = self._lookup(config, 'log_to_file', False)
-            self.log_file_directory = self._lookup(config, 'log_file_directory',
-                                                   self.working_directory)
+            self.log_file_directory = self._lookup(
+                config, 'log_file_directory', self.working_directory)
             self.stream = self._lookup(config, 'stream', 'raw')
             self.task_types = self._set_task_types(config, [TaskType.SCRAPE])
             self.collection = self._lookup(config, 'collection', 'TEST')
@@ -397,7 +397,8 @@ class Config(object):
         config_fqn = os.path.join(os.getcwd(), 'config.yml')
         config = self.load_config(config_fqn)
         if config is None:
-            raise CadcException('Could not find the file {}'.format(config_fqn))
+            raise CadcException(
+                'Could not find the file {}'.format(config_fqn))
         return config
 
     @staticmethod
@@ -484,8 +485,10 @@ def exec_cmd_redirect(cmd, fqn):
     try:
         with open(fqn, 'wb') as outfile:
             outerr = subprocess.Popen(
-                cmd_array, stdout=outfile, stderr=subprocess.PIPE).communicate()
-            if outerr is not None and len(outerr) > 0 and outerr[0] is not None:
+                cmd_array, stdout=outfile,
+                stderr=subprocess.PIPE).communicate()
+            if (outerr is not None and len(outerr) > 0 and
+                    outerr[0] is not None):
                 logging.debug('Command {} had stderr {}'.format(
                     cmd, outerr.decode('utf-8')))
                 raise CadcException(
@@ -605,7 +608,7 @@ def decompose_lineage(lineage):
     except Exception as e:
         logging.debug('Lineage {} caused error {}. Expected '
                       'product_id/ad:COLLECTION/FILE_NAME'.format(
-            lineage, e))
+                        lineage, e))
         raise CadcException('Expected product_id/ad:COLLECTION/FILE_NAME')
 
 
