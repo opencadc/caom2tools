@@ -565,6 +565,19 @@ def test_capture_failure():
     assert os.path.exists(test_config.retry_fqn)
 
 
+def test_run_by_file():
+    try:
+        os.getcwd = Mock(return_value=TESTDATA_DIR)
+        todo_file = os.path.join(os.getcwd(), 'todo.txt')
+        f = open(todo_file, 'w')
+        f.write('')
+        f.close()
+        ec.run_by_file(ec.StorageName, 'collection2caom2', 'collection',
+                       _test_map_todo)
+    except mc.CadcException as e:
+        assert False, 'but the work list is empty {}'.format(e)
+
+
 def _communicate():
     # return ['return status', None]
     return ['return status', None]
@@ -609,3 +622,9 @@ def _get_file_headers(fname):
 
 def _get_fname():
     return 'TBD'
+
+
+def _test_map_todo():
+    """For a mock."""
+    return ''
+
