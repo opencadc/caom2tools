@@ -3,5 +3,6 @@ README.rst
 caom2pipe
 caom2pipe.egg-info
 dev_requirements.txt
+htmlcov
 setup.cfg
 setup.py

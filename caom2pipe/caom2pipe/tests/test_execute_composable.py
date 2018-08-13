@@ -87,6 +87,18 @@ TEST_OBS = SimpleObservation(collection='test_collection',
                              algorithm=Algorithm(str('exposure')))
 
 
+class TestVisit:
+    @staticmethod
+    def visit(observation, **kwargs):
+        x = kwargs['working_directory']
+        assert x is not None, 'working directory'
+        y = kwargs['science_file']
+        assert y is not None, 'science file'
+        z = kwargs['log_file_directory']
+        assert z is not None, 'log file directory'
+        assert observation is not None, 'undefined observation'
+
+
 class TestStorageName(ec.StorageName):
     def __init__(self):
         super(TestStorageName, self).__init__(
@@ -103,6 +115,7 @@ def _init_config():
     test_config.netrc_file = os.path.join(TESTDATA_DIR, 'test_netrc')
     test_config.work_file = 'todo.txt'
     test_config.logging_level = 'DEBUG'
+    test_config.log_file_directory = TESTDATA_DIR
     test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
     return test_config
 
@@ -171,90 +184,85 @@ def test_meta_local_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-# def test_data_execute():
-#     test_obs_id = 'TEST_OBS_ID'
-#     test_dir = os.path.join(THIS_DIR, test_obs_id)
-#     test_fits_fqn = os.path.join(test_dir,
-#                                  StorageName(test_obs_id).get_file_name())
-#     if not os.path.exists(test_dir):
-#         os.mkdir(test_dir)
-#     precondition = open(test_fits_fqn, 'w')
-#     precondition.close()
-#
-#     footprint_orig = omm_footprint_augmentation.visit
-#     omm_footprint_augmentation.visit = Mock()
-#     preview_orig = omm_preview_augmentation.visit
-#     omm_preview_augmentation.visit = Mock()
-#     read_orig = obs_reader_writer.ObservationReader.read
-#     obs_reader_writer.ObservationReader.read = Mock(side_effect=_read_obs)
-#     data_cmd_orig = ec.CaomExecute._data_cmd_info
-#     os_path_exists_orig = os.path.exists
-#     os.path.exists = Mock(return_value=True)
-#     exec_cmd_orig = mc.exec_cmd
-#     mc.exec_cmd = Mock()
-#     test_storage = ec.StorageName('TEST_OBS_ID', collection_pattern=None)
-#     test_config = _init_config()
-#
-#     try:
-#         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
-#
-#         # run the test
-#         test_executor = ec.Collection2CaomData(test_config, test_storage,
-#                                                omm_preview_augmentation,
-#                                                omm_footprint_augmentation)
-#         try:
-#             test_executor.execute(None)
-#         except CadcException as e:
-#             assert False, e
-#
-#         # check that things worked as expected
-#         assert mc.exec_cmd.called
-#         assert omm_footprint_augmentation.visit.called
-#         assert omm_preview_augmentation.visit.called
-#     finally:
-#         obs_reader_writer.ObservationReader.read = read_orig
-#         omm_footprint_augmentation.visit = footprint_orig
-#         omm_preview_augmentation.visit = preview_orig
-#         ec.CaomExecute._data_cmd_info = data_cmd_orig
-#         os.path.exists = os_path_exists_orig
-#         mc.exec_cmd = exec_cmd_orig
-#
-#
-# def test_data_local_execute():
-#     test_obs_id = ec.StorageName('test_obs_id', collection_pattern=None)
-#
-#     fp_visit_orig = omm_footprint_augmentation.visit
-#     prev_visit_orig = omm_preview_augmentation.visit
-#     read_orig = obs_reader_writer.ObservationReader.read
-#     exec_cmd_orig = mc.exec_cmd
-#     mc.exec_cmd = Mock()
-#
-#     try:
-#         omm_footprint_augmentation.visit = Mock()
-#         omm_preview_augmentation.visit = Mock()
-#         obs_reader_writer.ObservationReader.read = Mock(
-#             side_effect=_read_obs)
-#
-#         test_config = _init_config()
-#         # run the test
-#         test_executor = ec.Collection2CaomLocalData(
-#             test_config, test_obs_id,
-#             StorageName(test_obs_id).get_compressed_file_name(),
-#             omm_preview_augmentation, omm_footprint_augmentation)
-#         try:
-#             test_executor.execute(None)
-#         except CadcException as e:
-#             assert False, e
-#
-#         # check that things worked as expected - no cleanup
-#         assert mc.exec_cmd.called
-#         assert omm_footprint_augmentation.visit.called
-#         assert omm_preview_augmentation.visit.called
-#     finally:
-#         obs_reader_writer.ObservationReader.read = read_orig
-#         omm_footprint_augmentation.visit = fp_visit_orig
-#         omm_preview_augmentation.visit = prev_visit_orig
-#         mc.exec_cmd = exec_cmd_orig
+def test_data_execute():
+    test_obs_id = 'TEST_OBS_ID'
+    test_dir = os.path.join(THIS_DIR, test_obs_id)
+    test_fits_fqn = os.path.join(test_dir,
+                                 TestStorageName().get_file_name())
+    if not os.path.exists(test_dir):
+        os.mkdir(test_dir)
+    precondition = open(test_fits_fqn, 'w')
+    precondition.close()
+
+    test_data_visitors = [TestVisit]
+    read_orig = mc.read_obs_from_file
+    mc.read_obs_from_file = Mock(side_effect=_read_obs)
+    write_orig = mc.write_obs_to_file
+    mc.write_obs_to_file = Mock()
+    data_cmd_orig = ec.CaomExecute._data_cmd_info
+    os_path_exists_orig = os.path.exists
+    os.path.exists = Mock(return_value=True)
+    os_listdir_orig = os.listdir
+    os.listdir = Mock(return_value=[])
+    os_rmdir_orig = os.rmdir
+    os.rmdir = Mock()
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    test_config = _init_config()
+
+    try:
+        ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
+
+        # run the test
+        test_executor = ec.Collection2CaomData(
+            test_config, TestStorageName(), 'collection2caom2',
+            test_data_visitors)
+        try:
+            test_executor.execute(None)
+        except CadcException as e:
+            assert False, e
+
+        # check that things worked as expected
+        assert mc.exec_cmd.called, 'exec cmd not called'
+        assert mc.write_obs_to_file.called, 'write obs to file not called'
+
+    finally:
+        mc.read_obs_from_file = read_orig
+        mc.write_obs_to_file = write_orig
+        ec.CaomExecute._data_cmd_info = data_cmd_orig
+        os.path.exists = os_path_exists_orig
+        os.listdir = os_listdir_orig
+        os.rmdir = os_rmdir_orig
+        mc.exec_cmd = exec_cmd_orig
+
+
+def test_data_local_execute():
+    test_data_visitors = [TestVisit]
+
+    read_orig = mc.read_obs_from_file
+    mc.read_obs_from_file = Mock(side_effect=_read_obs)
+    write_orig = mc.write_obs_to_file
+    mc.write_obs_to_file = Mock()
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+
+    try:
+        test_config = _init_config()
+        # run the test
+        test_executor = ec.Collection2CaomLocalData(
+            test_config, TestStorageName(), 'collection2caom2',
+            test_data_visitors)
+        try:
+            test_executor.execute(None)
+        except CadcException as e:
+            assert False, e
+
+        # check that things worked as expected - no cleanup
+        assert mc.exec_cmd.called
+    finally:
+        mc.read_obs_from_file = read_orig
+        mc.write_obs_to_file = write_orig
+        mc.exec_cmd = exec_cmd_orig
 
 
 def test_data_store():
@@ -301,37 +309,25 @@ def test_scrape():
         mc.exec_cmd = exec_cmd_orig
 
 
-# def test_data_scrape_execute():
-#     test_obs_id = ec.StorageName('test_obs_id', collection_pattern=None)
-#
-#     fp_visit_orig = omm_footprint_augmentation.visit
-#     prev_visit_orig = omm_preview_augmentation.visit
-#     read_orig = obs_reader_writer.ObservationReader.read
-#     try:
-#         omm_footprint_augmentation.visit = Mock()
-#         omm_preview_augmentation.visit = Mock()
-#         obs_reader_writer.ObservationReader.read = Mock(
-#             side_effect=_read_obs)
-#
-#         test_config = _init_config()
-#
-#         # run the test
-#         test_executor = ec.Collection2CaomDataScrape(
-#             test_config, test_obs_id,
-#             StorageName(test_obs_id).get_compressed_file_name(),
-#             omm_preview_augmentation, omm_footprint_augmentation)
-#         try:
-#             test_executor.execute(None)
-#         except CadcException as e:
-#             assert False, e
-#
-#         # check that things worked as expected
-#         assert omm_footprint_augmentation.visit.called
-#         assert omm_preview_augmentation.visit.called
-#     finally:
-#         obs_reader_writer.ObservationReader.read = read_orig
-#         omm_footprint_augmentation.visit = fp_visit_orig
-#         omm_preview_augmentation.visit = prev_visit_orig
+def test_data_scrape_execute():
+    test_data_visitors = [TestVisit]
+    read_orig = mc.read_obs_from_file
+    mc.read_obs_from_file = Mock(side_effect=_read_obs)
+    try:
+
+        test_config = _init_config()
+
+        # run the test
+        test_executor = ec.Collection2CaomDataScrape(
+            test_config, TestStorageName(), 'collection2caom2',
+            test_data_visitors)
+        try:
+            test_executor.execute(None)
+        except CadcException as e:
+            assert False, e
+
+    finally:
+        mc.read_obs_from_file = read_orig
 
 
 def test_organize_executes():

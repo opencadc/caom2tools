@@ -76,6 +76,10 @@ from caom2pipe import astro_composable as ac
 
 def test_convert_time():
     hdr1 = fits.Header()
+    mjd_start, mjd_end = ac.find_time_bounds([hdr1])
+    assert mjd_start is None
+    assert mjd_end is None
+
     hdr1['DATE-OBS'] = '2012-09-03T01:04:44'
     hdr1['TEXP'] = 20.000
     mjd_start, mjd_end = ac.find_time_bounds([hdr1])
@@ -97,6 +101,17 @@ def test_get_datetime():
     result = ac.get_datetime('2006-12-12')
     assert result is not None
     assert result == '2006-12-12 00:00:00.000'
+
+    # the VLASS time format from the CSV file
+    result = ac.get_datetime('16-Dec-12 01:23:45')
+    assert result is not None
+
+    # a format that is not understood
+    result = ac.get_datetime('16-Dec-12T01:23:45')
+    assert result is None
+
+    result = ac.get_datetime(None)
+    assert result is None
 
 
 def test_get_location():

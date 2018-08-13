@@ -78,13 +78,15 @@ from os import stat
 
 from cadcutils import net
 from cadcdata import CadcDataClient
+from caom2 import ObservationWriter, ObservationReader
 
 
 __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'exec_cmd', 'exec_cmd_redirect', 'exec_cmd_info',
            'get_cadc_meta', 'get_file_meta', 'compare_checksum',
            'decompose_lineage', 'check_param', 'read_csv_file',
-           'read_url_file']
+           'read_url_file', 'write_obs_to_file', 'read_obs_from_file',
+           'compare_checksum_client']
 
 
 class CadcException(Exception):
@@ -645,3 +647,15 @@ def read_url_file(from_url):
         logging.error('Could not read from url {}'.format(from_url))
         raise CadcException(e)
     return results
+
+
+def write_obs_to_file(obs, fqn):
+    ow = ObservationWriter()
+    ow.write(obs, fqn)
+
+
+def read_obs_from_file(fqn):
+    if not os.path.exists(fqn):
+        raise CadcException('Could not find {}'.format(fqn))
+    reader = ObservationReader(False)
+    return reader.read(fqn)

@@ -67,6 +67,31 @@
 # ***********************************************************************
 #
 
+"""
+This module contains pipeline execution classes. Each execution class
+corresponds to a single task type, correlated with specific configuration
+or implementation assumptions.
+
+The execute methods in each of the class definitions require no if statements.
+All the if statements are limited to the choose* methods in the
+OrganizeExecutes class. If you find yourself adding an if statement to an
+execute method, create a new *Execute class instead. The result is execute
+methods that are composable into complex and varied pipelines, while
+remaining easily tested.
+
+Raise the CadcException upon encountering an error. There is no recovery
+effort as part of a failure. Log the error and stop the pipeline
+execution for an Observation.
+
+The correlations that currently exist:
+- use_local_data: True => classes have "Local" in their name
+- uses the CadcDataClient, the Caom2RepoClient => classes have "Client"
+    in their name
+- requires metadata access only => classes have "Meta" in their name
+- requires data access => classes have "Data" in their name
+
+"""
+
 import logging
 import os
 import re
@@ -79,7 +104,6 @@ from datetime import datetime
 from cadcutils import net, exceptions
 from cadcdata import CadcDataClient
 from caom2repo import CAOM2RepoClient
-from caom2 import obs_reader_writer
 from caom2pipe import manage_composable as mc
 
 
@@ -178,7 +202,8 @@ class CaomExecute(object):
     classes."""
 
     def __init__(self, config, task_type, storage_name, command_name,
-                 cadc_data_client=None, caom_repo_client=None, cert=None):
+                 cadc_data_client=None, caom_repo_client=None, cert=None,
+                 meta_visitors=None):
         self.logger = logging.getLogger()
         self.logger.setLevel(config.logging_level)
         formatter = logging.Formatter(
@@ -205,7 +230,7 @@ class CaomExecute(object):
         self.caom_repo_client = caom_repo_client
         self.stream = config.stream
         self.cert = cert
-        self.visitors = None
+        self.meta_visitors = meta_visitors
 
     def _create_dir(self):
         """Create the working area if it does not already exist."""
@@ -340,9 +365,7 @@ class CaomExecute(object):
             self.cadc_data_client, self.collection, fqn)
 
     def _read_model(self):
-        reader = obs_reader_writer.ObservationReader(False)
-        observation = reader.read(self.model_fqn)
-        return observation
+        return mc.read_obs_from_file(self.model_fqn)
 
     def _find_file_name_storage_client(self):
         # file_info = self.cadc_data_client.get_file_info(
@@ -443,8 +466,7 @@ class CaomExecute(object):
                 'Did not retrieve {}'.format(fqn))
 
     def _write_model(self, observation):
-        writer = obs_reader_writer.ObservationWriter()
-        writer.write(observation, self.model_fqn)
+        mc.write_obs_to_file(observation, self.model_fqn)
 
     def _find_fits2caom2_plugin(self):
         packages = site.getsitepackages()
@@ -453,13 +475,12 @@ class CaomExecute(object):
 
     def _visit_meta(self, observation):
         kwargs = {'working_directory': self.working_dir}
-        if self.visitors is not None:
-            for visitor in self.visitors:
-                try:
-                    self.logger.debug('Visit for {}'.format(visitor))
-                    visitor.visit(observation, **kwargs)
-                except Exception as e:
-                    raise mc.CadcException(e)
+        for visitor in self.meta_visitors:
+            try:
+                self.logger.debug('Visit for {}'.format(visitor))
+                visitor.visit(observation, **kwargs)
+            except Exception as e:
+                raise mc.CadcException(e)
 
     @staticmethod
     def _set_logging_level_param(logging_level):
@@ -531,10 +552,10 @@ class Collection2CaomMetaCreateClient(CaomExecute):
     This pipeline step will execute a caom2-repo create."""
 
     def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client):
+                 cadc_data_client, caom_repo_client, meta_visitors=None):
         super(Collection2CaomMetaCreateClient, self).__init__(
             config, mc.TaskType.AUGMENT, storage_name, command_name,
-            cadc_data_client, caom_repo_client, config.proxy)
+            cadc_data_client, caom_repo_client, config.proxy, meta_visitors)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -554,6 +575,9 @@ class Collection2CaomMetaCreateClient(CaomExecute):
         self.logger.debug('read the xml into memory from the file')
         observation = self._read_model()
 
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(observation)
+
         self.logger.debug('store the xml')
         self._repo_cmd_create_client(observation)
 
@@ -570,11 +594,10 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
     This pipeline step will execute a caom2-repo update."""
 
     def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client, visitors=None):
+                 cadc_data_client, caom_repo_client, meta_visitors=None):
         super(Collection2CaomMetaUpdateClient, self).__init__(
             config, mc.TaskType.AUGMENT, storage_name, command_name,
-            cadc_data_client, caom_repo_client, config.proxy)
-        self.visitors = visitors
+            cadc_data_client, caom_repo_client, config.proxy, meta_visitors)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -710,26 +733,26 @@ class Collection2CaomLocalMetaClient(CaomExecute):
         self.logger.debug('generate the xml from the file on disk')
         self._fits2caom2_cmd_local_client()
 
+        self.logger.debug('read the xml into memory from the file')
+        observation = self._read_model()
+
         self.logger.debug('store the xml')
-        self._repo_cmd_client()
+        self._repo_cmd_create_client(observation)
 
         self.logger.debug('End execute for {}'.format(__name__))
 
 
 class Collection2CaomData(CaomExecute):
-    """Defines the pipeline step for generation and ingestion of footprints
-    and previews into CAOM2. These are all the operations that require
+    """Defines the pipeline step for all the operations that require
     access to the file on disk, not just the header data. """
 
-    def __init__(self, config, storage_name, command_name, preview=None,
-                 footprint=None):
+    def __init__(self, config, storage_name, command_name, data_visitors=None):
         super(Collection2CaomData, self).__init__(
             config, mc.TaskType.MODIFY, storage_name, command_name)
         self.log_file_directory = config.log_file_directory
-        self.preview = preview
-        self.footprint = footprint
         self.prev_fname = storage_name.get_prev()
         self.thumb_fname = storage_name.get_thumb()
+        self.data_visitors = data_visitors
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -749,11 +772,8 @@ class Collection2CaomData(CaomExecute):
         self._repo_cmd_read()
         observation = self._read_model()
 
-        self.logger.debug('generate the previews')
-        self._generate_previews(observation)
-
-        self.logger.debug('generate the footprint')
-        self._generate_footprint(observation)
+        self.logger.debug('execute the data visitors')
+        self._visit_data(observation)
 
         self.logger.debug('output the updated xml')
         self._write_model(observation)
@@ -765,27 +785,6 @@ class Collection2CaomData(CaomExecute):
         self._cleanup()
 
         self.logger.debug('End execute for {}'.format(__name__))
-
-    def _generate_footprint(self, observation):
-        kwargs = {'working_directory': self.working_dir,
-                  'science_file': self.fname,
-                  'log_file_directory': self.log_file_directory}
-        self.footprint.visit(observation, **kwargs)
-
-    def _generate_previews(self, observation):
-        kwargs = {'working_directory': self.working_dir}
-        self.preview.visit(observation, **kwargs)
-        cwd = os.getcwd()
-        try:
-            os.chdir(self.working_dir)
-            self._data_cmd_put(self.prev_fname)
-            self._data_cmd_put(self.thumb_fname)
-        finally:
-            os.chdir(cwd)
-        self._compare_checksums(
-            os.path.join(self.working_dir, self.prev_fname))
-        self._compare_checksums(
-            os.path.join(self.working_dir, self.thumb_fname))
 
     def _cadc_data_get(self):
         """Retrieve a collection file, even if it already exists. This might
@@ -812,23 +811,30 @@ class Collection2CaomData(CaomExecute):
     def _find_file_name(self):
         self._find_file_name_storage()
 
+    def _visit_data(self, observation):
+        kwargs = {'working_directory': self.working_dir,
+                  'science_file': self.fname,
+                  'log_file_directory': self.log_file_directory,
+                  'cadc_client': self.cadc_data_client}
+        for visitor in self.data_visitors:
+            try:
+                self.logger.debug('Visit for {}'.format(visitor))
+                visitor.visit(observation, **kwargs)
+            except Exception as e:
+                raise mc.CadcException(e)
+
 
 class Collection2CaomDataClient(CaomExecute):
-    """Defines the pipeline step for Collection generation and ingestion of
-    footprints and previews into CAOM. These are all the operations that
+    """Defines the pipeline step for all the operations that
     require access to the file on disk, not just the header data. """
 
     def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client, preview=None,
-                 footprint=None):
+                 cadc_data_client, caom_repo_client, data_visitors=None):
         super(Collection2CaomDataClient, self).__init__(
             config, mc.TaskType.MODIFY, storage_name, command_name,
             cadc_data_client, caom_repo_client)
         self.log_file_directory = config.log_file_directory
-        self.preview = preview
-        self.footprint = footprint
-        self.prev_fname = storage_name.get_prev()
-        self.thumb_fname = storage_name.get_thumb()
+        self.data_visitors = data_visitors
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -845,11 +851,8 @@ class Collection2CaomDataClient(CaomExecute):
         self.logger.debug('get the observation for the existing model')
         observation = self._repo_cmd_read_client()
 
-        self.logger.debug('generate and store the previews')
-        self._generate_previews_client(observation)
-
-        self.logger.debug('generate the footprint')
-        self._generate_footprint(observation)
+        self.logger.debug('execute the data visitors')
+        self._visit_data(observation)
 
         self.logger.debug('store the updated xml')
         self._repo_cmd_update_client(observation)
@@ -859,42 +862,28 @@ class Collection2CaomDataClient(CaomExecute):
 
         self.logger.debug('End execute for {}'.format(__name__))
 
-    def _generate_footprint(self, observation):
+    def _visit_data(self, observation):
         kwargs = {'working_directory': self.working_dir,
                   'science_file': self.fname,
-                  'log_file_directory': self.log_file_directory}
-        self.footprint.visit(observation, **kwargs)
-
-    def _generate_previews_scrape(self, observation):
-        kwargs = {'working_directory': self.working_dir}
-        self.preview.visit(observation, **kwargs)
-
-    def _generate_previews_client(self, observation):
-        kwargs = {'working_directory': self.working_dir}
-        self.preview.visit(observation, **kwargs)
-        cwd = os.getcwd()
-        try:
-            os.chdir(self.working_dir)
-            self._data_cmd_put_client(self.prev_fname)
-            self._data_cmd_put_client(self.thumb_fname)
-        finally:
-            os.chdir(cwd)
-        self._compare_checksums_client(
-            os.path.join(self.working_dir, self.prev_fname))
-        self._compare_checksums_client(
-            os.path.join(self.working_dir, self.thumb_fname))
+                  'log_file_directory': self.log_file_directory,
+                  'cadc_client': self.cadc_data_client}
+        for visitor in self.data_visitors:
+            try:
+                self.logger.debug('Visit for {}'.format(visitor))
+                visitor.visit(observation, **kwargs)
+            except Exception as e:
+                raise mc.CadcException(e)
 
 
 class Collection2CaomLocalData(Collection2CaomData):
-    """Defines the pipeline step for OMM generation and ingestion of footprints
-    and previews into CAOM. These are all the operations that require
+    """Defines the pipeline step for all the operations that require
     access to the file on disk. This class assumes it has access to the
     files on disk."""
 
-    def __init__(self, config, storage_name, command_name, preview, footprint):
+    def __init__(self, config, storage_name, command_name, data_visitors=None):
         super(Collection2CaomLocalData, self).__init__(config, storage_name,
                                                        command_name,
-                                                       preview, footprint)
+                                                       data_visitors)
         self._define_local_dirs(storage_name)
         self.fname = storage_name.get_fname_on_disk()
 
@@ -907,11 +896,8 @@ class Collection2CaomLocalData(Collection2CaomData):
         self._repo_cmd_read()
         observation = self._read_model()
 
-        self.logger.debug('generate the previews')
-        self._generate_previews(observation)
-
-        self.logger.debug('generate the footprint')
-        self._generate_footprint(observation)
+        self.logger.debug('execute the data visitors')
+        self._visit_data(observation)
 
         self.logger.debug('output the updated xml')
         self._write_model(observation)
@@ -923,19 +909,16 @@ class Collection2CaomLocalData(Collection2CaomData):
 
 
 class Collection2CaomLocalDataClient(Collection2CaomDataClient):
-    """Defines the pipeline step for Collection generation and ingestion of
-    footprints and previews into CAOM. These are all the operations that
+    """Defines the pipeline step for  all the operations that
     require access to the file on disk. This class assumes it has access to
     the files on disk."""
 
     def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client, preview=None,
-                 footprint=None):
+                 cadc_data_client, caom_repo_client, data_visitors=None):
         super(Collection2CaomLocalDataClient, self).__init__(
             config, storage_name, command_name,
             cadc_data_client=cadc_data_client,
-            caom_repo_client=caom_repo_client, preview=preview,
-            footprint=footprint)
+            caom_repo_client=caom_repo_client, data_visitors=data_visitors)
         self._define_local_dirs(storage_name)
         self.fname = storage_name.get_fname_on_disk()
 
@@ -945,11 +928,8 @@ class Collection2CaomLocalDataClient(Collection2CaomDataClient):
         self.logger.debug('get the observation for the existing model')
         observation = self._repo_cmd_read_client()
 
-        self.logger.debug('generate the previews')
-        self._generate_previews_client(observation)
-
-        self.logger.debug('generate the footprint')
-        self._generate_footprint(observation)
+        self.logger.debug('execute the data visitors')
+        self._visit_data(observation)
 
         self.logger.debug('store the updated xml')
         self._repo_cmd_update_client(observation)
@@ -1037,15 +1017,14 @@ class Collection2CaomScrape(CaomExecute):
 
 class Collection2CaomDataScrape(Collection2CaomLocalData):
     """Defines the pipeline step for Collection generation and ingestion of
-    footprints and previews with no update to the service at the end. These
-    are all the operations that require access to the file on disk. This class
-    assumes it has access to the files on disk. The organization of this class
-    assumes the 'Scrape' task has been done previously, so the model
-    instance exists on disk."""
+    operations that require access to the file on disk, with no update to the
+    service at the end. This class assumes it has access to the files on disk.
+    The organization of this class assumes the 'Scrape' task has been done
+    previously, so the model instance exists on disk."""
 
-    def __init__(self, config, storage_name, command_name, preview, footprint):
+    def __init__(self, config, storage_name, command_name, data_visitors=None):
         super(Collection2CaomDataScrape, self).__init__(
-            config, storage_name, command_name, preview, footprint)
+            config, storage_name, command_name, data_visitors)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -1053,11 +1032,8 @@ class Collection2CaomDataScrape(Collection2CaomLocalData):
         self.logger.debug('get observation for the existing model from disk')
         observation = self._read_model()
 
-        self.logger.debug('generate the previews')
-        self._generate_previews(observation)
-
-        self.logger.debug('generate the footprint')
-        self._generate_footprint(observation)
+        self.logger.debug('execute the data visitors')
+        self._visit_data(observation)
 
         self.logger.debug('output the updated xml')
         self._write_model(observation)
@@ -1158,8 +1134,8 @@ class OrganizeExecutes(object):
     def complete_record_count(self, value):
         self._complete_record_count = value
 
-    def choose(self, storage_name, command_name, preview=None, footprint=None,
-               visitors=None):
+    def choose(self, storage_name, command_name, meta_visitors=None,
+               data_visitors=None):
         executors = []
         if storage_name.is_valid():
             for task_type in self.task_types:
@@ -1198,20 +1174,17 @@ class OrganizeExecutes(object):
                                 Collection2CaomDataScrape(self.config,
                                                           storage_name,
                                                           command_name,
-                                                          preview=preview,
-                                                          footprint=footprint))
+                                                          data_visitors))
                         else:
                             executors.append(
                                 Collection2CaomLocalData(self.config,
                                                          storage_name,
                                                          command_name,
-                                                         preview=preview,
-                                                         footprint=footprint))
+                                                         data_visitors))
                     else:
                         executors.append(
                             Collection2CaomData(self.config, storage_name,
-                                                command_name, preview=preview,
-                                                footprint=footprint))
+                                                command_name, data_visitors))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1228,8 +1201,8 @@ class OrganizeExecutes(object):
                                  'Invalid observation ID')
         return executors
 
-    def choose_client(self, storage_name, command_name, preview=None,
-                      footprint=None, visitors=None):
+    def choose_client(self, storage_name, command_name, meta_visitors=None,
+                      data_visitors=None):
         executors = []
         if storage_name.is_valid():
             subject = net.Subject(username=None, certificate=self.config.proxy)
@@ -1276,19 +1249,17 @@ class OrganizeExecutes(object):
                                 Collection2CaomDataScrape(self.config,
                                                           storage_name,
                                                           command_name,
-                                                          preview=preview,
-                                                          footprint=footprint))
+                                                          data_visitors))
                         else:
                             executors.append(
                                 Collection2CaomLocalDataClient(
                                     self.config, storage_name, command_name,
                                     cadc_data_client, caom_repo_client,
-                                    preview, footprint))
+                                    data_visitors))
                     else:
                         executors.append(Collection2CaomDataClient(
                             self.config, storage_name, command_name,
-                            cadc_data_client, caom_repo_client, preview,
-                            footprint))
+                            cadc_data_client, caom_repo_client, data_visitors))
                 elif task_type == mc.TaskType.AUGMENT:
                     observation = CaomExecute.repo_cmd_get_client(
                         caom_repo_client, self.config.collection,
@@ -1302,7 +1273,7 @@ class OrganizeExecutes(object):
                         executors.append(Collection2CaomMetaUpdateClient(
                             self.config, storage_name, command_name,
                             cadc_data_client,
-                            caom_repo_client, visitors))
+                            caom_repo_client, meta_visitors))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1403,13 +1374,13 @@ def _unset_file_logging(config, log_h):
 
 
 def _do_one(config, organizer, organizer_choose, storage_name, command_name,
-            obs_id,
-            file_name=None, preview=None, footprint=None, visitors=None):
+            obs_id, file_name=None, meta_visitors=None, data_visitors=None):
     sname = storage_name(obs_id, file_name)
     log_h = _set_up_file_logging(config, sname)
     try:
-        executors = organizer_choose(sname, command_name, preview, footprint,
-                                     visitors)
+        executors = organizer_choose(sname, command_name,
+                                     meta_visitors=meta_visitors,
+                                     data_visitors=data_visitors)
         for executor in executors:
             logging.info(
                 'Step {} for {}'.format(executor.task_type, obs_id))
@@ -1431,8 +1402,8 @@ def _do_one(config, organizer, organizer_choose, storage_name, command_name,
 
 
 def _run_todo_file(config, organizer, storage_name, command_name,
-                   map_todo=None, use_client=False, proxy=None, preview=None,
-                   footprint=None, visitors=None):
+                   map_todo=None, use_client=False, proxy=None,
+                   meta_visitors=None, data_visitors=None):
     with open(organizer.todo_fqn) as f:
         todo_list_length = sum(1 for _ in f)
     organizer.complete_record_count = todo_list_length
@@ -1444,19 +1415,18 @@ def _run_todo_file(config, organizer, storage_name, command_name,
                 config.proxy = proxy
                 _do_one(config, organizer, organizer.choose_client,
                         storage_name, command_name, obs_id, file_name,
-                        preview=preview, footprint=footprint,
-                        visitors=visitors)
+                        meta_visitors=meta_visitors,
+                        data_visitors=data_visitors)
             else:
                 _do_one(config, organizer, organizer.choose, storage_name,
-                        command_name,
-                        obs_id, file_name,
-                        preview=preview, footprint=footprint,
-                        visitors=visitors)
+                        command_name, obs_id, file_name,
+                        meta_visitors=meta_visitors,
+                        data_visitors=data_visitors)
 
 
 def _run_local_files(config, organizer, storage_name, command_name,
-                     use_client=False, proxy=None, preview=None,
-                     footprint=None, visitors=None):
+                     use_client=False, proxy=None, meta_visitors=None,
+                     data_visitors=None):
     file_list = os.listdir(config.working_directory)
     todo_list = []
     for f in file_list:
@@ -1471,18 +1441,18 @@ def _run_local_files(config, organizer, storage_name, command_name,
             config.proxy = proxy
             _do_one(config, organizer, organizer.choose_client, storage_name,
                     command_name,
-                    obs_id, do_file, preview=preview, footprint=footprint,
-                    visitors=visitors)
+                    obs_id, do_file, meta_visitors=meta_visitors,
+                    data_visitors=data_visitors)
         else:
             _do_one(config, organizer, organizer.choose, storage_name,
                     command_name, obs_id,
-                    do_file, preview=preview, footprint=footprint,
-                    visitors=visitors)
+                    do_file, meta_visitors=meta_visitors,
+                    data_visitors=data_visitors)
 
 
 def run_by_file(storage_name, command_name, collection, map_todo,
-                use_client=False, proxy=None, preview=None,
-                footprint=None, visitors=None):
+                use_client=False, proxy=None, meta_visitors=None,
+                data_visitors=None):
     try:
         config = mc.Config()
         config.get_executors()
@@ -1493,7 +1463,8 @@ def run_by_file(storage_name, command_name, collection, map_todo,
         if config.use_local_files:
             organize = OrganizeExecutes(config)
             _run_local_files(config, organize, storage_name, command_name,
-                             use_client, proxy, preview, footprint, visitors)
+                             use_client, proxy, meta_visitors=meta_visitors,
+                             data_visitors=data_visitors)
         else:
             parser = ArgumentParser()
             parser.add_argument('--todo',
@@ -1505,8 +1476,8 @@ def run_by_file(storage_name, command_name, collection, map_todo,
                 organize = OrganizeExecutes(config)
             _run_todo_file(
                 config, organize, storage_name, command_name, map_todo,
-                use_client, proxy, preview=preview, footprint=footprint,
-                visitors=visitors)
+                use_client, proxy, meta_visitors=meta_visitors,
+                data_visitors=data_visitors)
         logging.info('Done, processed {} of {} correctly.'.format(
             organize.success_count, organize.complete_record_count))
     except Exception as e:
@@ -1516,10 +1487,10 @@ def run_by_file(storage_name, command_name, collection, map_todo,
 
 
 def run_single(config, storage_name, command_name, obs_id, file_name,
-               preview=None, footprint=None, visitors=None):
+               meta_visitors=None, data_visitors=None):
     import sys
     organizer = OrganizeExecutes(config)
     result = _do_one(config, organizer, organizer.choose_client, storage_name,
                      command_name, obs_id, file_name,
-                     preview=preview, footprint=footprint, visitors=visitors)
+                     meta_visitors=meta_visitors, data_visitors=data_visitors)
     sys.exit(result)
