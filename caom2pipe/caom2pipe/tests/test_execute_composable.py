@@ -623,4 +623,3 @@ def _get_fname():
 def _test_map_todo():
     """For a mock."""
     return ''
-
