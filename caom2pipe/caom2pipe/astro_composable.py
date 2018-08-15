@@ -75,7 +75,8 @@ from astropy.time import Time, TimeDelta
 from caom2pipe import manage_composable as mc
 
 
-__all__ = ['convert_time', 'get_datetime', 'build_plane_time', 'get_location']
+__all__ = ['convert_time', 'get_datetime', 'build_plane_time', 'get_location',
+           'get_timedelta_in_s']
 
 
 def find_time_bounds(headers):
@@ -113,7 +114,6 @@ def get_datetime(from_value):
     :param from_value:
     :return: datetime instance
     """
-
     if from_value is not None:
         try:
             result = Time(from_value)
@@ -122,7 +122,10 @@ def get_datetime(from_value):
             try:
                 # VLASS has a format astropy fails to understand
                 from datetime import datetime
-                return Time(datetime.strptime(from_value, '%y-%b-%d %H:%M:%S'))
+                result = Time(
+                    datetime.strptime(from_value, '%H:%M:%S'))
+                result.format = 'mjd'
+                return result
             except ValueError:
                 logging.error('Cannot parse datetime {}'.format(from_value))
                 return None
@@ -151,3 +154,11 @@ def build_plane_time(start_date, end_date, exposure_time):
                 resolution=exposure_time.to('second').value,
                 sample_size=exposure_time.to('day').value,
                 exposure=exposure_time.to('second').value)
+
+
+def get_timedelta_in_s(from_value):
+    from datetime import timedelta
+    from time import strptime
+    temp = strptime(from_value, '%H:%M:%S')
+    td = timedelta(hours=temp.tm_hour, minutes=temp.tm_min, seconds=temp.tm_sec)
+    return td.seconds

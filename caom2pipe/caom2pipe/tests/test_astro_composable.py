@@ -102,10 +102,6 @@ def test_get_datetime():
     assert result is not None
     assert result == '2006-12-12 00:00:00.000'
 
-    # the VLASS time format from the CSV file
-    result = ac.get_datetime('16-Dec-12 01:23:45')
-    assert result is not None
-
     # a format that is not understood
     result = ac.get_datetime('16-Dec-12T01:23:45')
     assert result is None
@@ -129,3 +125,9 @@ def test_build_plane_time():
     assert result is not None, 'expected a value'
     assert result.bounds is not None, 'expected a bounds value'
     assert result.exposure == 7199.999999999994, 'wrong exposure value'
+
+
+def test_get_time_delta_in_s():
+    result = ac.get_timedelta_in_s('0:06:41')
+    assert result is not None
+    assert result == 401, 'wrong value returned'
