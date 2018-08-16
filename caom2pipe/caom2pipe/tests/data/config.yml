@@ -1,0 +1,6 @@
+working_directory: /usr/src/app/omm2caom2/omm2caom2/tests/data
+netrc_filename: .netrc
+resource_id: ivo://cadc.nrc.ca/sc2repo
+todo_file_name: todo.txt
+use_local_files: False
+logging_level: DEBUG

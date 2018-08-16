@@ -110,6 +110,7 @@ text_override = os.path.join(TESTDATA_DIR, 'text.override')
 test_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin.py')
 test_class_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin_class.py')
 non_conformant_plugin_module = os.path.join(TESTDATA_DIR, 'nonconformant.py')
+testproxy = os.path.join(TESTDATA_DIR, 'test_proxy.pem')
 
 # to execute only one test in the file set this var to True and comment
 # out the skipif decorator of the test
