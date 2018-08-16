@@ -74,7 +74,7 @@ from astropy.wcs import Wcsprm
 from caom2utils.wcs_util import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
 from .wcs_util import PolarizationWcsUtil
-from caom2 import Artifact, Chunk, Interval, Observation, Part, Plane, \
+from caom2 import Artifact, Chunk, Observation, Part, Plane, \
     PolarizationState
 import numpy as np
 import logging
@@ -163,9 +163,8 @@ def _validate_spatial_wcs(position):
             # There's not much that can be validated about range & bounds
             if position.axis.function is not None:
                 fn2D = position.axis.function
-                _check_transform(
-                    Interval(float(fn2D.dimension.naxis1/2),
-                             float(fn2D.dimension.naxis2/2)))
+                _check_transform(float(fn2D.dimension.naxis1 / 2),
+                                 float(fn2D.dimension.naxis2 / 2))
                 logger.debug('position_axis.function succeeded.')
         except Exception as e:
             error_string = repr(e)
@@ -176,10 +175,9 @@ def _validate_spatial_wcs(position):
                     error_string, str(position)))
 
 
-def _check_transform(coords):
-    # Coords is a shape.Subinterval
+def _check_transform(lower, upper):
     wcsprm = Wcsprm()
-    coord_array = np.array([[coords.lower, coords.upper]])
+    coord_array = np.array([[lower, upper]])
     sky_transform = wcsprm.p2s(coord_array, ORIGIN)
     wcsprm.s2p(sky_transform['world'], ORIGIN)
     # Per instruction from JJK/PD (standup, 19/04/18), if this transform
@@ -198,20 +196,20 @@ def _validate_spectral_wcs(energy):
             if energy_axis.range is not None:
                 logger.debug('energy_axis.range to interval validation.')
                 si = EnergyUtil.range1d_to_interval(energy_axis.range)
-                _check_transform(si)
+                _check_transform(si.lower, si.upper)
                 logger.debug('energy_axis.range succeeded.')
 
             if energy_axis.bounds is not None:
                 logger.debug('energy_axis.bounds to interval validation.')
                 for tile in energy_axis.bounds.samples:
                     si = EnergyUtil.range1d_to_interval(tile)
-                    _check_transform(si)
+                    _check_transform(si.lower, si.upper)
                 logger.debug('energy_axis.bounds succeeded.')
 
             if energy_axis.function is not None:
                 logger.debug('energy_axis.function to interval validation.')
                 si = EnergyUtil.function1d_to_interval(energy)
-                _check_transform(si)
+                _check_transform(si.lower, si.upper)
                 logger.debug('energy_axis.function succeeded.')
 
         except Exception as ex:

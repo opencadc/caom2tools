@@ -21,4 +21,5 @@ filtername= HaOFF.MP9604
 CRVAL4 = 6721.0
 CDELT4 = 122.0
 resolvingPower = 55.0901639344
+Chunk = {ignore}
 

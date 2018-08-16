@@ -614,13 +614,13 @@ class PlaneURI(CaomObject):
     def __lt__(self, other):
         if not isinstance(other, PlaneURI):
             raise ValueError(
-                'Canot compare PlaneURI with {}'.format(type(other)))
+                'Cannot compare PlaneURI with {}'.format(type(other)))
         return self.uri < other.uri
 
     def __eq__(self, other):
         if not isinstance(other, PlaneURI):
             raise ValueError(
-                'Canot compare PlaneURI with {}'.format(type(other)))
+                'Cannot compare PlaneURI with {}'.format(type(other)))
         return self.uri == other.uri
 
     @classmethod

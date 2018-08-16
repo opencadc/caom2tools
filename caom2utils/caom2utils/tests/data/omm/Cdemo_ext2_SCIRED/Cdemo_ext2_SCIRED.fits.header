@@ -1,0 +1,181 @@
+SIMPLE  =                    T / Written by IDL:  Wed Jun 20 10:02:48 2018      
+BITPIX  =                  -32 / Bits per pixel                                 
+NAXIS   =                    2 / Number of dimensions                           
+NAXIS1  =                 3515 / Dimension for the X axis                       
+NAXIS2  =                 3437 / Dimension for the Y axis                       
+EXTEND  =                    T                                                  
+COMMENT   ***********************************************************           
+COMMENT   * All paper using CPAPIR data must include the following  *           
+COMMENT   * note in the "Acknowledgement" section :                 *           
+COMMENT   * Based on observations obtained with CPAPIR at the       *           
+COMMENT   * Observatoire du mont Megantic, funded by the Universite *           
+COMMENT   * de Montreal, Universite Laval, the Natural Sciences and *           
+COMMENT   * Engineering Research Council of Canada (NSERC), the     *           
+COMMENT   * Fond quebecois de la recherche sur la Nature et les     *           
+COMMENT   * technologies (FQRNT) and the Canada Economic            *           
+COMMENT   * Development program.                                    *           
+COMMENT   *                                                         *           
+COMMENT   * Please consider contacting the PI before publication    *           
+COMMENT   * of this dataset.                                        *           
+COMMENT   *                                                         *           
+COMMENT   * Please refer to the following paper in any publication  *           
+COMMENT   * making use of CPAPIR dataset :                          *           
+COMMENT   *  Artigau, E., Doyon, R., Vallee, P., Riopel, M.,        *           
+COMMENT   * & Nadeau, D. 2004, Proc. SPIE, 5492, 1479               *           
+COMMENT   *                                                         *           
+COMMENT   * Visit : www.astro.umontreal.ca/cpapir for more details. *           
+COMMENT   ***********************************************************           
+EQUINOX =        2000.00000000 / Reference                                      
+ORIGIN  = 'LAE     '           / Laboratoire d'Astrophysique Experimentale      
+TELESCOP= 'OMM-1.6m'           /Observatoire du Mont-Megantic                   
+OBS_LAT =        45.4555555556 /Latitude of the telescope                       
+OBS_LON =       -71.1527777778 /Longitude of the telescope (Negative=West of Gre
+INSTRUME= 'CPAPIR  '           / Instrument name                                
+OBSERVER= '        '           /Observer name                                   
+OBJECT  = 'NGC4214 '           / Nom de l'objet                                 
+DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST      
+FILE_INI= '180520_0472'        /Initial file name                               
+NIGHTID = '180520  '           /YYMMDD of the local start of night date         
+DATE-OBS= '2018-05-21T06:07:22' / Universal date and time                       
+DATE    = '2018-05-21T02:07:22' /Local date and time                            
+FICHIER = '/home/cpapir/180520/180520_0472' /0520_0472                          
+TEXP    =              10.0000 / Exposure time asked for                        
+NLEC    =                    1 / Number of reads per coaddition                 
+NCOA    =                    2 / Number of coadditions per file                 
+NFIC    =                    3 / Number of files to be written                  
+NATOD   =                   32 / Number of A/D converters                       
+T1      =              90.5085 / Detecteur                                      
+T2      =        540.420000000 / Lentille #8                                    
+T3      =              76.6732 / Detecteur                                      
+T4      =              76.8097 / non applicable                                 
+F1      = 'H       '           / Wheel 1 (X), position 3                        
+F2      = 'open    '           / Wheel 2 (Y), position 0                        
+F1NOM   = 'Wheel R ='          / Identification F1                              
+F2NOM   = 'Wheel B ='          / Identification F2                              
+HA      =        5.04095600000 /Hour angle, always expressed in HOURS           
+RA      =        183.939270971 /RA always expressed in DECIMAL DEGREE (0-360)   
+RATXT   = '12:15:45.43'        /RA expressed as text                            
+DEC     =        36.3853458776 / Declinaison                                    
+DECTXT  = '+36:23:07.2'        /DEC expressed as text                           
+AIRMASS =              1.34507 /mean airmass                                    
+ST      =        17.3158370000 / Temps sideral                                  
+UT      =        6.13676900000 / Temps universel                                
+YEAR    =        2018.38280305 /YEAR, same as the EPOCH keyword                 
+FOCUS   =        4494.00000000 / Foyer du telescope                             
+DOME    =        294.495474000 / Position du dome                               
+ROTATOR =        90.8853300000 / Angle du rotateur                              
+NLECMAX =                    4 / Maximum number of reads as a function of TEXP  
+TINT    =              9.47100 /integration time per COADD                      
+TEFF    =              5549.99 /total exposure time in seconds                  
+N_IND   =              293.000 /number of individual exposures                  
+TEFF_IND=              18.9419 /mean individual exposure time                   
+T_TOT   =              18.9420 /total integration time for all COADDS           
+T1LEC   =              1.35300 / Read time for the detector                     
+TCOA    =              4.05900 / Time for one coaddition                        
+TLEC    =              2.70600 / Time for two reads                             
+TSEQ    =                    0 / Time for the last sequence                     
+TUS     =             32424743 / Acquisition time in us                         
+TEC     =              9.47100 / Time elapsed                                   
+FEC     =                    3 / File in progress                               
+LEC     = '1f      '           /Read in progress                                
+CEC     =                    2 / Coaddition in progress                         
+PEC     =                  100 / Percentage in progress                         
+DS9FIC  = '/home/cpapir/180520/180520_0472.fits' /0520_0472.fits / Filename to d
+DECALE1 =                    0 / Flip quadrant 1                                
+DECALE2 =                    0 / Ne decale pas le quadrant 2                    
+DECALE3 =                    1 / Flip quadrant 3                                
+DECALE4 =                    0 / Flip quadrant 4                                
+MIRPAT  = 'tim10.lod'          /Read pattern filename                           
+MIRMSG1 = 'seq 10 1 2 3  '     /                                                
+MIRMSG2 = '/home/cpapir/180520/180520_0472.fits (3 of 3) in 32.425 s, efficienc'
+MIRMSG5 = '        '           /                                                
+AIRM_MIN=              1.08528 /minimum airmass                                 
+AIRM_MAX=              1.77463 /maximum airmass                                 
+FILTER  = 'H       '           /                                                
+WLEN    =              1.65000 /central wavelength in micron                    
+BANDPASS=       0.300000000000 /bandpass in micron                              
+SCAN    = '-       '           /                                                
+SHIFTCOR=                    1 /corrected with quadrant_shifteur.pro            
+MEDIMAGE=              24440.0 /Image median                                    
+MEDDEVIM=              2239.00 /Median absolute deviation                       
+TEMP_WMO=                 -999 /Temperature estimee, stations WMO               
+DEWP_WMO=                 -999 /Point de rosee estime, stations WMO             
+HUMI_WMO=                 -999 /Humidite relative estimee, stations WMO         
+PARSED  =                    1 /if 1, then image has been parsed                
+CDELT1  =                    1 /                                                
+CDELT2  =                    1 /                                                
+CD1_1   =   -0.000247563642915 /                                                
+CD1_2   =    5.00967780681E-06 /                                                
+CD2_1   =    5.07946242578E-06 /                                                
+CD2_2   =    0.000247790361755 /                                                
+MJDATE  =        58259.6893191 /mean MJDATE                                     
+MJD_END =        58259.7551157 /MJDATE of last exposure                         
+MJD_STAR=        58259.6227431 /MJDATE of first exposure                        
+RELEASE = '2019-11-19'         / End of proprietary period YYYY-MM-DD           
+CTYPE1  = 'RA---TAN'           / Coordinate Type                                
+CTYPE2  = 'DEC--TAN'           / Coordinate Type                                
+CRPIX1  =        1755.00000000 / Reference Pixel in X                           
+CRPIX2  =        1718.00000000 / Reference Pixel in Y                           
+CRVAL1  =        183.958190918 / R.A. (degrees) of reference pixel              
+CRVAL2  =        36.3876953125 / Declination of reference pixel                 
+RADESYS = 'ICRS    '           / Reference frame                                
+MJD-OBS =        58259.2551157 / Modified Julian day of observations            
+ASTRGAIA=                    1 /                                                
+RMSASTR =       0.321558871390 /astrometry from solve-field. Assumed to be about
+THETA   =        88.8553228111 /Rotation of WCS relative to NS (deg)            
+TEM71323=                    0 / End of proprietary period YYYY-MM-DD           
+DEW71323=                    0 / End of proprietary period YYYY-MM-DD           
+HUM71323=                    0 / End of proprietary period YYYY-MM-DD           
+TEM71610=                    0 / End of proprietary period YYYY-MM-DD           
+DEW71610=                    0 / End of proprietary period YYYY-MM-DD           
+HUM71610=                    0 / End of proprietary period YYYY-MM-DD           
+TEM71611=                    0 / End of proprietary period YYYY-MM-DD           
+DEW71611=                    0 / End of proprietary period YYYY-MM-DD           
+HUM71611=                    0 / End of proprietary period YYYY-MM-DD           
+TEM72616=                    0 / End of proprietary period YYYY-MM-DD           
+DEW72616=                    0 / End of proprietary period YYYY-MM-DD           
+HUM72616=                    0 / End of proprietary period YYYY-MM-DD           
+RED_DATE= 'Mon May 21 18:10:21 2018' /DATE AND TIME FILE WAS REDUCED            
+HISTORY HEXTRACT: Mon May 21 14:10:21 2018                                      
+HISTORY Original image size was 3616 by 3534                                    
+HISTORY Extracted Image: [53:3567,49:3485]                                      
+PIXSCALE=       0.891822028842 /Pixel scale in arcsec                           
+PIXFWHM =              2.83188 /FWHM in pixels                                  
+FWHM    =        2.52553390014 /FWHM in arcsec                                  
+PZERO   =              24.8265 /zero point, raper=1*FWHM, rsky=[2-3]FHWM,mag=H2m
+PZ3FW   =              25.0762 /zero point, raper=3*FWHM, rsky=[3-5]FHWM,mag=H2m
+SKYMAG  =        17.0509029933 /sky background in mag/arcsec                    
+MAG5SIG =              17.9667 /mag 5 sigma, raper=1*FWHM, rsky=[2-3]FHWM,mag=H2
+RMSPIXEL=              21.7692 /rms pixel-to-pixel image                        
+END
+XTENSION= 'BINTABLE'           /Written by IDL:  Wed Jun 20 10:02:47 2018       
+BITPIX  =                    8 /                                                
+NAXIS   =                    2 /Binary table                                    
+NAXIS1  =                  341 /Number of bytes per row                         
+NAXIS2  =                    1 /Number of rows                                  
+PCOUNT  =                    0 /Random parameter count                          
+GCOUNT  =                    1 /Group count                                     
+TFIELDS =                    3 /Number of columns                               
+COMMENT                                                                         
+COMMENT  *** End of mandatory fields ***                                        
+COMMENT                                                                         
+EXTNAME = 'PROVENANCE'         /                                                
+COMMENT                                                                         
+COMMENT  *** Column formats ***                                                 
+COMMENT                                                                         
+TFORM1  = '209A    '           /                                                
+TFORM2  = '11D     '           /                                                
+TFORM3  = '11E     '           /                                                
+COMMENT                                                                         
+COMMENT  *** Column dimensions (2 D or greater) ***                             
+COMMENT                                                                         
+TDIM1   = '(19, 11)'           /                                                
+COMMENT Column names                                                            
+COMMENT                                                                         
+COMMENT  *** Column names ***                                                   
+COMMENT                                                                         
+TTYPE1  = 'FICS    '           /                                                
+TTYPE2  = 'STARTTIME'          /                                                
+TTYPE3  = 'DURATION'           /                                                
+END
+

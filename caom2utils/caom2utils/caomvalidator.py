@@ -124,7 +124,7 @@ def _validate_observation(caom2_entity, deep=True):
         CompositeObservation) to validate.
     :param deep if True, also validate the 'has-a' members of an Observation.
     """
-    assert isinstance(caom2_entity, Observation), 'Must be an Observation'
+    _check_param(caom2_entity, Observation)
     if caom2_entity.proposal:
         _validate_keyword('proposal.keywords', caom2_entity.proposal.keywords)
     if caom2_entity.target:
@@ -150,9 +150,7 @@ def _validate_plane(caom2_entity, deep=True):
     :param caom2_entity: The Plane to validate.
     :param deep if True, also validate the 'has-a' members of a Plane.
     """
-    assert caom2_entity, 'Must provide a plane for validation'
-    assert isinstance(caom2_entity, Plane), 'Must be a Plane'
-
+    _check_param(caom2_entity, Plane)
     if caom2_entity.provenance:
         _validate_keyword('provenance.keywords',
                           caom2_entity.provenance.keywords)
@@ -173,8 +171,7 @@ def _validate_artifact(caom2_entity, deep=True):
 
     :param caom2_entity: The Artifact to validate.
     """
-    assert caom2_entity, 'Must provide an artifact for validation'
-    assert isinstance(caom2_entity, Artifact), 'Must be a Artifact'
+    _check_param(caom2_entity, Artifact)
     if deep and caom2_entity.parts is not None:
         for value in caom2_entity.parts.values():
             _validate_part(value)
@@ -189,9 +186,7 @@ def _validate_part(caom2_entity, deep=True):
 
     :param caom2_entity: The Part to validate.
     """
-    assert caom2_entity, 'Must provide a part for validation'
-    assert isinstance(caom2_entity, Part), 'Must be a Part'
-
+    _check_param(caom2_entity, Part)
     if deep and (caom2_entity.chunks is not None):
         for chunk in caom2_entity.chunks:
             _validate_chunk(chunk)
@@ -206,8 +201,7 @@ def _validate_chunk(caom2_entity):
 
     :param caom2_entity: The Chunk to validate.
     """
-    assert caom2_entity, 'Must provide a chunk for validation'
-    assert isinstance(caom2_entity, Chunk), 'Must be a Chunk'
+    _check_param(caom2_entity, Chunk)
     validate_wcs(caom2_entity)
 
 
@@ -224,3 +218,9 @@ def _validate_keyword(name, keywords):
         if keyword.find('|') != -1:
             raise AssertionError(
                 'invalid {}: may not contain pipe (|)'.format(name))
+
+
+def _check_param(param, param_type):
+    if param is None or not isinstance(param, param_type):
+        raise ValueError(
+            '{} must be a valid {}.'.format(param, param_type.__name__))
