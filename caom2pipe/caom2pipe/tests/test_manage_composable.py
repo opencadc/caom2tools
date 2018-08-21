@@ -85,6 +85,8 @@ def test_config_class():
     test_config.get_executors()
     assert test_config is not None
     assert test_config.work_file == 'todo.txt'
+    assert test_config.features is not None
+    assert test_config.features.use_clients == False
 
 
 def test_exec_cmd():

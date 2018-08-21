@@ -100,7 +100,7 @@ class TestVisit:
 
 
 class TestStorageName(ec.StorageName):
-    def __init__(self):
+    def __init__(self, obs_id=None, file_name=None):
         super(TestStorageName, self).__init__(
             'test_obs_id', 'TEST', '*', 'test_file.fits')
 
@@ -117,6 +117,9 @@ def _init_config():
     test_config.logging_level = 'DEBUG'
     test_config.log_file_directory = TESTDATA_DIR
     test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
+    test_config.features.run_in_airflow = False
+    test_config.features.use_clients = False
+    test_config.features.use_file_names = False
     return test_config
 
 
@@ -411,6 +414,7 @@ def test_organize_executes_client():
     test_config.success_log_file_name = success_log_file_name
     failure_log_file_name = 'failure_log.txt'
     test_config.failure_log_file_name = failure_log_file_name
+    test_config.features.use_clients = True
     retry_file_name = 'retries.txt'
     test_config.retry_file_name = retry_file_name
     exec_cmd_orig = mc.exec_cmd_info
@@ -432,7 +436,7 @@ def test_organize_executes_client():
 
         test_config.task_types = [mc.TaskType.SCRAPE]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, 'command_name')
+        executors = test_oe._choose_client(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -441,7 +445,7 @@ def test_organize_executes_client():
                                   mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 4
         assert isinstance(executors[0], ec.Collection2CaomStoreClient), \
@@ -455,7 +459,7 @@ def test_organize_executes_client():
         test_config.task_types = [mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomMetaDeleteClient)
@@ -465,7 +469,7 @@ def test_organize_executes_client():
                                   mc.TaskType.MODIFY]
         test_config.use_local_files = True
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -477,6 +481,7 @@ def test_organize_executes_client():
 def test_organize_executes_client_augment():
     test_obs_id = TestStorageName()
     test_config = _init_config()
+    test_config.features.use_clients = True
     repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
     try:
 
@@ -485,17 +490,45 @@ def test_organize_executes_client_augment():
         test_config.task_types = [mc.TaskType.AUGMENT]
         test_config.use_local_files = False
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, 'command_name')
+        executors = test_oe._choose_client(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomMetaCreateClient)
 
         ec.CaomExecute.repo_cmd_get_client = Mock(return_value=TEST_OBS)
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose_client(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name')
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomMetaUpdateClient)
+    finally:
+        ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
+
+
+
+def test_organize_executes_client_visit():
+    test_obs_id = TestStorageName()
+    test_config = _init_config()
+    test_config.features.use_clients = True
+    repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
+    try:
+
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=None)
+
+        test_config.task_types = [mc.TaskType.VISIT]
+        test_config.use_local_files = False
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe._choose_client(test_obs_id, 'command_name')
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0], ec.Collection2CaomMetaCreateClient)
+
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=TEST_OBS)
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe.choose(test_obs_id, 'command_name')
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0], ec.Collection2CaomVisit)
     finally:
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
@@ -574,8 +607,29 @@ def test_run_by_file():
         assert False, 'but the work list is empty {}'.format(e)
 
 
+def test_do_one():
+    test_config = _init_config()
+    test_config.task_types = []
+    test_organizer = ec.OrganizeExecutes(test_config)
+    # no client
+    test_result = ec._do_one(config=test_config, organizer=test_organizer,
+                             storage_name=TestStorageName(),
+                             command_name='test2caom2',
+                             meta_visitors=[], data_visitors=[])
+    assert test_result is not None
+    assert test_result == -1
+
+    # client
+    test_config.features.use_clients = True
+    test_result = ec._do_one(config=test_config, organizer=test_organizer,
+                             storage_name=TestStorageName(),
+                             command_name='test2caom2',
+                             meta_visitors=[], data_visitors=[])
+    assert test_result is not None
+    assert test_result == -1
+
+
 def _communicate():
-    # return ['return status', None]
     return ['return status', None]
 
 
@@ -607,9 +661,6 @@ def _get_test_file_meta(path):
 
 def _read_obs(arg1):
     return TEST_OBS
-    # return SimpleObservation(collection='test_collection',
-    #                          observation_id='test_obs_id',
-    #                          algorithm=Algorithm(str('exposure')))
 
 
 def _get_file_headers(fname):
