@@ -510,27 +510,13 @@ def test_organize_executes_client_visit():
     test_obs_id = TestStorageName()
     test_config = _init_config()
     test_config.features.use_clients = True
-    repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
-    try:
-
-        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=None)
-
-        test_config.task_types = [mc.TaskType.VISIT]
-        test_config.use_local_files = False
-        test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe._choose_client(test_obs_id, 'command_name')
-        assert executors is not None
-        assert len(executors) == 1
-        assert isinstance(executors[0], ec.Collection2CaomMetaCreateClient)
-
-        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=TEST_OBS)
-        test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
-        assert executors is not None
-        assert len(executors) == 1
-        assert isinstance(executors[0], ec.Collection2CaomVisit)
-    finally:
-        ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
+    test_config.task_types = [mc.TaskType.VISIT]
+    test_config.use_local_files = False
+    test_oe = ec.OrganizeExecutes(test_config)
+    executors = test_oe.choose(test_obs_id, 'command_name')
+    assert executors is not None
+    assert len(executors) == 1
+    assert isinstance(executors[0], ec.Collection2CaomClientVisit)
 
 
 def test_data_cmd_info():

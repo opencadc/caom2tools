@@ -633,7 +633,7 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
-class Collection2CaomVisit(CaomExecute):
+class Collection2CaomClientVisit(CaomExecute):
     """Defines the pipeline step for Collection augmentation by a visitor
      of metadata into CAOM. This assumes a record already exists in CAOM,
      and the update DOES NOT require access to either the header or the data.
@@ -642,17 +642,20 @@ class Collection2CaomVisit(CaomExecute):
 
     def __init__(self, config, storage_name,
                  cadc_data_client, caom_repo_client, meta_visitors=None):
-        super(Collection2CaomVisit, self).__init__(
+        super(Collection2CaomClientVisit, self).__init__(
             config, mc.TaskType.VISIT, storage_name, command_name=None,
-            cadc_data_client, caom_repo_client, proxy=None,
+            cadc_data_client=cadc_data_client,
+            caom_repo_client=caom_repo_client, cert=config.proxy,
             meta_visitors=meta_visitors)
+        self.fname = None
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
         self.logger.debug('the steps:')
 
-        self.logger.debug('Find the file name as stored.')
-        self._find_file_name_storage_client()
+        # TODO - run a test to see if this is necessary
+        # self.logger.debug('Find the file name as stored.')
+        # self._find_file_name_storage_client()
 
         self.logger.debug('retrieve the existing observation, if it exists')
         observation = CaomExecute.repo_cmd_get_client(
@@ -1250,11 +1253,11 @@ class OrganizeExecutes(object):
         executors = []
         if storage_name.is_valid():
             subject = net.Subject(username=None, certificate=self.config.proxy)
-            cadc_data_client = None
-            caom_repo_client = None
-            # cadc_data_client = CadcDataClient(subject)
-            # caom_repo_client = CAOM2RepoClient(
-            #     subject, self.config.logging_level, self.config.resource_id)
+            # cadc_data_client = None
+            # caom_repo_client = None
+            cadc_data_client = CadcDataClient(subject)
+            caom_repo_client = CAOM2RepoClient(
+                subject, self.config.logging_level, self.config.resource_id)
             for task_type in self.task_types:
                 self.logger.debug(task_type)
                 if task_type == mc.TaskType.SCRAPE:
@@ -1321,9 +1324,9 @@ class OrganizeExecutes(object):
                             cadc_data_client,
                             caom_repo_client, meta_visitors))
                 elif task_type == mc.TaskType.VISIT:
-                    executors.append(Collection2CaomVisit(self.config,
-                                                          storage_name,
-                                                          caom_repo_client))
+                    executors.append(Collection2CaomClientVisit(
+                        self.config, storage_name, cadc_data_client,
+                        caom_repo_client, meta_visitors))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1476,7 +1479,8 @@ def _run_todo_file(config, organizer, sname, command_name,
     with open(organizer.todo_fqn) as f:
         for line in f:
             _run_by_file_list(config, organizer, sname, command_name,
-                              proxy, meta_visitors, data_visitors, line)
+                              proxy, meta_visitors, data_visitors,
+                              line.strip())
 
 
 def _run_local_files(config, organizer, sname, command_name,
@@ -1504,6 +1508,7 @@ def run_by_file(storage_name, command_name, collection, proxy=None,
         logger = logging.getLogger()
         logger.setLevel(config.logging_level)
         if config.use_local_files:
+            logging.debug('Using files from {}'.format(config.working_directory))
             organize = OrganizeExecutes(config)
             _run_local_files(config, organize, storage_name, command_name,
                              proxy, meta_visitors, data_visitors)
@@ -1513,8 +1518,12 @@ def run_by_file(storage_name, command_name, collection, proxy=None,
                                 help='Fully-qualified todo file name.')
             args = parser.parse_args()
             if args.todo is not None:
+                logging.debug('Using entries from file {}'.format(
+                    args.todo))
                 organize = OrganizeExecutes(config, args.todo)
             else:
+                logging.debug('Using entries from file {}'.format(
+                    config.work_file))
                 organize = OrganizeExecutes(config)
             _run_todo_file(
                 config, organize, storage_name, command_name,
