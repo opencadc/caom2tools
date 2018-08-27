@@ -373,36 +373,39 @@ class CaomExecute(object):
         self.fname = file_info['name']
 
     def _repo_cmd_delete_client(self):
-        """Retrieve the existing observaton model metadata."""
+        """Delete the existing observation instance."""
         try:
             self.caom_repo_client.delete(self.collection, self.obs_id)
         except Exception as e:
             pass  # TODO for now
 
     def _repo_cmd_create_client(self, observation):
+        """Create an observation instance from the input parameter."""
         try:
             self.caom_repo_client.create(observation)
         except Exception as e:
             raise mc.CadcException(
-                'Could not create an observation record for {} in {}'.format(
-                    self.obs_id, self.resource_id))
+                'Could not create an observation record for {} in {}. {}'.format(
+                    self.obs_id, self.resource_id, e))
 
     def _repo_cmd_update_client(self, observation):
+        """Update an existing observation instance.  Assumes the obs_id
+        values are set correctly."""
         try:
             self.caom_repo_client.update(observation)
         except Exception as e:
             raise mc.CadcException(
-                'Could not update an observation record for {} in {}'.format(
-                    self.obs_id, self.resource_id))
+                'Could not update an observation record for {} in {}. {}'.format(
+                    self.obs_id, self.resource_id, e))
 
     def _repo_cmd_read_client(self):
-        """Retrieve the existing observaton model metadata."""
+        """Retrieve the existing observation model metadata."""
         try:
             return self.caom_repo_client.read(self.collection, self.obs_id)
         except Exception as e:
             raise mc.CadcException(
-                'Could not read observation record for {} in {}'.format(
-                    self.obs_id, self.resource_id))
+                'Could not read observation record for {} in {}. {}'.format(
+                    self.obs_id, self.resource_id, e))
 
     def _fits2caom2_cmd(self):
         plugin = self._find_fits2caom2_plugin()
@@ -658,8 +661,7 @@ class Collection2CaomClientVisit(CaomExecute):
         # self._find_file_name_storage_client()
 
         self.logger.debug('retrieve the existing observation, if it exists')
-        observation = CaomExecute.repo_cmd_get_client(
-            self.caom_repo_client, self.collection, self.obs_id)
+        observation = self._repo_cmd_read_client()
 
         self.logger.debug('the metadata visitors')
         self._visit_meta(observation)
@@ -1253,8 +1255,6 @@ class OrganizeExecutes(object):
         executors = []
         if storage_name.is_valid():
             subject = net.Subject(username=None, certificate=self.config.proxy)
-            # cadc_data_client = None
-            # caom_repo_client = None
             cadc_data_client = CadcDataClient(subject)
             caom_repo_client = CAOM2RepoClient(
                 subject, self.config.logging_level, self.config.resource_id)

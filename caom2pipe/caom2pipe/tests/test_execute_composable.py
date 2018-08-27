@@ -519,6 +519,32 @@ def test_organize_executes_client_visit():
     assert isinstance(executors[0], ec.Collection2CaomClientVisit)
 
 
+def test_meta_client():
+    test_config = _init_config()
+    repo_client_mock = Mock()
+    test_executor = ec.Collection2CaomLocalMetaClient(
+        test_config, TestStorageName(), 'test2caom2', None, repo_client_mock, None)
+    test_executor.execute(None)
+    assert repo_client_mock.create.called
+
+
+def test_checksum_client():
+    test_config = _init_config()
+    test_executor = ec.Collection2CaomCompareChecksumClient(
+        test_config, TestStorageName(), 'test2caom2', None, None)
+    compare_orig = mc.compare_checksum_client
+
+    try:
+        mc.compare_checksum_client = Mock()
+        test_executor.execute(None)
+        assert mc.compare_checksum_client.called
+        assert test_executor.fname == 'test_file.fits', 'fname'
+        assert test_executor.working_dir == THIS_DIR, 'working dir'
+        assert test_executor.model_fqn == os.path.join(THIS_DIR,
+                                                      'test_obs_id.fits.xml'), 'model fqn'
+    finally:
+        mc.compare_checksum_client = compare_orig
+
 def test_data_cmd_info():
     exec_cmd_orig = mc.exec_cmd_info
     try:
@@ -660,3 +686,7 @@ def _get_fname():
 def _test_map_todo():
     """For a mock."""
     return ''
+
+
+def _get_file_info():
+    return {'fname': 'test_file.fits'}
