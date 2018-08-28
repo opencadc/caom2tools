@@ -86,11 +86,43 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'get_cadc_meta', 'get_file_meta', 'compare_checksum',
            'decompose_lineage', 'check_param', 'read_csv_file',
            'read_url_file', 'write_obs_to_file', 'read_obs_from_file',
-           'compare_checksum_client']
+           'compare_checksum_client', 'Features', 'write_to_file']
 
 
 class CadcException(Exception):
     pass
+
+
+class Features(object):
+
+    def __init__(self):
+        self.use_clients = True
+        self.use_file_names = True
+        self.run_in_airflow = True
+
+    @property
+    def use_clients(self):
+        return self._use_clients
+
+    @use_clients.setter
+    def use_clients(self, value):
+        self._use_clients = value
+
+    @property
+    def use_file_names(self):
+        return self._use_file_names
+
+    @use_file_names.setter
+    def use_file_names(self, value):
+        self._use_file_names = value
+
+    @property
+    def run_in_airflow(self):
+        return self._run_in_airflow
+
+    @run_in_airflow.setter
+    def run_in_airflow(self, value):
+        self._run_in_airflow = value
 
 
 class TaskType(Enum):
@@ -101,6 +133,7 @@ class TaskType(Enum):
     AUGMENT = 'augment'
     MODIFY = 'modify'
     CHECKSUM = 'checksum'
+    VISIT = 'visit'
 
 
 class Config(object):
@@ -167,9 +200,12 @@ class Config(object):
         # the fully qualified name for the file
         self.retry_fqn = None
 
-        # for the love of pete, don't use these from the config.yml file
-        # they're here for programmatic passing around, and nothing else
+        # for the love of pete, don't use this from the config.yml file
+        # it's here for programmatic passing around, and nothing else
         self.proxy = None
+
+        # feature flags
+        self.features = Features()
 
     @property
     def working_directory(self):
@@ -316,6 +352,14 @@ class Config(object):
     def proxy(self, value):
         self._proxy = value
 
+    @property
+    def features(self):
+        return self._features
+
+    @features.setter
+    def features(self, value):
+        self._features = value
+
     @staticmethod
     def _lookup(config, lookup, default):
         if lookup in config:
@@ -341,6 +385,7 @@ class Config(object):
                'failure_fqn:: \'{}\' ' \
                'retry_file_name:: \'{}\' ' \
                'retry_fqn:: \'{}\' ' \
+               'features:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
                 self.collection, self.task_types, self.stream,
@@ -348,7 +393,7 @@ class Config(object):
                 self.log_file_directory, self.success_log_file_name,
                 self.success_fqn, self.failure_log_file_name,
                 self.failure_fqn, self.retry_file_name, self.retry_fqn,
-                self.logging_level)
+                self.features, self.logging_level)
 
     @staticmethod
     def _set_task_types(config, default=None):
@@ -359,6 +404,16 @@ class Config(object):
             return task_types
         else:
             return default
+
+    @staticmethod
+    def _set_features(config):
+        feature_flags = Features()
+        if 'features' in config:
+            for ii in config['features']:
+                if not config['features'][ii]:
+                    att = getattr(feature_flags, ii)
+                    setattr(feature_flags, ii, False)
+        return feature_flags
 
     def get_executors(self):
         """Look up the configuration values in the data structure extracted
@@ -389,6 +444,7 @@ class Config(object):
                                                       'failure_log.txt')
             self.retry_file_name = self._lookup(config, 'retry_file_name',
                                                 'retries.txt')
+            self.features = self._set_features(config)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -659,3 +715,8 @@ def read_obs_from_file(fqn):
         raise CadcException('Could not find {}'.format(fqn))
     reader = ObservationReader(False)
     return reader.read(fqn)
+
+
+def write_to_file(fqn, content):
+    with open(fqn, 'w') as f:
+        f.write(content)

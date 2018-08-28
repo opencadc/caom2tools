@@ -368,43 +368,44 @@ class CaomExecute(object):
         return mc.read_obs_from_file(self.model_fqn)
 
     def _find_file_name_storage_client(self):
-        # file_info = self.cadc_data_client.get_file_info(
-        #     self.collection, self.obs_id)
         file_info = self.cadc_data_client.get_file_info(
             self.collection, self.fname)
         self.fname = file_info['name']
 
     def _repo_cmd_delete_client(self):
-        """Retrieve the existing observaton model metadata."""
+        """Delete the existing observation instance."""
         try:
             self.caom_repo_client.delete(self.collection, self.obs_id)
         except Exception as e:
             pass  # TODO for now
 
     def _repo_cmd_create_client(self, observation):
+        """Create an observation instance from the input parameter."""
         try:
             self.caom_repo_client.create(observation)
         except Exception as e:
             raise mc.CadcException(
-                'Could not create an observation record for {} in {}'.format(
-                    self.obs_id, self.resource_id))
+                'Could not create an observation record for {} in {}. {}'.format(
+                    self.obs_id, self.resource_id, e))
 
     def _repo_cmd_update_client(self, observation):
+        """Update an existing observation instance.  Assumes the obs_id
+        values are set correctly."""
         try:
             self.caom_repo_client.update(observation)
         except Exception as e:
             raise mc.CadcException(
-                'Could not update an observation record for {} in {}'.format(
-                    self.obs_id, self.resource_id))
+                'Could not update an observation record for {} in {}. {}'.format(
+                    self.obs_id, self.resource_id, e))
 
     def _repo_cmd_read_client(self):
-        """Retrieve the existing observaton model metadata."""
+        """Retrieve the existing observation model metadata."""
         try:
             return self.caom_repo_client.read(self.collection, self.obs_id)
         except Exception as e:
             raise mc.CadcException(
-                'Could not read observation record for {} in {}'.format(
-                    self.obs_id, self.resource_id))
+                'Could not read observation record for {} in {}. {}'.format(
+                    self.obs_id, self.resource_id, e))
 
     def _fits2caom2_cmd(self):
         plugin = self._find_fits2caom2_plugin()
@@ -622,6 +623,45 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
 
         self.logger.debug('read the xml from disk')
         observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_update_client(observation)
+
+        self.logger.debug('clean up the workspace')
+        self._cleanup()
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class Collection2CaomClientVisit(CaomExecute):
+    """Defines the pipeline step for Collection augmentation by a visitor
+     of metadata into CAOM. This assumes a record already exists in CAOM,
+     and the update DOES NOT require access to either the header or the data.
+
+    This pipeline step will execute a caom2-repo update."""
+
+    def __init__(self, config, storage_name,
+                 cadc_data_client, caom_repo_client, meta_visitors=None):
+        super(Collection2CaomClientVisit, self).__init__(
+            config, mc.TaskType.VISIT, storage_name, command_name=None,
+            cadc_data_client=cadc_data_client,
+            caom_repo_client=caom_repo_client, cert=config.proxy,
+            meta_visitors=meta_visitors)
+        self.fname = None
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        # TODO - run a test to see if this is necessary
+        # self.logger.debug('Find the file name as stored.')
+        # self._find_file_name_storage_client()
+
+        self.logger.debug('retrieve the existing observation, if it exists')
+        observation = self._repo_cmd_read_client()
 
         self.logger.debug('the metadata visitors')
         self._visit_meta(observation)
@@ -1136,10 +1176,19 @@ class OrganizeExecutes(object):
 
     def choose(self, storage_name, command_name, meta_visitors=None,
                data_visitors=None):
+        if self.config.features.use_clients:
+            return self._choose_client(storage_name, command_name, meta_visitors,
+                                      data_visitors)
+        else:
+            return self._choose_no_client(storage_name, command_name,
+                                         meta_visitors, data_visitors)
+
+    def _choose_no_client(self, storage_name, command_name, meta_visitors=None,
+                          data_visitors=None):
         executors = []
         if storage_name.is_valid():
+            logging.error('what is the task type {}'.format(self.task_types))
             for task_type in self.task_types:
-                self.logger.debug(task_type)
                 if task_type == mc.TaskType.SCRAPE:
                     if self.config.use_local_files:
                         executors.append(
@@ -1201,8 +1250,8 @@ class OrganizeExecutes(object):
                                  'Invalid observation ID')
         return executors
 
-    def choose_client(self, storage_name, command_name, meta_visitors=None,
-                      data_visitors=None):
+    def _choose_client(self, storage_name, command_name, meta_visitors=None,
+                       data_visitors=None):
         executors = []
         if storage_name.is_valid():
             subject = net.Subject(username=None, certificate=self.config.proxy)
@@ -1274,6 +1323,10 @@ class OrganizeExecutes(object):
                             self.config, storage_name, command_name,
                             cadc_data_client,
                             caom_repo_client, meta_visitors))
+                elif task_type == mc.TaskType.VISIT:
+                    executors.append(Collection2CaomClientVisit(
+                        self.config, storage_name, cadc_data_client,
+                        caom_repo_client, meta_visitors))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1373,59 +1426,65 @@ def _unset_file_logging(config, log_h):
         logging.getLogger().removeHandler(log_h)
 
 
-def _do_one(config, organizer, organizer_choose, storage_name, command_name,
-            obs_id, file_name=None, meta_visitors=None, data_visitors=None):
-    sname = storage_name(obs_id, file_name)
-    log_h = _set_up_file_logging(config, sname)
+def _do_one(config, organizer, storage_name, command_name,
+            meta_visitors=None, data_visitors=None):
+    log_h = _set_up_file_logging(config, storage_name)
     try:
-        executors = organizer_choose(sname, command_name,
-                                     meta_visitors=meta_visitors,
-                                     data_visitors=data_visitors)
+        executors = organizer.choose(storage_name, command_name,
+                                     meta_visitors, data_visitors)
         for executor in executors:
-            logging.info(
-                'Step {} for {}'.format(executor.task_type, obs_id))
+            logging.info('Step {} for {}'.format(
+                executor.task_type, storage_name.get_obs_id()))
             executor.execute(context=None)
         if len(executors) > 0:
-            organizer.capture_success(obs_id, file_name)
+            organizer.capture_success(storage_name.get_obs_id(),
+                                      storage_name.get_file_name())
             return 0
         else:
-            logging.info('No executors for {}'.format(obs_id))
+            logging.info('No executors for {}'.format(
+                storage_name.get_obs_id()))
             return -1  # cover the case where file name validation fails
     except Exception as e:
-        organizer.capture_failure(obs_id, file_name,
+        organizer.capture_failure(storage_name.get_obs_id(),
+                                  storage_name.get_file_name(),
                                   e=traceback.format_exc())
-        logging.info('Execution failed for {} with {}'.format(obs_id, e))
+        logging.info('Execution failed for {} with {}'.format(
+            storage_name.get_obs_id(), e))
         logging.error(traceback.format_exc())
         return -1
     finally:
         _unset_file_logging(config, log_h)
 
 
-def _run_todo_file(config, organizer, storage_name, command_name,
-                   map_todo=None, use_client=False, proxy=None,
-                   meta_visitors=None, data_visitors=None):
+def _run_by_file_list(config, organizer, sname, command_name, proxy, meta_visitors,
+                      data_visitors, entry):
+    if config.features.use_file_names:
+        storage_name = sname(file_id=entry)
+    else:
+        storage_name = sname(obs_id=entry)
+    logging.info('Process observation id {}'.format(
+        storage_name.get_obs_id()))
+    if config.features.use_clients:
+        config.proxy = proxy
+    _do_one(config, organizer, storage_name, command_name,
+            meta_visitors, data_visitors)
+
+
+def _run_todo_file(config, organizer, sname, command_name,
+                   proxy=None, meta_visitors=None,
+                   data_visitors=None):
     with open(organizer.todo_fqn) as f:
         todo_list_length = sum(1 for _ in f)
     organizer.complete_record_count = todo_list_length
     with open(organizer.todo_fqn) as f:
         for line in f:
-            obs_id, file_name = map_todo(line.strip())
-            logging.info('Process observation id {}'.format(obs_id))
-            if use_client:
-                config.proxy = proxy
-                _do_one(config, organizer, organizer.choose_client,
-                        storage_name, command_name, obs_id, file_name,
-                        meta_visitors=meta_visitors,
-                        data_visitors=data_visitors)
-            else:
-                _do_one(config, organizer, organizer.choose, storage_name,
-                        command_name, obs_id, file_name,
-                        meta_visitors=meta_visitors,
-                        data_visitors=data_visitors)
+            _run_by_file_list(config, organizer, sname, command_name,
+                              proxy, meta_visitors, data_visitors,
+                              line.strip())
 
 
-def _run_local_files(config, organizer, storage_name, command_name,
-                     use_client=False, proxy=None, meta_visitors=None,
+def _run_local_files(config, organizer, sname, command_name,
+                     proxy=None, meta_visitors=None,
                      data_visitors=None):
     file_list = os.listdir(config.working_directory)
     todo_list = []
@@ -1435,24 +1494,12 @@ def _run_local_files(config, organizer, storage_name, command_name,
 
     organizer.complete_record_count = len(todo_list)
     for do_file in todo_list:
-        logging.info('Process file {}'.format(do_file))
-        obs_id = storage_name.remove_extensions(do_file)
-        if use_client:
-            config.proxy = proxy
-            _do_one(config, organizer, organizer.choose_client, storage_name,
-                    command_name,
-                    obs_id, do_file, meta_visitors=meta_visitors,
-                    data_visitors=data_visitors)
-        else:
-            _do_one(config, organizer, organizer.choose, storage_name,
-                    command_name, obs_id,
-                    do_file, meta_visitors=meta_visitors,
-                    data_visitors=data_visitors)
+        _run_by_file_list(config, organizer, sname, command_name,
+                          proxy, meta_visitors, data_visitors, do_file)
 
 
-def run_by_file(storage_name, command_name, collection, map_todo,
-                use_client=False, proxy=None, meta_visitors=None,
-                data_visitors=None):
+def run_by_file(storage_name, command_name, collection, proxy=None,
+                meta_visitors=None, data_visitors=None):
     try:
         config = mc.Config()
         config.get_executors()
@@ -1461,23 +1508,26 @@ def run_by_file(storage_name, command_name, collection, map_todo,
         logger = logging.getLogger()
         logger.setLevel(config.logging_level)
         if config.use_local_files:
+            logging.debug('Using files from {}'.format(config.working_directory))
             organize = OrganizeExecutes(config)
             _run_local_files(config, organize, storage_name, command_name,
-                             use_client, proxy, meta_visitors=meta_visitors,
-                             data_visitors=data_visitors)
+                             proxy, meta_visitors, data_visitors)
         else:
             parser = ArgumentParser()
             parser.add_argument('--todo',
                                 help='Fully-qualified todo file name.')
             args = parser.parse_args()
             if args.todo is not None:
+                logging.debug('Using entries from file {}'.format(
+                    args.todo))
                 organize = OrganizeExecutes(config, args.todo)
             else:
+                logging.debug('Using entries from file {}'.format(
+                    config.work_file))
                 organize = OrganizeExecutes(config)
             _run_todo_file(
-                config, organize, storage_name, command_name, map_todo,
-                use_client, proxy, meta_visitors=meta_visitors,
-                data_visitors=data_visitors)
+                config, organize, storage_name, command_name,
+                proxy, meta_visitors, data_visitors)
         logging.info('Done, processed {} of {} correctly.'.format(
             organize.success_count, organize.complete_record_count))
     except Exception as e:
@@ -1486,11 +1536,10 @@ def run_by_file(storage_name, command_name, collection, map_todo,
         logging.error(tb)
 
 
-def run_single(config, storage_name, command_name, obs_id, file_name,
+def run_single(config, storage_name, command_name,
                meta_visitors=None, data_visitors=None):
     import sys
     organizer = OrganizeExecutes(config)
-    result = _do_one(config, organizer, organizer.choose_client, storage_name,
-                     command_name, obs_id, file_name,
-                     meta_visitors=meta_visitors, data_visitors=data_visitors)
+    result = _do_one(config, organizer, storage_name,
+                     command_name, meta_visitors, data_visitors)
     sys.exit(result)
