@@ -99,6 +99,7 @@ class Features(object):
         self.use_clients = True
         self.use_file_names = True
         self.run_in_airflow = True
+        self.supports_composite = True
 
     @property
     def use_clients(self):
@@ -123,6 +124,14 @@ class Features(object):
     @run_in_airflow.setter
     def run_in_airflow(self, value):
         self._run_in_airflow = value
+
+    @property
+    def supports_composite(self):
+        return self._supports_composite
+
+    @supports_composite.setter
+    def supports_composite(self, value):
+        self._supports_composite = value
 
 
 class TaskType(Enum):
