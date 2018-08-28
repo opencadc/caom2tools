@@ -1456,8 +1456,8 @@ def _do_one(config, organizer, storage_name, command_name,
         _unset_file_logging(config, log_h)
 
 
-def _run_by_file_list(config, organizer, sname, command_name, proxy, meta_visitors,
-                      data_visitors, entry):
+def _run_by_file_list(config, organizer, sname, command_name, proxy,
+                      meta_visitors, data_visitors, entry):
     if config.features.use_file_names:
         storage_name = sname(file_id=entry)
     else:
@@ -1507,8 +1507,10 @@ def run_by_file(storage_name, command_name, collection, proxy=None,
         logging.debug(config)
         logger = logging.getLogger()
         logger.setLevel(config.logging_level)
+        config.features.supports_composite = False
         if config.use_local_files:
-            logging.debug('Using files from {}'.format(config.working_directory))
+            logging.debug(
+                'Using files from {}'.format(config.working_directory))
             organize = OrganizeExecutes(config)
             _run_local_files(config, organize, storage_name, command_name,
                              proxy, meta_visitors, data_visitors)
