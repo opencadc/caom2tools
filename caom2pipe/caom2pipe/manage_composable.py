@@ -133,6 +133,10 @@ class Features(object):
     def supports_composite(self, value):
         self._supports_composite = value
 
+    def __str__(self):
+        return ' '.join(
+            '{} {}'.format(ii, getattr(self, ii)) for ii in vars(self))
+
 
 class TaskType(Enum):
     """The possible steps in a Collection pipeline."""

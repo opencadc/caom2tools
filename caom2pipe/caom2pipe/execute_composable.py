@@ -335,23 +335,24 @@ class CaomExecute(object):
     def _fits2caom2_cmd_local(self):
         fqn = os.path.join(self.working_dir, self.fname)
         plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
         cmd = '{} {} --netrc {} --observation {} {} --out {} ' \
-              '--plugin {} --local {} --lineage {}/{}'.format(
+              '--plugin {} --module {} --local {} --lineage {}/{}'.format(
                 self.command_name,
                 self.logging_level_param, self.netrc_fqn, self.collection,
-                self.obs_id, self.model_fqn, plugin, fqn, self.obs_id,
+                self.obs_id, self.model_fqn, plugin, plugin, fqn, self.obs_id,
                 self.uri)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_local_client(self):
         fqn = os.path.join(self.working_dir, self.fname)
         plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
         cmd = '{} {} --cert {} --observation {} {} --out {} ' \
-              '--plugin {} --local {} --lineage {}/{}'.format(
+              '--plugin {} --module {} --local {} --lineage {}/{}'.format(
                 self.command_name, self.logging_level_param, self.cert,
-                self.collection,
-                self.obs_id, self.model_fqn, plugin, fqn, self.obs_id,
-                self.uri)
+                self.collection, self.obs_id, self.model_fqn, plugin,
+                plugin, fqn, self.obs_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _compare_checksums(self, fname):
@@ -409,37 +410,33 @@ class CaomExecute(object):
 
     def _fits2caom2_cmd(self):
         plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
         cmd = '{} {} --netrc {} --observation {} {} --out {} ' \
-              '--plugin {} --lineage {}/{}'.format(self.command_name,
-                                                   self.logging_level_param,
-                                                   self.netrc_fqn,
-                                                   self.collection,
-                                                   self.obs_id, self.model_fqn,
-                                                   plugin, self.product_id,
-                                                   self.uri)
+              '--plugin {} --module {} --lineage {}/{}'.format(
+                self.command_name, self.logging_level_param, self.netrc_fqn,
+                self.collection, self.obs_id, self.model_fqn, plugin, plugin,
+                self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_client(self):
         plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
         cmd = '{} {} --cert {} --observation {} {} --out {} ' \
-              '--plugin {} --lineage {}/{}'.format(self.command_name,
-                                                   self.logging_level_param,
-                                                   self.cert, self.collection,
-                                                   self.obs_id, self.model_fqn,
-                                                   plugin, self.product_id,
-                                                   self.uri)
+              '--plugin {} --module {} --lineage {}/{}'.format(
+                self.command_name, self.logging_level_param, self.cert,
+                self.collection, self.obs_id, self.model_fqn, plugin, plugin,
+                self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_in_out_client(self):
         plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
         # TODO add an input parameter
         cmd = '{} {} --cert {} --in {} --out {} ' \
-              '--plugin {} --lineage {}/{}'.format(self.command_name,
-                                                   self.logging_level_param,
-                                                   self.cert, self.model_fqn,
-                                                   self.model_fqn,
-                                                   plugin, self.product_id,
-                                                   self.uri)
+              '--plugin {} --module {} --lineage {}/{}'.format(
+                self.command_name, self.logging_level_param, self.cert,
+                self.model_fqn, self.model_fqn, plugin, plugin,
+                self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _cadc_data_get_client(self):
@@ -1459,9 +1456,15 @@ def _do_one(config, organizer, storage_name, command_name,
 def _run_by_file_list(config, organizer, sname, command_name, proxy,
                       meta_visitors, data_visitors, entry):
     if config.features.use_file_names:
-        storage_name = sname(file_id=entry)
+        if config.use_local_files:
+            storage_name = sname(file_name=entry, fname_on_disk=entry)
+        else:
+            storage_name = sname(file_name=entry)
     else:
-        storage_name = sname(obs_id=entry)
+        if config.use_local_files:
+            storage_name = sname(file_name=entry, fname_on_disk=entry)
+        else:
+            storage_name = sname(obs_id=entry)
     logging.info('Process observation id {}'.format(
         storage_name.get_obs_id()))
     if config.features.use_clients:
