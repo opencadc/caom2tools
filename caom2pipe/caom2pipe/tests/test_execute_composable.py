@@ -155,6 +155,10 @@ def test_meta_execute():
 
         # check that things worked as expected
         assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            'caom2-repo create --debug --resource-id ivo://cadc.nrc.ca/sc2repo '
+            '--netrc {}/data/test_netrc '
+            '{}/test_obs_id/test_obs_id.fits.xml'.format(THIS_DIR, THIS_DIR))
         assert ec.CaomExecute._data_cmd_info.called
     finally:
         ec.CaomExecute._data_cmd_info = data_cmd_orig
@@ -183,6 +187,10 @@ def test_meta_local_execute():
         except CadcException as e:
             assert False, e
         assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            'caom2-repo create --verbose --resource-id '
+            'ivo://cadc.nrc.ca/sc2repo --netrc {}/test_netrc '
+            '{}/test_obs_id.fits.xml'.format(TESTDATA_DIR, TESTDATA_DIR))
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -228,6 +236,10 @@ def test_data_execute():
         # check that things worked as expected
         assert mc.exec_cmd.called, 'exec cmd not called'
         assert mc.write_obs_to_file.called, 'write obs to file not called'
+        mc.exec_cmd.assert_called_with(
+            'caom2-repo update --debug --resource-id ivo://cadc.nrc.ca/sc2repo '
+            '--netrc {}/test_netrc {}/test_obs_id/test_obs_id.fits.xml'.format(
+                TESTDATA_DIR, THIS_DIR))
 
     finally:
         mc.read_obs_from_file = read_orig
@@ -262,6 +274,10 @@ def test_data_local_execute():
 
         # check that things worked as expected - no cleanup
         assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            'caom2-repo update --debug --resource-id ivo://cadc.nrc.ca/sc2repo '
+            '--netrc {}/test_netrc {}/test_obs_id.fits.xml'.format(
+                TESTDATA_DIR, THIS_DIR))
     finally:
         mc.read_obs_from_file = read_orig
         mc.write_obs_to_file = write_orig
@@ -283,8 +299,7 @@ def test_data_store():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             'cadc-data put --debug -c --netrc '
-            '/usr/src/app/caom2tools/caom2pipe/caom2pipe/tests/data/test_netrc '
-            'OMM -s None test_file.fits.gz')
+            '{}/test_netrc OMM -s None test_file.fits.gz'.format(TESTDATA_DIR))
 
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -311,6 +326,18 @@ def test_scrape():
         except CadcException as e:
             assert False, e
         assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            'command_name --verbose --netrc {}/test_netrc '
+            '--observation OMM test_obs_id --out {}/test_obs_id.fits.xml '
+            '--plugin '
+            '/usr/local/lib/python3.6/site-packages/command_name/'
+            'command_name.py '
+            '--module '
+            '/usr/local/lib/python3.6/site-packages/command_name/'
+            'command_name.py '
+            '--local {}/test_file.fits.gz '
+            '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                TESTDATA_DIR, TESTDATA_DIR, TESTDATA_DIR))
 
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -525,8 +552,10 @@ def test_organize_executes_client_visit():
 def test_meta_client():
     test_config = _init_config()
     repo_client_mock = Mock()
-    test_executor = ec.Collection2CaomLocalMetaClient(
-        test_config, TestStorageName(), 'test2caom2', None, repo_client_mock, None)
+    test_executor = ec.Collection2CaomLocalMetaClient(test_config,
+                                                      TestStorageName(),
+                                                      'test2caom2', None,
+                                                      repo_client_mock, None)
     test_executor.execute(None)
     assert repo_client_mock.create.called
 
@@ -573,6 +602,9 @@ def test_data_cmd_info():
         assert test_executor.fname == 'C120902_sh2-132_J_old_SCIRED.fits.gz', \
             test_executor.fname
         assert mc.exec_cmd_info.called
+        mc.exec_cmd_info.assert_called_with(
+            'cadc-data info --debug --netrc-file {}/test_netrc OMM '
+            'test_obs_id'.format(TESTDATA_DIR))
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
 
