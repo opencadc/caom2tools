@@ -1020,7 +1020,7 @@ class Collection2CaomStoreClient(CaomExecute):
         self.working_dir = self.root_dir
         self.storage_host = config.storage_host
         self.stream = config.stream
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -1174,17 +1174,16 @@ class OrganizeExecutes(object):
     def choose(self, storage_name, command_name, meta_visitors=None,
                data_visitors=None):
         if self.config.features.use_clients:
-            return self._choose_client(storage_name, command_name, meta_visitors,
-                                      data_visitors)
+            return self._choose_client(storage_name, command_name,
+                                       meta_visitors, data_visitors)
         else:
             return self._choose_no_client(storage_name, command_name,
-                                         meta_visitors, data_visitors)
+                                          meta_visitors, data_visitors)
 
     def _choose_no_client(self, storage_name, command_name, meta_visitors=None,
                           data_visitors=None):
         executors = []
         if storage_name.is_valid():
-            logging.error('what is the task type {}'.format(self.task_types))
             for task_type in self.task_types:
                 if task_type == mc.TaskType.SCRAPE:
                     if self.config.use_local_files:
