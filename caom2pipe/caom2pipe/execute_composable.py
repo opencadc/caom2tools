@@ -986,7 +986,7 @@ class Collection2CaomStore(CaomExecute):
         self.working_dir = self.root_dir
         self.storage_host = config.storage_host
         self.stream = config.stream
-        self.fname = storage_name.get_file_name()
+        self.fname = storage_name.get_fname_on_disk()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))

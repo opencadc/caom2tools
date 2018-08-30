@@ -102,7 +102,7 @@ class TestVisit:
 class TestStorageName(ec.StorageName):
     def __init__(self, obs_id=None, file_name=None):
         super(TestStorageName, self).__init__(
-            'test_obs_id', 'TEST', '*', 'test_file.fits')
+            'test_obs_id', 'TEST', '*', 'test_file.fits.gz')
 
     def is_valid(self):
         return True
@@ -281,6 +281,10 @@ def test_data_store():
         except CadcException as e:
             assert False, e
         assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            'cadc-data put --debug -c --netrc '
+            '/usr/src/app/caom2tools/caom2pipe/caom2pipe/tests/data/test_netrc '
+            'OMM -s None test_file.fits.gz')
 
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -505,7 +509,6 @@ def test_organize_executes_client_augment():
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
-
 def test_organize_executes_client_visit():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -538,12 +541,13 @@ def test_checksum_client():
         mc.compare_checksum_client = Mock()
         test_executor.execute(None)
         assert mc.compare_checksum_client.called
-        assert test_executor.fname == 'test_file.fits', 'fname'
+        assert test_executor.fname == 'test_file.fits.gz', 'fname'
         assert test_executor.working_dir == THIS_DIR, 'working dir'
-        assert test_executor.model_fqn == os.path.join(THIS_DIR,
-                                                      'test_obs_id.fits.xml'), 'model fqn'
+        assert test_executor.model_fqn == os.path.join(
+            THIS_DIR, 'test_obs_id.fits.xml'), 'model fqn'
     finally:
         mc.compare_checksum_client = compare_orig
+
 
 def test_data_cmd_info():
     exec_cmd_orig = mc.exec_cmd_info
