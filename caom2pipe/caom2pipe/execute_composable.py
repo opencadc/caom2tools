@@ -202,7 +202,8 @@ class CaomExecute(object):
     classes."""
 
     def __init__(self, config, task_type, storage_name, command_name,
-                 cadc_data_client=None, caom_repo_client=None, cert=None,
+                 cred_param,
+                 cadc_data_client=None, caom_repo_client=None,
                  meta_visitors=None):
         self.logger = logging.getLogger()
         self.logger.setLevel(config.logging_level)
@@ -223,18 +224,13 @@ class CaomExecute(object):
         self.working_dir = os.path.join(self.root_dir, self.obs_id)
         self.model_fqn = os.path.join(self.working_dir,
                                       storage_name.get_model_file_name())
-        self.netrc_fqn = config.netrc_file
         self.resource_id = config.resource_id
-        self.task_type = task_type
         self.cadc_data_client = cadc_data_client
         self.caom_repo_client = caom_repo_client
         self.stream = config.stream
-        self.cert = cert
         self.meta_visitors = meta_visitors
-
-    def _create_dir(self):
-        """Create the working area if it does not already exist."""
-        mc.create_dir(self.working_dir)
+        self.task_type = task_type
+        self.cred_param = cred_param
 
     def _cleanup(self):
         """Remove a directory and all its contents."""
@@ -243,46 +239,9 @@ class CaomExecute(object):
                 os.remove(os.path.join(self.working_dir, ii))
             os.rmdir(self.working_dir)
 
-    def _check_credentials_exist(self):
-        """Ensure named credentials exist in this environment."""
-        if not os.path.exists(self.netrc_fqn):
-            raise mc.CadcException(
-                'Credentials do not exist {}.'.format(self.netrc_fqn))
-
-    def _repo_cmd_read(self):
-        """Retrieve the existing observaton model metadata."""
-        repo_cmd = 'caom2-repo read {} --resource-id {} --netrc {} ' \
-                   '{} {} -o {}'.format(self.logging_level_param,
-                                        self.resource_id, self.netrc_fqn,
-                                        self.collection,
-                                        self.obs_id, self.model_fqn)
-        mc.exec_cmd(repo_cmd)
-
-    def _repo_cmd_delete(self):
-        """Retrieve the existing observaton model metadata."""
-        repo_cmd = 'caom2-repo delete {} --resource-id {} --netrc {} ' \
-                   '{} {}'.format(self.logging_level_param,
-                                  self.resource_id, self.netrc_fqn,
-                                  self.collection,
-                                  self.obs_id)
-        try:
-            mc.exec_cmd(repo_cmd)
-            if os.path.exists(self.model_fqn):
-                os.remove(self.model_fqn)
-        except mc.CadcException as e:
-            pass
-        # TODO - how to tell the difference between 'it doesn't exist', and
-        # there's a real failure to pay attention to?
-        # raise CadcException('Could not delete the observation in {}'.format(
-        #     self.model_fqn))
-
-    def _repo_cmd(self, operation):
-        """This repo operation will work for either create or update."""
-        repo_cmd = 'caom2-repo {} {} --resource-id {} --netrc ' \
-                   '{} {}'.format(operation, self.logging_level_param,
-                                  self.resource_id, self.netrc_fqn,
-                                  self.model_fqn)
-        mc.exec_cmd(repo_cmd)
+    def _create_dir(self):
+        """Create the working area if it does not already exist."""
+        mc.create_dir(self.working_dir)
 
     def _define_local_dirs(self, storage_name):
         """when files are on disk don't worry about a separate directory
@@ -291,94 +250,48 @@ class CaomExecute(object):
         self.model_fqn = os.path.join(
             self.working_dir, storage_name.get_model_file_name())
 
-    def _find_file_name_storage(self):
-        ad_lookup = self._data_cmd_info()
-        if ad_lookup is not None:
-            self.fname = ad_lookup
-        else:
-            raise mc.CadcException(
-                'Could not find the file {} in storage as expected.'.format(
-                    self.obs_id))
-
-    def _data_cmd_info(self):
-        cmd = 'cadc-data info {} --netrc-file {} {} {}'.format(
-            self.logging_level_param, self.netrc_fqn, self.collection,
-            self.obs_id)
-        try:
-            result = mc.exec_cmd_info(cmd)
-            looked_up_name = None
-            if result is not None and 'name: ' in result:
-                looked_up_name = result.split('name: ')[1].split()[0]
-                self.logger.debug(
-                    'Found file name in storage {}'.format(looked_up_name))
-            return looked_up_name
-        except Exception as e:
-            self.logger.debug(e)
-            raise mc.CadcException(
-                'Failed to execute {} with {}.'.format(cmd, e))
-
-    def _data_cmd_put(self, fname):
-        """Store a collection file."""
-        data_cmd = 'cadc-data put {} -c --netrc {} {} -s {} {}'.format(
-            self.logging_level_param, self.netrc_fqn, self.collection,
-            self.stream, fname)
-        mc.exec_cmd(data_cmd)
-
-    def _data_cmd_put_client(self, fname):
-        """Store a collection file."""
-        try:
-            self.cadc_data_client.put_file(self.collection, fname, self.stream)
-        except Exception as e:
-            raise mc.CadcException(
-                'Did not store {} with {}'.format(fname, e))
+    def _find_fits2caom2_plugin(self):
+        packages = site.getsitepackages()
+        return os.path.join(packages[0], '{}/{}.py'.format(self.command_name,
+                                                           self.command_name))
 
     def _fits2caom2_cmd_local(self):
         fqn = os.path.join(self.working_dir, self.fname)
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
-        cmd = '{} {} --netrc {} --observation {} {} --out {} ' \
+        cmd = '{} {} {} --observation {} {} --out {} ' \
               '--plugin {} --module {} --local {} --lineage {}/{}'.format(
                 self.command_name,
-                self.logging_level_param, self.netrc_fqn, self.collection,
+                self.logging_level_param, self.cred_param, self.collection,
                 self.obs_id, self.model_fqn, plugin, plugin, fqn, self.obs_id,
                 self.uri)
         mc.exec_cmd(cmd)
 
-    def _fits2caom2_cmd_local_client(self):
-        fqn = os.path.join(self.working_dir, self.fname)
+    def _fits2caom2_cmd_client(self):
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
-        cmd = '{} {} --cert {} --observation {} {} --out {} ' \
-              '--plugin {} --module {} --local {} --lineage {}/{}'.format(
-                self.command_name, self.logging_level_param, self.cert,
-                self.collection, self.obs_id, self.model_fqn, plugin,
-                plugin, fqn, self.obs_id, self.uri)
+        cmd = '{} {} {} --observation {} {} --out {} ' \
+              '--plugin {} --module {} --lineage {}/{}'.format(
+                self.command_name, self.logging_level_param, self.cred_param,
+                self.collection, self.obs_id, self.model_fqn, plugin, plugin,
+                self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
-    def _compare_checksums(self, fname):
-        fqn = os.path.join(self.working_dir, fname)
-        mc.compare_checksum(
-            self.netrc_fqn, self.collection, fqn)
+    def _fits2caom2_cmd_in_out_client(self):
+        plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
+        # TODO add an input parameter
+        cmd = '{} {} {} --in {} --out {} ' \
+              '--plugin {} --module {} --lineage {}/{}'.format(
+                self.command_name, self.logging_level_param, self.cred_param,
+                self.model_fqn, self.model_fqn, plugin, plugin,
+                self.product_id, self.uri)
+        mc.exec_cmd(cmd)
 
     def _compare_checksums_client(self, fname):
         fqn = os.path.join(self.working_dir, fname)
         mc.compare_checksum_client(
             self.cadc_data_client, self.collection, fqn)
-
-    def _read_model(self):
-        return mc.read_obs_from_file(self.model_fqn)
-
-    def _find_file_name_storage_client(self):
-        file_info = self.cadc_data_client.get_file_info(
-            self.collection, self.fname)
-        self.fname = file_info['name']
-
-    def _repo_cmd_delete_client(self):
-        """Delete the existing observation instance."""
-        try:
-            self.caom_repo_client.delete(self.collection, self.obs_id)
-        except Exception as e:
-            pass  # TODO for now
 
     def _repo_cmd_create_client(self, observation):
         """Create an observation instance from the input parameter."""
@@ -408,36 +321,13 @@ class CaomExecute(object):
                 'Could not read observation record for {} in {}. {}'.format(
                     self.obs_id, self.resource_id, e))
 
-    def _fits2caom2_cmd(self):
-        plugin = self._find_fits2caom2_plugin()
-        # so far, the plugin is also the module :)
-        cmd = '{} {} --netrc {} --observation {} {} --out {} ' \
-              '--plugin {} --module {} --lineage {}/{}'.format(
-                self.command_name, self.logging_level_param, self.netrc_fqn,
-                self.collection, self.obs_id, self.model_fqn, plugin, plugin,
-                self.product_id, self.uri)
-        mc.exec_cmd(cmd)
-
-    def _fits2caom2_cmd_client(self):
-        plugin = self._find_fits2caom2_plugin()
-        # so far, the plugin is also the module :)
-        cmd = '{} {} --cert {} --observation {} {} --out {} ' \
-              '--plugin {} --module {} --lineage {}/{}'.format(
-                self.command_name, self.logging_level_param, self.cert,
-                self.collection, self.obs_id, self.model_fqn, plugin, plugin,
-                self.product_id, self.uri)
-        mc.exec_cmd(cmd)
-
-    def _fits2caom2_cmd_in_out_client(self):
-        plugin = self._find_fits2caom2_plugin()
-        # so far, the plugin is also the module :)
-        # TODO add an input parameter
-        cmd = '{} {} --cert {} --in {} --out {} ' \
-              '--plugin {} --module {} --lineage {}/{}'.format(
-                self.command_name, self.logging_level_param, self.cert,
-                self.model_fqn, self.model_fqn, plugin, plugin,
-                self.product_id, self.uri)
-        mc.exec_cmd(cmd)
+    def _cadc_data_put_client(self, fname):
+        """Store a collection file."""
+        try:
+            self.cadc_data_client.put_file(self.collection, fname, self.stream)
+        except Exception as e:
+            raise mc.CadcException(
+                'Did not store {} with {}'.format(fname, e))
 
     def _cadc_data_get_client(self):
         """Retrieve a collection file, even if it already exists. This might
@@ -463,13 +353,16 @@ class CaomExecute(object):
             raise mc.CadcException(
                 'Did not retrieve {}'.format(fqn))
 
+    def _cadc_data_info_file_name_client(self):
+        file_info = self.cadc_data_client.get_file_info(
+            self.collection, self.fname)
+        self.fname = file_info['name']
+
+    def _read_model(self):
+        return mc.read_obs_from_file(self.model_fqn)
+
     def _write_model(self, observation):
         mc.write_obs_to_file(observation, self.model_fqn)
-
-    def _find_fits2caom2_plugin(self):
-        packages = site.getsitepackages()
-        return os.path.join(packages[0], '{}/{}.py'.format(self.command_name,
-                                                           self.command_name))
 
     def _visit_meta(self, observation):
         kwargs = {'working_directory': self.working_dir}
@@ -505,44 +398,6 @@ class CaomExecute(object):
                     observation_id))
 
 
-class Collection2CaomMeta(CaomExecute):
-    """Defines the pipeline step for OMM ingestion of metadata into CAOM2.
-    This requires access to only header information."""
-
-    def __init__(self, config, storage_name, command_name):
-        super(Collection2CaomMeta, self).__init__(
-            config, mc.TaskType.INGEST, storage_name, command_name)
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} Meta'.format(__name__))
-        self.logger.debug('the steps:')
-        self.logger.debug('make sure named credentials exist')
-        self._check_credentials_exist()
-
-        self.logger.debug('Find the file name as stored.')
-        self._find_file_name_storage()
-
-        self.logger.debug('create the work space, if it does not exist')
-        self._create_dir()
-
-        self.logger.debug('remove the existing observation, if it exists, '
-                          'because metadata generation is less repeatable '
-                          'for updates than for creates.')
-        self._repo_cmd_delete()
-
-        self.logger.debug('generate the xml, as the main_app will retrieve '
-                          'the headers')
-        self._fits2caom2_cmd()
-
-        self.logger.debug('store the xml')
-        self._repo_cmd('create')
-
-        self.logger.debug('clean up the workspace')
-        self._cleanup()
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-
 class Collection2CaomMetaCreateClient(CaomExecute):
     """Defines the pipeline step for Collection ingestion of metadata into CAOM.
     This requires access to only header information.
@@ -550,17 +405,18 @@ class Collection2CaomMetaCreateClient(CaomExecute):
     This pipeline step will execute a caom2-repo create."""
 
     def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client, meta_visitors=None):
+                 cred_param, cadc_data_client, caom_repo_client,
+                 meta_visitors=None):
         super(Collection2CaomMetaCreateClient, self).__init__(
-            config, mc.TaskType.AUGMENT, storage_name, command_name,
-            cadc_data_client, caom_repo_client, config.proxy, meta_visitors)
+            config, mc.TaskType.INGEST, storage_name, command_name,
+            cred_param, cadc_data_client, caom_repo_client, meta_visitors)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
         self.logger.debug('the steps:')
 
         self.logger.debug('Find the file name as stored.')
-        self._find_file_name_storage_client()
+        self._cadc_data_info_file_name_client()
 
         self.logger.debug('create the work space, if it does not exist')
         self._create_dir()
@@ -591,32 +447,69 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
 
     This pipeline step will execute a caom2-repo update."""
 
-    def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client, meta_visitors=None):
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client, observation,
+                 meta_visitors=None):
         super(Collection2CaomMetaUpdateClient, self).__init__(
-            config, mc.TaskType.AUGMENT, storage_name, command_name,
-            cadc_data_client, caom_repo_client, config.proxy, meta_visitors)
+            config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
+            cadc_data_client, caom_repo_client, meta_visitors)
+        self.observation = observation
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
         self.logger.debug('the steps:')
 
         self.logger.debug('Find the file name as stored.')
-        self._find_file_name_storage_client()
+        self._cadc_data_info_file_name_client()
 
         self.logger.debug('create the work space, if it does not exist')
         self._create_dir()
 
-        self.logger.debug('retrieve the existing observation, if it exists')
-        observation = CaomExecute.repo_cmd_get_client(
-            self.caom_repo_client, self.collection, self.obs_id)
-
         self.logger.debug('write the observation to disk for next step')
-        self._write_model(observation)
+        self._write_model(self.observation)
 
         self.logger.debug('generate the xml, as the main_app will retrieve '
                           'the headers')
         self._fits2caom2_cmd_in_out_client()
+
+        self.logger.debug('read the xml from disk')
+        self.observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(self.observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_update_client(self.observation)
+
+        self.logger.debug('clean up the workspace')
+        self._cleanup()
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class Collection2CaomLocalMetaCreateClient(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into CAOM.
+    This requires access to only header information.
+
+    This pipeline step will execute a caom2-repo update."""
+
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client, meta_visitors=None):
+        super(Collection2CaomLocalMetaCreateClient, self).__init__(
+            config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
+            cadc_data_client, caom_repo_client, meta_visitors)
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('Find the file name as stored.')
+        self._cadc_data_info_file_name_client()
+
+        self.logger.debug('the observation does not exist, so go '
+                          'straight to generating the xml, as the main_app '
+                          'will retrieve the headers')
+        self._fits2caom2_cmd_client()
 
         self.logger.debug('read the xml from disk')
         observation = self._read_model()
@@ -625,10 +518,47 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
         self._visit_meta(observation)
 
         self.logger.debug('store the xml')
-        self._repo_cmd_update_client(observation)
+        self._repo_cmd_create_client(observation)
 
-        self.logger.debug('clean up the workspace')
-        self._cleanup()
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class Collection2CaomLocalMetaUpdateClient(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into CAOM.
+    This requires access to only header information.
+
+    This pipeline step will execute a caom2-repo update."""
+
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client, observation,
+                 meta_visitors=None):
+        super(Collection2CaomLocalMetaUpdateClient, self).__init__(
+            config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
+            cadc_data_client, caom_repo_client, meta_visitors)
+        self.observation = observation
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('Find the file name as stored.')
+        self._cadc_data_info_file_name_client()
+
+        self.logger.debug('write the observation to disk for next step')
+        self._write_model(self.observation)
+
+        self.logger.debug('generate the xml, as the main_app will retrieve '
+                          'the headers')
+        self._fits2caom2_cmd_in_out_client()
+
+        self.logger.debug('read the xml from disk')
+        self.observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(self.observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_update_client(self.observation)
 
         self.logger.debug('End execute for {}'.format(__name__))
 
@@ -640,12 +570,12 @@ class Collection2CaomClientVisit(CaomExecute):
 
     This pipeline step will execute a caom2-repo update."""
 
-    def __init__(self, config, storage_name,
+    def __init__(self, config, storage_name, cred_param,
                  cadc_data_client, caom_repo_client, meta_visitors=None):
         super(Collection2CaomClientVisit, self).__init__(
             config, mc.TaskType.VISIT, storage_name, command_name=None,
-            cadc_data_client=cadc_data_client,
-            caom_repo_client=caom_repo_client, cert=config.proxy,
+            cred_param=cred_param, cadc_data_client=cadc_data_client,
+            caom_repo_client=caom_repo_client,
             meta_visitors=meta_visitors)
         self.fname = None
 
@@ -672,212 +602,26 @@ class Collection2CaomClientVisit(CaomExecute):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
-class Collection2CaomMetaDeleteClient(CaomExecute):
-    """Defines the pipeline step for Collection ingestion of metadata into CAOM.
-    This requires access to only header information.
-
-    This pipeline step will always delete the record from caom2repo before
-    creating a new version."""
-
-    def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client, cert):
-        super(Collection2CaomMetaDeleteClient, self).__init__(
-            config, mc.TaskType.INGEST, storage_name, command_name,
-            cadc_data_client, caom_repo_client, cert)
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} Meta'.format(__name__))
-        self.logger.debug('the steps:')
-
-        self.logger.debug('Find the file name as stored.')
-        self._find_file_name_storage_client()
-
-        self.logger.debug('create the work space, if it does not exist')
-        self._create_dir()
-
-        self.logger.debug('remove the existing observation, if it exists, '
-                          'because metadata generation is less repeatable '
-                          'for updates than for creates.')
-        self._repo_cmd_delete_client()
-
-        self.logger.debug('generate the xml, as the main_app will retrieve '
-                          'the headers')
-        self._fits2caom2_cmd_client()
-
-        self.logger.debug('read the xml into memory from the file')
-        observation = self._read_model()
-
-        self.logger.debug('store the xml')
-        self._repo_cmd_create_client(observation)
-
-        self.logger.debug('clean up the workspace')
-        self._cleanup()
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-
-class Collection2CaomLocalMeta(CaomExecute):
-    """Defines the pipeline step for ingestion of metadata into CAOM.
-    The file containing the metadata is located on disk."""
-
-    def __init__(self, config, storage_name, command_name):
-        super(Collection2CaomLocalMeta, self).__init__(
-            config, mc.TaskType.INGEST, storage_name, command_name)
-        self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_fname_on_disk()
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} Meta'.format(__name__))
-        self.logger.debug('the steps:')
-        self.logger.debug('make sure named credentials exist')
-        self._check_credentials_exist()
-
-        self.logger.debug('remove the existing observation, if it exists, '
-                          'because metadata generation is less repeatable '
-                          'for updates than for creates.')
-        self._repo_cmd_delete()
-
-        self.logger.debug('generate the xml from the file on disk')
-        self._fits2caom2_cmd_local()
-
-        self.logger.debug('store the xml')
-        self._repo_cmd('create')
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-
-class Collection2CaomLocalMetaClient(CaomExecute):
-    """Defines the pipeline step for Collection ingestion of metadata into
-    CAOM. The file containing the metadata is located on disk."""
-
-    def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client, cert):
-        super(Collection2CaomLocalMetaClient, self).__init__(
-            config, mc.TaskType.INGEST, storage_name, command_name,
-            cadc_data_client, caom_repo_client, cert)
-        self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_fname_on_disk()
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} Meta'.format(__name__))
-        self.logger.debug('the steps:')
-
-        self.logger.debug('remove the existing observation, if it exists, '
-                          'because metadata generation is less repeatable '
-                          'for updates than for creates.')
-        self._repo_cmd_delete_client()
-
-        self.logger.debug('generate the xml from the file on disk')
-        self._fits2caom2_cmd_local_client()
-
-        self.logger.debug('read the xml into memory from the file')
-        observation = self._read_model()
-
-        self.logger.debug('store the xml')
-        self._repo_cmd_create_client(observation)
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-
-class Collection2CaomData(CaomExecute):
-    """Defines the pipeline step for all the operations that require
-    access to the file on disk, not just the header data. """
-
-    def __init__(self, config, storage_name, command_name, data_visitors=None):
-        super(Collection2CaomData, self).__init__(
-            config, mc.TaskType.MODIFY, storage_name, command_name)
-        self.log_file_directory = config.log_file_directory
-        self.prev_fname = storage_name.get_prev()
-        self.thumb_fname = storage_name.get_thumb()
-        self.data_visitors = data_visitors
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} Data'.format(__name__))
-        self.logger.debug('make sure named credentials exist')
-        self._check_credentials_exist()
-
-        self.logger.debug('Find the file name as stored.')
-        self._find_file_name_storage()
-
-        self.logger.debug('create the work space, if it does not exist')
-        self._create_dir()
-
-        self.logger.debug('get the input file')
-        self._cadc_data_get()
-
-        self.logger.debug('get the observation for the existing model')
-        self._repo_cmd_read()
-        observation = self._read_model()
-
-        self.logger.debug('execute the data visitors')
-        self._visit_data(observation)
-
-        self.logger.debug('output the updated xml')
-        self._write_model(observation)
-
-        self.logger.debug('store the updated xml')
-        self._repo_cmd('update')
-
-        self.logger.debug('clean up the workspace')
-        self._cleanup()
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-    def _cadc_data_get(self):
-        """Retrieve a collection file, even if it already exists. This might
-        ensure that the latest version of the file is retrieved from
-        storage."""
-
-        # all the gets are supposed to be unzipped, so that the
-        # footprintfinder is more efficient, so make sure the fully
-        # qualified output name isn't the gzip'd version
-
-        if self.fname.endswith('.gz'):
-            fqn = os.path.join(self.working_dir, self.fname.replace('.gz', ''))
-        else:
-            fqn = os.path.join(self.working_dir, self.fname)
-
-        data_cmd = 'cadc-data get {} -z --netrc {} {} {} -o {}'.format(
-            self.logging_level_param, self.netrc_fqn, self.collection,
-            self.obs_id, fqn)
-        mc.exec_cmd(data_cmd)
-        if not os.path.exists(fqn):
-            raise mc.CadcException(
-                'Failed {}. Did not retrieve {}'.format(data_cmd, fqn))
-
-    def _find_file_name(self):
-        self._find_file_name_storage()
-
-    def _visit_data(self, observation):
-        kwargs = {'working_directory': self.working_dir,
-                  'science_file': self.fname,
-                  'log_file_directory': self.log_file_directory,
-                  'cadc_client': self.cadc_data_client}
-        for visitor in self.data_visitors:
-            try:
-                self.logger.debug('Visit for {}'.format(visitor))
-                visitor.visit(observation, **kwargs)
-            except Exception as e:
-                raise mc.CadcException(e)
-
-
 class Collection2CaomDataClient(CaomExecute):
     """Defines the pipeline step for all the operations that
     require access to the file on disk, not just the header data. """
 
-    def __init__(self, config, storage_name, command_name,
-                 cadc_data_client, caom_repo_client, data_visitors=None):
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client, data_visitors=None,
+                 task_type=None):
         super(Collection2CaomDataClient, self).__init__(
-            config, mc.TaskType.MODIFY, storage_name, command_name,
+            config, task_type, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client)
         self.log_file_directory = config.log_file_directory
         self.data_visitors = data_visitors
+        self.prev_fname = storage_name.get_prev()
+        self.thumb_fname = storage_name.get_thumb()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
 
         self.logger.debug('Find the file name as stored.')
-        self._find_file_name_storage_client()
+        self._cadc_data_info_file_name_client()
 
         self.logger.debug('create the work space, if it does not exist')
         self._create_dir()
@@ -912,48 +656,15 @@ class Collection2CaomDataClient(CaomExecute):
                 raise mc.CadcException(e)
 
 
-class Collection2CaomLocalData(Collection2CaomData):
-    """Defines the pipeline step for all the operations that require
-    access to the file on disk. This class assumes it has access to the
-    files on disk."""
-
-    def __init__(self, config, storage_name, command_name, data_visitors=None):
-        super(Collection2CaomLocalData, self).__init__(config, storage_name,
-                                                       command_name,
-                                                       data_visitors)
-        self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_fname_on_disk()
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} Data'.format(__name__))
-        self.logger.debug('make sure named credentials exist')
-        self._check_credentials_exist()
-
-        self.logger.debug('get the observation for the existing model')
-        self._repo_cmd_read()
-        observation = self._read_model()
-
-        self.logger.debug('execute the data visitors')
-        self._visit_data(observation)
-
-        self.logger.debug('output the updated xml')
-        self._write_model(observation)
-
-        self.logger.debug('store the updated xml')
-        self._repo_cmd('update')
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-
 class Collection2CaomLocalDataClient(Collection2CaomDataClient):
     """Defines the pipeline step for  all the operations that
     require access to the file on disk. This class assumes it has access to
     the files on disk."""
 
-    def __init__(self, config, storage_name, command_name,
+    def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, data_visitors=None):
         super(Collection2CaomLocalDataClient, self).__init__(
-            config, storage_name, command_name,
+            config, storage_name, command_name, cred_param,
             cadc_data_client=cadc_data_client,
             caom_repo_client=caom_repo_client, data_visitors=data_visitors)
         self._define_local_dirs(storage_name)
@@ -974,46 +685,14 @@ class Collection2CaomLocalDataClient(Collection2CaomDataClient):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
-class Collection2CaomStore(CaomExecute):
-    """Defines the pipeline step for OMM storage of a file. This requires
-    access to the file on disk. It will gzip compress the file."""
-
-    def __init__(self, config, storage_name, command_name):
-        super(Collection2CaomStore, self).__init__(
-            config, mc.TaskType.STORE, storage_name, command_name)
-        # when files are on disk don't worry about a separate directory
-        # per observation
-        self.working_dir = self.root_dir
-        self.storage_host = config.storage_host
-        self.stream = config.stream
-        self.fname = storage_name.get_fname_on_disk()
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} Data'.format(__name__))
-        self.logger.debug('make sure named credentials exist')
-        self._check_credentials_exist()
-
-        self.logger.debug('store the input file to ad')
-        self._cadc_data_put()
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-    def _cadc_data_put(self):
-        """Store a collection file."""
-        data_cmd = 'cadc-data put {} -c --netrc {} {} -s {} {}'.format(
-            self.logging_level_param, self.netrc_fqn, self.collection,
-            self.stream, self.fname)
-        mc.exec_cmd(data_cmd)
-
-
 class Collection2CaomStoreClient(CaomExecute):
     """Defines the pipeline step for Collection storage of a file. This requires
     access to the file on disk."""
 
-    def __init__(self, config, storage_name, command_name,
+    def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client):
         super(Collection2CaomStoreClient, self).__init__(
-            config, mc.TaskType.STORE, storage_name, command_name,
+            config, mc.TaskType.STORE, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client)
         # when files are on disk don't worry about a separate directory
         # per observation
@@ -1026,7 +705,7 @@ class Collection2CaomStoreClient(CaomExecute):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
 
         self.logger.debug('store the input file to ad')
-        self._data_cmd_put_client(self.fname)
+        self._cadc_data_put_client(self.fname)
 
         self.logger.debug('End execute for {}'.format(__name__))
 
@@ -1038,7 +717,8 @@ class Collection2CaomScrape(CaomExecute):
 
     def __init__(self, config, storage_name, command_name):
         super(Collection2CaomScrape, self).__init__(
-            config, mc.TaskType.SCRAPE, storage_name, command_name)
+            config, mc.TaskType.SCRAPE, storage_name, command_name,
+            cred_param='')
         self._define_local_dirs(storage_name)
         self.fname = storage_name.get_fname_on_disk()
 
@@ -1052,7 +732,7 @@ class Collection2CaomScrape(CaomExecute):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
-class Collection2CaomDataScrape(Collection2CaomLocalData):
+class Collection2CaomDataScrape(Collection2CaomDataClient):
     """Defines the pipeline step for Collection generation and ingestion of
     operations that require access to the file on disk, with no update to the
     service at the end. This class assumes it has access to the files on disk.
@@ -1061,7 +741,15 @@ class Collection2CaomDataScrape(Collection2CaomLocalData):
 
     def __init__(self, config, storage_name, command_name, data_visitors=None):
         super(Collection2CaomDataScrape, self).__init__(
-            config, storage_name, command_name, data_visitors)
+            config, storage_name, command_name, cred_param='',
+            cadc_data_client=None, caom_repo_client=None,
+            data_visitors=data_visitors, task_type=mc.TaskType.SCRAPE)
+        self._define_local_dirs(storage_name)
+        self.fname = storage_name.get_fname_on_disk()
+        self.log_file_directory = config.log_file_directory
+        self.data_visitors = data_visitors
+        self.prev_fname = storage_name.get_prev()
+        self.thumb_fname = storage_name.get_thumb()
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -1078,31 +766,6 @@ class Collection2CaomDataScrape(Collection2CaomLocalData):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
-class Collection2CaomCompareChecksum(CaomExecute):
-    """Defines the pipeline step for comparing the checksum of a file on disk
-    with the checksum of the supposedly-the-same file stored at CADC.
-
-    This step should be invoked with any other task type that relies on
-    files on local disk.
-    """
-
-    def __init__(self, config, storage_name, command_name):
-        super(Collection2CaomCompareChecksum, self).__init__(
-            config, mc.TaskType.CHECKSUM, storage_name, command_name)
-        self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_fname_on_disk()
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} '
-                          'CompareChecksum'.format(__name__))
-        self.logger.debug('the steps:')
-
-        self.logger.debug('generate the xml from the file on disk')
-        self._compare_checksums(self.fname)
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-
 class Collection2CaomCompareChecksumClient(CaomExecute):
     """Defines the pipeline step for comparing the checksum of a file on disk
     with the checksum of the supposedly-the-same file stored at CADC.
@@ -1111,11 +774,11 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
     files on local disk.
     """
 
-    def __init__(self, config, storage_name, command_name, cadc_data_client,
-                 caom_repo_client):
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client):
         super(Collection2CaomCompareChecksumClient, self).__init__(
             config, mc.TaskType.CHECKSUM, storage_name, command_name,
-            cadc_data_client, caom_repo_client)
+            cred_param, cadc_data_client, caom_repo_client)
         self._define_local_dirs(storage_name)
         self.fname = storage_name.get_fname_on_disk()
 
@@ -1173,84 +836,9 @@ class OrganizeExecutes(object):
 
     def choose(self, storage_name, command_name, meta_visitors=None,
                data_visitors=None):
-        if self.config.features.use_clients:
-            return self._choose_client(storage_name, command_name,
-                                       meta_visitors, data_visitors)
-        else:
-            return self._choose_no_client(storage_name, command_name,
-                                          meta_visitors, data_visitors)
-
-    def _choose_no_client(self, storage_name, command_name, meta_visitors=None,
-                          data_visitors=None):
         executors = []
         if storage_name.is_valid():
-            for task_type in self.task_types:
-                if task_type == mc.TaskType.SCRAPE:
-                    if self.config.use_local_files:
-                        executors.append(
-                            Collection2CaomScrape(
-                                self.config, storage_name, command_name))
-                    else:
-                        raise mc.CadcException(
-                            'use_local_files must be True with '
-                            'Task Type "SCRAPE"')
-                elif task_type == mc.TaskType.STORE:
-                    if self.config.use_local_files:
-                        executors.append(
-                            Collection2CaomStore(
-                                self.config, storage_name, command_name))
-                    else:
-                        raise mc.CadcException(
-                            'use_local_files must be True with '
-                            'Task Type "STORE"')
-                elif task_type == mc.TaskType.INGEST:
-                    if self.config.use_local_files:
-                        executors.append(
-                            Collection2CaomLocalMeta(
-                                self.config, storage_name, command_name))
-                    else:
-                        executors.append(
-                            Collection2CaomMeta(self.config, storage_name,
-                                                command_name))
-                elif task_type == mc.TaskType.MODIFY:
-                    if self.config.use_local_files:
-                        if isinstance(executors[0], Collection2CaomScrape):
-                            executors.append(
-                                Collection2CaomDataScrape(self.config,
-                                                          storage_name,
-                                                          command_name,
-                                                          data_visitors))
-                        else:
-                            executors.append(
-                                Collection2CaomLocalData(self.config,
-                                                         storage_name,
-                                                         command_name,
-                                                         data_visitors))
-                    else:
-                        executors.append(
-                            Collection2CaomData(self.config, storage_name,
-                                                command_name, data_visitors))
-                else:
-                    raise mc.CadcException(
-                        'Do not understand task type {}'.format(task_type))
-            if (self.config.use_local_files and
-                    mc.TaskType.SCRAPE not in self.task_types):
-                executors.append(
-                    Collection2CaomCompareChecksum(
-                        self.config, storage_name, command_name))
-        else:
-            logging.error('{} failed naming validation check.'.format(
-                storage_name.get_obs_id()))
-            self.capture_failure(storage_name.get_obs_id(),
-                                 storage_name.get_file_name(),
-                                 'Invalid observation ID')
-        return executors
-
-    def _choose_client(self, storage_name, command_name, meta_visitors=None,
-                       data_visitors=None):
-        executors = []
-        if storage_name.is_valid():
-            subject = net.Subject(username=None, certificate=self.config.proxy)
+            subject, cred_param = self._define_subject()
             cadc_data_client = CadcDataClient(subject)
             caom_repo_client = CAOM2RepoClient(
                 subject, self.config.logging_level, self.config.resource_id)
@@ -1259,8 +847,8 @@ class OrganizeExecutes(object):
                 if task_type == mc.TaskType.SCRAPE:
                     if self.config.use_local_files:
                         executors.append(
-                            Collection2CaomScrape(
-                                self.config, storage_name, command_name))
+                            Collection2CaomScrape(self.config, storage_name,
+                                                  command_name))
                     else:
                         raise mc.CadcException(
                             'use_local_files must be True with '
@@ -1270,23 +858,40 @@ class OrganizeExecutes(object):
                         executors.append(
                             Collection2CaomStoreClient(
                                 self.config, storage_name, command_name,
-                                cadc_data_client, caom_repo_client))
+                                cred_param, cadc_data_client,
+                                caom_repo_client))
                     else:
                         raise mc.CadcException(
                             'use_local_files must be True with '
                             'Task Type "STORE"')
                 elif task_type == mc.TaskType.INGEST:
-                    if self.config.use_local_files:
-                        executors.append(
-                            Collection2CaomLocalMetaClient(
+                    observation = CaomExecute.repo_cmd_get_client(
+                        caom_repo_client, self.config.collection,
+                        storage_name.get_obs_id())
+                    if observation is None:
+                        if self.config.use_local_files:
+                            executors.append(
+                                Collection2CaomLocalMetaCreateClient(
+                                    self.config, storage_name, command_name,
+                                    cred_param, cadc_data_client,
+                                    caom_repo_client))
+                        else:
+                            executors.append(Collection2CaomMetaCreateClient(
                                 self.config, storage_name, command_name,
-                                cadc_data_client, caom_repo_client,
-                                self.config.proxy))
+                                cred_param, cadc_data_client, caom_repo_client))
                     else:
-                        executors.append(Collection2CaomMetaDeleteClient(
-                            self.config, storage_name, command_name,
-                            cadc_data_client, caom_repo_client,
-                            self.config.proxy))
+                        if self.config.use_local_files:
+                            executors.append(
+                                Collection2CaomLocalMetaUpdateClient(
+                                    self.config, storage_name, command_name,
+                                    cred_param, cadc_data_client,
+                                    caom_repo_client, observation,
+                                    meta_visitors))
+                        else:
+                            executors.append(Collection2CaomMetaUpdateClient(
+                                self.config, storage_name, command_name,
+                                cred_param, cadc_data_client, caom_repo_client,
+                                observation))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
                         if isinstance(executors[0], Collection2CaomScrape):
@@ -1299,30 +904,18 @@ class OrganizeExecutes(object):
                             executors.append(
                                 Collection2CaomLocalDataClient(
                                     self.config, storage_name, command_name,
-                                    cadc_data_client, caom_repo_client,
-                                    data_visitors))
+                                    cred_param, cadc_data_client,
+                                    caom_repo_client, data_visitors))
                     else:
                         executors.append(Collection2CaomDataClient(
-                            self.config, storage_name, command_name,
-                            cadc_data_client, caom_repo_client, data_visitors))
-                elif task_type == mc.TaskType.AUGMENT:
-                    observation = CaomExecute.repo_cmd_get_client(
-                        caom_repo_client, self.config.collection,
-                        storage_name.get_obs_id())
-                    if observation is None:
-                        executors.append(Collection2CaomMetaCreateClient(
-                            self.config, storage_name, command_name,
-                            cadc_data_client,
-                            caom_repo_client))
-                    else:
-                        executors.append(Collection2CaomMetaUpdateClient(
-                            self.config, storage_name, command_name,
-                            cadc_data_client,
-                            caom_repo_client, meta_visitors))
+                            self.config, storage_name,
+                            command_name, cred_param,
+                            cadc_data_client, caom_repo_client, data_visitors,
+                            mc.TaskType.MODIFY))
                 elif task_type == mc.TaskType.VISIT:
                     executors.append(Collection2CaomClientVisit(
-                        self.config, storage_name, cadc_data_client,
-                        caom_repo_client, meta_visitors))
+                        self.config, storage_name, cred_param,
+                        cadc_data_client, caom_repo_client, meta_visitors))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1331,7 +924,7 @@ class OrganizeExecutes(object):
                 executors.append(
                     Collection2CaomCompareChecksumClient(
                         self.config, storage_name, command_name,
-                        cadc_data_client, caom_repo_client))
+                        cred_param, cadc_data_client, caom_repo_client))
         else:
             logging.error('{} failed naming validation check.'.format(
                 storage_name.get_obs_id()))
@@ -1369,6 +962,22 @@ class OrganizeExecutes(object):
                     self.success_count, self.complete_record_count))
             finally:
                 success.close()
+
+    def _define_subject(self):
+        if self.config.proxy is not None:
+            subject = net.Subject(username=None, certificate=self.config.proxy)
+            cred_param = '--cred {}'.format(self.config.proxy)
+        elif (self.config.netrc_file is not None and os.path.exists(
+                self.config.netrc_file)):
+            subject = net.Subject(username=None, certificate=None,
+                                  netrc=self.config.netrc_file)
+            cred_param = '--netrc {}'.format(self.config.netrc_file)
+        else:
+            subject = None
+            cred_param = ''
+            logging.warning(
+                'No credentials provided (proxy certificate or netrc file).')
+        return subject, cred_param
 
     @staticmethod
     def _minimize_error_message(e):

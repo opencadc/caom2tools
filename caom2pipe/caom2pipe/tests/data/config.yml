@@ -5,5 +5,5 @@ todo_file_name: todo.txt
 use_local_files: False
 logging_level: DEBUG
 features:
-  use_clients: False
+  supports_composite: False
   run_in_airflow: True
