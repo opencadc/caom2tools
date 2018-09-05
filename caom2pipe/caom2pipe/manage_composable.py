@@ -96,18 +96,9 @@ class CadcException(Exception):
 class Features(object):
 
     def __init__(self):
-        self.use_clients = True
         self.use_file_names = True
         self.run_in_airflow = True
         self.supports_composite = True
-
-    @property
-    def use_clients(self):
-        return self._use_clients
-
-    @use_clients.setter
-    def use_clients(self, value):
-        self._use_clients = value
 
     @property
     def use_file_names(self):
@@ -143,7 +134,6 @@ class TaskType(Enum):
     STORE = 'store'
     SCRAPE = 'scrape'
     INGEST = 'ingest'
-    AUGMENT = 'augment'
     MODIFY = 'modify'
     CHECKSUM = 'checksum'
     VISIT = 'visit'

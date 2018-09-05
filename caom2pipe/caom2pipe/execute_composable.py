@@ -365,13 +365,14 @@ class CaomExecute(object):
         mc.write_obs_to_file(observation, self.model_fqn)
 
     def _visit_meta(self, observation):
-        kwargs = {'working_directory': self.working_dir}
-        for visitor in self.meta_visitors:
-            try:
-                self.logger.debug('Visit for {}'.format(visitor))
-                visitor.visit(observation, **kwargs)
-            except Exception as e:
-                raise mc.CadcException(e)
+        if self.meta_visitors is not None and len(self.meta_visitors) > 0:
+            kwargs = {'working_directory': self.working_dir}
+            for visitor in self.meta_visitors:
+                try:
+                    self.logger.debug('Visit for {}'.format(visitor))
+                    visitor.visit(observation, **kwargs)
+                except Exception as e:
+                    raise mc.CadcException(e)
 
     @staticmethod
     def _set_logging_level_param(logging_level):
@@ -535,6 +536,7 @@ class Collection2CaomLocalMetaUpdateClient(CaomExecute):
         super(Collection2CaomLocalMetaUpdateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
+        self._define_local_dirs(storage_name)
         self.observation = observation
 
     def execute(self, context):
@@ -874,11 +876,12 @@ class OrganizeExecutes(object):
                                 Collection2CaomLocalMetaCreateClient(
                                     self.config, storage_name, command_name,
                                     cred_param, cadc_data_client,
-                                    caom_repo_client))
+                                    caom_repo_client, meta_visitors))
                         else:
                             executors.append(Collection2CaomMetaCreateClient(
                                 self.config, storage_name, command_name,
-                                cred_param, cadc_data_client, caom_repo_client))
+                                cred_param, cadc_data_client, caom_repo_client,
+                                meta_visitors))
                     else:
                         if self.config.use_local_files:
                             executors.append(
@@ -891,7 +894,7 @@ class OrganizeExecutes(object):
                             executors.append(Collection2CaomMetaUpdateClient(
                                 self.config, storage_name, command_name,
                                 cred_param, cadc_data_client, caom_repo_client,
-                                observation))
+                                observation, meta_visitors))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
                         if isinstance(executors[0], Collection2CaomScrape):
@@ -966,7 +969,7 @@ class OrganizeExecutes(object):
     def _define_subject(self):
         if self.config.proxy is not None:
             subject = net.Subject(username=None, certificate=self.config.proxy)
-            cred_param = '--cred {}'.format(self.config.proxy)
+            cred_param = '--cert {}'.format(self.config.proxy)
         elif (self.config.netrc_file is not None and os.path.exists(
                 self.config.netrc_file)):
             subject = net.Subject(username=None, certificate=None,
@@ -1075,8 +1078,7 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
             storage_name = sname(obs_id=entry)
     logging.info('Process observation id {}'.format(
         storage_name.get_obs_id()))
-    if config.features.use_clients:
-        config.proxy = proxy
+    config.proxy = proxy
     _do_one(config, organizer, storage_name, command_name,
             meta_visitors, data_visitors)
 
