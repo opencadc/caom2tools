@@ -499,6 +499,7 @@ class Collection2CaomLocalMetaCreateClient(CaomExecute):
         super(Collection2CaomLocalMetaCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
+        self._define_local_dirs(storage_name)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
