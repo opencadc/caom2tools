@@ -299,8 +299,8 @@ class CaomExecute(object):
             self.caom_repo_client.create(observation)
         except Exception as e:
             raise mc.CadcException(
-                'Could not create an observation record for {} in {}. {}'.format(
-                    self.obs_id, self.resource_id, e))
+                'Could not create an observation record for {} in {}. '
+                '{}'.format(self.obs_id, self.resource_id, e))
 
     def _repo_cmd_update_client(self, observation):
         """Update an existing observation instance.  Assumes the obs_id
@@ -309,8 +309,8 @@ class CaomExecute(object):
             self.caom_repo_client.update(observation)
         except Exception as e:
             raise mc.CadcException(
-                'Could not update an observation record for {} in {}. {}'.format(
-                    self.obs_id, self.resource_id, e))
+                'Could not update an observation record for {} in {}. '
+                '{}'.format(self.obs_id, self.resource_id, e))
 
     def _repo_cmd_read_client(self):
         """Retrieve the existing observation model metadata."""

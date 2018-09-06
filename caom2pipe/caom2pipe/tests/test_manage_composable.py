@@ -69,6 +69,7 @@
 
 import os
 import pytest
+import sys
 
 from mock import Mock, patch
 
@@ -79,6 +80,8 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_config_class():
     os.getcwd = Mock(return_value=TESTDATA_DIR)
     test_config = mc.Config()
@@ -89,11 +92,15 @@ def test_config_class():
     assert test_config.features.supports_composite is False
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_exec_cmd():
     test_cmd = 'ls'
     mc.exec_cmd(test_cmd)
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_exec_cmd_redirect():
     fqn = os.path.join(TESTDATA_DIR, 'exec_cmd_redirect.txt')
     if os.path.exists(fqn):
@@ -105,6 +112,8 @@ def test_exec_cmd_redirect():
     assert os.stat(fqn).st_size > 0
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 @patch('caom2utils.fits2caom2.CadcDataClient.get_file_info')
 def test_compare_checksum(mock_get_file_info):
 
@@ -123,6 +132,8 @@ def test_compare_checksum(mock_get_file_info):
         mc.compare_checksum(test_netrc, 'OMM', test_file)
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_decompose_lineage():
     test_product_id = 'product_id'
     test_uri = 'ad:STARS/galaxies.fits.gz'
@@ -136,6 +147,8 @@ def test_decompose_lineage():
         mc.decompose_lineage('')
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_read_csv_file():
     # bad read
     with pytest.raises(mc.CadcException):
@@ -149,6 +162,8 @@ def test_read_csv_file():
     assert len(content[0]) == 24, 'missed the content'
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_read_url_file():
     # bad read
     with pytest.raises(mc.CadcException):

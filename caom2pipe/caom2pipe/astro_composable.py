@@ -160,5 +160,6 @@ def get_timedelta_in_s(from_value):
     from datetime import timedelta
     from time import strptime
     temp = strptime(from_value, '%H:%M:%S')
-    td = timedelta(hours=temp.tm_hour, minutes=temp.tm_min, seconds=temp.tm_sec)
+    td = timedelta(
+        hours=temp.tm_hour, minutes=temp.tm_min, seconds=temp.tm_sec)
     return td.seconds

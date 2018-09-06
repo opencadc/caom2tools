@@ -414,7 +414,7 @@ class Config(object):
         if 'features' in config:
             for ii in config['features']:
                 if not config['features'][ii]:
-                    att = getattr(feature_flags, ii)
+                    getattr(feature_flags, ii)
                     setattr(feature_flags, ii, False)
         return feature_flags
 

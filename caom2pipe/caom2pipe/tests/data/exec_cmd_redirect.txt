@@ -1,7 +1,0 @@
-LICENSE
-README.rst
-caom2pipe
-caom2pipe.egg-info
-dev_requirements.txt
-setup.cfg
-setup.py

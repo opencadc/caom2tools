@@ -68,6 +68,8 @@
 #
 
 import os
+import pytest
+import sys
 
 from mock import Mock
 
@@ -158,7 +160,8 @@ def _init_config():
 #         # check that things worked as expected
 #         assert mc.exec_cmd.called
 #         mc.exec_cmd.assert_called_with(
-#             'caom2-repo create --debug --resource-id ivo://cadc.nrc.ca/sc2repo '
+#             'caom2-repo create --debug --resource-id
+# ivo://cadc.nrc.ca/sc2repo '
 #             '--netrc {}/data/test_netrc '
 #             '{}/test_obs_id/test_obs_id.fits.xml'.format(THIS_DIR, THIS_DIR))
 #         assert ec.CaomExecute._data_cmd_info.called
@@ -244,8 +247,10 @@ def _init_config():
 #         assert mc.exec_cmd.called, 'exec cmd not called'
 #         assert mc.write_obs_to_file.called, 'write obs to file not called'
 #         mc.exec_cmd.assert_called_with(
-#             'caom2-repo update --debug --resource-id ivo://cadc.nrc.ca/sc2repo '
-#             '--netrc {}/test_netrc {}/test_obs_id/test_obs_id.fits.xml'.format(
+#             'caom2-repo update --debug --resource-id ivo://
+# cadc.nrc.ca/sc2repo '
+#             '--netrc {}/test_netrc {}/test_obs_id/test_obs_id.fits.xml'.
+# format(
 #                 TESTDATA_DIR, THIS_DIR))
 #
 #     finally:
@@ -257,7 +262,8 @@ def _init_config():
 #         os.rmdir = os_rmdir_orig
 #         mc.exec_cmd = exec_cmd_orig
 
-
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_data_local_execute():
     test_data_visitors = [TestVisit]
 
@@ -284,7 +290,8 @@ def test_data_local_execute():
         # check that things worked as expected - no cleanup
         # assert mc.exec_cmd.called
         # mc.exec_cmd.assert_called_with(
-        #     'caom2-repo update --debug --resource-id ivo://cadc.nrc.ca/sc2repo '
+        #     'caom2-repo update --debug --resource-id ivo://cadc.nrc.ca
+        # /sc2repo '
         #     '--netrc {}/test_netrc {}/test_obs_id.fits.xml'.format(
         #         TESTDATA_DIR, THIS_DIR))
     finally:
@@ -292,10 +299,11 @@ def test_data_local_execute():
         mc.write_obs_to_file = write_orig
         mc.exec_cmd = exec_cmd_orig
 
-
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_data_store():
     test_config = _init_config()
-    exec_cmd_orig = mc.exec_cmd
+    # exec_cmd_orig = mc.exec_cmd
     # mc.exec_cmd = Mock()
     data_client_mock = Mock()
     repo_client_mock = Mock()
@@ -311,12 +319,14 @@ def test_data_store():
         # assert mc.exec_cmd.called
         # mc.exec_cmd.assert_called_with(
         #     'cadc-data put --debug -c --netrc '
-        #     '{}/test_netrc OMM -s None test_file.fits.gz'.format(TESTDATA_DIR))
+        #     '{}/test_netrc OMM -s None test_file.fits.gz'.format
+        # (TESTDATA_DIR))
 
     # finally:
         # mc.exec_cmd = exec_cmd_orig
 
-
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_scrape():
     # clean up from previous tests
     if os.path.exists(TestStorageName().get_model_file_name()):
@@ -331,7 +341,7 @@ def test_scrape():
     mc.exec_cmd = Mock()
 
     try:
-        test_cred_param = '--netrc {}/test_netrc '.format(TESTDATA_DIR)
+        # test_cred_param = '--netrc {}/test_netrc '.format(TESTDATA_DIR)
         test_executor = ec.Collection2CaomScrape(
             test_config, TestStorageName(), 'command_name')
         try:
@@ -356,6 +366,8 @@ def test_scrape():
         mc.exec_cmd = exec_cmd_orig
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_data_scrape_execute():
     test_data_visitors = [TestVisit]
     read_orig = mc.read_obs_from_file
@@ -375,79 +387,10 @@ def test_data_scrape_execute():
 
     finally:
         mc.read_obs_from_file = read_orig
-#
-#
-# def test_organize_executes():
-#     test_obs_id = TestStorageName()
-#     test_config = _init_config()
-#     test_config.use_local_files = True
-#     log_file_directory = os.path.join(THIS_DIR, 'logs')
-#     test_config.log_file_directory = log_file_directory
-#     success_log_file_name = 'success_log.txt'
-#     test_config.success_log_file_name = success_log_file_name
-#     failure_log_file_name = 'failure_log.txt'
-#     test_config.failure_log_file_name = failure_log_file_name
-#     retry_file_name = 'retries.txt'
-#     test_config.retry_file_name = retry_file_name
-#     exec_cmd_orig = mc.exec_cmd_info
-#
-#     try:
-#         mc.exec_cmd_info = \
-#             Mock(return_value='INFO:cadc-data:info\n'
-#                               'File C170324_0054_SCI_prev.jpg:\n'
-#                               '    archive: OMM\n'
-#                               '   encoding: None\n'
-#                               '    lastmod: Mon, 25 Jun 2018 16:52:07 GMT\n'
-#                               '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
-#                               '       name: C120902_sh2-132_J_old_'
-#                               'SCIRED.fits.gz\n'
-#                               '       size: 754408\n'
-#                               '       type: image/jpeg\n'
-#                               '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
-#                               '      usize: 754408\n'.encode('utf-8'))
-#
-#         test_config.task_types = [mc.TaskType.SCRAPE]
-#         test_oe = ec.OrganizeExecutes(test_config)
-#         executors = test_oe.choose(test_obs_id, 'command_name')
-#         assert executors is not None
-#         assert len(executors) == 1
-#         assert isinstance(executors[0], ec.Collection2CaomScrape)
-#
-#         test_config.task_types = [mc.TaskType.STORE,
-#                                   mc.TaskType.INGEST,
-#                                   mc.TaskType.MODIFY]
-#         test_oe = ec.OrganizeExecutes(test_config)
-#         executors = test_oe.choose(test_obs_id, 'command_name')
-#         assert executors is not None
-#         assert len(executors) == 4
-#         assert isinstance(executors[0], ec.Collection2CaomStore)
-#         assert isinstance(executors[1], ec.Collection2CaomLocalMeta)
-#         assert isinstance(executors[2], ec.Collection2CaomLocalData)
-#         assert isinstance(executors[3], ec.Collection2CaomCompareChecksum)
-#
-#         test_config.use_local_files = False
-#         test_config.task_types = [mc.TaskType.INGEST,
-#                                   mc.TaskType.MODIFY]
-#         test_oe = ec.OrganizeExecutes(test_config)
-#         executors = test_oe.choose(test_obs_id, 'command_name')
-#         assert executors is not None
-#         assert len(executors) == 2
-#         assert isinstance(executors[0], ec.Collection2CaomMeta)
-#         assert isinstance(executors[1], ec.Collection2CaomData)
-#
-#         test_config.task_types = [mc.TaskType.SCRAPE,
-#                                   mc.TaskType.MODIFY]
-#         test_config.use_local_files = True
-#         test_oe = ec.OrganizeExecutes(test_config)
-#         executors = test_oe.choose(test_obs_id, 'command_name')
-#         assert executors is not None
-#         assert len(executors) == 2
-#         assert isinstance(executors[0], ec.Collection2CaomScrape)
-#         assert isinstance(executors[1], ec.Collection2CaomDataScrape)
-#     finally:
-#         mc.exec_cmd_orig = exec_cmd_orig
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_organize_executes_client():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -541,6 +484,8 @@ def test_organize_executes_client():
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_organize_executes_client_existing():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -561,6 +506,8 @@ def test_organize_executes_client_existing():
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_organize_executes_client_visit():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -579,13 +526,15 @@ def test_organize_executes_client_visit():
 #     repo_client_mock = Mock()
 #     test_executor = ec.Collection2CaomLocalMetaCreateClient(test_config,
 #                                                             TestStorageName(),
-#                                                             'test2caom2', None,
+#                                                          'test2caom2', None,
 #                                                             repo_client_mock,
 #                                                             None)
 #     test_executor.execute(None)
 #     assert repo_client_mock.create.called
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_checksum_client():
     test_config = _init_config()
     test_executor = ec.Collection2CaomCompareChecksumClient(
@@ -613,19 +562,19 @@ def test_checksum_client():
 #                               '    archive: OMM\n'
 #                               '   encoding: None\n'
 #                               '    lastmod: Mon, 25 Jun 2018 16:52:07 GMT\n'
-#                               '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
+#                            '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
 #                               '       name: C120902_sh2-132_J_old_'
 #                               'SCIRED.fits.gz\n'
 #                               '       size: 754408\n'
 #                               '       type: image/jpeg\n'
-#                               '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
+#                            '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
 #                               '      usize: 754408\n')
 #         test_config = _init_config()
-#         test_executor = ec.Collection2CaomMeta(test_config, TestStorageName(),
+#        test_executor = ec.Collection2CaomMeta(test_config, TestStorageName(),
 #                                                'command_name')
 #         test_executor._find_file_name_storage()
 #         assert test_executor.fname is not None, test_executor.fname
-#         assert test_executor.fname == 'C120902_sh2-132_J_old_SCIRED.fits.gz', \
+#      assert test_executor.fname == 'C120902_sh2-132_J_old_SCIRED.fits.gz', \
 #             test_executor.fname
 #         assert mc.exec_cmd_info.called
 #         mc.exec_cmd_info.assert_called_with(
@@ -635,6 +584,8 @@ def test_checksum_client():
 #         mc.exec_cmd_orig = exec_cmd_orig
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_capture_failure():
     test_obs_id = 'test_obs_id'
     test_config = _init_config()
@@ -668,6 +619,8 @@ def test_capture_failure():
     assert os.path.exists(test_config.retry_fqn)
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_run_by_file():
     try:
         os.getcwd = Mock(return_value=TESTDATA_DIR)
@@ -681,6 +634,8 @@ def test_run_by_file():
         assert False, 'but the work list is empty {}'.format(e)
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_do_one():
     test_config = _init_config()
     test_config.task_types = []
