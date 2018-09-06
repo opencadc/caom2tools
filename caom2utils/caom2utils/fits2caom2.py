@@ -3339,6 +3339,8 @@ def _get_type(path):
         return 'image/gif'
     elif path.endswith('.png'):
         return 'image/png'
+    elif path.endswith('.jpg'):
+        return 'image/jpeg'
     else:
         return 'application/octet-stream'
 

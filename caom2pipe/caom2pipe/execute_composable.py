@@ -1009,6 +1009,8 @@ class OrganizeExecutes(object):
             return 'md5sum not the same'
         elif 'Start tag expected' in e:
             return 'XML Syntax Exception'
+        elif 'failed to compute metadata' in e:
+            return 'Failed to compute metadata'
         else:
             return e
 
