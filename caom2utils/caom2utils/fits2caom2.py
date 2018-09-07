@@ -3342,7 +3342,7 @@ def _get_type(path):
     elif path.endswith('.jpg'):
         return 'image/jpeg'
     else:
-        return 'application/octet-stream'
+        return 'application/fits'
 
 
 def _lookup_blueprint(blueprints, uri):
