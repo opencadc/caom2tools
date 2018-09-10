@@ -517,12 +517,12 @@ class SimpleObservation(Observation):
     "exposure"
 
     """
-    DEFAULT_ALGORITHM_NAME = 'exposure'
+    _DEFAULT_ALGORITHM_NAME = 'exposure'
 
     def __init__(self,
                  collection,
                  observation_id,
-                 algorithm=DEFAULT_ALGORITHM_NAME,
+                 algorithm=_DEFAULT_ALGORITHM_NAME,
                  sequence_number=None,
                  intent=None,
                  type=None,
@@ -626,7 +626,7 @@ class CompositeObservation(Observation):
             raise ValueError('Algorithm name required')
         if isinstance(value, str):
             value = Algorithm(value)
-        if value.name == SimpleObservation.DEFAULT_ALGORITHM_NAME:
+        if value.name == SimpleObservation._DEFAULT_ALGORITHM_NAME:
             raise ValueError("cannot set CompositeObservation.algorithm to {0}"
                              " (reserved for SimpleObservation)".format(value))
         self._algorithm = value
