@@ -312,8 +312,9 @@ def update_checksum(checksum, value, attribute=''):
             md5 = hashlib.md5()
             md5.update(b)
             logger.debug('Encoded attribute ({}) {} = {} -- {}'.
-                         format(type(value),attribute,
+                         format(type(value), attribute,
                                 value, md5.hexdigest()))
+
 
 def update_caom_checksum(checksum, entity, parent=None):
     """
@@ -381,8 +382,10 @@ def checksum_diff():
     print('** metaChecksum **\n')
     mistmatches = 0
     for plane in zip(orig.planes.values(), actual.planes.values()):
-        for artifact in zip(plane[0].artifacts.values(), plane[1].artifacts.values()):
-            for part in zip(artifact[0].parts.values(), artifact[1].parts.values()):
+        for artifact in zip(plane[0].artifacts.values(),
+                            plane[1].artifacts.values()):
+            for part in zip(artifact[0].parts.values(),
+                            artifact[1].parts.values()):
                 for chunk in zip(part[0].chunks, part[1].chunks):
                     mistmatches += _print_diff(chunk[0], chunk[1])
                 mistmatches += _print_diff(part[0], part[1])

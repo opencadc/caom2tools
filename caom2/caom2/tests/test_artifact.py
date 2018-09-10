@@ -173,3 +173,13 @@ class TestArtifact(unittest.TestCase):
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
+
+        # missing scheme in uri
+        with self.assertRaises(ValueError):
+            test_artifact = artifact.Artifact(
+                "observation/something",
+                artifact.ReleaseType('META'),
+                artifact.ProductType('THUMBNAIL'))
+
+        with self.assertRaises(ValueError):
+            test_artifact.content_checksum = common.ChecksumURI('0x1234')
