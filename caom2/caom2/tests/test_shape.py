@@ -79,14 +79,14 @@ from .. import shape
 
 class TestEnums(unittest.TestCase):
     def test_all(self):
-        # test for invalid value
+        # test for invalid key
         with self.assertRaises(KeyError):
             shape.SegmentType["foo"]
         with self.assertRaises(TypeError):
             shape.SegmentType[None]
         with self.assertRaises(TypeError):
             shape.SegmentType[999]
-
+        # test for invalid value
         with self.assertRaises(ValueError):
             shape.SegmentType("foo")
         with self.assertRaises(ValueError):
