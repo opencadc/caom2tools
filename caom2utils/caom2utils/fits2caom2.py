@@ -3411,7 +3411,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         else:
             meta_uri = 'file://{}'.format(local)
             visit_local = local
-            if '.header' in local:
+            if '.header' in local and '.fits' in local:
                 logging.debug(
                     'Using a FitsParser for local file {}'.format(local))
                 parser = FitsParser(get_cadc_headers(meta_uri),
