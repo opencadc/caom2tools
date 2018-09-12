@@ -84,6 +84,7 @@ __all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI']
 
 logger = logging.getLogger('caom2')
 
+
 def get_current_ivoa_time():
     """Generate a datetime with 3 digit microsecond precision.
 
