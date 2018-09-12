@@ -76,6 +76,7 @@ import hashlib
 import os
 import sys
 from uuid import UUID
+import logging
 
 from builtins import int, str
 
@@ -123,6 +124,11 @@ def test_primitive_checksum():
     assert ('0fec383169e99d1a6bebd89d1cd8fad9' == md5.hexdigest())
     md5 = hashlib.md5()
     value = str2ivoa('2012-07-11T13:26:37.123')
+    update_checksum(md5, value, False)
+    assert ('aedbcf5e27a17fc2daa5a0e0d7840009' == md5.hexdigest())
+    # ensure that the milliseconds part is not part of checksum
+    md5 = hashlib.md5()
+    value = str2ivoa('2012-07-11T13:26:37.000')
     update_checksum(md5, value, False)
     assert ('aedbcf5e27a17fc2daa5a0e0d7840009' == md5.hexdigest())
     md5 = hashlib.md5()
@@ -339,6 +345,43 @@ def test_compatibility():
                 artifact)
         assert plane.meta_checksum == get_meta_checksum(plane)
         assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+
+
+def test_compatibility_simple_obs():
+    # tests loads a previously generated observation and checks the checksums
+    # against the previously calculated (in Java) checksums
+    logger = logging.getLogger('checksum')
+    level = logger.getEffectiveLevel()
+    logger.setLevel(logging.DEBUG)
+    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
+                                    'SampleSimple-CAOM-2.3.xml')
+    reader = obs_reader_writer.ObservationReader(True)
+    with open(source_file_path, 'r'):
+        obs = reader.read(source_file_path)
+
+    writer = obs_reader_writer.ObservationWriter(True)
+    writer.write(obs, '/tmp/test.xml')
+
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    assert chunk.meta_checksum == get_meta_checksum(chunk)
+                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
+                        chunk)
+                assert part.meta_checksum == get_meta_checksum(part)
+                assert part.acc_meta_checksum == get_acc_meta_checksum(
+                    part)
+            assert artifact.meta_checksum == get_meta_checksum(artifact)
+            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
+                artifact)
+        assert plane.meta_checksum == get_meta_checksum(plane)
+        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+
+    # check observation
+    assert obs.meta_checksum == get_meta_checksum(obs)
+    assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
+    logger.setLevel(level)
 
 
 def test_rountrip():

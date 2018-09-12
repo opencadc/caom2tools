@@ -225,7 +225,7 @@ class TestObservation(unittest.TestCase):
 class TestSimpleObservation(unittest.TestCase):
     def test_all(self):
         algorithm = observation.Algorithm(
-            observation.SimpleObservation.DEFAULT_ALGORITHM_NAME)
+            observation.SimpleObservation._DEFAULT_ALGORITHM_NAME)
         obs = observation.SimpleObservation("GSA", "A12345")
         self.assertEqual("GSA", obs.collection, "Collection")
         self.assertEqual("A12345", obs.observation_id, "Observation ID")
@@ -306,7 +306,7 @@ class TestSimpleObservation(unittest.TestCase):
         collection = "CFHT"
         observation_id = "543210"
         algorithm = observation.Algorithm(
-            observation.SimpleObservation.DEFAULT_ALGORITHM_NAME)
+            observation.SimpleObservation._DEFAULT_ALGORITHM_NAME)
         sequence_number = int(3)
         intent = observation.ObservationIntentType.SCIENCE
         obs_type = "foo"
@@ -384,7 +384,7 @@ class TestCompositeObservation(unittest.TestCase):
         exception = False
         try:
             obs.algorithm = observation.Algorithm(
-                observation.SimpleObservation.DEFAULT_ALGORITHM_NAME)
+                observation.SimpleObservation._DEFAULT_ALGORITHM_NAME)
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")

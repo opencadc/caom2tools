@@ -120,6 +120,7 @@ at the minimum, __eq__ and __lt__ that will result in proper sorting
 
 """
 logger = logging.getLogger('checksum')
+logging.basicConfig()
 
 
 def get_meta_checksum(entity):
@@ -149,17 +150,23 @@ def get_meta_checksum(entity):
     return ChecksumURI('md5:{}'.format(md5.hexdigest()))
 
 
-def get_acc_meta_checksum(entity):
+def get_acc_meta_checksum(entity, no_logging=False):
     """
     Similar to get_meta_checksum except that the accumulated checksum of
     the CAOM2 children are also included in alphabetical order of their ids
 
     :param entity: CAOM2 entity
+    :param no_logging: if True turns off any logging while running this method
     :return: md5 checksum corresponding to the entity metadata
     """
     assert (isinstance(entity, AbstractCaomEntity))
+    if no_logging:
+        log_level = logger.getEffectiveLevel()
+        logger.setLevel(logging.ERROR)
     md5 = hashlib.md5()
     update_acc_checksum(md5, entity)
+    if no_logging:
+        logger.setLevel(log_level)
     return ChecksumURI('md5:{}'.format(md5.hexdigest()))
 
 
@@ -174,16 +181,29 @@ def update_meta_checksum(obs):
         for artifact in plane.artifacts.values():
             for part in artifact.parts.values():
                 for chunk in part.chunks:
+                    logger.debug('*** START CHUNK ***')
                     chunk.meta_checksum = get_meta_checksum(chunk)
-                    chunk.acc_meta_checksum = get_acc_meta_checksum(chunk)
+                    chunk.acc_meta_checksum = \
+                        get_acc_meta_checksum(chunk, no_logging=True)
+                    logger.debug('*** END CHUNK ***')
+                logger.debug('*** START PART ***')
                 part.meta_checksum = get_meta_checksum(part)
-                part.acc_meta_checksum = get_acc_meta_checksum(part)
+                part.acc_meta_checksum = get_acc_meta_checksum(part,
+                                                               no_logging=True)
+                logger.debug('*** END PART ***')
+            logger.debug('*** START ARTIFACT ***')
             artifact.meta_checksum = get_meta_checksum(artifact)
-            artifact.acc_meta_checksum = get_acc_meta_checksum(artifact)
+            artifact.acc_meta_checksum = get_acc_meta_checksum(artifact,
+                                                               no_logging=True)
+            logger.debug('*** END ARTIFACT ***')
+        logger.debug('*** START PLANE ***')
         plane.meta_checksum = get_meta_checksum(plane)
-        plane.acc_meta_checksum = get_acc_meta_checksum(plane)
+        plane.acc_meta_checksum = get_acc_meta_checksum(plane, no_logging=True)
+        logger.debug('*** END PLANE ***')
+    logger.debug('*** START OBSERVATION ***')
     obs.meta_checksum = get_meta_checksum(obs)
-    obs.acc_meta_checksum = get_acc_meta_checksum(obs)
+    obs.acc_meta_checksum = get_acc_meta_checksum(obs, no_logging=True)
+    logger.debug('*** END OBSERVATION ***')
 
 
 def update_acc_checksum(checksum, entity):
@@ -233,45 +253,32 @@ def update_checksum(checksum, value, attribute=''):
     """
 
     if type(value) is None:
-        logger.debug('Encoded empty attribute {}'.format(attribute))
+        logger.debug('Empty attribute {}'.format(attribute))
         return
 
+    b = None
+
     if isinstance(value, ObservationURI) or isinstance(value, ChecksumURI):
-        logger.debug('Encoded attribute uri {} = {}'.format(attribute, value))
-        checksum.update(value.uri.encode('utf-8'))
+        b = value.uri.encode('utf-8')
     elif isinstance(value, CaomObject):
-        logger.debug('Encoded attribute {}'.format(attribute))
+        logger.debug('Process object {}'.format(attribute))
         update_caom_checksum(checksum, value, attribute)
     elif isinstance(value, bytes):
-        logger.debug(
-            'Encoded attribute bytes {} = {}'.format(attribute, value))
-        checksum.update(value)
+        b = value
     elif isinstance(value, bool):
-        logger.debug('Encoded attribute bool {} = {}'.format(attribute, value))
-        checksum.update(struct.pack('!?', value))
-        # elif isinstance(value, float_32):
-        # must be before float
-        # checksum.update(struct.pack('!f', value))
+        b = struct.pack('!?', value)
     elif isinstance(value, float):
-        logger.debug(
-            'Encoded attribute float {} = {}'.format(attribute, value))
-        checksum.update(struct.pack('!d', value))
+        b = struct.pack('!d', value)
     elif isinstance(value, int_32):
         # must be before int
-        logger.debug(
-            'Encoded attribute int_32 {} = {}'.format(attribute, value))
-        checksum.update(struct.pack('!l', value))
+        b = struct.pack('!l', value)
     elif isinstance(value, int):
-        logger.debug('Encoded attribute int {} = {}'.format(attribute, value))
-        checksum.update(struct.pack('!q', value))
+        b = struct.pack('!q', value)
     elif isinstance(value, str):
-        logger.debug('Encoded attribute str {} = {}'.format(attribute, value))
-        checksum.update(value.strip().encode('utf-8'))
+        b = value.strip().encode('utf-8')
     elif isinstance(value, datetime):
-        logger.debug(
-            'Encoded attribute datetime {} = {}'.format(attribute, value))
-        checksum.update(struct.pack('!q', int(
-            (value - datetime(1970, 1, 1)).total_seconds())))
+        b = struct.pack('!q', int(
+            (value - datetime(1970, 1, 1)).total_seconds()))
     elif isinstance(value, set) or \
             (isinstance(value, TypedSet) and not
                 isinstance(value.key_type, AbstractCaomEntity)):
@@ -284,8 +291,7 @@ def update_checksum(checksum, value, attribute=''):
     elif isinstance(value, Enum):
         update_checksum(checksum, value.value, attribute)
     elif isinstance(value, uuid.UUID):
-        logger.debug('Encoded attribute uuid {} = {}'.format(attribute, value))
-        checksum.update(value.bytes)
+        b = value.bytes
     elif isinstance(value, TypedOrderedDict):
         # calculate the checksum of each component and add them in
         # alphabetical order of their ids
@@ -299,6 +305,15 @@ def update_checksum(checksum, value, attribute=''):
     else:
         raise ValueError(
             'Cannot transform in bytes: {}({})'.format(value, type(value)))
+
+    if b is not None:
+        checksum.update(b)
+        if logger.isEnabledFor(logging.DEBUG):
+            md5 = hashlib.md5()
+            md5.update(b)
+            logger.debug('Encoded attribute ({}) {} = {} -- {}'.
+                         format(type(value), attribute,
+                                value, md5.hexdigest()))
 
 
 def update_caom_checksum(checksum, entity, parent=None):
@@ -341,8 +356,7 @@ def checksum_diff():
 
     parser = argparse.ArgumentParser(
         description='Compare observation checksum')
-    parser.add_argument('file', help='Observation file',
-                        type=argparse.FileType('r'))
+    parser.add_argument('file', help='Observation file')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Display details')
     parser.add_argument('-o', '--output', required=False,
@@ -354,58 +368,62 @@ def checksum_diff():
         sys.stderr.write("caom2_checksum: error: too few arguments")
         sys.exit(-1)
 
-    reader = obs_reader_writer.ObservationReader(True)
-    obs = reader.read(args.file)
-    args.file.close()
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
 
-    print('Start checking')
+    reader = obs_reader_writer.ObservationReader(True)
+    orig = reader.read(args.file)
+
+    # read again for the observation that would have the checksums updated
+    actual = reader.read(args.file)
+
+    update_meta_checksum(actual)
+
+    print('** metaChecksum **\n')
     mistmatches = 0
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    mistmatches += _print_diff(chunk, args.debug)
-                mistmatches += _print_diff(part, args.debug)
-            mistmatches += _print_diff(artifact, args.debug)
-        mistmatches += _print_diff(plane, args.debug)
-    mistmatches += _print_diff(obs, args.debug)
+    for plane in zip(orig.planes.values(), actual.planes.values()):
+        for artifact in zip(plane[0].artifacts.values(),
+                            plane[1].artifacts.values()):
+            for part in zip(artifact[0].parts.values(),
+                            artifact[1].parts.values()):
+                for chunk in zip(part[0].chunks, part[1].chunks):
+                    mistmatches += _print_diff(chunk[0], chunk[1])
+                mistmatches += _print_diff(part[0], part[1])
+            mistmatches += _print_diff(artifact[0], artifact[1])
+        mistmatches += _print_diff(plane[0], plane[1])
+    mistmatches += _print_diff(orig, actual)
 
     if args.output:
-        update_meta_checksum(obs)
         writer = obs_reader_writer.ObservationWriter(validate=True)
-        writer.write(obs, args.output)
+        writer.write(actual, args.output)
 
     print("Total: {} mistmatches".format(mistmatches))
     if mistmatches > 0:
         sys.exit(-1)
 
 
-def _print_diff(elem, debug=False):
-    elem_type = str(type(elem)).split('.')[1]
-    actual = get_meta_checksum(elem)
+def _print_diff(orig, actual):
+    elem_type = str(type(orig)).split('.')[1]
     mistmatches = 0
-    if elem.meta_checksum == actual:
-        print('{}: {} {} == {}'.format(elem_type, elem._id,
-                                       elem.meta_checksum.checksum,
-                                       actual.checksum))
+    if orig.meta_checksum == actual.meta_checksum:
+        print('{}: {} {} == {}'.format(elem_type, orig._id,
+                                       orig.meta_checksum.checksum,
+                                       actual.meta_checksum.checksum))
     else:
-        print('{}: {} {} != {} [MISMATCH]'.format(elem_type, elem._id,
-                                                  elem.meta_checksum.checksum,
-                                                  actual.checksum))
+        print('{}: {} {} != {} [MISMATCH]'.
+              format(elem_type, orig._id, orig.meta_checksum.checksum,
+                     actual.meta_checksum.checksum))
         mistmatches += 1
-        if debug:
-            print(elem)
 
     if elem_type != 'chunk':
         # do the accummulated checksums
-        actual = get_acc_meta_checksum(elem)
-        if elem.acc_meta_checksum == actual:
-            print('{}: {} {} == {}'.format(elem_type, elem._id,
-                                           elem.acc_meta_checksum.checksum,
-                                           actual.checksum))
+        if orig.acc_meta_checksum == actual.acc_meta_checksum:
+            print('{}: {} {} == {}'.
+                  format(elem_type, orig._id, orig.acc_meta_checksum.checksum,
+                         actual.acc_meta_checksum.checksum))
         else:
             print('{}: {} {} != {} [MISMATCH]'.
-                  format(elem_type, elem._id, elem.acc_meta_checksum.checksum,
-                         actual.checksum))
+                  format(elem_type, orig._id, orig.acc_meta_checksum.checksum,
+                         actual.acc_meta_checksum.checksum))
             mistmatches += 1
     return mistmatches

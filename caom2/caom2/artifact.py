@@ -160,9 +160,12 @@ class Artifact(AbstractCaomEntity):
     @uri.setter
     def uri(self, value):
         caom_util.type_check(value, str, 'uri')
-        uri = urlparse(value).geturl()
-        caom_util.value_check(value, None, None, 'uri', override=uri)
-        self._uri = uri
+        uri = urlparse(value)
+        if not uri.scheme:
+            raise ValueError('URI without scheme: {}'.format(value))
+        uri_str = uri.geturl()
+        caom_util.value_check(value, None, None, 'uri', override=uri_str)
+        self._uri = uri_str
 
     @property
     def product_type(self):

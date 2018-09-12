@@ -75,7 +75,7 @@ import uuid
 from datetime import datetime
 
 from builtins import int, str
-from six.moves.urllib.parse import SplitResult, urlsplit
+from six.moves.urllib.parse import SplitResult, urlparse
 
 from . import caom_util
 
@@ -234,7 +234,7 @@ class ObservationURI(CaomObject):
         uri : URI corresponding to observation
         """
         super(CaomObject, self).__init__()
-        tmp = urlsplit(uri)
+        tmp = urlparse(uri)
 
         if tmp.scheme != ObservationURI._SCHEME:
             raise ValueError(
@@ -338,16 +338,17 @@ class ChecksumURI(CaomObject):
         uri : Checksum URI in the format Algorithm:ChecksumValue
         """
         super(CaomObject, self).__init__()
-        tmp = urlsplit(uri)
+        # note: urlparse does not recognize scheme in uri of form scheme:val
+        tmp = uri.split(':', 1)
 
-        algorithm = tmp.scheme
-        checksum = tmp.path
-
-        if algorithm is None:
+        if len(tmp) < 2:
             raise ValueError(
                 ("A checksum scheme noting the algorithm is "
                  "required.. received: {}")
                 .format(uri))
+
+        algorithm = tmp[0]
+        checksum = tmp[1]
 
         if checksum is None:
             raise ValueError(
@@ -356,7 +357,7 @@ class ChecksumURI(CaomObject):
         caom_util.validate_path_component(self, "checksum", checksum)
 
         (self._uri, self._algorithm, self._checksum) = (
-            tmp.geturl(), algorithm, checksum)
+            uri, algorithm, checksum)
         self._print_attributes = ['uri', 'algorithm', 'checksum']
 
     def _key(self):
