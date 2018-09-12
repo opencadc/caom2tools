@@ -76,11 +76,13 @@ from datetime import datetime
 
 from builtins import int, str
 from six.moves.urllib.parse import SplitResult, urlparse
+import logging
 
 from . import caom_util
 
 __all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI']
 
+logger = logging.getLogger('caom2')
 
 def get_current_ivoa_time():
     """Generate a datetime with 3 digit microsecond precision.
@@ -341,14 +343,15 @@ class ChecksumURI(CaomObject):
         # note: urlparse does not recognize scheme in uri of form scheme:val
         tmp = uri.split(':', 1)
 
+        # TODO change this raise a ValueError when the rule is being enforced
         if len(tmp) < 2:
-            raise ValueError(
-                ("A checksum scheme noting the algorithm is "
-                 "required.. received: {}")
-                .format(uri))
-
-        algorithm = tmp[0]
-        checksum = tmp[1]
+            logger.warn(("A checksum scheme noting the algorithm is "
+                         "required.. received: {}").format(uri))
+            algorithm = None
+            checksum = tmp[0]
+        else:
+            algorithm = tmp[0]
+            checksum = tmp[1]
 
         if checksum is None:
             raise ValueError(
