@@ -196,6 +196,10 @@ class CaomName(object):
     def get_uncomp_file_name(self):
         return self.get_file_name().replace('.gz', '')
 
+    @staticmethod
+    def make_obs_uri_from_file_id(collection, file_id):
+        return 'caom:{}/{}.fits.gz'.format(collection, file_id)
+
 
 class CaomExecute(object):
     """Abstract class that defines the operations common to all Execute

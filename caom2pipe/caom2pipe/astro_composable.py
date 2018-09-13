@@ -69,6 +69,7 @@
 
 import logging
 
+from astropy.io import fits
 from astropy.coordinates import EarthLocation
 from astropy.time import Time, TimeDelta
 
@@ -76,7 +77,7 @@ from caom2pipe import manage_composable as mc
 
 
 __all__ = ['convert_time', 'get_datetime', 'build_plane_time', 'get_location',
-           'get_timedelta_in_s']
+           'get_timedelta_in_s', 'make_headers_from_string']
 
 
 def find_time_bounds(headers):
@@ -163,3 +164,13 @@ def get_timedelta_in_s(from_value):
     td = timedelta(
         hours=temp.tm_hour, minutes=temp.tm_min, seconds=temp.tm_sec)
     return td.seconds
+
+
+def make_headers_from_string(fits_header):
+    """Create a list of fits.Header instances from a string.
+    ":param fits_header a string of keyword/value pairs"""
+    delim = '\nEND'
+    extensions = \
+        [e + delim for e in fits_header.split(delim) if e.strip()]
+    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    return headers
