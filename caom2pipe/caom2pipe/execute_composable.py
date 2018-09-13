@@ -522,6 +522,9 @@ class Collection2CaomLocalMetaCreateClient(CaomExecute):
         self.logger.debug('store the xml')
         self._repo_cmd_create_client(observation)
 
+        self.logger.debug('write the updated xml to disk for debugging')
+        self._write_model(observation)
+
         self.logger.debug('End execute for {}'.format(__name__))
 
 
@@ -562,6 +565,9 @@ class Collection2CaomLocalMetaUpdateClient(CaomExecute):
 
         self.logger.debug('store the xml')
         self._repo_cmd_update_client(self.observation)
+
+        self.logger.debug('write the updated xml to disk for debugging')
+        self._write_model(self.observation)
 
         self.logger.debug('End execute for {}'.format(__name__))
 
@@ -660,7 +666,7 @@ class Collection2CaomDataClient(CaomExecute):
 
 
 class Collection2CaomLocalDataClient(Collection2CaomDataClient):
-    """Defines the pipeline step for  all the operations that
+    """Defines the pipeline step for all the operations that
     require access to the file on disk. This class assumes it has access to
     the files on disk."""
 
@@ -684,6 +690,9 @@ class Collection2CaomLocalDataClient(Collection2CaomDataClient):
 
         self.logger.debug('store the updated xml')
         self._repo_cmd_update_client(observation)
+
+        self.logger.debug('write the updated xml to disk for debugging')
+        self._write_model(observation)
 
         self.logger.debug('End execute for {}'.format(__name__))
 
