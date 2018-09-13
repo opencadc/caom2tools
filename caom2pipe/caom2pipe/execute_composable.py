@@ -197,8 +197,8 @@ class CaomName(object):
         return self.get_file_name().replace('.gz', '')
 
     @staticmethod
-    def make_obs_uri_from_file_id(collection, file_id):
-        return 'caom:{}/{}.fits.gz'.format(collection, file_id)
+    def make_obs_uri_from_obs_id(collection, obs_id):
+        return 'caom:{}/{}'.format(collection, obs_id)
 
 
 class CaomExecute(object):
