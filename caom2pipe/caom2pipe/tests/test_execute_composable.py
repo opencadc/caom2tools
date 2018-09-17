@@ -140,7 +140,7 @@ def test_meta_create_client_execute():
 
     test_executor = ec.Collection2CaomMetaCreateClient(
         test_config, TestStorageName(), test_app, test_cred,
-        data_client_mock, repo_client_mock)
+        data_client_mock, repo_client_mock, meta_visitors=None)
     test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
         test_app, test_app)
     try:
@@ -170,7 +170,7 @@ def test_meta_update_client_execute():
     repo_client_mock = Mock()
     test_executor = ec.Collection2CaomMetaUpdateClient(
         test_config, TestStorageName(), test_app, test_cred,
-        data_client_mock, repo_client_mock, TEST_OBS)
+        data_client_mock, repo_client_mock, TEST_OBS, meta_visitors=None)
     test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
         test_app, test_app)
     try:
@@ -201,7 +201,7 @@ def test_local_meta_create_client_execute():
 
     test_executor = ec.Collection2CaomLocalMetaCreateClient(
         test_config, TestStorageName(), test_app, test_cred,
-        data_client_mock, repo_client_mock)
+        data_client_mock, repo_client_mock, meta_visitors=None)
     test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
         test_app, test_app)
     try:
@@ -230,7 +230,7 @@ def test_local_meta_update_client_execute():
     repo_client_mock = Mock()
     test_executor = ec.Collection2CaomLocalMetaUpdateClient(
         test_config, TestStorageName(), test_app, test_cred,
-        data_client_mock, repo_client_mock, TEST_OBS)
+        data_client_mock, repo_client_mock, TEST_OBS, meta_visitors=None)
     test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
         test_app, test_app)
     try:
@@ -257,7 +257,8 @@ def test_client_visit():
     test_executor = ec.Collection2CaomClientVisit(test_config,
                                                   TestStorageName(), test_cred,
                                                   data_client_mock,
-                                                  repo_client_mock)
+                                                  repo_client_mock,
+                                                  meta_visitors=None)
 
     test_executor.execute(None)
     assert repo_client_mock.read.is_called, 'read call missed'

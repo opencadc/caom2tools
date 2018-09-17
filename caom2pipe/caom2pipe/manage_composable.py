@@ -403,7 +403,7 @@ class Config(object):
                 self.features, self.logging_level)
 
     @staticmethod
-    def _set_task_types(config, default=None):
+    def _obtain_task_types(config, default=None):
         task_types = []
         if 'task_types' in config:
             for ii in config['task_types']:
@@ -413,7 +413,7 @@ class Config(object):
             return default
 
     @staticmethod
-    def _set_features(config):
+    def _obtain_features(config):
         feature_flags = Features()
         if 'features' in config:
             for ii in config['features']:
@@ -422,9 +422,18 @@ class Config(object):
                     setattr(feature_flags, ii, False)
         return feature_flags
 
-    def get_executors(self):
+    def get(self):
         """Look up the configuration values in the data structure extracted
         from the configuration file."""
+        return self.get_executors()
+
+    def get_executors(self):
+        """Look up the configuration values in the data structure extracted
+        from the configuration file.
+
+        Consider this deprecated - use get instead, because the name is
+        non-representative of the work being done.
+        """
         try:
             config = self.get_config()
             self.working_directory = \
@@ -441,7 +450,7 @@ class Config(object):
             self.log_file_directory = self._lookup(
                 config, 'log_file_directory', self.working_directory)
             self.stream = self._lookup(config, 'stream', 'raw')
-            self.task_types = self._set_task_types(config, [TaskType.SCRAPE])
+            self.task_types = self._obtain_task_types(config, [TaskType.SCRAPE])
             self.collection = self._lookup(config, 'collection', 'TEST')
             self.success_log_file_name = self._lookup(config,
                                                       'success_log_file_name',
@@ -451,7 +460,7 @@ class Config(object):
                                                       'failure_log.txt')
             self.retry_file_name = self._lookup(config, 'retry_file_name',
                                                 'retries.txt')
-            self.features = self._set_features(config)
+            self.features = self._obtain_features(config)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -601,6 +610,25 @@ def get_file_meta(fqn):
     return meta
 
 
+def _check_checksums(fqn, collection, local_meta, ad_meta):
+    """Raise CadcException if the checksum of a file in ad is not the same as
+    the checksum of a file on disk.
+
+    :param fqn: Fully-qualified name of file for which to compare metadata.
+    :param collection: archive file has been stored to
+    :param local_meta: md5 checksum for the file on disk
+    :param ad_meta: md5 checksum for the file in ad storage
+    """
+
+    if ((fqn.endswith('.gz') and local_meta['md5sum'] !=
+         ad_meta['md5sum']) or (
+            not fqn.endswith('.gz') and local_meta['md5sum'] !=
+            ad_meta['umd5sum'])):
+        raise CadcException(
+            '{} md5sum not the same as the one in the ad '
+            '{} collection.'.format(fqn, collection))
+
+
 def compare_checksum(netrc_fqn, collection, fqn):
     """
     Raise CadcException if the checksum of a file in ad is not the same as
@@ -617,14 +645,7 @@ def compare_checksum(netrc_fqn, collection, fqn):
     except Exception as e:
         raise CadcException('Could not find md5 checksum for {} in the ad {} '
                             'collection. {}'.format(fqn, collection, e))
-
-    if ((fqn.endswith('.gz') and local_meta['md5sum'] !=
-         ad_meta['md5sum']) or (
-            not fqn.endswith('.gz') and local_meta['md5sum'] !=
-            ad_meta['umd5sum'])):
-        raise CadcException(
-            '{} md5sum not the same as the one in the ad '
-            '{} collection.'.format(fqn, collection))
+    _check_checksums(fqn, collection, local_meta, ad_meta)
 
 
 def compare_checksum_client(client, collection, fqn):
@@ -643,14 +664,7 @@ def compare_checksum_client(client, collection, fqn):
     except Exception as e:
         raise CadcException('Could not find md5 checksum for {} in the ad {} '
                             'collection. {}'.format(fqn, collection, e))
-
-    if ((fqn.endswith('.gz') and local_meta['md5sum'] !=
-         ad_meta['md5sum']) or (
-            not fqn.endswith('.gz') and local_meta['md5sum'] !=
-            ad_meta['umd5sum'])):
-        raise CadcException(
-            '{} md5sum not the same as the one in the ad '
-            '{} collection.'.format(fqn, collection))
+    _check_checksums(fqn, collection, local_meta, ad_meta)
 
 
 def create_dir(dir_name):

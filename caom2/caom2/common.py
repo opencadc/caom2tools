@@ -105,7 +105,7 @@ class CaomObject(object):
         pass
 
     def __str__(self):
-        args = inspect.getfullargspec(self.__init__).args[1:]
+        args = inspect.getargspec(self.__init__).args[1:]
         class_name = self.__class__.__name__
         return "\n".join(["{}.{} : {}".
                          format(class_name, arg, getattr(self, arg, None))
@@ -118,7 +118,7 @@ class CaomObject(object):
             return False
 
     def __repr__(self):
-        args = inspect.getfullargspec(self.__init__).args[1:]
+        args = inspect.getargspec(self.__init__).args[1:]
         class_name = ""
         if self.__class__.__module__ != '__main__':
             class_name += self.__class__.__module__ + "."

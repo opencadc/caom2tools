@@ -112,7 +112,7 @@ __all__ = ['OrganizeExecutes', 'StorageName', 'CaomName']
 
 
 class StorageName(object):
-    """Naming rules:
+    """Naming rules for a collection:
     - support mixed-case file name storage
     - support gzipped and not zipped file names
 
@@ -167,8 +167,13 @@ class StorageName(object):
     def get_thumb_uri(self):
         return self._get_uri(self.get_thumb())
 
-    def get_obs_id(self):
-        return self.obs_id
+    @property
+    def obs_id(self):
+        return self._obs_id
+
+    @obs_id.setter
+    def obs_id(self, value):
+        self._obs_id = value
 
     def get_log_file(self):
         return '{}.log'.format(self.obs_id)
@@ -176,8 +181,13 @@ class StorageName(object):
     def get_product_id(self):
         return self.obs_id
 
-    def get_fname_on_disk(self):
-        return self.fname_on_disk
+    @property
+    def fname_on_disk(self):
+        return self._fname_on_disk
+
+    @fname_on_disk.setter
+    def fname_on_disk(self, value):
+        self._fname_on_disk = value
 
     def is_valid(self):
         pattern = re.compile(self.collection_pattern)
@@ -193,9 +203,9 @@ class StorageName(object):
 
 
 class CaomName(object):
-    """The naming rules for making and decomposing CAOM URIs, all isolated in
-    one class. There are probably OMM assumptions built in, but those will
-    slowly go away :). """
+    """The naming rules for making and decomposing CAOM URIs (i.e. Observation
+    URIs, Plane URIs, and archive URIs, all isolated in one class. There are
+    probably OMM assumptions built in, but those will slowly go away :). """
 
     def __init__(self, uri):
         self.uri = uri
@@ -225,9 +235,27 @@ class CaomExecute(object):
     classes."""
 
     def __init__(self, config, task_type, storage_name, command_name,
-                 cred_param,
-                 cadc_data_client=None, caom_repo_client=None,
-                 meta_visitors=None):
+                 cred_param, cadc_data_client, caom_repo_client,
+                 meta_visitors):
+        """
+
+        :param config: Configurable parts of execution, as stored in
+            manage_composable.Config.
+        :param task_type: manage_composable.TaskType enumeration - identifies
+            the work to do, in words that are user-facing. Used in logging
+            messages.
+        :param storage_name: An instance of StorageName.
+        :param command_name: The collection-specific application to apply a
+            blueprint. May be 'fits2caom2'.
+        :param cred_param: Proxy certificate.
+        :param cadc_data_client: Instance of CadcDataClient. Used for data
+            service access.
+        :param caom_repo_client: Instance of CAOM2Repo client. Used for
+            caom2 repository service access.
+        :param meta_visitors: List of classes with a
+            'visit(observation, **kwargs)' method signature. Requires access
+            to metadata only.
+        """
         self.logger = logging.getLogger()
         self.logger.setLevel(config.logging_level)
         formatter = logging.Formatter(
@@ -237,7 +265,7 @@ class CaomExecute(object):
             handler.setFormatter(formatter)
         self.logging_level_param = self._set_logging_level_param(
             config.logging_level)
-        self.obs_id = storage_name.get_obs_id()
+        self.obs_id = storage_name.obs_id
         self.product_id = storage_name.get_product_id()
         self.uri = storage_name.get_file_uri()
         self.fname = storage_name.get_file_name()
@@ -430,7 +458,7 @@ class Collection2CaomMetaCreateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name,
                  cred_param, cadc_data_client, caom_repo_client,
-                 meta_visitors=None):
+                 meta_visitors):
         super(Collection2CaomMetaCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name,
             cred_param, cadc_data_client, caom_repo_client, meta_visitors)
@@ -473,7 +501,7 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, observation,
-                 meta_visitors=None):
+                 meta_visitors):
         super(Collection2CaomMetaUpdateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
@@ -518,7 +546,7 @@ class Collection2CaomLocalMetaCreateClient(CaomExecute):
     This pipeline step will execute a caom2-repo create."""
 
     def __init__(self, config, storage_name, command_name, cred_param,
-                 cadc_data_client, caom_repo_client, meta_visitors=None):
+                 cadc_data_client, caom_repo_client, meta_visitors):
         super(Collection2CaomLocalMetaCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
@@ -559,7 +587,7 @@ class Collection2CaomLocalMetaUpdateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, observation,
-                 meta_visitors=None):
+                 meta_visitors):
         super(Collection2CaomLocalMetaUpdateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
@@ -603,7 +631,7 @@ class Collection2CaomClientVisit(CaomExecute):
     This pipeline step will execute a caom2-repo update."""
 
     def __init__(self, config, storage_name, cred_param,
-                 cadc_data_client, caom_repo_client, meta_visitors=None):
+                 cadc_data_client, caom_repo_client, meta_visitors):
         super(Collection2CaomClientVisit, self).__init__(
             config, mc.TaskType.VISIT, storage_name, command_name=None,
             cred_param=cred_param, cadc_data_client=cadc_data_client,
@@ -639,11 +667,11 @@ class Collection2CaomDataClient(CaomExecute):
     require access to the file on disk, not just the header data. """
 
     def __init__(self, config, storage_name, command_name, cred_param,
-                 cadc_data_client, caom_repo_client, data_visitors=None,
-                 task_type=None):
+                 cadc_data_client, caom_repo_client, data_visitors,
+                 task_type):
         super(Collection2CaomDataClient, self).__init__(
             config, task_type, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client)
+            cadc_data_client, caom_repo_client, meta_visitors=None)
         self.log_file_directory = config.log_file_directory
         self.data_visitors = data_visitors
         self.prev_fname = storage_name.get_prev()
@@ -694,13 +722,14 @@ class Collection2CaomLocalDataClient(Collection2CaomDataClient):
     the files on disk."""
 
     def __init__(self, config, storage_name, command_name, cred_param,
-                 cadc_data_client, caom_repo_client, data_visitors=None):
+                 cadc_data_client, caom_repo_client, data_visitors):
         super(Collection2CaomLocalDataClient, self).__init__(
             config, storage_name, command_name, cred_param,
             cadc_data_client=cadc_data_client,
-            caom_repo_client=caom_repo_client, data_visitors=data_visitors)
+            caom_repo_client=caom_repo_client, data_visitors=data_visitors,
+            task_type=mc.TaskType.MODIFY)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_fname_on_disk()
+        self.fname = storage_name.fname_on_disk
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -728,13 +757,13 @@ class Collection2CaomStoreClient(CaomExecute):
                  cadc_data_client, caom_repo_client):
         super(Collection2CaomStoreClient, self).__init__(
             config, mc.TaskType.STORE, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client)
+            cadc_data_client, caom_repo_client, meta_visitors=None)
         # when files are on disk don't worry about a separate directory
         # per observation
         self.working_dir = self.root_dir
         self.storage_host = config.storage_host
         self.stream = config.stream
-        self.fname = storage_name.get_fname_on_disk()
+        self.fname = storage_name.fname_on_disk
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -753,9 +782,10 @@ class Collection2CaomScrape(CaomExecute):
     def __init__(self, config, storage_name, command_name):
         super(Collection2CaomScrape, self).__init__(
             config, mc.TaskType.SCRAPE, storage_name, command_name,
-            cred_param='')
+            cred_param='', cadc_data_client=None, caom_repo_client=None,
+            meta_visitors=None)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_fname_on_disk()
+        self.fname = storage_name.fname_on_disk
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -774,13 +804,13 @@ class Collection2CaomDataScrape(Collection2CaomDataClient):
     The organization of this class assumes the 'Scrape' task has been done
     previously, so the model instance exists on disk."""
 
-    def __init__(self, config, storage_name, command_name, data_visitors=None):
+    def __init__(self, config, storage_name, command_name, data_visitors):
         super(Collection2CaomDataScrape, self).__init__(
             config, storage_name, command_name, cred_param='',
             cadc_data_client=None, caom_repo_client=None,
             data_visitors=data_visitors, task_type=mc.TaskType.SCRAPE)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_fname_on_disk()
+        self.fname = storage_name.fname_on_disk
         self.log_file_directory = config.log_file_directory
         self.data_visitors = data_visitors
         self.prev_fname = storage_name.get_prev()
@@ -813,9 +843,10 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
                  cadc_data_client, caom_repo_client):
         super(Collection2CaomCompareChecksumClient, self).__init__(
             config, mc.TaskType.CHECKSUM, storage_name, command_name,
-            cred_param, cadc_data_client, caom_repo_client)
+            cred_param, cadc_data_client, caom_repo_client,
+            meta_visitors=None)
         self._define_local_dirs(storage_name)
-        self.fname = storage_name.get_fname_on_disk()
+        self.fname = storage_name.fname_on_disk
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} '
@@ -902,7 +933,7 @@ class OrganizeExecutes(object):
                 elif task_type == mc.TaskType.INGEST:
                     observation = CaomExecute.repo_cmd_get_client(
                         caom_repo_client, self.config.collection,
-                        storage_name.get_obs_id())
+                        storage_name.obs_id)
                     if observation is None:
                         if self.config.use_local_files:
                             executors.append(
@@ -963,8 +994,8 @@ class OrganizeExecutes(object):
                         cred_param, cadc_data_client, caom_repo_client))
         else:
             logging.error('{} failed naming validation check.'.format(
-                storage_name.get_obs_id()))
-            self.capture_failure(storage_name.get_obs_id(),
+                storage_name.obs_id))
+            self.capture_failure(storage_name.obs_id,
                                  storage_name.get_file_name(),
                                  'Invalid observation ID')
         return executors
@@ -1019,9 +1050,7 @@ class OrganizeExecutes(object):
     def _minimize_error_message(e):
         """Turn the long-winded stack trace into something minimal that lends
         itself to awk."""
-        if 'IllegalPolygonException' in e:
-            return 'IllegalPolygonException'
-        elif 'Read timed out' in e:
+        if 'Read timed out' in e:
             return 'Read timed out'
         elif 'failed to load external entity' in e:
             return 'caom2repo xml error'
@@ -1044,7 +1073,7 @@ class OrganizeExecutes(object):
         elif 'failed to compute metadata' in e:
             return 'Failed to compute metadata'
         else:
-            return e
+            return str(e)
 
 
 def _set_up_file_logging(config, storage_name):
@@ -1077,22 +1106,22 @@ def _do_one(config, organizer, storage_name, command_name,
                                      meta_visitors, data_visitors)
         for executor in executors:
             logging.info('Step {} for {}'.format(
-                executor.task_type, storage_name.get_obs_id()))
+                executor.task_type, storage_name.obs_id))
             executor.execute(context=None)
         if len(executors) > 0:
-            organizer.capture_success(storage_name.get_obs_id(),
+            organizer.capture_success(storage_name.obs_id,
                                       storage_name.get_file_name())
             return 0
         else:
             logging.info('No executors for {}'.format(
-                storage_name.get_obs_id()))
+                storage_name.obs_id))
             return -1  # cover the case where file name validation fails
     except Exception as e:
-        organizer.capture_failure(storage_name.get_obs_id(),
+        organizer.capture_failure(storage_name.obs_id,
                                   storage_name.get_file_name(),
                                   e=traceback.format_exc())
         logging.info('Execution failed for {} with {}'.format(
-            storage_name.get_obs_id(), e))
+            storage_name.obs_id, e))
         logging.error(traceback.format_exc())
         return -1
     finally:
@@ -1112,7 +1141,7 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
         else:
             storage_name = sname(obs_id=entry)
     logging.info('Process observation id {}'.format(
-        storage_name.get_obs_id()))
+        storage_name.obs_id))
     config.proxy = proxy
     _do_one(config, organizer, storage_name, command_name,
             meta_visitors, data_visitors)
