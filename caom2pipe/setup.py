@@ -14,9 +14,9 @@ import distutils.cmd
 import distutils.log
 import subprocess
 
-# read the README.rst file and return as string.
+# read the README.md file and return as string.
 def readme():
-    with open('README.rst') as r_obj:
+    with open('README.md') as r_obj:
         return r_obj.read()
 
 # Get some values from the setup.cfg
@@ -44,9 +44,9 @@ VERSION = metadata.get('version', 'none')
 with open(os.path.join(PACKAGENAME, 'version.py'), 'w') as f:
     f.write('version = \'{}\'\n'.format(VERSION))	
 
-# Treat everything in scripts except README.rst as a script to be installed
+# Treat everything in scripts except README.md as a script to be installed
 scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
-           if os.path.basename(fname) != 'README.rst']
+           if os.path.basename(fname) != 'README.md']
 
 # Define entry points for command-line scripts
 entry_points = {'console_scripts': []}

@@ -118,6 +118,7 @@ def get_datetime(from_value):
     if from_value is not None:
         try:
             result = Time(from_value)
+            result.format = 'mjd'
             return result
         except ValueError:
             try:

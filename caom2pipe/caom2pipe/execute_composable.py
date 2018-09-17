@@ -96,6 +96,7 @@ import logging
 import os
 import re
 import site
+import sys
 import traceback
 
 from argparse import ArgumentParser
@@ -125,6 +126,18 @@ class StorageName(object):
 
     def __init__(self, obs_id, collection, collection_pattern,
                  fname_on_disk=None):
+        """
+
+        :param obs_id: string value for Observation.observationID
+        :param collection: string value for Observation.collection
+        :param collection_pattern: regular expression that can be used to
+            determine if a file name or observation id meets particular
+            patterns.
+        :param fname_on_disk: string value for the name of a file on disk,
+            which is not necessarily the same thing as the name of the file
+            in storage (i.e. extensions may exist in one location that do
+            not exist in another.
+        """
         self.obs_id = obs_id
         self.collection = collection
         self.collection_pattern = collection_pattern
@@ -188,6 +201,12 @@ class CaomName(object):
         self.uri = uri
 
     def get_file_id(self):
+        """
+
+        :return: Extracted from an Artifact URI, the file_id is the file
+        name portions of the URI with all file and compression type
+        extensions removed.
+        """
         return self.uri.split('/')[1].split('.')[0]
 
     def get_file_name(self):
@@ -496,7 +515,7 @@ class Collection2CaomLocalMetaCreateClient(CaomExecute):
     """Defines the pipeline step for Collection ingestion of metadata into CAOM.
     This requires access to only header information.
 
-    This pipeline step will execute a caom2-repo update."""
+    This pipeline step will execute a caom2-repo create."""
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, meta_visitors=None):
@@ -1169,7 +1188,6 @@ def run_by_file(storage_name, command_name, collection, proxy=None,
 
 def run_single(config, storage_name, command_name,
                meta_visitors=None, data_visitors=None):
-    import sys
     organizer = OrganizeExecutes(config)
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)

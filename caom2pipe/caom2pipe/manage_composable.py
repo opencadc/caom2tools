@@ -67,10 +67,13 @@
 # ***********************************************************************
 #
 
+import csv
 import logging
 import os
 import subprocess
 import yaml
+
+import urllib.request as request
 
 from aenum import Enum
 from hashlib import md5
@@ -86,7 +89,8 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'get_cadc_meta', 'get_file_meta', 'compare_checksum',
            'decompose_lineage', 'check_param', 'read_csv_file',
            'read_url_file', 'write_obs_to_file', 'read_obs_from_file',
-           'compare_checksum_client', 'Features', 'write_to_file']
+           'compare_checksum_client', 'Features', 'write_to_file',
+           'update_typed_set']
 
 
 class CadcException(Exception):
@@ -682,7 +686,6 @@ def check_param(param, param_type):
 def read_csv_file(fqn):
     results = []
     try:
-        import csv
         with open(fqn) as csv_file:
             reader = csv.reader(csv_file)
             for row in reader:
@@ -698,7 +701,6 @@ def read_csv_file(fqn):
 def read_url_file(from_url):
     results = []
     try:
-        import urllib.request as request
         local_filename, headers = request.urlretrieve(from_url)
         with open(local_filename) as url_content:
             results = url_content.readlines()
@@ -723,3 +725,10 @@ def read_obs_from_file(fqn):
 def write_to_file(fqn, content):
     with open(fqn, 'w') as f:
         f.write(content)
+
+
+def update_typed_set(typed_set, new_set):
+    # remove the previous values
+    while len(typed_set) > 0:
+        typed_set.pop()
+    typed_set.update(new_set)
