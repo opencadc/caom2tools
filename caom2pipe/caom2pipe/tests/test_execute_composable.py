@@ -84,10 +84,6 @@ from caom2pipe import manage_composable as mc
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
-TEST_OBS = SimpleObservation(collection='test_collection',
-                             observation_id='test_obs_id',
-                             algorithm=Algorithm(str('exposure')))
-
 
 class TestVisit:
     @staticmethod
@@ -136,7 +132,7 @@ def test_meta_create_client_execute():
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
     mc.read_obs_from_file = Mock()
-    mc.read_obs_from_file.return_value = TEST_OBS
+    mc.read_obs_from_file.return_value = _read_obs(None)
 
     test_executor = ec.Collection2CaomMetaCreateClient(
         test_config, TestStorageName(), test_app, test_cred,
@@ -170,7 +166,8 @@ def test_meta_update_client_execute():
     repo_client_mock = Mock()
     test_executor = ec.Collection2CaomMetaUpdateClient(
         test_config, TestStorageName(), test_app, test_cred,
-        data_client_mock, repo_client_mock, TEST_OBS, meta_visitors=None)
+        data_client_mock, repo_client_mock, _read_obs(None),
+        meta_visitors=None)
     test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
         test_app, test_app)
     try:
@@ -230,7 +227,8 @@ def test_local_meta_update_client_execute():
     repo_client_mock = Mock()
     test_executor = ec.Collection2CaomLocalMetaUpdateClient(
         test_config, TestStorageName(), test_app, test_cred,
-        data_client_mock, repo_client_mock, TEST_OBS, meta_visitors=None)
+        data_client_mock, repo_client_mock, _read_obs(None),
+        meta_visitors=None)
     test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
         test_app, test_app)
     try:
@@ -322,7 +320,7 @@ def test_data_local_execute():
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
-    repo_client_mock.read.return_value = TEST_OBS
+    repo_client_mock.read.return_value = _read_obs(None)
     test_cred = None
 
     test_config = _init_config()
@@ -530,7 +528,7 @@ def test_organize_executes_client_existing():
     repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
     try:
 
-        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=TEST_OBS)
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
 
         test_config.task_types = [mc.TaskType.INGEST]
         test_config.use_local_files = False
@@ -690,7 +688,9 @@ def _get_test_file_meta(path):
 
 
 def _read_obs(arg1):
-    return TEST_OBS
+    return SimpleObservation(collection='test_collection',
+                             observation_id='test_obs_id',
+                             algorithm=Algorithm(str('exposure')))
 
 
 def _get_file_headers(fname):
