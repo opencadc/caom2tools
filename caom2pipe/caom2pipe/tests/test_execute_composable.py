@@ -67,6 +67,7 @@
 # ***********************************************************************
 #
 
+import distutils.sysconfig
 import os
 import pytest
 import sys
@@ -137,8 +138,8 @@ def test_meta_create_client_execute():
     test_executor = ec.Collection2CaomMetaCreateClient(
         test_config, TestStorageName(), test_app, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None)
-    test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
-        test_app, test_app)
+    test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
+                                       test_app, test_app)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -168,8 +169,8 @@ def test_meta_update_client_execute():
         test_config, TestStorageName(), test_app, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
         meta_visitors=None)
-    test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
-        test_app, test_app)
+    test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
+                                       test_app, test_app)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -199,8 +200,8 @@ def test_local_meta_create_client_execute():
     test_executor = ec.Collection2CaomLocalMetaCreateClient(
         test_config, TestStorageName(), test_app, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None)
-    test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
-        test_app, test_app)
+    test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
+                                       test_app, test_app)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -229,8 +230,8 @@ def test_local_meta_update_client_execute():
         test_config, TestStorageName(), test_app, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
         meta_visitors=None)
-    test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
-        test_app, test_app)
+    test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
+                                       test_app, test_app)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -373,6 +374,8 @@ def test_scrape():
     test_config.logging_level = 'INFO'
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
+    test_source = '{}/command_name/command_name.py'.format(
+        distutils.sysconfig.get_python_lib())
 
     try:
         test_executor = ec.Collection2CaomScrape(
@@ -385,15 +388,11 @@ def test_scrape():
         mc.exec_cmd.assert_called_with(
             'command_name --verbose  '
             '--observation OMM test_obs_id --out {}/test_obs_id.fits.xml '
-            '--plugin '
-            '/usr/local/lib/python3.6/site-packages/command_name/'
-            'command_name.py '
-            '--module '
-            '/usr/local/lib/python3.6/site-packages/command_name/'
-            'command_name.py '
+            '--plugin {} '
+            '--module {} '
             '--local {}/test_file.fits.gz '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TESTDATA_DIR, TESTDATA_DIR))
+                TESTDATA_DIR, test_source, test_source, TESTDATA_DIR))
 
     finally:
         mc.exec_cmd = exec_cmd_orig
