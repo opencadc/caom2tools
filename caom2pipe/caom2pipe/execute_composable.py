@@ -143,46 +143,71 @@ class StorageName(object):
         self.collection_pattern = collection_pattern
         self.fname_on_disk = fname_on_disk
 
-    def get_file_uri(self):
-        return 'ad:{}/{}.gz'.format(self.collection, self.get_file_name())
+    @property
+    def file_uri(self):
+        """The ad URI for the file. Assumes compression."""
+        return 'ad:{}/{}.gz'.format(self.collection, self.file_name)
 
-    def get_file_name(self):
+    @property
+    def file_name(self):
+        """The file name."""
         return '{}.fits'.format(self.obs_id)
 
-    def get_compressed_file_name(self):
+    @property
+    def compressed_file_name(self):
+        """The compressed file name - adds the .gz extension."""
         return '{}.fits.gz'.format(self.obs_id)
 
-    def get_model_file_name(self):
+    @property
+    def model_file_name(self):
+        """The file name used on local disk that holds the CAOM2 Observation
+        XML."""
         return '{}.fits.xml'.format(self.obs_id)
 
-    def get_prev(self):
+    @property
+    def prev(self):
+        """The preview file name for the file."""
         return '{}_prev.jpg'.format(self.obs_id)
 
-    def get_thumb(self):
+    @property
+    def thumb(self):
+        """The thumbnail file name for the file."""
         return '{}_prev_256.jpg'.format(self.obs_id)
 
-    def get_prev_uri(self):
-        return self._get_uri(self.get_prev())
+    @property
+    def prev_uri(self):
+        """The ad preview URI."""
+        return self._get_uri(self.prev)
 
-    def get_thumb_uri(self):
-        return self._get_uri(self.get_thumb())
+    @property
+    def thumb_uri(self):
+        """The ad thumbnail URI."""
+        return self._get_uri(self.thumb)
 
     @property
     def obs_id(self):
+        """The observation ID associated with the file name."""
         return self._obs_id
 
     @obs_id.setter
     def obs_id(self, value):
         self._obs_id = value
 
-    def get_log_file(self):
+    @property
+    def log_file(self):
+        """The log file name used when running any of the 'execute' steps."""
         return '{}.log'.format(self.obs_id)
 
-    def get_product_id(self):
+    @property
+    def product_id(self):
+        """The relationship between the observation ID of an observation, and
+        the product ID of a plane."""
         return self.obs_id
 
     @property
     def fname_on_disk(self):
+        """The file name on disk, which is not necessarily the same as the
+        file name in ad."""
         return self._fname_on_disk
 
     @fname_on_disk.setter
@@ -190,14 +215,17 @@ class StorageName(object):
         self._fname_on_disk = value
 
     def is_valid(self):
+        """:return True if the observation ID conforms to naming rules."""
         pattern = re.compile(self.collection_pattern)
         return pattern.match(self.obs_id)
 
     def _get_uri(self, fname):
+        """The ad URI for a file, without consideration for compression."""
         return 'ad:{}/{}'.format(self.collection, fname)
 
     @staticmethod
     def remove_extensions(name):
+        """How to get the file_id from a file_name."""
         return name.replace('.fits', '').replace('.gz', '').replace('.header',
                                                                     '')
 
@@ -210,23 +238,31 @@ class CaomName(object):
     def __init__(self, uri):
         self.uri = uri
 
-    def get_file_id(self):
+    @property
+    def file_id(self):
         """
 
         :return: Extracted from an Artifact URI, the file_id is the file
-        name portions of the URI with all file and compression type
+        name portion of the URI with all file type and compression type
         extensions removed.
         """
         return self.uri.split('/')[1].split('.')[0]
 
-    def get_file_name(self):
+    @property
+    def file_name(self):
+        """:return The file name extracted from an Artifact URI."""
         return self.uri.split('/')[1]
 
-    def get_uncomp_file_name(self):
-        return self.get_file_name().replace('.gz', '')
+    @property
+    def uncomp_file_name(self):
+        """:return The file name extracted from an Artifact URI, without
+        the compression extension."""
+        return self.file_name.replace('.gz', '')
 
     @staticmethod
     def make_obs_uri_from_obs_id(collection, obs_id):
+        """:return A string that conforms to the Observation URI
+        specification from CAOM."""
         return 'caom:{}/{}'.format(collection, obs_id)
 
 
@@ -266,15 +302,15 @@ class CaomExecute(object):
         self.logging_level_param = self._set_logging_level_param(
             config.logging_level)
         self.obs_id = storage_name.obs_id
-        self.product_id = storage_name.get_product_id()
-        self.uri = storage_name.get_file_uri()
-        self.fname = storage_name.get_file_name()
+        self.product_id = storage_name.product_id
+        self.uri = storage_name.file_uri
+        self.fname = storage_name.file_name
         self.command_name = command_name
         self.root_dir = config.working_directory
         self.collection = config.collection
         self.working_dir = os.path.join(self.root_dir, self.obs_id)
         self.model_fqn = os.path.join(self.working_dir,
-                                      storage_name.get_model_file_name())
+                                      storage_name.model_file_name)
         self.resource_id = config.resource_id
         self.cadc_data_client = cadc_data_client
         self.caom_repo_client = caom_repo_client
@@ -298,15 +334,25 @@ class CaomExecute(object):
         """when files are on disk don't worry about a separate directory
         per observation"""
         self.working_dir = self.root_dir
-        self.model_fqn = os.path.join(
-            self.working_dir, storage_name.get_model_file_name())
+        self.model_fqn = os.path.join(self.working_dir,
+                                      storage_name.model_file_name)
 
     def _find_fits2caom2_plugin(self):
+        """Find the code that is passed as the --plugin parameter to
+        fits2caom2.
+
+        This code makes the assumption that execution always occurs within
+        the context of a Docker container, and therefore the
+        getsitepackages call will always have the appropriately-named
+        module installed in a site package location. Support for otherwise
+        is an exercise for the student.
+        """
         packages = site.getsitepackages()
         return os.path.join(packages[0], '{}/{}.py'.format(self.command_name,
                                                            self.command_name))
 
     def _fits2caom2_cmd_local(self):
+        """Execute fits2caom with a --local parameter."""
         fqn = os.path.join(self.working_dir, self.fname)
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
@@ -319,6 +365,7 @@ class CaomExecute(object):
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_client(self):
+        """Execute fits2caom with a --cert parameter."""
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
         cmd = '{} {} {} --observation {} {} --out {} ' \
@@ -329,6 +376,7 @@ class CaomExecute(object):
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_in_out_client(self):
+        """Execute fits2caom with a --local and a --cert parameter."""
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
         # TODO add an input parameter
@@ -340,6 +388,8 @@ class CaomExecute(object):
         mc.exec_cmd(cmd)
 
     def _compare_checksums_client(self, fname):
+        """Compare the checksum of a file on disk with a file in ad,
+        using the client instance from this class."""
         fqn = os.path.join(self.working_dir, fname)
         mc.compare_checksum_client(
             self.cadc_data_client, self.collection, fqn)
@@ -405,17 +455,23 @@ class CaomExecute(object):
                 'Did not retrieve {}'.format(fqn))
 
     def _cadc_data_info_file_name_client(self):
+        """Execute CadcDataClient.get_file_info with the client instance from
+        this class."""
         file_info = self.cadc_data_client.get_file_info(
             self.collection, self.fname)
         self.fname = file_info['name']
 
     def _read_model(self):
+        """Read an observation into memory from an XML file on disk."""
         return mc.read_obs_from_file(self.model_fqn)
 
     def _write_model(self, observation):
+        """Write an observation to disk from memory, represented in XML."""
         mc.write_obs_to_file(observation, self.model_fqn)
 
     def _visit_meta(self, observation):
+        """Execute metadata-only visitors on an Observation in
+        memory."""
         if self.meta_visitors is not None and len(self.meta_visitors) > 0:
             kwargs = {'working_directory': self.working_dir}
             for visitor in self.meta_visitors:
@@ -427,6 +483,7 @@ class CaomExecute(object):
 
     @staticmethod
     def _set_logging_level_param(logging_level):
+        """Make a configured logging level into command-line parameters."""
         lookup = {logging.DEBUG: '--debug',
                   logging.INFO: '--verbose',
                   logging.WARNING: '',
@@ -439,6 +496,10 @@ class CaomExecute(object):
 
     @staticmethod
     def repo_cmd_get_client(caom_repo_client, collection, observation_id):
+        """Execute the CAOM2Repo 'read' operation using the client instance
+        from this class.
+        :return an Observation instance, or None, if the observation id
+        does not exist."""
         try:
             observation = caom_repo_client.read(collection, observation_id)
             return observation
@@ -674,8 +735,8 @@ class Collection2CaomDataClient(CaomExecute):
             cadc_data_client, caom_repo_client, meta_visitors=None)
         self.log_file_directory = config.log_file_directory
         self.data_visitors = data_visitors
-        self.prev_fname = storage_name.get_prev()
-        self.thumb_fname = storage_name.get_thumb()
+        self.prev_fname = storage_name.prev
+        self.thumb_fname = storage_name.thumb
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -704,6 +765,8 @@ class Collection2CaomDataClient(CaomExecute):
         self.logger.debug('End execute for {}'.format(__name__))
 
     def _visit_data(self, observation):
+        """Execute the visitors that require access to the full data content
+        of a file."""
         kwargs = {'working_directory': self.working_dir,
                   'science_file': self.fname,
                   'log_file_directory': self.log_file_directory,
@@ -813,8 +876,8 @@ class Collection2CaomDataScrape(Collection2CaomDataClient):
         self.fname = storage_name.fname_on_disk
         self.log_file_directory = config.log_file_directory
         self.data_visitors = data_visitors
-        self.prev_fname = storage_name.get_prev()
-        self.thumb_fname = storage_name.get_thumb()
+        self.prev_fname = storage_name.prev
+        self.thumb_fname = storage_name.thumb
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -860,7 +923,7 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
 
 
 class OrganizeExecutes(object):
-    """How to turn on/off various steps in the OMM pipeline."""
+    """How to turn on/off various task types in the a CaomExecute pipeline."""
     def __init__(self, config, todo_file=None):
         self.config = config
         self.task_types = config.task_types
@@ -894,14 +957,27 @@ class OrganizeExecutes(object):
 
     @property
     def complete_record_count(self):
+        """:return integer indicating how many inputs (files or observations,
+         depending on the configuration) have been processed."""
         return self._complete_record_count
 
     @complete_record_count.setter
     def complete_record_count(self, value):
         self._complete_record_count = value
 
-    def choose(self, storage_name, command_name, meta_visitors=None,
-               data_visitors=None):
+    def choose(self, storage_name, command_name, meta_visitors, data_visitors):
+        """The logic that decides which descendants of CaomExecute to
+        instantiate. This is based on the content of the config.yml file
+        for an application.
+        :storage_name StorageName extension that handles the naming rules for
+            a file in ad.
+        :command_name Extension of fits2caom2 (or fits2caom2) that is executed
+            for blueprint handling.
+        :meta_visitors List of methods that implement the
+            visit(observation, **kwargs) signature that require metadata
+            access.
+        :data_visitors List of methods that implement the
+            visit(observation, **kwargs) signature that require data access."""
         executors = []
         if storage_name.is_valid():
             subject, cred_param = self._define_subject()
@@ -961,7 +1037,9 @@ class OrganizeExecutes(object):
                                 observation, meta_visitors))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
-                        if isinstance(executors[0], Collection2CaomScrape):
+                        if (executors is not None and len(executors) > 0 and
+                                isinstance(
+                                    executors[0], Collection2CaomScrape)):
                             executors.append(
                                 Collection2CaomDataScrape(self.config,
                                                           storage_name,
@@ -996,11 +1074,15 @@ class OrganizeExecutes(object):
             logging.error('{} failed naming validation check.'.format(
                 storage_name.obs_id))
             self.capture_failure(storage_name.obs_id,
-                                 storage_name.get_file_name(),
+                                 storage_name.file_name,
                                  'Invalid observation ID')
         return executors
 
     def capture_failure(self, obs_id, file_name, e):
+        """Log an error message to the failure file.
+        :obs_id observation ID being processed
+        :file_name file name being processed
+        :e Exception to log"""
         if self.config.log_to_file:
             failure = open(self.failure_fqn, 'a')
             try:
@@ -1019,6 +1101,10 @@ class OrganizeExecutes(object):
                     retry.close()
 
     def capture_success(self, obs_id, file_name):
+        """Capture, with a timestamp, the successful observations/file names
+        that have been processed.
+        :obs_id observation ID being processed
+        :file_name file name being processed"""
         self.success_count += 1
         if self.config.log_to_file:
             success = open(self.success_fqn, 'a')
@@ -1031,6 +1117,8 @@ class OrganizeExecutes(object):
                 success.close()
 
     def _define_subject(self):
+        """Common code to figure out which credentials to use when
+        creating an instance of the CadcDataClient and the CAOM2Repo client."""
         if self.config.proxy is not None:
             subject = net.Subject(username=None, certificate=self.config.proxy)
             cred_param = '--cert {}'.format(self.config.proxy)
@@ -1077,13 +1165,14 @@ class OrganizeExecutes(object):
 
 
 def _set_up_file_logging(config, storage_name):
+    """Configure logging to a separate file for each item being processed."""
     log_h = None
     if config.log_to_file:
         log_fqn = os.path.join(config.working_directory,
-                               storage_name.get_log_file())
+                               storage_name.log_file)
         if config.log_file_directory is not None:
             log_fqn = os.path.join(config.log_file_directory,
-                                   storage_name.get_log_file())
+                                   storage_name.log_file)
         log_h = logging.FileHandler(log_fqn)
         formatter = logging.Formatter(
             '%(asctime)s:%(levelname)s:%(name)-12s:%(lineno)d:%(message)s')
@@ -1094,12 +1183,22 @@ def _set_up_file_logging(config, storage_name):
 
 
 def _unset_file_logging(config, log_h):
+    """Turn off the logging to the separate file for each item being
+    processed."""
     if config.log_to_file:
         logging.getLogger().removeHandler(log_h)
 
 
-def _do_one(config, organizer, storage_name, command_name,
-            meta_visitors=None, data_visitors=None):
+def _do_one(config, organizer, storage_name, command_name, meta_visitors,
+            data_visitors):
+    """Process one item.
+    :config mc.Config
+    :organizer instance of OrganizeExecutes - for calling the choose method.
+    :storage_name instance of StorageName for the collection
+    :command_name extension of fits2caom2 for the collection
+    :meta_visitors List of metadata visit methods.
+    :data_visitors List of data visit methods.
+    """
     log_h = _set_up_file_logging(config, storage_name)
     try:
         executors = organizer.choose(storage_name, command_name,
@@ -1110,7 +1209,7 @@ def _do_one(config, organizer, storage_name, command_name,
             executor.execute(context=None)
         if len(executors) > 0:
             organizer.capture_success(storage_name.obs_id,
-                                      storage_name.get_file_name())
+                                      storage_name.file_name)
             return 0
         else:
             logging.info('No executors for {}'.format(
@@ -1118,7 +1217,7 @@ def _do_one(config, organizer, storage_name, command_name,
             return -1  # cover the case where file name validation fails
     except Exception as e:
         organizer.capture_failure(storage_name.obs_id,
-                                  storage_name.get_file_name(),
+                                  storage_name.file_name,
                                   e=traceback.format_exc())
         logging.info('Execution failed for {} with {}'.format(
             storage_name.obs_id, e))
@@ -1130,6 +1229,17 @@ def _do_one(config, organizer, storage_name, command_name,
 
 def _run_by_file_list(config, organizer, sname, command_name, proxy,
                       meta_visitors, data_visitors, entry):
+    """Process an item from a list of files. Creates the correct instance
+    of the StorageName extension, based on Config values.
+
+    :config mc.Config
+    :organizer instance of OrganizeExecutes - for calling the choose method.
+    :sname which extension of StorageName to instantiate for the collection
+    :command_name extension of fits2caom2 for the collection
+    :proxy Certificate proxy.
+    :meta_visitors List of metadata visit methods.
+    :data_visitors List of data visit methods.
+    """
     if config.features.use_file_names:
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
@@ -1140,16 +1250,24 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(obs_id=entry)
-    logging.info('Process observation id {}'.format(
-        storage_name.obs_id))
+    logging.info('Process observation id {}'.format(storage_name.obs_id))
     config.proxy = proxy
     _do_one(config, organizer, storage_name, command_name,
             meta_visitors, data_visitors)
 
 
-def _run_todo_file(config, organizer, sname, command_name,
-                   proxy=None, meta_visitors=None,
-                   data_visitors=None):
+def _run_todo_file(config, organizer, sname, command_name, proxy,
+                   meta_visitors, data_visitors):
+    """Process all entries listed in a file.
+
+    :config mc.Config
+    :organizer instance of OrganizeExecutes - for calling the choose method.
+    :sname which extension of StorageName to instantiate for the collection
+    :command_name extension of fits2caom2 for the collection
+    :proxy Certificate proxy.
+    :meta_visitors List of metadata visit methods.
+    :data_visitors List of data visit methods.
+    """
     with open(organizer.todo_fqn) as f:
         todo_list_length = sum(1 for _ in f)
     organizer.complete_record_count = todo_list_length
@@ -1160,9 +1278,18 @@ def _run_todo_file(config, organizer, sname, command_name,
                               line.strip())
 
 
-def _run_local_files(config, organizer, sname, command_name,
-                     proxy=None, meta_visitors=None,
-                     data_visitors=None):
+def _run_local_files(config, organizer, sname, command_name, proxy,
+                     meta_visitors, data_visitors):
+    """Process all entries located in the current working directory.
+
+    :config mc.Config
+    :organizer instance of OrganizeExecutes - for calling the choose method.
+    :sname which extension of StorageName to instantiate for the collection
+    :command_name extension of fits2caom2 for the collection
+    :proxy Certificate proxy.
+    :meta_visitors List of metadata visit methods.
+    :data_visitors List of data visit methods.
+    """
     file_list = os.listdir(config.working_directory)
     todo_list = []
     for f in file_list:
@@ -1175,8 +1302,21 @@ def _run_local_files(config, organizer, sname, command_name,
                           proxy, meta_visitors, data_visitors, do_file)
 
 
-def run_by_file(storage_name, command_name, collection, proxy=None,
-                meta_visitors=None, data_visitors=None):
+def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
+                data_visitors):
+    """Process all entries by file name. The file names may be obtained
+    from the Config todo entry, from the --todo parameter, or from listing
+    files on local disk.
+
+    :storage_name which extension of StorageName to instantiate for the
+        collection
+    :command_name extension of fits2caom2 for the collection
+    :collection string which indicates which collection CAOM instances are
+        being created for
+    :proxy Certificate proxy.
+    :meta_visitors List of metadata visit methods.
+    :data_visitors List of data visit methods.
+    """
     try:
         config = mc.Config()
         config.get_executors()
@@ -1215,8 +1355,16 @@ def run_by_file(storage_name, command_name, collection, proxy=None,
         logging.error(tb)
 
 
-def run_single(config, storage_name, command_name,
-               meta_visitors=None, data_visitors=None):
+def run_single(config, storage_name, command_name, meta_visitors,
+               data_visitors):
+    """Process a single entry by StorageName detail.
+
+    :config mc.Config
+    :storage_name instance of StorageName for the collection
+    :command_name extension of fits2caom2 for the collection
+    :meta_visitors List of metadata visit methods.
+    :data_visitors List of data visit methods.
+    """
     organizer = OrganizeExecutes(config)
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)

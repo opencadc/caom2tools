@@ -269,7 +269,7 @@ def test_data_execute():
     test_obs_id = 'TEST_OBS_ID'
     test_dir = os.path.join(THIS_DIR, test_obs_id)
     test_fits_fqn = os.path.join(test_dir,
-                                 TestStorageName().get_file_name())
+                                 TestStorageName().file_name)
     if not os.path.exists(test_dir):
         os.mkdir(test_dir)
     precondition = open(test_fits_fqn, 'w')
@@ -365,8 +365,8 @@ def test_data_store():
                     reason='support 3.6 only')
 def test_scrape():
     # clean up from previous tests
-    if os.path.exists(TestStorageName().get_model_file_name()):
-        os.remove(TestStorageName().get_model_file_name())
+    if os.path.exists(TestStorageName().model_file_name):
+        os.remove(TestStorageName().model_file_name)
     netrc = os.path.join(TESTDATA_DIR, 'test_netrc')
     assert os.path.exists(netrc)
 
@@ -462,7 +462,7 @@ def test_organize_executes_client():
 
         test_config.task_types = [mc.TaskType.SCRAPE]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -471,7 +471,7 @@ def test_organize_executes_client():
                                   mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 4
         assert isinstance(executors[0], ec.Collection2CaomStoreClient), \
@@ -486,7 +486,7 @@ def test_organize_executes_client():
         test_config.task_types = [mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomMetaCreateClient)
@@ -496,7 +496,7 @@ def test_organize_executes_client():
         test_config.task_types = [mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 3
         assert isinstance(
@@ -511,7 +511,7 @@ def test_organize_executes_client():
         test_oe = ec.OrganizeExecutes(test_config)
         import logging
         logging.error(type(test_obs_id))
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -535,7 +535,7 @@ def test_organize_executes_client_existing():
         test_config.task_types = [mc.TaskType.INGEST]
         test_config.use_local_files = False
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomMetaUpdateClient)
@@ -552,7 +552,7 @@ def test_organize_executes_client_visit():
     test_config.task_types = [mc.TaskType.VISIT]
     test_config.use_local_files = False
     test_oe = ec.OrganizeExecutes(test_config)
-    executors = test_oe.choose(test_obs_id, 'command_name')
+    executors = test_oe.choose(test_obs_id, 'command_name', [], [])
     assert executors is not None
     assert len(executors) == 1
     assert isinstance(executors[0], ec.Collection2CaomClientVisit)
@@ -630,7 +630,7 @@ def test_run_by_file():
         f.write('')
         f.close()
         ec.run_by_file(ec.StorageName, 'collection2caom2', 'collection',
-                       _test_map_todo)
+                       proxy=None, meta_visitors=None, data_visitors=None)
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
 
