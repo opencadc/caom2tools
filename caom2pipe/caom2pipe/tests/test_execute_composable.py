@@ -72,7 +72,7 @@ import os
 import pytest
 import sys
 
-from mock import Mock
+from mock import Mock, patch
 
 from astropy.io import fits
 
@@ -84,6 +84,10 @@ from caom2pipe import manage_composable as mc
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+
+
+class MyExitError(Exception):
+    pass
 
 
 class TestVisit:
@@ -619,6 +623,7 @@ def test_capture_failure():
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
+@patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file():
     try:
         os.getcwd = Mock(return_value=TESTDATA_DIR)
