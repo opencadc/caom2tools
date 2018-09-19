@@ -92,10 +92,10 @@ The correlations that currently exist:
 
 """
 
+import distutils.sysconfig
 import logging
 import os
 import re
-import site
 import sys
 import traceback
 
@@ -343,13 +343,12 @@ class CaomExecute(object):
 
         This code makes the assumption that execution always occurs within
         the context of a Docker container, and therefore the
-        getsitepackages call will always have the appropriately-named
-        module installed in a site package location. Support for otherwise
-        is an exercise for the student.
+        get_python_lib call will always have the appropriately-named
+        module installed in a site package location.
         """
-        packages = site.getsitepackages()
-        return os.path.join(packages[0], '{}/{}.py'.format(self.command_name,
-                                                           self.command_name))
+        packages = distutils.sysconfig.get_python_lib()
+        return os.path.join(packages, '{}/{}.py'.format(self.command_name,
+                                                        self.command_name))
 
     def _fits2caom2_cmd_local(self):
         """Execute fits2caom with a --local parameter."""
