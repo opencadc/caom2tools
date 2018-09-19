@@ -851,7 +851,7 @@ EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
           <caom2:uri>file://""" + sample_file_4axes + """</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
-          <caom2:contentType>application/octet-stream</caom2:contentType>
+          <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>11520</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:parts>
@@ -1240,7 +1240,7 @@ def test_get_vos_meta():
         assert test_artifact.content_checksum.uri == \
             'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
         assert test_artifact.content_length == 682560, 'length wrong'
-        assert test_artifact.content_type == 'application/octet-stream', \
+        assert test_artifact.content_type == 'application/fits', \
             'content_type wrong'
     finally:
         caom2utils.get_vos_headers = get_orig

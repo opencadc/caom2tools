@@ -29,7 +29,7 @@
           <caom2:uri>ad:OMM/Cdemo_ext2_SCIRED.fits.gz</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
-          <caom2:contentType>application/octet-stream</caom2:contentType>
+          <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>48346560</caom2:contentLength>
           <caom2:contentChecksum>md5:6372df8f4312d3452895246aba777852</caom2:contentChecksum>
           <caom2:parts>

@@ -84,10 +84,6 @@ from caom2pipe import manage_composable as mc
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
-TEST_OBS = SimpleObservation(collection='test_collection',
-                             observation_id='test_obs_id',
-                             algorithm=Algorithm(str('exposure')))
-
 
 class TestVisit:
     @staticmethod
@@ -124,191 +120,233 @@ def _init_config():
     return test_config
 
 
-# def test_meta_execute():
-#     test_obs_id = 'test_obs_id'
-#     test_dir = os.path.join(THIS_DIR, test_obs_id)
-#
-#     # clean up from previous tests
-#     if os.path.exists(test_dir):
-#         for ii in os.listdir(test_dir):
-#             os.remove(os.path.join(test_dir, ii))
-#         os.rmdir(test_dir)
-#     netrc = os.path.join(THIS_DIR, 'test_netrc')
-#     assert os.path.exists(netrc)
-#
-#     # mocks for this test
-#     data_cmd_orig = ec.CaomExecute._data_cmd_info
-#     ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
-#     exec_cmd_orig = mc.exec_cmd
-#
-#     test_storage_name = ec.StorageName(
-#         'test_obs_id', 'OMM', collection_pattern=None)
-#     test_config = _init_config()
-#     try:
-#         # run the test
-#         data_client_mock = Mock()
-#         repo_client_mock = Mock()
-#         mc.exec_cmd = Mock()
-#         test_executor = ec.Collection2CaomMetaCreateClient(
-#             test_config, test_storage_name, 'command_name', data_client_mock,
-#             repo_client_mock)
-#         try:
-#             test_executor.execute(None)
-#         except CadcException as e:
-#             assert False, e
-#
-#         # check that things worked as expected
-#         assert mc.exec_cmd.called
-#         mc.exec_cmd.assert_called_with(
-#             'caom2-repo create --debug --resource-id
-# ivo://cadc.nrc.ca/sc2repo '
-#             '--netrc {}/data/test_netrc '
-#             '{}/test_obs_id/test_obs_id.fits.xml'.format(THIS_DIR, THIS_DIR))
-#         assert ec.CaomExecute._data_cmd_info.called
-#     finally:
-#         ec.CaomExecute._data_cmd_info = data_cmd_orig
-#         ec.exec_cmd = exec_cmd_orig
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_meta_create_client_execute():
+    test_app = 'collection2caom2'
+    test_config = _init_config()
+    test_cred = None
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    repo_client_mock = Mock()
+    mc.read_obs_from_file = Mock()
+    mc.read_obs_from_file.return_value = _read_obs(None)
+
+    test_executor = ec.Collection2CaomMetaCreateClient(
+        test_config, TestStorageName(), test_app, test_cred,
+        data_client_mock, repo_client_mock, meta_visitors=None)
+    test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
+        test_app, test_app)
+    try:
+        test_executor.execute(None)
+        assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            '{} --debug None --observation OMM test_obs_id '
+            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--module {} --lineage '
+            'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                test_app, THIS_DIR, test_source, test_source))
+        assert repo_client_mock.create.is_called, 'create call missed'
+    finally:
+        mc.exec_cmd = exec_cmd_orig
 
 
-# def test_meta_local_execute():
-#     # clean up from previous tests
-#     if os.path.exists(TestStorageName().get_model_file_name()):
-#         os.remove(TestStorageName().get_model_file_name())
-#     netrc = os.path.join(TESTDATA_DIR, 'test_netrc')
-#     assert os.path.exists(netrc)
-#     exec_cmd_orig = mc.exec_cmd
-#     mc.exec_cmd = Mock()
-#     data_client_mock = Mock()
-#     repo_client_mock = Mock()
-#
-#     test_config = _init_config()
-#     test_config.working_directory = TESTDATA_DIR
-#     test_config.logging_level = 'INFO'
-#
-#     # run the test
-#     try:
-#         try:
-#             test_executor = ec.Collection2CaomLocalMetaCreateClient(
-#                 test_config, TestStorageName(), 'command_name',
-#                 data_client_mock, repo_client_mock)
-#             test_executor.execute(None)
-#         except CadcException as e:
-#             assert False, e
-#         assert mc.exec_cmd.called
-#         mc.exec_cmd.assert_called_with(
-#             'caom2-repo create --verbose --resource-id '
-#             'ivo://cadc.nrc.ca/sc2repo --netrc {}/test_netrc '
-#             '{}/test_obs_id.fits.xml'.format(TESTDATA_DIR, TESTDATA_DIR))
-#     finally:
-#         mc.exec_cmd = exec_cmd_orig
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_meta_update_client_execute():
+    test_app = 'collection2caom2'
+    test_config = _init_config()
+    test_cred = None
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    repo_client_mock = Mock()
+    test_executor = ec.Collection2CaomMetaUpdateClient(
+        test_config, TestStorageName(), test_app, test_cred,
+        data_client_mock, repo_client_mock, _read_obs(None),
+        meta_visitors=None)
+    test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
+        test_app, test_app)
+    try:
+        test_executor.execute(None)
+        assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            '{} --debug None --in {}/test_obs_id/test_obs_id.fits.xml '
+            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--module {} --lineage '
+            'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                test_app, THIS_DIR, THIS_DIR, test_source, test_source))
+        assert repo_client_mock.update.is_called, 'update call missed'
+    finally:
+        mc.exec_cmd = exec_cmd_orig
 
 
-# def test_data_execute():
-#     test_obs_id = 'TEST_OBS_ID'
-#     test_dir = os.path.join(THIS_DIR, test_obs_id)
-#     test_fits_fqn = os.path.join(test_dir,
-#                                  TestStorageName().get_file_name())
-#     if not os.path.exists(test_dir):
-#         os.mkdir(test_dir)
-#     precondition = open(test_fits_fqn, 'w')
-#     precondition.close()
-#
-#     test_data_visitors = [TestVisit]
-#     read_orig = mc.read_obs_from_file
-#     mc.read_obs_from_file = Mock(side_effect=_read_obs)
-#     write_orig = mc.write_obs_to_file
-#     mc.write_obs_to_file = Mock()
-#     data_cmd_orig = ec.CaomExecute._data_cmd_info
-#     os_path_exists_orig = os.path.exists
-#     os.path.exists = Mock(return_value=True)
-#     os_listdir_orig = os.listdir
-#     os.listdir = Mock(return_value=[])
-#     os_rmdir_orig = os.rmdir
-#     os.rmdir = Mock()
-#     exec_cmd_orig = mc.exec_cmd
-#     mc.exec_cmd = Mock()
-#     test_config = _init_config()
-#     data_client_mock = Mock()
-#     repo_client_mock = Mock()
-#
-#     try:
-#         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
-#
-#         # run the test
-#         test_executor = ec.Collection2CaomDataClient(
-#             test_config, TestStorageName(), 'collection2caom2',
-#             data_client_mock, repo_client_mock, test_data_visitors)
-#         try:
-#             test_executor.execute(None)
-#         except CadcException as e:
-#             assert False, e
-#
-#         # check that things worked as expected
-#         assert mc.exec_cmd.called, 'exec cmd not called'
-#         assert mc.write_obs_to_file.called, 'write obs to file not called'
-#         mc.exec_cmd.assert_called_with(
-#             'caom2-repo update --debug --resource-id ivo://
-# cadc.nrc.ca/sc2repo '
-#             '--netrc {}/test_netrc {}/test_obs_id/test_obs_id.fits.xml'.
-# format(
-#                 TESTDATA_DIR, THIS_DIR))
-#
-#     finally:
-#         mc.read_obs_from_file = read_orig
-#         mc.write_obs_to_file = write_orig
-#         ec.CaomExecute._data_cmd_info = data_cmd_orig
-#         os.path.exists = os_path_exists_orig
-#         os.listdir = os_listdir_orig
-#         os.rmdir = os_rmdir_orig
-#         mc.exec_cmd = exec_cmd_orig
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_local_meta_create_client_execute():
+    test_app = 'collection2caom2'
+    test_config = _init_config()
+    test_cred = None
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    repo_client_mock = Mock()
+
+    test_executor = ec.Collection2CaomLocalMetaCreateClient(
+        test_config, TestStorageName(), test_app, test_cred,
+        data_client_mock, repo_client_mock, meta_visitors=None)
+    test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
+        test_app, test_app)
+    try:
+        test_executor.execute(None)
+        assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            '{} --debug None --observation OMM test_obs_id '
+            '--out {}/test_obs_id.fits.xml --plugin {} --module {} '
+            '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                test_app, THIS_DIR, test_source, test_source))
+        assert repo_client_mock.create.is_called, 'create call missed'
+    finally:
+        mc.exec_cmd = exec_cmd_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_local_meta_update_client_execute():
+    test_app = 'collection2caom2'
+    test_config = _init_config()
+    test_cred = None
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    repo_client_mock = Mock()
+    test_executor = ec.Collection2CaomLocalMetaUpdateClient(
+        test_config, TestStorageName(), test_app, test_cred,
+        data_client_mock, repo_client_mock, _read_obs(None),
+        meta_visitors=None)
+    test_source = '/usr/local/lib/python3.6/site-packages/{}/{}.py'.format(
+        test_app, test_app)
+    try:
+        test_executor.execute(None)
+        assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            '{} --debug None --in {}/test_obs_id.fits.xml '
+            '--out {}/test_obs_id.fits.xml --plugin {} --module {} '
+            '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                test_app, THIS_DIR, THIS_DIR, test_source, test_source))
+        assert repo_client_mock.update.is_called, 'update call missed'
+    finally:
+        mc.exec_cmd = exec_cmd_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_client_visit():
+    test_config = _init_config()
+    test_cred = None
+    data_client_mock = Mock()
+    repo_client_mock = Mock()
+
+    test_executor = ec.Collection2CaomClientVisit(test_config,
+                                                  TestStorageName(), test_cred,
+                                                  data_client_mock,
+                                                  repo_client_mock,
+                                                  meta_visitors=None)
+
+    test_executor.execute(None)
+    assert repo_client_mock.read.is_called, 'read call missed'
+    assert repo_client_mock.update.is_called, 'update call missed'
+
+
+def test_data_execute():
+    test_obs_id = 'TEST_OBS_ID'
+    test_dir = os.path.join(THIS_DIR, test_obs_id)
+    test_fits_fqn = os.path.join(test_dir,
+                                 TestStorageName().file_name)
+    if not os.path.exists(test_dir):
+        os.mkdir(test_dir)
+    precondition = open(test_fits_fqn, 'w')
+    precondition.close()
+
+    test_data_visitors = [TestVisit]
+    os_path_exists_orig = os.path.exists
+    os.path.exists = Mock(return_value=True)
+    os_listdir_orig = os.listdir
+    os.listdir = Mock(return_value=[])
+    os_rmdir_orig = os.rmdir
+    os.rmdir = Mock()
+    test_config = _init_config()
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    repo_client_mock = Mock()
+    test_cred = None
+
+    try:
+        ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
+
+        # run the test
+        test_executor = ec.Collection2CaomDataClient(
+            test_config, TestStorageName(), 'collection2caom2', test_cred,
+            data_client_mock, repo_client_mock, test_data_visitors,
+            mc.TaskType.MODIFY)
+        try:
+            test_executor.execute(None)
+        except CadcException as e:
+            assert False, e
+
+        # check that things worked as expected
+        assert data_client_mock.get_file_info.is_called, \
+            'get_file_info call missed'
+        assert data_client_mock.get_file.is_called, 'get_file call missed'
+        assert repo_client_mock.read.is_called, 'read call missed'
+        assert repo_client_mock.update.is_called, 'update call missed'
+
+    finally:
+        os.path.exists = os_path_exists_orig
+        os.listdir = os_listdir_orig
+        os.rmdir = os_rmdir_orig
+
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
 def test_data_local_execute():
     test_data_visitors = [TestVisit]
 
-    read_orig = mc.read_obs_from_file
-    mc.read_obs_from_file = Mock(side_effect=_read_obs)
-    write_orig = mc.write_obs_to_file
-    mc.write_obs_to_file = Mock()
-    exec_cmd_orig = mc.exec_cmd
-    mc.exec_cmd = Mock()
     data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
+    repo_client_mock.read.return_value = _read_obs(None)
+    test_cred = None
 
+    test_config = _init_config()
+    # run the test
+    test_executor = ec.Collection2CaomLocalDataClient(
+        test_config, TestStorageName(), 'collection2caom2',
+        test_cred, data_client_mock, repo_client_mock, test_data_visitors)
     try:
-        test_config = _init_config()
-        # run the test
-        test_executor = ec.Collection2CaomLocalDataClient(
-            test_config, TestStorageName(), 'collection2caom2',
-            '', data_client_mock, repo_client_mock, test_data_visitors)
-        try:
-            test_executor.execute(None)
-        except CadcException as e:
-            assert False, e
+        test_executor.execute(None)
+    except CadcException as e:
+        assert False, e
 
-        # check that things worked as expected - no cleanup
-        # assert mc.exec_cmd.called
-        # mc.exec_cmd.assert_called_with(
-        #     'caom2-repo update --debug --resource-id ivo://cadc.nrc.ca
-        # /sc2repo '
-        #     '--netrc {}/test_netrc {}/test_obs_id.fits.xml'.format(
-        #         TESTDATA_DIR, THIS_DIR))
-    finally:
-        mc.read_obs_from_file = read_orig
-        mc.write_obs_to_file = write_orig
-        mc.exec_cmd = exec_cmd_orig
+    # check that things worked as expected - no cleanup
+    assert data_client_mock.get_file_info.is_called, \
+        'get_file_info call missed'
+    assert data_client_mock.get_file.is_called, 'get_file call missed'
+    assert repo_client_mock.read.is_called, 'read call missed'
+    assert repo_client_mock.update.is_called, 'update call missed'
+
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
 def test_data_store():
     test_config = _init_config()
-    # exec_cmd_orig = mc.exec_cmd
-    # mc.exec_cmd = Mock()
     data_client_mock = Mock()
     repo_client_mock = Mock()
-    # try:
-    # run the test
     test_executor = ec.Collection2CaomStoreClient(
         test_config, TestStorageName(), 'command_name', '', data_client_mock,
         repo_client_mock)
@@ -316,21 +354,17 @@ def test_data_store():
         test_executor.execute(None)
     except CadcException as e:
         assert False, e
-        # assert mc.exec_cmd.called
-        # mc.exec_cmd.assert_called_with(
-        #     'cadc-data put --debug -c --netrc '
-        #     '{}/test_netrc OMM -s None test_file.fits.gz'.format
-        # (TESTDATA_DIR))
 
-    # finally:
-        # mc.exec_cmd = exec_cmd_orig
+    # check that things worked as expected - no cleanup
+    assert data_client_mock.put_file.is_called, 'put_file call missed'
+
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
 def test_scrape():
     # clean up from previous tests
-    if os.path.exists(TestStorageName().get_model_file_name()):
-        os.remove(TestStorageName().get_model_file_name())
+    if os.path.exists(TestStorageName().model_file_name):
+        os.remove(TestStorageName().model_file_name)
     netrc = os.path.join(TESTDATA_DIR, 'test_netrc')
     assert os.path.exists(netrc)
 
@@ -341,7 +375,6 @@ def test_scrape():
     mc.exec_cmd = Mock()
 
     try:
-        # test_cred_param = '--netrc {}/test_netrc '.format(TESTDATA_DIR)
         test_executor = ec.Collection2CaomScrape(
             test_config, TestStorageName(), 'command_name')
         try:
@@ -385,6 +418,8 @@ def test_data_scrape_execute():
         except CadcException as e:
             assert False, e
 
+        assert mc.read_obs_from_file.is_called, 'read obs call missed'
+
     finally:
         mc.read_obs_from_file = read_orig
 
@@ -425,7 +460,7 @@ def test_organize_executes_client():
 
         test_config.task_types = [mc.TaskType.SCRAPE]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -434,7 +469,7 @@ def test_organize_executes_client():
                                   mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 4
         assert isinstance(executors[0], ec.Collection2CaomStoreClient), \
@@ -449,7 +484,7 @@ def test_organize_executes_client():
         test_config.task_types = [mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomMetaCreateClient)
@@ -459,7 +494,7 @@ def test_organize_executes_client():
         test_config.task_types = [mc.TaskType.INGEST,
                                   mc.TaskType.MODIFY]
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 3
         assert isinstance(
@@ -474,7 +509,7 @@ def test_organize_executes_client():
         test_oe = ec.OrganizeExecutes(test_config)
         import logging
         logging.error(type(test_obs_id))
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomScrape)
@@ -493,12 +528,12 @@ def test_organize_executes_client_existing():
     repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
     try:
 
-        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=TEST_OBS)
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
 
         test_config.task_types = [mc.TaskType.INGEST]
         test_config.use_local_files = False
         test_oe = ec.OrganizeExecutes(test_config)
-        executors = test_oe.choose(test_obs_id, 'command_name')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.Collection2CaomMetaUpdateClient)
@@ -515,22 +550,10 @@ def test_organize_executes_client_visit():
     test_config.task_types = [mc.TaskType.VISIT]
     test_config.use_local_files = False
     test_oe = ec.OrganizeExecutes(test_config)
-    executors = test_oe.choose(test_obs_id, 'command_name')
+    executors = test_oe.choose(test_obs_id, 'command_name', [], [])
     assert executors is not None
     assert len(executors) == 1
     assert isinstance(executors[0], ec.Collection2CaomClientVisit)
-
-
-# def test_meta_client():
-#     test_config = _init_config()
-#     repo_client_mock = Mock()
-#     test_executor = ec.Collection2CaomLocalMetaCreateClient(test_config,
-#                                                             TestStorageName(),
-#                                                          'test2caom2', None,
-#                                                             repo_client_mock,
-#                                                             None)
-#     test_executor.execute(None)
-#     assert repo_client_mock.create.called
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
@@ -551,37 +574,6 @@ def test_checksum_client():
             THIS_DIR, 'test_obs_id.fits.xml'), 'model fqn'
     finally:
         mc.compare_checksum_client = compare_orig
-
-
-# def test_data_cmd_info():
-#     exec_cmd_orig = mc.exec_cmd_info
-#     try:
-#         mc.exec_cmd_info = \
-#             Mock(return_value='INFO:cadc-data:info\n'
-#                               'File C170324_0054_SCI_prev.jpg:\n'
-#                               '    archive: OMM\n'
-#                               '   encoding: None\n'
-#                               '    lastmod: Mon, 25 Jun 2018 16:52:07 GMT\n'
-#                            '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
-#                               '       name: C120902_sh2-132_J_old_'
-#                               'SCIRED.fits.gz\n'
-#                               '       size: 754408\n'
-#                               '       type: image/jpeg\n'
-#                            '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
-#                               '      usize: 754408\n')
-#         test_config = _init_config()
-#        test_executor = ec.Collection2CaomMeta(test_config, TestStorageName(),
-#                                                'command_name')
-#         test_executor._find_file_name_storage()
-#         assert test_executor.fname is not None, test_executor.fname
-#      assert test_executor.fname == 'C120902_sh2-132_J_old_SCIRED.fits.gz', \
-#             test_executor.fname
-#         assert mc.exec_cmd_info.called
-#         mc.exec_cmd_info.assert_called_with(
-#             'cadc-data info --debug --netrc-file {}/test_netrc OMM '
-#             'test_obs_id'.format(TESTDATA_DIR))
-#     finally:
-#         mc.exec_cmd_orig = exec_cmd_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
@@ -618,6 +610,13 @@ def test_capture_failure():
     assert os.path.exists(test_config.failure_fqn)
     assert os.path.exists(test_config.retry_fqn)
 
+    success_content = open(test_config.success_fqn).read()
+    assert success_content.endswith('test_obs_id C121212_01234_CAL.fits.gz\n')
+    retry_content = open(test_config.retry_fqn).read()
+    assert retry_content == 'test_obs_id\n'
+    failure_content = open(test_config.failure_fqn).read()
+    assert failure_content.endswith('test_obs_id None exception text\n')
+
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
@@ -629,7 +628,7 @@ def test_run_by_file():
         f.write('')
         f.close()
         ec.run_by_file(ec.StorageName, 'collection2caom2', 'collection',
-                       _test_map_todo)
+                       proxy=None, meta_visitors=None, data_visitors=None)
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
 
@@ -689,7 +688,9 @@ def _get_test_file_meta(path):
 
 
 def _read_obs(arg1):
-    return TEST_OBS
+    return SimpleObservation(collection='test_collection',
+                             observation_id='test_obs_id',
+                             algorithm=Algorithm(str('exposure')))
 
 
 def _get_file_headers(fname):

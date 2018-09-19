@@ -95,8 +95,9 @@ def test_config_class():
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
 def test_exec_cmd():
-    test_cmd = 'ls'
-    mc.exec_cmd(test_cmd)
+    test_cmd = 'ls /abc'
+    with pytest.raises(mc.CadcException):
+        mc.exec_cmd(test_cmd)
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
@@ -160,20 +161,3 @@ def test_read_csv_file():
     assert content is not None, 'empty results returned'
     assert len(content) == 1, 'missed the comment and the header'
     assert len(content[0]) == 24, 'missed the content'
-
-
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
-def test_read_url_file():
-    # bad read
-    with pytest.raises(mc.CadcException):
-        mc.read_url_file(None)
-
-    # good read
-    test_file_name = 'file://{}'.format(
-        os.path.join(TESTDATA_DIR, 'test_csv.csv'))
-    test_content = mc.read_url_file(test_file_name)
-    assert test_content is not None, 'empty results returned'
-    assert len(test_content) == 3, 'ignoring the comment and the header'
-    assert len(test_content[2]) == 357, \
-        'missed the content, it is just a string'

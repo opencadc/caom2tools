@@ -46,7 +46,7 @@
           <caom2:uri>vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/dao_c122_2016_012725.fits</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
-          <caom2:contentType>application/octet-stream</caom2:contentType>
+          <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>682560</caom2:contentLength>
           <caom2:contentChecksum>md5:5b00b00d4b06aba986c3663d09aa581f</caom2:contentChecksum>
           <caom2:parts>

@@ -67,6 +67,7 @@
 # ***********************************************************************
 #
 
+import csv
 import logging
 import os
 import subprocess
@@ -85,23 +86,31 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'exec_cmd', 'exec_cmd_redirect', 'exec_cmd_info',
            'get_cadc_meta', 'get_file_meta', 'compare_checksum',
            'decompose_lineage', 'check_param', 'read_csv_file',
-           'read_url_file', 'write_obs_to_file', 'read_obs_from_file',
-           'compare_checksum_client', 'Features', 'write_to_file']
+           'write_obs_to_file', 'read_obs_from_file',
+           'compare_checksum_client', 'Features', 'write_to_file',
+           'update_typed_set']
 
 
 class CadcException(Exception):
+    """Generic exception raised by failure cases within the caom2pipe
+    module."""
     pass
 
 
 class Features(object):
+    """Boolean feature flag implementation."""
 
     def __init__(self):
         self.use_file_names = True
         self.run_in_airflow = True
         self.supports_composite = True
+        self.supports_catalog = True
 
     @property
     def use_file_names(self):
+        """If true, the lists of work to be done are expected to
+        identify file names. If false, they are expected to identify
+        observation IDs."""
         return self._use_file_names
 
     @use_file_names.setter
@@ -110,6 +119,8 @@ class Features(object):
 
     @property
     def run_in_airflow(self):
+        """If true, will treat command-line arguments as if the application
+        is running in airflow."""
         return self._run_in_airflow
 
     @run_in_airflow.setter
@@ -118,11 +129,23 @@ class Features(object):
 
     @property
     def supports_composite(self):
+        """If true, will execute any specific code for composite observation
+        definition."""
         return self._supports_composite
 
     @supports_composite.setter
     def supports_composite(self, value):
         self._supports_composite = value
+
+    @property
+    def supports_catalog(self):
+        """If true, will execute any specific code for catalog handling
+        when creating a CAOM instance."""
+        return self._supports_catalog
+
+    @supports_catalog.setter
+    def supports_catalog(self, value):
+        self._supports_catalog = value
 
     def __str__(self):
         return ' '.join(
@@ -130,13 +153,14 @@ class Features(object):
 
 
 class TaskType(Enum):
-    """The possible steps in a Collection pipeline."""
-    STORE = 'store'
-    SCRAPE = 'scrape'
-    INGEST = 'ingest'
-    MODIFY = 'modify'
-    CHECKSUM = 'checksum'
-    VISIT = 'visit'
+    """The possible steps in a Collection pipeline. A short-hand, user-facing
+    way to identify the work to be done by a pipeline."""
+    STORE = 'store'  # store a local file to ad
+    SCRAPE = 'scrape'  # local CAOM instance creation, no network required
+    INGEST = 'ingest'  # create a CAOM instance from metadata only
+    MODIFY = 'modify'  # modify a CAOM instance from data
+    CHECKSUM = 'checksum'  # is the checksum on local disk the same as in ad?
+    VISIT = 'visit'    # visit an observation
 
 
 class Config(object):
@@ -144,74 +168,35 @@ class Config(object):
      work in a pipeline execution."""
 
     def __init__(self):
-        # the root directory for all executor operations
         self.working_directory = None
-
-        # the file that contains the list of work to be passed through the
-        # pipeline
         self.work_file = None
         # the fully qualified name for the work file
         self.work_fqn = None
-
-        # credentials for any service calls
         self.netrc_file = None
-
-        # which collection is addressed by the pipeline
         self.collection = None
-
-        # changes expectations of the executors for handling files on disk
         self.use_local_files = False
-
-        # which service instance to use
         self.resource_id = None
-
-        # the logging level - enforced throughout the pipeline
         self.logging_level = None
-
-        # write the log to a file?
         self.log_to_file = False
-
-        # where log files are written to - defaults to working_directory
         self.log_file_directory = None
-
-        # the ad 'stream' that goes with the collection - use when storing
-        # files
         self.stream = None
-
-        # the ad 'host' to store files to - used for testing cadc-data put
-        # commands only, should usually be None
         self.storage_host = None
-
-        # the way to control which steps get executed
         self.task_types = None
-
-        # the filename where success logs are written
-        # this will be created in log_file_directory
         self.success_log_file_name = None
         # the fully qualified name for the file
         self.success_fqn = None
-
-        # the filename where failure logs are written
-        # this will be created in log_file_directory
         self.failure_log_file_name = None
         # the fully qualified name for the file
         self.failure_fqn = None
-
-        # the filename where retry entries are writter
-        # this will be created in log_file_directory
         self.retry_file_name = None
         # the fully qualified name for the file
         self.retry_fqn = None
-
-        # for the love of pete, don't use this from the config.yml file
-        # it's here for programmatic passing around, and nothing else
         self.proxy = None
-
-        # feature flags
         self.features = Features()
 
     @property
     def working_directory(self):
+        """the root directory for all executor operations"""
         return self._working_directory
 
     @working_directory.setter
@@ -220,6 +205,8 @@ class Config(object):
 
     @property
     def work_file(self):
+        """ the file that contains the list of work to be passed through the
+        pipeline"""
         return self._work_file
 
     @work_file.setter
@@ -231,6 +218,7 @@ class Config(object):
 
     @property
     def netrc_file(self):
+        """credentials for any service calls"""
         return self._netrc_file
 
     @netrc_file.setter
@@ -239,6 +227,7 @@ class Config(object):
 
     @property
     def collection(self):
+        """which collection is addressed by the pipeline"""
         return self._collection
 
     @collection.setter
@@ -247,6 +236,7 @@ class Config(object):
 
     @property
     def use_local_files(self):
+        """changes expectations of the executors for handling files on disk"""
         return self._use_local_files
 
     @use_local_files.setter
@@ -255,6 +245,7 @@ class Config(object):
 
     @property
     def resource_id(self):
+        """which service instance to use"""
         return self._resource_id
 
     @resource_id.setter
@@ -263,6 +254,7 @@ class Config(object):
 
     @property
     def log_to_file(self):
+        """boolean - write the log to a file?"""
         return self._log_to_file
 
     @log_to_file.setter
@@ -271,6 +263,7 @@ class Config(object):
 
     @property
     def log_file_directory(self):
+        """where log files are written to - defaults to working_directory"""
         return self._log_file_directory
 
     @log_file_directory.setter
@@ -279,6 +272,7 @@ class Config(object):
 
     @property
     def logging_level(self):
+        """the logging level - enforced throughout the pipeline"""
         return self._logging_level
 
     @logging_level.setter
@@ -292,6 +286,8 @@ class Config(object):
 
     @property
     def stream(self):
+        """the ad 'stream' that goes with the collection - use when storing
+        files"""
         return self._stream
 
     @stream.setter
@@ -300,6 +296,8 @@ class Config(object):
 
     @property
     def storage_host(self):
+        """the ad 'host' to store files to - used for testing cadc-data put
+        commands only, should usually be None"""
         return self._storage_host
 
     @storage_host.setter
@@ -308,6 +306,7 @@ class Config(object):
 
     @property
     def task_type(self):
+        """the way to control which steps get executed"""
         return self._task_type
 
     @task_type.setter
@@ -316,6 +315,8 @@ class Config(object):
 
     @property
     def success_log_file_name(self):
+        """the filename where success logs are written, this will be created
+        in log_file_directory"""
         return self._success_log_file_name
 
     @success_log_file_name.setter
@@ -327,6 +328,8 @@ class Config(object):
 
     @property
     def failure_log_file_name(self):
+        """the filename where failure logs are written this will be created
+        in log_file_directory"""
         return self._failure_log_file_name
 
     @failure_log_file_name.setter
@@ -338,6 +341,8 @@ class Config(object):
 
     @property
     def retry_file_name(self):
+        """the filename where retry entries are writter this will be created
+        in log_file_directory"""
         return self._retry_file_name
 
     @retry_file_name.setter
@@ -349,6 +354,8 @@ class Config(object):
 
     @property
     def proxy(self):
+        """for the love of pete, don't use this from the config.yml file
+        it's here for programmatic passing around, and nothing else"""
         return self._proxy
 
     @proxy.setter
@@ -357,6 +364,7 @@ class Config(object):
 
     @property
     def features(self):
+        """Feature flag setting access."""
         return self._features
 
     @features.setter
@@ -399,7 +407,8 @@ class Config(object):
                 self.features, self.logging_level)
 
     @staticmethod
-    def _set_task_types(config, default=None):
+    def _obtain_task_types(config, default=None):
+        """Make the configuration file entries into the Enum."""
         task_types = []
         if 'task_types' in config:
             for ii in config['task_types']:
@@ -409,7 +418,8 @@ class Config(object):
             return default
 
     @staticmethod
-    def _set_features(config):
+    def _obtain_features(config):
+        """Make the configuration file entries into the class members."""
         feature_flags = Features()
         if 'features' in config:
             for ii in config['features']:
@@ -418,9 +428,18 @@ class Config(object):
                     setattr(feature_flags, ii, False)
         return feature_flags
 
-    def get_executors(self):
+    def get(self):
         """Look up the configuration values in the data structure extracted
         from the configuration file."""
+        return self.get_executors()
+
+    def get_executors(self):
+        """Look up the configuration values in the data structure extracted
+        from the configuration file.
+
+        Consider this deprecated - use get instead, because the name is
+        non-representative of the work being done.
+        """
         try:
             config = self.get_config()
             self.working_directory = \
@@ -437,7 +456,8 @@ class Config(object):
             self.log_file_directory = self._lookup(
                 config, 'log_file_directory', self.working_directory)
             self.stream = self._lookup(config, 'stream', 'raw')
-            self.task_types = self._set_task_types(config, [TaskType.SCRAPE])
+            self.task_types = self._obtain_task_types(
+                config, [TaskType.SCRAPE])
             self.collection = self._lookup(config, 'collection', 'TEST')
             self.success_log_file_name = self._lookup(config,
                                                       'success_log_file_name',
@@ -447,7 +467,7 @@ class Config(object):
                                                       'failure_log.txt')
             self.retry_file_name = self._lookup(config, 'retry_file_name',
                                                 'retries.txt')
-            self.features = self._set_features(config)
+            self.features = self._obtain_features(config)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -597,6 +617,25 @@ def get_file_meta(fqn):
     return meta
 
 
+def _check_checksums(fqn, collection, local_meta, ad_meta):
+    """Raise CadcException if the checksum of a file in ad is not the same as
+    the checksum of a file on disk.
+
+    :param fqn: Fully-qualified name of file for which to compare metadata.
+    :param collection: archive file has been stored to
+    :param local_meta: md5 checksum for the file on disk
+    :param ad_meta: md5 checksum for the file in ad storage
+    """
+
+    if ((fqn.endswith('.gz') and local_meta['md5sum'] !=
+         ad_meta['md5sum']) or (
+            not fqn.endswith('.gz') and local_meta['md5sum'] !=
+            ad_meta['umd5sum'])):
+        raise CadcException(
+            '{} md5sum not the same as the one in the ad '
+            '{} collection.'.format(fqn, collection))
+
+
 def compare_checksum(netrc_fqn, collection, fqn):
     """
     Raise CadcException if the checksum of a file in ad is not the same as
@@ -613,14 +652,7 @@ def compare_checksum(netrc_fqn, collection, fqn):
     except Exception as e:
         raise CadcException('Could not find md5 checksum for {} in the ad {} '
                             'collection. {}'.format(fqn, collection, e))
-
-    if ((fqn.endswith('.gz') and local_meta['md5sum'] !=
-         ad_meta['md5sum']) or (
-            not fqn.endswith('.gz') and local_meta['md5sum'] !=
-            ad_meta['umd5sum'])):
-        raise CadcException(
-            '{} md5sum not the same as the one in the ad '
-            '{} collection.'.format(fqn, collection))
+    _check_checksums(fqn, collection, local_meta, ad_meta)
 
 
 def compare_checksum_client(client, collection, fqn):
@@ -639,14 +671,7 @@ def compare_checksum_client(client, collection, fqn):
     except Exception as e:
         raise CadcException('Could not find md5 checksum for {} in the ad {} '
                             'collection. {}'.format(fqn, collection, e))
-
-    if ((fqn.endswith('.gz') and local_meta['md5sum'] !=
-         ad_meta['md5sum']) or (
-            not fqn.endswith('.gz') and local_meta['md5sum'] !=
-            ad_meta['umd5sum'])):
-        raise CadcException(
-            '{} md5sum not the same as the one in the ad '
-            '{} collection.'.format(fqn, collection))
+    _check_checksums(fqn, collection, local_meta, ad_meta)
 
 
 def create_dir(dir_name):
@@ -674,15 +699,19 @@ def decompose_lineage(lineage):
 
 
 def check_param(param, param_type):
+    """Generic code to check if a parameter is not None, and is of the
+    expected type."""
     if param is None or not isinstance(param, param_type):
         raise CadcException(
             'Parameter {} failed check for {}'.format(param, param_type))
 
 
 def read_csv_file(fqn):
+    """Read a csv file.
+
+    :returns a list of lists."""
     results = []
     try:
-        import csv
         with open(fqn) as csv_file:
             reader = csv.reader(csv_file)
             for row in reader:
@@ -695,25 +724,14 @@ def read_csv_file(fqn):
     return results
 
 
-def read_url_file(from_url):
-    results = []
-    try:
-        import urllib.request as request
-        local_filename, headers = request.urlretrieve(from_url)
-        with open(local_filename) as url_content:
-            results = url_content.readlines()
-    except Exception as e:
-        logging.error('Could not read from url {}'.format(from_url))
-        raise CadcException(e)
-    return results
-
-
 def write_obs_to_file(obs, fqn):
+    """Common code to write a CAOM Observation to a file."""
     ow = ObservationWriter()
     ow.write(obs, fqn)
 
 
 def read_obs_from_file(fqn):
+    """Common code to read a CAOM Observation from a file."""
     if not os.path.exists(fqn):
         raise CadcException('Could not find {}'.format(fqn))
     reader = ObservationReader(False)
@@ -721,5 +739,16 @@ def read_obs_from_file(fqn):
 
 
 def write_to_file(fqn, content):
+    """Common code to write to a fully-qualified file name. Mostly to make
+    it easy to mock."""
     with open(fqn, 'w') as f:
         f.write(content)
+
+
+def update_typed_set(typed_set, new_set):
+    """Common code to remove all the entries from an existing set, and
+    then replace those entries with a new set."""
+    # remove the previous values
+    while len(typed_set) > 0:
+        typed_set.pop()
+    typed_set.update(new_set)
