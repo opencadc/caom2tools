@@ -1738,7 +1738,7 @@ class FitsParser(GenericParser):
             self.logger.debug('Completed setting range for {}'.format(lookup))
 
     def _try_position_range(self, chunk, index):
-        self.logger.debug('Try to set the range for position')
+        self.logger.debug('Try to set the range for position from blueprint')
         if (self.blueprint._pos_axes_configed and chunk.position is not None
                 and chunk.position.axis is not None):
             aug_range_c1_start = self._two_param_constructor(

@@ -161,6 +161,7 @@ class TaskType(Enum):
     MODIFY = 'modify'  # modify a CAOM instance from data
     CHECKSUM = 'checksum'  # is the checksum on local disk the same as in ad?
     VISIT = 'visit'    # visit an observation
+    REMOTE = 'remote'  # remote file storage, create CAOM instance via metadata
 
 
 class Config(object):

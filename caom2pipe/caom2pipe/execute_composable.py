@@ -77,7 +77,9 @@ All the if statements are limited to the choose* methods in the
 OrganizeExecutes class. If you find yourself adding an if statement to an
 execute method, create a new *Execute class instead. The result is execute
 methods that are composable into complex and varied pipelines, while
-remaining easily tested.
+remaining easily tested. The execute methods do conform to an Airflow API
+for operator extension, but please, please, please, do not ever import an
+Airflow class here.
 
 Raise the CadcException upon encountering an error. There is no recovery
 effort as part of a failure. Log the error and stop the pipeline
@@ -142,6 +144,7 @@ class StorageName(object):
         self.collection = collection
         self.collection_pattern = collection_pattern
         self.fname_on_disk = fname_on_disk
+        logging.error('obs id is {}'.format(self.obs_id))
 
     @property
     def file_uri(self):
@@ -921,6 +924,95 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
+class LocalMetaCreateClientRemoteStorage(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into
+    CAOM. This requires access to only header information.
+
+    The file that contains the metadata is available locally, but this file
+    is not, nor will it, be stored in CADC.
+
+    This pipeline step will execute a caom2-repo create."""
+
+    def __init__(self, config, storage_name, command_name,
+                 cred_param, cadc_data_client, caom_repo_client,
+                 meta_visitors):
+        super(LocalMetaCreateClientRemoteStorage, self).__init__(
+            config, mc.TaskType.REMOTE, storage_name, command_name,
+            cred_param, cadc_data_client, caom_repo_client, meta_visitors)
+        self._define_local_dirs(storage_name)
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('the observation does not exist, so go '
+                          'straight to generating the xml, as the main_app '
+                          'will retrieve the headers')
+        # TODO - why isn't this client providing a local parameter?
+        # TODO - why isnt this client writing out to the local dir, instead
+        # of a file-specific dir?
+        self._fits2caom2_cmd_client()
+
+        self.logger.debug('read the xml into memory from the file')
+        observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_create_client(observation)
+
+        self.logger.debug('clean up the workspace')
+        self._cleanup()
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class LocalMetaUpdateClientRemoteStorage(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into
+    CAOM. This requires access to only header information.
+
+    The file that contains the metadata is available locally, but this file
+    is not, nor will it, be stored in CADC.
+
+    This pipeline step will execute a caom2-repo update."""
+
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client, observation,
+                 meta_visitors):
+        super(LocalMetaUpdateClientRemoteStorage, self).__init__(
+            config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
+            cadc_data_client, caom_repo_client, meta_visitors)
+        self._define_local_dirs(storage_name)
+        self.observation = observation
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('write the observation to disk for next step')
+        self._write_model(self.observation)
+
+        self.logger.debug('generate the xml, as the main_app will retrieve '
+                          'the headers')
+        # TODO - why isn't this client providing a local parameter?
+        self._fits2caom2_cmd_in_out_client()
+
+        self.logger.debug('read the xml from disk')
+        self.observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(self.observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_update_client(self.observation)
+
+        self.logger.debug('write the updated xml to disk for debugging')
+        self._write_model(self.observation)
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
 class OrganizeExecutes(object):
     """How to turn on/off various task types in the a CaomExecute pipeline."""
     def __init__(self, config, todo_file=None):
@@ -1060,11 +1152,39 @@ class OrganizeExecutes(object):
                     executors.append(Collection2CaomClientVisit(
                         self.config, storage_name, cred_param,
                         cadc_data_client, caom_repo_client, meta_visitors))
+                elif task_type == mc.TaskType.REMOTE:
+                    observation = CaomExecute.repo_cmd_get_client(
+                        caom_repo_client, self.config.collection,
+                        storage_name.obs_id)
+                    if observation is None:
+                        if self.config.use_local_files:
+                            executors.append(
+                                LocalMetaCreateClientRemoteStorage(
+                                    self.config, storage_name, command_name,
+                                    cred_param, cadc_data_client,
+                                    caom_repo_client, meta_visitors))
+                        else:
+                            raise mc.CadcException(
+                                'use_local_files must be True with '
+                                'Task Type "REMOTE"')
+                    else:
+                        if self.config.use_local_files:
+                            executors.append(
+                                LocalMetaUpdateClientRemoteStorage(
+                                    self.config, storage_name, command_name,
+                                    cred_param, cadc_data_client,
+                                    caom_repo_client, observation,
+                                    meta_visitors))
+                        else:
+                            raise mc.CadcException(
+                                'use_local_files must be True with '
+                                'Task Type "REMOTE"')
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
             if (self.config.use_local_files and
-                    mc.TaskType.SCRAPE not in self.task_types):
+                    (mc.TaskType.SCRAPE not in self.task_types or
+                     mc.TaskType.REMOTE not in self.task_types)):
                 executors.append(
                     Collection2CaomCompareChecksumClient(
                         self.config, storage_name, command_name,
@@ -1241,11 +1361,13 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
     """
     if config.features.use_file_names:
         if config.use_local_files:
+            logging.error('use local files == true entry{}'.format(entry))
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(file_name=entry)
     else:
         if config.use_local_files:
+            logging.error('use local files == true 2 {}'.format(entry))
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(obs_id=entry)

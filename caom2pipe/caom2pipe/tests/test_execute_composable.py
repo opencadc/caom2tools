@@ -510,13 +510,19 @@ def test_organize_executes_client():
                                   mc.TaskType.MODIFY]
         test_config.use_local_files = True
         test_oe = ec.OrganizeExecutes(test_config)
-        import logging
-        logging.error(type(test_obs_id))
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Collection2CaomScrape)
         assert isinstance(executors[1], ec.Collection2CaomDataScrape)
+
+        test_config.task_types = [mc.TaskType.REMOTE]
+        test_config.use_local_files = True
+        test_oe = ec.OrganizeExecutes(test_config)
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0], ec.LocalMetaCreateClientRemoteStorage)
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
