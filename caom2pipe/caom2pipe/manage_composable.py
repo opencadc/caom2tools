@@ -105,6 +105,7 @@ class Features(object):
         self.run_in_airflow = True
         self.supports_composite = True
         self.supports_catalog = True
+        self.expects_retry = True
 
     @property
     def use_file_names(self):
@@ -146,6 +147,16 @@ class Features(object):
     @supports_catalog.setter
     def supports_catalog(self, value):
         self._supports_catalog = value
+
+    @property
+    def expects_retry(self):
+        """If true, will execute any specific code for running retries
+        based on retries_log.txt content."""
+        return self._expects_retry
+
+    @expects_retry.setter
+    def expects_retry(self, value):
+        self._expects_retry = value
 
     def __str__(self):
         return ' '.join(
@@ -191,7 +202,9 @@ class Config(object):
         self.retry_file_name = None
         # the fully qualified name for the file
         self.retry_fqn = None
-        self.proxy = None
+        self.retry_failures = False
+        self.retry_count = 1
+        self.proxy_fqn = None
         self.features = Features()
 
     @property
@@ -341,7 +354,7 @@ class Config(object):
 
     @property
     def retry_file_name(self):
-        """the filename where retry entries are writter this will be created
+        """the filename where retry entries are written this will be created
         in log_file_directory"""
         return self._retry_file_name
 
@@ -353,14 +366,36 @@ class Config(object):
                 self.log_file_directory, self.retry_file_name)
 
     @property
-    def proxy(self):
-        """for the love of pete, don't use this from the config.yml file
-        it's here for programmatic passing around, and nothing else"""
-        return self._proxy
+    def retry_failures(self):
+        """Will the application retry the entries in the
+        retries.txt file? If True, the application will attempt to re-run
+        the work to do for each entry in the retries.txt file. If False,
+        it will do nothing."""
+        return self._retry_failures
 
-    @proxy.setter
-    def proxy(self, value):
-        self._proxy = value
+    @retry_failures.setter
+    def retry_failures(self, value):
+        self._retry_failures = value
+
+    @property
+    def retry_count(self):
+        """how many times the application will retry the entries in the
+        retries.txt file."""
+        return self._retry_count
+
+    @retry_count.setter
+    def retry_count(self, value):
+        self._retry_count = value
+
+    @property
+    def proxy_fqn(self):
+        """If using a proxy certificate for authentication, identify the
+        fully-qualified pathname here."""
+        return self._proxy_fqn
+
+    @proxy_fqn.setter
+    def proxy_fqn(self, value):
+        self._proxy_fqn = value
 
     @property
     def features(self):
@@ -396,6 +431,9 @@ class Config(object):
                'failure_fqn:: \'{}\' ' \
                'retry_file_name:: \'{}\' ' \
                'retry_fqn:: \'{}\' ' \
+               'retry_failures:: \'{}\' ' \
+               'retry_count:: \'{}\' ' \
+               'proxy_file:: \'{}\' ' \
                'features:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
@@ -404,6 +442,7 @@ class Config(object):
                 self.log_file_directory, self.success_log_file_name,
                 self.success_fqn, self.failure_log_file_name,
                 self.failure_fqn, self.retry_file_name, self.retry_fqn,
+                self.retry_failures, self.retry_count, self.proxy_fqn,
                 self.features, self.logging_level)
 
     @staticmethod
@@ -467,7 +506,10 @@ class Config(object):
                                                       'failure_log.txt')
             self.retry_file_name = self._lookup(config, 'retry_file_name',
                                                 'retries.txt')
+            self.retry_failures = self._lookup(config, 'retry_failures', False)
+            self.retry_count = self._lookup(config, 'retry_count', 1)
             self.features = self._obtain_features(config)
+            self.proxy_fqn = self._lookup(config, 'proxy_filename', None)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -526,7 +568,8 @@ def exec_cmd(cmd):
                     cmd, output.decode('utf-8'), outerr.decode('utf-8')))
     except Exception as e:
         logging.debug('Error with command {}:: {}'.format(cmd, e))
-        raise CadcException('Could not execute cmd {}'.format(cmd))
+        raise CadcException('Could not execute cmd {}. '
+                            'Exception {}'.format(cmd, {}))
 
 
 def exec_cmd_info(cmd):
@@ -548,7 +591,8 @@ def exec_cmd_info(cmd):
             return output.decode('utf-8')
     except Exception as e:
         logging.debug('Error with command {}:: {}'.format(cmd, e))
-        raise CadcException('Could not execute cmd {}'.format(cmd))
+        raise CadcException('Could not execute cmd {}.'
+                            'Exception {}'.format(cmd, e))
 
 
 def exec_cmd_redirect(cmd, fqn):
@@ -577,7 +621,8 @@ def exec_cmd_redirect(cmd, fqn):
                         cmd, outerr.decode('utf-8')))
     except Exception as e:
         logging.debug('Error with command {}:: {}'.format(cmd, e))
-        raise CadcException('Could not execute cmd {}'.format(cmd))
+        raise CadcException('Could not execute cmd {}.'
+                            'Exception {}'.format(cmd, e))
 
 
 def get_cadc_meta(netrc_fqn, collection, fname):
@@ -600,6 +645,8 @@ def get_file_meta(fqn):
     :param fqn: Fully-qualified name of the file for which to get the metadata.
     :return:
     """
+    if fqn is None or not os.path.exists(fqn):
+        raise CadcException('Could not find {} in get_file_meta'.format(fqn))
     meta = {}
     s = stat(fqn)
     meta['size'] = s.st_size
@@ -614,6 +661,7 @@ def get_file_meta(fqn):
         meta['type'] = 'image/jpeg'
     else:
         meta['type'] = 'application/octet-stream'
+    logging.debug(meta)
     return meta
 
 

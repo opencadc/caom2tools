@@ -639,6 +639,47 @@ def test_run_by_file():
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
+def test_run_by_file_expects_retry():
+    retry_dir = '{}_0'.format(TESTDATA_DIR)
+    if os.path.exists(retry_dir):
+        os.remove('{}/failure_log.txt'.format(retry_dir))
+        os.remove('{}/retries.txt'.format(retry_dir))
+        os.remove('{}/success_log.txt'.format(retry_dir))
+        os.rmdir(retry_dir)
+
+    test_config = _init_config()
+    test_config.log_to_file = True
+    test_config.features.expects_retry = True
+    test_config.retry_failures = True
+    test_config.retry_count = 1
+    test_config.retry_file_name = 'retries.txt'
+    test_config.success_log_file_name = 'success_log.txt'
+    test_config.failure_log_file_name = 'failure_log.txt'
+    test_retry_count = 0
+    test_config.task_types = [mc.TaskType.VISIT]
+    assert test_config.log_file_directory == TESTDATA_DIR
+    assert test_config.work_file == 'todo.txt'
+
+    assert ec._need_to_retry(test_config), 'should require retries'
+
+    test_config = ec._update_config_for_retry(test_config, test_retry_count)
+    assert test_config.log_file_directory == '{}_{}'.format(TESTDATA_DIR,
+                                                            test_retry_count)
+    assert test_config.work_file == '{}/retries.txt'.format(TESTDATA_DIR)
+    try:
+        ec._run_by_file(test_config, ec.StorageName, 'collection2caom2',
+                        proxy=None, meta_visitors=[], data_visitors=[])
+    except mc.CadcException as e:
+        assert False, 'but the work list is empty {}'.format(e)
+
+    assert os.path.exists('{}_0'.format(TESTDATA_DIR))
+    assert os.path.exists(test_config.success_fqn)
+    assert os.path.exists(test_config.failure_fqn)
+    assert os.path.exists(test_config.retry_fqn)
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_do_one():
     test_config = _init_config()
     test_config.task_types = []
@@ -659,6 +700,42 @@ def test_do_one():
                              meta_visitors=[], data_visitors=[])
     assert test_result is not None
     assert test_result == -1
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_storage_name():
+    sn = ec.StorageName(obs_id='test_obs_id', collection='TEST',
+                        collection_pattern='T[\\w+-]+')
+    assert sn.file_uri == 'ad:TEST/test_obs_id.fits.gz'
+    assert sn.file_name == 'test_obs_id.fits'
+    assert sn.compressed_file_name == 'test_obs_id.fits.gz'
+    assert sn.model_file_name == 'test_obs_id.fits.xml'
+    assert sn.prev == 'test_obs_id_prev.jpg'
+    assert sn.thumb == 'test_obs_id_prev_256.jpg'
+    assert sn.prev_uri == 'ad:TEST/test_obs_id_prev.jpg'
+    assert sn.thumb_uri == 'ad:TEST/test_obs_id_prev_256.jpg'
+    assert sn.obs_id == 'test_obs_id'
+    assert sn.log_file == 'test_obs_id.log'
+    assert sn.product_id == 'test_obs_id'
+    assert sn.fname_on_disk is None
+    assert not sn.is_valid()
+    sn = ec.StorageName(obs_id='Test_obs_id', collection='TEST',
+                        collection_pattern='T[\\w+-]+')
+    assert sn.is_valid()
+    x = ec.StorageName.remove_extensions('test_obs_id.fits.header.gz')
+    assert x == 'test_obs_id'
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_caom_name():
+    cn = ec.CaomName(uri='ad:TEST/test_obs_id.fits.gz')
+    assert cn.file_id == 'test_obs_id'
+    assert cn.file_name == 'test_obs_id.fits.gz'
+    assert cn.uncomp_file_name == 'test_obs_id.fits'
+    assert ec.CaomName.make_obs_uri_from_obs_id('TEST', 'test_obs_id') == \
+        'caom:TEST/test_obs_id'
 
 
 def _communicate():

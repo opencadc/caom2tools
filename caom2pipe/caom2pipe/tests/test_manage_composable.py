@@ -161,3 +161,21 @@ def test_read_csv_file():
     assert content is not None, 'empty results returned'
     assert len(content) == 1, 'missed the comment and the header'
     assert len(content[0]) == 24, 'missed the content'
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_get_file_meta():
+    # None
+    with pytest.raises(mc.CadcException):
+        mc.get_file_meta(None)
+
+    # non-existent file
+    fqn = os.path.join(TESTDATA_DIR, 'abc.txt')
+    with pytest.raises(mc.CadcException):
+        mc.get_file_meta(fqn)
+
+    # empty file
+    fqn = os.path.join(TESTDATA_DIR, 'todo.txt')
+    result = mc.get_file_meta(fqn)
+    assert result['size'] == 0, result['size']

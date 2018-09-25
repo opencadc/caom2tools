@@ -283,7 +283,9 @@ class CaomExecute(object):
         :param storage_name: An instance of StorageName.
         :param command_name: The collection-specific application to apply a
             blueprint. May be 'fits2caom2'.
-        :param cred_param: Proxy certificate.
+        :param cred_param: either --netrc <value> or --cert <value>,
+            depending on which credentials have been supplied to the
+            process.
         :param cadc_data_client: Instance of CadcDataClient. Used for data
             service access.
         :param caom_repo_client: Instance of CAOM2Repo client. Used for
@@ -309,8 +311,12 @@ class CaomExecute(object):
         self.root_dir = config.working_directory
         self.collection = config.collection
         self.working_dir = os.path.join(self.root_dir, self.obs_id)
-        self.model_fqn = os.path.join(self.working_dir,
-                                      storage_name.model_file_name)
+        if config.log_to_file:
+            self.model_fqn = os.path.join(config.log_file_directory,
+                                          storage_name.model_file_name)
+        else:
+            self.model_fqn = os.path.join(self.working_dir,
+                                          storage_name.model_file_name)
         self.resource_id = config.resource_id
         self.cadc_data_client = cadc_data_client
         self.caom_repo_client = caom_repo_client
@@ -931,12 +937,18 @@ class OrganizeExecutes(object):
         if todo_file is not None:
             self.todo_fqn = todo_file
             todo_name = os.path.basename(todo_file).split('.')[0]
-            self.success_fqn = os.path.join(self.config.log_file_directory,
-                                            '{}_success.log'.format(todo_name))
-            self.failure_fqn = os.path.join(self.config.log_file_directory,
-                                            '{}_failure.log'.format(todo_name))
-            self.retry_fqn = os.path.join(self.config.log_file_directory,
-                                          '{}_retry.log'.format(todo_name))
+            self.success_fqn = os.path.join(
+                self.config.log_file_directory,
+                '{}_success_log.txt'.format(todo_name))
+            config.success_fqn = self.success_fqn
+            self.failure_fqn = os.path.join(
+                self.config.log_file_directory,
+                '{}_failure_log.txt'.format(todo_name))
+            config.failure_fqn = self.failure_fqn
+            self.retry_fqn = os.path.join(
+                self.config.log_file_directory,
+                '{}_retries.txt'.format(todo_name))
+            config.retry_fqn = self.retry_fqn
         else:
             self.todo_fqn = config.work_fqn
             self.success_fqn = config.success_fqn
@@ -1092,12 +1104,14 @@ class OrganizeExecutes(object):
             finally:
                 failure.close()
 
-            if not self.config.use_local_files:
-                retry = open(self.retry_fqn, 'a')
-                try:
+            retry = open(self.retry_fqn, 'a')
+            try:
+                if self.config.features.use_file_names:
+                    retry.write('{}\n'.format(file_name))
+                else:
                     retry.write('{}\n'.format(obs_id))
-                finally:
-                    retry.close()
+            finally:
+                retry.close()
 
     def capture_success(self, obs_id, file_name):
         """Capture, with a timestamp, the successful observations/file names
@@ -1118,9 +1132,11 @@ class OrganizeExecutes(object):
     def _define_subject(self):
         """Common code to figure out which credentials to use when
         creating an instance of the CadcDataClient and the CAOM2Repo client."""
-        if self.config.proxy is not None:
-            subject = net.Subject(username=None, certificate=self.config.proxy)
-            cred_param = '--cert {}'.format(self.config.proxy)
+        if (self.config.proxy_fqn is not None and os.path.exists(
+                self.config.proxy_fqn)):
+            subject = net.Subject(username=None,
+                                  certificate=self.config.proxy_fqn)
+            cred_param = '--cert {}'.format(self.config.proxy_fqn)
         elif (self.config.netrc_file is not None and os.path.exists(
                 self.config.netrc_file)):
             subject = net.Subject(username=None, certificate=None,
@@ -1250,7 +1266,7 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
         else:
             storage_name = sname(obs_id=entry)
     logging.info('Process observation id {}'.format(storage_name.obs_id))
-    config.proxy = proxy
+    config.proxy_fqn = proxy
     _do_one(config, organizer, storage_name, command_name,
             meta_visitors, data_visitors)
 
@@ -1301,29 +1317,21 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
                           proxy, meta_visitors, data_visitors, do_file)
 
 
-def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
-                data_visitors):
+def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
+                 data_visitors):
     """Process all entries by file name. The file names may be obtained
     from the Config todo entry, from the --todo parameter, or from listing
     files on local disk.
 
-    :storage_name which extension of StorageName to instantiate for the
+    :param config configures the execution of the application
+    :param storage_name which extension of StorageName to instantiate for the
         collection
-    :command_name extension of fits2caom2 for the collection
-    :collection string which indicates which collection CAOM instances are
-        being created for
-    :proxy Certificate proxy.
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    :param command_name extension of fits2caom2 for the collection
+    :param proxy Certificate proxy.
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
     """
     try:
-        config = mc.Config()
-        config.get_executors()
-        config.collection = collection
-        logging.debug(config)
-        logger = logging.getLogger()
-        logger.setLevel(config.logging_level)
-        config.features.supports_composite = False
         if config.use_local_files:
             logging.debug(
                 'Using files from {}'.format(config.working_directory))
@@ -1354,15 +1362,96 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
         logging.error(tb)
 
 
+def _need_to_retry(config):
+    """Evaluate the need to have the pipeline try to re-execute for any
+     files/observations that have been logged as failures.
+
+    If log_to_file is not set to True, there is no retry file content
+    to retry on..
+
+     :param config does the configuration identify retry information?
+     :return True if the configuration and logging information indicate a
+        need to attempt to retry the pipeline execution for any entries.
+     """
+    result = True
+    if (config is not None and config.features is not None and
+            config.features.expects_retry and config.retry_failures and
+            config.log_to_file):
+        meta = mc.get_file_meta(config.retry_fqn)
+        if meta['size'] == 0:
+            logging.info('Checked the retry file {}. There are no logged '
+                         'failures.'.format(config.retry_fqn))
+            result = False
+    else:
+        result = False
+    return result
+
+
+def _update_config_for_retry(config, count):
+    """
+    :param config how the retry information is identified to the pipeline
+    :param count the current retry iteration
+    :return: the Config instance, updated with locations that reflect
+        retry information. The logging should not over-write on a retry
+        attempt.
+    """
+    config.work_file = '{}'.format(config.retry_fqn)
+    config.log_file_directory = '{}_{}'.format(
+        config.log_file_directory, count)
+    # reset the location of the log file names
+    config.success_log_file_name = config.success_log_file_name
+    config.failure_log_file_name = config.failure_log_file_name
+    config.retry_file_name = config.retry_file_name
+    return config
+
+
+def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
+                data_visitors):
+    """Process all entries by file name. The file names may be obtained
+    from the Config todo entry, from the --todo parameter, or from listing
+    files on local disk.
+
+    :param storage_name which extension of StorageName to instantiate for the
+        collection
+    :param command_name extension of fits2caom2 for the collection
+    :param collection string which indicates which collection CAOM instances
+        are being created for
+    :param proxy Certificate proxy.
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    """
+    try:
+        config = mc.Config()
+        config.get_executors()
+        config.collection = collection
+        logging.debug(config)
+        logger = logging.getLogger()
+        logger.setLevel(config.logging_level)
+        config.features.supports_composite = False
+        _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
+                     data_visitors)
+        if _need_to_retry(config):
+            for count in range(0, config.retry_count):
+                _update_config_for_retry(config, count)
+                _run_by_file(config, storage_name, command_name, proxy,
+                             meta_visitors, data_visitors)
+                if not _need_to_retry(config):
+                    break
+    except Exception as e:
+        logging.error(e)
+        tb = traceback.format_exc()
+        logging.error(tb)
+
+
 def run_single(config, storage_name, command_name, meta_visitors,
                data_visitors):
     """Process a single entry by StorageName detail.
 
-    :config mc.Config
-    :storage_name instance of StorageName for the collection
-    :command_name extension of fits2caom2 for the collection
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    :param config mc.Config
+    :param storage_name instance of StorageName for the collection
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
     """
     organizer = OrganizeExecutes(config)
     result = _do_one(config, organizer, storage_name,
