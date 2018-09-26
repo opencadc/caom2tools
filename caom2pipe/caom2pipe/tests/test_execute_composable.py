@@ -639,6 +639,7 @@ def test_run_by_file():
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
+@patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file_expects_retry():
     retry_dir = '{}_0'.format(TESTDATA_DIR)
     if os.path.exists(retry_dir):
