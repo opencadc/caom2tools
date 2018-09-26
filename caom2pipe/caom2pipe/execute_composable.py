@@ -1275,11 +1275,15 @@ class OrganizeExecutes(object):
         creating an instance of the CadcDataClient and the CAOM2Repo client."""
         if (self.config.proxy_fqn is not None and os.path.exists(
                 self.config.proxy_fqn)):
+            logging.debug('Using proxy certificate {} for credentials.'.format(
+                self.config.proxy_fqn))
             subject = net.Subject(username=None,
                                   certificate=self.config.proxy_fqn)
             cred_param = '--cert {}'.format(self.config.proxy_fqn)
         elif (self.config.netrc_file is not None and os.path.exists(
                 self.config.netrc_file)):
+            logging.debug('Using netrc file {} for credentials.'.format(
+                self.config.netrc_file))
             subject = net.Subject(username=None, certificate=None,
                                   netrc=self.config.netrc_file)
             cred_param = '--netrc {}'.format(self.config.netrc_file)
