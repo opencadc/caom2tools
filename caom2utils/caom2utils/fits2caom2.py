@@ -3339,8 +3339,10 @@ def _get_type(path):
         return 'image/gif'
     elif path.endswith('.png'):
         return 'image/png'
+    elif path.endswith('.jpg'):
+        return 'image/jpeg'
     else:
-        return 'application/octet-stream'
+        return 'application/fits'
 
 
 def _lookup_blueprint(blueprints, uri):
@@ -3409,7 +3411,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         else:
             meta_uri = 'file://{}'.format(local)
             visit_local = local
-            if '.header' in local:
+            if '.header' in local and '.fits' in local:
                 logging.debug(
                     'Using a FitsParser for local file {}'.format(local))
                 parser = FitsParser(get_cadc_headers(meta_uri),
@@ -3537,8 +3539,7 @@ def caom2gen():
         logging.debug(tb)
         sys.exit(-1)
 
-    logging.debug(
-        'Done {} processing.'.format(APP_NAME))
+    logging.debug('Done {} processing.'.format(APP_NAME))
 
 
 def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
