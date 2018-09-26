@@ -747,6 +747,112 @@ def test_caom_name():
         'caom:TEST/test_obs_id'
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+@patch('sys.exit', Mock(side_effect=MyExitError))
+def test_local_meta_create_client_remote_storage_execute():
+    os_path_exists_orig = os.path.exists
+    os.path.exists = Mock(return_value=True)
+    os_listdir_orig = os.listdir
+    os.listdir = Mock(return_value=[])
+    os_rmdir_orig = os.rmdir
+    os.rmdir = Mock()
+    test_config = _init_config()
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    repo_client_mock = Mock()
+    test_cred = None
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    mc.read_obs_from_file = Mock()
+    mc.read_obs_from_file.return_value = _read_obs(None)
+    test_app = 'collection2caom2'
+    test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
+                                       test_app, test_app)
+    test_local = '{}/test_obs_id.fits'.format(THIS_DIR)
+
+    try:
+        ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
+
+        # run the test
+        test_executor = ec.LocalMetaCreateClientRemoteStorage(
+            test_config, TestStorageName(), test_app, test_cred,
+            data_client_mock, repo_client_mock, None)
+        try:
+            test_executor.execute(None)
+        except CadcException as e:
+            assert False, e
+
+        # check that things worked as expected
+        assert repo_client_mock.create.is_called, 'create call missed'
+        assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            '{} --debug None --observation OMM test_obs_id --local {} '
+            '--out {}/test_obs_id.fits.xml --plugin {} '
+            '--module {} --lineage '
+            'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                test_app, test_local, THIS_DIR, test_source, test_source))
+    finally:
+        os.path.exists = os_path_exists_orig
+        os.listdir = os_listdir_orig
+        os.rmdir = os_rmdir_orig
+        mc.exec_cmd = exec_cmd_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+@patch('sys.exit', Mock(side_effect=MyExitError))
+def test_local_meta_update_client_remote_storage_execute():
+    os_path_exists_orig = os.path.exists
+    os.path.exists = Mock(return_value=True)
+    os_listdir_orig = os.listdir
+    os.listdir = Mock(return_value=[])
+    os_rmdir_orig = os.rmdir
+    os.rmdir = Mock()
+    test_config = _init_config()
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    repo_client_mock = Mock()
+    test_cred = None
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    mc.read_obs_from_file = Mock()
+    mc.read_obs_from_file.return_value = _read_obs(None)
+    test_app = 'collection2caom2'
+    test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
+                                       test_app, test_app)
+    test_local = '{}/test_obs_id.fits'.format(THIS_DIR)
+
+    try:
+        ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
+
+        # run the test
+        test_executor = ec.LocalMetaUpdateClientRemoteStorage(
+            test_config, TestStorageName(), test_app, test_cred,
+            data_client_mock, repo_client_mock, _read_obs(None), None)
+        try:
+            test_executor.execute(None)
+        except CadcException as e:
+            assert False, e
+
+        # check that things worked as expected
+        assert repo_client_mock.read.is_called, 'read call missed'
+        assert repo_client_mock.update.is_called, 'update call missed'
+        assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            '{} --debug None --in {}/test_obs_id.fits.xml '
+            '--out {}/test_obs_id.fits.xml --local {} --plugin {} '
+            '--module {} --lineage '
+            'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                test_app, THIS_DIR, THIS_DIR, test_local, test_source,
+                test_source))
+    finally:
+        os.path.exists = os_path_exists_orig
+        os.listdir = os_listdir_orig
+        os.rmdir = os_rmdir_orig
+        mc.exec_cmd = exec_cmd_orig
+
+
 def _communicate():
     return ['return status', None]
 

@@ -383,8 +383,20 @@ class CaomExecute(object):
                 self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
+    def _fits2caom2_cmd_client_local(self):
+        """Execute fits2caom with a --cert parameter and a --local parameter."""
+        plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
+        local_fqn = os.path.join(self.working_dir, self.fname)
+        cmd = '{} {} {} --observation {} {} --local {} --out {} ' \
+              '--plugin {} --module {} --lineage {}/{}'.format(
+                self.command_name, self.logging_level_param, self.cred_param,
+                self.collection, self.obs_id, local_fqn, self.model_fqn,
+                plugin, plugin, self.product_id, self.uri)
+        mc.exec_cmd(cmd)
+
     def _fits2caom2_cmd_in_out_client(self):
-        """Execute fits2caom with a --local and a --cert parameter."""
+        """Execute fits2caom with a --in and a --cert parameter."""
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
         # TODO add an input parameter
@@ -393,6 +405,18 @@ class CaomExecute(object):
                 self.command_name, self.logging_level_param, self.cred_param,
                 self.model_fqn, self.model_fqn, plugin, plugin,
                 self.product_id, self.uri)
+        mc.exec_cmd(cmd)
+
+    def _fits2caom2_cmd_in_out_local_client(self):
+        """Execute fits2caom with a --in, --local and a --cert parameter."""
+        plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
+        local_fqn = os.path.join(self.working_dir, self.fname)
+        cmd = '{} {} {} --in {} --out {} --local {} ' \
+              '--plugin {} --module {} --lineage {}/{}'.format(
+            self.command_name, self.logging_level_param, self.cred_param,
+            self.model_fqn, self.model_fqn, local_fqn, plugin, plugin,
+            self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _compare_checksums_client(self, fname):
@@ -954,10 +978,7 @@ class LocalMetaCreateClientRemoteStorage(CaomExecute):
         self.logger.debug('the observation does not exist, so go '
                           'straight to generating the xml, as the main_app '
                           'will retrieve the headers')
-        # TODO - why isn't this client providing a local parameter?
-        # TODO - why isnt this client writing out to the local dir, instead
-        # of a file-specific dir?
-        self._fits2caom2_cmd_client()
+        self._fits2caom2_cmd_client_local()
 
         self.logger.debug('read the xml into memory from the file')
         observation = self._read_model()
@@ -1001,8 +1022,7 @@ class LocalMetaUpdateClientRemoteStorage(CaomExecute):
 
         self.logger.debug('generate the xml, as the main_app will retrieve '
                           'the headers')
-        # TODO - why isn't this client providing a local parameter?
-        self._fits2caom2_cmd_in_out_client()
+        self._fits2caom2_cmd_in_out_local_client()
 
         self.logger.debug('read the xml from disk')
         self.observation = self._read_model()
@@ -1195,8 +1215,9 @@ class OrganizeExecutes(object):
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
             if (self.config.use_local_files and
-                    (mc.TaskType.SCRAPE not in self.task_types or
-                     mc.TaskType.REMOTE not in self.task_types)):
+                    mc.TaskType.SCRAPE not in self.task_types and
+                    mc.TaskType.REMOTE not in self.task_types):
+                logging.error(self.task_types)
                 executors.append(
                     Collection2CaomCompareChecksumClient(
                         self.config, storage_name, command_name,

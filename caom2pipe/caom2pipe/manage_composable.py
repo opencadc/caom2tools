@@ -510,7 +510,7 @@ class Config(object):
             self.retry_failures = self._lookup(config, 'retry_failures', False)
             self.retry_count = self._lookup(config, 'retry_count', 1)
             self.features = self._obtain_features(config)
-            self.proxy_fqn = self._lookup(config, 'proxy_filename', None)
+            self.proxy_fqn = self._lookup(config, 'proxy_file_name', None)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))

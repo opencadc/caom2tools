@@ -84,8 +84,9 @@ from caom2 import shape as caom_shape
 from caom2pipe import manage_composable as mc
 
 
-__all__ = ['convert_time', 'get_datetime', 'build_plane_time', 'get_location',
-           'get_timedelta_in_s', 'make_headers_from_string']
+__all__ = ['convert_time', 'get_datetime', 'build_plane_time',
+           'build_plane_time_interval', 'build_plane_time_sample',
+           'get_location', 'get_timedelta_in_s', 'make_headers_from_string']
 
 
 def find_time_bounds(headers):
@@ -160,20 +161,38 @@ def get_location(latitude, longitude, elevation):
 
 
 def build_plane_time(start_date, end_date, exposure_time):
-    """Calculate the plane-level bounding box for time."""
-    start_date.format = 'mjd'
-    end_date.format = 'mjd'
-    time_bounds = caom_Interval(mc.to_float(start_date.value),
-                                mc.to_float(end_date.value),
-                                samples=[
-                                    caom_shape.SubInterval(
-                                        mc.to_float(start_date.value),
-                                        mc.to_float(end_date.value))])
+    """Calculate the plane-level bounding box for time, with one sample."""
+    sample = build_plane_time_sample(start_date, end_date)
+    time_bounds = build_plane_time_interval(start_date, end_date, [sample])
     return caom_Time(bounds=time_bounds,
                      dimension=1,
                      resolution=exposure_time.to('second').value,
                      sample_size=exposure_time.to('day').value,
                      exposure=exposure_time.to('second').value)
+
+
+def build_plane_time_interval(start_date, end_date, samples):
+    """Create an Interval for the plane-level bounding box for time, given
+    the start and end dates, and a list of samples.
+    :param samples list of SubInterval instances
+    :param start_date minimum SubInterval date
+    :param end_date maximum SubInterval date. """
+    time_bounds = caom_Interval(mc.to_float(start_date.value),
+                                mc.to_float(end_date.value),
+                                samples=samples)
+    return time_bounds
+
+
+def build_plane_time_sample(start_date, end_date):
+    """Create a SubInterval for the plane-level bounding box for time, given
+    the start and end dates.
+    :param start_date minimum date
+    :param end_date maximum date. """
+    start_date.format = 'mjd'
+    end_date.format = 'mjd'
+    return caom_shape.SubInterval(
+        mc.to_float(start_date.value),
+        mc.to_float(end_date.value))
 
 
 def get_timedelta_in_s(from_value):
