@@ -660,7 +660,7 @@ def get_file_meta(fqn):
     elif fqn.endswith('.jpg'):
         meta['type'] = 'image/jpeg'
     else:
-        meta['type'] = 'application/octet-stream'
+        meta['type'] = 'application/fits'
     logging.debug(meta)
     return meta
 
