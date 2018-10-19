@@ -525,6 +525,56 @@ class Config(object):
                 'Could not find the file {}'.format(config_fqn))
         return config
 
+    def need_to_retry(self):
+        """Evaluate the need to have the pipeline try to re-execute for any
+         files/observations that have been logged as failures.
+
+        If log_to_file is not set to True, there is no retry file content
+        to retry on..
+
+         :param config does the configuration identify retry information?
+         :return True if the configuration and logging information indicate a
+            need to attempt to retry the pipeline execution for any entries.
+         """
+        result = True
+        if (self.features is not None and self.features.expects_retry and
+                self.retry_failures and self.log_to_file):
+            meta = get_file_meta(self.retry_fqn)
+            if meta['size'] == 0:
+                logging.info('Checked the retry file {}. There are no logged '
+                             'failures.'.format(self.retry_fqn))
+                result = False
+        else:
+            result = False
+        return result
+
+
+    def update_for_retry(self, count):
+        """
+        When retrying, the application will:
+
+        - use the retries.txt file as the todo list
+        - retry as many times as the 'retry count' in the config.yml file.
+        - make a new log directory, in the working directory, with the name
+            logs_{retry_count}. Any failures for the retry execution that
+            need to be logged will be logged here.
+        - in the new log directory, make a new .xml file for the
+            output, with the name {obs_id}.xml
+
+        :param count the current retry iteration
+        """
+        self.work_file = '{}'.format(self.retry_file_name)
+        self.work_fqn = self.retry_fqn
+        self.log_file_directory = '{}_{}'.format(
+            self.log_file_directory, count)
+        # reset the location of the log file names
+        self.success_log_file_name = self.success_log_file_name
+        self.failure_log_file_name = self.failure_log_file_name
+        self.retry_file_name = self.retry_file_name
+
+        logging.info('Retry work file is {}'.format(self.work_fqn))
+
+
     @staticmethod
     def load_config(config_fqn):
         """Read a configuration as a YAML file.

@@ -1190,6 +1190,7 @@ class OrganizeExecutes(object):
             self.failure_fqn = config.failure_fqn
             self.retry_fqn = config.retry_fqn
 
+        logging.error('work file is {}'.format(self.todo_fqn))
         if self.config.log_to_file:
             mc.create_dir(self.config.log_file_directory)
             failure = open(self.failure_fqn, 'w')
@@ -1543,13 +1544,11 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
     """
     if config.features.use_file_names:
         if config.use_local_files:
-            logging.error('use local files == true entry{}'.format(entry))
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(file_name=entry)
     else:
         if config.use_local_files:
-            logging.error('use local files == true 2 {}'.format(entry))
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(obs_id=entry)
@@ -1632,7 +1631,7 @@ def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
                                 help='Fully-qualified todo file name.')
             args = parser.parse_args()
             if args.todo is not None:
-                logging.debug('Using entries from file {}'.format(
+                logging.debug('Using entries from todo file {}'.format(
                     args.todo))
                 organize = OrganizeExecutes(config, chooser, args.todo)
             else:
@@ -1648,49 +1647,6 @@ def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
         logging.error(e)
         tb = traceback.format_exc()
         logging.error(tb)
-
-
-def _need_to_retry(config):
-    """Evaluate the need to have the pipeline try to re-execute for any
-     files/observations that have been logged as failures.
-
-    If log_to_file is not set to True, there is no retry file content
-    to retry on..
-
-     :param config does the configuration identify retry information?
-     :return True if the configuration and logging information indicate a
-        need to attempt to retry the pipeline execution for any entries.
-     """
-    result = True
-    if (config is not None and config.features is not None and
-            config.features.expects_retry and config.retry_failures and
-            config.log_to_file):
-        meta = mc.get_file_meta(config.retry_fqn)
-        if meta['size'] == 0:
-            logging.info('Checked the retry file {}. There are no logged '
-                         'failures.'.format(config.retry_fqn))
-            result = False
-    else:
-        result = False
-    return result
-
-
-def _update_config_for_retry(config, count):
-    """
-    :param config how the retry information is identified to the pipeline
-    :param count the current retry iteration
-    :return: the Config instance, updated with locations that reflect
-        retry information. The logging should not over-write on a retry
-        attempt.
-    """
-    config.work_file = '{}'.format(config.retry_fqn)
-    config.log_file_directory = '{}_{}'.format(
-        config.log_file_directory, count)
-    # reset the location of the log file names
-    config.success_log_file_name = config.success_log_file_name
-    config.failure_log_file_name = config.failure_log_file_name
-    config.retry_file_name = config.retry_file_name
-    return config
 
 
 def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
@@ -1720,12 +1676,12 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
         config.features.supports_composite = False
         _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
                      data_visitors, chooser)
-        if _need_to_retry(config):
+        if config.need_to_retry():
             for count in range(0, config.retry_count):
-                _update_config_for_retry(config, count)
+                config.update_for_retry(count)
                 _run_by_file(config, storage_name, command_name, proxy,
                              meta_visitors, data_visitors, chooser)
-                if not _need_to_retry(config):
+                if not config.need_to_retry():
                     break
     except Exception as e:
         logging.error(e)
