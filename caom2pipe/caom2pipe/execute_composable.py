@@ -1462,6 +1462,8 @@ class OrganizeExecutes(object):
             return 'XML Syntax Exception'
         elif 'failed to compute metadata' in e:
             return 'Failed to compute metadata'
+        elif 'reset by peer' in e:
+            return 'Connection reset by peer'
         else:
             return str(e)
 
