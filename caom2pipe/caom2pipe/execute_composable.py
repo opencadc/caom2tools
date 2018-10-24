@@ -633,6 +633,9 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
         self.logger.debug('the metadata visitors')
         self._visit_meta(self.observation)
 
+        self.logger.debug('write the observation to disk for next step')
+        self._write_model(self.observation)
+
         self.logger.debug('store the xml')
         self._repo_cmd_update_client(self.observation)
 
