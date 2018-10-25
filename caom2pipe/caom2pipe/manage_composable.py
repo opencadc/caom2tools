@@ -88,7 +88,7 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'decompose_lineage', 'check_param', 'read_csv_file',
            'write_obs_to_file', 'read_obs_from_file',
            'compare_checksum_client', 'Features', 'write_to_file',
-           'update_typed_set']
+           'read_from_file', 'update_typed_set']
 
 
 class CadcException(Exception):
