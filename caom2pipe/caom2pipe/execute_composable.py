@@ -1193,7 +1193,6 @@ class OrganizeExecutes(object):
             self.failure_fqn = config.failure_fqn
             self.retry_fqn = config.retry_fqn
 
-        logging.error('work file is {}'.format(self.todo_fqn))
         if self.config.log_to_file:
             mc.create_dir(self.config.log_file_directory)
             failure = open(self.failure_fqn, 'w')
@@ -1362,7 +1361,6 @@ class OrganizeExecutes(object):
             if (self.config.use_local_files and
                     mc.TaskType.SCRAPE not in self.task_types and
                     mc.TaskType.REMOTE not in self.task_types):
-                logging.error(self.task_types)
                 executors.append(
                     Collection2CaomCompareChecksumClient(
                         self.config, storage_name, command_name,
@@ -1392,7 +1390,8 @@ class OrganizeExecutes(object):
 
             retry = open(self.retry_fqn, 'a')
             try:
-                if self.config.features.use_file_names:
+                if (self.config.features.use_file_names or
+                        self.config.use_local_files):
                     retry.write('{}\n'.format(file_name))
                 else:
                     retry.write('{}\n'.format(obs_id))
@@ -1586,7 +1585,7 @@ def _run_todo_file(config, organizer, sname, command_name, proxy,
 
 
 def _run_local_files(config, organizer, sname, command_name, proxy,
-                     meta_visitors, data_visitors):
+                     meta_visitors, data_visitors, chooser):
     """Process all entries located in the current working directory.
 
     :config mc.Config
@@ -1596,6 +1595,7 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
     :proxy Certificate proxy.
     :meta_visitors List of metadata visit methods.
     :data_visitors List of data visit methods.
+    :chooser OrganizeChooser access to collection-specific rules
     """
     file_list = os.listdir(config.working_directory)
     todo_list = []
@@ -1608,6 +1608,27 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
         _run_by_file_list(config, organizer, sname, command_name,
                           proxy, meta_visitors, data_visitors, do_file)
 
+    if config.need_to_retry():
+        for count in range(0, config.retry_count):
+            logging.warning('Beginning retry {}'.format(count + 1))
+            config.update_for_retry(count)
+
+            # make another file list
+            todo_list = mc.read_from_file(config.work_fqn)
+            organizer = OrganizeExecutes(config, chooser)
+            organizer.complete_record_count = len(todo_list)
+            logging.info('Retry {} entries'.format(
+                organizer.complete_record_count))
+            for redo_file in todo_list:
+                try:
+                    _run_by_file_list(config, organizer, sname, command_name,
+                                      proxy, meta_visitors, data_visitors,
+                                      redo_file.strip())
+                except Exception as e:
+                    logging.error(e)
+            if not config.need_to_retry():
+                break
+        logging.warning('Done retry attempts.')
 
 def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
                  data_visitors, chooser=None):
@@ -1629,7 +1650,7 @@ def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
                 'Using files from {}'.format(config.working_directory))
             organize = OrganizeExecutes(config, chooser)
             _run_local_files(config, organize, storage_name, command_name,
-                             proxy, meta_visitors, data_visitors)
+                             proxy, meta_visitors, data_visitors, chooser)
         else:
             parser = ArgumentParser()
             parser.add_argument('--todo',
@@ -1646,8 +1667,21 @@ def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
             _run_todo_file(
                 config, organize, storage_name, command_name,
                 proxy, meta_visitors, data_visitors)
+            if config.need_to_retry():
+                for count in range(0, config.retry_count):
+                    logging.warning('Beginning retry {}'.format(count + 1))
+                    config.update_for_retry(count)
+                    try:
+                        _run_by_file(config, storage_name, command_name, proxy,
+                                     meta_visitors, data_visitors, chooser)
+                    except Exception as e:
+                        logging.error(e)
+                    if not config.need_to_retry():
+                        break
+                logging.warning('Done retry attempts.')
+
         logging.info('Done, processed {} of {} correctly.'.format(
-            organize.success_count, organize.complete_record_count))
+                organize.success_count, organize.complete_record_count))
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()
@@ -1681,13 +1715,6 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
         config.features.supports_composite = False
         _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
                      data_visitors, chooser)
-        if config.need_to_retry():
-            for count in range(0, config.retry_count):
-                config.update_for_retry(count)
-                _run_by_file(config, storage_name, command_name, proxy,
-                             meta_visitors, data_visitors, chooser)
-                if not config.need_to_retry():
-                    break
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()

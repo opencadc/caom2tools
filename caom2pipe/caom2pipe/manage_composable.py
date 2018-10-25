@@ -530,7 +530,7 @@ class Config(object):
          files/observations that have been logged as failures.
 
         If log_to_file is not set to True, there is no retry file content
-        to retry on..
+        to retry on.
 
          :param config does the configuration identify retry information?
          :return True if the configuration and logging information indicate a
@@ -565,8 +565,12 @@ class Config(object):
         """
         self.work_file = '{}'.format(self.retry_file_name)
         self.work_fqn = self.retry_fqn
-        self.log_file_directory = '{}_{}'.format(
-            self.log_file_directory, count)
+        if '_' in self.log_file_directory:
+            temp = self.log_file_directory.split('_')[0]
+            self.log_file_directory = '{}_{}'.format(temp, count)
+        else:
+            self.log_file_directory = '{}_{}'.format(
+                self.log_file_directory, count)
         # reset the location of the log file names
         self.success_log_file_name = self.success_log_file_name
         self.failure_log_file_name = self.failure_log_file_name
@@ -837,11 +841,24 @@ def read_obs_from_file(fqn):
     return reader.read(fqn)
 
 
+def read_from_file(fqn):
+    """Common code to read from a text file. Mostly to make it easy to
+    mock."""
+    if not os.path.exists(fqn):
+        raise CadcException('Could not find {}'.format(fqn))
+    with open(fqn, 'r') as f:
+        return f.readlines()
+
+
 def write_to_file(fqn, content):
     """Common code to write to a fully-qualified file name. Mostly to make
     it easy to mock."""
-    with open(fqn, 'w') as f:
-        f.write(content)
+    try:
+        with open(fqn, 'w') as f:
+            f.write(content)
+    except Exception as e:
+        logging.error('Could not write file {}'.format(fqn))
+        raise CadcException('Could not write file {}'.format(fqn))
 
 
 def update_typed_set(typed_set, new_set):
