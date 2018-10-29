@@ -978,7 +978,7 @@ class Collection2CaomStoreClient(CaomExecute):
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
 
-        self.logger.debug('store the input file to ad')
+        self.logger.debug('store the input file {} to ad'.format(self.fname))
         self._cadc_data_put_client(self.fname)
 
         self.logger.debug('End execute for {}'.format(__name__))
@@ -1610,11 +1610,15 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
 
     if config.need_to_retry():
         for count in range(0, config.retry_count):
-            logging.warning('Beginning retry {}'.format(count + 1))
+            logging.warning('Beginning retry {} in {}'.format(count + 1, os.getcwd()))
             config.update_for_retry(count)
 
             # make another file list
-            todo_list = mc.read_from_file(config.work_fqn)
+            temp_list = mc.read_from_file(config.work_fqn)
+            todo_list = []
+            for ii in temp_list:
+                # because the entries in retry aren't compressed names
+                todo_list.append('{}.gz'.format(ii.strip()))
             organizer = OrganizeExecutes(config, chooser)
             organizer.complete_record_count = len(todo_list)
             logging.info('Retry {} entries'.format(
