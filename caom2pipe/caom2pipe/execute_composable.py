@@ -482,7 +482,7 @@ class CaomExecute(object):
             if not os.path.exists(fqn):
                 raise mc.CadcException(
                     '{} does not exist.'.format(fqn))
-        except Exception as e:
+        except Exception:
             raise mc.CadcException(
                 'Did not retrieve {}'.format(fqn))
 
@@ -535,9 +535,9 @@ class CaomExecute(object):
         try:
             observation = caom_repo_client.read(collection, observation_id)
             return observation
-        except exceptions.NotFoundException as e:
+        except exceptions.NotFoundException:
             return None
-        except Exception as e2:
+        except Exception:
             raise mc.CadcException(
                 'Could not retrieve an observation record for {}.'.format(
                     observation_id))
