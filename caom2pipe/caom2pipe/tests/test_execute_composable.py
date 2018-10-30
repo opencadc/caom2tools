@@ -111,6 +111,13 @@ class TestStorageName(ec.StorageName):
         return True
 
 
+class TestChooser(ec.OrganizeChooser):
+    def __init(self):
+        super(TestChooser, self).__init__()
+
+    def needs_delete(self, observation):
+        return True
+
 def _init_config():
     test_config = mc.Config()
     test_config.working_directory = THIS_DIR
@@ -191,6 +198,37 @@ def test_meta_update_client_execute():
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
+def test_meta_delete_create_client_execute():
+    test_app = 'collection2caom2'
+    test_config = _init_config()
+    test_cred = None
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    repo_client_mock = Mock()
+    test_executor = ec.Collection2CaomMetaDeleteCreateClient(
+        test_config, TestStorageName(), test_app, test_cred,
+        data_client_mock, repo_client_mock, meta_visitors=None,
+        observation=_read_obs(None))
+    test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
+                                       test_app, test_app)
+    try:
+        test_executor.execute(None)
+        assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            '{} --debug None --in {}/test_obs_id/test_obs_id.fits.xml '
+            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--module {} --lineage '
+            'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                test_app, THIS_DIR, THIS_DIR, test_source, test_source))
+        assert repo_client_mock.update.is_called, 'update call missed'
+    finally:
+        mc.exec_cmd = exec_cmd_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_local_meta_create_client_execute():
     test_app = 'collection2caom2'
     test_config = _init_config()
@@ -244,6 +282,38 @@ def test_local_meta_update_client_execute():
             '--out {}/test_obs_id.fits.xml --plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 test_app, THIS_DIR, THIS_DIR, test_source, test_source))
+        assert repo_client_mock.update.is_called, 'update call missed'
+    finally:
+        mc.exec_cmd = exec_cmd_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_local_meta_delete_create_client_execute():
+    test_app = 'collection2caom2'
+    test_config = _init_config()
+    test_cred = None
+    data_client_mock = Mock()
+    data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
+    exec_cmd_orig = mc.exec_cmd
+    mc.exec_cmd = Mock()
+    repo_client_mock = Mock()
+    test_executor = ec.Collection2CaomLocalMetaDeleteCreateClient(
+        test_config, TestStorageName(), test_app, test_cred,
+        data_client_mock, repo_client_mock, meta_visitors=None,
+        observation=_read_obs(None))
+    test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
+                                       test_app, test_app)
+    try:
+        test_executor.execute(None)
+        assert mc.exec_cmd.called
+        mc.exec_cmd.assert_called_with(
+            '{} --debug None --in {}/test_obs_id.fits.xml '
+            '--out {}/test_obs_id.fits.xml --local {}/test_file.fits '
+            '--plugin {} --module {} '
+            '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
+                test_app, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
+                test_source))
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -530,6 +600,58 @@ def test_organize_executes_client():
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
+def test_organize_executes_chooser():
+    test_obs_id = TestStorageName()
+    test_config = _init_config()
+    test_config.use_local_files = True
+    log_file_directory = os.path.join(THIS_DIR, 'logs')
+    test_config.log_file_directory = log_file_directory
+    test_config.features.supports_composite = True
+    exec_cmd_orig = mc.exec_cmd_info
+    repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
+
+    try:
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
+        mc.exec_cmd_info = \
+            Mock(return_value='INFO:cadc-data:info\n'
+                              'File C170324_0054_SCI_prev.jpg:\n'
+                              '    archive: OMM\n'
+                              '   encoding: None\n'
+                              '    lastmod: Mon, 25 Jun 2018 16:52:07 GMT\n'
+                              '     md5sum: f37d21c53055498d1b5cb7753e1c6d6f\n'
+                              '       name: C120902_sh2-132_J_old_'
+                              'SCIRED.fits.gz\n'
+                              '       size: 754408\n'
+                              '       type: image/jpeg\n'
+                              '    umd5sum: 704b494a972eed30b18b817e243ced7d\n'
+                              '      usize: 754408\n'.encode('utf-8'))
+
+        test_config.task_types = [mc.TaskType.INGEST]
+        test_chooser = TestChooser()
+        test_oe = ec.OrganizeExecutes(test_config, test_chooser)
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
+        assert executors is not None
+        assert len(executors) == 2
+        assert isinstance(executors[0],
+                          ec.Collection2CaomLocalMetaDeleteCreateClient)
+        assert isinstance(executors[1],
+                          ec.Collection2CaomCompareChecksumClient)
+
+        test_config.use_local_files = False
+        test_config.task_types = [mc.TaskType.INGEST]
+        test_oe = ec.OrganizeExecutes(test_config, test_chooser)
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0],
+                          ec.Collection2CaomMetaDeleteCreateClient)
+    finally:
+        mc.exec_cmd_orig = exec_cmd_orig
+        ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_organize_executes_client_existing():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -649,9 +771,18 @@ def test_run_by_file():
 def test_run_by_file_expects_retry():
     retry_dir = '{}_0'.format(TESTDATA_DIR)
     if os.path.exists(retry_dir):
-        os.remove('{}/failure_log.txt'.format(retry_dir))
-        os.remove('{}/retries.txt'.format(retry_dir))
-        os.remove('{}/success_log.txt'.format(retry_dir))
+        f_log = '{}/failure_log.txt'.format(retry_dir)
+        if os.path.exists(f_log):
+            os.remove(f_log)
+        r_txt = '{}/retries.txt'.format(retry_dir)
+        if os.path.exists(r_txt):
+            os.remove(r_txt)
+        s_log = '{}/success_log.txt'.format(retry_dir)
+        if os.path.exists(s_log):
+            os.remove(s_log)
+        t_log = '{}/test_obs_id.log'.format(retry_dir)
+        if os.path.exists(t_log):
+            os.remove(t_log)
         os.rmdir(retry_dir)
 
     test_config = _init_config()
@@ -663,18 +794,19 @@ def test_run_by_file_expects_retry():
     test_config.success_log_file_name = 'success_log.txt'
     test_config.failure_log_file_name = 'failure_log.txt'
     test_retry_count = 0
-    test_config.task_types = [mc.TaskType.VISIT]
+    test_config.task_types = []
     assert test_config.log_file_directory == TESTDATA_DIR
     assert test_config.work_file == 'todo.txt'
 
-    assert ec._need_to_retry(test_config), 'should require retries'
+    assert test_config.need_to_retry(), 'should require retries'
 
-    test_config = ec._update_config_for_retry(test_config, test_retry_count)
+    test_config.update_for_retry(test_retry_count)
     assert test_config.log_file_directory == '{}_{}'.format(TESTDATA_DIR,
                                                             test_retry_count)
-    assert test_config.work_file == '{}/retries.txt'.format(TESTDATA_DIR)
+    assert test_config.work_file == 'retries.txt'
+    assert test_config.work_fqn == os.path.join(TESTDATA_DIR, 'retries.txt')
     try:
-        ec._run_by_file(test_config, ec.StorageName, 'collection2caom2',
+        ec._run_by_file(test_config, TestStorageName, 'collection2caom2',
                         proxy=None, meta_visitors=[], data_visitors=[])
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
