@@ -624,7 +624,7 @@ def exec_cmd(cmd):
     except Exception as e:
         logging.debug('Error with command {}:: {}'.format(cmd, e))
         raise CadcException('Could not execute cmd {}. '
-                            'Exception {}'.format(cmd, {}))
+                            'Exception {}'.format(cmd, e))
 
 
 def exec_cmd_info(cmd):

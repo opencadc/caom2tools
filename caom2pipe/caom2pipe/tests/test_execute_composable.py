@@ -249,9 +249,10 @@ def test_local_meta_create_client_execute():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --observation OMM test_obs_id '
-            '--out {}/test_obs_id.fits.xml --plugin {} --module {} '
+            '--local {}/test_file.fits --out {}/test_obs_id.fits.xml '
+            '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, test_source, test_source))
+                test_app, THIS_DIR, THIS_DIR, test_source, test_source))
         assert repo_client_mock.create.is_called, 'create call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -279,9 +280,11 @@ def test_local_meta_update_client_execute():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --in {}/test_obs_id.fits.xml '
-            '--out {}/test_obs_id.fits.xml --plugin {} --module {} '
+            '--out {}/test_obs_id.fits.xml --local {}/test_file.fits '
+            '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, THIS_DIR, test_source, test_source))
+                test_app, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
+                test_source))
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
