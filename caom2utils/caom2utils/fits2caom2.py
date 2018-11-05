@@ -3156,7 +3156,7 @@ def _set_by_type(header, keyword, value):
     except ValueError:
         pass
 
-    if float_value and not value.isdecimal() or re.match('0\.0*', value):
+    if float_value and not value.isdecimal() or re.match(r'0\.0*', value):
         header.set(keyword, float_value)
     elif int_value:
         header.set(keyword, int_value)
