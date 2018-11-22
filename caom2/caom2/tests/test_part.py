@@ -81,7 +81,7 @@ from .. import part
 class TestPart(unittest.TestCase):
     def test_init(self):
         test_part = part.Part(u"partName")
-        self.assertEquals("partName", test_part.name, "Part name")
+        self.assertEqual("partName", test_part.name, "Part name")
         self.assertIsNone(test_part.product_type)
         self.assertTrue(len(test_part.chunks) == 0)
 

@@ -128,7 +128,7 @@ class TestObservation(unittest.TestCase):
 
         new_algorithm = observation.Algorithm("myNewAlg")
         obs.algorithm = new_algorithm
-        self.assertEquals(new_algorithm, obs.algorithm, "New algorithm")
+        self.assertEqual(new_algorithm, obs.algorithm, "New algorithm")
 
         self.assertIsNone(obs.intent, "Default intent")
         obs.intent = observation.ObservationIntentType.CALIBRATION
@@ -293,7 +293,7 @@ class TestSimpleObservation(unittest.TestCase):
         self.assertIsNone(obs.requirements, "Default requirements")
         requirements = observation.Requirements(observation.Status.FAIL)
         obs.requirements = requirements
-        self.assertEquals(requirements, obs.requirements, "requirements")
+        self.assertEqual(requirements, obs.requirements, "requirements")
 
         self.assertIsNone(obs.meta_release, "Default metadata release")
         date_now = datetime.now()
@@ -467,7 +467,7 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertIsNone(obs.requirements, "Default requirements")
         requirements = observation.Requirements(observation.Status.FAIL)
         obs.requirements = requirements
-        self.assertEquals(requirements, obs.requirements, "requirements")
+        self.assertEqual(requirements, obs.requirements, "requirements")
 
         self.assertIsNone(obs.meta_release, "Default metadata release")
         date_now = datetime.now()
@@ -666,12 +666,12 @@ class TestTarget(unittest.TestCase):
         target = observation.Target("myOtherTarget",
                                     observation.TargetType.OBJECT, False, 1.2,
                                     {"radio"}, False)
-        self.assertEquals("myOtherTarget", target.name, "target name")
-        self.assertEquals(observation.TargetType.OBJECT, target.target_type,
-                          "target type")
+        self.assertEqual("myOtherTarget", target.name, "target name")
+        self.assertEqual(observation.TargetType.OBJECT, target.target_type,
+                         "target type")
         self.assertFalse(target.standard, "Standard")
-        self.assertEquals(1.2, target.redshift, "Redshift")
-        self.assertEquals(1, len(target.keywords), "Keywords")
+        self.assertEqual(1.2, target.redshift, "Redshift")
+        self.assertEqual(1, len(target.keywords), "Keywords")
         self.assertTrue("radio" in target.keywords, "Keywords")
         self.assertFalse(target.moving, "Moving")
 
