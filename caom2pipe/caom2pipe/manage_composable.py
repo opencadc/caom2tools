@@ -88,7 +88,7 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'decompose_lineage', 'check_param', 'read_csv_file',
            'write_obs_to_file', 'read_obs_from_file',
            'compare_checksum_client', 'Features', 'write_to_file',
-           'update_typed_set']
+           'read_from_file', 'update_typed_set']
 
 
 class CadcException(Exception):
@@ -172,6 +172,7 @@ class TaskType(Enum):
     MODIFY = 'modify'  # modify a CAOM instance from data
     CHECKSUM = 'checksum'  # is the checksum on local disk the same as in ad?
     VISIT = 'visit'    # visit an observation
+    REMOTE = 'remote'  # remote file storage, create CAOM instance via metadata
 
 
 class Config(object):
@@ -509,7 +510,7 @@ class Config(object):
             self.retry_failures = self._lookup(config, 'retry_failures', False)
             self.retry_count = self._lookup(config, 'retry_count', 1)
             self.features = self._obtain_features(config)
-            self.proxy_fqn = self._lookup(config, 'proxy_filename', None)
+            self.proxy_fqn = self._lookup(config, 'proxy_file_name', None)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -523,6 +524,60 @@ class Config(object):
             raise CadcException(
                 'Could not find the file {}'.format(config_fqn))
         return config
+
+    def need_to_retry(self):
+        """Evaluate the need to have the pipeline try to re-execute for any
+         files/observations that have been logged as failures.
+
+        If log_to_file is not set to True, there is no retry file content
+        to retry on.
+
+         :param config does the configuration identify retry information?
+         :return True if the configuration and logging information indicate a
+            need to attempt to retry the pipeline execution for any entries.
+         """
+        result = True
+        if (self.features is not None and self.features.expects_retry and
+                self.retry_failures and self.log_to_file):
+            meta = get_file_meta(self.retry_fqn)
+            if meta['size'] == 0:
+                logging.info('Checked the retry file {}. There are no logged '
+                             'failures.'.format(self.retry_fqn))
+                result = False
+        else:
+            result = False
+        return result
+
+
+    def update_for_retry(self, count):
+        """
+        When retrying, the application will:
+
+        - use the retries.txt file as the todo list
+        - retry as many times as the 'retry count' in the config.yml file.
+        - make a new log directory, in the working directory, with the name
+            logs_{retry_count}. Any failures for the retry execution that
+            need to be logged will be logged here.
+        - in the new log directory, make a new .xml file for the
+            output, with the name {obs_id}.xml
+
+        :param count the current retry iteration
+        """
+        self.work_file = '{}'.format(self.retry_file_name)
+        self.work_fqn = self.retry_fqn
+        if '_' in self.log_file_directory:
+            temp = self.log_file_directory.split('_')[0]
+            self.log_file_directory = '{}_{}'.format(temp, count)
+        else:
+            self.log_file_directory = '{}_{}'.format(
+                self.log_file_directory, count)
+        # reset the location of the log file names
+        self.success_log_file_name = self.success_log_file_name
+        self.failure_log_file_name = self.failure_log_file_name
+        self.retry_file_name = self.retry_file_name
+
+        logging.info('Retry work file is {}'.format(self.work_fqn))
+
 
     @staticmethod
     def load_config(config_fqn):
@@ -569,7 +624,7 @@ def exec_cmd(cmd):
     except Exception as e:
         logging.debug('Error with command {}:: {}'.format(cmd, e))
         raise CadcException('Could not execute cmd {}. '
-                            'Exception {}'.format(cmd, {}))
+                            'Exception {}'.format(cmd, e))
 
 
 def exec_cmd_info(cmd):
@@ -786,11 +841,24 @@ def read_obs_from_file(fqn):
     return reader.read(fqn)
 
 
+def read_from_file(fqn):
+    """Common code to read from a text file. Mostly to make it easy to
+    mock."""
+    if not os.path.exists(fqn):
+        raise CadcException('Could not find {}'.format(fqn))
+    with open(fqn, 'r') as f:
+        return f.readlines()
+
+
 def write_to_file(fqn, content):
     """Common code to write to a fully-qualified file name. Mostly to make
     it easy to mock."""
-    with open(fqn, 'w') as f:
-        f.write(content)
+    try:
+        with open(fqn, 'w') as f:
+            f.write(content)
+    except Exception as e:
+        logging.error('Could not write file {}'.format(fqn))
+        raise CadcException('Could not write file {}'.format(fqn))
 
 
 def update_typed_set(typed_set, new_set):

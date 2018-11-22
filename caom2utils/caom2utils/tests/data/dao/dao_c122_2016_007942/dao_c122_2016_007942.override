@@ -64,8 +64,6 @@ provenance.version          =
 provenance.name             = DAO unprocessed data
 provenance.inputs           = 
 
-members          = 
-
 environment.photometric     = false
 target.moving               = false
 target.standard             = false

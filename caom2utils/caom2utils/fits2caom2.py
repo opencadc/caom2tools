@@ -1738,7 +1738,7 @@ class FitsParser(GenericParser):
             self.logger.debug('Completed setting range for {}'.format(lookup))
 
     def _try_position_range(self, chunk, index):
-        self.logger.debug('Try to set the range for position')
+        self.logger.debug('Try to set the range for position from blueprint')
         if (self.blueprint._pos_axes_configed and chunk.position is not None
                 and chunk.position.axis is not None):
             aug_range_c1_start = self._two_param_constructor(
@@ -3566,7 +3566,8 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
         # the CompositeObservation.members in the blueprints. If present
         # in any of it assume composite
         for bp in obs_blueprints.values():
-            if bp._get('CompositeObservation.members', extension=1):
+            if bp._get('CompositeObservation.members') is not None:
+                logging.debug('Build a CompositeObservation')
                 obs = CompositeObservation(
                     collection=collection,
                     observation_id=obs_id,
@@ -3574,6 +3575,7 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
                 break
     if not obs:
         # build a simple observation
+        logging.debug('Build a SimpleObservation')
         obs = SimpleObservation(collection=collection,
                                 observation_id=obs_id,
                                 algorithm=Algorithm(str('exposure')))

@@ -77,7 +77,9 @@ All the if statements are limited to the choose* methods in the
 OrganizeExecutes class. If you find yourself adding an if statement to an
 execute method, create a new *Execute class instead. The result is execute
 methods that are composable into complex and varied pipelines, while
-remaining easily tested.
+remaining easily tested. The execute methods do conform to an Airflow API
+for operator extension, but please, please, please, do not ever import an
+Airflow class here.
 
 Raise the CadcException upon encountering an error. There is no recovery
 effort as part of a failure. Log the error and stop the pipeline
@@ -108,7 +110,8 @@ from caom2repo import CAOM2RepoClient
 from caom2pipe import manage_composable as mc
 
 
-__all__ = ['OrganizeExecutes', 'StorageName', 'CaomName']
+__all__ = ['OrganizeExecutes', 'StorageName', 'CaomName',
+           'OrganizeChooser']
 
 
 class StorageName(object):
@@ -380,8 +383,20 @@ class CaomExecute(object):
                 self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
+    def _fits2caom2_cmd_client_local(self):
+        """Execute fits2caom with a --cert parameter and a --local parameter."""
+        plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
+        local_fqn = os.path.join(self.working_dir, self.fname)
+        cmd = '{} {} {} --observation {} {} --local {} --out {} ' \
+              '--plugin {} --module {} --lineage {}/{}'.format(
+                self.command_name, self.logging_level_param, self.cred_param,
+                self.collection, self.obs_id, local_fqn, self.model_fqn,
+                plugin, plugin, self.product_id, self.uri)
+        mc.exec_cmd(cmd)
+
     def _fits2caom2_cmd_in_out_client(self):
-        """Execute fits2caom with a --local and a --cert parameter."""
+        """Execute fits2caom with a --in and a --cert parameter."""
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
         # TODO add an input parameter
@@ -390,6 +405,18 @@ class CaomExecute(object):
                 self.command_name, self.logging_level_param, self.cred_param,
                 self.model_fqn, self.model_fqn, plugin, plugin,
                 self.product_id, self.uri)
+        mc.exec_cmd(cmd)
+
+    def _fits2caom2_cmd_in_out_local_client(self):
+        """Execute fits2caom with a --in, --local and a --cert parameter."""
+        plugin = self._find_fits2caom2_plugin()
+        # so far, the plugin is also the module :)
+        local_fqn = os.path.join(self.working_dir, self.fname)
+        cmd = '{} {} {} --in {} --out {} --local {} ' \
+              '--plugin {} --module {} --lineage {}/{}'.format(
+            self.command_name, self.logging_level_param, self.cred_param,
+            self.model_fqn, self.model_fqn, local_fqn, plugin, plugin,
+            self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _compare_checksums_client(self, fname):
@@ -426,6 +453,16 @@ class CaomExecute(object):
             raise mc.CadcException(
                 'Could not read observation record for {} in {}. {}'.format(
                     self.obs_id, self.resource_id, e))
+
+    def _repo_cmd_delete_client(self, observation):
+        """Delete an observation instance based on an input parameter."""
+        try:
+            self.caom_repo_client.delete(observation.collection,
+                                         observation.observation_id)
+        except Exception as e:
+            raise mc.CadcException(
+                'Could not delete the observation record for {} in {}. '
+                '{}'.format(self.obs_id, self.resource_id, e))
 
     def _cadc_data_put_client(self, fname):
         """Store a collection file."""
@@ -596,8 +633,63 @@ class Collection2CaomMetaUpdateClient(CaomExecute):
         self.logger.debug('the metadata visitors')
         self._visit_meta(self.observation)
 
+        self.logger.debug('write the observation to disk for next step')
+        self._write_model(self.observation)
+
         self.logger.debug('store the xml')
         self._repo_cmd_update_client(self.observation)
+
+        self.logger.debug('clean up the workspace')
+        self._cleanup()
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class Collection2CaomMetaDeleteCreateClient(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into CAOM.
+    This requires access to only header information.
+
+    This pipeline step will execute a caom2-repo delete followed by
+    a create, because an update will not support a Simple->Composite
+    or Composite->Simple type change for the Observation
+    structure."""
+
+    def __init__(self, config, storage_name, command_name,
+                 cred_param, cadc_data_client, caom_repo_client,
+                 meta_visitors, observation=None):
+        super(Collection2CaomMetaDeleteCreateClient, self).__init__(
+            config, mc.TaskType.INGEST, storage_name, command_name,
+            cred_param, cadc_data_client, caom_repo_client, meta_visitors)
+        self.observation = observation
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('Find the file name as stored.')
+        self._cadc_data_info_file_name_client()
+
+        self.logger.debug('create the work space, if it does not exist')
+        self._create_dir()
+
+        self.logger.debug('write the observation to disk for next step')
+        self._write_model(self.observation)
+
+        self.logger.debug('make a new observation from an existing '
+                          'observation')
+        self._fits2caom2_cmd_in_out_client()
+
+        self.logger.debug('read the xml into memory from the file')
+        self.observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(self.observation)
+
+        self.logger.debug('the observation exists, delete it')
+        self._repo_cmd_delete_client(self.observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_create_client(self.observation)
 
         self.logger.debug('clean up the workspace')
         self._cleanup()
@@ -617,6 +709,7 @@ class Collection2CaomLocalMetaCreateClient(CaomExecute):
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
         self._define_local_dirs(storage_name)
+        self.fname = storage_name.fname_on_disk
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -628,13 +721,63 @@ class Collection2CaomLocalMetaCreateClient(CaomExecute):
         self.logger.debug('the observation does not exist, so go '
                           'straight to generating the xml, as the main_app '
                           'will retrieve the headers')
-        self._fits2caom2_cmd_client()
+        self._fits2caom2_cmd_client_local()
 
         self.logger.debug('read the xml from disk')
         observation = self._read_model()
 
         self.logger.debug('the metadata visitors')
         self._visit_meta(observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_create_client(observation)
+
+        self.logger.debug('write the updated xml to disk for debugging')
+        self._write_model(observation)
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class Collection2CaomLocalMetaDeleteCreateClient(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into CAOM.
+    This requires access to only header information.
+
+    This pipeline step will execute a caom2-repo delete followed by
+    a create, because an update will not support a Simple->Composite
+    or Composite->Simple type change for the Observation
+    structure."""
+
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client, meta_visitors,
+                 observation):
+        super(Collection2CaomLocalMetaDeleteCreateClient, self).__init__(
+            config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
+            cadc_data_client, caom_repo_client, meta_visitors)
+        self._define_local_dirs(storage_name)
+        self.observation = observation
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('Find the file name as stored.')
+        self._cadc_data_info_file_name_client()
+
+        self.logger.debug('write the observation to disk for next step')
+        self._write_model(self.observation)
+
+        self.logger.debug('make a new observation from an existing '
+                          'observation')
+        self._fits2caom2_cmd_in_out_local_client()
+
+        self.logger.debug('read the xml from disk')
+        observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(observation)
+
+        self.logger.debug('the observation exists, delete it')
+        self._repo_cmd_delete_client(self.observation)
 
         self.logger.debug('store the xml')
         self._repo_cmd_create_client(observation)
@@ -672,7 +815,7 @@ class Collection2CaomLocalMetaUpdateClient(CaomExecute):
 
         self.logger.debug('generate the xml, as the main_app will retrieve '
                           'the headers')
-        self._fits2caom2_cmd_in_out_client()
+        self._fits2caom2_cmd_in_out_local_client()
 
         self.logger.debug('read the xml from disk')
         self.observation = self._read_model()
@@ -836,7 +979,7 @@ class Collection2CaomStoreClient(CaomExecute):
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
 
-        self.logger.debug('store the input file to ad')
+        self.logger.debug('store the input file {} to ad'.format(self.fname))
         self._cadc_data_put_client(self.fname)
 
         self.logger.debug('End execute for {}'.format(__name__))
@@ -927,10 +1070,106 @@ class Collection2CaomCompareChecksumClient(CaomExecute):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
+class LocalMetaCreateClientRemoteStorage(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into
+    CAOM. This requires access to only header information.
+
+    The file that contains the metadata is available locally, but this file
+    is not, nor will it, be stored in CADC.
+
+    This pipeline step will execute a caom2-repo create."""
+
+    def __init__(self, config, storage_name, command_name,
+                 cred_param, cadc_data_client, caom_repo_client,
+                 meta_visitors):
+        super(LocalMetaCreateClientRemoteStorage, self).__init__(
+            config, mc.TaskType.REMOTE, storage_name, command_name,
+            cred_param, cadc_data_client, caom_repo_client, meta_visitors)
+        self._define_local_dirs(storage_name)
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('the observation does not exist, so go '
+                          'straight to generating the xml, as the main_app '
+                          'will retrieve the headers')
+        self._fits2caom2_cmd_client_local()
+
+        self.logger.debug('read the xml into memory from the file')
+        observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_create_client(observation)
+
+        self.logger.debug('clean up the workspace')
+        self._cleanup()
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class LocalMetaUpdateClientRemoteStorage(CaomExecute):
+    """Defines the pipeline step for Collection ingestion of metadata into
+    CAOM. This requires access to only header information.
+
+    The file that contains the metadata is available locally, but this file
+    is not, nor will it, be stored in CADC.
+
+    This pipeline step will execute a caom2-repo update."""
+
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client, observation,
+                 meta_visitors):
+        super(LocalMetaUpdateClientRemoteStorage, self).__init__(
+            config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
+            cadc_data_client, caom_repo_client, meta_visitors)
+        self._define_local_dirs(storage_name)
+        self.observation = observation
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Meta'.format(__name__))
+        self.logger.debug('the steps:')
+
+        self.logger.debug('write the observation to disk for next step')
+        self._write_model(self.observation)
+
+        self.logger.debug('generate the xml, as the main_app will retrieve '
+                          'the headers')
+        self._fits2caom2_cmd_in_out_local_client()
+
+        self.logger.debug('read the xml from disk')
+        self.observation = self._read_model()
+
+        self.logger.debug('the metadata visitors')
+        self._visit_meta(self.observation)
+
+        self.logger.debug('store the xml')
+        self._repo_cmd_update_client(self.observation)
+
+        self.logger.debug('write the updated xml to disk for debugging')
+        self._write_model(self.observation)
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+
+class OrganizeChooser(object):
+    """Extend this class to provide a way to make collection-specifi
+    complex conditions available within the OrganizeExecute class."""
+    def __init__(self):
+        pass
+
+    def needs_delete(self, observation):
+        return False
+
+
 class OrganizeExecutes(object):
-    """How to turn on/off various task types in the a CaomExecute pipeline."""
-    def __init__(self, config, todo_file=None):
+    """How to turn on/off various task types in a CaomExecute pipeline."""
+    def __init__(self, config, chooser=None, todo_file=None):
         self.config = config
+        self.chooser = chooser
         self.task_types = config.task_types
         self.logger = logging.getLogger()
         self.logger.setLevel(config.logging_level)
@@ -1035,17 +1274,35 @@ class OrganizeExecutes(object):
                                 meta_visitors))
                     else:
                         if self.config.use_local_files:
-                            executors.append(
-                                Collection2CaomLocalMetaUpdateClient(
-                                    self.config, storage_name, command_name,
-                                    cred_param, cadc_data_client,
-                                    caom_repo_client, observation,
-                                    meta_visitors))
+                            if (self.chooser is not None and
+                                    self.chooser.needs_delete(observation)):
+                                executors.append(
+                                    Collection2CaomLocalMetaDeleteCreateClient(
+                                        self.config, storage_name, command_name,
+                                        cred_param, cadc_data_client,
+                                        caom_repo_client, observation,
+                                        meta_visitors))
+                            else:
+                                executors.append(
+                                    Collection2CaomLocalMetaUpdateClient(
+                                        self.config, storage_name, command_name,
+                                        cred_param, cadc_data_client,
+                                        caom_repo_client, observation,
+                                        meta_visitors))
                         else:
-                            executors.append(Collection2CaomMetaUpdateClient(
-                                self.config, storage_name, command_name,
-                                cred_param, cadc_data_client, caom_repo_client,
-                                observation, meta_visitors))
+                            if (self.chooser is not None and
+                                    self.chooser.needs_delete(observation)):
+                                executors.append(
+                                    Collection2CaomMetaDeleteCreateClient(
+                                        self.config, storage_name, command_name,
+                                        cred_param, cadc_data_client,
+                                        caom_repo_client, observation,
+                                        meta_visitors))
+                            else:
+                                executors.append(Collection2CaomMetaUpdateClient(
+                                    self.config, storage_name, command_name,
+                                    cred_param, cadc_data_client, caom_repo_client,
+                                    observation, meta_visitors))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
                         if (executors is not None and len(executors) > 0 and
@@ -1072,11 +1329,39 @@ class OrganizeExecutes(object):
                     executors.append(Collection2CaomClientVisit(
                         self.config, storage_name, cred_param,
                         cadc_data_client, caom_repo_client, meta_visitors))
+                elif task_type == mc.TaskType.REMOTE:
+                    observation = CaomExecute.repo_cmd_get_client(
+                        caom_repo_client, self.config.collection,
+                        storage_name.obs_id)
+                    if observation is None:
+                        if self.config.use_local_files:
+                            executors.append(
+                                LocalMetaCreateClientRemoteStorage(
+                                    self.config, storage_name, command_name,
+                                    cred_param, cadc_data_client,
+                                    caom_repo_client, meta_visitors))
+                        else:
+                            raise mc.CadcException(
+                                'use_local_files must be True with '
+                                'Task Type "REMOTE"')
+                    else:
+                        if self.config.use_local_files:
+                            executors.append(
+                                LocalMetaUpdateClientRemoteStorage(
+                                    self.config, storage_name, command_name,
+                                    cred_param, cadc_data_client,
+                                    caom_repo_client, observation,
+                                    meta_visitors))
+                        else:
+                            raise mc.CadcException(
+                                'use_local_files must be True with '
+                                'Task Type "REMOTE"')
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
             if (self.config.use_local_files and
-                    mc.TaskType.SCRAPE not in self.task_types):
+                    mc.TaskType.SCRAPE not in self.task_types and
+                    mc.TaskType.REMOTE not in self.task_types):
                 executors.append(
                     Collection2CaomCompareChecksumClient(
                         self.config, storage_name, command_name,
@@ -1106,7 +1391,8 @@ class OrganizeExecutes(object):
 
             retry = open(self.retry_fqn, 'a')
             try:
-                if self.config.features.use_file_names:
+                if (self.config.features.use_file_names or
+                        self.config.use_local_files):
                     retry.write('{}\n'.format(file_name))
                 else:
                     retry.write('{}\n'.format(obs_id))
@@ -1134,11 +1420,15 @@ class OrganizeExecutes(object):
         creating an instance of the CadcDataClient and the CAOM2Repo client."""
         if (self.config.proxy_fqn is not None and os.path.exists(
                 self.config.proxy_fqn)):
+            logging.debug('Using proxy certificate {} for credentials.'.format(
+                self.config.proxy_fqn))
             subject = net.Subject(username=None,
                                   certificate=self.config.proxy_fqn)
             cred_param = '--cert {}'.format(self.config.proxy_fqn)
         elif (self.config.netrc_file is not None and os.path.exists(
                 self.config.netrc_file)):
+            logging.debug('Using netrc file {} for credentials.'.format(
+                self.config.netrc_file))
             subject = net.Subject(username=None, certificate=None,
                                   netrc=self.config.netrc_file)
             cred_param = '--netrc {}'.format(self.config.netrc_file)
@@ -1175,12 +1465,18 @@ class OrganizeExecutes(object):
             return 'XML Syntax Exception'
         elif 'failed to compute metadata' in e:
             return 'Failed to compute metadata'
+        elif 'reset by peer' in e:
+            return 'Connection reset by peer'
+        elif 'ConnectTimeoutError' in e:
+            return 'Connection to host timed out'
+        elif 'FileNotFoundError' in e:
+            return 'No such file or directory'
         else:
             return str(e)
 
 
 def _set_up_file_logging(config, storage_name):
-    """Configure logging to a separate file for each item being processed."""
+    """Configure logging to a separate file for each entry being processed."""
     log_h = None
     if config.log_to_file:
         log_fqn = os.path.join(config.working_directory,
@@ -1198,7 +1494,7 @@ def _set_up_file_logging(config, storage_name):
 
 
 def _unset_file_logging(config, log_h):
-    """Turn off the logging to the separate file for each item being
+    """Turn off the logging to the separate file for each entry being
     processed."""
     if config.log_to_file:
         logging.getLogger().removeHandler(log_h)
@@ -1206,13 +1502,14 @@ def _unset_file_logging(config, log_h):
 
 def _do_one(config, organizer, storage_name, command_name, meta_visitors,
             data_visitors):
-    """Process one item.
-    :config mc.Config
-    :organizer instance of OrganizeExecutes - for calling the choose method.
-    :storage_name instance of StorageName for the collection
-    :command_name extension of fits2caom2 for the collection
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    """Process one entry.
+    :param config mc.Config
+    :param organizer instance of OrganizeExecutes - for calling the choose
+        method.
+    :param storage_name instance of StorageName for the collection
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
     """
     log_h = _set_up_file_logging(config, storage_name)
     try:
@@ -1244,17 +1541,21 @@ def _do_one(config, organizer, storage_name, command_name, meta_visitors,
 
 def _run_by_file_list(config, organizer, sname, command_name, proxy,
                       meta_visitors, data_visitors, entry):
-    """Process an item from a list of files. Creates the correct instance
+    """Process an entry from a list of files. Creates the correct instance
     of the StorageName extension, based on Config values.
 
-    :config mc.Config
-    :organizer instance of OrganizeExecutes - for calling the choose method.
-    :sname which extension of StorageName to instantiate for the collection
-    :command_name extension of fits2caom2 for the collection
-    :proxy Certificate proxy.
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    :param config mc.Config
+    :param organizer instance of OrganizeExecutes - for calling the choose
+        method.
+    :param sname which extension of StorageName to instantiate for the
+        collection
+    :param command_name extension of fits2caom2 for the collection
+    :param proxy Certificate proxy.
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param entry what is being processed.
     """
+    logging.error('processing {}'.format(entry))
     if config.features.use_file_names:
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
@@ -1265,7 +1566,8 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(obs_id=entry)
-    logging.info('Process observation id {}'.format(storage_name.obs_id))
+    logging.info('Process observation id {} as {}'.format(
+        storage_name.obs_id, storage_name.file_name))
     config.proxy_fqn = proxy
     _do_one(config, organizer, storage_name, command_name,
             meta_visitors, data_visitors)
@@ -1275,13 +1577,15 @@ def _run_todo_file(config, organizer, sname, command_name, proxy,
                    meta_visitors, data_visitors):
     """Process all entries listed in a file.
 
-    :config mc.Config
-    :organizer instance of OrganizeExecutes - for calling the choose method.
-    :sname which extension of StorageName to instantiate for the collection
-    :command_name extension of fits2caom2 for the collection
-    :proxy Certificate proxy.
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    :param config mc.Config
+    :param organizer instance of OrganizeExecutes - for calling the choose
+        method.
+    :param sname which extension of StorageName to instantiate for the
+        collection
+    :param command_name extension of fits2caom2 for the collection
+    :param proxy Certificate proxy.
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
     """
     with open(organizer.todo_fqn) as f:
         todo_list_length = sum(1 for _ in f)
@@ -1294,16 +1598,19 @@ def _run_todo_file(config, organizer, sname, command_name, proxy,
 
 
 def _run_local_files(config, organizer, sname, command_name, proxy,
-                     meta_visitors, data_visitors):
+                     meta_visitors, data_visitors, chooser):
     """Process all entries located in the current working directory.
 
-    :config mc.Config
-    :organizer instance of OrganizeExecutes - for calling the choose method.
-    :sname which extension of StorageName to instantiate for the collection
-    :command_name extension of fits2caom2 for the collection
-    :proxy Certificate proxy.
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    :param config mc.Config
+    :param organizer instance of OrganizeExecutes - for calling the choose
+        method.
+    :param sname which extension of StorageName to instantiate for the
+        collection
+    :param command_name extension of fits2caom2 for the collection
+    :param proxy Certificate proxy.
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param chooser OrganizeChooser access to collection-specific rules
     """
     file_list = os.listdir(config.working_directory)
     todo_list = []
@@ -1316,9 +1623,36 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
         _run_by_file_list(config, organizer, sname, command_name,
                           proxy, meta_visitors, data_visitors, do_file)
 
+    if config.need_to_retry():
+        for count in range(0, config.retry_count):
+            logging.warning(
+                'Beginning retry {} in {}'.format(count + 1, os.getcwd()))
+            config.update_for_retry(count)
+
+            # make another file list
+            temp_list = mc.read_from_file(config.work_fqn)
+            todo_list = []
+            for ii in temp_list:
+                # because the entries in retry aren't compressed names
+                todo_list.append('{}.gz'.format(ii.strip()))
+            organizer = OrganizeExecutes(config, chooser)
+            organizer.complete_record_count = len(todo_list)
+            logging.info('Retry {} entries'.format(
+                organizer.complete_record_count))
+            for redo_file in todo_list:
+                try:
+                    _run_by_file_list(config, organizer, sname, command_name,
+                                      proxy, meta_visitors, data_visitors,
+                                      redo_file.strip())
+                except Exception as e:
+                    logging.error(e)
+            if not config.need_to_retry():
+                break
+        logging.warning('Done retry attempts.')
+
 
 def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
-                 data_visitors):
+                 data_visitors, chooser=None):
     """Process all entries by file name. The file names may be obtained
     from the Config todo entry, from the --todo parameter, or from listing
     files on local disk.
@@ -1335,78 +1669,48 @@ def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
         if config.use_local_files:
             logging.debug(
                 'Using files from {}'.format(config.working_directory))
-            organize = OrganizeExecutes(config)
+            organize = OrganizeExecutes(config, chooser)
             _run_local_files(config, organize, storage_name, command_name,
-                             proxy, meta_visitors, data_visitors)
+                             proxy, meta_visitors, data_visitors, chooser)
         else:
             parser = ArgumentParser()
             parser.add_argument('--todo',
                                 help='Fully-qualified todo file name.')
             args = parser.parse_args()
             if args.todo is not None:
-                logging.debug('Using entries from file {}'.format(
+                logging.debug('Using entries from todo file {}'.format(
                     args.todo))
-                organize = OrganizeExecutes(config, args.todo)
+                organize = OrganizeExecutes(config, chooser, args.todo)
             else:
                 logging.debug('Using entries from file {}'.format(
                     config.work_file))
-                organize = OrganizeExecutes(config)
+                organize = OrganizeExecutes(config, chooser)
             _run_todo_file(
                 config, organize, storage_name, command_name,
                 proxy, meta_visitors, data_visitors)
+            if config.need_to_retry():
+                for count in range(0, config.retry_count):
+                    logging.warning('Beginning retry {}'.format(count + 1))
+                    config.update_for_retry(count)
+                    try:
+                        _run_by_file(config, storage_name, command_name, proxy,
+                                     meta_visitors, data_visitors, chooser)
+                    except Exception as e:
+                        logging.error(e)
+                    if not config.need_to_retry():
+                        break
+                logging.warning('Done retry attempts.')
+
         logging.info('Done, processed {} of {} correctly.'.format(
-            organize.success_count, organize.complete_record_count))
+                organize.success_count, organize.complete_record_count))
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()
         logging.error(tb)
 
 
-def _need_to_retry(config):
-    """Evaluate the need to have the pipeline try to re-execute for any
-     files/observations that have been logged as failures.
-
-    If log_to_file is not set to True, there is no retry file content
-    to retry on..
-
-     :param config does the configuration identify retry information?
-     :return True if the configuration and logging information indicate a
-        need to attempt to retry the pipeline execution for any entries.
-     """
-    result = True
-    if (config is not None and config.features is not None and
-            config.features.expects_retry and config.retry_failures and
-            config.log_to_file):
-        meta = mc.get_file_meta(config.retry_fqn)
-        if meta['size'] == 0:
-            logging.info('Checked the retry file {}. There are no logged '
-                         'failures.'.format(config.retry_fqn))
-            result = False
-    else:
-        result = False
-    return result
-
-
-def _update_config_for_retry(config, count):
-    """
-    :param config how the retry information is identified to the pipeline
-    :param count the current retry iteration
-    :return: the Config instance, updated with locations that reflect
-        retry information. The logging should not over-write on a retry
-        attempt.
-    """
-    config.work_file = '{}'.format(config.retry_fqn)
-    config.log_file_directory = '{}_{}'.format(
-        config.log_file_directory, count)
-    # reset the location of the log file names
-    config.success_log_file_name = config.success_log_file_name
-    config.failure_log_file_name = config.failure_log_file_name
-    config.retry_file_name = config.retry_file_name
-    return config
-
-
 def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
-                data_visitors):
+                data_visitors, chooser=None):
     """Process all entries by file name. The file names may be obtained
     from the Config todo entry, from the --todo parameter, or from listing
     files on local disk.
@@ -1419,6 +1723,8 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
     :param proxy Certificate proxy.
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
+    :param chooser OrganizeChooser instance for detailed CaomExecute
+        descendant choices
     """
     try:
         config = mc.Config()
@@ -1429,14 +1735,7 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
         logger.setLevel(config.logging_level)
         config.features.supports_composite = False
         _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
-                     data_visitors)
-        if _need_to_retry(config):
-            for count in range(0, config.retry_count):
-                _update_config_for_retry(config, count)
-                _run_by_file(config, storage_name, command_name, proxy,
-                             meta_visitors, data_visitors)
-                if not _need_to_retry(config):
-                    break
+                     data_visitors, chooser)
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()
@@ -1444,7 +1743,7 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
 
 
 def run_single(config, storage_name, command_name, meta_visitors,
-               data_visitors):
+               data_visitors, chooser=None):
     """Process a single entry by StorageName detail.
 
     :param config mc.Config
@@ -1452,8 +1751,10 @@ def run_single(config, storage_name, command_name, meta_visitors,
     :param command_name extension of fits2caom2 for the collection
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
+    :param chooser OrganizeChooser instance for detailed CaomExecute
+        descendant choices
     """
-    organizer = OrganizeExecutes(config)
+    organizer = OrganizeExecutes(config, chooser)
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)
     sys.exit(result)
