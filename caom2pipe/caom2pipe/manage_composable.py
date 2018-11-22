@@ -73,13 +73,17 @@ import os
 import subprocess
 import yaml
 
-from aenum import Enum
+from datetime import datetime
+from enum import Enum
 from hashlib import md5
+from io import BytesIO
 from os import stat
+from urllib import parse as parse
 
 from cadcutils import net
 from cadcdata import CadcDataClient
-from caom2 import ObservationWriter, ObservationReader
+from caom2 import ObservationWriter, ObservationReader, Artifact, ReleaseType
+from caom2 import ChecksumURI
 
 
 __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
@@ -88,7 +92,9 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'decompose_lineage', 'check_param', 'read_csv_file',
            'write_obs_to_file', 'read_obs_from_file',
            'compare_checksum_client', 'Features', 'write_to_file',
-           'read_from_file', 'update_typed_set']
+           'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
+           'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
+           'data_put']
 
 
 class CadcException(Exception):
@@ -548,7 +554,6 @@ class Config(object):
             result = False
         return result
 
-
     def update_for_retry(self, count):
         """
         When retrying, the application will:
@@ -680,6 +685,36 @@ def exec_cmd_redirect(cmd, fqn):
                             'Exception {}'.format(cmd, e))
 
 
+def get_cadc_headers(uri):
+    """
+    Creates the FITS headers object by fetching the FITS headers of a CADC
+    file. The function takes advantage of the fhead feature of the CADC
+    storage service and retrieves just the headers and no data, minimizing
+    the transfer time.
+
+    The file must be public, because the header retrieval is done as an
+    anonymous user.
+
+    :param uri: CADC ('ad:') URI
+    :return: a string of keyword/value pairs.
+    """
+    file_url = parse.urlparse(uri)
+    if file_url.scheme == 'ad':
+        # create possible types of subjects
+        subject = net.Subject()
+        client = CadcDataClient(subject)
+        # do a fhead on the file
+        archive, file_id = file_url.path.split('/')
+        b = BytesIO()
+        b.name = uri
+        client.get_file(archive, file_id, b, fhead=True)
+        fits_header = b.getvalue().decode('ascii')
+        b.close()
+        return fits_header
+    else:
+        raise CadcException('Only ad type URIs supported')
+
+
 def get_cadc_meta(netrc_fqn, collection, fname):
     """
     Gets contentType, contentLength and contentChecksum of a CADC artifact
@@ -708,12 +743,16 @@ def get_file_meta(fqn):
     meta['md5sum'] = md5(open(fqn, 'rb').read()).hexdigest()
     if fqn.endswith('.header') or fqn.endswith('.txt'):
         meta['type'] = 'text/plain'
+    elif fqn.endswith('.csv'):
+        meta['type'] = 'text/csv'
     elif fqn.endswith('.gif'):
         meta['type'] = 'image/gif'
     elif fqn.endswith('.png'):
         meta['type'] = 'image/png'
     elif fqn.endswith('.jpg'):
         meta['type'] = 'image/jpeg'
+    elif fqn.endswith('tar.gz'):
+        meta['type'] = 'application/gzip'
     else:
         meta['type'] = 'application/fits'
     logging.debug(meta)
@@ -868,3 +907,117 @@ def update_typed_set(typed_set, new_set):
     while len(typed_set) > 0:
         typed_set.pop()
     typed_set.update(new_set)
+
+
+def format_time_for_query(from_time):
+    length = len(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    return datetime.strptime(from_time[:length], '%Y-%m-%dT%H:%M:%S')
+
+
+def read_file_list_from_archive(config, app_name, prev_exec_date, exec_date):
+    """Code to execute a time-boxed query for files that have arrived in ad.
+
+    :param config Config instance
+    :param app_name Information used in the http connection for tracing
+        queries.
+    :param prev_exec_date Timestamp that indicates the beginning of the
+        chunk of time. Results will be > than this time.
+    :param exec_date Timestamp. that indicates the end of the chunk of time.
+        Results will be <= this time.
+    """
+    start_time = format_time_for_query(prev_exec_date)
+    end_time = format_time_for_query(exec_date)
+    ad_resource_id = 'ivo://cadc.nrc.ca/ad'
+    agent = '{}/{}'.format(app_name, '1.0')
+    subject = net.Subject(certificate=config.proxy_fqn)
+    client = net.BaseWsClient(resource_id=ad_resource_id,
+                              subject=subject, agent=agent, retry=True)
+    query_meta = "SELECT fileName FROM archive_files WHERE " \
+                 "archiveName = '{}' AND ingestDate > '{}' and " \
+                 "ingestDate <= '{}' ORDER BY ingestDate".format(
+                    config.collection, start_time, end_time)
+    data = {'QUERY': query_meta, 'LANG': 'ADQL', 'FORMAT': 'csv'}
+    logging.debug('Query is {}'.format(query_meta))
+    try:
+        response = client.get('https://{}/ad/sync?{}'.format(
+            client.host, parse.urlencode(data)), cert=config.proxy_fqn)
+        if response.status_code == 200:
+            # ignore the column name as the first part of the response
+            artifact_files_list = response.text.split()[1:]
+            return artifact_files_list
+        else:
+            logging.warning('No work to do. Query failure {!r}'.format(
+                response))
+            return []
+    except Exception as e:
+        raise CadcException('Failed ad content query: {}'.format(e))
+
+
+def get_lineage(collection, product_id, file_name, scheme='ad'):
+    """Construct an instance of the caom2gen lineage parameter.
+    :param collection Collection name in CAOM2.
+    :param product_id CAOM2 Plane unique identifier.
+    :param file_name String representation of the file name.
+    :param scheme Usually 'ad', otherwise an indication of external storage.
+    :return str understood by the caom2gen application, lineage parameter
+        value"""
+    return '{}/{}:{}/{}'.format(product_id, scheme, collection, file_name)
+
+
+def get_artifact_metadata(fqn, product_type, release_type, uri=None,
+                          artifact=None):
+    """
+    Build or update artifact content metadata using the CAOM2 objects, and
+    with access to a file on disk.
+
+    :param fqn: The fully-qualified name of the file on disk, for which an
+        Artifact is being created or updated.
+    :param product_type: which ProductType enumeration value
+    :param release_type: which ReleaseType enumeration value
+    :param uri: mandatory if creating an Artifact, a URI of the form
+        scheme:COLLECTION/file_name
+    :param artifact: use when updating an existing Artifact instance
+
+    :return: the created or updated Artifact instance, with the
+        content_* elements filled in.
+    """
+    local_meta = get_file_meta(fqn)
+    md5uri = ChecksumURI('md5:{}'.format(local_meta['md5sum']))
+    if artifact is None:
+        if uri is None:
+            raise CadcException('Cannot build an Artifact without a URI.')
+        logging.error('create an artifact {}'.format(uri))
+        return Artifact(uri, product_type, release_type, local_meta['type'],
+                        local_meta['size'], md5uri)
+    else:
+        logging.error('update an artifact')
+        artifact.product_type = product_type
+        artifact.content_type = local_meta['type']
+        artifact.content_length = local_meta['size']
+        artifact.content_checksum = md5uri
+        return artifact
+
+
+def data_put(client, working_directory, file_name, collection, stream='raw'):
+    """
+    Make a copy of a a locally available file at CADC. Assumes file and
+    directory locations are correct. Does a checksum comparison to test
+    whether the file made it to storage as it exists on disk.
+
+    :param client: The CadcDataClient for write access to CADC storage.
+    :param working_directory: Where 'file_name' exists locally.
+    :param file_name: What to copy to CADC storage.
+    :param collection: Which archive to associate the file with.
+    :param stream: Defaults to raw - use is deprecated, however necessary it
+        may be at the current moment to the 'put_file' call.
+    """
+    cwd = os.getcwd()
+    try:
+        os.chdir(working_directory)
+        client.put_file(collection, file_name, stream)
+    except Exception as e:
+        raise CadcException('Failed to store data with {}'.format(e))
+    finally:
+        os.chdir(cwd)
+    compare_checksum_client(client, collection,
+                            os.path.join(working_directory, file_name))
