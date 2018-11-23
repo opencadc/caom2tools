@@ -69,10 +69,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import os
+
 import unittest
 
 from .. import diff
 from .. import observation
+from .. import obs_reader_writer
 from . import caom_test_instances
 
 
@@ -148,3 +151,35 @@ class TestCaomUtil(unittest.TestCase):
         report = diff.get_differences(seq1, seq2, 'chunks')
         assert report is not None
         assert len(report) == 1
+
+    def test_plane_level_position(self):
+
+        from caom2 import Point, shape, Vertex, SegmentType, Position
+        p1 = [Point(cval1=float('nan'), cval2=float('nan')),
+              Point(cval1=100.25, cval2=-30.5),
+              Point(cval1=100.25, cval2=30.0),
+              Point(cval1=float('nan'), cval2=float('nan'))]
+        p2 = [Point(cval1=float('nan'), cval2=float('nan')),
+              Point(cval1=100.25, cval2=-30.5),
+              Point(cval1=100.25, cval2=30.0),
+              Point(cval1=float('nan'), cval2=float('nan'))]
+
+        v1 = [Vertex(p1[0].cval1, p1[0].cval2, SegmentType.MOVE),
+              Vertex(p1[1].cval1, p1[1].cval2, SegmentType.LINE),
+              Vertex(p1[2].cval1, p1[2].cval2, SegmentType.LINE),
+              Vertex(p1[3].cval1, p1[3].cval2, SegmentType.LINE),
+              Vertex(p1[0].cval1, p1[0].cval2, SegmentType.CLOSE)]
+        v2 = [Vertex(p2[0].cval1, p2[0].cval2, SegmentType.MOVE),
+              Vertex(p2[1].cval1, p2[1].cval2, SegmentType.LINE),
+              Vertex(p2[2].cval1, p2[2].cval2, SegmentType.LINE),
+              Vertex(p2[3].cval1, p2[3].cval2, SegmentType.LINE),
+              Vertex(p2[0].cval1, p2[0].cval2, SegmentType.CLOSE)]
+
+        poly1 = shape.Polygon(points=p1, samples=shape.MultiPolygon(v1))
+        poly2 = shape.Polygon(points=p2, samples=shape.MultiPolygon(v2))
+
+        o1 = Position(time_dependent=False, bounds=poly1)
+        o2 = Position(time_dependent=False, bounds=poly2)
+
+        report = diff.get_differences(o1, o2, 'caom test instances')
+        assert report is None

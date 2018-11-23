@@ -75,6 +75,8 @@ A difference method for CAOM2 entities.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import math
+
 from caom2.common import CaomObject
 from caom2.caom_util import TypedSet, TypedOrderedDict, TypedList
 from caom2 import Chunk
@@ -114,13 +116,23 @@ def get_differences(expected, actual, parent=None):
         isinstance(expected, TypedList) or
             isinstance(expected, TypedSet) or
             isinstance(expected, set)):
+        import logging
+        logging.error('expected type is {}'.format(type(expected)))
+        logging.error('actual type is {}'.format(type(actual)))
         temp_report = _get_collection_differences(expected, actual, parent)
     elif isinstance(expected, CaomObject):
         assert isinstance(actual, CaomObject), \
             'Expecting instance of CaomObject'
+        import logging
+        logging.error('gd: expected type is {}'.format(type(expected)))
+        logging.error('gd: actual type is {}'.format(type(actual)))
         temp_report = _get_object_differences(expected, actual, parent)
     else:
         if expected != actual:
+            import logging
+            logging.error(
+                'type expected is {} type actual is {}'.format(type(expected),
+                                                               type(actual)))
             temp_report = ['Value:: {} expected is {}, actual is {}'.format(
                 expected, actual, parent)]
 
@@ -137,24 +149,40 @@ def _get_object_differences(expected, actual, parent):
     expected_dict, expected_decompose = _get_dict(expected)
     actual_dict, actual_decompose = _get_dict(actual)
 
+    import logging
+    logging.error('god: 1 expected decompose {}'.format(expected_dict))
+    logging.error('god: 1 actual decompose {}'.format(actual_dict))
+
     if expected_dict != actual_dict:
+        logging.error('expected dict != actual dict')
+
+        logging.error('god: 2 expected dict {}'.format(expected_dict))
+        logging.error('god: 2 actual dict {}'.format(actual_dict))
         temp_report = _get_dict_differences(expected_dict, actual_dict, parent)
+
         if temp_report:
+            # logging.error('god: temp_report {}'.format(temp_report))
             report.extend(temp_report)
 
+    logging.error('decomposed items {}'.format(expected_decompose.items()))
     for expected_key, expected_value in expected_decompose.items():
+        logging.error('xpected key {} value {}'.format(expected_key,
+                                                       expected_value))
         if expected_key in actual_decompose:
             actual_value = actual_decompose[expected_key]
             label = '{}.{}'.format(parent, expected_key)
             temp_report = get_differences(expected_value, actual_value, label)
             actual_decompose.pop(expected_key)
             if temp_report:
+                logging.error('god: 2 temp_report {}'.format(temp_report))
                 report.extend(temp_report)
         else:
+            logging.error('god: 3 temp_report member missing from {} {} {}'.format(parent, expected_key, actual.__class__))
             report.append('Member:: {}.{}: missing from {}'.format(
                 parent, expected_key, actual.__class__))
 
     for actual_key in actual_decompose.items():
+        logging.error('god: 4 temp_report member missing from {} {} {}'.format(parent, actual_key, actual.__class__))
         report.append('Member:: {}.{}: missing from {}'.format(
             parent, actual_key, expected.__class__))
 
@@ -264,10 +292,13 @@ def _get_sequence_differences(expected, actual, parent):
                         tracking_actual = a
                         tracking_expected = e
             if not match_found:
-                report.extend(tracking_report)
-                actual_copy.remove(tracking_actual)
-                expected_copy.remove(tracking_expected)
-
+                try:
+                    report.extend(tracking_report)
+                    actual_copy.remove(tracking_actual)
+                    expected_copy.remove(tracking_expected)
+                except Exception as e:
+                    import logging
+                    logging.error(e)
     for e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, e)
         report.append(
@@ -287,7 +318,30 @@ def _get_dict_differences(expected, actual, parent):
     for expected_key, expected_value in expected.items():
         if expected_key in actual:
             actual_value = actual[expected_key]
-            if _not_equal(expected_value, actual_value):
+            if isinstance(actual_value, list) and isinstance(expected_value,
+                                                             list):
+                # import logging
+                # logging.error(
+                #     'gdd: expected for compare {}.{}'.format(parent, type(expected_value)))
+                # logging.error('gdd: actual for compare {}.{}'.format(parent, type(actual_value)))
+                temp_report = _get_sequence_differences(expected_value,
+                                                        actual_value,
+                                                        expected_key)
+                report.append(temp_report)
+            elif _not_equal(expected_value, actual_value):
+                # import logging
+                # # logging.error(
+                # #     'type expected_value is {} '
+                # #     'type actual value is {}'.format(type(expected_value),
+                # #                                      type(actual_value)))
+                # # logging.error(
+                # #     'type expected is {} '
+                # #     'type actual is {}'.format(type(expected),
+                # #                                type(actual)))
+                # logging.error(
+                #     'gdd: expected value is {}.{} '
+                #     'gdd: actual value is {}.{}'.format(parent, expected_value,
+                #                                         parent, actual_value))
                 report.append(
                     'Value:: {}.{}: expected {} actual {}'.format(
                         parent,
@@ -310,9 +364,15 @@ def _get_dict_differences(expected, actual, parent):
 def _not_equal(rhs, lhs):
     """Handling for not-quite-equals float comparisons."""
     if isinstance(rhs, float) and isinstance(lhs, float):
-        # if only using python 3.5+, use math.isclose, instead of this
-        # description of math.isclose from the python documentation
-        result = abs(rhs-lhs) <= max(1e-10 * max(abs(rhs), abs(lhs)), 1e-9)
+        if math.isnan(rhs) or math.isnan(lhs):
+            if math.isnan(rhs) and math.isnan(lhs):
+                result = True
+            else:
+                result = rhs == lhs
+        else:
+            # if only using python 3.5+, use math.isclose, instead of this
+            # description of math.isclose from the python documentation
+            result = abs(rhs-lhs) <= max(1e-10 * max(abs(rhs), abs(lhs)), 1e-9)
     else:
         result = rhs == lhs
     return not result
@@ -323,12 +383,14 @@ def _get_dict(entity):
     an CaomObject comparison, and tracks the entities that are not
     straight-to-dictionary conversions for later handling."""
 
+    import logging
     attributes = {}
     caom_collections = {}
+    # logging.error('input parameter is {}'.format(entity))
     for i in dir(entity):
         try:
             attribute = getattr(entity, i)
-        except TypeError:
+        except TypeError as e:
             pass
         if (i.startswith('_') or
                 callable(attribute) or
@@ -342,5 +404,10 @@ def _get_dict(entity):
                 isinstance(attribute, set)):
             caom_collections[i] = attribute
         else:
-            attributes[i] = attribute
+            # logging.error('assigning {} type {}'.format(attribute, type(attribute)))
+            if isinstance(attribute, float) and math.isnan(attribute):
+                # logging.error('yes sir?')
+                attributes[i] = 'nan'
+            else:
+                attributes[i] = attribute
     return attributes, caom_collections
