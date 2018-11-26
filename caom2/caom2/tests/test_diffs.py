@@ -153,7 +153,7 @@ class TestCaomUtil(unittest.TestCase):
         assert len(report) == 1
 
     def test_plane_level_position(self):
-
+        # special handling, because nan == nan is False
         from caom2 import Point, shape, Vertex, SegmentType, Position
         p1 = [Point(cval1=float('nan'), cval2=float('nan')),
               Point(cval1=100.25, cval2=-30.5),

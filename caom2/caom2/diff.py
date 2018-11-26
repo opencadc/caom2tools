@@ -116,23 +116,13 @@ def get_differences(expected, actual, parent=None):
         isinstance(expected, TypedList) or
             isinstance(expected, TypedSet) or
             isinstance(expected, set)):
-        import logging
-        logging.error('expected type is {}'.format(type(expected)))
-        logging.error('actual type is {}'.format(type(actual)))
         temp_report = _get_collection_differences(expected, actual, parent)
     elif isinstance(expected, CaomObject):
         assert isinstance(actual, CaomObject), \
             'Expecting instance of CaomObject'
-        import logging
-        logging.error('gd: expected type is {}'.format(type(expected)))
-        logging.error('gd: actual type is {}'.format(type(actual)))
         temp_report = _get_object_differences(expected, actual, parent)
     else:
         if expected != actual:
-            import logging
-            logging.error(
-                'type expected is {} type actual is {}'.format(type(expected),
-                                                               type(actual)))
             temp_report = ['Value:: {} expected is {}, actual is {}'.format(
                 expected, actual, parent)]
 
@@ -149,40 +139,25 @@ def _get_object_differences(expected, actual, parent):
     expected_dict, expected_decompose = _get_dict(expected)
     actual_dict, actual_decompose = _get_dict(actual)
 
-    import logging
-    logging.error('god: 1 expected decompose {}'.format(expected_dict))
-    logging.error('god: 1 actual decompose {}'.format(actual_dict))
-
     if expected_dict != actual_dict:
-        logging.error('expected dict != actual dict')
-
-        logging.error('god: 2 expected dict {}'.format(expected_dict))
-        logging.error('god: 2 actual dict {}'.format(actual_dict))
         temp_report = _get_dict_differences(expected_dict, actual_dict, parent)
 
         if temp_report:
-            # logging.error('god: temp_report {}'.format(temp_report))
             report.extend(temp_report)
 
-    logging.error('decomposed items {}'.format(expected_decompose.items()))
     for expected_key, expected_value in expected_decompose.items():
-        logging.error('xpected key {} value {}'.format(expected_key,
-                                                       expected_value))
         if expected_key in actual_decompose:
             actual_value = actual_decompose[expected_key]
             label = '{}.{}'.format(parent, expected_key)
             temp_report = get_differences(expected_value, actual_value, label)
             actual_decompose.pop(expected_key)
             if temp_report:
-                logging.error('god: 2 temp_report {}'.format(temp_report))
                 report.extend(temp_report)
         else:
-            logging.error('god: 3 temp_report member missing from {} {} {}'.format(parent, expected_key, actual.__class__))
             report.append('Member:: {}.{}: missing from {}'.format(
                 parent, expected_key, actual.__class__))
 
     for actual_key in actual_decompose.items():
-        logging.error('god: 4 temp_report member missing from {} {} {}'.format(parent, actual_key, actual.__class__))
         report.append('Member:: {}.{}: missing from {}'.format(
             parent, actual_key, expected.__class__))
 
@@ -249,6 +224,9 @@ def _get_sequence_differences(expected, actual, parent):
     if not expected and not actual:
         return report
 
+    # this method removes sequence elements, so make copies of the objects
+    # under comparison and modify the copies, leaving the originals
+    # unchanged - immutable inputs, of a sort
     actual_copy = list(actual)
     expected_copy = list(expected)
 
@@ -258,6 +236,7 @@ def _get_sequence_differences(expected, actual, parent):
                 parent, len(expected_copy), len(actual_copy)))
         return report
 
+    start_index = 0
     for ex_index, e in enumerate(expected):
         label = '{}[\'{}\']'.format(parent, ex_index)
         if isinstance(e, Chunk):
@@ -274,23 +253,25 @@ def _get_sequence_differences(expected, actual, parent):
             tracking_actual = None
             tracking_expected = None
             for act_index, a in enumerate(actual):
-                temp_report = get_differences(e, a, label)
-                if temp_report is None:
-                    match_found = True
-                    actual_copy.remove(a)
-                    expected_copy.remove(e)
-                    break
-                else:
-                    # pick the report with the least number of errors
-                    if tracking_report:
-                        if len(temp_report) < len(tracking_report):
+                if act_index >= start_index:
+                    temp_report = get_differences(e, a, label)
+                    if temp_report is None:
+                        match_found = True
+                        start_index = act_index + 1
+                        actual_copy.remove(a)
+                        expected_copy.remove(e)
+                        break
+                    else:
+                        # pick the report with the least number of errors
+                        if tracking_report:
+                            if len(temp_report) < len(tracking_report):
+                                tracking_report = temp_report
+                                tracking_actual = a
+                                tracking_expected = e
+                        else:
                             tracking_report = temp_report
                             tracking_actual = a
                             tracking_expected = e
-                    else:
-                        tracking_report = temp_report
-                        tracking_actual = a
-                        tracking_expected = e
             if not match_found:
                 try:
                     report.extend(tracking_report)
@@ -320,28 +301,12 @@ def _get_dict_differences(expected, actual, parent):
             actual_value = actual[expected_key]
             if isinstance(actual_value, list) and isinstance(expected_value,
                                                              list):
-                # import logging
-                # logging.error(
-                #     'gdd: expected for compare {}.{}'.format(parent, type(expected_value)))
-                # logging.error('gdd: actual for compare {}.{}'.format(parent, type(actual_value)))
                 temp_report = _get_sequence_differences(expected_value,
                                                         actual_value,
                                                         expected_key)
-                report.append(temp_report)
+                if temp_report:
+                    report.append(temp_report)
             elif _not_equal(expected_value, actual_value):
-                # import logging
-                # # logging.error(
-                # #     'type expected_value is {} '
-                # #     'type actual value is {}'.format(type(expected_value),
-                # #                                      type(actual_value)))
-                # # logging.error(
-                # #     'type expected is {} '
-                # #     'type actual is {}'.format(type(expected),
-                # #                                type(actual)))
-                # logging.error(
-                #     'gdd: expected value is {}.{} '
-                #     'gdd: actual value is {}.{}'.format(parent, expected_value,
-                #                                         parent, actual_value))
                 report.append(
                     'Value:: {}.{}: expected {} actual {}'.format(
                         parent,
@@ -383,10 +348,8 @@ def _get_dict(entity):
     an CaomObject comparison, and tracks the entities that are not
     straight-to-dictionary conversions for later handling."""
 
-    import logging
     attributes = {}
     caom_collections = {}
-    # logging.error('input parameter is {}'.format(entity))
     for i in dir(entity):
         try:
             attribute = getattr(entity, i)
@@ -404,10 +367,5 @@ def _get_dict(entity):
                 isinstance(attribute, set)):
             caom_collections[i] = attribute
         else:
-            # logging.error('assigning {} type {}'.format(attribute, type(attribute)))
-            if isinstance(attribute, float) and math.isnan(attribute):
-                # logging.error('yes sir?')
-                attributes[i] = 'nan'
-            else:
-                attributes[i] = attribute
+            attributes[i] = attribute
     return attributes, caom_collections
