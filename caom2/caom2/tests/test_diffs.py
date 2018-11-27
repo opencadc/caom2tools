@@ -182,4 +182,4 @@ class TestCaomUtil(unittest.TestCase):
         o2 = Position(time_dependent=False, bounds=poly2)
 
         report = diff.get_differences(o1, o2, 'caom test instances')
-        assert report is None
+        assert report is None, 'NaN comparison failure'

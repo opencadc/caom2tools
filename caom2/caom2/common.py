@@ -280,13 +280,13 @@ class ObservationURI(CaomObject):
     def __lt__(self, other):
         if not isinstance(other, ObservationURI):
             raise ValueError(
-                'Canot compare ObservationURI with {}'.format(type(other)))
+                'Cannot compare ObservationURI with {}'.format(type(other)))
         return self.uri < other.uri
 
     def __eq__(self, other):
         if not isinstance(other, ObservationURI):
             raise ValueError(
-                'Canot compare ObservationURI with {}'.format(type(other)))
+                'Cannot compare ObservationURI with {}'.format(type(other)))
         return self.uri == other.uri
 
     @classmethod
