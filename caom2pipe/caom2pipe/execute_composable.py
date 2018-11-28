@@ -477,21 +477,12 @@ class CaomExecute(object):
         ensure that the latest version of the file is retrieved from
         storage."""
 
-        # all the gets are supposed to be unzipped, so that the
-        # footprintfinder is more efficient, so make sure the fully
-        # qualified output name isn't the gzip'd version
-
-        if self.fname.endswith('.gz'):
-            fqn = os.path.join(self.working_dir, self.fname.replace('.gz', ''))
-        else:
-            fqn = os.path.join(self.working_dir, self.fname)
-
+        fqn = os.path.join(self.working_dir, self.fname)
         try:
-            self.cadc_data_client.get_file(
-                self.collection, self.fname, destination=fqn, decompress=True)
+            self.cadc_data_client.get_file(self.collection, self.fname,
+                                           destination=fqn)
             if not os.path.exists(fqn):
-                raise mc.CadcException(
-                    '{} does not exist.'.format(fqn))
+                raise mc.CadcException('{} does not exist.'.format(fqn))
         except Exception:
             raise mc.CadcException(
                 'Did not retrieve {}'.format(fqn))
@@ -1156,12 +1147,15 @@ class LocalMetaUpdateClientRemoteStorage(CaomExecute):
 
 
 class OrganizeChooser(object):
-    """Extend this class to provide a way to make collection-specifi
+    """Extend this class to provide a way to make collection-specific
     complex conditions available within the OrganizeExecute class."""
     def __init__(self):
         pass
 
     def needs_delete(self, observation):
+        return False
+
+    def use_compressed(self):
         return False
 
 
@@ -1622,7 +1616,14 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
     todo_list = []
     for f in file_list:
         if f.endswith('.fits') or f.endswith('.fits.gz'):
-            todo_list.append(f)
+            if chooser.use_compressed():
+                if f.endswith('.fits'):
+                    todo_list.append('{}.gz'.format(f))
+                else:
+                    todo_list.append(f)
+            else:
+                if f.endswith('.fits.gz'):
+                    todo_list.append(f.replace('.gz', ''))
 
     organizer.complete_record_count = len(todo_list)
     for do_file in todo_list:

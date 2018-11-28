@@ -103,7 +103,7 @@ class TestCaomUtil(unittest.TestCase):
         report = diff.get_differences(expected_simple, actual_simple,
                                       'obs')
         self.assertTrue(report is not None, repr(report))
-        self.assertTrue(len(report) == 2, repr(report))
+        self.assertTrue(len(report) == 1, repr(report))
 
         ex_plane = observation.Plane(product_id='test_product_id2')
         expected_simple.planes['test_product_id2'] = ex_plane
