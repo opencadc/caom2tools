@@ -122,13 +122,13 @@ class TestCaom2IdGenerator(unittest.TestCase):
         test_plane.max_last_modified = d2
         test_plane.meta_checksum = cs_uri_meta
         test_plane.acc_meta_checksum = cs_uri_acc
-        self.assertEquals(test_plane.last_modified, d1, "last_modified")
-        self.assertEquals(test_plane.max_last_modified, d2,
-                          "max_last_modified")
-        self.assertEquals(test_plane.meta_checksum, cs_uri_meta,
-                          "meta_checksum")
-        self.assertEquals(test_plane.acc_meta_checksum, cs_uri_acc,
-                          "acc_meta_checksum")
+        self.assertEqual(test_plane.last_modified, d1, "last_modified")
+        self.assertEqual(test_plane.max_last_modified, d2,
+                         "max_last_modified")
+        self.assertEqual(test_plane.meta_checksum, cs_uri_meta,
+                         "meta_checksum")
+        self.assertEqual(test_plane.acc_meta_checksum, cs_uri_acc,
+                         "acc_meta_checksum")
 
 
 class TestMetadataChecksum(unittest.TestCase):

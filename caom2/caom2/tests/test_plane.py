@@ -231,14 +231,14 @@ class TestPlane(unittest.TestCase):
                                            chunk.ProductType.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:GEMINI/222/333"] = test_artifact1
-        self.assertEquals(1, len(test_plane.artifacts), "Artifacts")
+        self.assertEqual(1, len(test_plane.artifacts), "Artifacts")
         self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
 
         test_artifact2 = artifact.Artifact("caom:CFHT/55/66",
                                            chunk.ProductType.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:CFHT/55/66"] = test_artifact2
-        self.assertEquals(2, len(test_plane.artifacts), "Artifacts")
+        self.assertEqual(2, len(test_plane.artifacts), "Artifacts")
         self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
         self.assertTrue("caom:CFHT/55/66" in test_plane.artifacts.keys())
 
@@ -247,7 +247,7 @@ class TestPlane(unittest.TestCase):
                                            chunk.ProductType.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:GEMINI/222/333"] = test_artifact3
-        self.assertEquals(2, len(test_plane.artifacts), "Artifacts")
+        self.assertEqual(2, len(test_plane.artifacts), "Artifacts")
         self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
         self.assertTrue("caom:CFHT/55/66" in test_plane.artifacts.keys())
 
@@ -368,24 +368,24 @@ class TestMetrics(unittest.TestCase):
         self.assertIsNone(metrics.source_number_density,
                           "Default source number density")
         metrics.source_number_density = 22.22
-        self.assertEquals(22.22, metrics.source_number_density,
-                          "Source number density")
+        self.assertEqual(22.22, metrics.source_number_density,
+                         "Source number density")
         self.assertIsNone(metrics.background, "Default background")
         metrics.background = 12.34
-        self.assertEquals(12.34, metrics.background, "Background")
+        self.assertEqual(12.34, metrics.background, "Background")
         self.assertIsNone(metrics.background_std_dev,
                           "Default background standard deviation")
         metrics.background_std_dev = 34.34
-        self.assertEquals(34.34, metrics.background_std_dev,
-                          "Background standard deviation")
+        self.assertEqual(34.34, metrics.background_std_dev,
+                         "Background standard deviation")
         self.assertIsNone(metrics.flux_density_limit,
                           "Default flux density limit")
         metrics.flux_density_limit = 55.55
-        self.assertEquals(55.55, metrics.flux_density_limit,
-                          "Flux density limit")
+        self.assertEqual(55.55, metrics.flux_density_limit,
+                         "Flux density limit")
         self.assertIsNone(metrics.mag_limit, "Default mag limit")
         metrics.mag_limit = 20.08
-        self.assertEquals(20.08, metrics.mag_limit, "Mag limit")
+        self.assertEqual(20.08, metrics.mag_limit, "Mag limit")
 
 
 class TestProvenance(unittest.TestCase):
@@ -395,16 +395,16 @@ class TestProvenance(unittest.TestCase):
 
         self.assertIsNone(provenance.version, "Default version")
         provenance.version = "XII"
-        self.assertEquals("XII", provenance.version, "Version")
+        self.assertEqual("XII", provenance.version, "Version")
         self.assertIsNone(provenance.project, "Default project")
         provenance.project = "CFHTLS"
-        self.assertEquals("CFHTLS", provenance.project, "Project")
+        self.assertEqual("CFHTLS", provenance.project, "Project")
         self.assertIsNone(provenance.producer, "Default producer")
         provenance.producer = "prod"
-        self.assertEquals("prod", provenance.producer, "Producer")
+        self.assertEqual("prod", provenance.producer, "Producer")
         self.assertIsNone(provenance.run_id, "Default run ID")
         provenance.run_id = "A23"
-        self.assertEquals("A23", provenance.run_id, "Run ID")
+        self.assertEqual("A23", provenance.run_id, "Run ID")
         self.assertIsNone(provenance.reference, "Default reference")
 
         self.assertEqual(0, len(provenance.inputs), "Default inputs")
@@ -429,15 +429,15 @@ class TestProvenance(unittest.TestCase):
         self.assertIsNone(provenance.last_executed, "Default last executed")
         now_date = datetime.now()
         provenance.last_executed = now_date
-        self.assertEquals(now_date, provenance.last_executed, "Last executed")
+        self.assertEqual(now_date, provenance.last_executed, "Last executed")
 
-        self.assertEquals(0, len(provenance.keywords), "0 default keywords")
+        self.assertEqual(0, len(provenance.keywords), "0 default keywords")
         provenance.keywords.add("keyword1")
-        self.assertEquals(1, len(provenance.keywords), "1 keyword")
+        self.assertEqual(1, len(provenance.keywords), "1 keyword")
         self.assertTrue("keyword1" in provenance.keywords, "Keyword not found")
 
         provenance.keywords.add("keyword2")
-        self.assertEquals(2, len(provenance.keywords), "2 keyword")
+        self.assertEqual(2, len(provenance.keywords), "2 keyword")
         self.assertTrue("keyword2" in provenance.keywords, "Keyword not found")
 
         # test the full constructor
@@ -457,13 +457,13 @@ class TestProvenance(unittest.TestCase):
         self.assertIsNotNone(provenance.reference)
         self.assertIsNotNone(provenance.last_executed)
 
-        self.assertEquals("MyOtherProvenance", provenance.name, "name")
-        self.assertEquals("Version2.0", provenance.version, "version")
-        self.assertEquals("JCMT", provenance.project, "project")
-        self.assertEquals("Mutt Lang", provenance.producer, "producer")
-        self.assertEquals("b32", provenance.run_id, "run_id")
-        self.assertEquals("caom:JCMT/33/00", provenance.reference, "reference")
-        self.assertEquals(now_date, provenance.last_executed, "last_executed")
+        self.assertEqual("MyOtherProvenance", provenance.name, "name")
+        self.assertEqual("Version2.0", provenance.version, "version")
+        self.assertEqual("JCMT", provenance.project, "project")
+        self.assertEqual("Mutt Lang", provenance.producer, "producer")
+        self.assertEqual("b32", provenance.run_id, "run_id")
+        self.assertEqual("caom:JCMT/33/00", provenance.reference, "reference")
+        self.assertEqual(now_date, provenance.last_executed, "last_executed")
 
 
 class TestPosition(unittest.TestCase):

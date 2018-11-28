@@ -1626,28 +1626,31 @@ class GenericParser:
         :param from_value:
         :return:
         """
-
-        if from_value and isinstance(from_value, str):
-            try:
-                return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
-            except ValueError:
+        if from_value:
+            if isinstance(from_value, datetime):
+                return from_value
+            else:
                 try:
-                    return datetime.strptime(from_value,
-                                             '%Y-%m-%dT%H:%M:%S.%f')
+                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
                 except ValueError:
                     try:
                         return datetime.strptime(from_value,
-                                                 '%Y-%m-%d %H:%M:%S.%f')
+                                                 '%Y-%m-%dT%H:%M:%S.%f')
                     except ValueError:
                         try:
-                            return datetime.strptime(from_value, '%Y-%m-%d')
+                            return datetime.strptime(from_value,
+                                                     '%Y-%m-%d %H:%M:%S.%f')
                         except ValueError:
-                            self.logger.error(
-                                'Cannot parse datetime {}'.format(from_value))
-                            self.add_error('get_datetime', sys.exc_info()[1])
-                            return None
-        elif from_value and isinstance(from_value, datetime):
-            return from_value
+                            try:
+                                return datetime.strptime(
+                                    from_value, '%Y-%m-%d')
+                            except ValueError:
+                                self.logger.error(
+                                    'Cannot parse datetime {}'.format(
+                                        from_value))
+                                self.add_error(
+                                    'get_datetime', sys.exc_info()[1])
+                                return None
         else:
             return None
 
@@ -3361,7 +3364,6 @@ def _update_artifact_meta(uri, artifact, subject=None):
     :return:
     """
     file_url = urlparse(uri)
-    logging.error(file_url)
     if file_url.scheme in ['ad', 'gemini']:
         metadata = _get_cadc_meta(subject, file_url.path)
     elif file_url.scheme == 'vos':
