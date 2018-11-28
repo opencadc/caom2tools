@@ -77,6 +77,8 @@ from datetime import datetime
 from builtins import int, str
 from six.moves.urllib.parse import SplitResult, urlparse
 import logging
+import six
+
 
 from . import caom_util
 
@@ -105,7 +107,10 @@ class CaomObject(object):
         pass
 
     def __str__(self):
-        args = inspect.getargspec(self.__init__).args[1:]
+        if six.PY3:
+            args = inspect.getfullargspec(self.__init__).args[1:]
+        else:
+            args = inspect.getargspec(self.__init__).args[1:]
         class_name = self.__class__.__name__
         return "\n".join(["{}.{} : {}".
                          format(class_name, arg, getattr(self, arg, None))
@@ -118,7 +123,10 @@ class CaomObject(object):
             return False
 
     def __repr__(self):
-        args = inspect.getargspec(self.__init__).args[1:]
+        if six.PY3:
+            args = inspect.getfullargspec(self.__init__).args[1:]
+        else:
+            args = inspect.getargspec(self.__init__).args[1:]
         class_name = ""
         if self.__class__.__module__ != '__main__':
             class_name += self.__class__.__module__ + "."
@@ -272,13 +280,13 @@ class ObservationURI(CaomObject):
     def __lt__(self, other):
         if not isinstance(other, ObservationURI):
             raise ValueError(
-                'Canot compare ObservationURI with {}'.format(type(other)))
+                'Cannot compare ObservationURI with {}'.format(type(other)))
         return self.uri < other.uri
 
     def __eq__(self, other):
         if not isinstance(other, ObservationURI):
             raise ValueError(
-                'Canot compare ObservationURI with {}'.format(type(other)))
+                'Cannot compare ObservationURI with {}'.format(type(other)))
         return self.uri == other.uri
 
     @classmethod
@@ -346,8 +354,8 @@ class ChecksumURI(CaomObject):
 
         # TODO change this raise a ValueError when the rule is being enforced
         if len(tmp) < 2:
-            logger.warn(("A checksum scheme noting the algorithm is "
-                         "required.. received: {}").format(uri))
+            logger.warning(("A checksum scheme noting the algorithm is "
+                            "required.. received: {}").format(uri))
             algorithm = None
             checksum = tmp[0]
         else:

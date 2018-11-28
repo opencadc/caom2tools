@@ -120,46 +120,46 @@ class TestArtifact(unittest.TestCase):
 
         self.assertIsNone(test_artifact.content_type, "Default content type")
         test_artifact.content_type = "FITS"
-        self.assertEquals("FITS", test_artifact.content_type, "Content type")
+        self.assertEqual("FITS", test_artifact.content_type, "Content type")
         self.assertIsNone(test_artifact.content_length,
                           "Default content length")
         test_artifact.content_length = 23000000000000
-        self.assertEquals(23000000000000,
-                          test_artifact.content_length, "Content length")
+        self.assertEqual(23000000000000,
+                         test_artifact.content_length, "Content length")
         test_artifact.product_type = artifact.ProductType.PREVIEW
-        self.assertEquals(artifact.ProductType.PREVIEW,
-                          test_artifact.product_type,
-                          "Product type")
+        self.assertEqual(artifact.ProductType.PREVIEW,
+                         test_artifact.product_type,
+                         "Product type")
 
         self.assertIsNone(test_artifact.content_checksum,
                           "Default content checksum")
         cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
         test_artifact.content_checksum = cs_uri
-        self.assertEquals(test_artifact.content_checksum, cs_uri,
-                          "Content checksum")
+        self.assertEqual(test_artifact.content_checksum, cs_uri,
+                         "Content checksum")
 
-        self.assertEquals(0, len(test_artifact.parts), "Default parts")
+        self.assertEqual(0, len(test_artifact.parts), "Default parts")
         part1 = part.Part("1")
         test_artifact.parts["1"] = part1
-        self.assertEquals(1, len(test_artifact.parts), "Parts")
+        self.assertEqual(1, len(test_artifact.parts), "Parts")
         self.assertTrue("1" in test_artifact.parts.keys())
         # add same part again
         part2 = part.Part("2")
         test_artifact.parts["2"] = part2
-        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertEqual(2, len(test_artifact.parts), "Parts")
         self.assertTrue("1" in test_artifact.parts.keys())
         self.assertTrue("2" in test_artifact.parts.keys())
 
         # try to add duplicates
         part3 = part1
         test_artifact.parts["1"] = part3
-        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertEqual(2, len(test_artifact.parts), "Parts")
         self.assertTrue("1" in test_artifact.parts.keys())
         self.assertTrue("2" in test_artifact.parts.keys())
 
         part4 = part.Part("1")
         test_artifact.parts["1"] = part4
-        self.assertEquals(2, len(test_artifact.parts), "Parts")
+        self.assertEqual(2, len(test_artifact.parts), "Parts")
         self.assertTrue("1" in test_artifact.parts.keys())
         self.assertTrue("2" in test_artifact.parts.keys())
 

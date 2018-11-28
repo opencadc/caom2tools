@@ -75,6 +75,8 @@ A difference method for CAOM2 entities.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import math
+
 from caom2.common import CaomObject
 from caom2.caom_util import TypedSet, TypedOrderedDict, TypedList
 from caom2 import Chunk
@@ -108,12 +110,12 @@ def get_differences(expected, actual, parent=None):
         parent = '{}.{}'.format(parent, expected.__class__.__name__)
     else:
         parent = expected.__class__.__name__
-
     temp_report = None
     if (isinstance(expected, TypedOrderedDict) or
         isinstance(expected, TypedList) or
             isinstance(expected, TypedSet) or
-            isinstance(expected, set)):
+            isinstance(expected, set) or
+            isinstance(expected, list)):
         temp_report = _get_collection_differences(expected, actual, parent)
     elif isinstance(expected, CaomObject):
         assert isinstance(actual, CaomObject), \
@@ -173,6 +175,8 @@ def _get_collection_differences(expected, actual, parent):
     if (isinstance(actual, TypedList) or isinstance(actual, TypedSet)
             or isinstance(actual, set)):
         temp_report = _get_sequence_differences(expected, actual, parent)
+    elif isinstance(actual, list):
+        temp_report = _get_list_differences(expected, actual, parent)
     else:
         temp_report = _get_mapping_differences(expected, actual, parent)
 
@@ -207,6 +211,91 @@ def _get_mapping_differences(expected, actual, parent):
     return report if len(report) > 0 else None
 
 
+def _get_list_differences(expected, actual, parent):
+    """Reports on how two lists are different. A lot like
+    _get_sequence_differences, except that the second for loop will start
+    at an advanced index, and it does not expect Chunk-type entities."""
+
+    report = []
+    if not expected and actual:
+        report.append('Sequence:: {} not expected'.format(parent))
+        return report
+
+    if expected and not actual:
+        report.append('Sequence:: {} not found'.format(parent))
+        return report
+
+    if not expected and not actual:
+        return report
+
+    # this method removes list elements, so make copies for modification,
+    # leaving the originals unchanged - kind of immutable inputs
+    actual_copy = list(actual)
+    expected_copy = list(expected)
+    sorted(actual)
+    sorted(expected)
+    actual_copy.sort()
+    expected_copy.sort()
+
+    if len(expected_copy) != len(actual_copy):
+        report.append(
+            'List:: {} expected length ({}) != actual length ({})'.format(
+                parent, len(expected_copy), len(actual_copy)))
+        return report
+
+    start_index = 0
+    for ex_index, e in enumerate(expected):
+        label = '{}[\'{}\']'.format(parent, ex_index)
+        match_found = False
+        tracking_report = None
+        tracking_actual = None
+        tracking_expected = None
+
+        for act_index, a in enumerate(actual):
+            # index comparison skips already-matched list entries
+            if act_index >= start_index:
+                temp_report = get_differences(e, a, label)
+                if temp_report is None:
+                    match_found = True
+                    start_index = act_index + 1
+                    actual_index = actual_copy.index(a)
+                    actual_copy.pop(actual_index)
+                    expected_index = expected_copy.index(e)
+                    expected_copy.pop(expected_index)
+                    break
+                else:
+                    # every non-matching comparison will have failures,
+                    # so pick the report with the least number of errors
+                    if tracking_report:
+                        if len(temp_report) < len(tracking_report):
+                            tracking_report = temp_report
+                            tracking_actual = a
+                            tracking_expected = e
+                    else:
+                        tracking_report = temp_report
+                        tracking_actual = a
+                        tracking_expected = e
+
+        if not match_found:
+            report.extend(tracking_report)
+            actual_index = actual_copy.index(tracking_actual)
+            actual_copy.pop(actual_index)
+            expected_index = expected_copy.index(tracking_expected)
+            expected_copy.pop(expected_index)
+
+    for e in enumerate(expected_copy):
+        label = '{}[\'{}\']'.format(parent, e)
+        report.append(
+            'List:: {} expected not found in actual'.format(label))
+
+    for a in enumerate(actual_copy):
+        label = '{}[\'{}\']'.format(parent, a)
+        report.append(
+            'List:: {} actual not found in expected'.format(label))
+
+    return report if len(report) > 0 else None
+
+
 def _get_sequence_differences(expected, actual, parent):
     """Reports on how two sequences are different."""
     report = []
@@ -221,6 +310,9 @@ def _get_sequence_differences(expected, actual, parent):
     if not expected and not actual:
         return report
 
+    # this method removes sequence elements, so make copies of the collections
+    # under comparison and modify the copies, leaving the originals
+    # unchanged - kind of immutable inputs
     actual_copy = list(actual)
     expected_copy = list(expected)
 
@@ -249,8 +341,10 @@ def _get_sequence_differences(expected, actual, parent):
                 temp_report = get_differences(e, a, label)
                 if temp_report is None:
                     match_found = True
-                    actual_copy.remove(a)
-                    expected_copy.remove(e)
+                    actual_index = actual_copy.index(a)
+                    actual_copy.pop(actual_index)
+                    expected_index = expected_copy.index(e)
+                    expected_copy.pop(expected_index)
                     break
                 else:
                     # pick the report with the least number of errors
@@ -263,10 +357,13 @@ def _get_sequence_differences(expected, actual, parent):
                         tracking_report = temp_report
                         tracking_actual = a
                         tracking_expected = e
+
             if not match_found:
                 report.extend(tracking_report)
-                actual_copy.remove(tracking_actual)
-                expected_copy.remove(tracking_expected)
+                actual_index = actual_copy.index(tracking_actual)
+                actual_copy.pop(actual_index)
+                expected_index = expected_copy.index(tracking_expected)
+                expected_copy.pop(expected_index)
 
     for e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, e)
@@ -287,7 +384,12 @@ def _get_dict_differences(expected, actual, parent):
     for expected_key, expected_value in expected.items():
         if expected_key in actual:
             actual_value = actual[expected_key]
-            if _not_equal(expected_value, actual_value):
+            if _is_composite_instance_type(actual_value):
+                temp_report = get_differences(expected_value, actual_value,
+                                              expected_key)
+                if temp_report:
+                    report.append(temp_report)
+            elif _not_equal(expected_value, actual_value):
                 report.append(
                     'Value:: {}.{}: expected {} actual {}'.format(
                         parent,
@@ -310,9 +412,15 @@ def _get_dict_differences(expected, actual, parent):
 def _not_equal(rhs, lhs):
     """Handling for not-quite-equals float comparisons."""
     if isinstance(rhs, float) and isinstance(lhs, float):
-        # if only using python 3.5+, use math.isclose, instead of this
-        # description of math.isclose from the python documentation
-        result = abs(rhs-lhs) <= max(1e-10 * max(abs(rhs), abs(lhs)), 1e-9)
+        if math.isnan(rhs) or math.isnan(lhs):
+            if math.isnan(rhs) and math.isnan(lhs):
+                result = True  # the opposite of what python will say
+            else:
+                result = rhs == lhs
+        else:
+            # if only using python 3.5+, use math.isclose, instead of this
+            # description of math.isclose from the python documentation
+            result = abs(rhs-lhs) <= max(1e-10 * max(abs(rhs), abs(lhs)), 1e-9)
     else:
         result = rhs == lhs
     return not result
@@ -328,19 +436,28 @@ def _get_dict(entity):
     for i in dir(entity):
         try:
             attribute = getattr(entity, i)
-        except TypeError:
+        except TypeError as e:
             pass
         if (i.startswith('_') or
                 callable(attribute) or
                 i.find('checksum') != -1 or
                 i.find('last_modified') != -1):
+            # ignore the built-ins,
+            # checksum and last modified will not be the same
             continue
-        if (isinstance(attribute, TypedOrderedDict) or
-                isinstance(attribute, TypedList) or
-                isinstance(attribute, TypedSet) or
-                isinstance(attribute, CaomObject) or
-                isinstance(attribute, set)):
+        if _is_composite_instance_type(attribute):
             caom_collections[i] = attribute
         else:
             attributes[i] = attribute
     return attributes, caom_collections
+
+
+def _is_composite_instance_type(entity):
+    """Common location to test for any of the varying types that might make
+    up a CAOM2 entity. """
+    return (isinstance(entity, TypedOrderedDict) or
+            isinstance(entity, TypedList) or
+            isinstance(entity, TypedSet) or
+            isinstance(entity, CaomObject) or
+            isinstance(entity, set) or
+            isinstance(entity, list))

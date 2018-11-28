@@ -128,7 +128,7 @@ class StorageName(object):
     """
 
     def __init__(self, obs_id, collection, collection_pattern,
-                 fname_on_disk=None):
+                 fname_on_disk=None, scheme='ad'):
         """
 
         :param obs_id: string value for Observation.observationID
@@ -140,16 +140,19 @@ class StorageName(object):
             which is not necessarily the same thing as the name of the file
             in storage (i.e. extensions may exist in one location that do
             not exist in another.
+        :param scheme: string value for the scheme of the file URI.
         """
         self.obs_id = obs_id
         self.collection = collection
         self.collection_pattern = collection_pattern
+        self.scheme = scheme
         self.fname_on_disk = fname_on_disk
 
     @property
     def file_uri(self):
         """The ad URI for the file. Assumes compression."""
-        return 'ad:{}/{}.gz'.format(self.collection, self.file_name)
+        return '{}:{}/{}.gz'.format(
+            self.scheme, self.collection, self.file_name)
 
     @property
     def file_name(self):
@@ -179,12 +182,12 @@ class StorageName(object):
 
     @property
     def prev_uri(self):
-        """The ad preview URI."""
+        """The preview URI."""
         return self._get_uri(self.prev)
 
     @property
     def thumb_uri(self):
-        """The ad thumbnail URI."""
+        """The thumbnail URI."""
         return self._get_uri(self.thumb)
 
     @property
@@ -224,7 +227,7 @@ class StorageName(object):
 
     def _get_uri(self, fname):
         """The ad URI for a file, without consideration for compression."""
-        return 'ad:{}/{}'.format(self.collection, fname)
+        return '{}:{}/{}'.format(self.scheme, self.collection, fname)
 
     @staticmethod
     def remove_extensions(name):
@@ -1471,6 +1474,10 @@ class OrganizeExecutes(object):
             return 'Connection to host timed out'
         elif 'FileNotFoundError' in e:
             return 'No such file or directory'
+        elif 'Must set a value of' in e:
+            return 'Value Error'
+        elif 'This does not look like a FITS file' in e:
+            return 'Not a FITS file'
         else:
             return str(e)
 
@@ -1560,6 +1567,8 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
+            logging.error(sname.__name__)
+            logging.error(entry)
             storage_name = sname(file_name=entry)
     else:
         if config.use_local_files:
@@ -1736,10 +1745,12 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
         config.features.supports_composite = False
         _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
                      data_visitors, chooser)
+        return 0
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()
         logging.error(tb)
+        return -1
 
 
 def run_single(config, storage_name, command_name, meta_visitors,
