@@ -1567,7 +1567,7 @@ class GenericParser:
         if self.blueprint._module is not None:
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
-                    plan[key] = self._execute_external(value, key)
+                    plan[key] = self._execute_external(value, key, 0)
 
         # apply defaults
         for key, value in plan.items():
@@ -1576,12 +1576,14 @@ class GenericParser:
                 if key in plan:
                     plan[key] = value
 
-    def _execute_external(self, value, key):
+    def _execute_external(self, value, key, extension):
         """Execute a function supplied by a user, assign a value to a
         blueprint entry. The input parameters passed to the function are the
         headers as read in by astropy, or the artifact uri.
 
         :param value the name of the function to apply.
+        :param key:
+        :param extension: the current extension name or number.
         """
         # determine which of the two possible values for parameter the user
         # is hoping for
@@ -1589,7 +1591,7 @@ class GenericParser:
         if 'uri' in value:
             parameter = self.uri
         elif 'header' in value:
-            parameter = self._headers
+            parameter = self._headers[extension]
 
         result = ''
         execute = None
@@ -2248,12 +2250,12 @@ class FitsParser(GenericParser):
         if self.blueprint._module is not None:
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
-                    plan[key] = self._execute_external(value, key)
+                    plan[key] = self._execute_external(value, key, 0)
             for extension in exts:
                 for key, value in exts[extension].items():
                     if ObsBlueprint.is_function(value):
-                        exts[extension][key] = self._execute_external(value,
-                                                                      key)
+                        exts[extension][key] = self._execute_external(
+                            value, key, extension)
 
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
@@ -3362,7 +3364,7 @@ def _update_artifact_meta(uri, artifact, subject=None):
     :return:
     """
     file_url = urlparse(uri)
-    if file_url.scheme == 'ad':
+    if file_url.scheme in ['ad', 'gemini']:
         metadata = _get_cadc_meta(subject, file_url.path)
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
