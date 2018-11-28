@@ -695,24 +695,21 @@ def get_cadc_headers(uri):
     The file must be public, because the header retrieval is done as an
     anonymous user.
 
-    :param uri: CADC ('ad:') URI
+    :param uri: CADC URI
     :return: a string of keyword/value pairs.
     """
     file_url = parse.urlparse(uri)
-    if file_url.scheme == 'ad':
-        # create possible types of subjects
-        subject = net.Subject()
-        client = CadcDataClient(subject)
-        # do a fhead on the file
-        archive, file_id = file_url.path.split('/')
-        b = BytesIO()
-        b.name = uri
-        client.get_file(archive, file_id, b, fhead=True)
-        fits_header = b.getvalue().decode('ascii')
-        b.close()
-        return fits_header
-    else:
-        raise CadcException('Only ad type URIs supported')
+    # create possible types of subjects
+    subject = net.Subject()
+    client = CadcDataClient(subject)
+    # do a fhead on the file
+    archive, file_id = file_url.path.split('/')
+    b = BytesIO()
+    b.name = uri
+    client.get_file(archive, file_id, b, fhead=True)
+    fits_header = b.getvalue().decode('ascii')
+    b.close()
+    return fits_header
 
 
 def get_cadc_meta(netrc_fqn, collection, fname):
