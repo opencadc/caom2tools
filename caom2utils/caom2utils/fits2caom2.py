@@ -1757,7 +1757,7 @@ class FitsParser(GenericParser):
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            if self.blueprint.has_chunk(i):
+            if self._has_data_array(header) and self.blueprint.has_chunk(i):
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
@@ -2834,6 +2834,39 @@ class FitsParser(GenericParser):
         elif from_value == 'true':
             result = True
         return result
+
+    def _has_data_array(self, header):
+        """
+
+        :param header:
+        :return:
+        """
+        naxis = 0
+        if 'ZNAXIS' in header:
+            naxis = _to_int(header['ZNAXIS'])
+        elif 'NAXIS' in header:
+            naxis = _to_int(header['NAXIS'])
+        if not naxis:
+            return False
+
+        data_axes = 0
+        for i in range(1, naxis + 1):
+            axis = 'NAXIS{}'.format(i)
+            if axis in header:
+                data_axis = _to_int(header[axis])
+                if not data_axes:
+                    data_axes = data_axis
+                else:
+                    data_axes = data_axes * data_axis
+        if not data_axes:
+            return False
+
+        bitpix = 0
+        if 'BITPIX' in header:
+            bitpix = _to_int(header['BITPIX'])
+        if not bitpix:
+            return False
+        return True
 
 
 class WcsParser(object):
