@@ -91,7 +91,7 @@ def test_open_polygon():
     # should detect that the polygons is not clockwise
     with pytest.raises(AssertionError) as ex:
         validate_polygon(shape.Polygon(counter_clockwise_points))
-    assert('not in clockwise direction' in str(ex.value))
+    assert('clockwise winding direction' in str(ex.value))
     # should detect that polygon is requires a minimum of 4 points
     with pytest.raises(AssertionError) as ex:
         validate_polygon(shape.Polygon(too_few_points))
@@ -222,7 +222,7 @@ def test_open_multipolygon():
     # should detect that the polygons is not clockwise
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(counter_clockwise_vertices))
-    assert('not in clockwise direction' in str(ex.value))
+    assert('clockwise winding direction' in str(ex.value))
     # should detect that there are not enough number of vertices to
     # produce a multipolygon
     with pytest.raises(AssertionError) as ex:
