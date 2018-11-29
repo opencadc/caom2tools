@@ -126,13 +126,13 @@
                 <caom2:type>2</caom2:type>
               </caom2:vertex>
               <caom2:vertex>
-                <caom2:cval1>1.0</caom2:cval1>
-                <caom2:cval2>4.0</caom2:cval2>
+                <caom2:cval1>3.0</caom2:cval1>
+                <caom2:cval2>3.0</caom2:cval2>
                 <caom2:type>1</caom2:type>
               </caom2:vertex>
               <caom2:vertex>
-                <caom2:cval1>3.0</caom2:cval1>
-                <caom2:cval2>3.0</caom2:cval2>
+                <caom2:cval1>1.0</caom2:cval1>
+                <caom2:cval2>4.0</caom2:cval2>
                 <caom2:type>1</caom2:type>
               </caom2:vertex>
               <caom2:vertex>
