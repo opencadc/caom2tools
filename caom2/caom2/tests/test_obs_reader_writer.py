@@ -460,16 +460,16 @@ class TestObservationReaderWriter(unittest.TestCase):
             return
         self.assertIsNotNone(expected)
         self.assertIsNotNone(actual)
-        self.assertEquals(expected.uri, actual.uri)
-        self.assertEquals(expected.collection, actual.collection)
-        self.assertEquals(expected.observation_id, actual.observation_id)
+        self.assertEqual(expected.uri, actual.uri)
+        self.assertEqual(expected.collection, actual.collection)
+        self.assertEqual(expected.observation_id, actual.observation_id)
 
     def compare_requirements(self, expected, actual):
         if expected is None and actual is None:
             return
         self.assertIsNotNone(expected)
         self.assertIsNotNone(actual)
-        self.assertEquals(expected.flag, actual.flag)
+        self.assertEqual(expected.flag, actual.flag)
 
     def compare_planes(self, expected, actual, version):
         if expected is None and actual is None:
