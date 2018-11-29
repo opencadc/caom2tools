@@ -1556,7 +1556,6 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
     :param data_visitors List of data visit methods.
     :param entry what is being processed.
     """
-    logging.error('processing {}'.format(entry))
     if config.features.use_file_names:
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
@@ -1616,17 +1615,20 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
     :param chooser OrganizeChooser access to collection-specific rules
     """
     file_list = os.listdir(config.working_directory)
-    todo_list = []
+    temp_list = []
     for f in file_list:
         if f.endswith('.fits') or f.endswith('.fits.gz'):
             if chooser.use_compressed():
                 if f.endswith('.fits'):
-                    todo_list.append('{}.gz'.format(f))
+                    temp_list.append('{}.gz'.format(f))
                 else:
-                    todo_list.append(f)
+                    temp_list.append(f)
             else:
                 if f.endswith('.fits.gz'):
-                    todo_list.append(f.replace('.gz', ''))
+                    temp_list.append(f.replace('.gz', ''))
+
+    # make the entries unique
+    todo_list = list(set(temp_list))
 
     organizer.complete_record_count = len(todo_list)
     for do_file in todo_list:
