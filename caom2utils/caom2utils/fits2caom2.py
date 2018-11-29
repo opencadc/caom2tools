@@ -3521,7 +3521,15 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
+                logging.debug(
+                    'Using a FitsParser for vos local {}'.format(local))
                 parser = FitsParser(get_vos_headers(uri), blueprint, uri=uri)
+            elif '.csv' in local:
+                logging.debug(
+                    'Using a GenericParser for vos local {}'.format(local))
+                parser = GenericParser(blueprint, uri=uri)
+            else:
+                raise ValueError('Unexpected file type {}'.format(local))
         else:
             meta_uri = 'file://{}'.format(local)
             visit_local = local
