@@ -1629,7 +1629,6 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
 
     # make the entries unique
     todo_list = list(set(temp_list))
-
     organizer.complete_record_count = len(todo_list)
     for do_file in todo_list:
         _run_by_file_list(config, organizer, sname, command_name,
