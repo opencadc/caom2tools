@@ -90,7 +90,7 @@ from caom2 import Instrument, Proposal, Target, Provenance, Metrics
 from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
-from caom2 import CoordRange2D
+from caom2 import CoordRange2D, TypedSet
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -1392,6 +1392,7 @@ class GenericParser:
         self.logging_name = logging_name
         self.logger = logging.getLogger(__name__)
         self.uri = uri
+        self._apply_blueprint_to_generic()
 
     @property
     def blueprint(self):
@@ -1400,6 +1401,7 @@ class GenericParser:
     @blueprint.setter
     def blueprint(self, value):
         self._blueprint = value
+        self._apply_blueprint_to_generic()
 
     def augment_observation(self, observation, artifact_uri, product_id=None):
         """
@@ -1414,6 +1416,10 @@ class GenericParser:
         if observation is None or not isinstance(observation, Observation):
             raise ValueError(
                 'Observation type mis-match for {}.'.format(observation))
+
+        observation.meta_release = self._get_datetime(self._get_from_list(
+            'Observation.metaRelease', index=0,
+            current=observation.meta_release))
 
         plane = None
         if not product_id:
@@ -1444,6 +1450,18 @@ class GenericParser:
                 artifact_uri))
         if plane is None or not isinstance(plane, Plane):
             raise ValueError('Plane type mis-match for {}'.format(plane))
+
+        plane.meta_release = self._get_datetime(self._get_from_list(
+            'Plane.metaRelease', index=0, current=plane.meta_release))
+        plane.data_release = self._get_datetime(self._get_from_list(
+            'Plane.dataRelease', index=0, current=plane.data_release))
+        plane.data_product_type = self._to_data_product_type(
+            self._get_from_list('Plane.dataProductType', index=0,
+                                current=plane.data_product_type))
+        plane.calibration_level = self._to_calibration_level(_to_int_32(
+            self._get_from_list('Plane.calibrationLevel', index=0,
+                                current=plane.calibration_level)))
+
         artifact = None
         for ii in plane.artifacts:
             artifact = plane.artifacts[ii]
@@ -1503,7 +1521,8 @@ class GenericParser:
                     '{}: using current value of {!r}.'.format(lookup, current))
                 value = current
             return value
-        if keywords:
+        if (keywords and not ObsBlueprint.is_fits(keywords)
+                and not ObsBlueprint.is_function(keywords)):
             value = keywords
         elif current:
             value = current
@@ -1536,6 +1555,104 @@ class GenericParser:
             return value
         else:
             return to_enum_type(value)
+
+    def _apply_blueprint_to_generic(self):
+
+        # pointers that are short to type
+        exts = self.blueprint._extensions
+        wcs_std = self.blueprint._wcs_std
+        plan = self.blueprint._plan
+
+        #  first apply the functions
+        if self.blueprint._module is not None:
+            for key, value in plan.items():
+                if ObsBlueprint.is_function(value):
+                    plan[key] = self._execute_external(value, key, 0)
+
+        # apply defaults
+        for key, value in plan.items():
+            if ObsBlueprint.is_fits(value) and value[1]:
+                # there is a default value set
+                if key in plan:
+                    plan[key] = value
+
+    def _execute_external(self, value, key, extension):
+        """Execute a function supplied by a user, assign a value to a
+        blueprint entry. The input parameters passed to the function are the
+        headers as read in by astropy, or the artifact uri.
+
+        :param value the name of the function to apply.
+        :param key:
+        :param extension: the current extension name or number.
+        """
+        # determine which of the two possible values for parameter the user
+        # is hoping for
+        parameter = ''
+        if 'uri' in value:
+            parameter = self.uri
+        elif 'header' in value:
+            parameter = self._headers[extension]
+
+        result = ''
+        execute = None
+        try:
+            execute = getattr(self.blueprint._module, value.split('(')[0])
+        except Exception as e:
+            msg = 'Failed to find {}.{} for {}'.format(
+                self.blueprint._module.__name__, value.split('(')[0], key)
+            logging.error(msg)
+            self._errors.append(msg)
+            tb = traceback.format_exc()
+            logging.error(tb)
+            logging.error(e)
+        try:
+            result = execute(parameter)
+            logging.debug(
+                'Key {} calculated value of {} using {}'.format(
+                    key, result, value))
+        except Exception as e:
+            msg = 'Failed to execute {} for {}'.format(execute.__name__, key)
+            logging.error(msg)
+            logging.debug('Input parameter was {}'.format(parameter))
+            self._errors.append(msg)
+            tb = traceback.format_exc()
+            logging.error(tb)
+            logging.error(e)
+        return result
+
+    def _get_datetime(self, from_value):
+        """
+        Ensure datetime values are in MJD. Really. Just not yet.
+        :param from_value:
+        :return:
+        """
+        if from_value:
+            if isinstance(from_value, datetime):
+                return from_value
+            else:
+                try:
+                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
+                except ValueError:
+                    try:
+                        return datetime.strptime(from_value,
+                                                 '%Y-%m-%dT%H:%M:%S.%f')
+                    except ValueError:
+                        try:
+                            return datetime.strptime(from_value,
+                                                     '%Y-%m-%d %H:%M:%S.%f')
+                        except ValueError:
+                            try:
+                                return datetime.strptime(
+                                    from_value, '%Y-%m-%d')
+                            except ValueError:
+                                self.logger.error(
+                                    'Cannot parse datetime {}'.format(
+                                        from_value))
+                                self.add_error(
+                                    'get_datetime', sys.exc_info()[1])
+                                return None
+        else:
+            return None
 
 
 class FitsParser(GenericParser):
@@ -2071,24 +2188,26 @@ class FitsParser(GenericParser):
             'Begin observation augmentation for URI {}.'.format(
                 artifact_uri))
         members = self._get_members(observation)
-        if members:
+        if members and not isinstance(members, TypedSet):
             for m in members.split():
                 observation.members.add(ObservationURI(m))
         observation.algorithm = self._get_algorithm(observation)
 
         observation.sequence_number = _to_int(self._get_from_list(
             'Observation.sequenceNumber', index=0))
-        observation.intent = self._get_from_list('Observation.intent', 0,
-                                                 ObservationIntentType.SCIENCE)
+        observation.intent = self._get_from_list(
+            'Observation.intent', 0, (ObservationIntentType.SCIENCE if
+                                      observation.intent is None else
+                                      observation.intent))
         observation.type = self._get_from_list('Observation.type', 0)
         observation.meta_release = self._get_datetime(
             self._get_from_list('Observation.metaRelease', 0))
         observation.requirements = self._get_requirements()
         observation.instrument = self._get_instrument()
-        observation.proposal = self._get_proposal()
+        observation.proposal = self._get_proposal(observation.proposal)
         observation.target = self._get_target()
         observation.target_position = self._get_target_position()
-        observation.telescope = self._get_telescope()
+        observation.telescope = self._get_telescope(observation.telescope)
         observation.environment = self._get_environment()
         self.logger.debug(
             'End observation augmentation for {}.'.format(artifact_uri))
@@ -2111,8 +2230,9 @@ class FitsParser(GenericParser):
             self._get_from_list('Plane.dataProductType', index=0,
                                 current=plane.data_product_type))
         plane.calibration_level = self._to_calibration_level(_to_int_32(
-            self._get_from_list('Plane.calibrationLevel', index=0)))
-        plane.provenance = self._get_provenance()
+            self._get_from_list('Plane.calibrationLevel', index=0,
+                                current=plane.calibration_level)))
+        plane.provenance = self._get_provenance(plane.provenance)
         plane.metrics = self._get_metrics()
         plane.quality = self._get_quality()
 
@@ -2130,12 +2250,12 @@ class FitsParser(GenericParser):
         if self.blueprint._module is not None:
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
-                    plan[key] = self._execute_external(value, key)
+                    plan[key] = self._execute_external(value, key, 0)
             for extension in exts:
                 for key, value in exts[extension].items():
                     if ObsBlueprint.is_function(value):
-                        exts[extension][key] = self._execute_external(value,
-                                                                      key)
+                        exts[extension][key] = self._execute_external(
+                            value, key, extension)
 
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
@@ -2235,48 +2355,6 @@ class FitsParser(GenericParser):
 
         return
 
-    def _execute_external(self, value, key):
-        """Execute a function supplied by a user, assign a value to a
-        blueprint entry. The input parameters passed to the function are the
-        headers as read in by astropy, or the artifact uri.
-
-        :param value the name of the function to apply.
-        """
-        # determine which of the two possible values for parameter the user
-        # is hoping for
-        parameter = ''
-        if 'uri' in value:
-            parameter = self.uri
-        elif 'header' in value:
-            parameter = self._headers
-
-        result = ''
-        execute = None
-        try:
-            execute = getattr(self.blueprint._module, value.split('(')[0])
-        except Exception as e:
-            msg = 'Failed to find {}.{} for {}'.format(
-                    self.blueprint._module.__name__, value.split('(')[0], key)
-            logging.error(msg)
-            self._errors.append(msg)
-            tb = traceback.format_exc()
-            logging.error(tb)
-            logging.error(e)
-        try:
-            result = execute(parameter)
-            logging.debug(
-                'Key {} calculated value of {} using {}'.format(
-                    key, result, value))
-        except Exception as e:
-            msg = 'Failed to execute {} for {}'.format(execute.__name__, key)
-            logging.error(msg)
-            logging.debug('Input parameter was {}'.format(parameter))
-            self._errors.append(msg)
-            tb = traceback.format_exc()
-            logging.error(tb)
-            logging.error(e)
-        return result
-
     def _get_members(self, obs):
         """
         Returns the members of a composite observation (if specified)
@@ -2344,16 +2422,27 @@ class FitsParser(GenericParser):
         else:
             return None
 
-    def _get_proposal(self):
+    def _get_proposal(self, current):
         """
         Create a Proposal instance populated with available FITS information.
         :return: Proposal
         """
         self.logger.debug('Begin Proposal augmentation.')
-        prop_id = self._get_from_list('Observation.proposal.id', index=0)
-        pi = self._get_from_list('Observation.proposal.pi', index=0)
-        project = self._get_from_list('Observation.proposal.project', index=0)
-        title = self._get_from_list('Observation.proposal.title', index=0)
+        if current is None:
+            prop_id = self._get_from_list('Observation.proposal.id', index=0)
+            pi = self._get_from_list('Observation.proposal.pi', index=0)
+            project = self._get_from_list('Observation.proposal.project', index=0)
+            title = self._get_from_list('Observation.proposal.title', index=0)
+        else:
+            prop_id = self._get_from_list('Observation.proposal.id', index=0,
+                                          current=current.id)
+            pi = self._get_from_list('Observation.proposal.pi', index=0,
+                                     current=current.pi_name)
+            project = self._get_from_list(
+                'Observation.proposal.project', index=0,
+                current=current.project)
+            title = self._get_from_list('Observation.proposal.title', index=0,
+                                        current=current.title)
         self.logger.debug('End Proposal augmentation.')
         if prop_id:
             return Proposal(str(prop_id), pi, project, title)
@@ -2406,21 +2495,41 @@ class FitsParser(GenericParser):
             return aug_target_position
         return None
 
-    def _get_telescope(self):
+    def _get_telescope(self, current):
         """
         Create a Telescope instance populated with available FITS information.
         :return: Telescope
         """
         self.logger.debug('Begin Telescope augmentation.')
-        name = self._get_from_list('Observation.telescope.name', index=0)
-        geo_x = _to_float(
-            self._get_from_list('Observation.telescope.geoLocationX', index=0))
-        geo_y = _to_float(
-            self._get_from_list('Observation.telescope.geoLocationY', index=0))
-        geo_z = _to_float(
-            self._get_from_list('Observation.telescope.geoLocationZ', index=0))
-        keywords = self._get_set_from_list('Observation.telescope.keywords',
-                                           index=0)  # TODO
+        if current is None:
+            name = self._get_from_list('Observation.telescope.name', index=0)
+            geo_x = _to_float(
+                self._get_from_list(
+                    'Observation.telescope.geoLocationX', index=0))
+            geo_y = _to_float(
+                self._get_from_list(
+                    'Observation.telescope.geoLocationY', index=0))
+            geo_z = _to_float(
+                self._get_from_list(
+                    'Observation.telescope.geoLocationZ', index=0))
+            keywords = self._get_set_from_list(
+                'Observation.telescope.keywords', index=0)  # TODO
+        else:
+            name = self._get_from_list('Observation.telescope.name', index=0,
+                                       current=current.name)
+            geo_x = _to_float(
+                self._get_from_list('Observation.telescope.geoLocationX',
+                                    index=0, current=current.geo_location_x))
+            geo_y = _to_float(
+                self._get_from_list('Observation.telescope.geoLocationY',
+                                    index=0, current=current.geo_location_y))
+            geo_z = _to_float(
+                self._get_from_list('Observation.telescope.geoLocationZ',
+                                    index=0, current=current.geo_location_z))
+            keywords = self._get_set_from_list('Observation.telescope.keywords',
+                                               index=0)  # TODO
+            if keywords is None:
+                keywords = current.keywords
         self.logger.debug('End Telescope augmentation.')
         if name:
             self.logger.debug('name is {}'.format(name))
@@ -2602,35 +2711,63 @@ class FitsParser(GenericParser):
 
         return value
 
-    def _get_provenance(self):
+    def _get_provenance(self, current):
         """
         Create a Provenance instance populated with available FITS information.
         :return: Provenance
         """
         self.logger.debug('Begin Provenance augmentation.')
-        name = _to_str(
-            self._get_from_list('Plane.provenance.name', index=0))
-        p_version = _to_str(self._get_from_list('Plane.provenance.version',
-                                                index=0))
-        project = _to_str(
-            self._get_from_list('Plane.provenance.project', index=0))
-        producer = _to_str(
-            self._get_from_list('Plane.provenance.producer', index=0))
-        run_id = _to_str(
-            self._get_from_list('Plane.provenance.runID', index=0))
-        reference = _to_str(
-            self._get_from_list('Plane.provenance.reference', index=0))
-        last_executed = self._get_datetime(
-            self._get_from_list('Plane.provenance.lastExecuted', index=0))
-        keywords = self._get_from_list('Plane.provenance.keywords', index=0)
-        inputs = self._get_from_list('Plane.provenance.inputs', index=0)
+        if current is None:
+            name = _to_str(
+                self._get_from_list('Plane.provenance.name', index=0))
+            p_version = _to_str(self._get_from_list('Plane.provenance.version',
+                                                    index=0))
+            project = _to_str(
+                self._get_from_list('Plane.provenance.project', index=0))
+            producer = _to_str(
+                self._get_from_list('Plane.provenance.producer', index=0))
+            run_id = _to_str(
+                self._get_from_list('Plane.provenance.runID', index=0))
+            reference = _to_str(
+                self._get_from_list('Plane.provenance.reference', index=0))
+            last_executed = self._get_datetime(
+                self._get_from_list('Plane.provenance.lastExecuted', index=0))
+            keywords = self._get_from_list(
+                'Plane.provenance.keywords', index=0)
+            inputs = self._get_from_list('Plane.provenance.inputs', index=0)
+        else:
+            name = _to_str(
+                self._get_from_list('Plane.provenance.name', index=0,
+                                    current=current.name))
+            p_version = _to_str(self._get_from_list('Plane.provenance.version',
+                                                    index=0,
+                                                    current=current.version))
+            project = _to_str(
+                self._get_from_list('Plane.provenance.project', index=0,
+                                    current=current.project))
+            producer = _to_str(
+                self._get_from_list('Plane.provenance.producer', index=0,
+                                    current=current.producer))
+            run_id = _to_str(
+                self._get_from_list('Plane.provenance.runID', index=0,
+                                    current=current.run_id))
+            reference = _to_str(
+                self._get_from_list('Plane.provenance.reference', index=0,
+                                    current=current.reference))
+            last_executed = self._get_datetime(
+                self._get_from_list('Plane.provenance.lastExecuted', index=0,
+                                    current=current.last_executed))
+            keywords = self._get_from_list('Plane.provenance.keywords',
+                                           index=0, current=current.keywords)
+            inputs = self._get_from_list('Plane.provenance.inputs', index=0,
+                                         current=current.inputs)
         if name:
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
             if keywords:
                 for k in keywords.split():
                     prov.keywords.add(k)
-            if inputs:
+            if inputs and not isinstance(inputs, TypedSet):
                 for i in inputs.split():
                     prov.inputs.add(PlaneURI(str(i)))
             self.logger.debug('End Provenance augmentation.')
@@ -2678,35 +2815,6 @@ class FitsParser(GenericParser):
         self.logger.debug('End Quality augmentation.')
         if flag:
             return DataQuality(flag)
-        else:
-            return None
-
-    def _get_datetime(self, from_value):
-        """
-        Ensure datetime values are in MJD. Really. Just not yet.
-        :param from_value:
-        :return:
-        """
-
-        if from_value:
-            try:
-                return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
-            except ValueError:
-                try:
-                    return datetime.strptime(from_value,
-                                             '%Y-%m-%dT%H:%M:%S.%f')
-                except ValueError:
-                    try:
-                        return datetime.strptime(from_value,
-                                                 '%Y-%m-%d %H:%M:%S.%f')
-                    except ValueError:
-                        try:
-                            return datetime.strptime(from_value, '%Y-%m-%d')
-                        except ValueError:
-                            self.logger.error(
-                                'Cannot parse datetime {}'.format(from_value))
-                            self.add_error('get_datetime', sys.exc_info()[1])
-                            return None
         else:
             return None
 
@@ -3256,7 +3364,7 @@ def _update_artifact_meta(uri, artifact, subject=None):
     :return:
     """
     file_url = urlparse(uri)
-    if file_url.scheme == 'ad':
+    if file_url.scheme in ['ad', 'gemini']:
         metadata = _get_cadc_meta(subject, file_url.path)
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
@@ -3341,6 +3449,12 @@ def _get_type(path):
         return 'image/png'
     elif path.endswith('.jpg'):
         return 'image/jpeg'
+    elif path.endswith('.tar.gz'):
+        return 'application/gzip'
+    elif path.endswith('.jpg'):
+        return 'image/jpeg'
+    elif path.endswith('.csv'):
+        return 'text/csv'
     else:
         return 'application/fits'
 
@@ -3407,7 +3521,15 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
+                logging.debug(
+                    'Using a FitsParser for vos local {}'.format(local))
                 parser = FitsParser(get_vos_headers(uri), blueprint, uri=uri)
+            elif '.csv' in local:
+                logging.debug(
+                    'Using a GenericParser for vos local {}'.format(local))
+                parser = GenericParser(blueprint, uri=uri)
+            else:
+                raise ValueError('Unexpected file type {}'.format(local))
         else:
             meta_uri = 'file://{}'.format(local)
             visit_local = local

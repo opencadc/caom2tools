@@ -128,7 +128,7 @@ class StorageName(object):
     """
 
     def __init__(self, obs_id, collection, collection_pattern,
-                 fname_on_disk=None):
+                 fname_on_disk=None, scheme='ad'):
         """
 
         :param obs_id: string value for Observation.observationID
@@ -140,16 +140,19 @@ class StorageName(object):
             which is not necessarily the same thing as the name of the file
             in storage (i.e. extensions may exist in one location that do
             not exist in another.
+        :param scheme: string value for the scheme of the file URI.
         """
         self.obs_id = obs_id
         self.collection = collection
         self.collection_pattern = collection_pattern
+        self.scheme = scheme
         self.fname_on_disk = fname_on_disk
 
     @property
     def file_uri(self):
         """The ad URI for the file. Assumes compression."""
-        return 'ad:{}/{}.gz'.format(self.collection, self.file_name)
+        return '{}:{}/{}.gz'.format(
+            self.scheme, self.collection, self.file_name)
 
     @property
     def file_name(self):
@@ -179,12 +182,12 @@ class StorageName(object):
 
     @property
     def prev_uri(self):
-        """The ad preview URI."""
+        """The preview URI."""
         return self._get_uri(self.prev)
 
     @property
     def thumb_uri(self):
-        """The ad thumbnail URI."""
+        """The thumbnail URI."""
         return self._get_uri(self.thumb)
 
     @property
@@ -224,7 +227,7 @@ class StorageName(object):
 
     def _get_uri(self, fname):
         """The ad URI for a file, without consideration for compression."""
-        return 'ad:{}/{}'.format(self.collection, fname)
+        return '{}:{}/{}'.format(self.scheme, self.collection, fname)
 
     @staticmethod
     def remove_extensions(name):
@@ -477,21 +480,12 @@ class CaomExecute(object):
         ensure that the latest version of the file is retrieved from
         storage."""
 
-        # all the gets are supposed to be unzipped, so that the
-        # footprintfinder is more efficient, so make sure the fully
-        # qualified output name isn't the gzip'd version
-
-        if self.fname.endswith('.gz'):
-            fqn = os.path.join(self.working_dir, self.fname.replace('.gz', ''))
-        else:
-            fqn = os.path.join(self.working_dir, self.fname)
-
+        fqn = os.path.join(self.working_dir, self.fname)
         try:
-            self.cadc_data_client.get_file(
-                self.collection, self.fname, destination=fqn, decompress=True)
+            self.cadc_data_client.get_file(self.collection, self.fname,
+                                           destination=fqn)
             if not os.path.exists(fqn):
-                raise mc.CadcException(
-                    '{} does not exist.'.format(fqn))
+                raise mc.CadcException('{} does not exist.'.format(fqn))
         except Exception:
             raise mc.CadcException(
                 'Did not retrieve {}'.format(fqn))
@@ -709,6 +703,7 @@ class Collection2CaomLocalMetaCreateClient(CaomExecute):
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
         self._define_local_dirs(storage_name)
+        self.fname = storage_name.fname_on_disk
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -720,7 +715,7 @@ class Collection2CaomLocalMetaCreateClient(CaomExecute):
         self.logger.debug('the observation does not exist, so go '
                           'straight to generating the xml, as the main_app '
                           'will retrieve the headers')
-        self._fits2caom2_cmd_client()
+        self._fits2caom2_cmd_client_local()
 
         self.logger.debug('read the xml from disk')
         observation = self._read_model()
@@ -814,7 +809,7 @@ class Collection2CaomLocalMetaUpdateClient(CaomExecute):
 
         self.logger.debug('generate the xml, as the main_app will retrieve '
                           'the headers')
-        self._fits2caom2_cmd_in_out_client()
+        self._fits2caom2_cmd_in_out_local_client()
 
         self.logger.debug('read the xml from disk')
         self.observation = self._read_model()
@@ -1155,12 +1150,15 @@ class LocalMetaUpdateClientRemoteStorage(CaomExecute):
 
 
 class OrganizeChooser(object):
-    """Extend this class to provide a way to make collection-specifi
+    """Extend this class to provide a way to make collection-specific
     complex conditions available within the OrganizeExecute class."""
     def __init__(self):
         pass
 
     def needs_delete(self, observation):
+        return False
+
+    def use_compressed(self):
         return False
 
 
@@ -1466,12 +1464,20 @@ class OrganizeExecutes(object):
             return 'Failed to compute metadata'
         elif 'reset by peer' in e:
             return 'Connection reset by peer'
+        elif 'ConnectTimeoutError' in e:
+            return 'Connection to host timed out'
+        elif 'FileNotFoundError' in e:
+            return 'No such file or directory'
+        elif 'Must set a value of' in e:
+            return 'Value Error'
+        elif 'This does not look like a FITS file' in e:
+            return 'Not a FITS file'
         else:
             return str(e)
 
 
 def _set_up_file_logging(config, storage_name):
-    """Configure logging to a separate file for each item being processed."""
+    """Configure logging to a separate file for each entry being processed."""
     log_h = None
     if config.log_to_file:
         log_fqn = os.path.join(config.working_directory,
@@ -1489,7 +1495,7 @@ def _set_up_file_logging(config, storage_name):
 
 
 def _unset_file_logging(config, log_h):
-    """Turn off the logging to the separate file for each item being
+    """Turn off the logging to the separate file for each entry being
     processed."""
     if config.log_to_file:
         logging.getLogger().removeHandler(log_h)
@@ -1497,13 +1503,14 @@ def _unset_file_logging(config, log_h):
 
 def _do_one(config, organizer, storage_name, command_name, meta_visitors,
             data_visitors):
-    """Process one item.
-    :config mc.Config
-    :organizer instance of OrganizeExecutes - for calling the choose method.
-    :storage_name instance of StorageName for the collection
-    :command_name extension of fits2caom2 for the collection
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    """Process one entry.
+    :param config mc.Config
+    :param organizer instance of OrganizeExecutes - for calling the choose
+        method.
+    :param storage_name instance of StorageName for the collection
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
     """
     log_h = _set_up_file_logging(config, storage_name)
     try:
@@ -1535,28 +1542,35 @@ def _do_one(config, organizer, storage_name, command_name, meta_visitors,
 
 def _run_by_file_list(config, organizer, sname, command_name, proxy,
                       meta_visitors, data_visitors, entry):
-    """Process an item from a list of files. Creates the correct instance
+    """Process an entry from a list of files. Creates the correct instance
     of the StorageName extension, based on Config values.
 
-    :config mc.Config
-    :organizer instance of OrganizeExecutes - for calling the choose method.
-    :sname which extension of StorageName to instantiate for the collection
-    :command_name extension of fits2caom2 for the collection
-    :proxy Certificate proxy.
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    :param config mc.Config
+    :param organizer instance of OrganizeExecutes - for calling the choose
+        method.
+    :param sname which extension of StorageName to instantiate for the
+        collection
+    :param command_name extension of fits2caom2 for the collection
+    :param proxy Certificate proxy.
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param entry what is being processed.
     """
+    logging.error('processing {}'.format(entry))
     if config.features.use_file_names:
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
+            logging.error(sname.__name__)
+            logging.error(entry)
             storage_name = sname(file_name=entry)
     else:
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(obs_id=entry)
-    logging.info('Process observation id {}'.format(storage_name.obs_id))
+    logging.info('Process observation id {} as {}'.format(
+        storage_name.obs_id, storage_name.file_name))
     config.proxy_fqn = proxy
     _do_one(config, organizer, storage_name, command_name,
             meta_visitors, data_visitors)
@@ -1566,13 +1580,15 @@ def _run_todo_file(config, organizer, sname, command_name, proxy,
                    meta_visitors, data_visitors):
     """Process all entries listed in a file.
 
-    :config mc.Config
-    :organizer instance of OrganizeExecutes - for calling the choose method.
-    :sname which extension of StorageName to instantiate for the collection
-    :command_name extension of fits2caom2 for the collection
-    :proxy Certificate proxy.
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
+    :param config mc.Config
+    :param organizer instance of OrganizeExecutes - for calling the choose
+        method.
+    :param sname which extension of StorageName to instantiate for the
+        collection
+    :param command_name extension of fits2caom2 for the collection
+    :param proxy Certificate proxy.
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
     """
     with open(organizer.todo_fqn) as f:
         todo_list_length = sum(1 for _ in f)
@@ -1588,20 +1604,29 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
                      meta_visitors, data_visitors, chooser):
     """Process all entries located in the current working directory.
 
-    :config mc.Config
-    :organizer instance of OrganizeExecutes - for calling the choose method.
-    :sname which extension of StorageName to instantiate for the collection
-    :command_name extension of fits2caom2 for the collection
-    :proxy Certificate proxy.
-    :meta_visitors List of metadata visit methods.
-    :data_visitors List of data visit methods.
-    :chooser OrganizeChooser access to collection-specific rules
+    :param config mc.Config
+    :param organizer instance of OrganizeExecutes - for calling the choose
+        method.
+    :param sname which extension of StorageName to instantiate for the
+        collection
+    :param command_name extension of fits2caom2 for the collection
+    :param proxy Certificate proxy.
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param chooser OrganizeChooser access to collection-specific rules
     """
     file_list = os.listdir(config.working_directory)
     todo_list = []
     for f in file_list:
         if f.endswith('.fits') or f.endswith('.fits.gz'):
-            todo_list.append(f)
+            if chooser.use_compressed():
+                if f.endswith('.fits'):
+                    todo_list.append('{}.gz'.format(f))
+                else:
+                    todo_list.append(f)
+            else:
+                if f.endswith('.fits.gz'):
+                    todo_list.append(f.replace('.gz', ''))
 
     organizer.complete_record_count = len(todo_list)
     for do_file in todo_list:
@@ -1610,7 +1635,8 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
 
     if config.need_to_retry():
         for count in range(0, config.retry_count):
-            logging.warning('Beginning retry {} in {}'.format(count + 1, os.getcwd()))
+            logging.warning(
+                'Beginning retry {} in {}'.format(count + 1, os.getcwd()))
             config.update_for_retry(count)
 
             # make another file list
@@ -1633,6 +1659,7 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
             if not config.need_to_retry():
                 break
         logging.warning('Done retry attempts.')
+
 
 def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
                  data_visitors, chooser=None):
@@ -1719,10 +1746,12 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
         config.features.supports_composite = False
         _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
                      data_visitors, chooser)
+        return 0
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()
         logging.error(tb)
+        return -1
 
 
 def run_single(config, storage_name, command_name, meta_visitors,

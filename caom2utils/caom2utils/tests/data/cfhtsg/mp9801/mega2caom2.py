@@ -12,7 +12,7 @@ def uri2planeproductID(uri):
 
 
 def getInputs(hdul):
-    history = str(hdul[0].get('HISTORY'))
+    history = str(hdul.get('HISTORY'))
 
     # find all the exposure numbers:
     exposures = findall(r'\d{6,7}', history)
@@ -31,7 +31,7 @@ def getInputs(hdul):
 
 
 def getProvInputs(hdul):
-    history = str(hdul[0].get('HISTORY'))
+    history = str(hdul.get('HISTORY'))
 
     # find all the exposure numbers:
     exposures = findall(r'\d{6,7}', history)
@@ -51,9 +51,9 @@ def getProvInputs(hdul):
 
 def getMagnitudeLimit(hdul):
     # get the magnitude limit keywords
-    ml_5siga = float(hdul[0].get('ML_5SIGA'))
-    ml_5sig2 = float(hdul[0].get('ML_5SIG2'))
-    ml_5odet = float(hdul[0].get('ML_50DET'))
+    ml_5siga = float(hdul.get('ML_5SIGA'))
+    ml_5sig2 = float(hdul.get('ML_5SIG2'))
+    ml_5odet = float(hdul.get('ML_50DET'))
     # if (type(image) is str) :
     #     hdul.close
     # return the first one that doesn't suck

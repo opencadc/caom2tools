@@ -85,11 +85,11 @@ from .. import plane
 class TestCaomUtil(unittest.TestCase):
     def test_typed_list(self):
         my_list1 = caom_util.TypedList(str, "Test1")
-        self.assertEquals(1, len(my_list1), "list1 length")
+        self.assertEqual(1, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
 
         my_list1.append("Test2")
-        self.assertEquals(2, len(my_list1), "list1 length")
+        self.assertEqual(2, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
         self.assertEqual("Test2", my_list1[1], "Non matching elements")
 
@@ -130,20 +130,20 @@ class TestCaomUtil(unittest.TestCase):
             exception = True
         self.assertTrue(exception, "Exception thrown")
 
-        self.assertEquals(2, len(my_list1), "list1 length")
+        self.assertEqual(2, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
         self.assertEqual("Test2", my_list1[1], "Non matching elements")
 
         my_list2 = caom_util.TypedList(str, "Test3", "Test4")
         my_list1.extend(my_list2)
-        self.assertEquals(4, len(my_list1), "list1 length")
+        self.assertEqual(4, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
         self.assertEqual("Test2", my_list1[1], "Non matching elements")
         self.assertEqual("Test3", my_list1[2], "Non matching elements")
         self.assertEqual("Test4", my_list1[3], "Non matching elements")
 
         my_list1.insert(0, "Test0")
-        self.assertEquals(5, len(my_list1), "list1 length")
+        self.assertEqual(5, len(my_list1), "list1 length")
         self.assertEqual("Test0", my_list1[0], "Non matching elements")
         self.assertEqual("Test1", my_list1[1], "Non matching elements")
         self.assertEqual("Test2", my_list1[2], "Non matching elements")
@@ -151,7 +151,7 @@ class TestCaomUtil(unittest.TestCase):
         self.assertEqual("Test4", my_list1[4], "Non matching elements")
 
         my_list2 = caom_util.TypedList(plane.Energy, )
-        self.assertEquals(0, len(my_list2), "list2 length")
+        self.assertEqual(0, len(my_list2), "list2 length")
 
     def test_validate_path_component(self):
         energy = plane.Energy()
@@ -201,12 +201,12 @@ class TestCaomUtil(unittest.TestCase):
         self.assertRaises(AssertionError, caom_util.TypedSet, str, float(1.0))
 
         my_set = caom_util.TypedSet(str, "Test1")
-        self.assertEquals(1, len(my_set))
+        self.assertEqual(1, len(my_set))
         self.assertEqual("Test1", my_set.pop())
 
         my_set.add("Test1")
         my_set.add("Test2")
-        self.assertEquals(2, len(my_set), "set length")
+        self.assertEqual(2, len(my_set), "set length")
         with self.assertRaises(AssertionError):
             my_set.add(float(1.0))
             my_set.add(int(1))
