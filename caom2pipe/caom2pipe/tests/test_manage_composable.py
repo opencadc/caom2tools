@@ -71,10 +71,13 @@ import os
 import pytest
 import sys
 
+import six
+
 from mock import Mock, patch
 
 from caom2 import ProductType, ReleaseType, Artifact, ChecksumURI
-from caom2pipe import manage_composable as mc
+if six.PY3:
+    from caom2pipe import manage_composable as mc
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))

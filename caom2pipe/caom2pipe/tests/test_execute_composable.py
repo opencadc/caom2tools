@@ -72,14 +72,18 @@ import os
 import pytest
 import sys
 
+import six
+
 from mock import Mock, patch
 
 from astropy.io import fits
 
 from caom2 import SimpleObservation, Algorithm
-from caom2pipe import CadcException
-from caom2pipe import execute_composable as ec
-from caom2pipe import manage_composable as mc
+
+if six.PY3:
+    from caom2pipe import CadcException
+    from caom2pipe import execute_composable as ec
+    from caom2pipe import manage_composable as mc
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -89,47 +93,47 @@ TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 class MyExitError(Exception):
     pass
 
-
-class TestVisit:
-    @staticmethod
-    def visit(observation, **kwargs):
-        x = kwargs['working_directory']
-        assert x is not None, 'working directory'
-        y = kwargs['science_file']
-        assert y is not None, 'science file'
-        z = kwargs['log_file_directory']
-        assert z is not None, 'log file directory'
-        assert observation is not None, 'undefined observation'
-
-
-class TestStorageName(ec.StorageName):
-    def __init__(self, obs_id=None, file_name=None):
-        super(TestStorageName, self).__init__(
-            'test_obs_id', 'TEST', '*', 'test_file.fits.gz')
-
-    def is_valid(self):
-        return True
+if six.PY3:
+    class TestVisit:
+        @staticmethod
+        def visit(observation, **kwargs):
+            x = kwargs['working_directory']
+            assert x is not None, 'working directory'
+            y = kwargs['science_file']
+            assert y is not None, 'science file'
+            z = kwargs['log_file_directory']
+            assert z is not None, 'log file directory'
+            assert observation is not None, 'undefined observation'
 
 
-class TestChooser(ec.OrganizeChooser):
-    def __init(self):
-        super(TestChooser, self).__init__()
+    class TestStorageName(ec.StorageName):
+        def __init__(self, obs_id=None, file_name=None):
+            super(TestStorageName, self).__init__(
+                'test_obs_id', 'TEST', '*', 'test_file.fits.gz')
 
-    def needs_delete(self, observation):
-        return True
+        def is_valid(self):
+            return True
 
-def _init_config():
-    test_config = mc.Config()
-    test_config.working_directory = THIS_DIR
-    test_config.collection = 'OMM'
-    test_config.netrc_file = os.path.join(TESTDATA_DIR, 'test_netrc')
-    test_config.work_file = 'todo.txt'
-    test_config.logging_level = 'DEBUG'
-    test_config.log_file_directory = TESTDATA_DIR
-    test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
-    test_config.features.run_in_airflow = False
-    test_config.features.use_file_names = False
-    return test_config
+
+    class TestChooser(ec.OrganizeChooser):
+        def __init(self):
+            super(TestChooser, self).__init__()
+
+        def needs_delete(self, observation):
+            return True
+
+    def _init_config():
+        test_config = mc.Config()
+        test_config.working_directory = THIS_DIR
+        test_config.collection = 'OMM'
+        test_config.netrc_file = os.path.join(TESTDATA_DIR, 'test_netrc')
+        test_config.work_file = 'todo.txt'
+        test_config.logging_level = 'DEBUG'
+        test_config.log_file_directory = TESTDATA_DIR
+        test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
+        test_config.features.run_in_airflow = False
+        test_config.features.use_file_names = False
+        return test_config
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
@@ -341,6 +345,8 @@ def test_client_visit():
     assert repo_client_mock.update.is_called, 'update call missed'
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
 def test_data_execute():
     test_obs_id = 'TEST_OBS_ID'
     test_dir = os.path.join(THIS_DIR, test_obs_id)
