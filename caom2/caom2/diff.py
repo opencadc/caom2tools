@@ -411,7 +411,7 @@ def _get_dict(entity):
     for i in dir(entity):
         try:
             attribute = getattr(entity, i)
-        except TypeError as e:
+        except TypeError:
             pass
         if (i.startswith('_') or
                 callable(attribute) or
