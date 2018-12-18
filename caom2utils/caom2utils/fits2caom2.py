@@ -3284,7 +3284,8 @@ def get_cadc_headers(uri, subject=None):
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
-    if file_url.scheme == 'ad':
+    if (file_url.scheme == 'ad' or
+            file_url.scheme == 'gemini'):
         # create possible types of subjects
         if not subject:
             subject = net.Subject()
