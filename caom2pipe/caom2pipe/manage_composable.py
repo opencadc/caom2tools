@@ -94,7 +94,7 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'compare_checksum_client', 'Features', 'write_to_file',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
-           'data_put']
+           'data_put', 'data_get']
 
 
 class CadcException(Exception):
@@ -1010,9 +1010,9 @@ def get_artifact_metadata(fqn, product_type, release_type, uri=None,
 
 def data_put(client, working_directory, file_name, archive, stream='raw'):
     """
-    Make a copy of a a locally available file at CADC. Assumes file and
-    directory locations are correct. Does a checksum comparison to test
-    whether the file made it to storage as it exists on disk.
+    Make a copy of a locally available file by writing it to CADC. Assumes
+    file and directory locations are correct. Does a checksum comparison to
+    test whether the file made it to storage as it exists on disk.
 
     :param client: The CadcDataClient for write access to CADC storage.
     :param working_directory: Where 'file_name' exists locally.
@@ -1031,3 +1031,23 @@ def data_put(client, working_directory, file_name, archive, stream='raw'):
         os.chdir(cwd)
     compare_checksum_client(client, archive,
                             os.path.join(working_directory, file_name))
+
+
+def data_get(client, working_directory, file_name, archive):
+    """
+    Retrieve a local copy of a file available from CADC. Assumes the working
+    directory location exists and is writeable.
+
+    :param client: The CadcDataClient for read access to CADC storage.
+    :param working_directory: Where 'file_name' will be written.
+    :param file_name: What to copy from CADC storage.
+    :param archive: Which archive to retrieve the file from.
+    """
+    fqn = os.path.join(working_directory, file_name)
+    try:
+        client.get_file(archive, file_name, destination=fqn)
+        if not os.path.exists(fqn):
+            raise CadcException(
+                'Retrieve failed. {} does not exist.'.format(fqn))
+    except Exception:
+        raise CadcException('Did not retrieve {}'.format(fqn))
