@@ -2428,6 +2428,7 @@ class FitsParser(GenericParser):
         :return: Proposal
         """
         self.logger.debug('Begin Proposal augmentation.')
+        keywords = None
         if current is None:
             prop_id = self._get_from_list('Observation.proposal.id', index=0)
             pi = self._get_from_list('Observation.proposal.pi', index=0)
@@ -2443,9 +2444,14 @@ class FitsParser(GenericParser):
                 current=current.project)
             title = self._get_from_list('Observation.proposal.title', index=0,
                                         current=current.title)
+            keywords = self._get_from_list('Observation.proposal.keywords',
+                                           index=0)
         self.logger.debug('End Proposal augmentation.')
         if prop_id:
-            return Proposal(str(prop_id), pi, project, title)
+            proposal = Proposal(str(prop_id), pi, project, title)
+            if keywords:
+                proposal.keywords = keywords
+            return proposal
         else:
             return None
 

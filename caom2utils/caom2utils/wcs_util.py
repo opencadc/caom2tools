@@ -75,9 +75,15 @@ WCS Validation Utilities
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from six.moves import range
-from caom2 import shape
+from caom2 import shape, Polygon, MultiPolygon, Vertex, SegmentType, Point
+from caom2utils.polygonvalidator import validate_polygon
 
-__all__ = ['TimeUtil', 'EnergyUtil', 'ORIGIN']
+from astropy.wcs import WCS
+from scipy.spatial import ConvexHull
+from scipy.spatial.qhull import QhullError
+import numpy as np
+
+__all__ = ['TimeUtil', 'EnergyUtil', 'PositionUtil', 'ORIGIN']
 
 # TODO both these are very bad, implement more sensibly
 TARGET_TIMESYS = "UTC"
@@ -191,7 +197,7 @@ class EnergyUtil:
         return shape.SubInterval(p1, p2)
 
 
-class PolarizationWcsUtil():
+class PolarizationWcsUtil:
     def _get_range(self, from_range):
         if from_range is not None:
             lb = int(round(from_range.start.val))
@@ -241,3 +247,83 @@ class PolarizationWcsUtil():
                 raise ValueError(
                     'Invalid naxis value: {}'.format(function.naxis))
         return None
+
+
+class PositionUtil:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def calculate_footprint(hdulist):
+        """
+        Using the FITS header, creates a Polygon that describes the bounds
+        for the Plane metadata.
+        """
+        # list of individual footprint coordinates, input to ConvexHull
+        coordinates = []
+
+        # list of footprints expressed line segments
+        vertices = []
+
+        # For each extension
+        for hdu in hdulist:
+
+            # Get the WCS
+            wcs = WCS(hdu.header)
+
+            # Skip extensions with no spatial data
+            if not wcs.has_celestial:
+                continue
+
+            # Calculate the spatial bounds from the header
+            footprint = wcs.calc_footprint(hdu.header)
+
+            # footprint is an array of points
+            if footprint.any():
+
+                # Use the index to figure out the SegmentType
+                # for each line in the Polygon
+                for index, point in enumerate(footprint):
+
+                    # List of points for Convex Hull calculation
+                    coordinates.append(point)
+
+                    # Determine the SegmentType
+                    if index == 0:
+                        segment_type = SegmentType.MOVE
+                    elif index == (len(footprint) - 1):
+                        segment_type = SegmentType.CLOSE
+                    else:
+                        segment_type = SegmentType.LINE
+
+                    # Create a Polygon from the points for this footprint
+                    vertices.append(Vertex(point[0], point[1], segment_type))
+
+        # TODO do any of the polygons overlap?
+        #  A sample cannot contain overlapping polygons
+        # MultiPolygon of the footprint vertices
+        samples = MultiPolygon(vertices=vertices)
+
+        # calculate the footprint from the bounds
+        points = []
+        try:
+            # Get the Convex Hull of the coordinates
+            hull = ConvexHull(np.array(coordinates), 2)
+
+            # vertices are  the indices of the input bounds that
+            # defines the convex hull in counterclockwise order.
+            # CAOM2 requires a Polygon in clockwise order
+            for vertices_index in reversed(hull.vertices):
+                point = coordinates[vertices_index]
+                points.append(Point(point[0], point[1]))
+
+        except ValueError as ex:
+            raise ValueError(
+                "Unable to calculate footprint because {}".format(repr(ex)))
+        except QhullError as ex:
+            raise ValueError(
+                "Unable to calculate footprint because {}".format(repr(ex)))
+
+        polygon = Polygon(points=points, samples=samples)
+        validate_polygon(polygon)
+        return polygon
