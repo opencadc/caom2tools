@@ -167,6 +167,17 @@ def _get_collection_differences(expected, actual, parent):
     """Reports on the differences between two collections. Ignores collection
     ordering."""
     report = []
+    if not expected and actual:
+        report.append('Collection:: {} expected not found'.format(parent))
+        return report
+
+    if expected and not actual:
+        report.append('Collection:: {} actual not found'.format(parent))
+        return report
+
+    if not expected and not actual:
+        return report
+
     if len(expected) != len(actual):
         report.append(
             'Collection:: {}: length of expected {} != length of actual {}'.
@@ -217,31 +228,11 @@ def _get_list_differences(expected, actual, parent):
     at an advanced index, and it does not expect Chunk-type entities."""
 
     report = []
-    if not expected and actual:
-        report.append('Sequence:: {} not expected'.format(parent))
-        return report
-
-    if expected and not actual:
-        report.append('Sequence:: {} not found'.format(parent))
-        return report
-
-    if not expected and not actual:
-        return report
 
     # this method removes list elements, so make copies for modification,
     # leaving the originals unchanged - kind of immutable inputs
     actual_copy = list(actual)
     expected_copy = list(expected)
-    sorted(actual)
-    sorted(expected)
-    actual_copy.sort()
-    expected_copy.sort()
-
-    if len(expected_copy) != len(actual_copy):
-        report.append(
-            'List:: {} expected length ({}) != actual length ({})'.format(
-                parent, len(expected_copy), len(actual_copy)))
-        return report
 
     start_index = 0
     for ex_index, e in enumerate(expected):
@@ -299,28 +290,12 @@ def _get_list_differences(expected, actual, parent):
 def _get_sequence_differences(expected, actual, parent):
     """Reports on how two sequences are different."""
     report = []
-    if not expected and actual:
-        report.append('Sequence:: {} not expected'.format(parent))
-        return report
-
-    if expected and not actual:
-        report.append('Sequence:: {} not found'.format(parent))
-        return report
-
-    if not expected and not actual:
-        return report
 
     # this method removes sequence elements, so make copies of the collections
     # under comparison and modify the copies, leaving the originals
     # unchanged - kind of immutable inputs
     actual_copy = list(actual)
     expected_copy = list(expected)
-
-    if len(expected_copy) != len(actual_copy):
-        report.append(
-            'Sequence:: {} expected length ({}) != actual length ({})'.format(
-                parent, len(expected_copy), len(actual_copy)))
-        return report
 
     for ex_index, e in enumerate(expected):
         label = '{}[\'{}\']'.format(parent, ex_index)
@@ -436,7 +411,7 @@ def _get_dict(entity):
     for i in dir(entity):
         try:
             attribute = getattr(entity, i)
-        except TypeError as e:
+        except TypeError:
             pass
         if (i.startswith('_') or
                 callable(attribute) or

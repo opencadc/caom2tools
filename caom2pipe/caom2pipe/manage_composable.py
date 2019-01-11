@@ -94,7 +94,7 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'compare_checksum_client', 'Features', 'write_to_file',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
-           'data_put']
+           'data_put', 'data_get']
 
 
 class CadcException(Exception):
@@ -191,6 +191,7 @@ class Config(object):
         # the fully qualified name for the work file
         self.work_fqn = None
         self.netrc_file = None
+        self.archive = None
         self.collection = None
         self.use_local_files = False
         self.resource_id = None
@@ -255,6 +256,15 @@ class Config(object):
         self._collection = value
 
     @property
+    def archive(self):
+        """which archive is addressed by the pipeline"""
+        return self._archive
+
+    @archive.setter
+    def archive(self, value):
+        self._archive = value
+
+    @property
     def use_local_files(self):
         """changes expectations of the executors for handling files on disk"""
         return self._use_local_files
@@ -306,7 +316,7 @@ class Config(object):
 
     @property
     def stream(self):
-        """the ad 'stream' that goes with the collection - use when storing
+        """the ad 'stream' that goes with the archive - use when storing
         files"""
         return self._stream
 
@@ -425,6 +435,7 @@ class Config(object):
         return 'working_directory:: \'{}\' ' \
                'work_fqn:: \'{}\' ' \
                'netrc_file:: \'{}\' ' \
+               'archive:: \'{}\' ' \
                'collection:: \'{}\' ' \
                'task_types:: \'{}\' ' \
                'stream:: \'{}\' ' \
@@ -444,6 +455,7 @@ class Config(object):
                'features:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
+                self.archive,
                 self.collection, self.task_types, self.stream,
                 self.resource_id, self.use_local_files, self.log_to_file,
                 self.log_file_directory, self.success_log_file_name,
@@ -505,6 +517,7 @@ class Config(object):
             self.task_types = self._obtain_task_types(
                 config, [TaskType.SCRAPE])
             self.collection = self._lookup(config, 'collection', 'TEST')
+            self.archive = self._lookup(config, 'archive', self.collection)
             self.success_log_file_name = self._lookup(config,
                                                       'success_log_file_name',
                                                       'success_log.txt')
@@ -712,17 +725,17 @@ def get_cadc_headers(uri):
     return fits_header
 
 
-def get_cadc_meta(netrc_fqn, collection, fname):
+def get_cadc_meta(netrc_fqn, archive, fname):
     """
     Gets contentType, contentLength and contentChecksum of a CADC artifact
     :param netrc_fqn: user credentials
-    :param collection: archive file has been stored to
+    :param archive: archive file has been stored to
     :param fname: name of file in the archive
     :return:
     """
     subject = net.Subject(username=None, certificate=None, netrc=netrc_fqn)
     client = CadcDataClient(subject)
-    return client.get_file_info(collection, fname)
+    return client.get_file_info(archive, fname)
 
 
 def get_file_meta(fqn):
@@ -756,12 +769,12 @@ def get_file_meta(fqn):
     return meta
 
 
-def _check_checksums(fqn, collection, local_meta, ad_meta):
+def _check_checksums(fqn, archive, local_meta, ad_meta):
     """Raise CadcException if the checksum of a file in ad is not the same as
     the checksum of a file on disk.
 
     :param fqn: Fully-qualified name of file for which to compare metadata.
-    :param collection: archive file has been stored to
+    :param archive: archive file has been stored to
     :param local_meta: md5 checksum for the file on disk
     :param ad_meta: md5 checksum for the file in ad storage
     """
@@ -772,45 +785,45 @@ def _check_checksums(fqn, collection, local_meta, ad_meta):
             ad_meta['umd5sum'])):
         raise CadcException(
             '{} md5sum not the same as the one in the ad '
-            '{} collection.'.format(fqn, collection))
+            '{} archive.'.format(fqn, archive))
 
 
-def compare_checksum(netrc_fqn, collection, fqn):
+def compare_checksum(netrc_fqn, archive, fqn):
     """
     Raise CadcException if the checksum of a file in ad is not the same as
     the checksum of a file on disk.
 
     :param netrc_fqn: fully-qualified file name for the netrc file
-    :param collection: archive file has been stored to
+    :param archive: archive file has been stored to
     :param fqn: Fully-qualified name of the file for which to get the metadata.
     """
     fname = os.path.basename(fqn)
     try:
         local_meta = get_file_meta(fqn)
-        ad_meta = get_cadc_meta(netrc_fqn, collection, fname)
+        ad_meta = get_cadc_meta(netrc_fqn, archive, fname)
     except Exception as e:
         raise CadcException('Could not find md5 checksum for {} in the ad {} '
-                            'collection. {}'.format(fqn, collection, e))
-    _check_checksums(fqn, collection, local_meta, ad_meta)
+                            'archive. {}'.format(fqn, archive, e))
+    _check_checksums(fqn, archive, local_meta, ad_meta)
 
 
-def compare_checksum_client(client, collection, fqn):
+def compare_checksum_client(client, archive, fqn):
     """
     Raise CadcException if the checksum of a file in ad is not the same as
     the checksum of a file on disk.
 
     :param client: access to CADC data service
-    :param collection: archive file has been stored to
+    :param archive: archive file has been stored to
     :param fqn: Fully-qualified name of the file for which to get the metadata.
     """
     fname = os.path.basename(fqn)
     try:
         local_meta = get_file_meta(fqn)
-        ad_meta = client.get_file_info(collection, fname)
+        ad_meta = client.get_file_info(archive, fname)
     except Exception as e:
         raise CadcException('Could not find md5 checksum for {} in the ad {} '
-                            'collection. {}'.format(fqn, collection, e))
-    _check_checksums(fqn, collection, local_meta, ad_meta)
+                            'archive. {}'.format(fqn, archive, e))
+    _check_checksums(fqn, archive, local_meta, ad_meta)
 
 
 def create_dir(dir_name):
@@ -832,9 +845,9 @@ def decompose_lineage(lineage):
         return result[0], result[1]
     except Exception as e:
         logging.debug('Lineage {} caused error {}. Expected '
-                      'product_id/ad:COLLECTION/FILE_NAME'.format(
+                      'product_id/ad:ARCHIVE/FILE_NAME'.format(
                         lineage, e))
-        raise CadcException('Expected product_id/ad:COLLECTION/FILE_NAME')
+        raise CadcException('Expected product_id/ad:ARCHIVE/FILE_NAME')
 
 
 def check_param(param, param_type):
@@ -932,7 +945,7 @@ def read_file_list_from_archive(config, app_name, prev_exec_date, exec_date):
     query_meta = "SELECT fileName FROM archive_files WHERE " \
                  "archiveName = '{}' AND ingestDate > '{}' and " \
                  "ingestDate <= '{}' ORDER BY ingestDate".format(
-                    config.collection, start_time, end_time)
+                    config.archive, start_time, end_time)
     data = {'QUERY': query_meta, 'LANG': 'ADQL', 'FORMAT': 'csv'}
     logging.debug('Query is {}'.format(query_meta))
     try:
@@ -950,15 +963,15 @@ def read_file_list_from_archive(config, app_name, prev_exec_date, exec_date):
         raise CadcException('Failed ad content query: {}'.format(e))
 
 
-def get_lineage(collection, product_id, file_name, scheme='ad'):
+def get_lineage(archive, product_id, file_name, scheme='ad'):
     """Construct an instance of the caom2gen lineage parameter.
-    :param collection Collection name in CAOM2.
+    :param archive archive name at CADC.
     :param product_id CAOM2 Plane unique identifier.
     :param file_name String representation of the file name.
     :param scheme Usually 'ad', otherwise an indication of external storage.
     :return str understood by the caom2gen application, lineage parameter
         value"""
-    return '{}/{}:{}/{}'.format(product_id, scheme, collection, file_name)
+    return '{}/{}:{}/{}'.format(product_id, scheme, archive, file_name)
 
 
 def get_artifact_metadata(fqn, product_type, release_type, uri=None,
@@ -972,7 +985,7 @@ def get_artifact_metadata(fqn, product_type, release_type, uri=None,
     :param product_type: which ProductType enumeration value
     :param release_type: which ReleaseType enumeration value
     :param uri: mandatory if creating an Artifact, a URI of the form
-        scheme:COLLECTION/file_name
+        scheme:ARCHIVE/file_name
     :param artifact: use when updating an existing Artifact instance
 
     :return: the created or updated Artifact instance, with the
@@ -995,26 +1008,46 @@ def get_artifact_metadata(fqn, product_type, release_type, uri=None,
         return artifact
 
 
-def data_put(client, working_directory, file_name, collection, stream='raw'):
+def data_put(client, working_directory, file_name, archive, stream='raw'):
     """
-    Make a copy of a a locally available file at CADC. Assumes file and
-    directory locations are correct. Does a checksum comparison to test
-    whether the file made it to storage as it exists on disk.
+    Make a copy of a locally available file by writing it to CADC. Assumes
+    file and directory locations are correct. Does a checksum comparison to
+    test whether the file made it to storage as it exists on disk.
 
     :param client: The CadcDataClient for write access to CADC storage.
     :param working_directory: Where 'file_name' exists locally.
     :param file_name: What to copy to CADC storage.
-    :param collection: Which archive to associate the file with.
+    :param archive: Which archive to associate the file with.
     :param stream: Defaults to raw - use is deprecated, however necessary it
         may be at the current moment to the 'put_file' call.
     """
     cwd = os.getcwd()
     try:
         os.chdir(working_directory)
-        client.put_file(collection, file_name, stream)
+        client.put_file(archive, file_name, stream)
     except Exception as e:
         raise CadcException('Failed to store data with {}'.format(e))
     finally:
         os.chdir(cwd)
-    compare_checksum_client(client, collection,
+    compare_checksum_client(client, archive,
                             os.path.join(working_directory, file_name))
+
+
+def data_get(client, working_directory, file_name, archive):
+    """
+    Retrieve a local copy of a file available from CADC. Assumes the working
+    directory location exists and is writeable.
+
+    :param client: The CadcDataClient for read access to CADC storage.
+    :param working_directory: Where 'file_name' will be written.
+    :param file_name: What to copy from CADC storage.
+    :param archive: Which archive to retrieve the file from.
+    """
+    fqn = os.path.join(working_directory, file_name)
+    try:
+        client.get_file(archive, file_name, destination=fqn)
+        if not os.path.exists(fqn):
+            raise CadcException(
+                'Retrieve failed. {} does not exist.'.format(fqn))
+    except Exception:
+        raise CadcException('Did not retrieve {}'.format(fqn))

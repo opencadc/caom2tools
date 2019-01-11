@@ -128,7 +128,7 @@ class StorageName(object):
     """
 
     def __init__(self, obs_id, collection, collection_pattern,
-                 fname_on_disk=None, scheme='ad'):
+                 fname_on_disk=None, scheme='ad', archive=None):
         """
 
         :param obs_id: string value for Observation.observationID
@@ -141,18 +141,24 @@ class StorageName(object):
             in storage (i.e. extensions may exist in one location that do
             not exist in another.
         :param scheme: string value for the scheme of the file URI.
+        :param archive: ad storage unit, defaults to value of
+            'collection'
         """
         self.obs_id = obs_id
         self.collection = collection
         self.collection_pattern = collection_pattern
         self.scheme = scheme
         self.fname_on_disk = fname_on_disk
+        if archive is not None:
+            self.archive = archive
+        else:
+            self.archive = collection
 
     @property
     def file_uri(self):
         """The ad URI for the file. Assumes compression."""
         return '{}:{}/{}.gz'.format(
-            self.scheme, self.collection, self.file_name)
+            self.scheme, self.archive, self.file_name)
 
     @property
     def file_name(self):
@@ -227,7 +233,7 @@ class StorageName(object):
 
     def _get_uri(self, fname):
         """The ad URI for a file, without consideration for compression."""
-        return '{}:{}/{}'.format(self.scheme, self.collection, fname)
+        return '{}:{}/{}'.format(self.scheme, self.archive, fname)
 
     @staticmethod
     def remove_extensions(name):
@@ -316,6 +322,7 @@ class CaomExecute(object):
         self.command_name = command_name
         self.root_dir = config.working_directory
         self.collection = config.collection
+        self.archive = config.archive
         self.working_dir = os.path.join(self.root_dir, self.obs_id)
         if config.log_to_file:
             self.model_fqn = os.path.join(config.log_file_directory,
@@ -427,7 +434,7 @@ class CaomExecute(object):
         using the client instance from this class."""
         fqn = os.path.join(self.working_dir, fname)
         mc.compare_checksum_client(
-            self.cadc_data_client, self.collection, fqn)
+            self.cadc_data_client, self.archive, fqn)
 
     def _repo_cmd_create_client(self, observation):
         """Create an observation instance from the input parameter."""
@@ -468,33 +475,24 @@ class CaomExecute(object):
                 '{}'.format(self.obs_id, self.resource_id, e))
 
     def _cadc_data_put_client(self, fname):
-        """Store a collection file."""
+        """Store an archive file."""
         try:
-            self.cadc_data_client.put_file(self.collection, fname, self.stream)
+            self.cadc_data_client.put_file(self.archive, fname, self.stream)
         except Exception as e:
             raise mc.CadcException(
                 'Did not store {} with {}'.format(fname, e))
 
     def _cadc_data_get_client(self):
-        """Retrieve a collection file, even if it already exists. This might
+        """Retrieve an archive file, even if it already exists. This might
         ensure that the latest version of the file is retrieved from
         storage."""
 
-        # all the gets are supposed to be unzipped, so that the
-        # footprintfinder is more efficient, so make sure the fully
-        # qualified output name isn't the gzip'd version
-
-        if self.fname.endswith('.gz'):
-            fqn = os.path.join(self.working_dir, self.fname.replace('.gz', ''))
-        else:
-            fqn = os.path.join(self.working_dir, self.fname)
-
+        fqn = os.path.join(self.working_dir, self.fname)
         try:
-            self.cadc_data_client.get_file(
-                self.collection, self.fname, destination=fqn, decompress=True)
+            self.cadc_data_client.get_file(self.archive, self.fname,
+                                           destination=fqn)
             if not os.path.exists(fqn):
-                raise mc.CadcException(
-                    '{} does not exist.'.format(fqn))
+                raise mc.CadcException('{} does not exist.'.format(fqn))
         except Exception:
             raise mc.CadcException(
                 'Did not retrieve {}'.format(fqn))
@@ -503,7 +501,7 @@ class CaomExecute(object):
         """Execute CadcDataClient.get_file_info with the client instance from
         this class."""
         file_info = self.cadc_data_client.get_file_info(
-            self.collection, self.fname)
+            self.archive, self.fname)
         self.fname = file_info['name']
 
     def _read_model(self):
@@ -518,7 +516,9 @@ class CaomExecute(object):
         """Execute metadata-only visitors on an Observation in
         memory."""
         if self.meta_visitors is not None and len(self.meta_visitors) > 0:
-            kwargs = {'working_directory': self.working_dir}
+            kwargs = {'working_directory': self.working_dir,
+                      'cadc_client': self.cadc_data_client,
+                      'stream': self.stream}
             for visitor in self.meta_visitors:
                 try:
                     self.logger.debug('Visit for {}'.format(visitor))
@@ -1159,12 +1159,15 @@ class LocalMetaUpdateClientRemoteStorage(CaomExecute):
 
 
 class OrganizeChooser(object):
-    """Extend this class to provide a way to make collection-specifi
+    """Extend this class to provide a way to make collection-specific
     complex conditions available within the OrganizeExecute class."""
     def __init__(self):
         pass
 
     def needs_delete(self, observation):
+        return False
+
+    def use_compressed(self):
         return False
 
 
@@ -1562,13 +1565,10 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
     :param data_visitors List of data visit methods.
     :param entry what is being processed.
     """
-    logging.error('processing {}'.format(entry))
     if config.features.use_file_names:
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
-            logging.error(sname.__name__)
-            logging.error(entry)
             storage_name = sname(file_name=entry)
     else:
         if config.use_local_files:
@@ -1622,11 +1622,20 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
     :param chooser OrganizeChooser access to collection-specific rules
     """
     file_list = os.listdir(config.working_directory)
-    todo_list = []
+    temp_list = []
     for f in file_list:
         if f.endswith('.fits') or f.endswith('.fits.gz'):
-            todo_list.append(f)
+            if chooser.use_compressed():
+                if f.endswith('.fits'):
+                    temp_list.append('{}.gz'.format(f))
+                else:
+                    temp_list.append(f)
+            else:
+                if f.endswith('.fits.gz'):
+                    temp_list.append(f.replace('.gz', ''))
 
+    # make the entries unique
+    todo_list = list(set(temp_list))
     organizer.complete_record_count = len(todo_list)
     for do_file in todo_list:
         _run_by_file_list(config, organizer, sname, command_name,
@@ -1719,7 +1728,7 @@ def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
 
 
 def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
-                data_visitors, chooser=None):
+                data_visitors, chooser=None, archive=None):
     """Process all entries by file name. The file names may be obtained
     from the Config todo entry, from the --todo parameter, or from listing
     files on local disk.
@@ -1734,11 +1743,17 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
     :param data_visitors List of data visit methods.
     :param chooser OrganizeChooser instance for detailed CaomExecute
         descendant choices
+    :param archive which ad storage files exist in. Defaults to collection
+        if not set.
     """
     try:
         config = mc.Config()
         config.get_executors()
         config.collection = collection
+        if archive is not None:
+            config.archive = archive
+        else:
+            config.archive = collection
         logging.debug(config)
         logger = logging.getLogger()
         logger.setLevel(config.logging_level)

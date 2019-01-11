@@ -122,9 +122,10 @@ def validate_polygon(poly):
         # validate self-segment intersection and clockwise direction
         _validate_self_intersection_and_direction(cval1s, cval2s)
 
-    # validate the samples
-    if poly.samples is not None:
-        validate_multipolygon(poly.samples)
+    # Rt 75582 currently samples are not required to
+    # conform to intersection and direction, so do not validate damples
+    # if poly.samples is not None:
+    #     validate_multipolygon(poly.samples)
 
 
 def _validate_is_clockwise(orig_lon, lon):
@@ -147,7 +148,7 @@ def _validate_is_clockwise(orig_lon, lon):
             if np.isclose(rlon[1], orig_lon[1]) or \
                     np.isclose(rlon[1] - 360, orig_lon[1]):
                 raise AssertionError(
-                    'invalid polygon: vertices not in clockwise direction')
+                    'invalid polygon: clockwise winding direction')
             else:
                 raise AssertionError(
                     'software error: compared wrong values')

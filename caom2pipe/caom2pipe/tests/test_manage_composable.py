@@ -71,10 +71,13 @@ import os
 import pytest
 import sys
 
+import six
+
 from mock import Mock, patch
 
 from caom2 import ProductType, ReleaseType, Artifact, ChecksumURI
-from caom2pipe import manage_composable as mc
+if six.PY3:
+    from caom2pipe import manage_composable as mc
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -250,49 +253,17 @@ def test_get_artifact_metadata():
            'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
 
 
-# TODO understand python mocking .... :(
-# @pytest.mark.skipif(not sys.version.startswith('3.6'),
-#                     reason='support 3.6 only')
-# @patch('cadcdata.core.net.BaseWsClient')
-# @patch('cadcdata.core.TransferReader')
-# @patch('cadcdata.core.CadcDataClient')
-# def test_get_cadc_headers(basews_mock, trans_reader_mock, client_mock):
-#     with pytest.raises(mc.CadcException):
-#         mc.get_cadc_headers('file:GEM/TEST.fits')
-#
-#     # from cadcdata import transfer
-#     # t = transfer.Transfer('ad:GEM/TEST.fits', 'pullFromVoSpace')
-#     # p = transfer.Protocol
-#     # p.endpoint = Mock()
-#     # t.protocols = [p]
-#     # trans_reader_mock.return_value.read.return_value = t
-#     #
-#     # file_content = 'ABCDEFGH12345'
-#     # file_chunks = [file_content[i:i + 5].encode()
-#     #                for i in range(0, len(file_content), 5)]
-#     # response = Mock()
-#     # response.headers.get.return_value = 'filename={}.gz'.format('TEST.fits')
-#     # response.raw.read.side_effect = file_chunks
-#     # response.history = []
-#     # response.status_code = 200
-#     # response.url = 'someurl'
-#     # post_mock = Mock(return_value=response)
-#     # basews_mock.return_value.post = post_mock
-#     client_mock.return_value.get_file.return_value = ''
-#     result = mc.get_cadc_headers('ad:GEM/TEST.fits')
-#     assert result is not None
-#     assert len(result) == 0
-#
-# a different approach
-#     with patch('caom2utils.fits2caom2.CadcDataClient') as data_client_mock:
-#         def get_file_info(archive, file_id):
-#             if '_prev' in file_id:
-#                 return {'size': 10290,
-#                         'md5sum': md5('-37'.encode()).hexdigest(),
-#                         'type': 'image/jpeg'}
-#             else:
-#                 return {'size': 37,
-#                         'md5sum': md5('-37'.encode()).hexdigest(),
-#                         'type': 'application/fits'}
-#         data_client_mock.return_value.get_file_info.side_effect = \
-#             get_file_info
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+@patch('cadcdata.core.CadcDataClient')
+def test_data_put(mock_client):
+    with pytest.raises(mc.CadcException):
+        mc.data_put(mock_client, TESTDATA_DIR, 'TEST.fits', 'TEST', 'default')
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+@patch('cadcdata.core.CadcDataClient')
+def test_data_get(mock_client):
+    with pytest.raises(mc.CadcException):
+        mc.data_get(mock_client, TESTDATA_DIR, 'TEST.fits', 'TEST')

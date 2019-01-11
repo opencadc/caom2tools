@@ -90,7 +90,7 @@ from caom2 import Instrument, Proposal, Target, Provenance, Metrics
 from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, CompositeObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
-from caom2 import CoordRange2D
+from caom2 import CoordRange2D, TypedSet
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -2188,7 +2188,7 @@ class FitsParser(GenericParser):
             'Begin observation augmentation for URI {}.'.format(
                 artifact_uri))
         members = self._get_members(observation)
-        if members:
+        if members and not isinstance(members, TypedSet):
             for m in members.split():
                 observation.members.add(ObservationURI(m))
         observation.algorithm = self._get_algorithm(observation)
@@ -2773,7 +2773,7 @@ class FitsParser(GenericParser):
             if keywords:
                 for k in keywords.split():
                     prov.keywords.add(k)
-            if inputs:
+            if inputs and not isinstance(inputs, TypedSet):
                 for i in inputs.split():
                     prov.inputs.add(PlaneURI(str(i)))
             self.logger.debug('End Provenance augmentation.')
@@ -3323,7 +3323,8 @@ def get_cadc_headers(uri, subject=None):
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
-    if file_url.scheme == 'ad':
+    if (file_url.scheme == 'ad' or
+            file_url.scheme == 'gemini'):
         # create possible types of subjects
         if not subject:
             subject = net.Subject()
@@ -3560,7 +3561,15 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
+                logging.debug(
+                    'Using a FitsParser for vos local {}'.format(local))
                 parser = FitsParser(get_vos_headers(uri), blueprint, uri=uri)
+            elif '.csv' in local:
+                logging.debug(
+                    'Using a GenericParser for vos local {}'.format(local))
+                parser = GenericParser(blueprint, uri=uri)
+            else:
+                raise ValueError('Unexpected file type {}'.format(local))
         else:
             meta_uri = 'file://{}'.format(local)
             visit_local = local

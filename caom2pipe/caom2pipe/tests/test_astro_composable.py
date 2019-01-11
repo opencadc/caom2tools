@@ -73,7 +73,10 @@ import sys
 
 from astropy.io import fits
 
-from caom2pipe import astro_composable as ac
+import six
+
+if six.PY3:
+    from caom2pipe import astro_composable as ac
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),

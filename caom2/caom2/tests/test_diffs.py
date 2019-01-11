@@ -69,13 +69,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import os
-
 import unittest
+
+from caom2 import Point, shape, Vertex, SegmentType, Position
 
 from .. import diff
 from .. import observation
-from .. import obs_reader_writer
 from . import caom_test_instances
 
 
@@ -103,7 +102,7 @@ class TestCaomUtil(unittest.TestCase):
         report = diff.get_differences(expected_simple, actual_simple,
                                       'obs')
         self.assertTrue(report is not None, repr(report))
-        self.assertTrue(len(report) == 2, repr(report))
+        self.assertTrue(len(report) == 1, repr(report))
 
         ex_plane = observation.Plane(product_id='test_product_id2')
         expected_simple.planes['test_product_id2'] = ex_plane
@@ -154,7 +153,6 @@ class TestCaomUtil(unittest.TestCase):
 
     def test_plane_level_position(self):
         # special handling, because nan == nan is False
-        from caom2 import Point, shape, Vertex, SegmentType, Position
         p1 = [Point(cval1=float('nan'), cval2=float('nan')),
               Point(cval1=100.25, cval2=-30.5),
               Point(cval1=100.25, cval2=30.0),
