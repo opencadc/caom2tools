@@ -516,7 +516,9 @@ class CaomExecute(object):
         """Execute metadata-only visitors on an Observation in
         memory."""
         if self.meta_visitors is not None and len(self.meta_visitors) > 0:
-            kwargs = {'working_directory': self.working_dir}
+            kwargs = {'working_directory': self.working_dir,
+                      'cadc_client': self.cadc_data_client,
+                      'stream': self.stream}
             for visitor in self.meta_visitors:
                 try:
                     self.logger.debug('Visit for {}'.format(visitor))
@@ -1567,8 +1569,6 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
-            logging.error(sname.__name__)
-            logging.error(entry)
             storage_name = sname(file_name=entry)
     else:
         if config.use_local_files:
