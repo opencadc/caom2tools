@@ -94,7 +94,7 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'compare_checksum_client', 'Features', 'write_to_file',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
-           'data_put', 'data_get']
+           'data_put', 'data_get', 'build_uri']
 
 
 class CadcException(Exception):
@@ -1051,3 +1051,8 @@ def data_get(client, working_directory, file_name, archive):
                 'Retrieve failed. {} does not exist.'.format(fqn))
     except Exception:
         raise CadcException('Did not retrieve {}'.format(fqn))
+
+
+def build_uri(archive, file_name, scheme='ad'):
+    """One location to keep the syntax for an Artifact URI."""
+    return '{}:{}/{}'.format(scheme, archive, file_name)

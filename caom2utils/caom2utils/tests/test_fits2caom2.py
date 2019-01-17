@@ -1263,6 +1263,23 @@ def test_generic_parser():
         'original value over-ridden'
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_get_external_headers():
+    import requests
+    test_uri = 'http://localhost/obs23/collection/obsid-1'
+    # get_orig = caom2utils.fits2caom2.get_external_headers
+    get_orig = requests.Session.get
+
+    try:
+        requests.Session.get = Mock(return_value=_get_headers_2(None, None))
+        test_headers = caom2utils.fits2caom2.get_external_headers(test_uri)
+        assert test_headers is not None
+        assert len(test_headers) == 1
+        assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
+    finally:
+        requests.Session.get = get_orig
+
+
 def _get_headers(subject):
     x = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
 BITPIX  =                  -32 / Bits per pixel
@@ -1277,6 +1294,28 @@ END
         [e + delim for e in x.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
+
+
+class TestResponse(object):
+
+    def __init__(self):
+        self.text = None
+
+    def close(self):
+        pass
+
+
+def _get_headers_2(external_url, timeout):
+    x = TestResponse()
+    x.text = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
+BITPIX  =                  -32 / Bits per pixel
+NAXIS   =                    2 / Number of dimensions
+NAXIS1  =                 2048 /
+NAXIS2  =                 2048 /
+DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
+END
+"""
+    return x
 
 
 def _get_node(uri, limit, force):
