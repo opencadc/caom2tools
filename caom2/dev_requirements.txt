@@ -1,5 +1,5 @@
 -e . 
-pytest==3.0.5 #TODO change == to >= when support for Python 3.3 dropped
+pytest>=3.6
 pytest-cov>=2.5.1
 flake8>=3.4.1
 funcsigs==1.0.2
