@@ -97,6 +97,7 @@ import importlib
 import logging
 import os
 import re
+import requests
 import sys
 import tempfile
 import traceback
@@ -110,13 +111,16 @@ from cadcdata import CadcDataClient
 from vos import Client
 from io import BytesIO
 import six
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 APP_NAME = 'caom2gen'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
-           'GenericParser', 'augment', 'get_vos_headers']
+           'GenericParser', 'augment', 'get_vos_headers',
+           'get_external_headers']
 
 POSITION_CTYPES = [
     ['RA',
@@ -3310,6 +3314,24 @@ def get_cadc_headers(uri, subject=None):
     return headers
 
 
+def get_external_headers(external_url):
+    try:
+        session = requests.Session()
+        retries = 10
+        retry = Retry(total=retries, read=retries, connect=retries,
+                      backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        r = session.get(external_url, timeout=20)
+        headers = _make_headers_from_string(r.text)
+        r.close()
+        return headers
+    except Exception as e:
+        logging.error('Connection failed to {}.\n{}'.format(external_url, e))
+        raise RuntimeError(e)
+
+
 def get_vos_headers(uri, subject=None):
     """
     Creates the FITS headers object from a vospace file.
@@ -3485,7 +3507,8 @@ def _extract_ids(cardinality):
 
 
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
-             validate_wcs=True, plugin=None, local=None, **kwargs):
+             validate_wcs=True, plugin=None, local=None,
+             external_url=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3501,6 +3524,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         observation, which checks that the WCS in the CAOM model is valid,
     :param plugin: what code to use for modifying a CAOM instance
     :param local: the input is the name of a file on disk
+    :param external_url: if header information should be retrieved
+        externally, this is where to find it
     :return:
     """
     if dumpconfig:
@@ -3546,6 +3571,10 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 # explicitly ignore headers for txt and image files
                 logging.debug('Using a GenericParser for {}'.format(local))
                 parser = GenericParser(blueprint, uri=uri)
+    elif external_url:
+        headers = get_external_headers(external_url)
+        logging.debug('Using a FitsParser for remote headers {}'.format(uri))
+        parser = FitsParser(headers, blueprint, uri=uri)
     else:
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):
             if uri.startswith('vos'):
@@ -3940,8 +3969,12 @@ def gen_proc(args, blueprints, **kwargs):
         if args.local:
             file_name = args.local[ii]
 
+        external_url = None
+        if args.external_url:
+            external_url = args.external_url
+
         _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
-                 validate_wcs, args.plugin, file_name, **kwargs)
+                 validate_wcs, args.plugin, file_name, external_url, **kwargs)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3958,6 +3991,9 @@ def get_gen_proc_arg_parser():
     :return: args parser
     """
     parser = _get_common_arg_parser()
+    parser.add_argument('--external_url', help=('service endpoint that '
+                                                'returns a string that can be '
+                                                'made into FITS headers'))
     parser.add_argument('--module', help=('if the blueprint contains function '
                                           'calls, call '
                                           'importlib.import_module '
