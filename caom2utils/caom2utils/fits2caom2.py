@@ -3402,11 +3402,36 @@ def get_vos_headers(uri, subject=None):
 def _make_headers_from_string(fits_header):
     """Create a list of fits.Header instances from a string.
     ":param fits_header a string of keyword/value pairs"""
+    fits_header = _clean_headers(fits_header)
     delim = '\nEND'
     extensions = \
         [e + delim for e in fits_header.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
+
+
+def _clean_headers(fits_header):
+    """
+    Gemini specific.
+    Remove invalid cards and add END cards after extensions.
+    :param fits_header: fits_header a string of keyword/value pairs
+    """
+    new_header = []
+    for line in fits_header.split('\n'):
+        if len(line.strip()) == 0:
+            pass
+        elif line.startswith('--- HDU 0'):
+            pass
+        elif line.startswith('--- HDU'):
+            new_header.append('END\n')
+        elif line.strip() == 'END':
+            new_header.append('END\n')
+        elif '=' not in line:
+            pass
+        else:
+            new_header.append('{}\n'.format(line))
+    new_header.append('END\n')
+    return ''.join(new_header)
 
 
 def _get_headers_from_fits(path):
