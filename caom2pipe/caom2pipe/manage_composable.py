@@ -82,7 +82,7 @@ from urllib import parse as parse
 
 from cadcutils import net
 from cadcdata import CadcDataClient
-from caom2 import ObservationWriter, ObservationReader, Artifact, ReleaseType
+from caom2 import ObservationWriter, ObservationReader, Artifact
 from caom2 import ChecksumURI
 
 
@@ -582,7 +582,6 @@ class Config(object):
         self.retry_file_name = self.retry_file_name
 
         logging.info('Retry work file is {}'.format(self.work_fqn))
-
 
     @staticmethod
     def load_config(config_fqn):
