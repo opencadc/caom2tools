@@ -947,6 +947,8 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
   <caom2:planes>
     <caom2:plane caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
       <caom2:productID>test_product_id</caom2:productID>
+      <caom2:dataProductType>image</caom2:dataProductType>
+      <caom2:calibrationLevel>3</caom2:calibrationLevel>
       <caom2:artifacts>
         <caom2:artifact caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
           <caom2:productType>thumbnail</caom2:productType>
@@ -1249,7 +1251,7 @@ def test_get_vos_meta():
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-def test_generic_parser():
+def test_generic_parser1():
     test_key = 'Plane.metaRelease'
     test_value = '2013-10-10'
     test_blueprint = ObsBlueprint()
