@@ -891,7 +891,7 @@ def write_to_file(fqn, content):
     try:
         with open(fqn, 'w') as f:
             f.write(content)
-    except Exception as e:
+    except Exception:
         logging.error('Could not write file {}'.format(fqn))
         raise CadcException('Could not write file {}'.format(fqn))
 
