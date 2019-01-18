@@ -82,7 +82,7 @@ from urllib import parse as parse
 
 from cadcutils import net
 from cadcdata import CadcDataClient
-from caom2 import ObservationWriter, ObservationReader, Artifact, ReleaseType
+from caom2 import ObservationWriter, ObservationReader, Artifact
 from caom2 import ChecksumURI
 
 
@@ -583,7 +583,6 @@ class Config(object):
 
         logging.info('Retry work file is {}'.format(self.work_fqn))
 
-
     @staticmethod
     def load_config(config_fqn):
         """Read a configuration as a YAML file.
@@ -892,7 +891,7 @@ def write_to_file(fqn, content):
     try:
         with open(fqn, 'w') as f:
             f.write(content)
-    except Exception as e:
+    except Exception:
         logging.error('Could not write file {}'.format(fqn))
         raise CadcException('Could not write file {}'.format(fqn))
 
