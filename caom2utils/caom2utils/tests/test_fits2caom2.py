@@ -81,6 +81,7 @@ from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
 from caom2 import Axis, CoordAxis1D, CoordAxis2D
+import logging
 
 import caom2utils
 
@@ -1253,11 +1254,10 @@ def test_generic_parser():
     test_value = '2013-10-10'
     test_blueprint = ObsBlueprint()
     test_blueprint.set(test_key, '2013-10-10')
-    import logging
     logging.error(test_blueprint)
     test_parser = GenericParser()
     assert test_parser._blueprint._plan[test_key] == \
-           (['RELEASE', 'REL_DATE'], None), 'default value changed'
+        (['RELEASE', 'REL_DATE'], None), 'default value changed'
     test_parser.blueprint = test_blueprint
     assert test_parser._blueprint._plan[test_key] == test_value, \
         'original value over-ridden'
