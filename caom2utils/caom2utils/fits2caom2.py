@@ -3412,8 +3412,8 @@ def _make_headers_from_string(fits_header):
 
 def _clean_headers(fits_header):
     """
-    Gemini specific.
-    Remove invalid cards and add END cards after extensions.
+    Hopefully not Gemini specific.
+    Remove invalid cards and add missing END cards after extensions.
     :param fits_header: fits_header a string of keyword/value pairs
     """
     new_header = []
