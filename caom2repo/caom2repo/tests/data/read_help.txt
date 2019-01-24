@@ -23,8 +23,7 @@ optional arguments:
   --output, -o OUTPUT   destination file
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
-                        resource identifier (default
-                        ivo://cadc.nrc.ca/caom2repo)
+                        resource identifier (default ivo://cadc.nrc.ca/ams)
   -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages

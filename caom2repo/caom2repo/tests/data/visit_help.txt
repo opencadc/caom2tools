@@ -29,8 +29,7 @@ optional arguments:
   --plugin PLUGIN       plugin class to update each observation
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
-                        resource identifier (default
-                        ivo://cadc.nrc.ca/caom2repo)
+                        resource identifier (default ivo://cadc.nrc.ca/ams)
   --start START         earliest observation to visit (UTC IVOA format: YYYY-
                         mm-ddTH:M:S)
   --threads {2,3,4,5,6,7,8,9}

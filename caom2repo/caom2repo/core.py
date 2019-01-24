@@ -99,7 +99,7 @@ CAOM2REPO_OBS_CAPABILITY_ID =\
     'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1'
 
 # resource ID for info
-DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/caom2repo'
+DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/ams'
 APP_NAME = 'caom2repo'
 
 

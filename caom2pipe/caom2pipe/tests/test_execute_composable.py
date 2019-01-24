@@ -93,6 +93,7 @@ TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 class MyExitError(Exception):
     pass
 
+
 if six.PY3:
     class TestVisit:
         @staticmethod
@@ -105,7 +106,6 @@ if six.PY3:
             assert z is not None, 'log file directory'
             assert observation is not None, 'undefined observation'
 
-
     class TestStorageName(ec.StorageName):
         def __init__(self, obs_id=None, file_name=None):
             super(TestStorageName, self).__init__(
@@ -113,7 +113,6 @@ if six.PY3:
 
         def is_valid(self):
             return True
-
 
     class TestChooser(ec.OrganizeChooser):
         def __init(self):

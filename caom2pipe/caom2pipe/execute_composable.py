@@ -394,7 +394,9 @@ class CaomExecute(object):
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_client_local(self):
-        """Execute fits2caom with a --cert parameter and a --local parameter."""
+        """
+        Execute fits2caom with a --cert parameter and a --local parameter.
+        """
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
         local_fqn = os.path.join(self.working_dir, self.fname)
@@ -424,9 +426,9 @@ class CaomExecute(object):
         local_fqn = os.path.join(self.working_dir, self.fname)
         cmd = '{} {} {} --in {} --out {} --local {} ' \
               '--plugin {} --module {} --lineage {}/{}'.format(
-            self.command_name, self.logging_level_param, self.cred_param,
-            self.model_fqn, self.model_fqn, local_fqn, plugin, plugin,
-            self.product_id, self.uri)
+                self.command_name, self.logging_level_param, self.cred_param,
+                self.model_fqn, self.model_fqn, local_fqn, plugin, plugin,
+                self.product_id, self.uri)
         mc.exec_cmd(cmd)
 
     def _compare_checksums_client(self, fname):
@@ -474,10 +476,11 @@ class CaomExecute(object):
                 'Could not delete the observation record for {} in {}. '
                 '{}'.format(self.obs_id, self.resource_id, e))
 
-    def _cadc_data_put_client(self, fname):
-        """Store an archive file."""
+    def _cadc_data_put_client(self, fname, mime_type):
+        """Store a collection file."""
         try:
-            self.cadc_data_client.put_file(self.archive, fname, self.stream)
+            self.cadc_data_client.put_file(self.collection, fname, self.stream,
+                                           mime_type=mime_type)
         except Exception as e:
             raise mc.CadcException(
                 'Did not store {} with {}'.format(fname, e))
@@ -964,8 +967,8 @@ class Collection2CaomLocalDataClient(Collection2CaomDataClient):
 
 
 class Collection2CaomStoreClient(CaomExecute):
-    """Defines the pipeline step for Collection storage of a file. This requires
-    access to the file on disk."""
+    """Defines the pipeline step for Collection storage of a file. This
+    requires access to the file on disk."""
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client):
@@ -983,7 +986,7 @@ class Collection2CaomStoreClient(CaomExecute):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
 
         self.logger.debug('store the input file {} to ad'.format(self.fname))
-        self._cadc_data_put_client(self.fname)
+        self._cadc_data_put_client(self.fname, 'application/fits')
 
         self.logger.debug('End execute for {}'.format(__name__))
 
@@ -1284,14 +1287,16 @@ class OrganizeExecutes(object):
                                     self.chooser.needs_delete(observation)):
                                 executors.append(
                                     Collection2CaomLocalMetaDeleteCreateClient(
-                                        self.config, storage_name, command_name,
+                                        self.config, storage_name,
+                                        command_name,
                                         cred_param, cadc_data_client,
                                         caom_repo_client, observation,
                                         meta_visitors))
                             else:
                                 executors.append(
                                     Collection2CaomLocalMetaUpdateClient(
-                                        self.config, storage_name, command_name,
+                                        self.config, storage_name,
+                                        command_name,
                                         cred_param, cadc_data_client,
                                         caom_repo_client, observation,
                                         meta_visitors))
@@ -1300,15 +1305,18 @@ class OrganizeExecutes(object):
                                     self.chooser.needs_delete(observation)):
                                 executors.append(
                                     Collection2CaomMetaDeleteCreateClient(
-                                        self.config, storage_name, command_name,
+                                        self.config, storage_name,
+                                        command_name,
                                         cred_param, cadc_data_client,
                                         caom_repo_client, observation,
                                         meta_visitors))
                             else:
-                                executors.append(Collection2CaomMetaUpdateClient(
-                                    self.config, storage_name, command_name,
-                                    cred_param, cadc_data_client, caom_repo_client,
-                                    observation, meta_visitors))
+                                executors.append(
+                                    Collection2CaomMetaUpdateClient(
+                                        self.config, storage_name,
+                                        command_name, cred_param,
+                                        cadc_data_client, caom_repo_client,
+                                        observation, meta_visitors))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
                         if (executors is not None and len(executors) > 0 and

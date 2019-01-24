@@ -1,1 +1,3 @@
 artifact.productType = thumbnail
+plane.dataProductType = image
+plane.calibrationLevel = 3

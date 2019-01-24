@@ -1,6 +1,6 @@
 -e ../caom2
 -e . 
-pytest==3.0.5 #TODO change == with >= when Python3.3 support dropped
+pytest>=3.6
 pytest-cov>=2.5.1
 flake8>=3.4.1
 funcsigs==1.0.2
