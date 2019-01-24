@@ -97,6 +97,7 @@ import importlib
 import logging
 import os
 import re
+import requests
 import sys
 import tempfile
 import traceback
@@ -110,13 +111,16 @@ from cadcdata import CadcDataClient
 from vos import Client
 from io import BytesIO
 import six
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 APP_NAME = 'caom2gen'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
-           'GenericParser', 'augment', 'get_vos_headers']
+           'GenericParser', 'augment', 'get_vos_headers',
+           'get_external_headers']
 
 POSITION_CTYPES = [
     ['RA',
@@ -1558,9 +1562,6 @@ class GenericParser:
 
     def _apply_blueprint_to_generic(self):
 
-        # pointers that are short to type
-        exts = self.blueprint._extensions
-        wcs_std = self.blueprint._wcs_std
         plan = self.blueprint._plan
 
         #  first apply the functions
@@ -1757,7 +1758,7 @@ class FitsParser(GenericParser):
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            if self.blueprint.has_chunk(i):
+            if self._has_data_array(header) and self.blueprint.has_chunk(i):
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
@@ -2428,10 +2429,12 @@ class FitsParser(GenericParser):
         :return: Proposal
         """
         self.logger.debug('Begin Proposal augmentation.')
+        keywords = None
         if current is None:
             prop_id = self._get_from_list('Observation.proposal.id', index=0)
             pi = self._get_from_list('Observation.proposal.pi', index=0)
-            project = self._get_from_list('Observation.proposal.project', index=0)
+            project = self._get_from_list('Observation.proposal.project',
+                                          index=0)
             title = self._get_from_list('Observation.proposal.title', index=0)
         else:
             prop_id = self._get_from_list('Observation.proposal.id', index=0,
@@ -2443,9 +2446,14 @@ class FitsParser(GenericParser):
                 current=current.project)
             title = self._get_from_list('Observation.proposal.title', index=0,
                                         current=current.title)
+            keywords = self._get_from_list('Observation.proposal.keywords',
+                                           index=0)
         self.logger.debug('End Proposal augmentation.')
         if prop_id:
-            return Proposal(str(prop_id), pi, project, title)
+            proposal = Proposal(str(prop_id), pi, project, title)
+            if keywords:
+                proposal.keywords = keywords
+            return proposal
         else:
             return None
 
@@ -2526,8 +2534,8 @@ class FitsParser(GenericParser):
             geo_z = _to_float(
                 self._get_from_list('Observation.telescope.geoLocationZ',
                                     index=0, current=current.geo_location_z))
-            keywords = self._get_set_from_list('Observation.telescope.keywords',
-                                               index=0)  # TODO
+            keywords = self._get_set_from_list(
+                'Observation.telescope.keywords', index=0)  # TODO
             if keywords is None:
                 keywords = current.keywords
         self.logger.debug('End Telescope augmentation.')
@@ -2834,6 +2842,39 @@ class FitsParser(GenericParser):
         elif from_value == 'true':
             result = True
         return result
+
+    def _has_data_array(self, header):
+        """
+
+        :param header:
+        :return:
+        """
+        naxis = 0
+        if 'ZNAXIS' in header:
+            naxis = _to_int(header['ZNAXIS'])
+        elif 'NAXIS' in header:
+            naxis = _to_int(header['NAXIS'])
+        if not naxis:
+            return False
+
+        data_axes = 0
+        for i in range(1, naxis + 1):
+            axis = 'NAXIS{}'.format(i)
+            if axis in header:
+                data_axis = _to_int(header[axis])
+                if not data_axes:
+                    data_axes = data_axis
+                else:
+                    data_axes = data_axes * data_axis
+        if not data_axes:
+            return False
+
+        bitpix = 0
+        if 'BITPIX' in header:
+            bitpix = _to_int(header['BITPIX'])
+        if not bitpix:
+            return False
+        return True
 
 
 class WcsParser(object):
@@ -3310,6 +3351,24 @@ def get_cadc_headers(uri, subject=None):
     return headers
 
 
+def get_external_headers(external_url):
+    try:
+        session = requests.Session()
+        retries = 10
+        retry = Retry(total=retries, read=retries, connect=retries,
+                      backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        r = session.get(external_url, timeout=20)
+        headers = _make_headers_from_string(r.text)
+        r.close()
+        return headers
+    except Exception as e:
+        logging.error('Connection failed to {}.\n{}'.format(external_url, e))
+        raise RuntimeError(e)
+
+
 def get_vos_headers(uri, subject=None):
     """
     Creates the FITS headers object from a vospace file.
@@ -3341,11 +3400,36 @@ def get_vos_headers(uri, subject=None):
 def _make_headers_from_string(fits_header):
     """Create a list of fits.Header instances from a string.
     ":param fits_header a string of keyword/value pairs"""
+    fits_header = _clean_headers(fits_header)
     delim = '\nEND'
     extensions = \
         [e + delim for e in fits_header.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
+
+
+def _clean_headers(fits_header):
+    """
+    Hopefully not Gemini specific.
+    Remove invalid cards and add missing END cards after extensions.
+    :param fits_header: fits_header a string of keyword/value pairs
+    """
+    new_header = []
+    for line in fits_header.split('\n'):
+        if len(line.strip()) == 0:
+            pass
+        elif line.startswith('--- HDU 0'):
+            pass
+        elif line.startswith('--- HDU'):
+            new_header.append('END\n')
+        elif line.strip() == 'END':
+            new_header.append('END\n')
+        elif '=' not in line:
+            pass
+        else:
+            new_header.append('{}\n'.format(line))
+    new_header.append('END\n')
+    return ''.join(new_header)
 
 
 def _get_headers_from_fits(path):
@@ -3485,7 +3569,8 @@ def _extract_ids(cardinality):
 
 
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
-             validate_wcs=True, plugin=None, local=None, **kwargs):
+             validate_wcs=True, plugin=None, local=None,
+             external_url=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3501,6 +3586,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         observation, which checks that the WCS in the CAOM model is valid,
     :param plugin: what code to use for modifying a CAOM instance
     :param local: the input is the name of a file on disk
+    :param external_url: if header information should be retrieved
+        externally, this is where to find it
     :return:
     """
     if dumpconfig:
@@ -3546,6 +3633,10 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 # explicitly ignore headers for txt and image files
                 logging.debug('Using a GenericParser for {}'.format(local))
                 parser = GenericParser(blueprint, uri=uri)
+    elif external_url:
+        headers = get_external_headers(external_url)
+        logging.debug('Using a FitsParser for remote headers {}'.format(uri))
+        parser = FitsParser(headers, blueprint, uri=uri)
     else:
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):
             if uri.startswith('vos'):
@@ -3940,8 +4031,12 @@ def gen_proc(args, blueprints, **kwargs):
         if args.local:
             file_name = args.local[ii]
 
+        external_url = None
+        if args.external_url:
+            external_url = args.external_url
+
         _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
-                 validate_wcs, args.plugin, file_name, **kwargs)
+                 validate_wcs, args.plugin, file_name, external_url, **kwargs)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3958,6 +4053,9 @@ def get_gen_proc_arg_parser():
     :return: args parser
     """
     parser = _get_common_arg_parser()
+    parser.add_argument('--external_url', help=('service endpoint that '
+                                                'returns a string that can be '
+                                                'made into FITS headers'))
     parser.add_argument('--module', help=('if the blueprint contains function '
                                           'calls, call '
                                           'importlib.import_module '

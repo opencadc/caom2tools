@@ -82,7 +82,7 @@ from urllib import parse as parse
 
 from cadcutils import net
 from cadcdata import CadcDataClient
-from caom2 import ObservationWriter, ObservationReader, Artifact, ReleaseType
+from caom2 import ObservationWriter, ObservationReader, Artifact
 from caom2 import ChecksumURI
 
 
@@ -94,7 +94,7 @@ __all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
            'compare_checksum_client', 'Features', 'write_to_file',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
-           'data_put', 'data_get', 'build_uri']
+           'data_put', 'data_get', 'build_uri', 'response_lookup']
 
 
 class CadcException(Exception):
@@ -596,7 +596,6 @@ class Config(object):
 
         logging.info('Retry work file is {}'.format(self.work_fqn))
 
-
     @staticmethod
     def load_config(config_fqn):
         """Read a configuration as a YAML file.
@@ -905,7 +904,7 @@ def write_to_file(fqn, content):
     try:
         with open(fqn, 'w') as f:
             f.write(content)
-    except Exception as e:
+    except Exception:
         logging.error('Could not write file {}'.format(fqn))
         raise CadcException('Could not write file {}'.format(fqn))
 
@@ -1008,7 +1007,8 @@ def get_artifact_metadata(fqn, product_type, release_type, uri=None,
         return artifact
 
 
-def data_put(client, working_directory, file_name, archive, stream='raw'):
+def data_put(client, working_directory, file_name, archive, stream='raw',
+             mime_type=None):
     """
     Make a copy of a locally available file by writing it to CADC. Assumes
     file and directory locations are correct. Does a checksum comparison to
@@ -1020,11 +1020,13 @@ def data_put(client, working_directory, file_name, archive, stream='raw'):
     :param archive: Which archive to associate the file with.
     :param stream: Defaults to raw - use is deprecated, however necessary it
         may be at the current moment to the 'put_file' call.
+    :param mime_type: Because libmagic can't see inside a zipped fits file.
     """
     cwd = os.getcwd()
     try:
         os.chdir(working_directory)
-        client.put_file(archive, file_name, stream)
+        client.put_file(archive, file_name, archive_stream=stream,
+                        mime_type=mime_type)
     except Exception as e:
         raise CadcException('Failed to store data with {}'.format(e))
     finally:
@@ -1056,3 +1058,11 @@ def data_get(client, working_directory, file_name, archive):
 def build_uri(archive, file_name, scheme='ad'):
     """One location to keep the syntax for an Artifact URI."""
     return '{}:{}/{}'.format(scheme, archive, file_name)
+
+
+def response_lookup(response, lookup):
+    """Common code to avoid a KeyError in JSON."""
+    result = None
+    if lookup in response:
+        result = response[lookup]
+    return result

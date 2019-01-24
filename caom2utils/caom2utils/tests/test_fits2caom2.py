@@ -81,6 +81,7 @@ from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
 from caom2 import Axis, CoordAxis1D, CoordAxis2D
+import logging
 
 import caom2utils
 
@@ -946,6 +947,8 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
   <caom2:planes>
     <caom2:plane caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
       <caom2:productID>test_product_id</caom2:productID>
+      <caom2:dataProductType>image</caom2:dataProductType>
+      <caom2:calibrationLevel>3</caom2:calibrationLevel>
       <caom2:artifacts>
         <caom2:artifact caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
           <caom2:productType>thumbnail</caom2:productType>
@@ -1248,19 +1251,35 @@ def test_get_vos_meta():
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-def test_generic_parser():
+def test_generic_parser1():
     test_key = 'Plane.metaRelease'
     test_value = '2013-10-10'
     test_blueprint = ObsBlueprint()
     test_blueprint.set(test_key, '2013-10-10')
-    import logging
     logging.error(test_blueprint)
     test_parser = GenericParser()
     assert test_parser._blueprint._plan[test_key] == \
-           (['RELEASE', 'REL_DATE'], None), 'default value changed'
+        (['RELEASE', 'REL_DATE'], None), 'default value changed'
     test_parser.blueprint = test_blueprint
     assert test_parser._blueprint._plan[test_key] == test_value, \
         'original value over-ridden'
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_get_external_headers():
+    import requests
+    test_uri = 'http://localhost/obs23/collection/obsid-1'
+    # get_orig = caom2utils.fits2caom2.get_external_headers
+    get_orig = requests.Session.get
+
+    try:
+        requests.Session.get = Mock(return_value=_get_headers_2(None, None))
+        test_headers = caom2utils.fits2caom2.get_external_headers(test_uri)
+        assert test_headers is not None
+        assert len(test_headers) == 1
+        assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
+    finally:
+        requests.Session.get = get_orig
 
 
 def _get_headers(subject):
@@ -1277,6 +1296,28 @@ END
         [e + delim for e in x.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
+
+
+class TestResponse(object):
+
+    def __init__(self):
+        self.text = None
+
+    def close(self):
+        pass
+
+
+def _get_headers_2(external_url, timeout):
+    x = TestResponse()
+    x.text = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
+BITPIX  =                  -32 / Bits per pixel
+NAXIS   =                    2 / Number of dimensions
+NAXIS1  =                 2048 /
+NAXIS2  =                 2048 /
+DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
+END
+"""
+    return x
 
 
 def _get_node(uri, limit, force):

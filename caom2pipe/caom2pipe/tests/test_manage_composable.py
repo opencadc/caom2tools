@@ -235,13 +235,13 @@ def test_get_artifact_metadata():
 
     # create action
     result = mc.get_artifact_metadata(test_fqn, ProductType.WEIGHT,
-                                 ReleaseType.META, uri=test_uri)
+                                      ReleaseType.META, uri=test_uri)
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.product_type == ProductType.WEIGHT, 'wrong product type'
     assert result.content_length == 255, 'wrong length'
     assert result.content_checksum.uri == \
-           'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
+        'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
 
     # update action
     result.content_checksum = ChecksumURI('md5:abc')
@@ -250,7 +250,7 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.content_checksum.uri == \
-           'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
+        'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
