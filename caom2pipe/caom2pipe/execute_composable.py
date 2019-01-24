@@ -469,10 +469,11 @@ class CaomExecute(object):
                 'Could not delete the observation record for {} in {}. '
                 '{}'.format(self.obs_id, self.resource_id, e))
 
-    def _cadc_data_put_client(self, fname):
+    def _cadc_data_put_client(self, fname, mime_type):
         """Store a collection file."""
         try:
-            self.cadc_data_client.put_file(self.collection, fname, self.stream)
+            self.cadc_data_client.put_file(self.collection, fname, self.stream,
+                                           mime_type=mime_type)
         except Exception as e:
             raise mc.CadcException(
                 'Did not store {} with {}'.format(fname, e))
@@ -976,7 +977,7 @@ class Collection2CaomStoreClient(CaomExecute):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
 
         self.logger.debug('store the input file {} to ad'.format(self.fname))
-        self._cadc_data_put_client(self.fname)
+        self._cadc_data_put_client(self.fname, 'application/fits')
 
         self.logger.debug('End execute for {}'.format(__name__))
 

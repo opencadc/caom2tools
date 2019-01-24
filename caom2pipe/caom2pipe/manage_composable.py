@@ -994,7 +994,8 @@ def get_artifact_metadata(fqn, product_type, release_type, uri=None,
         return artifact
 
 
-def data_put(client, working_directory, file_name, collection, stream='raw'):
+def data_put(client, working_directory, file_name, collection, stream='raw',
+             mime_type=None):
     """
     Make a copy of a a locally available file at CADC. Assumes file and
     directory locations are correct. Does a checksum comparison to test
@@ -1006,11 +1007,13 @@ def data_put(client, working_directory, file_name, collection, stream='raw'):
     :param collection: Which archive to associate the file with.
     :param stream: Defaults to raw - use is deprecated, however necessary it
         may be at the current moment to the 'put_file' call.
+    :param mime_type: Because libmagic can't see inside a zipped fits file.
     """
     cwd = os.getcwd()
     try:
         os.chdir(working_directory)
-        client.put_file(collection, file_name, stream)
+        client.put_file(collection, file_name, archive_stream=stream,
+                        mime_type=mime_type)
     except Exception as e:
         raise CadcException('Failed to store data with {}'.format(e))
     finally:
