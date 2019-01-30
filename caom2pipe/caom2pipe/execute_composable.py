@@ -1281,8 +1281,8 @@ class OrganizeExecutes(object):
                                         self.config, storage_name,
                                         command_name,
                                         cred_param, cadc_data_client,
-                                        caom_repo_client, observation,
-                                        meta_visitors))
+                                        caom_repo_client, meta_visitors,
+                                        observation))
                             else:
                                 executors.append(
                                     Collection2CaomLocalMetaUpdateClient(
@@ -1299,8 +1299,8 @@ class OrganizeExecutes(object):
                                         self.config, storage_name,
                                         command_name,
                                         cred_param, cadc_data_client,
-                                        caom_repo_client, observation,
-                                        meta_visitors))
+                                        caom_repo_client, meta_visitors,
+                                        observation))
                             else:
                                 executors.append(
                                     Collection2CaomMetaUpdateClient(
