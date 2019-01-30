@@ -653,7 +653,7 @@ class Collection2CaomMetaDeleteCreateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name,
                  cred_param, cadc_data_client, caom_repo_client,
-                 meta_visitors, observation=None):
+                 observation, meta_visitors):
         super(Collection2CaomMetaDeleteCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name,
             cred_param, cadc_data_client, caom_repo_client, meta_visitors)
@@ -745,8 +745,8 @@ class Collection2CaomLocalMetaDeleteCreateClient(CaomExecute):
     structure."""
 
     def __init__(self, config, storage_name, command_name, cred_param,
-                 cadc_data_client, caom_repo_client, meta_visitors,
-                 observation):
+                 cadc_data_client, caom_repo_client, observation,
+                 meta_visitors):
         super(Collection2CaomLocalMetaDeleteCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
@@ -1281,8 +1281,8 @@ class OrganizeExecutes(object):
                                         self.config, storage_name,
                                         command_name,
                                         cred_param, cadc_data_client,
-                                        caom_repo_client, meta_visitors,
-                                        observation))
+                                        caom_repo_client, observation,
+                                        meta_visitors))
                             else:
                                 executors.append(
                                     Collection2CaomLocalMetaUpdateClient(
@@ -1299,8 +1299,8 @@ class OrganizeExecutes(object):
                                         self.config, storage_name,
                                         command_name,
                                         cred_param, cadc_data_client,
-                                        caom_repo_client, meta_visitors,
-                                        observation))
+                                        caom_repo_client, observation,
+                                        meta_visitors))
                             else:
                                 executors.append(
                                     Collection2CaomMetaUpdateClient(
@@ -1568,8 +1568,6 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
-            logging.error(sname.__name__)
-            logging.error(entry)
             storage_name = sname(file_name=entry)
     else:
         if config.use_local_files:
