@@ -1489,6 +1489,10 @@ class OrganizeExecutes(object):
             return 'Value Error'
         elif 'This does not look like a FITS file' in e:
             return 'Not a FITS file'
+        elif 'invalid Polygon: segment intersect' in e:
+            return 'Segment intersect in polygon'
+        elif 'Could not read observation record' in e:
+            return 'Observation not found'
         else:
             return str(e)
 

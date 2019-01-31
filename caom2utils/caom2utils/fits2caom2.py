@@ -3466,7 +3466,10 @@ def _update_artifact_meta(uri, artifact, subject=None):
         # TODO add hook to support other service providers
         raise NotImplementedError('Only ad and vos type URIs supported')
 
-    checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
+    if metadata['md5sum'].startswith('md5:'):
+        checksum = ChecksumURI('{}'.format(metadata['md5sum']))
+    else:
+        checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
