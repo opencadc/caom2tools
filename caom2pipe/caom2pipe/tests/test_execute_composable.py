@@ -212,8 +212,7 @@ def test_meta_delete_create_client_execute():
     repo_client_mock = Mock()
     test_executor = ec.Collection2CaomMetaDeleteCreateClient(
         test_config, TestStorageName(), test_app, test_cred,
-        data_client_mock, repo_client_mock, meta_visitors=None,
-        observation=_read_obs(None))
+        data_client_mock, repo_client_mock, _read_obs(None), None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        test_app, test_app)
     try:
@@ -601,6 +600,17 @@ def test_organize_executes_client():
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.LocalMetaCreateClientRemoteStorage)
+
+        test_config.task_types = [mc.TaskType.INGEST]
+        test_config.use_local_files = False
+        test_chooser = TestChooser()
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
+        test_oe = ec.OrganizeExecutes(test_config, test_chooser)
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0],
+                          ec.Collection2CaomMetaDeleteCreateClient)
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig

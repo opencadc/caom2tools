@@ -662,7 +662,7 @@ class Collection2CaomMetaDeleteCreateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name,
                  cred_param, cadc_data_client, caom_repo_client,
-                 meta_visitors, observation=None):
+                 observation, meta_visitors):
         super(Collection2CaomMetaDeleteCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name,
             cred_param, cadc_data_client, caom_repo_client, meta_visitors)
@@ -754,8 +754,8 @@ class Collection2CaomLocalMetaDeleteCreateClient(CaomExecute):
     structure."""
 
     def __init__(self, config, storage_name, command_name, cred_param,
-                 cadc_data_client, caom_repo_client, meta_visitors,
-                 observation):
+                 cadc_data_client, caom_repo_client, observation,
+                 meta_visitors):
         super(Collection2CaomLocalMetaDeleteCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors)
@@ -1489,6 +1489,10 @@ class OrganizeExecutes(object):
             return 'Value Error'
         elif 'This does not look like a FITS file' in e:
             return 'Not a FITS file'
+        elif 'invalid Polygon: segment intersect' in e:
+            return 'Segment intersect in polygon'
+        elif 'Could not read observation record' in e:
+            return 'Observation not found'
         else:
             return str(e)
 

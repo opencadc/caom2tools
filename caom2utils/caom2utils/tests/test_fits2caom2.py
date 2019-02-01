@@ -1282,6 +1282,34 @@ def test_get_external_headers():
         requests.Session.get = get_orig
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_apply_blueprint():
+    # test a Gemini case where there are two keywords, one each for
+    # different instruments, and the default ends up getting set when the
+    # other keyword is not found, as opposed to when both keywords are
+    # missing
+    #
+    # default should only be set when both keywords are not found
+    hdr1 = fits.Header()
+    hdr1['ORIGIN'] = '123'
+    test_blueprint = ObsBlueprint()
+    test_blueprint.set_default('Plane.provenance.producer', 'abc')
+    test_blueprint.add_fits_attribute('Plane.provenance.producer', 'IMAGESWV')
+    test_parser = FitsParser(src=[hdr1], obs_blueprint=test_blueprint)
+    logging.error(test_parser._headers)
+    assert test_parser._headers[0]['ORIGIN'] == '123', 'existing over-ridden'
+    with pytest.raises(KeyError):
+        result = test_parser._headers[0]['IMAGESWV'], 'should not be set'
+
+    hdr1 = fits.Header()
+    test_parser = FitsParser(src=[hdr1], obs_blueprint=test_blueprint)
+    logging.error(test_parser._headers)
+    assert test_parser._headers[0]['ORIGIN'] == 'abc', 'should be set'
+
+    with pytest.raises(KeyError):
+        result = test_parser._headers[0]['IMAGESWV'], 'should not be set'
+
+
 def _get_headers(subject):
     x = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
 BITPIX  =                  -32 / Bits per pixel

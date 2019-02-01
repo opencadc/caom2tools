@@ -2310,9 +2310,12 @@ class FitsParser(GenericParser):
                 for index, header in enumerate(self.headers):
                     for keywords in value[0]:
                         for keyword in keywords.split(','):
-                            if not header.get(keyword.strip()):
+                            if (not header.get(keyword.strip()) and
+                                keyword == keywords and  # checking a string
+                                    keywords == value[0][-1]):  # last item
                                 # apply a default if a value does not already
-                                # exist
+                                # exist, and all possible values of
+                                # keywords have been checked
                                 _set_by_type(header, keyword.strip(), value[1])
                                 logging.debug(
                                     '{}: set default value of {} in HDU {}.'.
@@ -3463,7 +3466,10 @@ def _update_artifact_meta(uri, artifact, subject=None):
         # TODO add hook to support other service providers
         raise NotImplementedError('Only ad and vos type URIs supported')
 
-    checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
+    if metadata['md5sum'].startswith('md5:'):
+        checksum = ChecksumURI('{}'.format(metadata['md5sum']))
+    else:
+        checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
