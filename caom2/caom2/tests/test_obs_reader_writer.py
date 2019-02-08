@@ -1047,23 +1047,23 @@ class TestObservationReaderWriter(unittest.TestCase):
     def compare_entity_attributes(self, expected, actual):
         if expected.last_modified is not None and\
            actual.last_modified is not None:
-                self.assertEqual(expected.last_modified, actual.last_modified,
-                                 "last_modified")
+            self.assertEqual(expected.last_modified, actual.last_modified,
+                             "last_modified")
 
         if expected.max_last_modified is not None and\
            actual.max_last_modified is not None:
-                self.assertEqual(expected.max_last_modified,
-                                 actual.max_last_modified, "max_last_modified")
+            self.assertEqual(expected.max_last_modified,
+                             actual.max_last_modified, "max_last_modified")
 
         if expected.meta_checksum is not None and\
            actual.meta_checksum is not None:
-                self.assertEqual(expected.meta_checksum, actual.meta_checksum,
-                                 "meta_checksum")
+            self.assertEqual(expected.meta_checksum, actual.meta_checksum,
+                             "meta_checksum")
 
         if expected.acc_meta_checksum is not None and\
            actual.acc_meta_checksum is not None:
-                self.assertEqual(expected.acc_meta_checksum,
-                                 actual.acc_meta_checksum, "acc_meta_checksum")
+            self.assertEqual(expected.acc_meta_checksum,
+                             actual.acc_meta_checksum, "acc_meta_checksum")
 
     def test_roundtrip_floats(self):
         """
