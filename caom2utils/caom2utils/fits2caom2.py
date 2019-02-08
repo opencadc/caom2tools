@@ -2066,33 +2066,36 @@ class FitsParser(GenericParser):
         aug_naxis = self._get_naxis('energy', index)
 
         specsys = _to_str(self._get_from_list('Chunk.energy.specsys', index))
-        if not chunk.energy:
-            chunk.energy = SpectralWCS(aug_naxis, specsys)
+        if aug_naxis is None:
+            self.logger.debug('No blueprint energy information.')
         else:
-            chunk.energy.naxis = aug_naxis
-            chunk.energy.specsys = specsys
+            if not chunk.energy:
+                chunk.energy = SpectralWCS(aug_naxis, specsys)
+            else:
+                chunk.energy.naxis = aug_naxis
+                chunk.energy.specsys = specsys
 
-        if chunk.energy is not None:
-            chunk.energy.ssysobs = self._get_from_list('Chunk.energy.ssysobs',
-                                                       index)
-            chunk.energy.restfrq = self._get_from_list('Chunk.energy.restfrq',
-                                                       index)
-            chunk.energy.restwav = self._get_from_list('Chunk.energy.restwav',
-                                                       index)
-            chunk.energy.velosys = self._get_from_list('Chunk.energy.velosys',
-                                                       index)
-            chunk.energy.zsource = self._get_from_list('Chunk.energy.zsource',
-                                                       index)
-            chunk.energy.ssyssrc = self._get_from_list('Chunk.energy.ssyssrc',
-                                                       index)
-            chunk.energy.velang = self._get_from_list('Chunk.energy.velang',
-                                                      index)
-            chunk.energy.bandpass_name = self._get_from_list(
-                'Chunk.energy.bandpassName', index)
-            chunk.energy.transition = self._get_from_list(
-                'Chunk.energy.transition', index)
-            chunk.energy.resolving_power = _to_float(self._get_from_list(
-                'Chunk.energy.resolvingPower', index))
+            if chunk.energy is not None:
+                chunk.energy.ssysobs = self._get_from_list(
+                    'Chunk.energy.ssysobs', index)
+                chunk.energy.restfrq = self._get_from_list(
+                    'Chunk.energy.restfrq', index)
+                chunk.energy.restwav = self._get_from_list(
+                    'Chunk.energy.restwav', index)
+                chunk.energy.velosys = self._get_from_list(
+                    'Chunk.energy.velosys', index)
+                chunk.energy.zsource = self._get_from_list(
+                    'Chunk.energy.zsource', index)
+                chunk.energy.ssyssrc = self._get_from_list(
+                    'Chunk.energy.ssyssrc', index)
+                chunk.energy.velang = self._get_from_list(
+                    'Chunk.energy.velang', index)
+                chunk.energy.bandpass_name = self._get_from_list(
+                    'Chunk.energy.bandpassName', index)
+                chunk.energy.transition = self._get_from_list(
+                    'Chunk.energy.transition', index)
+                chunk.energy.resolving_power = _to_float(self._get_from_list(
+                    'Chunk.energy.resolvingPower', index))
         self.logger.debug('End augmentation with blueprint for energy.')
 
     def _two_param_constructor(self, lookup1, lookup2, index, to_type, ctor):
