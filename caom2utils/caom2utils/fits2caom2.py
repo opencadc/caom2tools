@@ -3853,8 +3853,9 @@ def proc(args, obs_blueprints):
         if args.local:
             file_name = args.local[i]
 
-    obs = _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
-                   validate_wcs, plugin=None, local=file_name)
+        obs = _augment(obs, product_id, uri, blueprint, subject,
+                       args.dumpconfig, validate_wcs, plugin=None,
+                       local=file_name)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
