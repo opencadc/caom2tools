@@ -1352,7 +1352,7 @@ class ObsBlueprint(object):
     def is_table(value):
         """Hide the blueprint structure from clients - they shouldn't need
         to know that a value of type tuple requires special processing."""
-        return ObsBlueprint.is_fits(value) and value[0] is 'BINTABLE'
+        return ObsBlueprint.is_fits(value) and value[0] == 'BINTABLE'
 
     @staticmethod
     def is_function(value):
