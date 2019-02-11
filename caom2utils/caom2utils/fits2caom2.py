@@ -3906,9 +3906,10 @@ def _visit(plugn, parser, obs, visit_local, **kwargs):
                             'method on observation {!r}'.format(
                                 plugn, obs.observation_id))
                 except Exception as e:
-                    logging.debug(e)
+                    logging.error(e)
                     tb = traceback.format_exc()
                     logging.debug(tb)
+                    raise e
         else:
             logging.debug('Not a FitsParser, no plugin execution.')
     return result
