@@ -252,7 +252,7 @@ class CaomName(object):
         name portion of the URI with all file type and compression type
         extensions removed.
         """
-        return self.uri.split('/')[1].split('.')[0]
+        return StorageName.remove_extensions(self.uri.split('/')[1])
 
     @property
     def file_name(self):
@@ -1542,7 +1542,7 @@ def _do_one(config, organizer, storage_name, command_name, meta_visitors,
                                   e=traceback.format_exc())
         logging.info('Execution failed for {} with {}'.format(
             storage_name.obs_id, e))
-        logging.error(traceback.format_exc())
+        logging.debug(traceback.format_exc())
         return -1
     finally:
         _unset_file_logging(config, log_h)
@@ -1723,7 +1723,7 @@ def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()
-        logging.error(tb)
+        logging.debug(tb)
 
 
 def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
@@ -1757,7 +1757,7 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()
-        logging.error(tb)
+        logging.debug(tb)
         return -1
 
 

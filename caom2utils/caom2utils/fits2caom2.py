@@ -3900,7 +3900,7 @@ def _visit(plugn, parser, obs, visit_local, **kwargs):
                     kwargs['fqn'] = visit_local
                 try:
                     result = plgin.update(observation=obs, **kwargs)
-                    if obs is not None:
+                    if result is not None:
                         logging.debug(
                             'Finished executing plugin {!r} update '
                             'method on observation {!r}'.format(
@@ -3947,6 +3947,10 @@ def gen_proc(args, blueprints, **kwargs):
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
                        **kwargs)
+        if obs is None:
+            msg = 'Observation construction failed for {}'.format(uri)
+            logging.error(msg)
+            raise RuntimeError(msg)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
