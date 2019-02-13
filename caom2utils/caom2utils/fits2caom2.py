@@ -3597,7 +3597,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     :param local: the input is the name of a file on disk
     :param external_url: if header information should be retrieved
         externally, this is where to find it
-    :return:
+    :return: an updated Observation
     """
     if dumpconfig:
         print('Blueprint for {}: {}'.format(uri, blueprint))
@@ -3665,7 +3665,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
 
-    _visit(plugin, parser, obs, visit_local, **kwargs)
+    result = _visit(plugin, parser, obs, visit_local, **kwargs)
 
     if validate_wcs:
         try:
@@ -3681,6 +3681,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             '{} errors encountered while processing {!r}.'.format(
                 len(parser._errors), uri))
         logging.debug('{}'.format(parser._errors))
+
+    return result
 
 
 def _load_module(module):
@@ -3954,8 +3956,9 @@ def proc(args, obs_blueprints):
         if args.local:
             file_name = args.local[i]
 
-        _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
-                 validate_wcs, plugin=None, local=file_name)
+        obs = _augment(obs, product_id, uri, blueprint, subject,
+                       args.dumpconfig, validate_wcs, plugin=None,
+                       local=file_name)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3985,6 +3988,7 @@ def _load_plugin(plugin_name):
 
 
 def _visit(plugn, parser, obs, visit_local, **kwargs):
+    result = obs
     if plugn is not None:
         if isinstance(parser, FitsParser):
             # TODO make a check that's necessary under both calling conditions
@@ -3998,17 +4002,20 @@ def _visit(plugn, parser, obs, visit_local, **kwargs):
                 if visit_local is not None:
                     kwargs['fqn'] = visit_local
                 try:
-                    if plgin.update(observation=obs, **kwargs):
+                    result = plgin.update(observation=obs, **kwargs)
+                    if obs is not None:
                         logging.debug(
                             'Finished executing plugin {!r} update '
                             'method on observation {!r}'.format(
                                 plugn, obs.observation_id))
                 except Exception as e:
-                    logging.debug(e)
+                    logging.error(e)
                     tb = traceback.format_exc()
                     logging.debug(tb)
+                    raise e
         else:
             logging.debug('Not a FitsParser, no plugin execution.')
+    return result
 
 
 def gen_proc(args, blueprints, **kwargs):
@@ -4044,8 +4051,9 @@ def gen_proc(args, blueprints, **kwargs):
         if args.external_url:
             external_url = args.external_url
 
-        _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
-                 validate_wcs, args.plugin, file_name, external_url, **kwargs)
+        obs = _augment(obs, product_id, uri, blueprint, subject,
+                       args.dumpconfig, validate_wcs, args.plugin, file_name,
+                       external_url, **kwargs)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -4117,8 +4125,8 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
         validate_wcs = not no_validate
 
     for ii in blueprints:
-        _augment(obs, product_id, uri, blueprints[ii], subject, dump_config,
-                 validate_wcs, plugin, file_name, **kwargs)
+        obs = _augment(obs, product_id, uri, blueprints[ii], subject,
+                       dump_config, validate_wcs, plugin, file_name, **kwargs)
 
     writer = ObservationWriter()
     writer.write(obs, out_obs_xml)
