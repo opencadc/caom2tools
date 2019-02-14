@@ -3407,7 +3407,7 @@ def _make_headers_from_string(fits_header):
     """Create a list of fits.Header instances from a string.
     ":param fits_header a string of keyword/value pairs"""
     fits_header = _clean_headers(fits_header)
-    delim = '\nEND'
+    delim = 'END\n'
     extensions = \
         [e + delim for e in fits_header.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
