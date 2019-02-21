@@ -1718,7 +1718,15 @@ class FitsParser(GenericParser):
         super(FitsParser, self).__init__(obs_blueprint, self.file, uri)
         # for command-line parameter to module execution
         self.uri = uri
+        logging.error('before 0 naxis1 {} naxis2 {}'.format(
+            self._headers[0].get('NAXIS1'), self._headers[0].get('NAXIS2')))
+        logging.error('before 1 naxis1 {} naxis2 {}'.format(
+            self._headers[1].get('NAXIS1'), self._headers[1].get('NAXIS2')))
         self.apply_blueprint_to_fits()
+        logging.error('after 0 naxis1 {} naxis2 {}'.format(
+            self._headers[0].get('NAXIS1'), self._headers[0].get('NAXIS2')))
+        logging.error('after 1 naxis1 {} naxis2 {}'.format(
+            self._headers[1].get('NAXIS1'), self._headers[1].get('NAXIS2')))
 
     @property
     def headers(self):
@@ -2919,6 +2927,8 @@ class WcsParser(object):
         self.wcs = Wcsprm(header_string.encode('ascii'))
         self.wcs.fix()
         self.header = header
+        # logging.error('\n'.join('{}={}'.format(i, header.get(i)) for i in header))
+        logging.error('naxis1 {} naxis2 {}'.format(header.get('NAXIS1'), header.get('NAXIS2')))
         self.file = file
         self.extension = extension
 
@@ -4055,12 +4065,19 @@ def gen_proc(args, blueprints, **kwargs):
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
                        external_url, **kwargs)
 
-    writer = ObservationWriter()
-    if args.out_obs_xml:
-        writer.write(obs, args.out_obs_xml)
+    if obs is None:
+        if args.in_obs_xml:
+            log_id = args.lineage[0]
+        else:
+            log_id = args.observation[0]
+        logging.warning('No Observation generated for {}'.format(log_id))
     else:
-        sys.stdout.flush()
-        writer.write(obs, sys.stdout)
+        writer = ObservationWriter()
+        if args.out_obs_xml:
+            writer.write(obs, args.out_obs_xml)
+        else:
+            sys.stdout.flush()
+            writer.write(obs, sys.stdout)
 
 
 def get_gen_proc_arg_parser():
