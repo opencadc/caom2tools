@@ -1718,15 +1718,7 @@ class FitsParser(GenericParser):
         super(FitsParser, self).__init__(obs_blueprint, self.file, uri)
         # for command-line parameter to module execution
         self.uri = uri
-        logging.error('before 0 naxis1 {} naxis2 {}'.format(
-            self._headers[0].get('NAXIS1'), self._headers[0].get('NAXIS2')))
-        logging.error('before 1 naxis1 {} naxis2 {}'.format(
-            self._headers[1].get('NAXIS1'), self._headers[1].get('NAXIS2')))
         self.apply_blueprint_to_fits()
-        logging.error('after 0 naxis1 {} naxis2 {}'.format(
-            self._headers[0].get('NAXIS1'), self._headers[0].get('NAXIS2')))
-        logging.error('after 1 naxis1 {} naxis2 {}'.format(
-            self._headers[1].get('NAXIS1'), self._headers[1].get('NAXIS2')))
 
     @property
     def headers(self):
