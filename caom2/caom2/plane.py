@@ -392,7 +392,7 @@ class Plane(AbstractCaomEntity):
         caom_util.type_check(value, datetime, 'meta_release')
         caom_util.value_check(value,
                               datetime(1800, 1, 1, 0, 0, 0),
-                              datetime(2050, 1, 1, 0, 0, 0),
+                              datetime(5000, 1, 1, 0, 0, 0),
                               'meta_release')
         self._meta_release = value
 
@@ -416,7 +416,7 @@ class Plane(AbstractCaomEntity):
         caom_util.type_check(value, datetime, 'data_release')
         caom_util.value_check(value,
                               datetime(1800, 1, 1, 0, 0, 0),
-                              datetime(2050, 1, 1, 0, 0, 0),
+                              datetime(5000, 1, 1, 0, 0, 0),
                               'data_release')
         self._data_release = value
 
