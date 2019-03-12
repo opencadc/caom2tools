@@ -995,11 +995,9 @@ def get_artifact_metadata(fqn, product_type, release_type, uri=None,
     if artifact is None:
         if uri is None:
             raise CadcException('Cannot build an Artifact without a URI.')
-        logging.error('create an artifact {}'.format(uri))
         return Artifact(uri, product_type, release_type, local_meta['type'],
                         local_meta['size'], md5uri)
     else:
-        logging.error('update an artifact')
         artifact.product_type = product_type
         artifact.content_type = local_meta['type']
         artifact.content_length = local_meta['size']

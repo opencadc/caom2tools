@@ -2919,8 +2919,6 @@ class WcsParser(object):
         self.wcs = Wcsprm(header_string.encode('ascii'))
         self.wcs.fix()
         self.header = header
-        # logging.error('\n'.join('{}={}'.format(i, header.get(i)) for i in header))
-        logging.error('naxis1 {} naxis2 {}'.format(header.get('NAXIS1'), header.get('NAXIS2')))
         self.file = file
         self.extension = extension
 
@@ -3457,8 +3455,17 @@ def _update_artifact_meta(uri, artifact, subject=None):
     :return:
     """
     file_url = urlparse(uri)
-    if file_url.scheme in ['ad', 'gemini']:
+    if file_url.scheme  == 'ad':
         metadata = _get_cadc_meta(subject, file_url.path)
+    elif file_url.scheme == 'gemini':
+        if '.jpg' in file_url.path:
+            # will always get file metadata from CADC for previews
+            metadata = _get_cadc_meta(subject, file_url.path)
+        else:
+            # will get file metadata from Gemini JSON summary for fits,
+            # because the metadata is available long before the data
+            # will be stored at CADC
+            return
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
@@ -4051,7 +4058,7 @@ def gen_proc(args, blueprints, **kwargs):
 
         external_url = None
         if args.external_url:
-            external_url = args.external_url
+            external_url = args.external_url[ii]
 
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
@@ -4079,9 +4086,11 @@ def get_gen_proc_arg_parser():
     :return: args parser
     """
     parser = _get_common_arg_parser()
-    parser.add_argument('--external_url', help=('service endpoint that '
-                                                'returns a string that can be '
-                                                'made into FITS headers'))
+    parser.add_argument('--external_url',  nargs='+',
+                        help=('service endpoint(s) that '
+                              'return(s) a string that can be '
+                              'made into FITS headers. Cardinality should'
+                              'be consistent with lineage.'))
     parser.add_argument('--module', help=('if the blueprint contains function '
                                           'calls, call '
                                           'importlib.import_module '
