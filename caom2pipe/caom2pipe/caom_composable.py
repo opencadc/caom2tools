@@ -67,6 +67,8 @@
 # ***********************************************************************
 #
 
+import logging
+
 from caom2 import CompositeObservation, Algorithm, TypedSet
 from caom2 import ObservationURI, PlaneURI
 
@@ -124,6 +126,7 @@ def update_plane_provenance(plane, headers, lookup, collection,
                         obs_member_uri = ObservationURI(obs_member_uri_str)
                         plane_uri = PlaneURI.get_plane_uri(obs_member_uri, ii)
                         plane_inputs.add(plane_uri)
+                        logging.debug('Adding PlaneURI {}'.format(plane_uri))
 
     mc.update_typed_set(plane.provenance.inputs, plane_inputs)
 
@@ -139,4 +142,6 @@ def update_observation_members(observation):
         if plane.provenance is not None and plane.provenance.inputs is not None:
             for input in plane.provenance.inputs:
                 members_inputs.add(input.get_observation_uri())
+                logging.debug('Adding Observation URI {}'.format(
+                    input.get_observation_uri()))
     mc.update_typed_set(observation.members, members_inputs)
