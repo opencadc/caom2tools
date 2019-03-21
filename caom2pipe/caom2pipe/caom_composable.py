@@ -117,16 +117,16 @@ def update_plane_provenance(plane, headers, lookup, collection,
         for keyword in header:
             if keyword.startswith(lookup):
                 value = header.get(keyword)
-                result = repair(value, obs_id)
-                if result is not None:
-                    for ii in result:
-                        obs_member_uri_str = \
-                            ec.CaomName.make_obs_uri_from_obs_id(
-                                collection, ii)
-                        obs_member_uri = ObservationURI(obs_member_uri_str)
-                        plane_uri = PlaneURI.get_plane_uri(obs_member_uri, ii)
-                        plane_inputs.add(plane_uri)
-                        logging.debug('Adding PlaneURI {}'.format(plane_uri))
+                prov_obs_id, prov_prod_id = repair(value, obs_id)
+                if prov_obs_id is not None and prov_prod_id is not None:
+                    obs_member_uri_str = \
+                        ec.CaomName.make_obs_uri_from_obs_id(
+                            collection, prov_obs_id)
+                    obs_member_uri = ObservationURI(obs_member_uri_str)
+                    plane_uri = PlaneURI.get_plane_uri(
+                        obs_member_uri, prov_prod_id)
+                    plane_inputs.add(plane_uri)
+                    logging.debug('Adding PlaneURI {}'.format(plane_uri))
 
     mc.update_typed_set(plane.provenance.inputs, plane_inputs)
 
