@@ -73,6 +73,7 @@ from __future__ import (absolute_import, division, print_function,
 import argparse
 from builtins import str
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 
 import math
 from astropy.wcs import Wcsprm
@@ -3818,9 +3819,12 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
 
 def _set_logging(verbose, debug, quiet):
     logger = logging.getLogger()
+    # replace the StreamHandler with one that has custom formatters
     if logger.handlers:
-        handler = logger.handlers[0]
-        logger.removeHandler(handler)
+        for handler in logger.handlers:
+            if not isinstance(handler, TimedRotatingFileHandler):
+                logger.removeHandler(handler)
+
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
