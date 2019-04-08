@@ -3675,7 +3675,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     parser.augment_observation(observation=obs, artifact_uri=uri,
                                product_id=plane.product_id)
 
-    result = _visit(plugin, parser, obs, visit_local, **kwargs)
+    result = _visit(plugin, parser, obs, visit_local, product_id, **kwargs)
 
     if validate_wcs:
         try:
@@ -4000,7 +4000,7 @@ def _load_plugin(plugin_name):
     return plgin
 
 
-def _visit(plugn, parser, obs, visit_local, **kwargs):
+def _visit(plugn, parser, obs, visit_local, product_id=None, **kwargs):
     result = obs
     if plugn is not None:
         if isinstance(parser, FitsParser):
@@ -4014,6 +4014,8 @@ def _visit(plugn, parser, obs, visit_local, **kwargs):
                 kwargs['headers'] = parser.headers
                 if visit_local is not None:
                     kwargs['fqn'] = visit_local
+                if product_id is not None:
+                    kwargs['product_id'] = product_id
                 try:
                     result = plgin.update(observation=obs, **kwargs)
                     if obs is not None:
