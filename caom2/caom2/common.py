@@ -73,6 +73,7 @@ from __future__ import (absolute_import, division, print_function,
 import inspect
 import uuid
 from datetime import datetime
+import warnings
 
 from builtins import int, str
 from six.moves.urllib.parse import SplitResult, urlparse
@@ -157,16 +158,23 @@ class AbstractCaomEntity(CaomObject):
         with the random and the last 6 bytes from the current time
         in microseconds.
 
+        Arguments:
+        fulluuid : DEPRECATTED
+
         return: UUID
         """
 
-        gen_id = uuid.uuid4()
-        if fulluuid:
-            return gen_id
-        else:
-            return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
-                                     gen_id.clock_seq_hi_variant,
-                                     gen_id.clock_seq_low, gen_id.node))
+        if not fulluuid:
+            warnings.warn(
+                '64 bit UUID no longer supported. Using 132 bit instead')
+
+        return uuid.uuid4()
+        #if fulluuid:
+        #    return gen_id
+        #else:
+        #    return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
+        #                             gen_id.clock_seq_hi_variant,
+        #3                             gen_id.clock_seq_low, gen_id.node))
 
     def compute_meta_checksum(self):
         raise NotImplementedError(
