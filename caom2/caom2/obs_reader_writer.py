@@ -1784,7 +1784,7 @@ class ObservationWriter(object):
         try:
             # try to write as text first
             out.write(etree.tostring(tree, encoding='unicode',
-                                         pretty_print=True))
+                                     pretty_print=True))
             return
         except Exception:
             pass  # didn't work. Try to write as binary
