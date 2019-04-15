@@ -1786,8 +1786,8 @@ class ObservationWriter(object):
             out.write(etree.tostring(tree, encoding='unicode',
                                          pretty_print=True))
             return
-        except AttributeError:
-            pass  # nothing to do
+        except Exception:
+            pass  # didn't work. Try to write as binary
         tree.write(out, encoding='utf-8',
                    xml_declaration=True, pretty_print=True)
 
