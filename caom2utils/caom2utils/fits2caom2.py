@@ -4072,9 +4072,9 @@ def gen_proc(args, blueprints, **kwargs):
 
     if obs is None:
         if args.in_obs_xml:
-            log_id = args.lineage[0]
+            log_id = args.lineage
         else:
-            log_id = args.observation[0]
+            log_id = args.observation
         logging.warning('No Observation generated for {}'.format(log_id))
     else:
         writer = ObservationWriter()
