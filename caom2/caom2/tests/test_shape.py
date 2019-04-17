@@ -83,8 +83,6 @@ class TestEnums(unittest.TestCase):
         with self.assertRaises(KeyError):
             shape.SegmentType["foo"]
         with self.assertRaises(KeyError):
-            shape.SegmentType[None]
-        with self.assertRaises(KeyError):
             shape.SegmentType[999]
         # test for invalid value
         with self.assertRaises(ValueError):
