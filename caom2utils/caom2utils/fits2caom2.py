@@ -3470,11 +3470,12 @@ def _update_artifact_meta(uri, artifact, subject=None):
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
-        if file_url.path.endswith('.header'):
-            # if header is on disk, get the content_* from ad
-            metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
-        else:
-            metadata = _get_file_meta(file_url.path)
+        # TODO UNDO UNDO UNDO
+        # if file_url.path.endswith('.header'):
+        #     # if header is on disk, get the content_* from ad
+        #     metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
+        # else:
+        metadata = _get_file_meta(file_url.path)
     else:
         # TODO add hook to support other service providers
         raise NotImplementedError('Only ad and vos type URIs supported')

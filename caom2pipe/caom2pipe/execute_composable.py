@@ -371,6 +371,8 @@ class CaomExecute(object):
 
     def _fits2caom2_cmd_local(self):
         """Execute fits2caom with a --local parameter."""
+        logging.error('dir {} fname {}'.format(self.working_dir,
+                                               self.fname))
         fqn = os.path.join(self.working_dir, self.fname)
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
@@ -1239,10 +1241,11 @@ class OrganizeExecutes(object):
             visit(observation, **kwargs) signature that require data access."""
         executors = []
         if storage_name.is_valid():
-            subject, cred_param = self._define_subject()
-            cadc_data_client = CadcDataClient(subject)
-            caom_repo_client = CAOM2RepoClient(
-                subject, self.config.logging_level, self.config.resource_id)
+            if mc.TaskType.SCRAPE not in self.task_types:
+                subject, cred_param = self._define_subject()
+                cadc_data_client = CadcDataClient(subject)
+                caom_repo_client = CAOM2RepoClient(
+                    subject, self.config.logging_level, self.config.resource_id)
             for task_type in self.task_types:
                 self.logger.debug(task_type)
                 if task_type == mc.TaskType.SCRAPE:
@@ -1637,7 +1640,7 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
     temp_list = []
     for f in file_list:
         if f.endswith('.fits') or f.endswith('.fits.gz'):
-            if chooser.use_compressed():
+            if chooser is not None and chooser.use_compressed():
                 if f.endswith('.fits'):
                     temp_list.append('{}.gz'.format(f))
                 else:
@@ -1645,6 +1648,10 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
             else:
                 if f.endswith('.fits.gz'):
                     temp_list.append(f.replace('.gz', ''))
+                else:
+                    temp_list.append(f)
+        elif f.endswith('.header'):
+            temp_list.append(f)
 
     # make the entries unique
     todo_list = list(set(temp_list))
