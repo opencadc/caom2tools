@@ -100,11 +100,11 @@ def fix_ids(observation):
     observation._id = get_64bit_uuid(observation._id)
     for p in observation.planes.values():
         p._id = get_64bit_uuid(p._id)
-        for a in plane.artifacts.values():
+        for a in p.artifacts.values():
             a._id = get_64bit_uuid(a._id)
-            for p in artifact.parts.values():
-                p._id = get_64bit_uuid(p._id)
-                for c in part.chunks:
+            for pa in a.parts.values():
+                pa._id = get_64bit_uuid(pa._id)
+                for c in pa.chunks:
                     c._id = get_64bit_uuid(c._id)
 
 
