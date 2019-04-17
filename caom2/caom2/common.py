@@ -73,7 +73,6 @@ from __future__ import (absolute_import, division, print_function,
 import inspect
 import uuid
 from datetime import datetime
-import warnings
 
 from builtins import int, str
 from six.moves.urllib.parse import SplitResult, urlparse
@@ -142,7 +141,7 @@ class CaomObject(object):
 class AbstractCaomEntity(CaomObject):
     """Class that defines the persistence unique ID and last mod date """
 
-    def __init__(self, fulluuid=False):
+    def __init__(self, fulluuid=True):
         super(CaomObject, self).__init__()
         self._id = AbstractCaomEntity._gen_id(fulluuid)
         self.last_modified = None
@@ -151,30 +150,23 @@ class AbstractCaomEntity(CaomObject):
         self.acc_meta_checksum = None
 
     @classmethod
-    def _gen_id(cls, fulluuid=False):
+    def _gen_id(cls, fulluuid=True):
         """Generate a 128 but UUID by default. For backwards compatibility
         allow creation of a 64 bit UUID using a rand number for the
         lower 64 bits. First two bytes of the random number are generated
         with the random and the last 6 bytes from the current time
         in microseconds.
 
-        Arguments:
-        fulluuid : DEPRECATTED
-
         return: UUID
         """
 
-        if not fulluuid:
-            warnings.warn(
-                '64 bit UUID no longer supported. Using 132 bit instead')
-
-        return uuid.uuid4()
-        #if fulluuid:
-        #    return gen_id
-        #else:
-        #    return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
-        #                             gen_id.clock_seq_hi_variant,
-        #3                             gen_id.clock_seq_low, gen_id.node))
+        gen_id = uuid.uuid4()
+        if fulluuid:
+            return gen_id
+        else:
+            return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
+                                     gen_id.clock_seq_hi_variant,
+                                     gen_id.clock_seq_low, gen_id.node))
 
     def compute_meta_checksum(self):
         raise NotImplementedError(
