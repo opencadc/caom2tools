@@ -78,7 +78,7 @@ from logging.handlers import TimedRotatingFileHandler
 import math
 from astropy.wcs import Wcsprm
 from astropy.io import fits
-from cadcutils import version
+from cadcutils import version, exceptions
 from caom2.caom_util import int_32
 from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
@@ -3456,7 +3456,7 @@ def _update_artifact_meta(uri, artifact, subject=None):
     :return:
     """
     file_url = urlparse(uri)
-    if file_url.scheme  == 'ad':
+    if file_url.scheme == 'ad':
         metadata = _get_cadc_meta(subject, file_url.path)
     elif file_url.scheme == 'gemini':
         if '.jpg' in file_url.path:
@@ -3470,15 +3470,20 @@ def _update_artifact_meta(uri, artifact, subject=None):
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
-        # TODO UNDO UNDO UNDO
-        # if file_url.path.endswith('.header'):
-        #     # if header is on disk, get the content_* from ad
-        #     metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
-        # else:
-        metadata = _get_file_meta(file_url.path)
+        if file_url.path.endswith('.header'):
+            # if header is on disk, get the content_* from ad
+            try:
+                metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
+            except exceptions.NotFoundException as e:
+                logging.info(
+                    'Could not find {} at CADC. No Artifact metadata.'.format(
+                        urlparse(artifact.uri).path))
+                return
+        else:
+            metadata = _get_file_meta(file_url.path)
     else:
         # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad and vos type URIs supported')
+        raise NotImplementedError('Only ad, gemini and vos type URIs supported')
 
     if metadata['md5sum'].startswith('md5:'):
         checksum = ChecksumURI('{}'.format(metadata['md5sum']))
