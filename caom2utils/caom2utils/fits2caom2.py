@@ -3470,7 +3470,7 @@ def _update_artifact_meta(uri, artifact, subject=None):
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
-        if file_url.path.endswith('.header'):
+        if file_url.path.endswith('.header') and subject is not None:
             # if header is on disk, get the content_* from ad
             try:
                 metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
@@ -4075,6 +4075,10 @@ def gen_proc(args, blueprints, **kwargs):
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
                        external_url, **kwargs)
+
+        if obs is None:
+            logging.warning('No observation. Stop processing.')
+            break
 
     if obs is None:
         if args.in_obs_xml:
