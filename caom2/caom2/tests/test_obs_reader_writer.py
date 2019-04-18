@@ -99,13 +99,13 @@ def minimal_simple(depth, bounds_is_circle, version):
     return instances.get_simple_observation()
 
 
-def complete_simple(depth, bounds_is_circle, version):
+def complete_simple(depth, bounds_is_circle, version, short_uuid=False):
     instances = caom_test_instances.Caom2TestInstances()
     instances.complete = True
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
     instances.caom_version = version
-    return instances.get_simple_observation()
+    return instances.get_simple_observation(short_uuid=short_uuid)
 
 
 def minimal_composite(depth, bounds_is_circle, version):
@@ -117,13 +117,13 @@ def minimal_composite(depth, bounds_is_circle, version):
     return instances.get_composite_observation()
 
 
-def complete_composite(depth, bounds_is_circle, version):
+def complete_composite(depth, bounds_is_circle, version, short_uuid=False):
     instances = caom_test_instances.Caom2TestInstances()
     instances.complete = True
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
     instances.caom_version = version
-    return instances.get_composite_observation()
+    return instances.get_composite_observation(short_uuid=short_uuid)
 
 
 class TestObservationReaderWriter(unittest.TestCase):
@@ -154,7 +154,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         writer.write(simple_observation, output)
         xml = output.getvalue()
         output.close()
-        xml = xml.replace(b"0000", b"xxxx", 1)
+        xml = xml.replace(b"id=\"", b"id=\"xxxx", 1)
         f = open('/tmp/test.xml', 'wb')
         f.write(xml)
         f.close()
@@ -257,8 +257,14 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.observation_test(composite_observation, True, True, 23)
 
         composite_observation = complete_composite(6, True, 21)
+        short_co = complete_composite(6, True, 21, short_uuid=True)
         print("check 2.0 schema with 2.1 doc")
-        self.observation_test(composite_observation, True, True, 20)
+        with self.assertRaises(etree.DocumentInvalid):
+            # default uuids are long so it fails
+            self.observation_test(composite_observation, True, True, 20)
+        # but succeed with short uuids
+        self.observation_test(short_co, True, True, 20)
+        self.observation_test(composite_observation, True, True, 21)
         print("check 2.1 schema with 2.1 doc")
         self.observation_test(composite_observation, True, True, 21)
         print("check 2.2 schema with 2.1 doc")
@@ -267,8 +273,13 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.observation_test(composite_observation, True, True, 23)
 
         composite_observation = complete_composite(6, True, 22)
+        short_co = complete_composite(6, True, 22, short_uuid=True)
         print("check 2.0 schema with 2.2 doc")
-        self.observation_test(composite_observation, True, True, 20)
+        with self.assertRaises(etree.DocumentInvalid):
+            # default uuids are long so it fails
+            self.observation_test(composite_observation, True, True, 20)
+        # but succeed with short uuids
+        self.observation_test(short_co, True, True, 20)
         print("check 2.1 schema with 2.2 doc")
         self.observation_test(composite_observation, True, True, 21)
         print("check 2.2 schema with 2.2 doc")
@@ -277,8 +288,13 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.observation_test(composite_observation, True, True, 23)
 
         composite_observation = complete_composite(6, True, 23)
+        short_co = complete_composite(6, True, 23, short_uuid=True)
         print("check 2.0 schema with 2.3 doc")
-        self.observation_test(composite_observation, True, True, 20)
+        with self.assertRaises(etree.DocumentInvalid):
+            # default uuids are long so it fails
+            self.observation_test(composite_observation, True, True, 20)
+        # but succeed with short uuids
+        self.observation_test(short_co, True, True, 20)
         print("check 2.1 schema with 2.3 doc")
         self.observation_test(composite_observation, True, True, 21)
         print("check 2.2 schema with 2.3 doc")

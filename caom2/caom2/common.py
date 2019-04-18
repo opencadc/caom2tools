@@ -141,7 +141,7 @@ class CaomObject(object):
 class AbstractCaomEntity(CaomObject):
     """Class that defines the persistence unique ID and last mod date """
 
-    def __init__(self, fulluuid=False):
+    def __init__(self, fulluuid=True):
         super(CaomObject, self).__init__()
         self._id = AbstractCaomEntity._gen_id(fulluuid)
         self.last_modified = None
@@ -150,7 +150,7 @@ class AbstractCaomEntity(CaomObject):
         self.acc_meta_checksum = None
 
     @classmethod
-    def _gen_id(cls, fulluuid=False):
+    def _gen_id(cls, fulluuid=True):
         """Generate a 128 but UUID by default. For backwards compatibility
         allow creation of a 64 bit UUID using a rand number for the
         lower 64 bits. First two bytes of the random number are generated
