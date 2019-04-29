@@ -98,10 +98,12 @@ import distutils.sysconfig
 import logging
 import os
 import re
+import requests
 import sys
 import traceback
 
 from argparse import ArgumentParser
+from astropy.io import fits
 from datetime import datetime
 
 from cadcutils import net, exceptions
@@ -109,9 +111,10 @@ from cadcdata import CadcDataClient
 from caom2repo import CAOM2RepoClient
 from caom2pipe import manage_composable as mc
 
+__all__ = ['OrganizeExecutes', 'StorageName', 'CaomName', 'OrganizeChooser',
+           'run_single', 'run_by_file', 'run_single_from_state']
 
-__all__ = ['OrganizeExecutes', 'StorageName', 'CaomName',
-           'OrganizeChooser']
+READ_BLOCK_SIZE = 8 * 1024
 
 
 class StorageName(object):
@@ -966,6 +969,69 @@ class LocalDataClient(DataClient):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
+class PullClient(CaomExecute):
+    """Defines the pipeline step for Collection storage of a file that
+    is retrieved via http. The file will be temporarily stored on disk,
+    because the cadc-data client doesn't support streaming (yet)."""
+
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client):
+        super(PullClient, self).__init__(
+            config, mc.TaskType.PULL, storage_name, command_name, cred_param,
+            cadc_data_client, caom_repo_client, meta_visitors=None)
+        # when files are on disk don't worry about a separate directory
+        # per observation
+        self.working_dir = self.root_dir
+        self.storage_host = config.storage_host
+        self.stream = config.stream
+        self.fname = storage_name.fname_on_disk
+        self.url = storage_name.url
+
+    def execute(self, context):
+        self.logger.debug('Begin execute for {} Data'.format(__name__))
+
+        self.logger.debug('create the work space, if it does not exist')
+        self._create_dir()
+
+        self.logger.debug('get the input file')
+        self._http_get()
+
+        self.logger.debug('store the input file {} to ad'.format(self.fname))
+        self._cadc_data_put_client(self.fname, 'application/fits')
+
+        self.logger.debug('clean up the workspace')
+        self._cleanup()
+
+        self.logger.debug('End execute for {}'.format(__name__))
+
+    def _http_get(self):
+        """Retrieve a file via http to temporary local storage. Push to ad,
+        from local storage."""
+        self.logger.debug('retrieve {} from {}'.format(self.fname, self.url))
+        try:
+            with requests.get(self.url, stream=True) as r:
+                r.raise_for_status()
+                with open(self.fname, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=READ_BLOCK_SIZE):
+                        f.write(chunk)
+        except exceptions.HttpException as e:
+            raise mc.CadcException(
+                'Could not retrieve {} from {}. Failed with {}'.format(
+                    self.fname, self.url, e))
+        # not sure how else to figure out if the file is good
+        try:
+            hdulist = fits.open(self.fname, memmap=True, lazy_load_hdus=False)
+            hdulist.verify('warn')
+            for h in hdulist:
+                h.verify('warn')
+            hdulist.close()
+        except fits.VerifyError as e:
+            raise mc.CadcException(
+                'astropy verify error {} when reading {}'.format(
+                    self.fname, e))
+        self.logger.debug('Successfully retrieved {}'.format(self.fname))
+
+
 class StoreClient(CaomExecute):
     """Defines the pipeline step for Collection storage of a file. This
     requires access to the file on disk."""
@@ -1375,6 +1441,11 @@ class OrganizeExecutes(object):
                             raise mc.CadcException(
                                 'use_local_files must be True with '
                                 'Task Type "REMOTE"')
+                elif task_type == mc.TaskType.PULL:
+                    executors.append(
+                        PullClient(self.config, storage_name, command_name,
+                                   cred_param, cadc_data_client,
+                                   caom_repo_client))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1805,3 +1876,22 @@ def run_single(config, storage_name, command_name, meta_visitors,
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)
     sys.exit(result)
+
+
+def run_single_from_state(config, storage_name, command_name, meta_visitors,
+                          data_visitors, chooser=None):
+    """Process a single entry by StorageName detail. No sys.exit call.
+
+    :param config mc.Config
+    :param storage_name instance of StorageName for the collection
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param chooser OrganizeChooser instance for detailed CaomExecute
+        descendant choices
+    """
+    organizer = OrganizeExecutes(config, chooser)
+    result = _do_one(config, organizer, storage_name,
+                     command_name, meta_visitors, data_visitors)
+    logging.info('Result is {} for {}'.format(result, storage_name.file_name))
+    return result
