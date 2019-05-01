@@ -3368,7 +3368,12 @@ def get_external_headers(external_url):
         session.mount('http://', adapter)
         session.mount('https://', adapter)
         r = session.get(external_url, timeout=20)
-        headers = _make_headers_from_string(r.text)
+        if r.status_code == requests.codes.ok:
+            headers = _make_headers_from_string(r.text)
+        else:
+            headers = None
+            logging.warning('Error {} when retrieving {} headers.'.format(
+                r.status_code, external_url))
         r.close()
         return headers
     except Exception as e:
@@ -3660,8 +3665,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 parser = GenericParser(blueprint, uri=uri)
     elif external_url:
         headers = get_external_headers(external_url)
-        logging.debug('Using a FitsParser for remote headers {}'.format(uri))
-        parser = FitsParser(headers, blueprint, uri=uri)
+        if headers is None:
+            parser = None
+        else:
+            logging.debug('Using a FitsParser for remote headers {}'.format(uri))
+            parser = FitsParser(headers, blueprint, uri=uri)
     else:
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):
             if uri.startswith('vos'):
@@ -3676,27 +3684,30 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 'Using a GenericParser for remote file {}'.format(uri))
             parser = GenericParser(blueprint, uri=uri)
 
-    _update_artifact_meta(meta_uri, plane.artifacts[uri], subject)
+    if parser is None:
+        result = None
+    else:
+        _update_artifact_meta(meta_uri, plane.artifacts[uri], subject)
 
-    parser.augment_observation(observation=obs, artifact_uri=uri,
-                               product_id=plane.product_id)
+        parser.augment_observation(observation=obs, artifact_uri=uri,
+                                   product_id=plane.product_id)
 
-    result = _visit(plugin, parser, obs, visit_local, product_id, **kwargs)
+        result = _visit(plugin, parser, obs, visit_local, product_id, **kwargs)
 
-    if validate_wcs:
-        try:
-            validate(obs)
-        except InvalidWCSError as e:
-            logging.error(e)
-            tb = traceback.format_exc()
-            logging.error(tb)
-            raise e
+        if validate_wcs:
+            try:
+                validate(obs)
+            except InvalidWCSError as e:
+                logging.error(e)
+                tb = traceback.format_exc()
+                logging.error(tb)
+                raise e
 
-    if len(parser._errors) > 0:
-        logging.debug(
-            '{} errors encountered while processing {!r}.'.format(
-                len(parser._errors), uri))
-        logging.debug('{}'.format(parser._errors))
+        if len(parser._errors) > 0:
+            logging.debug(
+                '{} errors encountered while processing {!r}.'.format(
+                    len(parser._errors), uri))
+            logging.debug('{}'.format(parser._errors))
 
     return result
 
