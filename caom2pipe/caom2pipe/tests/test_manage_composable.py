@@ -67,7 +67,6 @@
 # ***********************************************************************
 #
 
-import datetime
 import os
 import pytest
 import sys
@@ -90,12 +89,36 @@ ISO8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
                     reason='support 3.6 only')
 def test_config_class():
     os.getcwd = Mock(return_value=TEST_DATA_DIR)
+    mock_root = '/usr/src/app/omm2caom2/omm2caom2/tests/data'
     test_config = mc.Config()
     test_config.get_executors()
     assert test_config is not None
     assert test_config.work_file == 'todo.txt'
     assert test_config.features is not None
     assert test_config.features.supports_composite is False
+    assert test_config.working_directory == mock_root, 'wrong dir'
+    assert test_config.work_fqn == '{}/todo.txt'.format(mock_root), 'work_fqn'
+    assert test_config.netrc_file == '.netrc', 'netrc'
+    assert test_config.archive == 'TEST', 'archive'
+    assert test_config.collection == 'TEST', 'collection'
+    assert test_config.log_file_directory == mock_root, 'logging dir'
+    assert test_config.success_fqn == '{}/success_log.txt'.format(mock_root), \
+        'success fqn'
+    assert test_config.success_log_file_name == 'success_log.txt', \
+        'success file'
+    assert test_config.failure_fqn == '{}/failure_log.txt'.format(mock_root), \
+        'failure fqn'
+    assert test_config.failure_log_file_name == 'failure_log.txt', \
+        'failure file'
+    assert test_config.retry_file_name == 'retries.txt', 'retry file'
+    assert test_config.retry_fqn == '{}/retries.txt'.format(mock_root), \
+        'retry fqn'
+    assert test_config.proxy_file_name == 'test_proxy.pem', 'proxy file name'
+    assert test_config.proxy_fqn == '{}/test_proxy.pem'.format(mock_root), \
+        'proxy fqn'
+    assert test_config.state_file_name == 'state.yml', 'state file name'
+    assert test_config.state_fqn == '{}/state.yml'.format(mock_root), \
+        'state fqn'
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
@@ -241,9 +264,9 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.product_type == ProductType.WEIGHT, 'wrong product type'
-    assert result.content_length == 255, 'wrong length'
+    assert result.content_length == 314, 'wrong length'
     assert result.content_checksum.uri == \
-        'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
+        'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
 
     # update action
     result.content_checksum = ChecksumURI('md5:abc')
@@ -252,7 +275,7 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.content_checksum.uri == \
-        'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
+        'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),

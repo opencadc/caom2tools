@@ -181,10 +181,10 @@ class TaskType(Enum):
     MODIFY = 'modify'  # modify a CAOM instance from data
     CHECKSUM = 'checksum'  # is the checksum on local disk the same as in ad?
     VISIT = 'visit'    # visit an observation
-    REMOTE = 'remote'  # remote file storage, create CAOM instance via local
-                       # metadata
-    PULL = 'pull'      # retrieve file via HTTP to local temp storage,
-                        # store to ad
+    # remote file storage, create CAOM instance via local metadata
+    REMOTE = 'remote'
+    # retrieve file via HTTP to local temp storage, store to ad
+    PULL = 'pull'
 
 
 class State(object):
@@ -258,7 +258,11 @@ class Config(object):
         self.retry_fqn = None
         self.retry_failures = False
         self.retry_count = 1
+        self.proxy_file_name = None
+        # the fully qualified name for the file
         self.proxy_fqn = None
+        self.state_file_name = None
+        # the fully qualified name for the file
         self.state_fqn = None
         self.features = Features()
 
@@ -452,24 +456,32 @@ class Config(object):
         self._retry_count = value
 
     @property
-    def proxy_fqn(self):
+    def proxy_file_name(self):
         """If using a proxy certificate for authentication, identify the
         fully-qualified pathname here."""
-        return self._proxy_fqn
+        return self._proxy_file_name
 
-    @proxy_fqn.setter
-    def proxy_fqn(self, value):
-        self._proxy_fqn = value
+    @proxy_file_name.setter
+    def proxy_file_name(self, value):
+        self._proxy_file_name = value
+        if (self.working_directory is not None and
+                self.proxy_file_name is not None):
+            self.proxy_fqn = os.path.join(
+                self.working_directory, self.proxy_file_name)
 
     @property
     def state_file_name(self):
         """If using a state file to communicate persistent information between
         invocations, identify the fully-qualified pathname here."""
-        return self._state_fqn
+        return self._state_file_name
 
     @state_file_name.setter
     def state_file_name(self, value):
-        self._state_fqn = value
+        self._state_file_name = value
+        if (self.working_directory is not None and
+                self.state_file_name is not None):
+            self.state_fqn = os.path.join(
+                self.working_directory, self.state_file_name)
 
     @property
     def features(self):
@@ -587,8 +599,10 @@ class Config(object):
             self.retry_failures = self._lookup(config, 'retry_failures', False)
             self.retry_count = self._lookup(config, 'retry_count', 1)
             self.features = self._obtain_features(config)
-            self.proxy_fqn = self._lookup(config, 'proxy_file_name', None)
-            self.state_fqn = self._lookup(config, 'state_file_name', None)
+            self.proxy_file_name = self._lookup(
+                config, 'proxy_file_name', None)
+            self.state_file_name = self._lookup(
+                config, 'state_file_name', None)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -1147,7 +1161,7 @@ def query_endpoint(url):
 def read_as_yaml(fqn):
     """Read and return YAML content of 'fqn'."""
     try:
-        logging.debug('Begin read_as_yaml.')
+        logging.debug('Begin read_as_yaml for {}.'.format(fqn))
         with open(fqn) as f:
             data_map = yaml.safe_load(f)
             logging.debug('End read_as_yaml.')

@@ -137,6 +137,7 @@ if six.PY3:
         test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
         test_config.features.run_in_airflow = False
         test_config.features.use_file_names = False
+        test_config.stream = 'TEST'
         return test_config
 
 
@@ -636,6 +637,14 @@ def test_organize_executes_client():
         assert isinstance(executors[0], ec.PullClient)
         assert CadcDataClient.__init__.is_called, 'mock not called'
         assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert executors[0].url == 'https://test_url/', 'url'
+        assert executors[0].fname == 'test_obs_id.fits', 'file name'
+        assert executors[0].stream == 'TEST', 'stream'
+        assert executors[0].working_dir == '{}/test_obs_id'.format(THIS_DIR), \
+            'working_dir'
+        assert executors[0].local_fqn == \
+            '{}/test_obs_id/test_obs_id.fits'.format(THIS_DIR), \
+            'local_fqn'
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
@@ -679,6 +688,9 @@ def test_organize_executes_chooser():
         assert len(executors) == 2
         assert isinstance(executors[0],
                           ec.LocalMetaDeleteCreateClient)
+        assert executors[0].fname == 'test_obs_id.fits', 'file name'
+        assert executors[0].stream == 'TEST', 'stream'
+        assert executors[0].working_dir == THIS_DIR, 'working_dir'
         assert isinstance(executors[1],
                           ec.CompareChecksumClient)
 

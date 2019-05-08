@@ -1,7 +1,9 @@
 working_directory: /usr/src/app/omm2caom2/omm2caom2/tests/data
 netrc_filename: .netrc
+proxy_file_name: test_proxy.pem
 resource_id: ivo://cadc.nrc.ca/sc2repo
 todo_file_name: todo.txt
+state_file_name: state.yml
 use_local_files: False
 logging_level: DEBUG
 features:

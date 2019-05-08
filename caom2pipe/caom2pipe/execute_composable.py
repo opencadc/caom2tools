@@ -979,13 +979,10 @@ class PullClient(CaomExecute):
         super(PullClient, self).__init__(
             config, mc.TaskType.PULL, storage_name, command_name, cred_param,
             cadc_data_client, caom_repo_client, meta_visitors=None)
-        # when files are on disk don't worry about a separate directory
-        # per observation
-        self.working_dir = self.root_dir
-        self.storage_host = config.storage_host
         self.stream = config.stream
-        self.fname = storage_name.fname_on_disk
+        self.fname = storage_name.file_name
         self.url = storage_name.url
+        self.local_fqn = os.path.join(self.working_dir, self.fname)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
@@ -996,8 +993,9 @@ class PullClient(CaomExecute):
         self.logger.debug('get the input file')
         self._http_get()
 
-        self.logger.debug('store the input file {} to ad'.format(self.fname))
-        self._cadc_data_put_client(self.fname, 'application/fits')
+        self.logger.debug(
+            'store the input file {} to ad'.format(self.local_fqn))
+        self._cadc_data_put_client(self.local_fqn, 'application/fits')
 
         self.logger.debug('clean up the workspace')
         self._cleanup()
@@ -1011,16 +1009,17 @@ class PullClient(CaomExecute):
         try:
             with requests.get(self.url, stream=True) as r:
                 r.raise_for_status()
-                with open(self.fname, 'wb') as f:
+                with open(self.local_fqn, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=READ_BLOCK_SIZE):
                         f.write(chunk)
         except exceptions.HttpException as e:
             raise mc.CadcException(
                 'Could not retrieve {} from {}. Failed with {}'.format(
-                    self.fname, self.url, e))
+                    self.local_fqn, self.url, e))
         # not sure how else to figure out if the file is good
         try:
-            hdulist = fits.open(self.fname, memmap=True, lazy_load_hdus=False)
+            hdulist = fits.open(self.local_fqn, memmap=True,
+                                lazy_load_hdus=False)
             hdulist.verify('warn')
             for h in hdulist:
                 h.verify('warn')
@@ -1028,7 +1027,7 @@ class PullClient(CaomExecute):
         except fits.VerifyError as e:
             raise mc.CadcException(
                 'astropy verify error {} when reading {}'.format(
-                    self.fname, e))
+                    self.local_fqn, e))
         self.logger.debug('Successfully retrieved {}'.format(self.fname))
 
 
@@ -1044,7 +1043,6 @@ class StoreClient(CaomExecute):
         # when files are on disk don't worry about a separate directory
         # per observation
         self.working_dir = self.root_dir
-        self.storage_host = config.storage_host
         self.stream = config.stream
         self.fname = storage_name.fname_on_disk
 
@@ -1069,6 +1067,8 @@ class Scrape(CaomExecute):
             meta_visitors=None)
         self._define_local_dirs(storage_name)
         self.fname = storage_name.fname_on_disk
+        if self.fname is None:
+            self.fname = storage_name.file_name
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -1313,7 +1313,8 @@ class OrganizeExecutes(object):
                 subject, cred_param = self._define_subject()
                 cadc_data_client = CadcDataClient(subject)
                 caom_repo_client = CAOM2RepoClient(
-                    subject, self.config.logging_level, self.config.resource_id)
+                    subject, self.config.logging_level,
+                    self.config.resource_id)
             for task_type in self.task_types:
                 self.logger.debug(task_type)
                 if task_type == mc.TaskType.SCRAPE:
@@ -1569,6 +1570,8 @@ class OrganizeExecutes(object):
             return 'Segment intersect in polygon'
         elif 'Could not read observation record' in e:
             return 'Observation not found'
+        elif 'Broken pipe' in e:
+            return 'Broken pipe'
         else:
             return str(e)
 
@@ -1878,8 +1881,8 @@ def run_single(config, storage_name, command_name, meta_visitors,
     sys.exit(result)
 
 
-def run_single_from_state(config, storage_name, command_name, meta_visitors,
-                          data_visitors, chooser=None):
+def run_single_from_state(organizer, config, storage_name, command_name,
+                          meta_visitors, data_visitors):
     """Process a single entry by StorageName detail. No sys.exit call.
 
     :param config mc.Config
@@ -1887,11 +1890,73 @@ def run_single_from_state(config, storage_name, command_name, meta_visitors,
     :param command_name extension of fits2caom2 for the collection
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
-    :param chooser OrganizeChooser instance for detailed CaomExecute
-        descendant choices
+    :param organizer single organizer instance, maintains log records.
     """
-    organizer = OrganizeExecutes(config, chooser)
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)
     logging.info('Result is {} for {}'.format(result, storage_name.file_name))
     return result
+
+
+def _run_from_state(config, sname, command_name, meta_visitors, data_visitors,
+                    todo):
+    """Process a list of entries by StorageName detail. No sys.exit call.
+
+    :param config mc.Config
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param todo list of work to be done, as URLs to files.
+    """
+    organizer = OrganizeExecutes(config, chooser=None)
+    for url in todo:
+        storage_name = sname(url=url)
+        result = _do_one(config, organizer, storage_name,
+                         command_name, meta_visitors, data_visitors)
+        logging.info(
+            'Result is {} for {}'.format(result, storage_name.file_name))
+
+    if config.need_to_retry():
+        for count in range(0, config.retry_count):
+            logging.warning(
+                'Beginning retry {} in {}'.format(count + 1, os.getcwd()))
+            config.update_for_retry(count)
+            temp_list = mc.read_from_file(config.work_fqn)
+            todo_list = []
+            for ii in temp_list:
+                todo_list.append(sname.make_url_from_file_name(ii))
+            organizer = OrganizeExecutes(config, chooser=None)
+            organizer.complete_record_count = len(todo_list)
+            logging.info('Retry {} entries'.format(
+                organizer.complete_record_count))
+            for redo_url in todo_list:
+                try:
+                    storage_name = sname(url=redo_url)
+                    _do_one(config, organizer, storage_name, command_name,
+                            meta_visitors, data_visitors)
+                except Exception as e:
+                    logging.error(e)
+            if not config.need_to_retry():
+                break
+        logging.warning('Done retry attempts.')
+
+
+def run_from_state(config, sname, command_name, meta_visitors, data_visitors,
+                   todo):
+    """Process a list of entries by StorageName detail. No sys.exit call.
+
+    :param config mc.Config
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param todo list of work to be done, as URLs to files.
+    """
+    try:
+        _run_from_state(config, sname, command_name, meta_visitors,
+                        data_visitors, todo)
+        return 0
+    except Exception as e:
+        logging.error(e)
+        tb = traceback.format_exc()
+        logging.error(tb)
+        return -1
