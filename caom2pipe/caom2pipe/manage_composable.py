@@ -70,6 +70,7 @@
 import csv
 import logging
 import os
+import requests
 import subprocess
 import yaml
 
@@ -78,7 +79,9 @@ from enum import Enum
 from hashlib import md5
 from io import BytesIO
 from os import stat
+from requests.adapters import HTTPAdapter
 from urllib import parse as parse
+from urllib3 import Retry
 
 from cadcutils import net
 from cadcdata import CadcDataClient
@@ -86,7 +89,7 @@ from caom2 import ObservationWriter, ObservationReader, Artifact
 from caom2 import ChecksumURI
 
 
-__all__ = ['CadcException', 'Config', 'to_float', 'TaskType',
+__all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'exec_cmd', 'exec_cmd_redirect', 'exec_cmd_info',
            'get_cadc_meta', 'get_file_meta', 'compare_checksum',
            'decompose_lineage', 'check_param', 'read_csv_file',
@@ -178,7 +181,50 @@ class TaskType(Enum):
     MODIFY = 'modify'  # modify a CAOM instance from data
     CHECKSUM = 'checksum'  # is the checksum on local disk the same as in ad?
     VISIT = 'visit'    # visit an observation
-    REMOTE = 'remote'  # remote file storage, create CAOM instance via metadata
+    # remote file storage, create CAOM instance via local metadata
+    REMOTE = 'remote'
+    # retrieve file via HTTP to local temp storage, store to ad
+    PULL = 'pull'
+
+
+class State(object):
+
+    def __init__(self, fqn):
+        self.fqn = fqn
+        self.bookmarks = {}
+        self.logger = logging.getLogger('State')
+        result = read_as_yaml(self.fqn)
+        if result is None:
+            raise CadcException('Could not load state from {}'.format(fqn))
+        else:
+            self.bookmarks = response_lookup(result, 'bookmarks')
+            self.content = result
+
+    def get_bookmark(self, key):
+        """Lookup for last_record key."""
+        result = None
+        if key in self.bookmarks:
+            if 'last_record' in self.bookmarks[key]:
+                result = self.bookmarks[key]['last_record']
+            else:
+                self.logger.warning('No record found for {}'.format(key))
+        else:
+            self.logger.warning('No bookmarks found for {}'.format(key))
+        return result
+
+    def save_state(self, key, value):
+        """Write the current state as a YAML file.
+        :param key which record is being updated
+        :param value the value to update the record with
+        """
+        if key in self.bookmarks:
+            if 'last_record' in self.bookmarks[key]:
+                self.bookmarks[key]['last_record'] = value
+                write_as_yaml(self.content, self.fqn)
+            else:
+                self.logger.warning('No record found for {}'.format(key))
+        else:
+            self.logger.warning('No bookmarks found for {}'.format(key))
 
 
 class Config(object):
@@ -212,7 +258,12 @@ class Config(object):
         self.retry_fqn = None
         self.retry_failures = False
         self.retry_count = 1
+        self.proxy_file_name = None
+        # the fully qualified name for the file
         self.proxy_fqn = None
+        self.state_file_name = None
+        # the fully qualified name for the file
+        self.state_fqn = None
         self.features = Features()
 
     @property
@@ -405,14 +456,32 @@ class Config(object):
         self._retry_count = value
 
     @property
-    def proxy_fqn(self):
+    def proxy_file_name(self):
         """If using a proxy certificate for authentication, identify the
         fully-qualified pathname here."""
-        return self._proxy_fqn
+        return self._proxy_file_name
 
-    @proxy_fqn.setter
-    def proxy_fqn(self, value):
-        self._proxy_fqn = value
+    @proxy_file_name.setter
+    def proxy_file_name(self, value):
+        self._proxy_file_name = value
+        if (self.working_directory is not None and
+                self.proxy_file_name is not None):
+            self.proxy_fqn = os.path.join(
+                self.working_directory, self.proxy_file_name)
+
+    @property
+    def state_file_name(self):
+        """If using a state file to communicate persistent information between
+        invocations, identify the fully-qualified pathname here."""
+        return self._state_file_name
+
+    @state_file_name.setter
+    def state_file_name(self, value):
+        self._state_file_name = value
+        if (self.working_directory is not None and
+                self.state_file_name is not None):
+            self.state_fqn = os.path.join(
+                self.working_directory, self.state_file_name)
 
     @property
     def features(self):
@@ -452,6 +521,7 @@ class Config(object):
                'retry_failures:: \'{}\' ' \
                'retry_count:: \'{}\' ' \
                'proxy_file:: \'{}\' ' \
+               'state_fqn:: \'{}\' ' \
                'features:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
@@ -462,7 +532,7 @@ class Config(object):
                 self.success_fqn, self.failure_log_file_name,
                 self.failure_fqn, self.retry_file_name, self.retry_fqn,
                 self.retry_failures, self.retry_count, self.proxy_fqn,
-                self.features, self.logging_level)
+                self.state_fqn, self.features, self.logging_level)
 
     @staticmethod
     def _obtain_task_types(config, default=None):
@@ -529,7 +599,10 @@ class Config(object):
             self.retry_failures = self._lookup(config, 'retry_failures', False)
             self.retry_count = self._lookup(config, 'retry_count', 1)
             self.features = self._obtain_features(config)
-            self.proxy_fqn = self._lookup(config, 'proxy_file_name', None)
+            self.proxy_file_name = self._lookup(
+                config, 'proxy_file_name', None)
+            self.state_file_name = self._lookup(
+                config, 'state_file_name', None)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -1064,3 +1137,46 @@ def response_lookup(response, lookup):
     if lookup in response:
         result = response[lookup]
     return result
+
+
+def query_endpoint(url, timeout=20):
+    """Return a response for an endpoint. Caller needs to close the response.
+    """
+
+    # Open the URL and fetch the JSON document for the observation
+    session = requests.Session()
+    retries = 10
+    retry = Retry(total=retries, read=retries, connect=retries,
+                  backoff_factor=0.5)
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    try:
+        response = session.get(url, timeout=timeout)
+        return response
+    except Exception as e:
+        raise CadcException('Endpoint {} failure {}'.format(url, str(e)))
+
+
+def read_as_yaml(fqn):
+    """Read and return YAML content of 'fqn'."""
+    try:
+        logging.debug('Begin read_as_yaml for {}.'.format(fqn))
+        with open(fqn) as f:
+            data_map = yaml.safe_load(f)
+            logging.debug('End read_as_yaml.')
+            return data_map
+    except (yaml.scanner.ScannerError, FileNotFoundError) as e:
+        logging.error(e)
+        return None
+
+
+def write_as_yaml(content, fqn):
+    """Write 'content' to 'fqn' as YAML."""
+    try:
+        logging.debug('Begin write_as_yaml.')
+        with open(fqn, 'w') as f:
+            yaml.dump(content, f, default_flow_style=False)
+            logging.debug('End _load_state.')
+    except Exception as e:
+        logging.error(e)

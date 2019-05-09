@@ -139,7 +139,8 @@ def update_observation_members(observation):
     members_inputs = TypedSet(ObservationURI,)
     for p in observation.planes:
         plane = observation.planes[p]
-        if plane.provenance is not None and plane.provenance.inputs is not None:
+        if (plane.provenance is not None and
+                plane.provenance.inputs is not None):
             for input in plane.provenance.inputs:
                 members_inputs.add(input.get_observation_uri())
                 logging.debug('Adding Observation URI {}'.format(

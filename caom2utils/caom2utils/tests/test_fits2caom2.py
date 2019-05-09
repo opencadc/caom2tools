@@ -1269,7 +1269,6 @@ def test_generic_parser1():
 def test_get_external_headers():
     import requests
     test_uri = 'http://localhost/obs23/collection/obsid-1'
-    # get_orig = caom2utils.fits2caom2.get_external_headers
     get_orig = requests.Session.get
 
     try:
@@ -1345,6 +1344,7 @@ NAXIS2  =                 2048 /
 DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
 END
 """
+    x.status_code = 200
     return x
 
 

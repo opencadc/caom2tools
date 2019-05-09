@@ -81,19 +81,44 @@ if six.PY3:
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
-
+TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
+TEST_STATE_FILE = os.path.join(TEST_DATA_DIR, 'test_state.yml')
+ISO8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
 def test_config_class():
-    os.getcwd = Mock(return_value=TESTDATA_DIR)
+    os.getcwd = Mock(return_value=TEST_DATA_DIR)
+    mock_root = '/usr/src/app/omm2caom2/omm2caom2/tests/data'
     test_config = mc.Config()
     test_config.get_executors()
     assert test_config is not None
     assert test_config.work_file == 'todo.txt'
     assert test_config.features is not None
     assert test_config.features.supports_composite is False
+    assert test_config.working_directory == mock_root, 'wrong dir'
+    assert test_config.work_fqn == '{}/todo.txt'.format(mock_root), 'work_fqn'
+    assert test_config.netrc_file == '.netrc', 'netrc'
+    assert test_config.archive == 'TEST', 'archive'
+    assert test_config.collection == 'TEST', 'collection'
+    assert test_config.log_file_directory == mock_root, 'logging dir'
+    assert test_config.success_fqn == '{}/success_log.txt'.format(mock_root), \
+        'success fqn'
+    assert test_config.success_log_file_name == 'success_log.txt', \
+        'success file'
+    assert test_config.failure_fqn == '{}/failure_log.txt'.format(mock_root), \
+        'failure fqn'
+    assert test_config.failure_log_file_name == 'failure_log.txt', \
+        'failure file'
+    assert test_config.retry_file_name == 'retries.txt', 'retry file'
+    assert test_config.retry_fqn == '{}/retries.txt'.format(mock_root), \
+        'retry fqn'
+    assert test_config.proxy_file_name == 'test_proxy.pem', 'proxy file name'
+    assert test_config.proxy_fqn == '{}/test_proxy.pem'.format(mock_root), \
+        'proxy fqn'
+    assert test_config.state_file_name == 'state.yml', 'state file name'
+    assert test_config.state_fqn == '{}/state.yml'.format(mock_root), \
+        'state fqn'
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
@@ -107,7 +132,7 @@ def test_exec_cmd():
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
 def test_exec_cmd_redirect():
-    fqn = os.path.join(TESTDATA_DIR, 'exec_cmd_redirect.txt')
+    fqn = os.path.join(TEST_DATA_DIR, 'exec_cmd_redirect.txt')
     if os.path.exists(fqn):
         os.remove(fqn)
 
@@ -123,13 +148,13 @@ def test_exec_cmd_redirect():
 def test_compare_checksum(mock_get_file_info):
 
     # fail case - file doesn't exist
-    test_file = os.path.join(TESTDATA_DIR, 'test_omm.fits.gz')
-    test_netrc = os.path.join(TESTDATA_DIR, 'test_netrc')
+    test_file = os.path.join(TEST_DATA_DIR, 'test_omm.fits.gz')
+    test_netrc = os.path.join(TEST_DATA_DIR, 'test_netrc')
     with pytest.raises(mc.CadcException):
         mc.compare_checksum(test_netrc, 'OMM', test_file)
 
     # fail case - file exists, different checksum - make a small test file
-    test_file = os.path.join(TESTDATA_DIR, 'C111107_0694_SCI.fits')
+    test_file = os.path.join(TEST_DATA_DIR, 'C111107_0694_SCI.fits')
     f = open(test_file, 'w')
     f.write('test')
     f.close()
@@ -160,7 +185,7 @@ def test_read_csv_file():
         mc.read_csv_file(None)
 
     # good read
-    test_file_name = os.path.join(TESTDATA_DIR, 'test_csv.csv')
+    test_file_name = os.path.join(TEST_DATA_DIR, 'test_csv.csv')
     content = mc.read_csv_file(test_file_name)
     assert content is not None, 'empty results returned'
     assert len(content) == 1, 'missed the comment and the header'
@@ -175,12 +200,12 @@ def test_get_file_meta():
         mc.get_file_meta(None)
 
     # non-existent file
-    fqn = os.path.join(TESTDATA_DIR, 'abc.txt')
+    fqn = os.path.join(TEST_DATA_DIR, 'abc.txt')
     with pytest.raises(mc.CadcException):
         mc.get_file_meta(fqn)
 
     # empty file
-    fqn = os.path.join(TESTDATA_DIR, 'todo.txt')
+    fqn = os.path.join(TEST_DATA_DIR, 'todo.txt')
     result = mc.get_file_meta(fqn)
     assert result['size'] == 0, result['size']
 
@@ -206,7 +231,7 @@ def test_read_file_list_from_archive(basews_mock):
                     reason='support 3.6 only')
 def test_write_to_file():
     content = ['a.txt', 'b.jpg', 'c.fits.gz']
-    test_fqn = '{}/test_out.txt'.format(TESTDATA_DIR)
+    test_fqn = '{}/test_out.txt'.format(TEST_DATA_DIR)
     if os.path.exists(test_fqn):
         os.remove(test_fqn)
 
@@ -225,7 +250,7 @@ def test_get_lineage():
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
                     reason='support 3.6 only')
 def test_get_artifact_metadata():
-    test_fqn = os.path.join(TESTDATA_DIR, 'config.yml')
+    test_fqn = os.path.join(TEST_DATA_DIR, 'config.yml')
     test_uri = 'ad:TEST/config.yml'
 
     # wrong command line parameters
@@ -239,9 +264,9 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.product_type == ProductType.WEIGHT, 'wrong product type'
-    assert result.content_length == 255, 'wrong length'
+    assert result.content_length == 314, 'wrong length'
     assert result.content_checksum.uri == \
-        'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
+        'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
 
     # update action
     result.content_checksum = ChecksumURI('md5:abc')
@@ -250,7 +275,7 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.content_checksum.uri == \
-        'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
+        'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
@@ -258,7 +283,7 @@ def test_get_artifact_metadata():
 @patch('cadcdata.core.CadcDataClient')
 def test_data_put(mock_client):
     with pytest.raises(mc.CadcException):
-        mc.data_put(mock_client, TESTDATA_DIR, 'TEST.fits', 'TEST', 'default')
+        mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default')
 
 
 @pytest.mark.skipif(not sys.version.startswith('3.6'),
@@ -266,4 +291,22 @@ def test_data_put(mock_client):
 @patch('cadcdata.core.CadcDataClient')
 def test_data_get(mock_client):
     with pytest.raises(mc.CadcException):
-        mc.data_get(mock_client, TESTDATA_DIR, 'TEST.fits', 'TEST')
+        mc.data_get(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST')
+
+
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_state():
+    test_start = os.path.getmtime(TEST_STATE_FILE)
+    with pytest.raises(mc.CadcException):
+        test_subject = mc.State('nonexistent')
+
+    test_subject = mc.State(TEST_STATE_FILE)
+    assert test_subject is not None, 'expect result'
+    test_result = test_subject.get_bookmark('gemini_timestamp')
+    assert test_result is not None, 'expect content'
+    assert test_result == '2017-06-19T03:21:29.345417'
+
+    test_subject.save_state('gemini_timestamp', test_result)
+    test_end = os.path.getmtime(TEST_STATE_FILE)
+    assert test_start != test_end, 'file should be modified'
