@@ -1139,7 +1139,7 @@ def response_lookup(response, lookup):
     return result
 
 
-def query_endpoint(url):
+def query_endpoint(url, timeout=20):
     """Return a response for an endpoint. Caller needs to close the response.
     """
 
@@ -1152,7 +1152,7 @@ def query_endpoint(url):
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     try:
-        response = session.get(url, timeout=20)
+        response = session.get(url, timeout=timeout)
         return response
     except Exception as e:
         raise CadcException('Endpoint {} failure {}'.format(url, str(e)))
