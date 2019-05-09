@@ -1265,6 +1265,50 @@ def test_generic_parser1():
         'original value over-ridden'
 
 
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_get_external_headers():
+    import requests
+    test_uri = 'http://localhost/obs23/collection/obsid-1'
+    get_orig = requests.Session.get
+
+    try:
+        requests.Session.get = Mock(return_value=_get_headers_2(None, None))
+        test_headers = caom2utils.fits2caom2.get_external_headers(test_uri)
+        assert test_headers is not None
+        assert len(test_headers) == 1
+        assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
+    finally:
+        requests.Session.get = get_orig
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_apply_blueprint():
+    # test a Gemini case where there are two keywords, one each for
+    # different instruments, and the default ends up getting set when the
+    # other keyword is not found, as opposed to when both keywords are
+    # missing
+    #
+    # default should only be set when both keywords are not found
+    hdr1 = fits.Header()
+    hdr1['ORIGIN'] = '123'
+    test_blueprint = ObsBlueprint()
+    test_blueprint.set_default('Plane.provenance.producer', 'abc')
+    test_blueprint.add_fits_attribute('Plane.provenance.producer', 'IMAGESWV')
+    test_parser = FitsParser(src=[hdr1], obs_blueprint=test_blueprint)
+    logging.error(test_parser._headers)
+    assert test_parser._headers[0]['ORIGIN'] == '123', 'existing over-ridden'
+    with pytest.raises(KeyError):
+        result = test_parser._headers[0]['IMAGESWV'], 'should not be set'
+
+    hdr1 = fits.Header()
+    test_parser = FitsParser(src=[hdr1], obs_blueprint=test_blueprint)
+    logging.error(test_parser._headers)
+    assert test_parser._headers[0]['ORIGIN'] == 'abc', 'should be set'
+
+    with pytest.raises(KeyError):
+        result = test_parser._headers[0]['IMAGESWV'], 'should not be set'
+
+
 def _get_headers(subject):
     x = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
 BITPIX  =                  -32 / Bits per pixel
@@ -1279,6 +1323,29 @@ END
         [e + delim for e in x.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
+
+
+class TestResponse(object):
+
+    def __init__(self):
+        self.text = None
+
+    def close(self):
+        pass
+
+
+def _get_headers_2(external_url, timeout):
+    x = TestResponse()
+    x.text = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
+BITPIX  =                  -32 / Bits per pixel
+NAXIS   =                    2 / Number of dimensions
+NAXIS1  =                 2048 /
+NAXIS2  =                 2048 /
+DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
+END
+"""
+    x.status_code = 200
+    return x
 
 
 def _get_node(uri, limit, force):

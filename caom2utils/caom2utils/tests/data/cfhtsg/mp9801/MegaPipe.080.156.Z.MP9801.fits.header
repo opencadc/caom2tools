@@ -45,8 +45,8 @@ PSCALET1= 'MEDIAN  '           / PIXELSCALE_TYPE config parameter
 RESAMPT2= 'LANCZOS3'           / RESAMPLING_TYPE config parameter               
 CENTERT2= 'ALL     '           / CENTER_TYPE config parameter                   
 PSCALET2= 'MEDIAN  '           / PIXELSCALE_TYPE config parameter               
-HISTORY  input image 1756572p.fits                                              
-HISTORY  input image 1756574p.fits                                              
+HISTORY = input image 1756572p.fits
+HISTORY = input image 1756574p.fits
 PHOTZP  =               30.000 / photometric zeropint in AB magnitude           
 COMMENT  AB magnitude = -2.5 * log10(flux) + PHOTZP                             
 FINALIQ =                1.277 / Image quality (seeing) in arcsec               

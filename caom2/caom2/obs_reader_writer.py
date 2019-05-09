@@ -1782,12 +1782,12 @@ class ObservationWriter(object):
 
         tree = etree.ElementTree(obs_element)
         try:
-            if 'b' not in out.mode:
-                out.write(etree.tostring(tree, encoding='unicode',
-                                         pretty_print=True))
-                return
-        except AttributeError:
-            pass  # nothing to do
+            # try to write as text first
+            out.write(etree.tostring(tree, encoding='unicode',
+                                     pretty_print=True))
+            return
+        except Exception:
+            pass  # didn't work. Try to write as binary
         tree.write(out, encoding='utf-8',
                    xml_declaration=True, pretty_print=True)
 
