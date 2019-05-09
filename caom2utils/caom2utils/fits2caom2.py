@@ -4024,7 +4024,7 @@ def _visit(plugn, parser, obs, visit_local, product_id=None, **kwargs):
                     kwargs['product_id'] = product_id
                 try:
                     result = plgin.update(observation=obs, **kwargs)
-                    if obs is not None:
+                    if result is not None:
                         logging.debug(
                             'Finished executing plugin {!r} update '
                             'method on observation {!r}'.format(

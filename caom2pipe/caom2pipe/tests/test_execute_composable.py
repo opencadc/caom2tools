@@ -996,6 +996,15 @@ def test_local_meta_update_client_remote_storage_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
+@pytest.mark.skipif(not sys.version.startswith('3.6'),
+                    reason='support 3.6 only')
+def test_omm_name_dots():
+    TEST_NAME = 'C121121_J024345.57-021326.4_K_SCIRED'
+    TEST_URI = 'ad:OMM/{}.fits.gz'.format(TEST_NAME)
+    test_file_id = ec.CaomName(TEST_URI).file_id
+    assert TEST_NAME == test_file_id, 'dots messing with things'
+
+
 def _communicate():
     return ['return status', None]
 
