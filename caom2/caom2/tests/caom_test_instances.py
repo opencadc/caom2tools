@@ -74,7 +74,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import collections
 from datetime import datetime
-
+import uuid
 import six
 from builtins import int
 
@@ -87,6 +87,25 @@ from caom2 import part
 from caom2 import plane
 from caom2 import shape
 from caom2 import wcs
+
+
+def fix_ids(observation):
+    # temporary function to make the internal ids 64 bit UUID instead of
+    # the default 128. This is only required for caom2.0
+    def get_64bit_uuid(id):
+        return uuid.UUID(fields=(0x00000000, 0x0000, 0x0000,
+                         id.clock_seq_hi_variant,
+                         id.clock_seq_low, id.node))
+
+    observation._id = get_64bit_uuid(observation._id)
+    for p in observation.planes.values():
+        p._id = get_64bit_uuid(p._id)
+        for a in p.artifacts.values():
+            a._id = get_64bit_uuid(a._id)
+            for pa in a.parts.values():
+                pa._id = get_64bit_uuid(pa._id)
+                for c in pa.chunks:
+                    c._id = get_64bit_uuid(c._id)
 
 
 class Caom2TestInstances(object):
@@ -134,7 +153,7 @@ class Caom2TestInstances(object):
     def caom_version(self, v):
         self._caom_version = v
 
-    def get_simple_observation(self):
+    def get_simple_observation(self, short_uuid=False):
         simple_observation = \
             observation.SimpleObservation(Caom2TestInstances._collection,
                                           Caom2TestInstances._observation_id)
@@ -162,9 +181,11 @@ class Caom2TestInstances(object):
                     "md5:844ce247db0844ad9f721430c80e7a21")
         if self.depth > 1:
             simple_observation.planes.update(self.get_planes())
+        if self.caom_version == 20 or short_uuid:
+            fix_ids(simple_observation)
         return simple_observation
 
-    def get_composite_observation(self):
+    def get_composite_observation(self, short_uuid=False):
         composite_observation = \
             observation.CompositeObservation(
                 Caom2TestInstances._collection,
@@ -198,6 +219,9 @@ class Caom2TestInstances(object):
         if self.depth > 1:
             composite_observation.planes.update(self.get_planes())
             composite_observation.members.update(self.get_members())
+        if self.caom_version == 20 or short_uuid:
+            # fix all entity ids to be 64 bit longs
+            fix_ids(composite_observation)
         return composite_observation
 
     def get_algorithm(self):
