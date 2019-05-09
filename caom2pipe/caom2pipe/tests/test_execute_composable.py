@@ -88,7 +88,7 @@ if six.PY3:
     from caom2pipe import execute_composable as ec
     from caom2pipe import manage_composable as mc
 
-
+PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
 TEST_APP = 'collection2caom2'
@@ -134,6 +134,9 @@ if six.PY3:
         test_config.work_file = 'todo.txt'
         test_config.logging_level = 'DEBUG'
         test_config.log_file_directory = TEST_DATA_DIR
+        test_config.failure_fqn = '{}/fail.txt'.format(TEST_DATA_DIR)
+        test_config.retry_fqn = '{}/retry.txt'.format(TEST_DATA_DIR)
+        test_config.success_fqn = '{}/good.txt'.format(TEST_DATA_DIR)
         test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
         test_config.features.run_in_airflow = False
         test_config.features.use_file_names = False
@@ -141,8 +144,8 @@ if six.PY3:
         return test_config
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_meta_create_client_execute():
     test_config = _init_config()
     test_cred = None
@@ -173,8 +176,8 @@ def test_meta_create_client_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_meta_update_client_execute():
     test_config = _init_config()
     test_cred = None
@@ -203,8 +206,8 @@ def test_meta_update_client_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_meta_delete_create_client_execute():
     test_config = _init_config()
     test_cred = None
@@ -232,8 +235,8 @@ def test_meta_delete_create_client_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_local_meta_create_client_execute():
     test_config = _init_config()
     test_cred = None
@@ -262,8 +265,8 @@ def test_local_meta_create_client_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_local_meta_update_client_execute():
     test_config = _init_config()
     test_cred = None
@@ -293,8 +296,8 @@ def test_local_meta_update_client_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_local_meta_delete_create_client_execute():
     test_config = _init_config()
     test_cred = None
@@ -324,8 +327,8 @@ def test_local_meta_delete_create_client_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_client_visit():
     test_config = _init_config()
     test_cred = None
@@ -343,8 +346,8 @@ def test_client_visit():
     assert repo_client_mock.update.is_called, 'update call missed'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_data_execute():
     test_obs_id = 'TEST_OBS_ID'
     test_dir = os.path.join(THIS_DIR, test_obs_id)
@@ -394,8 +397,8 @@ def test_data_execute():
         os.rmdir = os_rmdir_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_data_local_execute():
     test_data_visitors = [TestVisit]
 
@@ -423,8 +426,8 @@ def test_data_local_execute():
     assert repo_client_mock.update.is_called, 'update call missed'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_data_store():
     test_config = _init_config()
     data_client_mock = Mock()
@@ -441,8 +444,8 @@ def test_data_store():
     assert data_client_mock.put_file.is_called, 'put_file call missed'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_scrape():
     # clean up from previous tests
     if os.path.exists(TestStorageName().model_file_name):
@@ -479,8 +482,8 @@ def test_scrape():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_data_scrape_execute():
     test_data_visitors = [TestVisit]
     read_orig = mc.read_obs_from_file
@@ -504,8 +507,8 @@ def test_data_scrape_execute():
         mc.read_obs_from_file = read_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_organize_executes_client():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -630,7 +633,8 @@ def test_organize_executes_client():
         test_config.use_local_files = False
         test_chooser = TestChooser()
         ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
-        test_oe = ec.OrganizeExecutes(test_config, test_chooser)
+        test_oe = ec.OrganizeExecutes(test_config, test_chooser,
+                                      '/tmp/todo.txt')
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 1
@@ -643,15 +647,21 @@ def test_organize_executes_client():
         assert executors[0].working_dir == '{}/test_obs_id'.format(THIS_DIR), \
             'working_dir'
         assert executors[0].local_fqn == \
-            '{}/test_obs_id/test_obs_id.fits'.format(THIS_DIR), \
-            'local_fqn'
+            '{}/test_obs_id/test_obs_id.fits'.format(THIS_DIR), 'local_fqn'
+        assert test_oe.success_fqn == \
+            '{}/logs/todo_success_log.txt'.format(THIS_DIR), 'wrong success'
+        assert test_oe.retry_fqn == \
+            '{}/logs/todo_retries.txt'.format(THIS_DIR), 'wrong retry'
+        assert test_oe.failure_fqn == \
+            '{}/logs/todo_failure_log.txt'.format(THIS_DIR), 'wrong failure'
+        assert test_oe.todo_fqn == '/tmp/todo.txt', 'wrong todo'
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_organize_executes_chooser():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -709,8 +719,8 @@ def test_organize_executes_chooser():
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_organize_executes_client_existing():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -735,8 +745,8 @@ def test_organize_executes_client_existing():
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_organize_executes_client_visit():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -754,8 +764,8 @@ def test_organize_executes_client_visit():
     assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_checksum_client():
     test_config = _init_config()
     test_executor = ec.CompareChecksumClient(
@@ -774,8 +784,8 @@ def test_checksum_client():
         mc.compare_checksum_client = compare_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_capture_failure():
     test_obs_id = 'test_obs_id'
     test_config = _init_config()
@@ -816,8 +826,8 @@ def test_capture_failure():
     assert failure_content.endswith('test_obs_id None exception text\n')
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file():
     try:
@@ -832,8 +842,8 @@ def test_run_by_file():
         assert False, 'but the work list is empty {}'.format(e)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file_expects_retry():
     retry_dir = '{}_0'.format(TEST_DATA_DIR)
@@ -886,8 +896,8 @@ def test_run_by_file_expects_retry():
         assert os.path.exists(test_config.retry_fqn)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_do_one():
     test_config = _init_config()
     test_config.task_types = []
@@ -910,8 +920,8 @@ def test_do_one():
     assert test_result == -1
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_storage_name():
     sn = ec.StorageName(obs_id='test_obs_id', collection='TEST',
                         collection_pattern='T[\\w+-]+')
@@ -935,8 +945,8 @@ def test_storage_name():
     assert x == 'test_obs_id'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_caom_name():
     cn = ec.CaomName(uri='ad:TEST/test_obs_id.fits.gz')
     assert cn.file_id == 'test_obs_id'
@@ -946,8 +956,8 @@ def test_caom_name():
         'caom:TEST/test_obs_id'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_local_meta_create_client_remote_storage_execute():
     os_path_exists_orig = os.path.exists
@@ -997,8 +1007,8 @@ def test_local_meta_create_client_remote_storage_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_local_meta_update_client_remote_storage_execute():
     os_path_exists_orig = os.path.exists
@@ -1049,8 +1059,8 @@ def test_local_meta_update_client_remote_storage_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_omm_name_dots():
     TEST_NAME = 'C121121_J024345.57-021326.4_K_SCIRED'
     TEST_URI = 'ad:OMM/{}.fits.gz'.format(TEST_NAME)
@@ -1058,27 +1068,91 @@ def test_omm_name_dots():
     assert TEST_NAME == test_file_id, 'dots messing with things'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_pull_client():
+    # Response mock
+    class Object(object):
+        pass
+
+        def raise_for_status(self):
+            pass
+
+        def iter_content(self, chunk_size):
+            return ['aaa'.encode(), 'bbb'.encode()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, a, b, c):
+            return None
+
     test_config = _init_config()
     data_client_mock = Mock()
     repo_client_mock = Mock()
     test_sn = TestStorageName()
     test_sn.url = 'file://{}/{}'.format(TEST_DATA_DIR, 'C111107_0694_SCI.fits')
     test_sn.fname_on_disk = '{}/{}'.format(TEST_DATA_DIR, 'x.fits')
-    ec.PullClient._http_get = Mock()
     ec.CaomExecute._cleanup = Mock()
     try:
-        test_executor = ec.PullClient(test_config, test_sn, TEST_APP, None,
-                                      data_client_mock, repo_client_mock)
-        test_executor.execute(None)
-        assert data_client_mock.put_file.is_called, 'call missed'
-        assert ec.PullClient._http_get.is_called, 'http_get call missed'
-        assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
+        with patch('requests.get') as get_mock:
+            def _get_mock(url, stream):
+                return Object()
+
+            get_mock.side_effect = _get_mock
+
+            test_executor = ec.PullClient(test_config, test_sn, TEST_APP, None,
+                                          data_client_mock, repo_client_mock)
+            with pytest.raises(OSError):
+                test_executor.execute(None)
+                assert data_client_mock.put_file.is_called, 'call missed'
+                assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
     finally:
         pass
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('sys.exit', Mock(side_effect=MyExitError))
+def test_choose_exceptions():
+    test_config = _init_config()
+    test_config.init_local_files = False
+    test_config.task_types = [mc.TaskType.SCRAPE]
+    with pytest.raises(mc.CadcException):
+        test_organizer = ec.OrganizeExecutes(test_config)
+        test_organizer.choose(TestStorageName(), 'command name', [], [])
+
+    test_config.task_types = [mc.TaskType.STORE]
+    with pytest.raises(mc.CadcException):
+        test_organizer = ec.OrganizeExecutes(test_config)
+        test_organizer.choose(TestStorageName(), 'command name', [], [])
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('sys.exit', Mock(side_effect=MyExitError))
+def test_storage_name_failure():
+    class TestStorageNameFails(TestStorageName):
+
+        def __init__(self):
+            super(TestStorageNameFails, self).__init__()
+
+        def is_valid(self):
+            return False
+    test_config = _init_config()
+    test_config.log_to_file = True
+    good_start = os.path.getmtime(test_config.success_fqn)
+    fail_start = os.path.getmtime(test_config.failure_fqn)
+    retry_start = os.path.getmtime(test_config.retry_fqn)
+    test_organizer = ec.OrganizeExecutes(test_config)
+    test_organizer.choose(TestStorageNameFails(), 'command name', [], [])
+    good_end= os.path.getmtime(test_config.success_fqn)
+    fail_end = os.path.getmtime(test_config.failure_fqn)
+    retry_end = os.path.getmtime(test_config.retry_fqn)
+    assert good_end > good_start, 'good'
+    assert retry_end > retry_start, 'retry'
+    assert fail_end > fail_start, 'failure'
 
 
 def _communicate():

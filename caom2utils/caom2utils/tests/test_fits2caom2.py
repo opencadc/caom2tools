@@ -71,6 +71,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
+from cadcutils import exceptions, net
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser
 from caom2utils.legacy import load_config
@@ -80,7 +81,7 @@ from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
-from caom2 import Axis, CoordAxis1D, CoordAxis2D
+from caom2 import Axis, CoordAxis1D, CoordAxis2D, ChecksumURI
 import logging
 
 import caom2utils
@@ -1275,7 +1276,7 @@ def test_get_external_headers():
         requests.Session.get = Mock(return_value=_get_headers_2(None, None))
         test_headers = caom2utils.fits2caom2.get_external_headers(test_uri)
         assert test_headers is not None
-        assert len(test_headers) == 1
+        assert len(test_headers) == 2
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
     finally:
         requests.Session.get = get_orig
@@ -1298,7 +1299,7 @@ def test_apply_blueprint():
     logging.error(test_parser._headers)
     assert test_parser._headers[0]['ORIGIN'] == '123', 'existing over-ridden'
     with pytest.raises(KeyError):
-        result = test_parser._headers[0]['IMAGESWV'], 'should not be set'
+        test_parser._headers[0]['IMAGESWV'], 'should not be set'
 
     hdr1 = fits.Header()
     test_parser = FitsParser(src=[hdr1], obs_blueprint=test_blueprint)
@@ -1306,7 +1307,49 @@ def test_apply_blueprint():
     assert test_parser._headers[0]['ORIGIN'] == 'abc', 'should be set'
 
     with pytest.raises(KeyError):
-        result = test_parser._headers[0]['IMAGESWV'], 'should not be set'
+        test_parser._headers[0]['IMAGESWV'], 'should not be set'
+
+
+@pytest.mark.skipif(single_test, reason='Single test mode')
+def test_update_artifact_meta_errors():
+    test_uri = 'gemini:GEMINI/abc.jpg'
+    test_artifact = Artifact(uri=test_uri,
+                             product_type=ProductType.SCIENCE,
+                             release_type=ReleaseType.DATA)
+    with pytest.raises(NotImplementedError):
+        test_cirada = 'cirada://abc'
+        _update_artifact_meta(test_cirada, test_artifact)
+
+    with patch('caom2utils.fits2caom2._get_cadc_meta') as get_meta_mock:
+        get_meta_mock.return_value = {'type': 'application/octet',
+                                      'size': 42,
+                                      'md5sum': 'md5:42'}
+        test_uri = 'gemini://test.fits'
+        _update_artifact_meta(test_uri, test_artifact)
+        assert test_artifact.content_checksum is None, 'checksum'
+        assert test_artifact.content_length is None, 'length'
+        assert test_artifact.content_type is None, 'type'
+
+        test_uri = 'gemini:GEMINI/abc.jpg'
+        _update_artifact_meta(test_uri, test_artifact)
+        assert test_artifact.content_checksum == ChecksumURI(uri='md5:42'), \
+            'checksum'
+        assert test_artifact.content_length == 42, 'length'
+        assert test_artifact.content_type == 'application/octet', 'type'
+
+    with patch('caom2utils.fits2caom2._get_cadc_meta') as get_meta_mock:
+        def _mock(ig, nore):
+            logging.error('here?')
+            raise exceptions.NotFoundException()
+        get_meta_mock.side_effect = _mock
+        test_uri = 'file:///test.fits.header'
+        test_artifact = Artifact(uri=test_uri,
+                                 product_type=ProductType.SCIENCE,
+                                 release_type=ReleaseType.DATA)
+        _update_artifact_meta(test_uri, test_artifact, net.Subject())
+        assert test_artifact.content_type is None, 'type'
+        assert test_artifact.content_length is None, 'length'
+        assert test_artifact.content_checksum is None, 'checksum'
 
 
 def _get_headers(subject):
@@ -1336,13 +1379,34 @@ class TestResponse(object):
 
 def _get_headers_2(external_url, timeout):
     x = TestResponse()
-    x.text = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
-BITPIX  =                  -32 / Bits per pixel
-NAXIS   =                    2 / Number of dimensions
-NAXIS1  =                 2048 /
-NAXIS2  =                 2048 /
-DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
-END
+    x.text = """Filename: GN2001BQ013-04.fits.bz2
+
+AstroData Types: ['GMOS_N', 'GEMINI', 'GMOS_SPECT']
+
+
+--- HDU 0 ---
+SIMPLE  =                    T / Fits standard
+BITPIX  =                   16 / Bits per pixel
+NAXIS   =                    0 / Number of axes
+EXTEND  =                    T / File may contain extensions
+IRAF-TLM= '2010-05-12T13:35:33' / Time of last modification
+DATE    = '2001-12-11'         / Date tape was written
+ORIGIN  = 'STScI-STSDAS'       / Fitsio version 21-Feb-1996
+FILENAME= 'null_image'         / ZERO LENGTH DUMMY IMAGE
+GEMPRGID= 'GN-2001B-Q-13'
+RELEASE = '2003-02-01'         / End of proprietary period YYYY-MM-DD
+DATE-OBS= '2001-08-01'
+INSTRUME= 'GMOS-N  '
+OBSTYPE = 'MASK    '
+DATALAB = 'GN2001BQ013-04'
+
+--- HDU 1 ---
+XTENSION= 'BINTABLE'           / Binary table extension
+BITPIX  =                    8 / 8-bits per 'pixels'
+NAXIS   =                    2 / Simple 2-D matrix
+NAXIS1  =                   86 / Number of characters per row
+NAXIS2  =                   26
+PCOUNT  =                    0 / No 'random' parameters
 """
     x.status_code = 200
     return x

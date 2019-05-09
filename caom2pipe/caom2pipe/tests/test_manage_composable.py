@@ -69,6 +69,7 @@
 
 import os
 import pytest
+import requests
 import sys
 
 import six
@@ -76,17 +77,68 @@ import six
 from mock import Mock, patch
 
 from caom2 import ProductType, ReleaseType, Artifact, ChecksumURI
+from caom2 import SimpleObservation, CompositeObservation
 if six.PY3:
     from caom2pipe import manage_composable as mc
+    from caom2pipe import caom_composable as cc
 
 
+PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
 TEST_STATE_FILE = os.path.join(TEST_DATA_DIR, 'test_state.yml')
+TEST_OBS_FILE = os.path.join(TEST_DATA_DIR, 'test_obs_id.fits.xml')
 ISO8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_read_obs():
+    test_subject = mc.read_obs_from_file(TEST_OBS_FILE)
+    assert test_subject is not None, 'expect a result'
+    assert isinstance(test_subject, SimpleObservation), 'wrong read'
+    changed = cc.change_to_composite(test_subject)
+    assert changed is not None, 'expect a result'
+    assert isinstance(changed, CompositeObservation)
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_read_from_file():
+    test_subject = mc.read_from_file(TEST_OBS_FILE)
+    assert test_subject is not None, 'expect a result'
+    assert isinstance(test_subject, list), 'wrong type of result'
+    assert len(test_subject) == 8, 'missed some content'
+    assert test_subject[0].startswith('<?xml version'), 'read failed'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_build_uri():
+    test_subject = mc.build_uri('archive', 'file_name.fits')
+    assert test_subject is not None, 'expect a result'
+    assert test_subject == 'ad:archive/file_name.fits', 'wrong result'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_query_endpoint():
+    # Response mock
+    class Object(object):
+        pass
+
+    with patch('requests.Session.get') as session_get_mock:
+        def _session_get_mock(url, timeout):
+            assert url == 'https://localhost', 'wrong parameter'
+            assert timeout == 25, 'not default'
+            return Object()
+        session_get_mock.side_effect = _session_get_mock
+        test_result = mc.query_endpoint('https://localhost', timeout=25)
+        assert test_result is not None, 'expected result'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_config_class():
     os.getcwd = Mock(return_value=TEST_DATA_DIR)
     mock_root = '/usr/src/app/omm2caom2/omm2caom2/tests/data'
@@ -121,15 +173,15 @@ def test_config_class():
         'state fqn'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_exec_cmd():
     test_cmd = 'ls /abc'
     with pytest.raises(mc.CadcException):
         mc.exec_cmd(test_cmd)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support 3.6 only')
 def test_exec_cmd_redirect():
     fqn = os.path.join(TEST_DATA_DIR, 'exec_cmd_redirect.txt')
@@ -142,8 +194,8 @@ def test_exec_cmd_redirect():
     assert os.stat(fqn).st_size > 0
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('caom2utils.fits2caom2.CadcDataClient.get_file_info')
 def test_compare_checksum(mock_get_file_info):
 
@@ -162,8 +214,8 @@ def test_compare_checksum(mock_get_file_info):
         mc.compare_checksum(test_netrc, 'OMM', test_file)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_decompose_lineage():
     test_product_id = 'product_id'
     test_uri = 'ad:STARS/galaxies.fits.gz'
@@ -177,8 +229,8 @@ def test_decompose_lineage():
         mc.decompose_lineage('')
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_read_csv_file():
     # bad read
     with pytest.raises(mc.CadcException):
@@ -192,8 +244,8 @@ def test_read_csv_file():
     assert len(content[0]) == 24, 'missed the content'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_get_file_meta():
     # None
     with pytest.raises(mc.CadcException):
@@ -210,8 +262,8 @@ def test_get_file_meta():
     assert result['size'] == 0, result['size']
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('cadcdata.core.net.BaseWsClient')
 def test_read_file_list_from_archive(basews_mock):
 
@@ -227,8 +279,8 @@ def test_read_file_list_from_archive(basews_mock):
     assert len(result) == 0
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_write_to_file():
     content = ['a.txt', 'b.jpg', 'c.fits.gz']
     test_fqn = '{}/test_out.txt'.format(TEST_DATA_DIR)
@@ -239,7 +291,7 @@ def test_write_to_file():
     assert os.path.exists(test_fqn)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support 3.6 only')
 def test_get_lineage():
     result = mc.get_lineage('TEST_COLLECTION', 'TEST_PRODUCT_ID',
@@ -247,8 +299,8 @@ def test_get_lineage():
     assert result == 'TEST_PRODUCT_ID/ad:TEST_COLLECTION/TEST_FILE_NAME.fits'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_get_artifact_metadata():
     test_fqn = os.path.join(TEST_DATA_DIR, 'config.yml')
     test_uri = 'ad:TEST/config.yml'
@@ -278,24 +330,24 @@ def test_get_artifact_metadata():
         'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('cadcdata.core.CadcDataClient')
 def test_data_put(mock_client):
     with pytest.raises(mc.CadcException):
         mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default')
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('cadcdata.core.CadcDataClient')
 def test_data_get(mock_client):
     with pytest.raises(mc.CadcException):
         mc.data_get(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST')
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_state():
     test_start = os.path.getmtime(TEST_STATE_FILE)
     with pytest.raises(mc.CadcException):

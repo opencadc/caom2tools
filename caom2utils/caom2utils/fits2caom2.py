@@ -3479,7 +3479,7 @@ def _update_artifact_meta(uri, artifact, subject=None):
             # if header is on disk, get the content_* from ad
             try:
                 metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
-            except exceptions.NotFoundException as e:
+            except exceptions.NotFoundException:
                 logging.info(
                     'Could not find {} at CADC. No Artifact metadata.'.format(
                         urlparse(artifact.uri).path))
@@ -3488,7 +3488,8 @@ def _update_artifact_meta(uri, artifact, subject=None):
             metadata = _get_file_meta(file_url.path)
     else:
         # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad, gemini and vos type URIs supported')
+        raise NotImplementedError(
+            'Only ad, gemini and vos type URIs supported')
 
     if metadata['md5sum'].startswith('md5:'):
         checksum = ChecksumURI('{}'.format(metadata['md5sum']))
@@ -3668,7 +3669,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         if headers is None:
             parser = None
         else:
-            logging.debug('Using a FitsParser for remote headers {}'.format(uri))
+            logging.debug(
+                'Using a FitsParser for remote headers {}'.format(uri))
             parser = FitsParser(headers, blueprint, uri=uri)
     else:
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):

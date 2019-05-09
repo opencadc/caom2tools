@@ -78,9 +78,10 @@ import six
 if six.PY3:
     from caom2pipe import astro_composable as ac
 
+PY_VERSION = '3.6'
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_convert_time():
     hdr1 = fits.Header()
     mjd_start, mjd_end = ac.find_time_bounds([hdr1])
@@ -96,8 +97,8 @@ def test_convert_time():
     assert math.isclose(mjd_end, 56173.04518518518), mjd_end
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_get_datetime():
     result = ac.get_datetime('2006-12-12T12:12:12')
     assert result is not None
@@ -119,8 +120,8 @@ def test_get_datetime():
     assert result is None
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_get_location():
     x, y, z = ac.get_location(21.0, -32.0, 12)
     assert x == 5051887.288718968, x
@@ -128,8 +129,8 @@ def test_get_location():
     assert z == 2271399.319625149, z
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_build_plane_time():
     start = ac.get_datetime('2012-09-03T01:04:44')
     end = ac.get_datetime('2012-09-03T03:04:44')
@@ -140,8 +141,8 @@ def test_build_plane_time():
     assert result.exposure == 7199.999999999994, 'wrong exposure value'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_get_time_delta_in_s():
     result = ac.get_timedelta_in_s('0:06:41')
     assert result is not None
