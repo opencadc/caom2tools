@@ -69,7 +69,6 @@
 
 import os
 import pytest
-import requests
 import sys
 
 import six

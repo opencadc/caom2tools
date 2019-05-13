@@ -1147,7 +1147,7 @@ def test_storage_name_failure():
     retry_start = os.path.getmtime(test_config.retry_fqn)
     test_organizer = ec.OrganizeExecutes(test_config)
     test_organizer.choose(TestStorageNameFails(), 'command name', [], [])
-    good_end= os.path.getmtime(test_config.success_fqn)
+    good_end = os.path.getmtime(test_config.success_fqn)
     fail_end = os.path.getmtime(test_config.failure_fqn)
     retry_end = os.path.getmtime(test_config.retry_fqn)
     assert good_end > good_start, 'good'
