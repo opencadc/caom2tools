@@ -241,6 +241,7 @@ class Config(object):
         self.collection = None
         self.use_local_files = False
         self.resource_id = None
+        self.tap_id = None
         self.logging_level = None
         self.log_to_file = False
         self.log_file_directory = None
@@ -332,6 +333,15 @@ class Config(object):
     @resource_id.setter
     def resource_id(self, value):
         self._resource_id = value
+
+    @property
+    def tap_id(self):
+        """which tap service instance to use"""
+        return self._tap_id
+
+    @tap_id.setter
+    def tap_id(self, value):
+        self._tap_id = value
 
     @property
     def log_to_file(self):
@@ -509,6 +519,7 @@ class Config(object):
                'task_types:: \'{}\' ' \
                'stream:: \'{}\' ' \
                'resource_id:: \'{}\' ' \
+               'tap_id:: \'{}\' ' \
                'use_local_files:: \'{}\' ' \
                'log_to_file:: \'{}\' ' \
                'log_file_directory:: \'{}\' ' \
@@ -525,9 +536,9 @@ class Config(object):
                'features:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
-                self.archive,
-                self.collection, self.task_types, self.stream,
-                self.resource_id, self.use_local_files, self.log_to_file,
+                self.archive, self.collection, self.task_types, self.stream,
+                self.resource_id,
+                self.tap_id, self.use_local_files, self.log_to_file,
                 self.log_file_directory, self.success_log_file_name,
                 self.success_fqn, self.failure_log_file_name,
                 self.failure_fqn, self.retry_file_name, self.retry_fqn,
@@ -577,6 +588,8 @@ class Config(object):
                 self._lookup(config, 'netrc_filename', 'test_netrc')
             self.resource_id = self._lookup(
                 config, 'resource_id', 'ivo://cadc.nrc.ca/sc2repo')
+            self.tap_id = self._lookup(
+                config, 'tap_id', 'ivo://cadc.nrc.ca/sc2tap')
             self.use_local_files = bool(
                 self._lookup(config, 'use_local_files', False))
             self.logging_level = self._lookup(config, 'logging_level', 'DEBUG')
@@ -1174,9 +1187,9 @@ def read_as_yaml(fqn):
 def write_as_yaml(content, fqn):
     """Write 'content' to 'fqn' as YAML."""
     try:
-        logging.debug('Begin write_as_yaml.')
+        logging.debug('Begin write_as_yaml for {}.'.format(fqn))
         with open(fqn, 'w') as f:
             yaml.dump(content, f, default_flow_style=False)
-            logging.debug('End _load_state.')
+            logging.debug('End write_as_yaml.')
     except Exception as e:
         logging.error(e)
