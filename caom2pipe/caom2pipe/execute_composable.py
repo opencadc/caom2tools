@@ -524,7 +524,8 @@ class CaomExecute(object):
         if self.meta_visitors is not None and len(self.meta_visitors) > 0:
             kwargs = {'working_directory': self.working_dir,
                       'cadc_client': self.cadc_data_client,
-                      'stream': self.stream}
+                      'stream': self.stream,
+                      'url': self.url}
             for visitor in self.meta_visitors:
                 try:
                     self.logger.debug('Visit for {}'.format(visitor))
