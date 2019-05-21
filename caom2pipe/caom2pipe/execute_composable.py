@@ -857,6 +857,7 @@ class ClientVisit(CaomExecute):
             caom_repo_client=caom_repo_client,
             meta_visitors=meta_visitors)
         self.fname = None
+        self.url = storage_name.url
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
