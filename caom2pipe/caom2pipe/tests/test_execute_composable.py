@@ -172,6 +172,7 @@ def test_meta_create_client_execute():
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, test_source, test_source))
         assert repo_client_mock.create.is_called, 'create call missed'
+        assert test_executor.url == 'https://test_url/', 'url'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -780,6 +781,7 @@ def test_checksum_client():
         assert test_executor.working_dir == THIS_DIR, 'working dir'
         assert test_executor.model_fqn == os.path.join(
             THIS_DIR, 'test_obs_id.fits.xml'), 'model fqn'
+        assert test_executor.url == 'https://test_url/', 'url'
     finally:
         mc.compare_checksum_client = compare_orig
 

@@ -340,6 +340,7 @@ class CaomExecute(object):
         self.meta_visitors = meta_visitors
         self.task_type = task_type
         self.cred_param = cred_param
+        self.url = storage_name.url
 
     def _cleanup(self):
         """Remove a directory and all its contents."""
@@ -857,7 +858,6 @@ class ClientVisit(CaomExecute):
             caom_repo_client=caom_repo_client,
             meta_visitors=meta_visitors)
         self.fname = None
-        self.url = storage_name.url
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -983,7 +983,6 @@ class PullClient(CaomExecute):
             cadc_data_client, caom_repo_client, meta_visitors=None)
         self.stream = config.stream
         self.fname = storage_name.file_name
-        self.url = storage_name.url
         self.local_fqn = os.path.join(self.working_dir, self.fname)
 
     def execute(self, context):
