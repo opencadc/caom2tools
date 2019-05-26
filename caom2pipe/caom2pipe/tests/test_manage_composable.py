@@ -99,6 +99,13 @@ def test_read_obs():
     changed = cc.change_to_composite(test_subject)
     assert changed is not None, 'expect a result'
     assert isinstance(changed, CompositeObservation)
+    assert test_subject.sequence_number == changed.sequence_number, 'sn'
+    assert test_subject.intent == changed.intent, 'intent'
+    assert test_subject.type == changed.type, 'type'
+    assert test_subject.meta_release == changed.meta_release, 'meta release'
+    assert len(test_subject.planes) == len(changed.planes), 'planes'
+    assert test_subject.algorithm.name == 'exposure', 'original name'
+    assert changed.algorithm.name == 'composite', 'changed name'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -122,18 +129,12 @@ def test_build_uri():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 def test_query_endpoint():
-    # Response mock
-    class Object(object):
-        pass
 
     with patch('requests.Session.get') as session_get_mock:
-        def _session_get_mock(url, timeout):
-            assert url == 'https://localhost', 'wrong parameter'
-            assert timeout == 25, 'not default'
-            return Object()
-        session_get_mock.side_effect = _session_get_mock
         test_result = mc.query_endpoint('https://localhost', timeout=25)
         assert test_result is not None, 'expected result'
+        assert session_get_mock.is_called, 'mock not called'
+        session_get_mock.assert_called_with('https://localhost', timeout=25)
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),

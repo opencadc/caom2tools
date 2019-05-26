@@ -1268,18 +1268,16 @@ def test_generic_parser1():
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
 def test_get_external_headers():
-    import requests
     test_uri = 'http://localhost/obs23/collection/obsid-1'
-    get_orig = requests.Session.get
-
-    try:
-        requests.Session.get = Mock(return_value=_get_headers_2(None, None))
+    with patch('requests.Session.get') as session_get_mock:
+        session_get_mock.return_value.status_code = 200
+        session_get_mock.return_value.text = TEST_TEXT
         test_headers = caom2utils.fits2caom2.get_external_headers(test_uri)
         assert test_headers is not None
         assert len(test_headers) == 2
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
-    finally:
-        requests.Session.get = get_orig
+        assert session_get_mock.is_called, 'mock not called'
+        assert session_get_mock.is_called_with(test_uri)
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
@@ -1368,18 +1366,7 @@ END
     return headers
 
 
-class TestResponse(object):
-
-    def __init__(self):
-        self.text = None
-
-    def close(self):
-        pass
-
-
-def _get_headers_2(external_url, timeout):
-    x = TestResponse()
-    x.text = """Filename: GN2001BQ013-04.fits.bz2
+TEST_TEXT = """Filename: GN2001BQ013-04.fits.bz2
 
 AstroData Types: ['GMOS_N', 'GEMINI', 'GMOS_SPECT']
 
@@ -1408,8 +1395,6 @@ NAXIS1  =                   86 / Number of characters per row
 NAXIS2  =                   26
 PCOUNT  =                    0 / No 'random' parameters
 """
-    x.status_code = 200
-    return x
 
 
 def _get_node(uri, limit, force):

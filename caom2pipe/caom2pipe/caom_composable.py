@@ -137,12 +137,11 @@ def update_observation_members(observation):
     :param observation Observation instance to add members to
     """
     members_inputs = TypedSet(ObservationURI,)
-    for p in observation.planes:
-        plane = observation.planes[p]
+    for plane in observation.planes.values():
         if (plane.provenance is not None and
                 plane.provenance.inputs is not None):
-            for input in plane.provenance.inputs:
-                members_inputs.add(input.get_observation_uri())
+            for inpt in plane.provenance.inputs:
+                members_inputs.add(inpt.get_observation_uri())
                 logging.debug('Adding Observation URI {}'.format(
-                    input.get_observation_uri()))
+                    inpt.get_observation_uri()))
     mc.update_typed_set(observation.members, members_inputs)

@@ -97,7 +97,7 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'compare_checksum_client', 'Features', 'write_to_file',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
-           'data_put', 'data_get', 'build_uri', 'response_lookup']
+           'data_put', 'data_get', 'build_uri']
 
 
 class CadcException(Exception):
@@ -188,6 +188,12 @@ class TaskType(Enum):
 
 
 class State(object):
+    """Persist information between pipeline invocations.
+
+    Currently the State class persists the concept of a bookmark, which is the
+    place in the flow of data that was last processed. This 'place' may be a
+    timestamp, or an id. That value is up to clients of this class.
+    """
 
     def __init__(self, fqn):
         self.fqn = fqn
@@ -197,7 +203,7 @@ class State(object):
         if result is None:
             raise CadcException('Could not load state from {}'.format(fqn))
         else:
-            self.bookmarks = response_lookup(result, 'bookmarks')
+            self.bookmarks = result.get('bookmarks')
             self.content = result
 
     def get_bookmark(self, key):
@@ -1135,8 +1141,9 @@ def data_get(client, working_directory, file_name, archive):
         if not os.path.exists(fqn):
             raise CadcException(
                 'Retrieve failed. {} does not exist.'.format(fqn))
-    except Exception:
-        raise CadcException('Did not retrieve {}'.format(fqn))
+    except Exception as e:
+        raise CadcException('Did not retrieve {} because {}'.format(
+            fqn, e))
 
 
 def build_uri(archive, file_name, scheme='ad'):
@@ -1144,16 +1151,9 @@ def build_uri(archive, file_name, scheme='ad'):
     return '{}:{}/{}'.format(scheme, archive, file_name)
 
 
-def response_lookup(response, lookup):
-    """Common code to avoid a KeyError in JSON."""
-    result = None
-    if lookup in response:
-        result = response[lookup]
-    return result
-
-
 def query_endpoint(url, timeout=20):
-    """Return a response for an endpoint. Caller needs to close the response.
+    """Return a response for an endpoint. Caller needs to call 'close'
+    on the response.
     """
 
     # Open the URL and fetch the JSON document for the observation

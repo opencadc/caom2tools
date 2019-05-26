@@ -1097,21 +1097,14 @@ def test_pull_client():
     test_sn.url = 'file://{}/{}'.format(TEST_DATA_DIR, 'C111107_0694_SCI.fits')
     test_sn.fname_on_disk = '{}/{}'.format(TEST_DATA_DIR, 'x.fits')
     ec.CaomExecute._cleanup = Mock()
-    try:
-        with patch('requests.get') as get_mock:
-            def _get_mock(url, stream):
-                return Object()
-
-            get_mock.side_effect = _get_mock
-
-            test_executor = ec.PullClient(test_config, test_sn, TEST_APP, None,
-                                          data_client_mock, repo_client_mock)
-            with pytest.raises(OSError):
-                test_executor.execute(None)
-                assert data_client_mock.put_file.is_called, 'call missed'
-                assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
-    finally:
-        pass
+    with patch('requests.get') as get_mock:
+        get_mock.return_value = Object()
+        test_executor = ec.PullClient(test_config, test_sn, TEST_APP, None,
+                                      data_client_mock, repo_client_mock)
+        with pytest.raises(OSError):
+            test_executor.execute(None)
+            assert data_client_mock.put_file.is_called, 'call missed'
+            assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
