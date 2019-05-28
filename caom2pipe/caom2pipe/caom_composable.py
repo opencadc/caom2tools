@@ -69,33 +69,12 @@
 
 import logging
 
-from caom2 import CompositeObservation, Algorithm, TypedSet
-from caom2 import ObservationURI, PlaneURI
+from caom2 import TypedSet, ObservationURI, PlaneURI
 
 from caom2pipe import execute_composable as ec
 from caom2pipe import manage_composable as mc
 
-__all__ = ['change_to_composite', 'update_plane_provenance',
-           'update_observation_members']
-
-
-def change_to_composite(observation):
-    """For the case where a SimpleObservation needs to become a
-    CompositeObservation."""
-    return CompositeObservation(observation.collection,
-                                observation.observation_id,
-                                Algorithm('composite'),
-                                observation.sequence_number,
-                                observation.intent,
-                                observation.type,
-                                observation.proposal,
-                                observation.telescope,
-                                observation.instrument,
-                                observation.target,
-                                observation.meta_release,
-                                observation.planes,
-                                observation.environment,
-                                observation.target_position)
+__all__ = ['update_plane_provenance', 'update_observation_members']
 
 
 def update_plane_provenance(plane, headers, lookup, collection,

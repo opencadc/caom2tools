@@ -4019,17 +4019,17 @@ def _load_plugin(plugin_name):
     return plgin
 
 
-def _visit(plugn, parser, obs, visit_local, product_id=None, **kwargs):
+def _visit(plugin_name, parser, obs, visit_local, product_id=None, **kwargs):
     result = obs
-    if plugn is not None:
+    if plugin_name is not None:
         if isinstance(parser, FitsParser):
             # TODO make a check that's necessary under both calling conditions
             # here
-            if len(plugn) > 0:
+            if len(plugin_name) > 0:
                 logging.debug(
                     'Begin plugin execution {!r} update method on '
-                    'observation {!r}'.format(plugn, obs.observation_id))
-                plgin = _load_plugin(plugn)
+                    'observation {!r}'.format(plugin_name, obs.observation_id))
+                plgin = _load_plugin(plugin_name)
                 kwargs['headers'] = parser.headers
                 if visit_local is not None:
                     kwargs['fqn'] = visit_local
@@ -4041,7 +4041,7 @@ def _visit(plugn, parser, obs, visit_local, product_id=None, **kwargs):
                         logging.debug(
                             'Finished executing plugin {!r} update '
                             'method on observation {!r}'.format(
-                                plugn, obs.observation_id))
+                                plugin_name, obs.observation_id))
                 except Exception as e:
                     logging.error(e)
                     tb = traceback.format_exc()

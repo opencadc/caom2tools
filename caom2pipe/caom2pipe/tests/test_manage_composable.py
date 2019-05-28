@@ -76,10 +76,9 @@ import six
 from mock import Mock, patch
 
 from caom2 import ProductType, ReleaseType, Artifact, ChecksumURI
-from caom2 import SimpleObservation, CompositeObservation
+from caom2 import SimpleObservation
 if six.PY3:
     from caom2pipe import manage_composable as mc
-    from caom2pipe import caom_composable as cc
 
 
 PY_VERSION = '3.6'
@@ -96,16 +95,6 @@ def test_read_obs():
     test_subject = mc.read_obs_from_file(TEST_OBS_FILE)
     assert test_subject is not None, 'expect a result'
     assert isinstance(test_subject, SimpleObservation), 'wrong read'
-    changed = cc.change_to_composite(test_subject)
-    assert changed is not None, 'expect a result'
-    assert isinstance(changed, CompositeObservation)
-    assert test_subject.sequence_number == changed.sequence_number, 'sn'
-    assert test_subject.intent == changed.intent, 'intent'
-    assert test_subject.type == changed.type, 'type'
-    assert test_subject.meta_release == changed.meta_release, 'meta release'
-    assert len(test_subject.planes) == len(changed.planes), 'planes'
-    assert test_subject.algorithm.name == 'exposure', 'original name'
-    assert changed.algorithm.name == 'composite', 'changed name'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
