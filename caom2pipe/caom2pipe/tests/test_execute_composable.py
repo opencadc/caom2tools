@@ -79,15 +79,19 @@ from mock import Mock, patch
 from astropy.io import fits
 
 from caom2 import SimpleObservation, Algorithm
+from caom2repo import CAOM2RepoClient
+from cadcdata import CadcDataClient
+
 
 if six.PY3:
     from caom2pipe import CadcException
     from caom2pipe import execute_composable as ec
     from caom2pipe import manage_composable as mc
 
-
+PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
+TEST_APP = 'collection2caom2'
 
 
 class MyExitError(Exception):
@@ -110,6 +114,7 @@ if six.PY3:
         def __init__(self, obs_id=None, file_name=None):
             super(TestStorageName, self).__init__(
                 'test_obs_id', 'TEST', '*', 'test_file.fits.gz')
+            self.url = 'https://test_url/'
 
         def is_valid(self):
             return True
@@ -125,20 +130,23 @@ if six.PY3:
         test_config = mc.Config()
         test_config.working_directory = THIS_DIR
         test_config.collection = 'OMM'
-        test_config.netrc_file = os.path.join(TESTDATA_DIR, 'test_netrc')
+        test_config.netrc_file = os.path.join(TEST_DATA_DIR, 'test_netrc')
         test_config.work_file = 'todo.txt'
         test_config.logging_level = 'DEBUG'
-        test_config.log_file_directory = TESTDATA_DIR
+        test_config.log_file_directory = TEST_DATA_DIR
+        test_config.failure_fqn = '{}/fail.txt'.format(TEST_DATA_DIR)
+        test_config.retry_fqn = '{}/retry.txt'.format(TEST_DATA_DIR)
+        test_config.success_fqn = '{}/good.txt'.format(TEST_DATA_DIR)
         test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
         test_config.features.run_in_airflow = False
         test_config.features.use_file_names = False
+        test_config.stream = 'TEST'
         return test_config
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_meta_create_client_execute():
-    test_app = 'collection2caom2'
     test_config = _init_config()
     test_cred = None
     data_client_mock = Mock()
@@ -149,11 +157,11 @@ def test_meta_create_client_execute():
     mc.read_obs_from_file = Mock()
     mc.read_obs_from_file.return_value = _read_obs(None)
 
-    test_executor = ec.Collection2CaomMetaCreateClient(
-        test_config, TestStorageName(), test_app, test_cred,
+    test_executor = ec.MetaCreateClient(
+        test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
-                                       test_app, test_app)
+                                       TEST_APP, TEST_APP)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -162,16 +170,16 @@ def test_meta_create_client_execute():
             '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, test_source, test_source))
         assert repo_client_mock.create.is_called, 'create call missed'
+        assert test_executor.url == 'https://test_url/', 'url'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_meta_update_client_execute():
-    test_app = 'collection2caom2'
     test_config = _init_config()
     test_cred = None
     data_client_mock = Mock()
@@ -179,12 +187,12 @@ def test_meta_update_client_execute():
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
-    test_executor = ec.Collection2CaomMetaUpdateClient(
-        test_config, TestStorageName(), test_app, test_cred,
+    test_executor = ec.MetaUpdateClient(
+        test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
         meta_visitors=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
-                                       test_app, test_app)
+                                       TEST_APP, TEST_APP)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -193,16 +201,15 @@ def test_meta_update_client_execute():
             '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_meta_delete_create_client_execute():
-    test_app = 'collection2caom2'
     test_config = _init_config()
     test_cred = None
     data_client_mock = Mock()
@@ -210,12 +217,11 @@ def test_meta_delete_create_client_execute():
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
-    test_executor = ec.Collection2CaomMetaDeleteCreateClient(
-        test_config, TestStorageName(), test_app, test_cred,
-        data_client_mock, repo_client_mock, meta_visitors=None,
-        observation=_read_obs(None))
+    test_executor = ec.MetaDeleteCreateClient(
+        test_config, TestStorageName(), TEST_APP, test_cred,
+        data_client_mock, repo_client_mock, _read_obs(None), None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
-                                       test_app, test_app)
+                                       TEST_APP, TEST_APP)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -224,16 +230,15 @@ def test_meta_delete_create_client_execute():
             '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_local_meta_create_client_execute():
-    test_app = 'collection2caom2'
     test_config = _init_config()
     test_cred = None
     data_client_mock = Mock()
@@ -242,11 +247,11 @@ def test_local_meta_create_client_execute():
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
 
-    test_executor = ec.Collection2CaomLocalMetaCreateClient(
-        test_config, TestStorageName(), test_app, test_cred,
+    test_executor = ec.LocalMetaCreateClient(
+        test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
-                                       test_app, test_app)
+                                       TEST_APP, TEST_APP)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -255,16 +260,15 @@ def test_local_meta_create_client_execute():
             '--local {}/test_file.fits --out {}/test_obs_id.fits.xml '
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
         assert repo_client_mock.create.is_called, 'create call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_local_meta_update_client_execute():
-    test_app = 'collection2caom2'
     test_config = _init_config()
     test_cred = None
     data_client_mock = Mock()
@@ -272,12 +276,12 @@ def test_local_meta_update_client_execute():
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
-    test_executor = ec.Collection2CaomLocalMetaUpdateClient(
-        test_config, TestStorageName(), test_app, test_cred,
+    test_executor = ec.LocalMetaUpdateClient(
+        test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
         meta_visitors=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
-                                       test_app, test_app)
+                                       TEST_APP, TEST_APP)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -286,17 +290,16 @@ def test_local_meta_update_client_execute():
             '--out {}/test_obs_id.fits.xml --local {}/test_file.fits '
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
+                TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
                 test_source))
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_local_meta_delete_create_client_execute():
-    test_app = 'collection2caom2'
     test_config = _init_config()
     test_cred = None
     data_client_mock = Mock()
@@ -304,12 +307,12 @@ def test_local_meta_delete_create_client_execute():
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
-    test_executor = ec.Collection2CaomLocalMetaDeleteCreateClient(
-        test_config, TestStorageName(), test_app, test_cred,
+    test_executor = ec.LocalMetaDeleteCreateClient(
+        test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None,
         observation=_read_obs(None))
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
-                                       test_app, test_app)
+                                       TEST_APP, TEST_APP)
     try:
         test_executor.execute(None)
         assert mc.exec_cmd.called
@@ -318,34 +321,34 @@ def test_local_meta_delete_create_client_execute():
             '--out {}/test_obs_id.fits.xml --local {}/test_file.fits '
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
+                TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
                 test_source))
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_client_visit():
     test_config = _init_config()
     test_cred = None
     data_client_mock = Mock()
     repo_client_mock = Mock()
 
-    test_executor = ec.Collection2CaomClientVisit(test_config,
-                                                  TestStorageName(), test_cred,
-                                                  data_client_mock,
-                                                  repo_client_mock,
-                                                  meta_visitors=None)
+    test_executor = ec.ClientVisit(test_config,
+                                   TestStorageName(), test_cred,
+                                   data_client_mock,
+                                   repo_client_mock,
+                                   meta_visitors=None)
 
     test_executor.execute(None)
     assert repo_client_mock.read.is_called, 'read call missed'
     assert repo_client_mock.update.is_called, 'update call missed'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_data_execute():
     test_obs_id = 'TEST_OBS_ID'
     test_dir = os.path.join(THIS_DIR, test_obs_id)
@@ -373,8 +376,8 @@ def test_data_execute():
         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
 
         # run the test
-        test_executor = ec.Collection2CaomDataClient(
-            test_config, TestStorageName(), 'collection2caom2', test_cred,
+        test_executor = ec.DataClient(
+            test_config, TestStorageName(), TEST_APP, test_cred,
             data_client_mock, repo_client_mock, test_data_visitors,
             mc.TaskType.MODIFY)
         try:
@@ -395,8 +398,8 @@ def test_data_execute():
         os.rmdir = os_rmdir_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_data_local_execute():
     test_data_visitors = [TestVisit]
 
@@ -408,8 +411,8 @@ def test_data_local_execute():
 
     test_config = _init_config()
     # run the test
-    test_executor = ec.Collection2CaomLocalDataClient(
-        test_config, TestStorageName(), 'collection2caom2',
+    test_executor = ec.LocalDataClient(
+        test_config, TestStorageName(), TEST_APP,
         test_cred, data_client_mock, repo_client_mock, test_data_visitors)
     try:
         test_executor.execute(None)
@@ -424,13 +427,13 @@ def test_data_local_execute():
     assert repo_client_mock.update.is_called, 'update call missed'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_data_store():
     test_config = _init_config()
     data_client_mock = Mock()
     repo_client_mock = Mock()
-    test_executor = ec.Collection2CaomStoreClient(
+    test_executor = ec.StoreClient(
         test_config, TestStorageName(), 'command_name', '', data_client_mock,
         repo_client_mock)
     try:
@@ -442,17 +445,17 @@ def test_data_store():
     assert data_client_mock.put_file.is_called, 'put_file call missed'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_scrape():
     # clean up from previous tests
     if os.path.exists(TestStorageName().model_file_name):
         os.remove(TestStorageName().model_file_name)
-    netrc = os.path.join(TESTDATA_DIR, 'test_netrc')
+    netrc = os.path.join(TEST_DATA_DIR, 'test_netrc')
     assert os.path.exists(netrc)
 
     test_config = _init_config()
-    test_config.working_directory = TESTDATA_DIR
+    test_config.working_directory = TEST_DATA_DIR
     test_config.logging_level = 'INFO'
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
@@ -460,7 +463,7 @@ def test_scrape():
         distutils.sysconfig.get_python_lib())
 
     try:
-        test_executor = ec.Collection2CaomScrape(
+        test_executor = ec.Scrape(
             test_config, TestStorageName(), 'command_name')
         try:
             test_executor.execute(None)
@@ -474,14 +477,14 @@ def test_scrape():
             '--module {} '
             '--local {}/test_file.fits.gz '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TESTDATA_DIR, test_source, test_source, TESTDATA_DIR))
+                TEST_DATA_DIR, test_source, test_source, TEST_DATA_DIR))
 
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_data_scrape_execute():
     test_data_visitors = [TestVisit]
     read_orig = mc.read_obs_from_file
@@ -491,8 +494,8 @@ def test_data_scrape_execute():
         test_config = _init_config()
 
         # run the test
-        test_executor = ec.Collection2CaomDataScrape(
-            test_config, TestStorageName(), 'collection2caom2',
+        test_executor = ec.DataScrape(
+            test_config, TestStorageName(), TEST_APP,
             test_data_visitors)
         try:
             test_executor.execute(None)
@@ -505,8 +508,8 @@ def test_data_scrape_execute():
         mc.read_obs_from_file = read_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_organize_executes_client():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -522,6 +525,8 @@ def test_organize_executes_client():
     test_config.retry_file_name = retry_file_name
     exec_cmd_orig = mc.exec_cmd_info
     repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
+    CadcDataClient.__init__ = Mock(return_value=None)
+    CAOM2RepoClient.__init__ = Mock(return_value=None)
 
     try:
         ec.CaomExecute.repo_cmd_get_client = Mock(return_value=None)
@@ -544,7 +549,7 @@ def test_organize_executes_client():
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 1
-        assert isinstance(executors[0], ec.Collection2CaomScrape)
+        assert isinstance(executors[0], ec.Scrape)
 
         test_config.task_types = [mc.TaskType.STORE,
                                   mc.TaskType.INGEST,
@@ -553,13 +558,15 @@ def test_organize_executes_client():
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 4
-        assert isinstance(executors[0], ec.Collection2CaomStoreClient), \
+        assert isinstance(executors[0], ec.StoreClient), \
             type(executors[0])
         assert isinstance(executors[1],
-                          ec.Collection2CaomLocalMetaCreateClient)
-        assert isinstance(executors[2], ec.Collection2CaomLocalDataClient)
+                          ec.LocalMetaCreateClient)
+        assert isinstance(executors[2], ec.LocalDataClient)
         assert isinstance(
-            executors[3], ec.Collection2CaomCompareChecksumClient)
+            executors[3], ec.CompareChecksumClient)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
         test_config.use_local_files = False
         test_config.task_types = [mc.TaskType.INGEST,
@@ -568,8 +575,10 @@ def test_organize_executes_client():
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 2
-        assert isinstance(executors[0], ec.Collection2CaomMetaCreateClient)
-        assert isinstance(executors[1], ec.Collection2CaomDataClient)
+        assert isinstance(executors[0], ec.MetaCreateClient)
+        assert isinstance(executors[1], ec.DataClient)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
         test_config.use_local_files = True
         test_config.task_types = [mc.TaskType.INGEST,
@@ -579,10 +588,12 @@ def test_organize_executes_client():
         assert executors is not None
         assert len(executors) == 3
         assert isinstance(
-            executors[0], ec.Collection2CaomLocalMetaCreateClient)
-        assert isinstance(executors[1], ec.Collection2CaomLocalDataClient)
+            executors[0], ec.LocalMetaCreateClient)
+        assert isinstance(executors[1], ec.LocalDataClient)
         assert isinstance(
-            executors[2], ec.Collection2CaomCompareChecksumClient)
+            executors[2], ec.CompareChecksumClient)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
         test_config.task_types = [mc.TaskType.SCRAPE,
                                   mc.TaskType.MODIFY]
@@ -591,8 +602,10 @@ def test_organize_executes_client():
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 2
-        assert isinstance(executors[0], ec.Collection2CaomScrape)
-        assert isinstance(executors[1], ec.Collection2CaomDataScrape)
+        assert isinstance(executors[0], ec.Scrape)
+        assert isinstance(executors[1], ec.DataScrape)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
         test_config.task_types = [mc.TaskType.REMOTE]
         test_config.use_local_files = True
@@ -601,13 +614,55 @@ def test_organize_executes_client():
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.LocalMetaCreateClientRemoteStorage)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+
+        test_config.task_types = [mc.TaskType.INGEST]
+        test_config.use_local_files = False
+        test_chooser = TestChooser()
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
+        test_oe = ec.OrganizeExecutes(test_config, test_chooser)
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0],
+                          ec.MetaDeleteCreateClient)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+
+        test_config.task_types = [mc.TaskType.PULL]
+        test_config.use_local_files = False
+        test_chooser = TestChooser()
+        ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
+        test_oe = ec.OrganizeExecutes(test_config, test_chooser,
+                                      '/tmp/todo.txt')
+        executors = test_oe.choose(test_obs_id, 'command_name', [], [])
+        assert executors is not None
+        assert len(executors) == 1
+        assert isinstance(executors[0], ec.PullClient)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert executors[0].url == 'https://test_url/', 'url'
+        assert executors[0].fname == 'test_obs_id.fits', 'file name'
+        assert executors[0].stream == 'TEST', 'stream'
+        assert executors[0].working_dir == '{}/test_obs_id'.format(THIS_DIR), \
+            'working_dir'
+        assert executors[0].local_fqn == \
+            '{}/test_obs_id/test_obs_id.fits'.format(THIS_DIR), 'local_fqn'
+        assert test_oe.success_fqn == \
+            '{}/logs/todo_success_log.txt'.format(THIS_DIR), 'wrong success'
+        assert test_oe.retry_fqn == \
+            '{}/logs/todo_retries.txt'.format(THIS_DIR), 'wrong retry'
+        assert test_oe.failure_fqn == \
+            '{}/logs/todo_failure_log.txt'.format(THIS_DIR), 'wrong failure'
+        assert test_oe.todo_fqn == '/tmp/todo.txt', 'wrong todo'
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_organize_executes_chooser():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -617,6 +672,8 @@ def test_organize_executes_chooser():
     test_config.features.supports_composite = True
     exec_cmd_orig = mc.exec_cmd_info
     repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
+    CadcDataClient.__init__ = Mock(return_value=None)
+    CAOM2RepoClient.__init__ = Mock(return_value=None)
 
     try:
         ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
@@ -641,9 +698,12 @@ def test_organize_executes_chooser():
         assert executors is not None
         assert len(executors) == 2
         assert isinstance(executors[0],
-                          ec.Collection2CaomLocalMetaDeleteCreateClient)
+                          ec.LocalMetaDeleteCreateClient)
+        assert executors[0].fname == 'test_obs_id.fits', 'file name'
+        assert executors[0].stream == 'TEST', 'stream'
+        assert executors[0].working_dir == THIS_DIR, 'working_dir'
         assert isinstance(executors[1],
-                          ec.Collection2CaomCompareChecksumClient)
+                          ec.CompareChecksumClient)
 
         test_config.use_local_files = False
         test_config.task_types = [mc.TaskType.INGEST]
@@ -652,19 +712,23 @@ def test_organize_executes_chooser():
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0],
-                          ec.Collection2CaomMetaDeleteCreateClient)
+                          ec.MetaDeleteCreateClient)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_organize_executes_client_existing():
     test_obs_id = TestStorageName()
     test_config = _init_config()
     test_config.features.use_clients = True
     repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
+    CadcDataClient.__init__ = Mock(return_value=None)
+    CAOM2RepoClient.__init__ = Mock(return_value=None)
     try:
 
         ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
@@ -675,13 +739,15 @@ def test_organize_executes_client_existing():
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
         assert len(executors) == 1
-        assert isinstance(executors[0], ec.Collection2CaomMetaUpdateClient)
+        assert isinstance(executors[0], ec.MetaUpdateClient)
+        assert CadcDataClient.__init__.is_called, 'mock not called'
+        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
     finally:
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_organize_executes_client_visit():
     test_obs_id = TestStorageName()
     test_config = _init_config()
@@ -689,17 +755,21 @@ def test_organize_executes_client_visit():
     test_config.task_types = [mc.TaskType.VISIT]
     test_config.use_local_files = False
     test_oe = ec.OrganizeExecutes(test_config)
+    CadcDataClient.__init__ = Mock(return_value=None)
+    CAOM2RepoClient.__init__ = Mock(return_value=None)
     executors = test_oe.choose(test_obs_id, 'command_name', [], [])
     assert executors is not None
     assert len(executors) == 1
-    assert isinstance(executors[0], ec.Collection2CaomClientVisit)
+    assert isinstance(executors[0], ec.ClientVisit)
+    assert CadcDataClient.__init__.is_called, 'mock not called'
+    assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_checksum_client():
     test_config = _init_config()
-    test_executor = ec.Collection2CaomCompareChecksumClient(
+    test_executor = ec.CompareChecksumClient(
         test_config, TestStorageName(), 'test2caom2', None, None, None)
     compare_orig = mc.compare_checksum_client
 
@@ -711,12 +781,13 @@ def test_checksum_client():
         assert test_executor.working_dir == THIS_DIR, 'working dir'
         assert test_executor.model_fqn == os.path.join(
             THIS_DIR, 'test_obs_id.fits.xml'), 'model fqn'
+        assert test_executor.url == 'https://test_url/', 'url'
     finally:
         mc.compare_checksum_client = compare_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_capture_failure():
     test_obs_id = 'test_obs_id'
     test_config = _init_config()
@@ -757,27 +828,27 @@ def test_capture_failure():
     assert failure_content.endswith('test_obs_id None exception text\n')
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file():
     try:
-        os.getcwd = Mock(return_value=TESTDATA_DIR)
+        os.getcwd = Mock(return_value=TEST_DATA_DIR)
         todo_file = os.path.join(os.getcwd(), 'todo.txt')
         f = open(todo_file, 'w')
         f.write('')
         f.close()
-        ec.run_by_file(ec.StorageName, 'collection2caom2', 'collection',
+        ec.run_by_file(ec.StorageName, TEST_APP, 'collection',
                        proxy=None, meta_visitors=None, data_visitors=None)
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file_expects_retry():
-    retry_dir = '{}_0'.format(TESTDATA_DIR)
+    retry_dir = '{}_0'.format(TEST_DATA_DIR)
     if os.path.exists(retry_dir):
         f_log = '{}/failure_log.txt'.format(retry_dir)
         if os.path.exists(f_log):
@@ -803,32 +874,32 @@ def test_run_by_file_expects_retry():
     test_config.failure_log_file_name = 'failure_log.txt'
     test_retry_count = 0
     test_config.task_types = []
-    assert test_config.log_file_directory == TESTDATA_DIR
+    assert test_config.log_file_directory == TEST_DATA_DIR
     assert test_config.work_file == 'todo.txt'
 
     assert test_config.need_to_retry(), 'should require retries'
 
     test_config.update_for_retry(test_retry_count)
-    assert test_config.log_file_directory == '{}_{}'.format(TESTDATA_DIR,
+    assert test_config.log_file_directory == '{}_{}'.format(TEST_DATA_DIR,
                                                             test_retry_count)
     assert test_config.work_file == 'retries.txt'
-    assert test_config.work_fqn == os.path.join(TESTDATA_DIR, 'retries.txt')
+    assert test_config.work_fqn == os.path.join(TEST_DATA_DIR, 'retries.txt')
     try:
-        ec._run_by_file(test_config, TestStorageName, 'collection2caom2',
+        ec._run_by_file(test_config, TestStorageName, TEST_APP,
                         proxy=None, meta_visitors=[], data_visitors=[])
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
 
-    if TESTDATA_DIR.startswith('/usr/src/app'):
+    if TEST_DATA_DIR.startswith('/usr/src/app'):
         # these checks fail on travis ....
-        assert os.path.exists('{}_0'.format(TESTDATA_DIR))
+        assert os.path.exists('{}_0'.format(TEST_DATA_DIR))
         assert os.path.exists(test_config.success_fqn)
         assert os.path.exists(test_config.failure_fqn)
         assert os.path.exists(test_config.retry_fqn)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_do_one():
     test_config = _init_config()
     test_config.task_types = []
@@ -851,8 +922,8 @@ def test_do_one():
     assert test_result == -1
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_storage_name():
     sn = ec.StorageName(obs_id='test_obs_id', collection='TEST',
                         collection_pattern='T[\\w+-]+')
@@ -876,8 +947,8 @@ def test_storage_name():
     assert x == 'test_obs_id'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_caom_name():
     cn = ec.CaomName(uri='ad:TEST/test_obs_id.fits.gz')
     assert cn.file_id == 'test_obs_id'
@@ -887,8 +958,8 @@ def test_caom_name():
         'caom:TEST/test_obs_id'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_local_meta_create_client_remote_storage_execute():
     os_path_exists_orig = os.path.exists
@@ -906,9 +977,8 @@ def test_local_meta_create_client_remote_storage_execute():
     mc.exec_cmd = Mock()
     mc.read_obs_from_file = Mock()
     mc.read_obs_from_file.return_value = _read_obs(None)
-    test_app = 'collection2caom2'
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
-                                       test_app, test_app)
+                                       TEST_APP, TEST_APP)
     test_local = '{}/test_obs_id.fits'.format(THIS_DIR)
 
     try:
@@ -916,7 +986,7 @@ def test_local_meta_create_client_remote_storage_execute():
 
         # run the test
         test_executor = ec.LocalMetaCreateClientRemoteStorage(
-            test_config, TestStorageName(), test_app, test_cred,
+            test_config, TestStorageName(), TEST_APP, test_cred,
             data_client_mock, repo_client_mock, None)
         try:
             test_executor.execute(None)
@@ -931,7 +1001,7 @@ def test_local_meta_create_client_remote_storage_execute():
             '--out {}/test_obs_id.fits.xml --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, test_local, THIS_DIR, test_source, test_source))
+                TEST_APP, test_local, THIS_DIR, test_source, test_source))
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -939,8 +1009,8 @@ def test_local_meta_create_client_remote_storage_execute():
         mc.exec_cmd = exec_cmd_orig
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_local_meta_update_client_remote_storage_execute():
     os_path_exists_orig = os.path.exists
@@ -958,17 +1028,15 @@ def test_local_meta_update_client_remote_storage_execute():
     mc.exec_cmd = Mock()
     mc.read_obs_from_file = Mock()
     mc.read_obs_from_file.return_value = _read_obs(None)
-    test_app = 'collection2caom2'
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
-                                       test_app, test_app)
+                                       TEST_APP, TEST_APP)
     test_local = '{}/test_obs_id.fits'.format(THIS_DIR)
 
     try:
         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
-
         # run the test
         test_executor = ec.LocalMetaUpdateClientRemoteStorage(
-            test_config, TestStorageName(), test_app, test_cred,
+            test_config, TestStorageName(), TEST_APP, test_cred,
             data_client_mock, repo_client_mock, _read_obs(None), None)
         try:
             test_executor.execute(None)
@@ -984,13 +1052,102 @@ def test_local_meta_update_client_remote_storage_execute():
             '--out {}/test_obs_id.fits.xml --local {} --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                test_app, THIS_DIR, THIS_DIR, test_local, test_source,
+                TEST_APP, THIS_DIR, THIS_DIR, test_local, test_source,
                 test_source))
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
         os.rmdir = os_rmdir_orig
         mc.exec_cmd = exec_cmd_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_omm_name_dots():
+    TEST_NAME = 'C121121_J024345.57-021326.4_K_SCIRED'
+    TEST_URI = 'ad:OMM/{}.fits.gz'.format(TEST_NAME)
+    test_file_id = ec.CaomName(TEST_URI).file_id
+    assert TEST_NAME == test_file_id, 'dots messing with things'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('sys.exit', Mock(side_effect=MyExitError))
+def test_pull_client():
+    # Response mock
+    class Object(object):
+        pass
+
+        def raise_for_status(self):
+            pass
+
+        def iter_content(self, chunk_size):
+            return ['aaa'.encode(), 'bbb'.encode()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, a, b, c):
+            return None
+
+    test_config = _init_config()
+    data_client_mock = Mock()
+    repo_client_mock = Mock()
+    test_sn = TestStorageName()
+    test_sn.url = 'file://{}/{}'.format(TEST_DATA_DIR, 'C111107_0694_SCI.fits')
+    test_sn.fname_on_disk = '{}/{}'.format(TEST_DATA_DIR, 'x.fits')
+    ec.CaomExecute._cleanup = Mock()
+    with patch('requests.get') as get_mock:
+        get_mock.return_value = Object()
+        test_executor = ec.PullClient(test_config, test_sn, TEST_APP, None,
+                                      data_client_mock, repo_client_mock)
+        with pytest.raises(OSError):
+            test_executor.execute(None)
+            assert data_client_mock.put_file.is_called, 'call missed'
+            assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('sys.exit', Mock(side_effect=MyExitError))
+def test_choose_exceptions():
+    test_config = _init_config()
+    test_config.init_local_files = False
+    test_config.task_types = [mc.TaskType.SCRAPE]
+    with pytest.raises(mc.CadcException):
+        test_organizer = ec.OrganizeExecutes(test_config)
+        test_organizer.choose(TestStorageName(), 'command name', [], [])
+
+    test_config.task_types = [mc.TaskType.STORE]
+    with pytest.raises(mc.CadcException):
+        test_organizer = ec.OrganizeExecutes(test_config)
+        test_organizer.choose(TestStorageName(), 'command name', [], [])
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('sys.exit', Mock(side_effect=MyExitError))
+def test_storage_name_failure():
+    class TestStorageNameFails(TestStorageName):
+
+        def __init__(self):
+            super(TestStorageNameFails, self).__init__()
+
+        def is_valid(self):
+            return False
+    test_config = _init_config()
+    test_config.log_to_file = True
+    good_start = os.path.getmtime(test_config.success_fqn)
+    fail_start = os.path.getmtime(test_config.failure_fqn)
+    retry_start = os.path.getmtime(test_config.retry_fqn)
+    test_organizer = ec.OrganizeExecutes(test_config)
+    test_organizer.choose(TestStorageNameFails(), 'command name', [], [])
+    good_end = os.path.getmtime(test_config.success_fqn)
+    fail_end = os.path.getmtime(test_config.failure_fqn)
+    retry_end = os.path.getmtime(test_config.retry_fqn)
+    assert good_end > good_start, 'good'
+    assert retry_end > retry_start, 'retry'
+    assert fail_end > fail_start, 'failure'
 
 
 def _communicate():

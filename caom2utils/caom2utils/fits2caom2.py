@@ -73,11 +73,12 @@ from __future__ import (absolute_import, division, print_function,
 import argparse
 from builtins import str
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 
 import math
 from astropy.wcs import Wcsprm
 from astropy.io import fits
-from cadcutils import version
+from cadcutils import version, exceptions
 from caom2.caom_util import int_32
 from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
@@ -97,6 +98,7 @@ import importlib
 import logging
 import os
 import re
+import requests
 import sys
 import tempfile
 import traceback
@@ -110,13 +112,16 @@ from cadcdata import CadcDataClient
 from vos import Client
 from io import BytesIO
 import six
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 APP_NAME = 'caom2gen'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
-           'GenericParser', 'augment', 'get_vos_headers']
+           'GenericParser', 'augment', 'get_vos_headers',
+           'get_external_headers']
 
 POSITION_CTYPES = [
     ['RA',
@@ -1754,7 +1759,7 @@ class FitsParser(GenericParser):
             ii = str(i)
 
             # there is one Part per extension, the name is the extension number
-            if self.blueprint.has_chunk(i):
+            if self._has_data_array(header) and self.blueprint.has_chunk(i):
                 if ii not in artifact.parts.keys():
                     artifact.parts.add(Part(ii))  # TODO use extension name?
                     self.logger.debug('Part created for HDU {}.'.format(ii))
@@ -2062,33 +2067,36 @@ class FitsParser(GenericParser):
         aug_naxis = self._get_naxis('energy', index)
 
         specsys = _to_str(self._get_from_list('Chunk.energy.specsys', index))
-        if not chunk.energy:
-            chunk.energy = SpectralWCS(aug_naxis, specsys)
+        if aug_naxis is None:
+            self.logger.debug('No blueprint energy information.')
         else:
-            chunk.energy.naxis = aug_naxis
-            chunk.energy.specsys = specsys
+            if not chunk.energy:
+                chunk.energy = SpectralWCS(aug_naxis, specsys)
+            else:
+                chunk.energy.naxis = aug_naxis
+                chunk.energy.specsys = specsys
 
-        if chunk.energy is not None:
-            chunk.energy.ssysobs = self._get_from_list('Chunk.energy.ssysobs',
-                                                       index)
-            chunk.energy.restfrq = self._get_from_list('Chunk.energy.restfrq',
-                                                       index)
-            chunk.energy.restwav = self._get_from_list('Chunk.energy.restwav',
-                                                       index)
-            chunk.energy.velosys = self._get_from_list('Chunk.energy.velosys',
-                                                       index)
-            chunk.energy.zsource = self._get_from_list('Chunk.energy.zsource',
-                                                       index)
-            chunk.energy.ssyssrc = self._get_from_list('Chunk.energy.ssyssrc',
-                                                       index)
-            chunk.energy.velang = self._get_from_list('Chunk.energy.velang',
-                                                      index)
-            chunk.energy.bandpass_name = self._get_from_list(
-                'Chunk.energy.bandpassName', index)
-            chunk.energy.transition = self._get_from_list(
-                'Chunk.energy.transition', index)
-            chunk.energy.resolving_power = _to_float(self._get_from_list(
-                'Chunk.energy.resolvingPower', index))
+            if chunk.energy is not None:
+                chunk.energy.ssysobs = self._get_from_list(
+                    'Chunk.energy.ssysobs', index)
+                chunk.energy.restfrq = self._get_from_list(
+                    'Chunk.energy.restfrq', index)
+                chunk.energy.restwav = self._get_from_list(
+                    'Chunk.energy.restwav', index)
+                chunk.energy.velosys = self._get_from_list(
+                    'Chunk.energy.velosys', index)
+                chunk.energy.zsource = self._get_from_list(
+                    'Chunk.energy.zsource', index)
+                chunk.energy.ssyssrc = self._get_from_list(
+                    'Chunk.energy.ssyssrc', index)
+                chunk.energy.velang = self._get_from_list(
+                    'Chunk.energy.velang', index)
+                chunk.energy.bandpass_name = self._get_from_list(
+                    'Chunk.energy.bandpassName', index)
+                chunk.energy.transition = self._get_from_list(
+                    'Chunk.energy.transition', index)
+                chunk.energy.resolving_power = _to_float(self._get_from_list(
+                    'Chunk.energy.resolvingPower', index))
         self.logger.debug('End augmentation with blueprint for energy.')
 
     def _two_param_constructor(self, lookup1, lookup2, index, to_type, ctor):
@@ -2306,9 +2314,12 @@ class FitsParser(GenericParser):
                 for index, header in enumerate(self.headers):
                     for keywords in value[0]:
                         for keyword in keywords.split(','):
-                            if not header.get(keyword.strip()):
+                            if (not header.get(keyword.strip()) and
+                                keyword == keywords and  # checking a string
+                                    keywords == value[0][-1]):  # last item
                                 # apply a default if a value does not already
-                                # exist
+                                # exist, and all possible values of
+                                # keywords have been checked
                                 _set_by_type(header, keyword.strip(), value[1])
                                 logging.debug(
                                     '{}: set default value of {} in HDU {}.'.
@@ -2425,6 +2436,7 @@ class FitsParser(GenericParser):
         :return: Proposal
         """
         self.logger.debug('Begin Proposal augmentation.')
+        keywords = None
         if current is None:
             prop_id = self._get_from_list('Observation.proposal.id', index=0)
             pi = self._get_from_list('Observation.proposal.pi', index=0)
@@ -2441,9 +2453,14 @@ class FitsParser(GenericParser):
                 current=current.project)
             title = self._get_from_list('Observation.proposal.title', index=0,
                                         current=current.title)
+            keywords = self._get_from_list('Observation.proposal.keywords',
+                                           index=0)
         self.logger.debug('End Proposal augmentation.')
         if prop_id:
-            return Proposal(str(prop_id), pi, project, title)
+            proposal = Proposal(str(prop_id), pi, project, title)
+            if keywords:
+                proposal.keywords = keywords
+            return proposal
         else:
             return None
 
@@ -2832,6 +2849,39 @@ class FitsParser(GenericParser):
         elif from_value == 'true':
             result = True
         return result
+
+    def _has_data_array(self, header):
+        """
+
+        :param header:
+        :return:
+        """
+        naxis = 0
+        if 'ZNAXIS' in header:
+            naxis = _to_int(header['ZNAXIS'])
+        elif 'NAXIS' in header:
+            naxis = _to_int(header['NAXIS'])
+        if not naxis:
+            return False
+
+        data_axes = 0
+        for i in range(1, naxis + 1):
+            axis = 'NAXIS{}'.format(i)
+            if axis in header:
+                data_axis = _to_int(header[axis])
+                if not data_axes:
+                    data_axes = data_axis
+                else:
+                    data_axes = data_axes * data_axis
+        if not data_axes:
+            return False
+
+        bitpix = 0
+        if 'BITPIX' in header:
+            bitpix = _to_int(header['BITPIX'])
+        if not bitpix:
+            return False
+        return True
 
 
 class WcsParser(object):
@@ -3282,7 +3332,8 @@ def get_cadc_headers(uri, subject=None):
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
-    if file_url.scheme == 'ad':
+    if (file_url.scheme == 'ad' or
+            file_url.scheme == 'gemini'):
         # create possible types of subjects
         if not subject:
             subject = net.Subject()
@@ -3305,6 +3356,29 @@ def get_cadc_headers(uri, subject=None):
         # TODO add hook to support other service providers
         raise NotImplementedError('Only ad type URIs supported')
     return headers
+
+
+def get_external_headers(external_url):
+    try:
+        session = requests.Session()
+        retries = 10
+        retry = Retry(total=retries, read=retries, connect=retries,
+                      backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        r = session.get(external_url, timeout=20)
+        if r.status_code == requests.codes.ok:
+            headers = _make_headers_from_string(r.text)
+        else:
+            headers = None
+            logging.warning('Error {} when retrieving {} headers.'.format(
+                r.status_code, external_url))
+        r.close()
+        return headers
+    except Exception as e:
+        logging.error('Connection failed to {}.\n{}'.format(external_url, e))
+        raise RuntimeError(e)
 
 
 def get_vos_headers(uri, subject=None):
@@ -3338,11 +3412,36 @@ def get_vos_headers(uri, subject=None):
 def _make_headers_from_string(fits_header):
     """Create a list of fits.Header instances from a string.
     ":param fits_header a string of keyword/value pairs"""
-    delim = '\nEND'
+    fits_header = _clean_headers(fits_header)
+    delim = 'END\n'
     extensions = \
         [e + delim for e in fits_header.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers
+
+
+def _clean_headers(fits_header):
+    """
+    Hopefully not Gemini specific.
+    Remove invalid cards and add missing END cards after extensions.
+    :param fits_header: fits_header a string of keyword/value pairs
+    """
+    new_header = []
+    for line in fits_header.split('\n'):
+        if len(line.strip()) == 0:
+            pass
+        elif line.startswith('--- HDU 0'):
+            pass
+        elif line.startswith('--- HDU'):
+            new_header.append('END\n')
+        elif line.strip() == 'END':
+            new_header.append('END\n')
+        elif '=' not in line:
+            pass
+        else:
+            new_header.append('{}\n'.format(line))
+    new_header.append('END\n')
+    return ''.join(new_header)
 
 
 def _get_headers_from_fits(path):
@@ -3362,21 +3461,40 @@ def _update_artifact_meta(uri, artifact, subject=None):
     :return:
     """
     file_url = urlparse(uri)
-    if file_url.scheme in ['ad', 'gemini']:
+    if file_url.scheme == 'ad':
         metadata = _get_cadc_meta(subject, file_url.path)
+    elif file_url.scheme == 'gemini':
+        if '.jpg' in file_url.path:
+            # will always get file metadata from CADC for previews
+            metadata = _get_cadc_meta(subject, file_url.path)
+        else:
+            # will get file metadata from Gemini JSON summary for fits,
+            # because the metadata is available long before the data
+            # will be stored at CADC
+            return
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
-        if file_url.path.endswith('.header'):
+        if file_url.path.endswith('.header') and subject is not None:
             # if header is on disk, get the content_* from ad
-            metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
+            try:
+                metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
+            except exceptions.NotFoundException:
+                logging.info(
+                    'Could not find {} at CADC. No Artifact metadata.'.format(
+                        urlparse(artifact.uri).path))
+                return
         else:
             metadata = _get_file_meta(file_url.path)
     else:
         # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad and vos type URIs supported')
+        raise NotImplementedError(
+            'Only ad, gemini and vos type URIs supported')
 
-    checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
+    if metadata['md5sum'].startswith('md5:'):
+        checksum = ChecksumURI('{}'.format(metadata['md5sum']))
+    else:
+        checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
@@ -3482,7 +3600,8 @@ def _extract_ids(cardinality):
 
 
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
-             validate_wcs=True, plugin=None, local=None, **kwargs):
+             validate_wcs=True, plugin=None, local=None,
+             external_url=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3498,7 +3617,9 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         observation, which checks that the WCS in the CAOM model is valid,
     :param plugin: what code to use for modifying a CAOM instance
     :param local: the input is the name of a file on disk
-    :return:
+    :param external_url: if header information should be retrieved
+        externally, this is where to find it
+    :return: an updated Observation
     """
     if dumpconfig:
         print('Blueprint for {}: {}'.format(uri, blueprint))
@@ -3543,6 +3664,14 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 # explicitly ignore headers for txt and image files
                 logging.debug('Using a GenericParser for {}'.format(local))
                 parser = GenericParser(blueprint, uri=uri)
+    elif external_url:
+        headers = get_external_headers(external_url)
+        if headers is None:
+            parser = None
+        else:
+            logging.debug(
+                'Using a FitsParser for remote headers {}'.format(uri))
+            parser = FitsParser(headers, blueprint, uri=uri)
     else:
         if uri.endswith('.fits') or uri.endswith('.fits.gz'):
             if uri.startswith('vos'):
@@ -3557,27 +3686,32 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 'Using a GenericParser for remote file {}'.format(uri))
             parser = GenericParser(blueprint, uri=uri)
 
-    _update_artifact_meta(meta_uri, plane.artifacts[uri], subject)
+    if parser is None:
+        result = None
+    else:
+        _update_artifact_meta(meta_uri, plane.artifacts[uri], subject)
 
-    parser.augment_observation(observation=obs, artifact_uri=uri,
-                               product_id=plane.product_id)
+        parser.augment_observation(observation=obs, artifact_uri=uri,
+                                   product_id=plane.product_id)
 
-    _visit(plugin, parser, obs, visit_local, **kwargs)
+        result = _visit(plugin, parser, obs, visit_local, product_id, **kwargs)
 
-    if validate_wcs:
-        try:
-            validate(obs)
-        except InvalidWCSError as e:
-            logging.error(e)
-            tb = traceback.format_exc()
-            logging.error(tb)
-            raise e
+        if validate_wcs:
+            try:
+                validate(obs)
+            except InvalidWCSError as e:
+                logging.error(e)
+                tb = traceback.format_exc()
+                logging.error(tb)
+                raise e
 
-    if len(parser._errors) > 0:
-        logging.debug(
-            '{} errors encountered while processing {!r}.'.format(
-                len(parser._errors), uri))
-        logging.debug('{}'.format(parser._errors))
+        if len(parser._errors) > 0:
+            logging.debug(
+                '{} errors encountered while processing {!r}.'.format(
+                    len(parser._errors), uri))
+            logging.debug('{}'.format(parser._errors))
+
+    return result
 
 
 def _load_module(module):
@@ -3704,9 +3838,12 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
 
 def _set_logging(verbose, debug, quiet):
     logger = logging.getLogger()
+    # replace the StreamHandler with one that has custom formatters
     if logger.handlers:
-        handler = logger.handlers[0]
-        logger.removeHandler(handler)
+        for handler in logger.handlers:
+            if not isinstance(handler, TimedRotatingFileHandler):
+                logger.removeHandler(handler)
+
     handler = logging.StreamHandler()
     handler.setFormatter(DispatchingFormatter({
         'caom2utils.fits2caom2.WcsParser': logging.Formatter(
@@ -3851,8 +3988,9 @@ def proc(args, obs_blueprints):
         if args.local:
             file_name = args.local[i]
 
-        _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
-                 validate_wcs, plugin=None, local=file_name)
+        obs = _augment(obs, product_id, uri, blueprint, subject,
+                       args.dumpconfig, validate_wcs, plugin=None,
+                       local=file_name)
 
     writer = ObservationWriter()
     if args.out_obs_xml:
@@ -3881,31 +4019,37 @@ def _load_plugin(plugin_name):
     return plgin
 
 
-def _visit(plugn, parser, obs, visit_local, **kwargs):
-    if plugn is not None:
+def _visit(plugin_name, parser, obs, visit_local, product_id=None, **kwargs):
+    result = obs
+    if plugin_name is not None:
         if isinstance(parser, FitsParser):
             # TODO make a check that's necessary under both calling conditions
             # here
-            if len(plugn) > 0:
+            if len(plugin_name) > 0:
                 logging.debug(
                     'Begin plugin execution {!r} update method on '
-                    'observation {!r}'.format(plugn, obs.observation_id))
-                plgin = _load_plugin(plugn)
+                    'observation {!r}'.format(plugin_name, obs.observation_id))
+                plgin = _load_plugin(plugin_name)
                 kwargs['headers'] = parser.headers
                 if visit_local is not None:
                     kwargs['fqn'] = visit_local
+                if product_id is not None:
+                    kwargs['product_id'] = product_id
                 try:
-                    if plgin.update(observation=obs, **kwargs):
+                    result = plgin.update(observation=obs, **kwargs)
+                    if result is not None:
                         logging.debug(
                             'Finished executing plugin {!r} update '
                             'method on observation {!r}'.format(
-                                plugn, obs.observation_id))
+                                plugin_name, obs.observation_id))
                 except Exception as e:
-                    logging.debug(e)
+                    logging.error(e)
                     tb = traceback.format_exc()
                     logging.debug(tb)
+                    raise e
         else:
             logging.debug('Not a FitsParser, no plugin execution.')
+    return result
 
 
 def gen_proc(args, blueprints, **kwargs):
@@ -3937,15 +4081,31 @@ def gen_proc(args, blueprints, **kwargs):
         if args.local:
             file_name = args.local[ii]
 
-        _augment(obs, product_id, uri, blueprint, subject, args.dumpconfig,
-                 validate_wcs, args.plugin, file_name, **kwargs)
+        external_url = None
+        if args.external_url:
+            external_url = args.external_url[ii]
 
-    writer = ObservationWriter()
-    if args.out_obs_xml:
-        writer.write(obs, args.out_obs_xml)
+        obs = _augment(obs, product_id, uri, blueprint, subject,
+                       args.dumpconfig, validate_wcs, args.plugin, file_name,
+                       external_url, **kwargs)
+
+        if obs is None:
+            logging.warning('No observation. Stop processing.')
+            break
+
+    if obs is None:
+        if args.in_obs_xml:
+            log_id = args.lineage
+        else:
+            log_id = args.observation
+        logging.warning('No Observation generated for {}'.format(log_id))
     else:
-        sys.stdout.flush()
-        writer.write(obs, sys.stdout)
+        writer = ObservationWriter()
+        if args.out_obs_xml:
+            writer.write(obs, args.out_obs_xml)
+        else:
+            sys.stdout.flush()
+            writer.write(obs, sys.stdout)
 
 
 def get_gen_proc_arg_parser():
@@ -3955,6 +4115,11 @@ def get_gen_proc_arg_parser():
     :return: args parser
     """
     parser = _get_common_arg_parser()
+    parser.add_argument('--external_url',  nargs='+',
+                        help=('service endpoint(s) that '
+                              'return(s) a string that can be '
+                              'made into FITS headers. Cardinality should'
+                              'be consistent with lineage.'))
     parser.add_argument('--module', help=('if the blueprint contains function '
                                           'calls, call '
                                           'importlib.import_module '
@@ -4007,8 +4172,8 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
         validate_wcs = not no_validate
 
     for ii in blueprints:
-        _augment(obs, product_id, uri, blueprints[ii], subject, dump_config,
-                 validate_wcs, plugin, file_name, **kwargs)
+        obs = _augment(obs, product_id, uri, blueprints[ii], subject,
+                       dump_config, validate_wcs, plugin, file_name, **kwargs)
 
     writer = ObservationWriter()
     writer.write(obs, out_obs_xml)

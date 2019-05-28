@@ -76,38 +76,104 @@ import six
 from mock import Mock, patch
 
 from caom2 import ProductType, ReleaseType, Artifact, ChecksumURI
+from caom2 import SimpleObservation
 if six.PY3:
     from caom2pipe import manage_composable as mc
 
 
+PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
+TEST_STATE_FILE = os.path.join(TEST_DATA_DIR, 'test_state.yml')
+TEST_OBS_FILE = os.path.join(TEST_DATA_DIR, 'test_obs_id.fits.xml')
+ISO8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_read_obs():
+    test_subject = mc.read_obs_from_file(TEST_OBS_FILE)
+    assert test_subject is not None, 'expect a result'
+    assert isinstance(test_subject, SimpleObservation), 'wrong read'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_read_from_file():
+    test_subject = mc.read_from_file(TEST_OBS_FILE)
+    assert test_subject is not None, 'expect a result'
+    assert isinstance(test_subject, list), 'wrong type of result'
+    assert len(test_subject) == 8, 'missed some content'
+    assert test_subject[0].startswith('<?xml version'), 'read failed'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_build_uri():
+    test_subject = mc.build_uri('archive', 'file_name.fits')
+    assert test_subject is not None, 'expect a result'
+    assert test_subject == 'ad:archive/file_name.fits', 'wrong result'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_query_endpoint():
+
+    with patch('requests.Session.get') as session_get_mock:
+        test_result = mc.query_endpoint('https://localhost', timeout=25)
+        assert test_result is not None, 'expected result'
+        assert session_get_mock.is_called, 'mock not called'
+        session_get_mock.assert_called_with('https://localhost', timeout=25)
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_config_class():
-    os.getcwd = Mock(return_value=TESTDATA_DIR)
+    os.getcwd = Mock(return_value=TEST_DATA_DIR)
+    mock_root = '/usr/src/app/omm2caom2/omm2caom2/tests/data'
     test_config = mc.Config()
     test_config.get_executors()
     assert test_config is not None
     assert test_config.work_file == 'todo.txt'
     assert test_config.features is not None
     assert test_config.features.supports_composite is False
+    assert test_config.working_directory == mock_root, 'wrong dir'
+    assert test_config.work_fqn == '{}/todo.txt'.format(mock_root), 'work_fqn'
+    assert test_config.netrc_file == '.netrc', 'netrc'
+    assert test_config.archive == 'TEST', 'archive'
+    assert test_config.collection == 'TEST', 'collection'
+    assert test_config.log_file_directory == mock_root, 'logging dir'
+    assert test_config.success_fqn == '{}/success_log.txt'.format(mock_root), \
+        'success fqn'
+    assert test_config.success_log_file_name == 'success_log.txt', \
+        'success file'
+    assert test_config.failure_fqn == '{}/failure_log.txt'.format(mock_root), \
+        'failure fqn'
+    assert test_config.failure_log_file_name == 'failure_log.txt', \
+        'failure file'
+    assert test_config.retry_file_name == 'retries.txt', 'retry file'
+    assert test_config.retry_fqn == '{}/retries.txt'.format(mock_root), \
+        'retry fqn'
+    assert test_config.proxy_file_name == 'test_proxy.pem', 'proxy file name'
+    assert test_config.proxy_fqn == '{}/test_proxy.pem'.format(mock_root), \
+        'proxy fqn'
+    assert test_config.state_file_name == 'state.yml', 'state file name'
+    assert test_config.state_fqn == '{}/state.yml'.format(mock_root), \
+        'state fqn'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_exec_cmd():
     test_cmd = 'ls /abc'
     with pytest.raises(mc.CadcException):
         mc.exec_cmd(test_cmd)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support 3.6 only')
 def test_exec_cmd_redirect():
-    fqn = os.path.join(TESTDATA_DIR, 'exec_cmd_redirect.txt')
+    fqn = os.path.join(TEST_DATA_DIR, 'exec_cmd_redirect.txt')
     if os.path.exists(fqn):
         os.remove(fqn)
 
@@ -117,19 +183,19 @@ def test_exec_cmd_redirect():
     assert os.stat(fqn).st_size > 0
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('caom2utils.fits2caom2.CadcDataClient.get_file_info')
 def test_compare_checksum(mock_get_file_info):
 
     # fail case - file doesn't exist
-    test_file = os.path.join(TESTDATA_DIR, 'test_omm.fits.gz')
-    test_netrc = os.path.join(TESTDATA_DIR, 'test_netrc')
+    test_file = os.path.join(TEST_DATA_DIR, 'test_omm.fits.gz')
+    test_netrc = os.path.join(TEST_DATA_DIR, 'test_netrc')
     with pytest.raises(mc.CadcException):
         mc.compare_checksum(test_netrc, 'OMM', test_file)
 
     # fail case - file exists, different checksum - make a small test file
-    test_file = os.path.join(TESTDATA_DIR, 'C111107_0694_SCI.fits')
+    test_file = os.path.join(TEST_DATA_DIR, 'C111107_0694_SCI.fits')
     f = open(test_file, 'w')
     f.write('test')
     f.close()
@@ -137,8 +203,8 @@ def test_compare_checksum(mock_get_file_info):
         mc.compare_checksum(test_netrc, 'OMM', test_file)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_decompose_lineage():
     test_product_id = 'product_id'
     test_uri = 'ad:STARS/galaxies.fits.gz'
@@ -152,41 +218,41 @@ def test_decompose_lineage():
         mc.decompose_lineage('')
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_read_csv_file():
     # bad read
     with pytest.raises(mc.CadcException):
         mc.read_csv_file(None)
 
     # good read
-    test_file_name = os.path.join(TESTDATA_DIR, 'test_csv.csv')
+    test_file_name = os.path.join(TEST_DATA_DIR, 'test_csv.csv')
     content = mc.read_csv_file(test_file_name)
     assert content is not None, 'empty results returned'
     assert len(content) == 1, 'missed the comment and the header'
     assert len(content[0]) == 24, 'missed the content'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_get_file_meta():
     # None
     with pytest.raises(mc.CadcException):
         mc.get_file_meta(None)
 
     # non-existent file
-    fqn = os.path.join(TESTDATA_DIR, 'abc.txt')
+    fqn = os.path.join(TEST_DATA_DIR, 'abc.txt')
     with pytest.raises(mc.CadcException):
         mc.get_file_meta(fqn)
 
     # empty file
-    fqn = os.path.join(TESTDATA_DIR, 'todo.txt')
+    fqn = os.path.join(TEST_DATA_DIR, 'todo.txt')
     result = mc.get_file_meta(fqn)
     assert result['size'] == 0, result['size']
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @patch('cadcdata.core.net.BaseWsClient')
 def test_read_file_list_from_archive(basews_mock):
 
@@ -202,11 +268,11 @@ def test_read_file_list_from_archive(basews_mock):
     assert len(result) == 0
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_write_to_file():
     content = ['a.txt', 'b.jpg', 'c.fits.gz']
-    test_fqn = '{}/test_out.txt'.format(TESTDATA_DIR)
+    test_fqn = '{}/test_out.txt'.format(TEST_DATA_DIR)
     if os.path.exists(test_fqn):
         os.remove(test_fqn)
 
@@ -214,7 +280,7 @@ def test_write_to_file():
     assert os.path.exists(test_fqn)
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support 3.6 only')
 def test_get_lineage():
     result = mc.get_lineage('TEST_COLLECTION', 'TEST_PRODUCT_ID',
@@ -222,10 +288,10 @@ def test_get_lineage():
     assert result == 'TEST_PRODUCT_ID/ad:TEST_COLLECTION/TEST_FILE_NAME.fits'
 
 
-@pytest.mark.skipif(not sys.version.startswith('3.6'),
-                    reason='support 3.6 only')
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 def test_get_artifact_metadata():
-    test_fqn = os.path.join(TESTDATA_DIR, 'config.yml')
+    test_fqn = os.path.join(TEST_DATA_DIR, 'config.yml')
     test_uri = 'ad:TEST/config.yml'
 
     # wrong command line parameters
@@ -239,9 +305,9 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.product_type == ProductType.WEIGHT, 'wrong product type'
-    assert result.content_length == 255, 'wrong length'
+    assert result.content_length == 314, 'wrong length'
     assert result.content_checksum.uri == \
-        'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
+        'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
 
     # update action
     result.content_checksum = ChecksumURI('md5:abc')
@@ -250,53 +316,38 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.content_checksum.uri == \
-        'md5:c649725745805d41fc1b601e85400e60', 'wrong checksum'
+        'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
 
 
-# TODO understand python mocking .... :(
-# @pytest.mark.skipif(not sys.version.startswith('3.6'),
-#                     reason='support 3.6 only')
-# @patch('cadcdata.core.net.BaseWsClient')
-# @patch('cadcdata.core.TransferReader')
-# @patch('cadcdata.core.CadcDataClient')
-# def test_get_cadc_headers(basews_mock, trans_reader_mock, client_mock):
-#     with pytest.raises(mc.CadcException):
-#         mc.get_cadc_headers('file:GEM/TEST.fits')
-#
-#     # from cadcdata import transfer
-#     # t = transfer.Transfer('ad:GEM/TEST.fits', 'pullFromVoSpace')
-#     # p = transfer.Protocol
-#     # p.endpoint = Mock()
-#     # t.protocols = [p]
-#     # trans_reader_mock.return_value.read.return_value = t
-#     #
-#     # file_content = 'ABCDEFGH12345'
-#     # file_chunks = [file_content[i:i + 5].encode()
-#     #                for i in range(0, len(file_content), 5)]
-#     # response = Mock()
-#     # response.headers.get.return_value =
-#       'filename={}.gz'.format('TEST.fits')
-#     # response.raw.read.side_effect = file_chunks
-#     # response.history = []
-#     # response.status_code = 200
-#     # response.url = 'someurl'
-#     # post_mock = Mock(return_value=response)
-#     # basews_mock.return_value.post = post_mock
-#     client_mock.return_value.get_file.return_value = ''
-#     result = mc.get_cadc_headers('ad:GEM/TEST.fits')
-#     assert result is not None
-#     assert len(result) == 0
-#
-# a different approach
-#     with patch('caom2utils.fits2caom2.CadcDataClient') as data_client_mock:
-#         def get_file_info(archive, file_id):
-#             if '_prev' in file_id:
-#                 return {'size': 10290,
-#                         'md5sum': md5('-37'.encode()).hexdigest(),
-#                         'type': 'image/jpeg'}
-#             else:
-#                 return {'size': 37,
-#                         'md5sum': md5('-37'.encode()).hexdigest(),
-#                         'type': 'application/fits'}
-#         data_client_mock.return_value.get_file_info.side_effect = \
-#             get_file_info
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('cadcdata.core.CadcDataClient')
+def test_data_put(mock_client):
+    with pytest.raises(mc.CadcException):
+        mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default')
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('cadcdata.core.CadcDataClient')
+def test_data_get(mock_client):
+    with pytest.raises(mc.CadcException):
+        mc.data_get(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST')
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_state():
+    test_start = os.path.getmtime(TEST_STATE_FILE)
+    with pytest.raises(mc.CadcException):
+        test_subject = mc.State('nonexistent')
+
+    test_subject = mc.State(TEST_STATE_FILE)
+    assert test_subject is not None, 'expect result'
+    test_result = test_subject.get_bookmark('gemini_timestamp')
+    assert test_result is not None, 'expect content'
+    assert test_result == '2017-06-19T03:21:29.345417'
+
+    test_subject.save_state('gemini_timestamp', test_result)
+    test_end = os.path.getmtime(TEST_STATE_FILE)
+    assert test_start != test_end, 'file should be modified'

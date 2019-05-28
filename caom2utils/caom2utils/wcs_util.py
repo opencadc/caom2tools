@@ -191,7 +191,7 @@ class EnergyUtil:
         return shape.SubInterval(p1, p2)
 
 
-class PolarizationWcsUtil():
+class PolarizationWcsUtil:
     def _get_range(self, from_range):
         if from_range is not None:
             lb = int(round(from_range.start.val))
