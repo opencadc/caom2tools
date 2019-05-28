@@ -1166,6 +1166,7 @@ def query_endpoint(url, timeout=20):
     session.mount('https://', adapter)
     try:
         response = session.get(url, timeout=timeout)
+        response.raise_for_status()
         return response
     except Exception as e:
         raise CadcException('Endpoint {} failure {}'.format(url, str(e)))
