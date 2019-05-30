@@ -1,5 +1,5 @@
 caom2utils
-=========
+==========
 
 .. image:: https://img.shields.io/pypi/v/caom2utils.svg   
     :target: https://pypi.python.org/pypi/caom2utils
@@ -7,7 +7,7 @@ caom2utils
 Utilities to facililate working with the CAOM2 model.
 
 Observation Validation
----------------------
+----------------------
 
 Validates a CAOM2 element (Observation, Plane, Artifact, Part or Chunk) with respect to the attributes of the element and possibly all its sub-elements. Example of validations: attribute values, spherical geometry of planes, WCS of chuncks, etc.
 
@@ -38,6 +38,8 @@ There are two command-line applications that will generate a CAOM2 Observation i
 fits2caom2
 ----------
 
+.. code-block:: console
+
     usage: fits2caom2 [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                       [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v]
                       [-V] [--dumpconfig] [--no_validate]
@@ -66,7 +68,7 @@ fits2caom2
                                               (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
       -i, --in IN_OBS_XML                     input of observation to be augmented in XML
       --keep                                  keep the locally stored files after ingestion
-      --local LOCAL [ LOCAL ...]              
+      --local LOCAL [ LOCAL ...]
                                               list of files in local filesystem (same order as uri)
       -n                                      use .netrc in $HOME for authentication
       --netrc-file NETRC_FILE                 
@@ -91,6 +93,8 @@ fits2caom2
 
 caom2gen
 --------
+
+.. code-block:: console
 
     usage: caom2gen [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                     [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v] [-V]
