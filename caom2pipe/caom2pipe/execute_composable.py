@@ -92,6 +92,15 @@ The correlations that currently exist:
 - requires metadata access only => classes have "Meta" in their name
 - requires data access => classes have "Data" in their name
 
+
+On the structure and responsibility of the 'run' methods:
+- config file reads are in the 'composable' modules of the individual
+  pipelines, so that collection-specific changes will not be surprises
+  during execution
+- exception handling is also in composable, except for retry loops
+- TODO - run_by_file_prime should replace run_by_file, when OMM testing can
+  be more exhaustive
+
 """
 
 import distutils.sysconfig
@@ -99,7 +108,6 @@ import logging
 import os
 import re
 import requests
-import sys
 import traceback
 
 from argparse import ArgumentParser
@@ -112,7 +120,8 @@ from caom2repo import CAOM2RepoClient
 from caom2pipe import manage_composable as mc
 
 __all__ = ['OrganizeExecutes', 'StorageName', 'CaomName', 'OrganizeChooser',
-           'run_single', 'run_by_file', 'run_single_from_state']
+           'run_single', 'run_by_file', 'run_single_from_state',
+           'run_by_file_prime']
 
 READ_BLOCK_SIZE = 8 * 1024
 
@@ -1641,7 +1650,7 @@ def _do_one(config, organizer, storage_name, command_name, meta_visitors,
         _unset_file_logging(config, log_h)
 
 
-def _run_by_file_list(config, organizer, sname, command_name, proxy,
+def _run_by_file_list(config, organizer, sname, command_name,
                       meta_visitors, data_visitors, entry):
     """Process an entry from a list of files. Creates the correct instance
     of the StorageName extension, based on Config values.
@@ -1652,7 +1661,6 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
     :param sname which extension of StorageName to instantiate for the
         collection
     :param command_name extension of fits2caom2 for the collection
-    :param proxy Certificate proxy.
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
     :param entry what is being processed.
@@ -1662,6 +1670,12 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(file_name=entry)
+    elif config.features.use_urls:
+        if config.use_local_files:
+            raise mc.CadcException('Incompatible configuration. '
+                                   'use_local_files does not coexist with'
+                                   'feature use_urls.')
+        storage_name = sname(url=entry)
     else:
         if config.use_local_files:
             storage_name = sname(file_name=entry, fname_on_disk=entry)
@@ -1669,12 +1683,11 @@ def _run_by_file_list(config, organizer, sname, command_name, proxy,
             storage_name = sname(obs_id=entry)
     logging.info('Process observation id {} as {}'.format(
         storage_name.obs_id, storage_name.file_name))
-    config.proxy_fqn = proxy
     _do_one(config, organizer, storage_name, command_name,
             meta_visitors, data_visitors)
 
 
-def _run_todo_file(config, organizer, sname, command_name, proxy,
+def _run_todo_file(config, organizer, sname, command_name,
                    meta_visitors, data_visitors):
     """Process all entries listed in a file.
 
@@ -1684,7 +1697,6 @@ def _run_todo_file(config, organizer, sname, command_name, proxy,
     :param sname which extension of StorageName to instantiate for the
         collection
     :param command_name extension of fits2caom2 for the collection
-    :param proxy Certificate proxy.
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
     """
@@ -1694,11 +1706,10 @@ def _run_todo_file(config, organizer, sname, command_name, proxy,
     with open(organizer.todo_fqn) as f:
         for line in f:
             _run_by_file_list(config, organizer, sname, command_name,
-                              proxy, meta_visitors, data_visitors,
-                              line.strip())
+                              meta_visitors, data_visitors, line.strip())
 
 
-def _run_local_files(config, organizer, sname, command_name, proxy,
+def _run_local_files(config, organizer, sname, command_name,
                      meta_visitors, data_visitors, chooser):
     """Process all entries located in the current working directory.
 
@@ -1708,7 +1719,6 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
     :param sname which extension of StorageName to instantiate for the
         collection
     :param command_name extension of fits2caom2 for the collection
-    :param proxy Certificate proxy.
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
     :param chooser OrganizeChooser access to collection-specific rules
@@ -1735,7 +1745,7 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
     organizer.complete_record_count = len(todo_list)
     for do_file in todo_list:
         _run_by_file_list(config, organizer, sname, command_name,
-                          proxy, meta_visitors, data_visitors, do_file)
+                          meta_visitors, data_visitors, do_file)
 
     if config.need_to_retry():
         for count in range(0, config.retry_count):
@@ -1756,7 +1766,7 @@ def _run_local_files(config, organizer, sname, command_name, proxy,
             for redo_file in todo_list:
                 try:
                     _run_by_file_list(config, organizer, sname, command_name,
-                                      proxy, meta_visitors, data_visitors,
+                                      meta_visitors, data_visitors,
                                       redo_file.strip())
                 except Exception as e:
                     logging.error(e)
@@ -1775,52 +1785,103 @@ def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
     :param storage_name which extension of StorageName to instantiate for the
         collection
     :param command_name extension of fits2caom2 for the collection
-    :param proxy Certificate proxy.
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
     """
-    try:
-        if config.use_local_files:
-            logging.debug(
-                'Using files from {}'.format(config.working_directory))
-            organize = OrganizeExecutes(config, chooser)
-            _run_local_files(config, organize, storage_name, command_name,
-                             proxy, meta_visitors, data_visitors, chooser)
+    if config.use_local_files:
+        logging.debug(
+            'Using files from {}'.format(config.working_directory))
+        organize = OrganizeExecutes(config, chooser)
+        _run_local_files(config, organize, storage_name, command_name,
+                         meta_visitors, data_visitors, chooser)
+    else:
+        parser = ArgumentParser()
+        parser.add_argument('--todo',
+                            help='Fully-qualified todo file name.')
+        args = parser.parse_args()
+        if args.todo is not None:
+            logging.debug('Using entries from todo file {}'.format(
+                args.todo))
+            organize = OrganizeExecutes(config, chooser, args.todo)
         else:
-            parser = ArgumentParser()
-            parser.add_argument('--todo',
-                                help='Fully-qualified todo file name.')
-            args = parser.parse_args()
-            if args.todo is not None:
-                logging.debug('Using entries from todo file {}'.format(
-                    args.todo))
-                organize = OrganizeExecutes(config, chooser, args.todo)
-            else:
-                logging.debug('Using entries from file {}'.format(
-                    config.work_file))
-                organize = OrganizeExecutes(config, chooser)
-            _run_todo_file(
-                config, organize, storage_name, command_name,
-                proxy, meta_visitors, data_visitors)
-            if config.need_to_retry():
-                for count in range(0, config.retry_count):
-                    logging.warning('Beginning retry {}'.format(count + 1))
-                    config.update_for_retry(count)
-                    try:
-                        _run_by_file(config, storage_name, command_name, proxy,
-                                     meta_visitors, data_visitors, chooser)
-                    except Exception as e:
-                        logging.error(e)
-                    if not config.need_to_retry():
-                        break
-                logging.warning('Done retry attempts.')
+            logging.debug('Using entries from file {}'.format(
+                config.work_fqn))
+            organize = OrganizeExecutes(config, chooser)
+        _run_todo_file(config, organize, storage_name, command_name,
+                       meta_visitors, data_visitors)
+        if config.need_to_retry():
+            for count in range(0, config.retry_count):
+                logging.warning('Beginning retry {}'.format(count + 1))
+                config.update_for_retry(count)
+                try:
+                    _run_by_file(config, storage_name, command_name,
+                                 meta_visitors, data_visitors, chooser)
+                except Exception as e:
+                    logging.error(e)
+                if not config.need_to_retry():
+                    break
+            logging.warning('Done retry attempts.')
 
-        logging.info('Done, processed {} of {} correctly.'.format(
-                organize.success_count, organize.complete_record_count))
-    except Exception as e:
-        logging.error(e)
-        tb = traceback.format_exc()
-        logging.debug(tb)
+    logging.info('Done, processed {} of {} correctly.'.format(
+            organize.success_count, organize.complete_record_count))
+
+
+def run_by_file_prime(config, storage_name, command_name, meta_visitors,
+                      data_visitors, chooser=None):
+    """Process all entries by file name. The file names may be obtained
+    from the Config todo entry, from the --todo parameter, or from listing
+    files on local disk.
+
+    :param config configures the execution of the application
+    :param storage_name which extension of StorageName to instantiate for the
+        collection
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param chooser OrganizeChooser instance for detailed CaomExecute
+        descendant choices
+    """
+    logger = logging.getLogger()
+    logger.setLevel(config.logging_level)
+    logging.debug(config)
+
+    if config.use_local_files:
+        logging.debug(
+            'Using files from {}'.format(config.working_directory))
+        organize = OrganizeExecutes(config, chooser)
+        _run_local_files(config, organize, storage_name, command_name,
+                         meta_visitors, data_visitors, chooser)
+    else:
+        parser = ArgumentParser()
+        parser.add_argument('--todo',
+                            help='Fully-qualified todo file name.')
+        args = parser.parse_args()
+        if args.todo is not None:
+            logging.debug('Using entries from todo file {}'.format(
+                args.todo))
+            organize = OrganizeExecutes(config, chooser, args.todo)
+        else:
+            logging.debug('Using entries from file {}'.format(
+                config.work_fqn))
+            organize = OrganizeExecutes(config, chooser)
+        _run_todo_file(config, organize, storage_name, command_name,
+                       meta_visitors, data_visitors)
+        if config.need_to_retry():
+            for count in range(0, config.retry_count):
+                logging.warning('Beginning retry {}'.format(count + 1))
+                config.update_for_retry(count)
+                try:
+                    run_by_file_prime(config, storage_name, command_name,
+                                      meta_visitors, data_visitors,
+                                      chooser)
+                except Exception as e:
+                    logging.error(e)
+                if not config.need_to_retry():
+                    break
+            logging.warning('Done retry attempts.')
+
+    logging.info('Done, processed {} of {} correctly.'.format(
+        organize.success_count, organize.complete_record_count))
 
 
 def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
@@ -1834,7 +1895,6 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
     :param command_name extension of fits2caom2 for the collection
     :param collection string which indicates which collection CAOM instances
         are being created for
-    :param proxy Certificate proxy.
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
     :param chooser OrganizeChooser instance for detailed CaomExecute
@@ -1854,7 +1914,7 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
         logger = logging.getLogger()
         logger.setLevel(config.logging_level)
         config.features.supports_composite = False
-        _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
+        _run_by_file(config, storage_name, command_name, meta_visitors,
                      data_visitors, chooser)
         return 0
     except Exception as e:
@@ -1879,7 +1939,8 @@ def run_single(config, storage_name, command_name, meta_visitors,
     organizer = OrganizeExecutes(config, chooser)
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)
-    sys.exit(result)
+    logging.debug('run_single result is {}'.format(result))
+    return result
 
 
 def run_single_from_state(organizer, config, storage_name, command_name,
@@ -1899,8 +1960,16 @@ def run_single_from_state(organizer, config, storage_name, command_name,
     return result
 
 
-def _run_from_state(config, sname, command_name, meta_visitors, data_visitors,
-                    todo):
+def run_from_state(config, sname, command_name, meta_visitors, data_visitors,
+                   todo):
+    """Process a list of entries by StorageName detail. No sys.exit call.
+
+    :param config mc.Config
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param todo list of work to be done, as URLs to files.
+    """
     """Process a list of entries by StorageName detail. No sys.exit call.
 
     :param config mc.Config
@@ -1940,24 +2009,4 @@ def _run_from_state(config, sname, command_name, meta_visitors, data_visitors,
             if not config.need_to_retry():
                 break
         logging.warning('Done retry attempts.')
-
-
-def run_from_state(config, sname, command_name, meta_visitors, data_visitors,
-                   todo):
-    """Process a list of entries by StorageName detail. No sys.exit call.
-
-    :param config mc.Config
-    :param command_name extension of fits2caom2 for the collection
-    :param meta_visitors List of metadata visit methods.
-    :param data_visitors List of data visit methods.
-    :param todo list of work to be done, as URLs to files.
-    """
-    try:
-        _run_from_state(config, sname, command_name, meta_visitors,
-                        data_visitors, todo)
-        return 0
-    except Exception as e:
-        logging.error(e)
-        tb = traceback.format_exc()
-        logging.error(tb)
-        return -1
+    return 0

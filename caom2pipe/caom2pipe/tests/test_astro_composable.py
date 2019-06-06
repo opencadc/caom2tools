@@ -73,8 +73,6 @@ import sys
 
 from astropy.io import fits
 
-from cadctap import CadcTapClient
-
 from mock import Mock, patch
 
 import six
@@ -169,12 +167,14 @@ def test_query_tap(caps_mock, base_mock):
         b'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' \
         b'version="1.3">\r\n  <RESOURCE type="results">\r\n    ' \
         b'<INFO name="QUERY_STATUS" value="OK" />\r\n    ' \
-        b'<INFO name="QUERY_TIMESTAMP" value="2019-06-02T21:46:15.212" />\r\n' \
+        b'<INFO name="QUERY_TIMESTAMP" ' \
+        b'value="2019-06-02T21:46:15.212" />\r\n' \
         b'    <INFO name="QUERY" value="select count(*) from caom2.' \
         b'Observation" />\r\n    <TABLE>\r\n      ' \
         b'<FIELD name="count" datatype="long" />\r\n      <DATA>\r\n        ' \
         b'<TABLEDATA>\r\n          <TR>\r\n            ' \
-        b'<TD>3212556</TD>\r\n          </TR>\r\n        </TABLEDATA>\r\n      ' \
+        b'<TD>3212556</TD>\r\n          </TR>\r\n        ' \
+        b'</TABLEDATA>\r\n      ' \
         b'</DATA>\r\n    </TABLE>\r\n    ' \
         b'<INFO name="QUERY_STATUS" value="OK" />\r\n  ' \
         b'</RESOURCE>\r\n</VOTABLE>\r\n'

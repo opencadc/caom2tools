@@ -97,8 +97,8 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'compare_checksum_client', 'Features', 'write_to_file',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
-           'data_put', 'data_get', 'build_uri', 'response_lookup',
-           'make_seconds', 'increment_time', 'ISO_8601_FORMAT']
+           'data_put', 'data_get', 'build_uri', 'make_seconds',
+           'increment_time', 'ISO_8601_FORMAT']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
@@ -113,11 +113,12 @@ class Features(object):
     """Boolean feature flag implementation."""
 
     def __init__(self):
-        self.use_file_names = True
-        self.run_in_airflow = True
-        self.supports_composite = True
-        self.supports_catalog = True
-        self.expects_retry = True
+        self._use_file_names = True
+        self._use_urls = False
+        self._run_in_airflow = True
+        self._supports_composite = True
+        self._supports_catalog = True
+        self._expects_retry = True
 
     @property
     def use_file_names(self):
@@ -129,6 +130,17 @@ class Features(object):
     @use_file_names.setter
     def use_file_names(self, value):
         self._use_file_names = value
+
+    @property
+    def use_urls(self):
+        """If true, the lists of work to be done are expected to
+        identify URLs. If false, they are expected to identify
+        observation IDs. This and use_file_names cannot both be True."""
+        return self._use_urls
+
+    @use_urls.setter
+    def use_urls(self, value):
+        self._use_urls = value
 
     @property
     def run_in_airflow(self):
@@ -191,6 +203,12 @@ class TaskType(Enum):
 
 
 class State(object):
+    """Persist information between pipeline invocations.
+
+    Currently the State class persists the concept of a bookmark, which is the
+    place in the flow of data that was last processed. This 'place' may be a
+    timestamp, or an id. That value is up to clients of this class.
+    """
 
     def __init__(self, fqn):
         self.fqn = fqn
@@ -200,7 +218,7 @@ class State(object):
         if result is None:
             raise CadcException('Could not load state from {}'.format(fqn))
         else:
-            self.bookmarks = response_lookup(result, 'bookmarks')
+            self.bookmarks = result.get('bookmarks')
             self.content = result
 
     def get_bookmark(self, key):
@@ -235,41 +253,41 @@ class Config(object):
      work in a pipeline execution."""
 
     def __init__(self):
-        self.working_directory = None
-        self.work_file = None
+        self._working_directory = None
+        self._work_file = None
         # the fully qualified name for the work file
         self.work_fqn = None
-        self.netrc_file = None
-        self.archive = None
-        self.collection = None
-        self.use_local_files = False
-        self.resource_id = None
-        self.tap_id = None
-        self.logging_level = None
-        self.log_to_file = False
-        self.log_file_directory = None
-        self.stream = None
-        self.storage_host = None
-        self.task_types = None
-        self.success_log_file_name = None
+        self._netrc_file = None
+        self._archive = None
+        self._collection = None
+        self._use_local_files = False
+        self._resource_id = None
+        self._tap_id = None
+        self._logging_level = None
+        self._log_to_file = False
+        self._log_file_directory = None
+        self._stream = None
+        self._storage_host = None
+        self._task_types = None
+        self._success_log_file_name = None
         # the fully qualified name for the file
         self.success_fqn = None
-        self.failure_log_file_name = None
+        self._failure_log_file_name = None
         # the fully qualified name for the file
         self.failure_fqn = None
-        self.retry_file_name = None
+        self._retry_file_name = None
         # the fully qualified name for the file
         self.retry_fqn = None
-        self.retry_failures = False
-        self.retry_count = 1
-        self.proxy_file_name = None
+        self._retry_failures = False
+        self._retry_count = 1
+        self._proxy_file_name = None
         # the fully qualified name for the file
         self.proxy_fqn = None
-        self.state_file_name = None
+        self._state_file_name = None
         # the fully qualified name for the file
         self.state_fqn = None
-        self.interval = None
-        self.features = Features()
+        self._interval = None
+        self._features = Features()
 
     @property
     def working_directory(self):
@@ -289,9 +307,9 @@ class Config(object):
     @work_file.setter
     def work_file(self, value):
         self._work_file = value
-        if self.working_directory is not None:
+        if self._working_directory is not None:
             self.work_fqn = os.path.join(
-                self.working_directory, self.work_file)
+                self._working_directory, self._work_file)
 
     @property
     def netrc_file(self):
@@ -400,13 +418,13 @@ class Config(object):
         self._storage_host = value
 
     @property
-    def task_type(self):
+    def task_types(self):
         """the way to control which steps get executed"""
-        return self._task_type
+        return self._task_types
 
-    @task_type.setter
-    def task_type(self, value):
-        self._task_type = value
+    @task_types.setter
+    def task_types(self, value):
+        self._task_types = value
 
     @property
     def success_log_file_name(self):
@@ -417,9 +435,9 @@ class Config(object):
     @success_log_file_name.setter
     def success_log_file_name(self, value):
         self._success_log_file_name = value
-        if self.log_file_directory is not None:
+        if self._log_file_directory is not None:
             self.success_fqn = os.path.join(
-                self.log_file_directory, self.success_log_file_name)
+                self._log_file_directory, self._success_log_file_name)
 
     @property
     def failure_log_file_name(self):
@@ -430,9 +448,9 @@ class Config(object):
     @failure_log_file_name.setter
     def failure_log_file_name(self, value):
         self._failure_log_file_name = value
-        if self.log_file_directory is not None:
+        if self._log_file_directory is not None:
             self.failure_fqn = os.path.join(
-                self.log_file_directory, self.failure_log_file_name)
+                self._log_file_directory, self._failure_log_file_name)
 
     @property
     def retry_file_name(self):
@@ -443,9 +461,9 @@ class Config(object):
     @retry_file_name.setter
     def retry_file_name(self, value):
         self._retry_file_name = value
-        if self.log_file_directory is not None:
+        if self._log_file_directory is not None:
             self.retry_fqn = os.path.join(
-                self.log_file_directory, self.retry_file_name)
+                self._log_file_directory, self._retry_file_name)
 
     @property
     def retry_failures(self):
@@ -478,10 +496,10 @@ class Config(object):
     @proxy_file_name.setter
     def proxy_file_name(self, value):
         self._proxy_file_name = value
-        if (self.working_directory is not None and
-                self.proxy_file_name is not None):
+        if (self._working_directory is not None and
+                self._proxy_file_name is not None):
             self.proxy_fqn = os.path.join(
-                self.working_directory, self.proxy_file_name)
+                self._working_directory, self._proxy_file_name)
 
     @property
     def state_file_name(self):
@@ -492,10 +510,10 @@ class Config(object):
     @state_file_name.setter
     def state_file_name(self, value):
         self._state_file_name = value
-        if (self.working_directory is not None and
-                self.state_file_name is not None):
+        if (self._working_directory is not None and
+                self._state_file_name is not None):
             self.state_fqn = os.path.join(
-                self.working_directory, self.state_file_name)
+                self._working_directory, self._state_file_name)
 
     @property
     def features(self):
@@ -514,14 +532,6 @@ class Config(object):
     @interval.setter
     def interval(self, value):
         self._interval = value
-
-    @staticmethod
-    def _lookup(config, lookup, default):
-        if lookup in config:
-            result = config[lookup]
-        else:
-            result = default
-        return result
 
     def __str__(self):
         return 'working_directory:: \'{}\' ' \
@@ -596,42 +606,35 @@ class Config(object):
         """
         try:
             config = self.get_config()
-            self.working_directory = \
-                self._lookup(config, 'working_directory', os.getcwd())
-            self.work_file = self._lookup(config, 'todo_file_name', 'todo.txt')
-            self.netrc_file = \
-                self._lookup(config, 'netrc_filename', 'test_netrc')
-            self.resource_id = self._lookup(
-                config, 'resource_id', 'ivo://cadc.nrc.ca/sc2repo')
-            self.tap_id = self._lookup(
-                config, 'tap_id', 'ivo://cadc.nrc.ca/sc2tap')
-            self.use_local_files = bool(
-                self._lookup(config, 'use_local_files', False))
-            self.logging_level = self._lookup(config, 'logging_level', 'DEBUG')
-            self.log_to_file = self._lookup(config, 'log_to_file', False)
-            self.log_file_directory = self._lookup(
-                config, 'log_file_directory', self.working_directory)
-            self.stream = self._lookup(config, 'stream', 'raw')
+            self.working_directory = config.get('working_directory',
+                                                os.getcwd())
+            self.work_file = config.get('todo_file_name', 'todo.txt')
+            self.netrc_file = config.get('netrc_filename', 'test_netrc')
+            self.resource_id = config.get('resource_id',
+                                          'ivo://cadc.nrc.ca/sc2repo')
+            self.tap_id = config.get('tap_id', 'ivo://cadc.nrc.ca/sc2tap')
+            self.use_local_files = bool(config.get('use_local_files', False))
+            self.logging_level = config.get('logging_level', 'DEBUG')
+            self.log_to_file = config.get('log_to_file', False)
+            self.log_file_directory = config.get('log_file_directory',
+                                                 self.working_directory)
+            self.stream = config.get('stream', 'raw')
             self.task_types = self._obtain_task_types(
                 config, [TaskType.SCRAPE])
-            self.collection = self._lookup(config, 'collection', 'TEST')
-            self.archive = self._lookup(config, 'archive', self.collection)
-            self.success_log_file_name = self._lookup(config,
-                                                      'success_log_file_name',
-                                                      'success_log.txt')
-            self.failure_log_file_name = self._lookup(config,
-                                                      'failure_log_file_name',
-                                                      'failure_log.txt')
-            self.retry_file_name = self._lookup(config, 'retry_file_name',
-                                                'retries.txt')
-            self.retry_failures = self._lookup(config, 'retry_failures', False)
-            self.retry_count = self._lookup(config, 'retry_count', 1)
-            self.interval = self._lookup(config, 'interval', 10)
+            self.collection = config.get('collection', 'TEST')
+            self.archive = config.get('archive', self.collection)
+            self.success_log_file_name = config.get('success_log_file_name',
+                                                    'success_log.txt')
+            self.failure_log_file_name = config.get('failure_log_file_name',
+                                                    'failure_log.txt')
+            self.retry_file_name = config.get('retry_file_name',
+                                              'retries.txt')
+            self.retry_failures = config.get('retry_failures', False)
+            self.retry_count = config.get('retry_count', 1)
+            self.interval = config.get('interval', 10)
             self.features = self._obtain_features(config)
-            self.proxy_file_name = self._lookup(
-                config, 'proxy_file_name', None)
-            self.state_file_name = self._lookup(
-                config, 'state_file_name', None)
+            self.proxy_file_name = config.get('proxy_file_name', None)
+            self.state_file_name = config.get('state_file_name', None)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -705,7 +708,7 @@ class Config(object):
             file.
         """
         try:
-            logging.debug('Begin load_config.')
+            logging.debug('Begin load_config from {}.'.format(config_fqn))
             with open(config_fqn) as f:
                 data_map = yaml.safe_load(f)
                 logging.debug('End load_config.')
@@ -1151,8 +1154,9 @@ def data_get(client, working_directory, file_name, archive):
         if not os.path.exists(fqn):
             raise CadcException(
                 'Retrieve failed. {} does not exist.'.format(fqn))
-    except Exception:
-        raise CadcException('Did not retrieve {}'.format(fqn))
+    except Exception as e:
+        raise CadcException('Did not retrieve {} because {}'.format(
+            fqn, e))
 
 
 def build_uri(archive, file_name, scheme='ad'):
@@ -1160,16 +1164,9 @@ def build_uri(archive, file_name, scheme='ad'):
     return '{}:{}/{}'.format(scheme, archive, file_name)
 
 
-def response_lookup(response, lookup):
-    """Common code to avoid a KeyError in JSON."""
-    result = None
-    if lookup in response:
-        result = response[lookup]
-    return result
-
-
 def query_endpoint(url, timeout=20):
-    """Return a response for an endpoint. Caller needs to close the response.
+    """Return a response for an endpoint. Caller needs to call 'close'
+    on the response.
     """
 
     # Open the URL and fetch the JSON document for the observation
@@ -1182,6 +1179,7 @@ def query_endpoint(url, timeout=20):
     session.mount('https://', adapter)
     try:
         response = session.get(url, timeout=timeout)
+        response.raise_for_status()
         return response
     except Exception as e:
         raise CadcException('Endpoint {} failure {}'.format(url, str(e)))
@@ -1220,13 +1218,13 @@ def make_seconds(from_time):
     """
     try:
         index = from_time.index('+00')
-    except ValueError as e:
+    except ValueError:
         index = -1
 
     try:
         seconds_since_epoch = datetime.strptime(from_time[:index],
                                                 ISO_8601_FORMAT)
-    except ValueError as e:
+    except ValueError:
         seconds_since_epoch = datetime.strptime(from_time[:index],
                                                 '%Y-%m-%dT%H:%M:%S')
     return seconds_since_epoch.timestamp()

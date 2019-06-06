@@ -77,10 +77,9 @@ from datetime import datetime
 from mock import Mock, patch
 
 from caom2 import ProductType, ReleaseType, Artifact, ChecksumURI
-from caom2 import SimpleObservation, CompositeObservation
+from caom2 import SimpleObservation
 if six.PY3:
     from caom2pipe import manage_composable as mc
-    from caom2pipe import caom_composable as cc
 
 
 PY_VERSION = '3.6'
@@ -97,9 +96,6 @@ def test_read_obs():
     test_subject = mc.read_obs_from_file(TEST_OBS_FILE)
     assert test_subject is not None, 'expect a result'
     assert isinstance(test_subject, SimpleObservation), 'wrong read'
-    changed = cc.change_to_composite(test_subject)
-    assert changed is not None, 'expect a result'
-    assert isinstance(changed, CompositeObservation)
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -123,18 +119,12 @@ def test_build_uri():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 def test_query_endpoint():
-    # Response mock
-    class Object(object):
-        pass
 
     with patch('requests.Session.get') as session_get_mock:
-        def _session_get_mock(url, timeout):
-            assert url == 'https://localhost', 'wrong parameter'
-            assert timeout == 25, 'not default'
-            return Object()
-        session_get_mock.side_effect = _session_get_mock
         test_result = mc.query_endpoint('https://localhost', timeout=25)
         assert test_result is not None, 'expected result'
+        assert session_get_mock.is_called, 'mock not called'
+        session_get_mock.assert_called_with('https://localhost', timeout=25)
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -373,9 +363,9 @@ def test_make_seconds():
     assert t1_dt == 1498496841.527, 'wrong result'
 
     t2 = '2017-07-26T17:07:21.527'
-    t1_dt = mc.make_seconds(t1)
-    assert t1_dt is not None, 'expect a result'
-    assert t1_dt == 1498496841.527, 'wrong result'
+    t2_dt = mc.make_seconds(t2)
+    assert t2_dt is not None, 'expect a result'
+    assert t2_dt == 1501088841.52, 'wrong result'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -396,4 +386,4 @@ def test_increment_time():
         'wrong result'
 
     with pytest.raises(NotImplementedError):
-        ignore = mc.increment_time(t2_dt, 23, '%f')
+        mc.increment_time(t2_dt, 23, '%f')

@@ -1206,35 +1206,34 @@ def test_visit_generic_parser():
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-def test_get_vos_headers():
+@patch('caom2utils.fits2caom2.Client')
+def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
-    client_orig = vos.Client
     get_orig = caom2utils.fits2caom2._get_headers_from_fits
 
     try:
         caom2utils.fits2caom2._get_headers_from_fits = Mock(
             side_effect=_get_headers)
-        vos.Client = Mock()
         test_headers = caom2utils.get_vos_headers(test_uri, subject=None)
-        assert test_headers is not None
-        assert len(test_headers) == 1
+        assert test_headers is not None, 'expect result'
+        assert len(test_headers) == 1, 'wrong size of result'
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
+        assert vos_mock.called, 'mock not called'
     finally:
-        vos.Client = client_orig
         caom2utils.fits2caom2._get_headers_from_fits = get_orig
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-def test_get_vos_meta():
+@patch('caom2utils.fits2caom2.Client')
+def test_get_vos_meta(vos_mock):
     get_orig = caom2utils.get_vos_headers
-    node_orig = vos.Client.get_node
     try:
         caom2utils.get_vos_headers = Mock(
             return_value={'md5sum': '5b00b00d4b06aba986c3663d09aa581f',
                           'size': 682560,
                           'type': 'application/octet-stream'})
-        vos.Client.get_node = Mock(side_effect=_get_node)
+        vos_mock.return_value.get_node.side_effect = _get_node
         test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                    'dao_c122_2016_012725.fits'
         test_artifact = Artifact(test_uri, ProductType.SCIENCE,
@@ -1246,9 +1245,9 @@ def test_get_vos_meta():
         assert test_artifact.content_length == 682560, 'length wrong'
         assert test_artifact.content_type == 'application/fits', \
             'content_type wrong'
+        assert vos_mock.called, 'mock not called'
     finally:
         caom2utils.get_vos_headers = get_orig
-        vos.Client.get_node = node_orig
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
@@ -1268,18 +1267,16 @@ def test_generic_parser1():
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
 def test_get_external_headers():
-    import requests
     test_uri = 'http://localhost/obs23/collection/obsid-1'
-    get_orig = requests.Session.get
-
-    try:
-        requests.Session.get = Mock(return_value=_get_headers_2(None, None))
+    with patch('requests.Session.get') as session_get_mock:
+        session_get_mock.return_value.status_code = 200
+        session_get_mock.return_value.text = TEST_TEXT
         test_headers = caom2utils.fits2caom2.get_external_headers(test_uri)
         assert test_headers is not None
         assert len(test_headers) == 2
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
-    finally:
-        requests.Session.get = get_orig
+        assert session_get_mock.is_called, 'mock not called'
+        assert session_get_mock.is_called_with(test_uri)
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
@@ -1368,18 +1365,7 @@ END
     return headers
 
 
-class TestResponse(object):
-
-    def __init__(self):
-        self.text = None
-
-    def close(self):
-        pass
-
-
-def _get_headers_2(external_url, timeout):
-    x = TestResponse()
-    x.text = """Filename: GN2001BQ013-04.fits.bz2
+TEST_TEXT = """Filename: GN2001BQ013-04.fits.bz2
 
 AstroData Types: ['GMOS_N', 'GEMINI', 'GMOS_SPECT']
 
@@ -1408,8 +1394,6 @@ NAXIS1  =                   86 / Number of characters per row
 NAXIS2  =                   26
 PCOUNT  =                    0 / No 'random' parameters
 """
-    x.status_code = 200
-    return x
 
 
 def _get_node(uri, limit, force):
