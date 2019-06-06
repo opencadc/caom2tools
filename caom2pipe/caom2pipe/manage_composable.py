@@ -114,7 +114,7 @@ class Features(object):
 
     def __init__(self):
         self._use_file_names = True
-        self._use_urls = False
+        self._use_urls = True
         self._run_in_airflow = True
         self._supports_composite = True
         self._supports_catalog = True
