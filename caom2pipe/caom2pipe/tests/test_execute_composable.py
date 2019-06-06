@@ -867,6 +867,7 @@ def test_run_by_file_expects_retry():
     test_config = _init_config()
     test_config.log_to_file = True
     test_config.features.expects_retry = True
+    test_config.features.use_urls = False
     test_config.retry_failures = True
     test_config.retry_count = 1
     test_config.retry_file_name = 'retries.txt'
