@@ -107,7 +107,6 @@ import distutils.sysconfig
 import logging
 import os
 import re
-import requests
 import traceback
 
 from argparse import ArgumentParser
@@ -122,8 +121,6 @@ from caom2pipe import manage_composable as mc
 __all__ = ['OrganizeExecutes', 'StorageName', 'CaomName', 'OrganizeChooser',
            'run_single', 'run_by_file', 'run_single_from_state',
            'run_by_file_prime']
-
-READ_BLOCK_SIZE = 8 * 1024
 
 
 class StorageName(object):
@@ -165,6 +162,7 @@ class StorageName(object):
             self.archive = archive
         else:
             self.archive = collection
+        self._url = None
 
     @property
     def file_uri(self):
@@ -234,6 +232,25 @@ class StorageName(object):
         file name in ad."""
         return self._fname_on_disk
 
+    @property
+    def url(self):
+        """A URL from where a file can be retrieved."""
+        return self._url
+
+    @url.setter
+    def url(self, value):
+        self._url = value
+
+    @property
+    def lineage(self):
+        """The value provided to the --lineage parameter for
+        fits2caom2 extensions."""
+        return '{}/{}'.format(self.product_id, self.file_uri)
+
+    @property
+    def external_urls(self):
+        return None
+
     @fname_on_disk.setter
     def fname_on_disk(self, value):
         self._fname_on_disk = value
@@ -298,7 +315,6 @@ class CaomExecute(object):
                  cred_param, cadc_data_client, caom_repo_client,
                  meta_visitors):
         """
-
         :param config: Configurable parts of execution, as stored in
             manage_composable.Config.
         :param task_type: manage_composable.TaskType enumeration - identifies
@@ -350,6 +366,9 @@ class CaomExecute(object):
         self.task_type = task_type
         self.cred_param = cred_param
         self.url = storage_name.url
+        self.lineage = storage_name.lineage
+        self.external_urls_param = self._set_external_urls_param(
+            storage_name.external_urls)
 
     def _cleanup(self):
         """Remove a directory and all its contents."""
@@ -388,22 +407,21 @@ class CaomExecute(object):
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
         cmd = '{} {} {} --observation {} {} --out {} ' \
-              '--plugin {} --module {} --local {} --lineage {}/{}'.format(
+              '--plugin {} --module {} --local {} --lineage {}'.format(
                 self.command_name,
                 self.logging_level_param, self.cred_param, self.collection,
-                self.obs_id, self.model_fqn, plugin, plugin, fqn, self.obs_id,
-                self.uri)
+                self.obs_id, self.model_fqn, plugin, plugin, fqn, self.lineage)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_client(self):
         """Execute fits2caom with a --cert parameter."""
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
-        cmd = '{} {} {} --observation {} {} --out {} ' \
-              '--plugin {} --module {} --lineage {}/{}'.format(
+        cmd = '{} {} {} --observation {} {} --out {} {} ' \
+              '--plugin {} --module {} --lineage {}'.format(
                 self.command_name, self.logging_level_param, self.cred_param,
-                self.collection, self.obs_id, self.model_fqn, plugin, plugin,
-                self.product_id, self.uri)
+                self.collection, self.obs_id, self.model_fqn,
+                self.external_urls_param, plugin, plugin, self.lineage)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_client_local(self):
@@ -414,22 +432,22 @@ class CaomExecute(object):
         # so far, the plugin is also the module :)
         local_fqn = os.path.join(self.working_dir, self.fname)
         cmd = '{} {} {} --observation {} {} --local {} --out {} ' \
-              '--plugin {} --module {} --lineage {}/{}'.format(
+              '--plugin {} --module {} --lineage {}'.format(
                 self.command_name, self.logging_level_param, self.cred_param,
                 self.collection, self.obs_id, local_fqn, self.model_fqn,
-                plugin, plugin, self.product_id, self.uri)
+                plugin, plugin, self.lineage)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_in_out_client(self):
-        """Execute fits2caom with a --in and a --cert parameter."""
+        """Execute fits2caom with a --in, a --external_url and a --cert
+        parameter."""
         plugin = self._find_fits2caom2_plugin()
         # so far, the plugin is also the module :)
-        # TODO add an input parameter
-        cmd = '{} {} {} --in {} --out {} ' \
-              '--plugin {} --module {} --lineage {}/{}'.format(
-                self.command_name, self.logging_level_param, self.cred_param,
-                self.model_fqn, self.model_fqn, plugin, plugin,
-                self.product_id, self.uri)
+        cmd = '{} {} {} --in {} --out {} {} ' \
+              '--plugin {} --module {} --lineage {}'.format(
+                self.command_name, self.logging_level_param,
+                self.cred_param, self.model_fqn, self.model_fqn,
+                self.external_urls_param, plugin, plugin, self.lineage)
         mc.exec_cmd(cmd)
 
     def _fits2caom2_cmd_in_out_local_client(self):
@@ -438,10 +456,10 @@ class CaomExecute(object):
         # so far, the plugin is also the module :)
         local_fqn = os.path.join(self.working_dir, self.fname)
         cmd = '{} {} {} --in {} --out {} --local {} ' \
-              '--plugin {} --module {} --lineage {}/{}'.format(
+              '--plugin {} --module {} --lineage {}'.format(
                 self.command_name, self.logging_level_param, self.cred_param,
                 self.model_fqn, self.model_fqn, local_fqn, plugin, plugin,
-                self.product_id, self.uri)
+                self.lineage)
         mc.exec_cmd(cmd)
 
     def _compare_checksums_client(self, fname):
@@ -516,9 +534,10 @@ class CaomExecute(object):
     def _cadc_data_info_file_name_client(self):
         """Execute CadcDataClient.get_file_info with the client instance from
         this class."""
-        file_info = self.cadc_data_client.get_file_info(
-            self.archive, self.fname)
-        self.fname = file_info['name']
+        if self.fname is not None:
+            file_info = self.cadc_data_client.get_file_info(
+                self.archive, self.fname)
+            self.fname = file_info['name']
 
     def _read_model(self):
         """Read an observation into memory from an XML file on disk."""
@@ -542,6 +561,15 @@ class CaomExecute(object):
                     visitor.visit(observation, **kwargs)
                 except Exception as e:
                     raise mc.CadcException(e)
+
+    @staticmethod
+    def _set_external_urls_param(external_urls):
+        """Make a list of external urls into a command-line parameter."""
+        if external_urls is None:
+            result = ''
+        else:
+            result = '--external_url {}'.format(external_urls)
+        return result
 
     @staticmethod
     def _set_logging_level_param(logging_level):
@@ -1013,20 +1041,9 @@ class PullClient(CaomExecute):
         self.logger.debug('End execute for {}'.format(__name__))
 
     def _http_get(self):
-        """Retrieve a file via http to temporary local storage. Push to ad,
-        from local storage."""
+        """Retrieve a file via http to temporary local storage."""
         self.logger.debug('retrieve {} from {}'.format(self.fname, self.url))
-        try:
-            with requests.get(self.url, stream=True) as r:
-                r.raise_for_status()
-                with open(self.local_fqn, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=READ_BLOCK_SIZE):
-                        f.write(chunk)
-        except exceptions.HttpException as e:
-            raise mc.CadcException(
-                'Could not retrieve {} from {}. Failed with {}'.format(
-                    self.local_fqn, self.url, e))
-        # not sure how else to figure out if the file is good
+        mc.http_get(self.url, self.local_fqn)
         try:
             hdulist = fits.open(self.local_fqn, memmap=True,
                                 lazy_load_hdus=False)
@@ -1652,8 +1669,9 @@ def _do_one(config, organizer, storage_name, command_name, meta_visitors,
 
 def _run_by_file_list(config, organizer, sname, command_name,
                       meta_visitors, data_visitors, entry):
-    """Process an entry from a list of files. Creates the correct instance
-    of the StorageName extension, based on Config values.
+    """Process an entry from a list. The list may contain obs ids,
+    file names, or URLs. Creates the expected instance of the StorageName
+    extension, based on Config values.
 
     :param config mc.Config
     :param organizer instance of OrganizeExecutes - for calling the choose
@@ -1681,8 +1699,7 @@ def _run_by_file_list(config, organizer, sname, command_name,
             storage_name = sname(file_name=entry, fname_on_disk=entry)
         else:
             storage_name = sname(obs_id=entry)
-    logging.info('Process observation id {} as {}'.format(
-        storage_name.obs_id, storage_name.file_name))
+    logging.info('Process observation id {}'.format(storage_name.obs_id))
     _do_one(config, organizer, storage_name, command_name,
             meta_visitors, data_visitors)
 

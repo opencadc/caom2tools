@@ -83,7 +83,7 @@ from requests.adapters import HTTPAdapter
 from urllib import parse as parse
 from urllib3 import Retry
 
-from cadcutils import net
+from cadcutils import net, exceptions
 from cadcdata import CadcDataClient
 from caom2 import ObservationWriter, ObservationReader, Artifact
 from caom2 import ChecksumURI
@@ -98,9 +98,10 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
            'data_put', 'data_get', 'build_uri', 'make_seconds',
-           'increment_time', 'ISO_8601_FORMAT']
+           'increment_time', 'ISO_8601_FORMAT', 'http_get']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
+READ_BLOCK_SIZE = 8 * 1024
 
 
 class CadcException(Exception):
@@ -1153,7 +1154,7 @@ def data_get(client, working_directory, file_name, archive):
         client.get_file(archive, file_name, destination=fqn)
         if not os.path.exists(fqn):
             raise CadcException(
-                'Retrieve failed. {} does not exist.'.format(fqn))
+                'ad retrieve failed. {} does not exist.'.format(fqn))
     except Exception as e:
         raise CadcException('Did not retrieve {} because {}'.format(
             fqn, e))
@@ -1247,3 +1248,19 @@ def increment_time(this_ts, by_interval, unit='%M'):
     interval = by_interval * factor
     temp = time_s + interval
     return datetime.fromtimestamp(temp)
+
+
+def http_get(url, local_fqn):
+    try:
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(local_fqn, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=READ_BLOCK_SIZE):
+                    f.write(chunk)
+        if not os.path.exists(local_fqn):
+            raise CadcException(
+                'Retrieve failed. {} does not exist.'.format(local_fqn))
+    except exceptions.HttpException as e:
+        raise CadcException(
+            'Could not retrieve {} from {}. Failed with {}'.format(
+                local_fqn, url, e))
