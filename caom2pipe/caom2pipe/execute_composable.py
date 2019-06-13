@@ -1496,26 +1496,21 @@ class OrganizeExecutes(object):
         """Log an error message to the failure file.
         :obs_id observation ID being processed
         :file_name file name being processed
-        :e Exception to log"""
+        :e Exception to log - the entire stack trace, which, if logging
+            level is not set to debug, will be lost for debugging purposes."""
         if self.config.log_to_file:
-            failure = open(self.failure_fqn, 'a')
-            try:
+            with open(self.failure_fqn, 'a') as failure:
                 min_error = self._minimize_error_message(e)
                 failure.write(
                     '{} {} {} {}\n'.format(datetime.now(), obs_id, file_name,
                                            min_error))
-            finally:
-                failure.close()
 
-            retry = open(self.retry_fqn, 'a')
-            try:
+            with open(self.retry_fqn, 'a') as retry:
                 if (self.config.features.use_file_names or
                         self.config.use_local_files):
                     retry.write('{}\n'.format(file_name))
                 else:
                     retry.write('{}\n'.format(obs_id))
-            finally:
-                retry.close()
 
     def capture_success(self, obs_id, file_name):
         """Capture, with a timestamp, the successful observations/file names
@@ -1722,8 +1717,18 @@ def _run_todo_file(config, organizer, sname, command_name,
     organizer.complete_record_count = todo_list_length
     with open(organizer.todo_fqn) as f:
         for line in f:
-            _run_by_file_list(config, organizer, sname, command_name,
-                              meta_visitors, data_visitors, line.strip())
+            try:
+                entry = line.strip()
+                _run_by_file_list(config, organizer, sname, command_name,
+                                  meta_visitors, data_visitors, entry)
+            except Exception as e:
+                organizer.capture_failure(
+                    entry, entry, e=traceback.format_exc())
+                logging.info('Execution failed for {} with {}'.format(
+                    entry, e))
+                logging.debug(traceback.format_exc())
+                # and now, keep processing the rest of the lines in the
+                # file
 
 
 def _run_local_files(config, organizer, sname, command_name,

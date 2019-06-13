@@ -167,7 +167,7 @@ def test_meta_create_client_execute():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --observation OMM test_obs_id '
-            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, test_source, test_source))
@@ -198,7 +198,7 @@ def test_meta_update_client_execute():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --in {}/test_obs_id/test_obs_id.fits.xml '
-            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
@@ -227,7 +227,7 @@ def test_meta_delete_create_client_execute():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --in {}/test_obs_id/test_obs_id.fits.xml '
-            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
