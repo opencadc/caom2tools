@@ -635,7 +635,7 @@ class MetaCreateClient(CaomExecute):
         self.logger.debug('the metadata visitors')
         self._visit_meta(observation)
 
-        self.logger.debug('store the xml')
+        self.logger.debug('create the observation with xml')
         self._repo_cmd_create_client(observation)
 
         self.logger.debug('clean up the workspace')
@@ -684,7 +684,7 @@ class MetaUpdateClient(CaomExecute):
         self.logger.debug('write the observation to disk for next step')
         self._write_model(self.observation)
 
-        self.logger.debug('store the xml')
+        self.logger.debug('update the observation with xml')
         self._repo_cmd_update_client(self.observation)
 
         self.logger.debug('clean up the workspace')
