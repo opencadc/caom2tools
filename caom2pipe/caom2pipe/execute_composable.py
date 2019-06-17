@@ -1727,8 +1727,7 @@ def _run_todo_file(config, organizer, sname, command_name,
                 logging.info('Execution failed for {} with {}'.format(
                     entry, e))
                 logging.debug(traceback.format_exc())
-                # and now, keep processing the rest of the lines in the
-                # file
+                # then keep processing the rest of the lines in the file
 
 
 def _run_local_files(config, organizer, sname, command_name,
@@ -1867,6 +1866,8 @@ def run_by_file_prime(config, storage_name, command_name, meta_visitors,
     logger.setLevel(config.logging_level)
     logging.debug(config)
 
+    result = 0
+
     if config.use_local_files:
         logging.debug(
             'Using files from {}'.format(config.working_directory))
@@ -1898,12 +1899,14 @@ def run_by_file_prime(config, storage_name, command_name, meta_visitors,
                                       chooser)
                 except Exception as e:
                     logging.error(e)
+                    result = -1
                 if not config.need_to_retry():
                     break
             logging.warning('Done retry attempts.')
 
     logging.info('Done, processed {} of {} correctly.'.format(
         organize.success_count, organize.complete_record_count))
+    return result
 
 
 def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
