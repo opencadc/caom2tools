@@ -724,11 +724,12 @@ def to_float(value):
     return float(value) if value is not None else None
 
 
-def exec_cmd(cmd):
+def exec_cmd(cmd, log_leval_as=logging.debug):
     """
     This does command execution as a subprocess call.
 
     :param cmd the text version of the command being executed
+    :param log_leval_as control the logging level from the exec call
     :return None
     """
     logging.debug(cmd)
@@ -737,8 +738,8 @@ def exec_cmd(cmd):
         child = subprocess.Popen(cmd_array, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         output, outerr = child.communicate()
-        logging.debug('stdout {}'.format(output.decode('utf-8')))
-        logging.debug('stderr {}'.format(outerr.decode('utf-8')))
+        log_leval_as('stdout {}'.format(output.decode('utf-8')))
+        logging.error('stderr {}'.format(outerr.decode('utf-8')))
         if child.returncode != 0:
             logging.debug('Command {} failed.'.format(cmd))
             raise CadcException(

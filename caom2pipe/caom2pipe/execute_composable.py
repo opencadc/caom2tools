@@ -342,7 +342,9 @@ class CaomExecute(object):
             handler.setLevel(config.logging_level)
             handler.setFormatter(formatter)
         self.logging_level_param = self._set_logging_level_param(
-            config.logging_level)
+            config.logging_level)[0]
+        self.log_level_as = self._set_logging_level_param(
+            config.logging_level)[1]
         self.obs_id = storage_name.obs_id
         self.product_id = storage_name.product_id
         self.uri = storage_name.file_uri
@@ -369,6 +371,7 @@ class CaomExecute(object):
         self.lineage = storage_name.lineage
         self.external_urls_param = self._set_external_urls_param(
             storage_name.external_urls)
+        self.storage_name = storage_name
 
     def _cleanup(self):
         """Remove a directory and all its contents."""
@@ -411,7 +414,7 @@ class CaomExecute(object):
                 self.command_name,
                 self.logging_level_param, self.cred_param, self.collection,
                 self.obs_id, self.model_fqn, plugin, plugin, fqn, self.lineage)
-        mc.exec_cmd(cmd)
+        mc.exec_cmd(cmd, self.log_level_as)
 
     def _fits2caom2_cmd_client(self):
         """Execute fits2caom with a --cert parameter."""
@@ -422,7 +425,7 @@ class CaomExecute(object):
                 self.command_name, self.logging_level_param, self.cred_param,
                 self.collection, self.obs_id, self.model_fqn,
                 self.external_urls_param, plugin, plugin, self.lineage)
-        mc.exec_cmd(cmd)
+        mc.exec_cmd(cmd, self.log_level_as)
 
     def _fits2caom2_cmd_client_local(self):
         """
@@ -436,7 +439,7 @@ class CaomExecute(object):
                 self.command_name, self.logging_level_param, self.cred_param,
                 self.collection, self.obs_id, local_fqn, self.model_fqn,
                 plugin, plugin, self.lineage)
-        mc.exec_cmd(cmd)
+        mc.exec_cmd(cmd, self.log_level_as)
 
     def _fits2caom2_cmd_in_out_client(self):
         """Execute fits2caom with a --in, a --external_url and a --cert
@@ -448,7 +451,7 @@ class CaomExecute(object):
                 self.command_name, self.logging_level_param,
                 self.cred_param, self.model_fqn, self.model_fqn,
                 self.external_urls_param, plugin, plugin, self.lineage)
-        mc.exec_cmd(cmd)
+        mc.exec_cmd(cmd, self.log_level_as)
 
     def _fits2caom2_cmd_in_out_local_client(self):
         """Execute fits2caom with a --in, --local and a --cert parameter."""
@@ -460,7 +463,7 @@ class CaomExecute(object):
                 self.command_name, self.logging_level_param, self.cred_param,
                 self.model_fqn, self.model_fqn, local_fqn, plugin, plugin,
                 self.lineage)
-        mc.exec_cmd(cmd)
+        mc.exec_cmd(cmd, self.log_level_as)
 
     def _compare_checksums_client(self, fname):
         """Compare the checksum of a file on disk with a file in ad,
@@ -574,14 +577,14 @@ class CaomExecute(object):
     @staticmethod
     def _set_logging_level_param(logging_level):
         """Make a configured logging level into command-line parameters."""
-        lookup = {logging.DEBUG: '--debug',
-                  logging.INFO: '--verbose',
-                  logging.WARNING: '',
-                  logging.ERROR: '--quiet'}
+        lookup = {logging.DEBUG: ['--debug', logging.debug],
+                  logging.INFO: ['--verbose', logging.info],
+                  logging.WARNING: ['', logging.warning],
+                  logging.ERROR: ['--quiet', logging.error]}
         if logging_level in lookup:
             result = lookup[logging_level]
         else:
-            result = ''
+            result = ['', logging.info]
         return result
 
     @staticmethod

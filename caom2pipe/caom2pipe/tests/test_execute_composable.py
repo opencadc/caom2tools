@@ -68,6 +68,7 @@
 #
 
 import distutils.sysconfig
+import logging
 import os
 import pytest
 import sys
@@ -477,7 +478,8 @@ def test_scrape():
             '--module {} '
             '--local {}/test_file.fits.gz '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_DATA_DIR, test_source, test_source, TEST_DATA_DIR))
+                TEST_DATA_DIR, test_source, test_source, TEST_DATA_DIR),
+            logging.info)
 
     finally:
         mc.exec_cmd = exec_cmd_orig
