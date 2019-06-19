@@ -79,7 +79,6 @@ import six
 
 if six.PY3:
     from caom2pipe import astro_composable as ac
-    from test_execute_composable import _init_config
 
 
 PY_VERSION = '3.6'
@@ -157,7 +156,7 @@ def test_get_time_delta_in_s():
                     reason='support one python version')
 @patch('cadcutils.net.ws.BaseWsClient.post')
 @patch('cadcutils.net.ws.WsCapabilities.get_access_url')
-def test_query_tap(caps_mock, base_mock):
+def test_query_tap(caps_mock, base_mock, test_config):
     caps_mock.return_value = 'https://localhost'
     response = Mock()
     response.status_code = 200
@@ -179,7 +178,6 @@ def test_query_tap(caps_mock, base_mock):
         b'<INFO name="QUERY_STATUS" value="OK" />\r\n  ' \
         b'</RESOURCE>\r\n</VOTABLE>\r\n'
     base_mock.return_value.__enter__.return_value = response
-    test_config = _init_config()
     test_config.tap_id = 'https://cadc.nrc.ca/sc2tap'
     result = ac.query_tap('select count(*) from caom2.Observation',
                           test_config)

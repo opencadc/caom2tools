@@ -98,10 +98,12 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
            'data_put', 'data_get', 'build_uri', 'make_seconds',
-           'increment_time', 'ISO_8601_FORMAT', 'http_get']
+           'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
+           'NO_REASON', 'record_progress']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 READ_BLOCK_SIZE = 8 * 1024
+NO_REASON = ''
 
 
 class CadcException(Exception):
@@ -242,11 +244,60 @@ class State(object):
         if key in self.bookmarks:
             if 'last_record' in self.bookmarks[key]:
                 self.bookmarks[key]['last_record'] = value
+                logging.info('Saving timestamp {}'.format(value))
                 write_as_yaml(self.content, self.fqn)
             else:
                 self.logger.warning('No record found for {}'.format(key))
         else:
             self.logger.warning('No bookmarks found for {}'.format(key))
+
+
+class Rejected(object):
+    """Persist information between pipeline invocations about the observation
+    IDs that will fail a particular TaskType.
+    """
+
+    # A map to the logging message string representing acknowledged rejections
+    reasons = {'bad_metadata': 'Cannot build an observation',
+               'no_preview': '404 Client Error: Not Found for url'}
+
+    def __init__(self, fqn):
+        self.fqn = fqn
+        if os.path.exists(fqn):
+            try:
+                self.content = read_as_yaml(fqn)
+            except yaml.constructor.ConstructorError as ignore:
+                logging.error('ConstructorError reading {}'.format(self.fqn))
+                self.content = {}
+        else:
+            self.content = {}
+        for reason in Rejected.reasons.keys():
+            if reason not in self.content:
+                self.content[reason] = []
+
+    def record(self, reason, obs_id):
+        """Keep track of an additional entry."""
+        self.content[reason].append(obs_id)
+
+    def persist_state(self):
+        """Write the current state as a YAML file."""
+        for key, value in self.content.items():
+            # ensure unique entries
+            self.content[key] = list(set(value))
+        write_as_yaml(self.content, self.fqn)
+
+    def is_bad_metadata(self, obs_id):
+        return obs_id in self.content['bad_metadata']
+
+    @staticmethod
+    def known_failure(message):
+        """Returns the REASON for the failure, or an empty string if
+        the failure is of an unexpected type."""
+        result = NO_REASON
+        for reason, text in Rejected.reasons.items():
+            if text in message:
+                result = reason
+        return result
 
 
 class Config(object):
@@ -287,6 +338,11 @@ class Config(object):
         self._state_file_name = None
         # the fully qualified name for the file
         self.state_fqn = None
+        self._rejected_file_name = None
+        # the fully qualified name for the file
+        self.rejected_fqn = None
+        self._progress_file_name = None
+        self.progress_fqn = None
         self._interval = None
         self._features = Features()
 
@@ -489,6 +545,33 @@ class Config(object):
         self._retry_count = value
 
     @property
+    def rejected_file_name(self):
+        """the filename where rejected entries are written, this will be created
+        in log_file_directory"""
+        return self._rejected_file_name
+
+    @rejected_file_name.setter
+    def rejected_file_name(self, value):
+        self._rejected_file_name = value
+        if self._log_file_directory is not None:
+            self.rejected_fqn = os.path.join(
+                self._log_file_directory, self._rejected_file_name)
+
+    @property
+    def progress_file_name(self):
+        """the filename where pipeline progress is written, this will be created
+        in log_file_directory. Useful when using timestamp windows for
+        execution. """
+        return self._progress_file_name
+
+    @progress_file_name.setter
+    def progress_file_name(self, value):
+        self._progress_file_name = value
+        if self._log_file_directory is not None:
+            self.progress_fqn = os.path.join(
+                self._log_file_directory, self._progress_file_name)
+
+    @property
     def proxy_file_name(self):
         """If using a proxy certificate for authentication, identify the
         fully-qualified pathname here."""
@@ -555,6 +638,10 @@ class Config(object):
                'retry_fqn:: \'{}\' ' \
                'retry_failures:: \'{}\' ' \
                'retry_count:: \'{}\' ' \
+               'rejected_file_name:: \'{}\' ' \
+               'rejected_fqn:: \'{}\' ' \
+               'progress_file_name:: \'{}\' ' \
+               'progress_fqn:: \'{}\' ' \
                'proxy_file:: \'{}\' ' \
                'state_fqn:: \'{}\' ' \
                'features:: \'{}\' ' \
@@ -567,9 +654,10 @@ class Config(object):
                 self.log_file_directory, self.success_log_file_name,
                 self.success_fqn, self.failure_log_file_name,
                 self.failure_fqn, self.retry_file_name, self.retry_fqn,
-                self.retry_failures, self.retry_count, self.proxy_fqn,
-                self.state_fqn, self.features, self.interval,
-                self.logging_level)
+                self.retry_failures, self.retry_count, self.rejected_file_name,
+                self.rejected_fqn, self.progress_file_name,
+                self.progress_fqn, self.proxy_fqn, self.state_fqn,
+                self.features, self.interval, self.logging_level)
 
     @staticmethod
     def _obtain_task_types(config, default=None):
@@ -632,6 +720,10 @@ class Config(object):
                                               'retries.txt')
             self.retry_failures = config.get('retry_failures', False)
             self.retry_count = config.get('retry_count', 1)
+            self.rejected_file_name = config.get('rejected_file_name',
+                                                 'rejected.yml')
+            self.progress_file_name = config.get('progress_file_name',
+                                                 'progress.txt')
             self.interval = config.get('interval', 10)
             self.features = self._obtain_features(config)
             self.proxy_file_name = config.get('proxy_file_name', None)
@@ -738,8 +830,10 @@ def exec_cmd(cmd, log_leval_as=logging.debug):
         child = subprocess.Popen(cmd_array, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         output, outerr = child.communicate()
-        log_leval_as('stdout {}'.format(output.decode('utf-8')))
-        logging.error('stderr {}'.format(outerr.decode('utf-8')))
+        if len(output) > 0:
+            log_leval_as('stdout {}'.format(output.decode('utf-8')))
+        if len(outerr) > 0:
+            logging.error('stderr {}'.format(outerr.decode('utf-8')))
         if child.returncode != 0:
             logging.debug('Command {} failed.'.format(cmd))
             raise CadcException(
@@ -980,6 +1074,14 @@ def read_csv_file(fqn):
         logging.error('Could not read from csv file {}'.format(fqn))
         raise CadcException(e)
     return results
+
+
+def record_progress(config, application, count, cumulative, start_time):
+    """Common code to write the number of entries processed to a file."""
+    with open(config.progress_fqn, 'a') as progress:
+        progress.write(
+            '{} {} current:: {} since {}:: {}\n'.format(
+                datetime.now(), application, count, start_time, cumulative))
 
 
 def write_obs_to_file(obs, fqn):

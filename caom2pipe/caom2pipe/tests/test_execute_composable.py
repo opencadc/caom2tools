@@ -75,6 +75,7 @@ import sys
 
 import six
 
+from datetime import datetime
 from mock import Mock, patch
 
 from astropy.io import fits
@@ -127,28 +128,10 @@ if six.PY3:
         def needs_delete(self, observation):
             return True
 
-    def _init_config():
-        test_config = mc.Config()
-        test_config.working_directory = THIS_DIR
-        test_config.collection = 'OMM'
-        test_config.netrc_file = os.path.join(TEST_DATA_DIR, 'test_netrc')
-        test_config.work_file = 'todo.txt'
-        test_config.logging_level = 'DEBUG'
-        test_config.log_file_directory = TEST_DATA_DIR
-        test_config.failure_fqn = '{}/fail.txt'.format(TEST_DATA_DIR)
-        test_config.retry_fqn = '{}/retry.txt'.format(TEST_DATA_DIR)
-        test_config.success_fqn = '{}/good.txt'.format(TEST_DATA_DIR)
-        test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
-        test_config.features.run_in_airflow = False
-        test_config.features.use_file_names = False
-        test_config.stream = 'TEST'
-        return test_config
-
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_meta_create_client_execute():
-    test_config = _init_config()
+def test_meta_create_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
@@ -171,7 +154,8 @@ def test_meta_create_client_execute():
             '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, test_source, test_source),
+            logging.debug)
         assert repo_client_mock.create.is_called, 'create call missed'
         assert test_executor.url == 'https://test_url/', 'url'
     finally:
@@ -180,8 +164,7 @@ def test_meta_create_client_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_meta_update_client_execute():
-    test_config = _init_config()
+def test_meta_update_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
@@ -202,7 +185,8 @@ def test_meta_update_client_execute():
             '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
+            logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -210,8 +194,7 @@ def test_meta_update_client_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_meta_delete_create_client_execute():
-    test_config = _init_config()
+def test_meta_delete_create_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
@@ -231,7 +214,8 @@ def test_meta_delete_create_client_execute():
             '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
+            logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -239,8 +223,7 @@ def test_meta_delete_create_client_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_local_meta_create_client_execute():
-    test_config = _init_config()
+def test_local_meta_create_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
@@ -261,7 +244,8 @@ def test_local_meta_create_client_execute():
             '--local {}/test_file.fits --out {}/test_obs_id.fits.xml '
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
+            logging.debug)
         assert repo_client_mock.create.is_called, 'create call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -269,8 +253,7 @@ def test_local_meta_create_client_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_local_meta_update_client_execute():
-    test_config = _init_config()
+def test_local_meta_update_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
@@ -292,7 +275,7 @@ def test_local_meta_update_client_execute():
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
-                test_source))
+                test_source), logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -300,8 +283,7 @@ def test_local_meta_update_client_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_local_meta_delete_create_client_execute():
-    test_config = _init_config()
+def test_local_meta_delete_create_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
@@ -323,7 +305,7 @@ def test_local_meta_delete_create_client_execute():
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
-                test_source))
+                test_source), logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -331,8 +313,7 @@ def test_local_meta_delete_create_client_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_client_visit():
-    test_config = _init_config()
+def test_client_visit(test_config):
     test_cred = None
     data_client_mock = Mock()
     repo_client_mock = Mock()
@@ -350,7 +331,7 @@ def test_client_visit():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_data_execute():
+def test_data_execute(test_config):
     test_obs_id = 'TEST_OBS_ID'
     test_dir = os.path.join(THIS_DIR, test_obs_id)
     test_fits_fqn = os.path.join(test_dir,
@@ -367,7 +348,6 @@ def test_data_execute():
     os.listdir = Mock(return_value=[])
     os_rmdir_orig = os.rmdir
     os.rmdir = Mock()
-    test_config = _init_config()
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
@@ -401,7 +381,7 @@ def test_data_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_data_local_execute():
+def test_data_local_execute(test_config):
     test_data_visitors = [TestVisit]
 
     data_client_mock = Mock()
@@ -410,7 +390,6 @@ def test_data_local_execute():
     repo_client_mock.read.return_value = _read_obs(None)
     test_cred = None
 
-    test_config = _init_config()
     # run the test
     test_executor = ec.LocalDataClient(
         test_config, TestStorageName(), TEST_APP,
@@ -430,8 +409,7 @@ def test_data_local_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_data_store():
-    test_config = _init_config()
+def test_data_store(test_config):
     data_client_mock = Mock()
     repo_client_mock = Mock()
     test_executor = ec.StoreClient(
@@ -448,14 +426,13 @@ def test_data_store():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_scrape():
+def test_scrape(test_config):
     # clean up from previous tests
     if os.path.exists(TestStorageName().model_file_name):
         os.remove(TestStorageName().model_file_name)
     netrc = os.path.join(TEST_DATA_DIR, 'test_netrc')
     assert os.path.exists(netrc)
 
-    test_config = _init_config()
     test_config.working_directory = TEST_DATA_DIR
     test_config.logging_level = 'INFO'
     exec_cmd_orig = mc.exec_cmd
@@ -487,13 +464,11 @@ def test_scrape():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_data_scrape_execute():
+def test_data_scrape_execute(test_config):
     test_data_visitors = [TestVisit]
     read_orig = mc.read_obs_from_file
     mc.read_obs_from_file = Mock(side_effect=_read_obs)
     try:
-
-        test_config = _init_config()
 
         # run the test
         test_executor = ec.DataScrape(
@@ -512,9 +487,8 @@ def test_data_scrape_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_organize_executes_client():
+def test_organize_executes_client(test_config):
     test_obs_id = TestStorageName()
-    test_config = _init_config()
     test_config.use_local_files = True
     log_file_directory = os.path.join(THIS_DIR, 'logs')
     test_config.log_file_directory = log_file_directory
@@ -647,10 +621,11 @@ def test_organize_executes_client():
         assert executors[0].url == 'https://test_url/', 'url'
         assert executors[0].fname == 'test_obs_id.fits', 'file name'
         assert executors[0].stream == 'TEST', 'stream'
-        assert executors[0].working_dir == '{}/test_obs_id'.format(THIS_DIR), \
-            'working_dir'
+        assert executors[0].working_dir == '{}/test_obs_id'.format(
+            THIS_DIR),  'working_dir'
         assert executors[0].local_fqn == \
-            '{}/test_obs_id/test_obs_id.fits'.format(THIS_DIR), 'local_fqn'
+            '{}/test_obs_id/test_obs_id.fits'.format(
+                THIS_DIR), 'local_fqn'
         assert test_oe.success_fqn == \
             '{}/logs/todo_success_log.txt'.format(THIS_DIR), 'wrong success'
         assert test_oe.retry_fqn == \
@@ -665,9 +640,8 @@ def test_organize_executes_client():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_organize_executes_chooser():
+def test_organize_executes_chooser(test_config):
     test_obs_id = TestStorageName()
-    test_config = _init_config()
     test_config.use_local_files = True
     log_file_directory = os.path.join(THIS_DIR, 'logs')
     test_config.log_file_directory = log_file_directory
@@ -724,9 +698,8 @@ def test_organize_executes_chooser():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_organize_executes_client_existing():
+def test_organize_executes_client_existing(test_config):
     test_obs_id = TestStorageName()
-    test_config = _init_config()
     test_config.features.use_clients = True
     repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
     CadcDataClient.__init__ = Mock(return_value=None)
@@ -750,9 +723,8 @@ def test_organize_executes_client_existing():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_organize_executes_client_visit():
+def test_organize_executes_client_visit(test_config):
     test_obs_id = TestStorageName()
-    test_config = _init_config()
     test_config.features.use_clients = True
     test_config.task_types = [mc.TaskType.VISIT]
     test_config.use_local_files = False
@@ -769,8 +741,7 @@ def test_organize_executes_client_visit():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_checksum_client():
-    test_config = _init_config()
+def test_checksum_client(test_config):
     test_executor = ec.CompareChecksumClient(
         test_config, TestStorageName(), 'test2caom2', None, None, None)
     compare_orig = mc.compare_checksum_client
@@ -790,9 +761,10 @@ def test_checksum_client():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_capture_failure():
+def test_capture_failure(test_config):
+    start_s = datetime.utcnow().timestamp()
     test_obs_id = 'test_obs_id'
-    test_config = _init_config()
+    test_obs_id_2 = 'test_obs_id_2'
     log_file_directory = os.path.join(THIS_DIR, 'logs')
     test_config.log_to_file = True
     test_config.log_file_directory = log_file_directory
@@ -802,7 +774,10 @@ def test_capture_failure():
     test_config.failure_log_file_name = failure_log_file_name
     retry_file_name = 'retries.txt'
     test_config.retry_file_name = retry_file_name
+    rejected_file_name = 'rejected.yml'
+    test_config.rejected_file_name = rejected_file_name
 
+    # clean up from last execution
     if not os.path.exists(log_file_directory):
         os.mkdir(log_file_directory)
     if os.path.exists(test_config.success_fqn):
@@ -811,23 +786,36 @@ def test_capture_failure():
         os.remove(test_config.failure_fqn)
     if os.path.exists(test_config.retry_fqn):
         os.remove(test_config.retry_fqn)
-
-    # clean up from last execution
+    if os.path.exists(test_config.rejected_fqn):
+        os.remove(test_config.rejected_fqn)
 
     test_oe = ec.OrganizeExecutes(test_config)
+    test_oe.capture_failure(test_obs_id_2, None, 'Cannot build an observation')
     test_oe.capture_failure(test_obs_id, None, 'exception text')
-    test_oe.capture_success(test_obs_id, 'C121212_01234_CAL.fits.gz')
+    test_oe.capture_success(test_obs_id, 'C121212_01234_CAL.fits.gz', start_s)
+    ec._finish_run(test_oe)
 
     assert os.path.exists(test_config.success_fqn)
     assert os.path.exists(test_config.failure_fqn)
     assert os.path.exists(test_config.retry_fqn)
+    assert os.path.exists(test_config.rejected_fqn)
 
     success_content = open(test_config.success_fqn).read()
-    assert success_content.endswith('test_obs_id C121212_01234_CAL.fits.gz\n')
+    # assert success_content.endswith('test_obs_id C121212_01234_CAL.fits.gz\n')
+    assert 'test_obs_id C121212_01234_CAL.fits.gz' in success_content, \
+        'wrong content'
     retry_content = open(test_config.retry_fqn).read()
     assert retry_content == 'test_obs_id\n'
     failure_content = open(test_config.failure_fqn).read()
-    assert failure_content.endswith('test_obs_id None exception text\n')
+    assert failure_content.endswith(
+        'test_obs_id None exception text\n'), failure_content
+    assert os.path.exists(test_config.rejected_fqn), test_config.rejected_fqn
+    rejected_content = mc.read_as_yaml(test_config.rejected_fqn)
+    assert rejected_content is not None, 'expect a result'
+    test_result = rejected_content.get('bad_metadata')
+    assert test_result is not None, 'wrong result'
+    assert len(test_result) == 1, 'wrong number of entries'
+    assert test_result[0] == test_obs_id_2, 'wrong entry'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -849,7 +837,7 @@ def test_run_by_file():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_run_by_file_expects_retry():
+def test_run_by_file_expects_retry(test_config):
     retry_dir = '{}_0'.format(TEST_DATA_DIR)
     if os.path.exists(retry_dir):
         f_log = '{}/failure_log.txt'.format(retry_dir)
@@ -866,7 +854,6 @@ def test_run_by_file_expects_retry():
             os.remove(t_log)
         os.rmdir(retry_dir)
 
-    test_config = _init_config()
     test_config.log_to_file = True
     test_config.features.expects_retry = True
     test_config.features.use_urls = False
@@ -883,10 +870,10 @@ def test_run_by_file_expects_retry():
     assert test_config.need_to_retry(), 'should require retries'
 
     test_config.update_for_retry(test_retry_count)
-    assert test_config.log_file_directory == '{}_{}'.format(TEST_DATA_DIR,
-                                                            test_retry_count)
+    assert test_config.log_file_directory == '{}/data_{}'.format(
+        THIS_DIR, test_retry_count)
     assert test_config.work_file == 'retries.txt'
-    assert test_config.work_fqn == os.path.join(TEST_DATA_DIR, 'retries.txt')
+    assert test_config.work_fqn == '{}/retries.txt'.format(TEST_DATA_DIR)
     try:
         ec._run_by_file(test_config, TestStorageName, TEST_APP,
                         proxy=None, meta_visitors=[], data_visitors=[])
@@ -903,8 +890,7 @@ def test_run_by_file_expects_retry():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_do_one():
-    test_config = _init_config()
+def test_do_one(test_config):
     test_config.task_types = []
     test_organizer = ec.OrganizeExecutes(test_config)
     # no client
@@ -964,14 +950,13 @@ def test_caom_name():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_local_meta_create_client_remote_storage_execute():
+def test_local_meta_create_client_remote_storage_execute(test_config):
     os_path_exists_orig = os.path.exists
     os.path.exists = Mock(return_value=True)
     os_listdir_orig = os.listdir
     os.listdir = Mock(return_value=[])
     os_rmdir_orig = os.rmdir
     os.rmdir = Mock()
-    test_config = _init_config()
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
@@ -1004,7 +989,8 @@ def test_local_meta_create_client_remote_storage_execute():
             '--out {}/test_obs_id.fits.xml --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, test_local, THIS_DIR, test_source, test_source))
+                TEST_APP, test_local, THIS_DIR, test_source, test_source),
+            logging.debug)
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -1015,14 +1001,13 @@ def test_local_meta_create_client_remote_storage_execute():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_local_meta_update_client_remote_storage_execute():
+def test_local_meta_update_client_remote_storage_execute(test_config):
     os_path_exists_orig = os.path.exists
     os.path.exists = Mock(return_value=True)
     os_listdir_orig = os.listdir
     os.listdir = Mock(return_value=[])
     os_rmdir_orig = os.rmdir
     os.rmdir = Mock()
-    test_config = _init_config()
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
@@ -1055,8 +1040,8 @@ def test_local_meta_update_client_remote_storage_execute():
             '--out {}/test_obs_id.fits.xml --local {} --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, THIS_DIR, test_local, test_source,
-                test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_local,
+                test_source, test_source), logging.debug)
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -1076,7 +1061,7 @@ def test_omm_name_dots():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_pull_client():
+def test_pull_client(test_config):
     # Response mock
     class Object(object):
         pass
@@ -1093,7 +1078,6 @@ def test_pull_client():
         def __exit__(self, a, b, c):
             return None
 
-    test_config = _init_config()
     data_client_mock = Mock()
     repo_client_mock = Mock()
     test_sn = TestStorageName()
@@ -1113,8 +1097,7 @@ def test_pull_client():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_choose_exceptions():
-    test_config = _init_config()
+def test_choose_exceptions(test_config):
     test_config.init_local_files = False
     test_config.task_types = [mc.TaskType.SCRAPE]
     with pytest.raises(mc.CadcException):
@@ -1130,7 +1113,7 @@ def test_choose_exceptions():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_storage_name_failure():
+def test_storage_name_failure(test_config):
     class TestStorageNameFails(TestStorageName):
 
         def __init__(self):
@@ -1138,19 +1121,18 @@ def test_storage_name_failure():
 
         def is_valid(self):
             return False
-    test_config = _init_config()
     test_config.log_to_file = True
-    good_start = os.path.getmtime(test_config.success_fqn)
-    fail_start = os.path.getmtime(test_config.failure_fqn)
-    retry_start = os.path.getmtime(test_config.retry_fqn)
+    assert not os.path.exists(test_config.success_fqn)
+    assert not os.path.exists(test_config.failure_fqn)
+    assert not os.path.exists(test_config.retry_fqn)
     test_organizer = ec.OrganizeExecutes(test_config)
     test_organizer.choose(TestStorageNameFails(), 'command name', [], [])
     good_end = os.path.getmtime(test_config.success_fqn)
     fail_end = os.path.getmtime(test_config.failure_fqn)
     retry_end = os.path.getmtime(test_config.retry_fqn)
-    assert good_end > good_start, 'good'
-    assert retry_end > retry_start, 'retry'
-    assert fail_end > fail_start, 'failure'
+    assert os.path.exists(test_config.success_fqn)
+    assert os.path.exists(test_config.failure_fqn)
+    assert os.path.exists(test_config.retry_fqn)
 
 
 def _communicate():

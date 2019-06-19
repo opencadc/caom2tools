@@ -112,6 +112,7 @@ import traceback
 from argparse import ArgumentParser
 from astropy.io import fits
 from datetime import datetime
+from shutil import move
 
 from cadcutils import net, exceptions
 from cadcdata import CadcDataClient
@@ -371,7 +372,6 @@ class CaomExecute(object):
         self.lineage = storage_name.lineage
         self.external_urls_param = self._set_external_urls_param(
             storage_name.external_urls)
-        self.storage_name = storage_name
 
     def _cleanup(self):
         """Remove a directory and all its contents."""
@@ -1293,22 +1293,36 @@ class OrganizeExecutes(object):
                 self.config.log_file_directory,
                 '{}_retries.txt'.format(todo_name))
             config.retry_fqn = self.retry_fqn
+            self.rejected_fqn = os.path.join(
+                self.config.log_file_directory,
+                '{}_rejected.yml'.format(todo_name))
+            config.rejected_fqn = self.rejected_fqn
         else:
             self.todo_fqn = config.work_fqn
             self.success_fqn = config.success_fqn
             self.failure_fqn = config.failure_fqn
             self.retry_fqn = config.retry_fqn
+            self.rejected_fqn = config.rejected_fqn
 
         if self.config.log_to_file:
             mc.create_dir(self.config.log_file_directory)
-            failure = open(self.failure_fqn, 'w')
-            failure.close()
-            retry = open(self.retry_fqn, 'w')
-            retry.close()
-            success = open(self.success_fqn, 'w')
-            success.close()
-        self.success_count = 0
-        self.complete_record_count = 0
+            now_s = datetime.utcnow().timestamp()
+            for fqn in [self.failure_fqn, self.retry_fqn, self.success_fqn]:
+                back_fqn = '{}.{}.txt'.format(fqn.replace('.txt', ''), now_s)
+                OrganizeExecutes._init_log_file(fqn, back_fqn)
+        self._success_count = 0
+        self._complete_record_count = 0
+        self.rejected = mc.Rejected(self.rejected_fqn)
+
+    @property
+    def success_count(self):
+        """:return integer indicating how many inputs (files or observations,
+         depending on the configuration) have been successfully processed."""
+        return self._success_count
+
+    @success_count.setter
+    def success_count(self, value):
+        self._success_count = value
 
     @property
     def complete_record_count(self):
@@ -1350,8 +1364,7 @@ class OrganizeExecutes(object):
                 if task_type == mc.TaskType.SCRAPE:
                     if self.config.use_local_files:
                         executors.append(
-                            Scrape(self.config, storage_name,
-                                   command_name))
+                            Scrape(self.config, storage_name, command_name))
                     else:
                         raise mc.CadcException(
                             'use_local_files must be True with '
@@ -1497,10 +1510,16 @@ class OrganizeExecutes(object):
 
     def capture_failure(self, obs_id, file_name, e):
         """Log an error message to the failure file.
+
+        If the failure is of a known type, also capture it to the rejected
+        list. The rejected list will be saved to disk when the execute method
+        completes.
+
         :obs_id observation ID being processed
         :file_name file name being processed
         :e Exception to log - the entire stack trace, which, if logging
-            level is not set to debug, will be lost for debugging purposes."""
+            level is not set to debug, will be lost for debugging purposes.
+        """
         if self.config.log_to_file:
             with open(self.failure_fqn, 'a') as failure:
                 min_error = self._minimize_error_message(e)
@@ -1508,28 +1527,54 @@ class OrganizeExecutes(object):
                     '{} {} {} {}\n'.format(datetime.now(), obs_id, file_name,
                                            min_error))
 
-            with open(self.retry_fqn, 'a') as retry:
-                if (self.config.features.use_file_names or
-                        self.config.use_local_files):
-                    retry.write('{}\n'.format(file_name))
-                else:
-                    retry.write('{}\n'.format(obs_id))
+            # only retry entries that are not permanently marked as rejected
+            reason = mc.Rejected.known_failure(e)
+            if reason == mc.NO_REASON:
+                with open(self.retry_fqn, 'a') as retry:
+                    if (self.config.features.use_file_names or
+                            self.config.use_local_files):
+                        retry.write('{}\n'.format(file_name))
+                    else:
+                        retry.write('{}\n'.format(obs_id))
+            else:
+                self.rejected.record(reason, obs_id)
 
-    def capture_success(self, obs_id, file_name):
+    def capture_success(self, obs_id, file_name, start_time):
         """Capture, with a timestamp, the successful observations/file names
         that have been processed.
         :obs_id observation ID being processed
-        :file_name file name being processed"""
+        :file_name file name being processed
+        :start_time seconds since beginning of execution.
+        """
         self.success_count += 1
+        execution_s = datetime.utcnow().timestamp() - start_time
         if self.config.log_to_file:
             success = open(self.success_fqn, 'a')
             try:
                 success.write(
-                    '{} {} {}\n'.format(datetime.now(), obs_id, file_name))
-                logging.info('Progress - processed {} of {} records.'.format(
-                    self.success_count, self.complete_record_count))
+                    '{} {} {} {}\n'.format(
+                        datetime.now(), obs_id, file_name, execution_s))
+                logging.info(
+                    'Progress - processed {} of {} records in {} s.'.format(
+                        self.success_count, self.complete_record_count,
+                        execution_s))
             finally:
                 success.close()
+
+    def is_rejected(self, storage_name):
+        """Common code to use the appropriate identifier when checking for
+        rejected entries."""
+        if self.config.features.use_urls:
+            result = self.rejected.is_bad_metadata(storage_name.url)
+        elif self.config.features.use_file_names:
+            result = self.rejected.is_bad_metadata(storage_name.file_name)
+        else:
+            result = self.rejected.is_bad_metadata(storage_name.obs_id)
+        if result:
+            logging.info(
+                'Rejected observation {} because of bad metadata'.format(
+                    storage_name.obs_id))
+        return result
 
     def _define_subject(self):
         """Common code to figure out which credentials to use when
@@ -1556,10 +1601,20 @@ class OrganizeExecutes(object):
         return subject, cred_param
 
     @staticmethod
+    def _init_log_file(log_fqn, log_fqn_backup):
+        """Keep old versions of the progress files."""
+        if os.path.exists(log_fqn):
+            move(log_fqn, log_fqn_backup)
+        f_handle = open(log_fqn, 'w')
+        f_handle.close()
+
+    @staticmethod
     def _minimize_error_message(e):
         """Turn the long-winded stack trace into something minimal that lends
         itself to awk."""
-        if 'Read timed out' in e:
+        if e is None:
+            return 'None'
+        elif 'Read timed out' in e:
             return 'Read timed out'
         elif 'failed to load external entity' in e:
             return 'caom2repo xml error'
@@ -1626,6 +1681,11 @@ def _unset_file_logging(config, log_h):
         logging.getLogger().removeHandler(log_h)
 
 
+def _finish_run(organizer):
+    """Code common to the end of all _run_<something> methods."""
+    organizer.rejected.persist_state()
+
+
 def _do_one(config, organizer, storage_name, command_name, meta_visitors,
             data_visitors):
     """Process one entry.
@@ -1638,7 +1698,13 @@ def _do_one(config, organizer, storage_name, command_name, meta_visitors,
     :param data_visitors List of data visit methods.
     """
     log_h = _set_up_file_logging(config, storage_name)
+    start_s = datetime.utcnow().timestamp()
     try:
+        if organizer.is_rejected(storage_name):
+            organizer.capture_failure(storage_name.obs_id,
+                                      storage_name.file_name, e='Rejected')
+            # successful rejection of the execution case
+            return 0
         executors = organizer.choose(storage_name, command_name,
                                      meta_visitors, data_visitors)
         for executor in executors:
@@ -1647,7 +1713,8 @@ def _do_one(config, organizer, storage_name, command_name, meta_visitors,
             executor.execute(context=None)
         if len(executors) > 0:
             organizer.capture_success(storage_name.obs_id,
-                                      storage_name.file_name)
+                                      storage_name.file_name,
+                                      start_s)
             return 0
         else:
             logging.info('No executors for {}'.format(
@@ -1731,6 +1798,7 @@ def _run_todo_file(config, organizer, sname, command_name,
                     entry, e))
                 logging.debug(traceback.format_exc())
                 # then keep processing the rest of the lines in the file
+    _finish_run(organizer)
 
 
 def _run_local_files(config, organizer, sname, command_name,
@@ -1770,6 +1838,7 @@ def _run_local_files(config, organizer, sname, command_name,
     for do_file in todo_list:
         _run_by_file_list(config, organizer, sname, command_name,
                           meta_visitors, data_visitors, do_file)
+    _finish_run(organizer)
 
     if config.need_to_retry():
         for count in range(0, config.retry_count):
@@ -1794,6 +1863,7 @@ def _run_local_files(config, organizer, sname, command_name,
                                       redo_file.strip())
                 except Exception as e:
                     logging.error(e)
+            _finish_run(organizer)
             if not config.need_to_retry():
                 break
         logging.warning('Done retry attempts.')
@@ -1968,6 +2038,7 @@ def run_single(config, storage_name, command_name, meta_visitors,
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)
     logging.debug('run_single result is {}'.format(result))
+    _finish_run(organizer)
     return result
 
 
@@ -1985,6 +2056,7 @@ def run_single_from_state(organizer, config, storage_name, command_name,
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)
     logging.info('Result is {} for {}'.format(result, storage_name.file_name))
+    _finish_run(organizer)
     return result
 
 
@@ -2013,6 +2085,7 @@ def run_from_state(config, sname, command_name, meta_visitors, data_visitors,
                          command_name, meta_visitors, data_visitors)
         logging.info(
             'Result is {} for {}'.format(result, storage_name.file_name))
+    _finish_run(organizer)
 
     if config.need_to_retry():
         for count in range(0, config.retry_count):
@@ -2036,5 +2109,6 @@ def run_from_state(config, sname, command_name, meta_visitors, data_visitors,
                     logging.error(e)
             if not config.need_to_retry():
                 break
+            _finish_run(organizer)
         logging.warning('Done retry attempts.')
     return 0
