@@ -314,7 +314,7 @@ class CaomExecute(object):
 
     def __init__(self, config, task_type, storage_name, command_name,
                  cred_param, cadc_data_client, caom_repo_client,
-                 meta_visitors):
+                 meta_visitors, rejected):
         """
         :param config: Configurable parts of execution, as stored in
             manage_composable.Config.
@@ -334,6 +334,7 @@ class CaomExecute(object):
         :param meta_visitors: List of classes with a
             'visit(observation, **kwargs)' method signature. Requires access
             to metadata only.
+        :param rejected: Access to known bad entries list
         """
         self.logger = logging.getLogger()
         self.logger.setLevel(config.logging_level)
@@ -347,7 +348,6 @@ class CaomExecute(object):
         self.log_level_as = self._set_logging_level_param(
             config.logging_level)[1]
         self.obs_id = storage_name.obs_id
-        self.product_id = storage_name.product_id
         self.uri = storage_name.file_uri
         self.fname = storage_name.file_name
         self.command_name = command_name
@@ -372,6 +372,7 @@ class CaomExecute(object):
         self.lineage = storage_name.lineage
         self.external_urls_param = self._set_external_urls_param(
             storage_name.external_urls)
+        self.rejected = rejected
 
     def _cleanup(self):
         """Remove a directory and all its contents."""
@@ -557,7 +558,8 @@ class CaomExecute(object):
             kwargs = {'working_directory': self.working_dir,
                       'cadc_client': self.cadc_data_client,
                       'stream': self.stream,
-                      'url': self.url}
+                      'url': self.url,
+                      'rejected': self.rejected}
             for visitor in self.meta_visitors:
                 try:
                     self.logger.debug('Visit for {}'.format(visitor))
@@ -612,10 +614,11 @@ class MetaCreateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name,
                  cred_param, cadc_data_client, caom_repo_client,
-                 meta_visitors):
+                 meta_visitors, rejected):
         super(MetaCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name,
-            cred_param, cadc_data_client, caom_repo_client, meta_visitors)
+            cred_param, cadc_data_client, caom_repo_client, meta_visitors,
+            rejected)
 
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
@@ -655,10 +658,10 @@ class MetaUpdateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, observation,
-                 meta_visitors):
+                 meta_visitors, rejected):
         super(MetaUpdateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client, meta_visitors)
+            cadc_data_client, caom_repo_client, meta_visitors, rejected)
         self.observation = observation
 
     def execute(self, context):
@@ -707,10 +710,11 @@ class MetaDeleteCreateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name,
                  cred_param, cadc_data_client, caom_repo_client,
-                 observation, meta_visitors):
+                 observation, meta_visitors, rejected):
         super(MetaDeleteCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name,
-            cred_param, cadc_data_client, caom_repo_client, meta_visitors)
+            cred_param, cadc_data_client, caom_repo_client, meta_visitors,
+            rejected)
         self.observation = observation
 
     def execute(self, context):
@@ -755,10 +759,11 @@ class LocalMetaCreateClient(CaomExecute):
     This pipeline step will execute a caom2-repo create."""
 
     def __init__(self, config, storage_name, command_name, cred_param,
-                 cadc_data_client, caom_repo_client, meta_visitors):
+                 cadc_data_client, caom_repo_client, meta_visitors,
+                 rejected):
         super(LocalMetaCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client, meta_visitors)
+            cadc_data_client, caom_repo_client, meta_visitors, rejected)
         self._define_local_dirs(storage_name)
         self.fname = storage_name.fname_on_disk
 
@@ -800,10 +805,10 @@ class LocalMetaDeleteCreateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, observation,
-                 meta_visitors):
+                 meta_visitors, rejected):
         super(LocalMetaDeleteCreateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client, meta_visitors)
+            cadc_data_client, caom_repo_client, meta_visitors, rejected)
         self._define_local_dirs(storage_name)
         self.observation = observation
 
@@ -847,10 +852,10 @@ class LocalMetaUpdateClient(CaomExecute):
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, observation,
-                 meta_visitors):
+                 meta_visitors, rejected):
         super(LocalMetaUpdateClient, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client, meta_visitors)
+            cadc_data_client, caom_repo_client, meta_visitors, rejected)
         self._define_local_dirs(storage_name)
         self.observation = observation
 
@@ -891,12 +896,13 @@ class ClientVisit(CaomExecute):
     This pipeline step will execute a caom2-repo update."""
 
     def __init__(self, config, storage_name, cred_param,
-                 cadc_data_client, caom_repo_client, meta_visitors):
+                 cadc_data_client, caom_repo_client, meta_visitors,
+                 rejected):
         super(ClientVisit, self).__init__(
             config, mc.TaskType.VISIT, storage_name, command_name=None,
             cred_param=cred_param, cadc_data_client=cadc_data_client,
             caom_repo_client=caom_repo_client,
-            meta_visitors=meta_visitors)
+            meta_visitors=meta_visitors, rejected=rejected)
         self.fname = None
 
     def execute(self, context):
@@ -931,7 +937,8 @@ class DataClient(CaomExecute):
                  task_type):
         super(DataClient, self).__init__(
             config, task_type, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client, meta_visitors=None)
+            cadc_data_client, caom_repo_client, meta_visitors=None,
+            rejected=None)
         self.log_file_directory = config.log_file_directory
         self.data_visitors = data_visitors
         self.prev_fname = storage_name.prev
@@ -1020,7 +1027,8 @@ class PullClient(CaomExecute):
                  cadc_data_client, caom_repo_client):
         super(PullClient, self).__init__(
             config, mc.TaskType.PULL, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client, meta_visitors=None)
+            cadc_data_client, caom_repo_client, meta_visitors=None,
+            rejected=None)
         self.stream = config.stream
         self.fname = storage_name.file_name
         self.local_fqn = os.path.join(self.working_dir, self.fname)
@@ -1069,7 +1077,8 @@ class StoreClient(CaomExecute):
                  cadc_data_client, caom_repo_client):
         super(StoreClient, self).__init__(
             config, mc.TaskType.STORE, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client, meta_visitors=None)
+            cadc_data_client, caom_repo_client, meta_visitors=None,
+            rejected=None)
         # when files are on disk don't worry about a separate directory
         # per observation
         self.working_dir = self.root_dir
@@ -1094,7 +1103,7 @@ class Scrape(CaomExecute):
         super(Scrape, self).__init__(
             config, mc.TaskType.SCRAPE, storage_name, command_name,
             cred_param='', cadc_data_client=None, caom_repo_client=None,
-            meta_visitors=None)
+            meta_visitors=None, rejected=None)
         self._define_local_dirs(storage_name)
         self.fname = storage_name.fname_on_disk
         if self.fname is None:
@@ -1157,7 +1166,7 @@ class CompareChecksumClient(CaomExecute):
         super(CompareChecksumClient, self).__init__(
             config, mc.TaskType.CHECKSUM, storage_name, command_name,
             cred_param, cadc_data_client, caom_repo_client,
-            meta_visitors=None)
+            meta_visitors=None, rejected=None)
         self._define_local_dirs(storage_name)
         self.fname = storage_name.fname_on_disk
 
@@ -1183,10 +1192,11 @@ class LocalMetaCreateClientRemoteStorage(CaomExecute):
 
     def __init__(self, config, storage_name, command_name,
                  cred_param, cadc_data_client, caom_repo_client,
-                 meta_visitors):
+                 meta_visitors, rejected):
         super(LocalMetaCreateClientRemoteStorage, self).__init__(
             config, mc.TaskType.REMOTE, storage_name, command_name,
-            cred_param, cadc_data_client, caom_repo_client, meta_visitors)
+            cred_param, cadc_data_client, caom_repo_client, meta_visitors,
+            rejected)
         self._define_local_dirs(storage_name)
 
     def execute(self, context):
@@ -1224,10 +1234,10 @@ class LocalMetaUpdateClientRemoteStorage(CaomExecute):
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, observation,
-                 meta_visitors):
+                 meta_visitors, rejected):
         super(LocalMetaUpdateClientRemoteStorage, self).__init__(
             config, mc.TaskType.INGEST, storage_name, command_name, cred_param,
-            cadc_data_client, caom_repo_client, meta_visitors)
+            cadc_data_client, caom_repo_client, meta_visitors, rejected)
         self._define_local_dirs(storage_name)
         self.observation = observation
 
@@ -1390,12 +1400,13 @@ class OrganizeExecutes(object):
                                 LocalMetaCreateClient(
                                     self.config, storage_name, command_name,
                                     cred_param, cadc_data_client,
-                                    caom_repo_client, meta_visitors))
+                                    caom_repo_client, meta_visitors,
+                                    self.rejected))
                         else:
                             executors.append(MetaCreateClient(
                                 self.config, storage_name, command_name,
                                 cred_param, cadc_data_client, caom_repo_client,
-                                meta_visitors))
+                                meta_visitors, self.rejected))
                     else:
                         if self.config.use_local_files:
                             if (self.chooser is not None and
@@ -1406,7 +1417,7 @@ class OrganizeExecutes(object):
                                         command_name,
                                         cred_param, cadc_data_client,
                                         caom_repo_client, observation,
-                                        meta_visitors))
+                                        meta_visitors, self.rejected))
                             else:
                                 executors.append(
                                     LocalMetaUpdateClient(
@@ -1414,7 +1425,7 @@ class OrganizeExecutes(object):
                                         command_name,
                                         cred_param, cadc_data_client,
                                         caom_repo_client, observation,
-                                        meta_visitors))
+                                        meta_visitors, self.rejected))
                         else:
                             if (self.chooser is not None and
                                     self.chooser.needs_delete(observation)):
@@ -1424,14 +1435,15 @@ class OrganizeExecutes(object):
                                         command_name,
                                         cred_param, cadc_data_client,
                                         caom_repo_client, observation,
-                                        meta_visitors))
+                                        meta_visitors, self.rejected))
                             else:
                                 executors.append(
                                     MetaUpdateClient(
                                         self.config, storage_name,
                                         command_name, cred_param,
                                         cadc_data_client, caom_repo_client,
-                                        observation, meta_visitors))
+                                        observation, meta_visitors,
+                                        self.rejected))
                 elif task_type == mc.TaskType.MODIFY:
                     if self.config.use_local_files:
                         if (executors is not None and len(executors) > 0 and
@@ -1457,7 +1469,8 @@ class OrganizeExecutes(object):
                 elif task_type == mc.TaskType.VISIT:
                     executors.append(ClientVisit(
                         self.config, storage_name, cred_param,
-                        cadc_data_client, caom_repo_client, meta_visitors))
+                        cadc_data_client, caom_repo_client, meta_visitors,
+                        self.rejected))
                 elif task_type == mc.TaskType.REMOTE:
                     observation = CaomExecute.repo_cmd_get_client(
                         caom_repo_client, self.config.collection,
@@ -1468,7 +1481,8 @@ class OrganizeExecutes(object):
                                 LocalMetaCreateClientRemoteStorage(
                                     self.config, storage_name, command_name,
                                     cred_param, cadc_data_client,
-                                    caom_repo_client, meta_visitors))
+                                    caom_repo_client, meta_visitors,
+                                    self.rejected))
                         else:
                             raise mc.CadcException(
                                 'use_local_files must be True with '
@@ -1480,7 +1494,7 @@ class OrganizeExecutes(object):
                                     self.config, storage_name, command_name,
                                     cred_param, cadc_data_client,
                                     caom_repo_client, observation,
-                                    meta_visitors))
+                                    meta_visitors, self.rejected))
                         else:
                             raise mc.CadcException(
                                 'use_local_files must be True with '
@@ -1529,7 +1543,7 @@ class OrganizeExecutes(object):
 
             # only retry entries that are not permanently marked as rejected
             reason = mc.Rejected.known_failure(e)
-            if reason == mc.NO_REASON:
+            if reason == mc.Rejected.NO_REASON:
                 with open(self.retry_fqn, 'a') as retry:
                     if (self.config.features.use_file_names or
                             self.config.use_local_files):
@@ -1554,10 +1568,10 @@ class OrganizeExecutes(object):
                 success.write(
                     '{} {} {} {}\n'.format(
                         datetime.now(), obs_id, file_name, execution_s))
-                logging.info(
-                    'Progress - processed {} of {} records in {} s.'.format(
-                        self.success_count, self.complete_record_count,
-                        execution_s))
+                logging.info('Progress - processed {} of {} records in '
+                             '{:14.2f} s.'.format(self.success_count,
+                                                  self.complete_record_count,
+                                                  execution_s))
             finally:
                 success.close()
 
@@ -1603,7 +1617,7 @@ class OrganizeExecutes(object):
     @staticmethod
     def _init_log_file(log_fqn, log_fqn_backup):
         """Keep old versions of the progress files."""
-        if os.path.exists(log_fqn):
+        if os.path.exists(log_fqn) and os.path.getsize(log_fqn) != 0:
             move(log_fqn, log_fqn_backup)
         f_handle = open(log_fqn, 'w')
         f_handle.close()

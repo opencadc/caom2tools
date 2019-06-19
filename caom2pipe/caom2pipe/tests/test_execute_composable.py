@@ -143,7 +143,8 @@ def test_meta_create_client_execute(test_config):
 
     test_executor = ec.MetaCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
-        data_client_mock, repo_client_mock, meta_visitors=None)
+        data_client_mock, repo_client_mock, meta_visitors=None,
+        rejected=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -174,7 +175,7 @@ def test_meta_update_client_execute(test_config):
     test_executor = ec.MetaUpdateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
-        meta_visitors=None)
+        meta_visitors=None, rejected=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -203,7 +204,8 @@ def test_meta_delete_create_client_execute(test_config):
     repo_client_mock = Mock()
     test_executor = ec.MetaDeleteCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
-        data_client_mock, repo_client_mock, _read_obs(None), None)
+        data_client_mock, repo_client_mock, _read_obs(None), None,
+        rejected=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -233,7 +235,8 @@ def test_local_meta_create_client_execute(test_config):
 
     test_executor = ec.LocalMetaCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
-        data_client_mock, repo_client_mock, meta_visitors=None)
+        data_client_mock, repo_client_mock, meta_visitors=None,
+        rejected=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -263,7 +266,7 @@ def test_local_meta_update_client_execute(test_config):
     test_executor = ec.LocalMetaUpdateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
-        meta_visitors=None)
+        meta_visitors=None, rejected=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -293,7 +296,7 @@ def test_local_meta_delete_create_client_execute(test_config):
     test_executor = ec.LocalMetaDeleteCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None,
-        observation=_read_obs(None))
+        observation=_read_obs(None), rejected=None)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -322,7 +325,8 @@ def test_client_visit(test_config):
                                    TestStorageName(), test_cred,
                                    data_client_mock,
                                    repo_client_mock,
-                                   meta_visitors=None)
+                                   meta_visitors=None,
+                                   rejected=None)
 
     test_executor.execute(None)
     assert repo_client_mock.read.is_called, 'read call missed'
@@ -707,7 +711,6 @@ def test_organize_executes_client_existing(test_config):
     try:
 
         ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
-
         test_config.task_types = [mc.TaskType.INGEST]
         test_config.use_local_files = False
         test_oe = ec.OrganizeExecutes(test_config)
@@ -801,7 +804,6 @@ def test_capture_failure(test_config):
     assert os.path.exists(test_config.rejected_fqn)
 
     success_content = open(test_config.success_fqn).read()
-    # assert success_content.endswith('test_obs_id C121212_01234_CAL.fits.gz\n')
     assert 'test_obs_id C121212_01234_CAL.fits.gz' in success_content, \
         'wrong content'
     retry_content = open(test_config.retry_fqn).read()
@@ -975,7 +977,7 @@ def test_local_meta_create_client_remote_storage_execute(test_config):
         # run the test
         test_executor = ec.LocalMetaCreateClientRemoteStorage(
             test_config, TestStorageName(), TEST_APP, test_cred,
-            data_client_mock, repo_client_mock, None)
+            data_client_mock, repo_client_mock, None, None)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -1025,7 +1027,7 @@ def test_local_meta_update_client_remote_storage_execute(test_config):
         # run the test
         test_executor = ec.LocalMetaUpdateClientRemoteStorage(
             test_config, TestStorageName(), TEST_APP, test_cred,
-            data_client_mock, repo_client_mock, _read_obs(None), None)
+            data_client_mock, repo_client_mock, _read_obs(None), None, None)
         try:
             test_executor.execute(None)
         except CadcException as e:

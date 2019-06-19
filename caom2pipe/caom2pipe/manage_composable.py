@@ -99,11 +99,10 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
            'data_put', 'data_get', 'build_uri', 'make_seconds',
            'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
-           'NO_REASON', 'record_progress']
+           'record_progress']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 READ_BLOCK_SIZE = 8 * 1024
-NO_REASON = ''
 
 
 class CadcException(Exception):
@@ -256,10 +255,13 @@ class Rejected(object):
     """Persist information between pipeline invocations about the observation
     IDs that will fail a particular TaskType.
     """
+    NO_REASON = ''
+    BAD_METADATA = 'bad_metadata'
+    NO_PREVIEW = 'no_preview'
 
     # A map to the logging message string representing acknowledged rejections
-    reasons = {'bad_metadata': 'Cannot build an observation',
-               'no_preview': '404 Client Error: Not Found for url'}
+    reasons = {BAD_METADATA: 'Cannot build an observation',
+               NO_PREVIEW: '404 Client Error: Not Found for url'}
 
     def __init__(self, fqn):
         self.fqn = fqn
@@ -275,9 +277,15 @@ class Rejected(object):
             if reason not in self.content:
                 self.content[reason] = []
 
-    def record(self, reason, obs_id):
+    def check_and_record(self, message, obs_id):
         """Keep track of an additional entry."""
-        self.content[reason].append(obs_id)
+        for reason, reason_str in Rejected.reasons.items():
+            if reason_str in message:
+                self.content[reason].append(obs_id)
+
+    def record(self, reason, entry):
+        """Keep track of an additional entry."""
+        self.content[reason].append(entry)
 
     def persist_state(self):
         """Write the current state as a YAML file."""
@@ -287,13 +295,16 @@ class Rejected(object):
         write_as_yaml(self.content, self.fqn)
 
     def is_bad_metadata(self, obs_id):
-        return obs_id in self.content['bad_metadata']
+        return obs_id in self.content[Rejected.BAD_METADATA]
+
+    def is_no_preview(self, file_name):
+        return file_name in self.content[Rejected.NO_PREVIEW]
 
     @staticmethod
     def known_failure(message):
         """Returns the REASON for the failure, or an empty string if
         the failure is of an unexpected type."""
-        result = NO_REASON
+        result = Rejected.NO_REASON
         for reason, text in Rejected.reasons.items():
             if text in message:
                 result = reason
@@ -1356,6 +1367,10 @@ def increment_time(this_ts, by_interval, unit='%M'):
 
 
 def http_get(url, local_fqn):
+    """Retrieve a file via http.
+
+    :param url where the file can be found.
+    :param local_fqn fully qualified name for where to file the file locally."""
     try:
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
