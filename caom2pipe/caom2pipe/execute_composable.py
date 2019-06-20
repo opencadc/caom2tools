@@ -137,8 +137,8 @@ class StorageName(object):
     are not necessarily the same thing.
     """
 
-    def __init__(self, obs_id, collection, collection_pattern,
-                 fname_on_disk=None, scheme='ad', archive=None):
+    def __init__(self, obs_id=None, collection=None, collection_pattern=None,
+                 fname_on_disk=None, scheme='ad', archive=None, url=None):
         """
 
         :param obs_id: string value for Observation.observationID
@@ -153,6 +153,8 @@ class StorageName(object):
         :param scheme: string value for the scheme of the file URI.
         :param archive: ad storage unit, defaults to value of
             'collection'
+        :param url: if the metadata/data is externally available via http,
+            the url for retrieval
         """
         self.obs_id = obs_id
         self.collection = collection
@@ -163,7 +165,7 @@ class StorageName(object):
             self.archive = archive
         else:
             self.archive = collection
-        self._url = None
+        self._url = url
 
     @property
     def file_uri(self):
@@ -1561,17 +1563,17 @@ class OrganizeExecutes(object):
         :start_time seconds since beginning of execution.
         """
         self.success_count += 1
-        execution_s = datetime.utcnow().timestamp() - start_time
         if self.config.log_to_file:
+            execution_s = datetime.utcnow().timestamp() - start_time
             success = open(self.success_fqn, 'a')
             try:
                 success.write(
-                    '{} {} {} {}\n'.format(
+                    '{} {} {} {:.2f}\n'.format(
                         datetime.now(), obs_id, file_name, execution_s))
-                logging.info('Progress - processed {} of {} records in '
-                             '{:14.2f} s.'.format(self.success_count,
-                                                  self.complete_record_count,
-                                                  execution_s))
+                logging.info('Progress - record {} of {} records processed in '
+                             '{:.2f} s.'.format(self.success_count,
+                                                self.complete_record_count,
+                                                execution_s))
             finally:
                 success.close()
 
@@ -1980,10 +1982,10 @@ def run_by_file_prime(config, storage_name, command_name, meta_visitors,
             for count in range(0, config.retry_count):
                 logging.warning('Beginning retry {}'.format(count + 1))
                 config.update_for_retry(count)
+                organize = OrganizeExecutes(config, chooser)
                 try:
-                    run_by_file_prime(config, storage_name, command_name,
-                                      meta_visitors, data_visitors,
-                                      chooser)
+                    _run_todo_file(config, organize, storage_name,
+                                   command_name,meta_visitors, data_visitors)
                 except Exception as e:
                     logging.error(e)
                     result = -1
@@ -2109,7 +2111,7 @@ def run_from_state(config, sname, command_name, meta_visitors, data_visitors,
             temp_list = mc.read_from_file(config.work_fqn)
             todo_list = []
             for ii in temp_list:
-                todo_list.append(sname.make_url_from_file_name(ii))
+                todo_list.append(ii.strip())
             organizer = OrganizeExecutes(config, chooser=None)
             organizer.complete_record_count = len(todo_list)
             logging.info('Retry {} entries'.format(

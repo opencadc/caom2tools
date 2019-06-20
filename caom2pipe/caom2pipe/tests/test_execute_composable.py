@@ -90,6 +90,8 @@ if six.PY3:
     from caom2pipe import execute_composable as ec
     from caom2pipe import manage_composable as mc
 
+    import test_run_methods
+
 PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
@@ -840,21 +842,7 @@ def test_run_by_file():
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file_expects_retry(test_config):
-    retry_dir = '{}_0'.format(TEST_DATA_DIR)
-    if os.path.exists(retry_dir):
-        f_log = '{}/failure_log.txt'.format(retry_dir)
-        if os.path.exists(f_log):
-            os.remove(f_log)
-        r_txt = '{}/retries.txt'.format(retry_dir)
-        if os.path.exists(r_txt):
-            os.remove(r_txt)
-        s_log = '{}/success_log.txt'.format(retry_dir)
-        if os.path.exists(s_log):
-            os.remove(s_log)
-        t_log = '{}/test_obs_id.log'.format(retry_dir)
-        if os.path.exists(t_log):
-            os.remove(t_log)
-        os.rmdir(retry_dir)
+    test_run_methods.cleanup_log_txt(test_config)
 
     test_config.log_to_file = True
     test_config.features.expects_retry = True
@@ -1129,9 +1117,6 @@ def test_storage_name_failure(test_config):
     assert not os.path.exists(test_config.retry_fqn)
     test_organizer = ec.OrganizeExecutes(test_config)
     test_organizer.choose(TestStorageNameFails(), 'command name', [], [])
-    good_end = os.path.getmtime(test_config.success_fqn)
-    fail_end = os.path.getmtime(test_config.failure_fqn)
-    retry_end = os.path.getmtime(test_config.retry_fqn)
     assert os.path.exists(test_config.success_fqn)
     assert os.path.exists(test_config.failure_fqn)
     assert os.path.exists(test_config.retry_fqn)

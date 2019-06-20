@@ -18,8 +18,11 @@ def test_config():
     test_config.logging_level = 'DEBUG'
     test_config.log_file_directory = TEST_DATA_DIR
     test_config.failure_fqn = '{}/fail.txt'.format(TEST_DATA_DIR)
+    test_config.failure_log_file_name = 'fail.txt'
     test_config.retry_fqn = '{}/retry.txt'.format(TEST_DATA_DIR)
+    test_config.retry_file_name = 'retry.txt'
     test_config.success_fqn = '{}/good.txt'.format(TEST_DATA_DIR)
+    test_config.success_log_file_name = 'good.txt'
     test_config.rejected_fqn = '{}/rejected.yml'.format(TEST_DATA_DIR)
     test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
     test_config.features.run_in_airflow = False

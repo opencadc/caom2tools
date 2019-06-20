@@ -268,7 +268,7 @@ class Rejected(object):
         if os.path.exists(fqn):
             try:
                 self.content = read_as_yaml(fqn)
-            except yaml.constructor.ConstructorError as ignore:
+            except yaml.constructor.ConstructorError:
                 logging.error('ConstructorError reading {}'.format(self.fqn))
                 self.content = {}
         else:
@@ -303,7 +303,8 @@ class Rejected(object):
     @staticmethod
     def known_failure(message):
         """Returns the REASON for the failure, or an empty string if
-        the failure is of an unexpected type."""
+        the failure is of an unexpected type.
+        """
         result = Rejected.NO_REASON
         for reason, text in Rejected.reasons.items():
             if text in message:
@@ -989,7 +990,6 @@ def _check_checksums(fqn, archive, local_meta, ad_meta):
     :param local_meta: md5 checksum for the file on disk
     :param ad_meta: md5 checksum for the file in ad storage
     """
-
     if ((fqn.endswith('.gz') and local_meta['md5sum'] !=
          ad_meta['md5sum']) or (
             not fqn.endswith('.gz') and local_meta['md5sum'] !=
@@ -1063,7 +1063,8 @@ def decompose_lineage(lineage):
 
 def check_param(param, param_type):
     """Generic code to check if a parameter is not None, and is of the
-    expected type."""
+    expected type.
+    """
     if param is None or not isinstance(param, param_type):
         raise CadcException(
             'Parameter {} failed check for {}'.format(param, param_type))
@@ -1072,7 +1073,8 @@ def check_param(param, param_type):
 def read_csv_file(fqn):
     """Read a csv file.
 
-    :returns a list of lists."""
+    :returns a list of lists.
+    """
     results = []
     try:
         with open(fqn) as csv_file:
@@ -1111,7 +1113,8 @@ def read_obs_from_file(fqn):
 
 def read_from_file(fqn):
     """Common code to read from a text file. Mostly to make it easy to
-    mock."""
+    mock.
+    """
     if not os.path.exists(fqn):
         raise CadcException('Could not find {}'.format(fqn))
     with open(fqn, 'r') as f:
@@ -1120,7 +1123,8 @@ def read_from_file(fqn):
 
 def write_to_file(fqn, content):
     """Common code to write to a fully-qualified file name. Mostly to make
-    it easy to mock."""
+    it easy to mock.
+    """
     try:
         with open(fqn, 'w') as f:
             f.write(content)
@@ -1131,7 +1135,8 @@ def write_to_file(fqn, content):
 
 def update_typed_set(typed_set, new_set):
     """Common code to remove all the entries from an existing set, and
-    then replace those entries with a new set."""
+    then replace those entries with a new set.
+    """
     # remove the previous values
     while len(typed_set) > 0:
         typed_set.pop()
@@ -1189,7 +1194,8 @@ def get_lineage(archive, product_id, file_name, scheme='ad'):
     :param file_name String representation of the file name.
     :param scheme Usually 'ad', otherwise an indication of external storage.
     :return str understood by the caom2gen application, lineage parameter
-        value"""
+        value
+    """
     return '{}/{}:{}/{}'.format(product_id, scheme, archive, file_name)
 
 
@@ -1370,7 +1376,9 @@ def http_get(url, local_fqn):
     """Retrieve a file via http.
 
     :param url where the file can be found.
-    :param local_fqn fully qualified name for where to file the file locally."""
+    :param local_fqn fully qualified name for where to file the file
+        locally.
+    """
     try:
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
