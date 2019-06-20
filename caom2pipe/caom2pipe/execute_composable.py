@@ -911,6 +911,9 @@ class ClientVisit(CaomExecute):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
         self.logger.debug('the steps:')
 
+        self.logger.debug('create the work space, if it does not exist')
+        self._create_dir()
+
         # TODO - run a test to see if this is necessary
         # self.logger.debug('Find the file name as stored.')
         # self._find_file_name_storage_client()
@@ -1204,6 +1207,9 @@ class LocalMetaCreateClientRemoteStorage(CaomExecute):
     def execute(self, context):
         self.logger.debug('Begin execute for {} Meta'.format(__name__))
         self.logger.debug('the steps:')
+
+        self.logger.debug('create the work space, if it does not exist')
+        self._create_dir()
 
         self.logger.debug('the observation does not exist, so go '
                           'straight to generating the xml, as the main_app '
@@ -1985,7 +1991,7 @@ def run_by_file_prime(config, storage_name, command_name, meta_visitors,
                 organize = OrganizeExecutes(config, chooser)
                 try:
                     _run_todo_file(config, organize, storage_name,
-                                   command_name,meta_visitors, data_visitors)
+                                   command_name, meta_visitors, data_visitors)
                 except Exception as e:
                     logging.error(e)
                     result = -1

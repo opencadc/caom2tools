@@ -176,4 +176,3 @@ def _write_retry(config, organizer, storage_name, command_name,
                  meta_visitors, data_visitors):
     with open(config.retry_fqn, 'w') as f:
         f.write('{}\n'.format(TEST_ENTRY))
-
