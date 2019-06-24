@@ -228,7 +228,7 @@ def query_tap(query_string, config):
     :returns an astropy votable instance. Need to call .decode on
         column results."""
 
-    logging.debug('query_tap: execute query {} against {}'.format(
+    logging.info('query_tap: execute query {} against {}'.format(
         query_string, config.tap_id))
     subject = net.Subject(certificate=config.proxy_fqn)
     tap_client = CadcTapClient(subject, resource_id=config.tap_id)
