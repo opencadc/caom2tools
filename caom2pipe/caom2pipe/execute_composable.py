@@ -2100,6 +2100,10 @@ def run_from_state(config, sname, command_name, meta_visitors,
     if not os.path.exists(os.path.dirname(config.progress_fqn)):
         os.makedirs(os.path.dirname(config.progress_fqn))
 
+    logger = logging.getLogger()
+    logger.setLevel(config.logging_level)
+    logging.debug(config)
+
     state = mc.State(config.state_fqn)
     start_time = state.get_bookmark(bookmark_name)
     end_time = datetime.fromtimestamp(work.max_ts_s)
