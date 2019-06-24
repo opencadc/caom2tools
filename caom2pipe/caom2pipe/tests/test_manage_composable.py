@@ -347,7 +347,7 @@ def test_state():
     assert test_subject is not None, 'expect result'
     test_result = test_subject.get_bookmark('gemini_timestamp')
     assert test_result is not None, 'expect content'
-    assert test_result == '2017-06-19T03:21:29.345417'
+    assert isinstance(test_result, datetime)
 
     test_subject.save_state('gemini_timestamp', test_result)
     test_end = os.path.getmtime(TEST_STATE_FILE)

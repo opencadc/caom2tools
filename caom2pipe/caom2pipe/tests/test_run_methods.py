@@ -71,15 +71,19 @@ import os
 import pytest
 import sys
 
+from datetime import datetime
 from mock import patch
 
 from caom2pipe import execute_composable as ec
+from caom2pipe import manage_composable as mc
 
 PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
 COMMAND_NAME = 'test_command'
+PROGRESS_FILE = os.path.join(TEST_DATA_DIR, 'progress.txt')
 REJECTED_FILE = os.path.join(TEST_DATA_DIR, 'rejected.yml')
+STATE_FILE = os.path.join(TEST_DATA_DIR, 'test_state.yml')
 TEST_URL = 'http://localhost/vlass.fits'
 TEST_OBS_ID = 'TEST_OBS_ID'
 TEST_ENTRY = 'TEST_ENTRY'
@@ -88,35 +92,44 @@ TEST_ENTRY = 'TEST_ENTRY'
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('caom2pipe.execute_composable._do_one')
-def test_run_from_state(do_mock, test_config):
+@patch('caom2pipe.manage_composable.Work')
+def test_run_from_state(work_mock, do_mock, test_config):
     cleanup_log_txt(test_config)
 
-    test_work = [TEST_URL]
+    work_mock.todo.return_value = [TEST_ENTRY]
+    work_mock.max_ts_s.return_value = datetime.utcnow().timestamp() + 6
 
-    test_config.features.expects_retry = True
-    test_config.retry_failures = True
-    test_config.retry_count = 1
-    test_config.log_to_file = True
+    test_config.features.expects_retry = False
+    test_config.progress_fqn = PROGRESS_FILE
 
-    do_mock.side_effect = _write_retry
+    test_config.state_fqn = STATE_FILE
+    test_config.interval = 5
+    test_state = mc.State(test_config.state_fqn)
+    test_state.save_state('gemini_timestamp', datetime.utcnow())
+
     do_mock.return_value = 0
 
-    test_result = ec.run_from_state(test_config,
-                                    sname=ec.StorageName,
-                                    command_name=COMMAND_NAME,
-                                    meta_visitors=None,
-                                    data_visitors=None,
-                                    todo=test_work)
+    test_result = ec.run_from_state(
+        test_config,
+        sname=ec.StorageName,
+        command_name=COMMAND_NAME,
+        meta_visitors=None,
+        data_visitors=None,
+        bookmark_name='gemini_timestamp',
+        work=work_mock)
     assert test_result is not None, 'expect a result'
     assert test_result == 0, 'wrong result'
 
     assert do_mock.called, 'do mock not called'
-    assert do_mock.call_count == 2, do_mock.call_count
+    assert do_mock.call_count == 1, do_mock.call_count
     args, kwargs = do_mock.call_args
     test_storage = args[2]
     assert isinstance(test_storage, ec.StorageName), type(test_storage)
     assert test_storage.obs_id is None, 'wrong obs id'
     assert test_storage.url == TEST_ENTRY, test_storage.url
+
+    assert work_mock.todo.called, 'work todo mock not called'
+    assert work_mock.initialize.called, 'work initialize mock not called'
 
     assert os.path.exists(REJECTED_FILE)
 
@@ -162,7 +175,7 @@ def test_run_by_file_prime(do_mock, test_config):
 
 def cleanup_log_txt(config):
     for fqn in [config.success_fqn, config.failure_fqn, config.retry_fqn,
-                config.rejected_fqn]:
+                config.rejected_fqn, config.progress_fqn]:
         if os.path.exists(fqn):
             os.unlink(fqn)
     retry_dir = '{}_0'.format(TEST_DATA_DIR)

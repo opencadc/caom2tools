@@ -121,7 +121,7 @@ from caom2pipe import manage_composable as mc
 
 __all__ = ['OrganizeExecutes', 'StorageName', 'CaomName', 'OrganizeChooser',
            'run_single', 'run_by_file', 'run_single_from_state',
-           'run_by_file_prime']
+           'run_by_file_prime', 'run_from_state']
 
 
 class StorageName(object):
@@ -2082,55 +2082,60 @@ def run_single_from_state(organizer, config, storage_name, command_name,
     return result
 
 
-def run_from_state(config, sname, command_name, meta_visitors, data_visitors,
-                   todo):
-    """Process a list of entries by StorageName detail. No sys.exit call.
+def run_from_state(config, sname, command_name, meta_visitors,
+                   data_visitors, bookmark_name, work):
+    """Process a list of entries by queries that are bounded and controlled
+    by the content of a state file. No sys.exit call.
 
     :param config mc.Config
+    :param sname StorageName extension for the collection
     :param command_name extension of fits2caom2 for the collection
-    :param meta_visitors List of metadata visit methods.
-    :param data_visitors List of data visit methods.
-    :param todo list of work to be done, as URLs to files.
+    :param meta_visitors List of metadata visit methods
+    :param data_visitors List of data visit methods
+    :param bookmark_name
+    :param work Work extension for the collection, query returns a list of
+        entries to be processed, init does anything required for work.query
+        to make sense.
     """
-    """Process a list of entries by StorageName detail. No sys.exit call.
+    if not os.path.exists(os.path.dirname(config.progress_fqn)):
+        os.makedirs(os.path.dirname(config.progress_fqn))
 
-    :param config mc.Config
-    :param command_name extension of fits2caom2 for the collection
-    :param meta_visitors List of metadata visit methods.
-    :param data_visitors List of data visit methods.
-    :param todo list of work to be done, as URLs to files.
-    """
-    organizer = OrganizeExecutes(config, chooser=None)
-    for url in todo:
-        storage_name = sname(url=url)
-        result = _do_one(config, organizer, storage_name,
-                         command_name, meta_visitors, data_visitors)
+    state = mc.State(config.state_fqn)
+    start_time = state.get_bookmark(bookmark_name)
+    end_time = datetime.fromtimestamp(work.max_ts_s)
+
+    prev_exec_time = start_time
+    exec_time = min(
+        mc.increment_time(prev_exec_time, config.interval), end_time)
+
+    logging.debug('Starting at {}, ending at {}'.format(start_time, end_time))
+
+    result = 0
+    cumulative = 0
+    while exec_time <= end_time:
         logging.info(
-            'Result is {} for {}'.format(result, storage_name.file_name))
-    _finish_run(organizer)
+            'Processing from {} to {}'.format(prev_exec_time, exec_time))
+        entries = work.todo(prev_exec_time, exec_time)
+        if len(entries) > 0:
+            work.initialize()
+            logging.info('Processing {} entries.'.format(len(entries)))
+            mc.write_to_file(config.work_fqn, '\n'.join(entries))
+            result |= run_by_file_prime(config, sname, command_name,
+                                        meta_visitors, data_visitors)
+        else:
+            logging.info('No entries in interval from {} to {}.'.format(
+                prev_exec_time, exec_time))
 
-    if config.need_to_retry():
-        for count in range(0, config.retry_count):
-            logging.warning(
-                'Beginning retry {} in {}'.format(count + 1, os.getcwd()))
-            config.update_for_retry(count)
-            temp_list = mc.read_from_file(config.work_fqn)
-            todo_list = []
-            for ii in temp_list:
-                todo_list.append(ii.strip())
-            organizer = OrganizeExecutes(config, chooser=None)
-            organizer.complete_record_count = len(todo_list)
-            logging.info('Retry {} entries'.format(
-                organizer.complete_record_count))
-            for redo_url in todo_list:
-                try:
-                    storage_name = sname(url=redo_url)
-                    _do_one(config, organizer, storage_name, command_name,
-                            meta_visitors, data_visitors)
-                except Exception as e:
-                    logging.error(e)
-            if not config.need_to_retry():
-                break
-            _finish_run(organizer)
-        logging.warning('Done retry attempts.')
-    return 0
+        cumulative += len(entries)
+        mc.record_progress(
+            config, command_name, len(entries), cumulative, start_time)
+
+        state.save_state(bookmark_name, prev_exec_time)
+        prev_exec_time = exec_time
+        exec_time = mc.increment_time(prev_exec_time, config.interval)
+
+    state.save_state(bookmark_name, prev_exec_time)
+    logging.info(
+        'Done {}, saved state is {}'.format(command_name, prev_exec_time))
+
+    return result

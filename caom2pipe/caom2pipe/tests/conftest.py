@@ -24,6 +24,7 @@ def test_config():
     test_config.success_fqn = '{}/good.txt'.format(TEST_DATA_DIR)
     test_config.success_log_file_name = 'good.txt'
     test_config.rejected_fqn = '{}/rejected.yml'.format(TEST_DATA_DIR)
+    test_config.progress_fqn = '{}/progress.txt'.format(TEST_DATA_DIR)
     test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
     test_config.features.run_in_airflow = False
     test_config.features.use_file_names = False

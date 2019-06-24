@@ -99,7 +99,7 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
            'data_put', 'data_get', 'build_uri', 'make_seconds',
            'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
-           'record_progress']
+           'record_progress', 'Work']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 READ_BLOCK_SIZE = 8 * 1024
@@ -249,6 +249,28 @@ class State(object):
                 self.logger.warning('No record found for {}'.format(key))
         else:
             self.logger.warning('No bookmarks found for {}'.format(key))
+
+
+class Work(object):
+    """"Abstract-like class that defines the operations used to chunk work when
+    controlling execution by State."""
+
+    def __init__(self, max_ts_s):
+        self._max_ts_s = max_ts_s
+
+    @property
+    def max_ts_s(self):
+        return self._max_ts_s
+
+    def initialize(self):
+        """Anything necessary to make todo work."""
+        pass
+
+    def todo(self, prev_exec_date, exec_date):
+        """Returns a list of entries for processing by Execute.
+        :param prev_exec_date when chunking by timeboxes, the start time
+        :param exec_date when chunking by timeboxes, the end time"""
+        return []
 
 
 class Rejected(object):
@@ -1355,14 +1377,20 @@ def make_seconds(from_time):
 
 def increment_time(this_ts, by_interval, unit='%M'):
     """
-    Increment time by an interval. Times are in datetime format.
+    Increment time by an interval. Times should be in datetime format, but
+    a modest attempt is made to check for otherwise.
 
     :param this_ts: datetime
     :param by_interval: integer - e.g. 10, for a 10 minute increment
     :param unit: the formatting string, default is minutes
     :return: this_ts incremented by interval amount
     """
-    time_s = this_ts.timestamp()
+    if isinstance(this_ts, datetime):
+        time_s = this_ts.timestamp()
+    elif isinstance(this_ts, str):
+        time_s = make_seconds(this_ts)
+    else:
+        time_s = this_ts
     if unit == '%M':
         factor = 60
     else:
