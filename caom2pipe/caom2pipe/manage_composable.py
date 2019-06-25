@@ -99,7 +99,7 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
            'data_put', 'data_get', 'build_uri', 'make_seconds',
            'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
-           'record_progress', 'Work']
+           'record_progress', 'Work', 'look_pull_and_put']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 READ_BLOCK_SIZE = 8 * 1024
@@ -1274,13 +1274,12 @@ def data_put(client, working_directory, file_name, archive, stream='raw',
     try:
         os.chdir(working_directory)
         client.put_file(archive, file_name, archive_stream=stream,
-                        mime_type=mime_type, mime_encoding=mime_encoding)
+                        mime_type=mime_type, mime_encoding=mime_encoding,
+                        md5_check=True)
     except Exception as e:
         raise CadcException('Failed to store data with {}'.format(e))
     finally:
         os.chdir(cwd)
-    compare_checksum_client(client, archive,
-                            os.path.join(working_directory, file_name))
 
 
 def data_get(client, working_directory, file_name, archive):
@@ -1420,3 +1419,35 @@ def http_get(url, local_fqn):
         raise CadcException(
             'Could not retrieve {} from {}. Failed with {}'.format(
                 local_fqn, url, e))
+
+
+def look_pull_and_put(f_name, working_dir, url, archive, stream, mime_type,
+                      cadc_client, checksum):
+    """Checks to see if a file exists in ad. If yes, stop. If no,
+    pull via https to local storage, then put to ad.
+
+    TODO - stream
+
+    :param f_name file name on disk for caching between the
+        pull and the put
+    :param working_dir together with f_name, location for caching
+    :param url for retrieving the file externally, if it does not exist
+    :param archive for storing in ad
+    :param stream for storing in ad
+    :param mime_type because libmagic is not always available
+    :param cadc_client access to the data web service
+    :param checksum what the CAOM observation says the checksum should be
+    """
+    meta = cadc_client.get_file_info(archive, f_name)
+    if meta is None or meta['md5sum'] != checksum:
+        fqn = os.path.join(working_dir, f_name)
+        try:
+            http_get(url, fqn)
+            data_put(cadc_client, working_dir, f_name, archive, stream,
+                     mime_type, mime_encoding=None)
+        except Exception as e:
+            logging.error(str(e))
+            raise e
+    else:
+        logging.info('{} already exists at CADC/{}'.format(
+            f_name, archive))

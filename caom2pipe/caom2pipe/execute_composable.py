@@ -1703,8 +1703,9 @@ def _unset_file_logging(config, log_h):
         logging.getLogger().removeHandler(log_h)
 
 
-def _finish_run(organizer):
+def _finish_run(organizer, config):
     """Code common to the end of all _run_<something> methods."""
+    mc.create_dir(config.log_file_directory)
     organizer.rejected.persist_state()
 
 
@@ -1820,7 +1821,7 @@ def _run_todo_file(config, organizer, sname, command_name,
                     entry, e))
                 logging.debug(traceback.format_exc())
                 # then keep processing the rest of the lines in the file
-    _finish_run(organizer)
+    _finish_run(organizer, config)
 
 
 def _run_local_files(config, organizer, sname, command_name,
@@ -1860,7 +1861,7 @@ def _run_local_files(config, organizer, sname, command_name,
     for do_file in todo_list:
         _run_by_file_list(config, organizer, sname, command_name,
                           meta_visitors, data_visitors, do_file)
-    _finish_run(organizer)
+    _finish_run(organizer, config)
 
     if config.need_to_retry():
         for count in range(0, config.retry_count):
@@ -1885,7 +1886,7 @@ def _run_local_files(config, organizer, sname, command_name,
                                       redo_file.strip())
                 except Exception as e:
                     logging.error(e)
-            _finish_run(organizer)
+            _finish_run(organizer, config)
             if not config.need_to_retry():
                 break
         logging.warning('Done retry attempts.')
@@ -2034,8 +2035,9 @@ def run_by_file(storage_name, command_name, collection, proxy, meta_visitors,
         logger = logging.getLogger()
         logger.setLevel(config.logging_level)
         config.features.supports_composite = False
-        _run_by_file(config, storage_name, command_name, meta_visitors,
-                     data_visitors, chooser)
+        _run_by_file(config, storage_name, command_name, proxy=None,
+                     meta_visitors=meta_visitors, data_visitors=data_visitors,
+                     chooser=chooser)
         return 0
     except Exception as e:
         logging.error(e)
@@ -2060,7 +2062,7 @@ def run_single(config, storage_name, command_name, meta_visitors,
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)
     logging.debug('run_single result is {}'.format(result))
-    _finish_run(organizer)
+    _finish_run(organizer, config)
     return result
 
 
@@ -2078,7 +2080,7 @@ def run_single_from_state(organizer, config, storage_name, command_name,
     result = _do_one(config, organizer, storage_name,
                      command_name, meta_visitors, data_visitors)
     logging.info('Result is {} for {}'.format(result, storage_name.file_name))
-    _finish_run(organizer)
+    _finish_run(organizer, config)
     return result
 
 

@@ -324,8 +324,10 @@ def test_get_artifact_metadata():
                     reason='support one python version')
 @patch('cadcdata.core.CadcDataClient')
 def test_data_put(mock_client):
-    with pytest.raises(mc.CadcException):
-        mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default')
+    mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default')
+    mock_client.put_file.assert_called_with(
+        'TEST', 'TEST.fits', archive_stream='default',
+        md5_check=True, mime_encoding=None, mime_type=None), 'mock not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -387,3 +389,19 @@ def test_increment_time():
 
     with pytest.raises(NotImplementedError):
         mc.increment_time(t2_dt, 23, '%f')
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('cadcdata.core.CadcDataClient')
+@patch('caom2pipe.manage_composable.http_get')
+def test_look_pull_and_put(http_mock, mock_client):
+    f_name = 'test_f_name.fits'
+    url = 'https://localhost/{}'.format(f_name)
+    mc.look_pull_and_put(f_name, TEST_DATA_DIR, url, 'TEST', 'default',
+                         'application/fits', mock_client, 'md5:01234')
+    mock_client.put_file.assert_called_with(
+        'TEST', f_name, archive_stream='default', md5_check=True,
+        mime_encoding=None, mime_type='application/fits'), 'mock not called'
+    http_mock.assert_called_with(
+        url, os.path.join(TEST_DATA_DIR, f_name)), 'http mock not called'

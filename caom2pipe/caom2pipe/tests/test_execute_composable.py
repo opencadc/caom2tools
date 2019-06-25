@@ -798,7 +798,7 @@ def test_capture_failure(test_config):
     test_oe.capture_failure(test_obs_id_2, None, 'Cannot build an observation')
     test_oe.capture_failure(test_obs_id, None, 'exception text')
     test_oe.capture_success(test_obs_id, 'C121212_01234_CAL.fits.gz', start_s)
-    ec._finish_run(test_oe)
+    ec._finish_run(test_oe, test_config)
 
     assert os.path.exists(test_config.success_fqn)
     assert os.path.exists(test_config.failure_fqn)
