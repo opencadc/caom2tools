@@ -186,26 +186,6 @@ def test_exec_cmd_redirect():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-@patch('caom2utils.fits2caom2.CadcDataClient.get_file_info')
-def test_compare_checksum(mock_get_file_info):
-
-    # fail case - file doesn't exist
-    test_file = os.path.join(TEST_DATA_DIR, 'test_omm.fits.gz')
-    test_netrc = os.path.join(TEST_DATA_DIR, 'test_netrc')
-    with pytest.raises(mc.CadcException):
-        mc.compare_checksum(test_netrc, 'OMM', test_file)
-
-    # fail case - file exists, different checksum - make a small test file
-    test_file = os.path.join(TEST_DATA_DIR, 'C111107_0694_SCI.fits')
-    f = open(test_file, 'w')
-    f.write('test')
-    f.close()
-    with pytest.raises(mc.CadcException):
-        mc.compare_checksum(test_netrc, 'OMM', test_file)
-
-
-@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
-                    reason='support one python version')
 def test_decompose_lineage():
     test_product_id = 'product_id'
     test_uri = 'ad:STARS/galaxies.fits.gz'

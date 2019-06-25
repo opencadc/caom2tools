@@ -468,13 +468,6 @@ class CaomExecute(object):
                 self.lineage)
         mc.exec_cmd(cmd, self.log_level_as)
 
-    def _compare_checksums_client(self, fname):
-        """Compare the checksum of a file on disk with a file in ad,
-        using the client instance from this class."""
-        fqn = os.path.join(self.working_dir, fname)
-        mc.compare_checksum_client(
-            self.cadc_data_client, self.archive, fqn)
-
     def _repo_cmd_create_client(self, observation):
         """Create an observation instance from the input parameter."""
         try:
@@ -1158,34 +1151,6 @@ class DataScrape(DataClient):
         self.logger.debug('End execute for {}'.format(__name__))
 
 
-class CompareChecksumClient(CaomExecute):
-    """Defines the pipeline step for comparing the checksum of a file on disk
-    with the checksum of the supposedly-the-same file stored at CADC.
-
-    This step should be invoked with any other task type that relies on
-    files on local disk.
-    """
-
-    def __init__(self, config, storage_name, command_name, cred_param,
-                 cadc_data_client, caom_repo_client):
-        super(CompareChecksumClient, self).__init__(
-            config, mc.TaskType.CHECKSUM, storage_name, command_name,
-            cred_param, cadc_data_client, caom_repo_client,
-            meta_visitors=None, rejected=None)
-        self._define_local_dirs(storage_name)
-        self.fname = storage_name.fname_on_disk
-
-    def execute(self, context):
-        self.logger.debug('Begin execute for {} '
-                          'CompareChecksum'.format(__name__))
-        self.logger.debug('the steps:')
-
-        self.logger.debug('generate the xml from the file on disk')
-        self._compare_checksums_client(self.fname)
-
-        self.logger.debug('End execute for {}'.format(__name__))
-
-
 class LocalMetaCreateClientRemoteStorage(CaomExecute):
     """Defines the pipeline step for Collection ingestion of metadata into
     CAOM. This requires access to only header information.
@@ -1515,13 +1480,6 @@ class OrganizeExecutes(object):
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
-            if (self.config.use_local_files and
-                    mc.TaskType.SCRAPE not in self.task_types and
-                    mc.TaskType.REMOTE not in self.task_types):
-                executors.append(
-                    CompareChecksumClient(
-                        self.config, storage_name, command_name,
-                        cred_param, cadc_data_client, caom_repo_client))
         else:
             logging.error('{} failed naming validation check.'.format(
                 storage_name.obs_id))

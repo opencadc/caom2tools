@@ -187,7 +187,12 @@ def _get_cardinality(directory):
                'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
                'MegaPipe.080.156.Z.MP9801.fits.gif'
     elif '/omm/' in directory:
-        return '--lineage Cdemo_ext2_SCIRED/ad:OMM/Cdemo_ext2_SCIRED.fits.gz'
+        if 'SCIRED' in directory:
+            return '--lineage Cdemo_ext2_SCIRED/ad:OMM/' \
+                   'Cdemo_ext2_SCIRED.fits.gz'
+        else:
+            return '--lineage C190531_0432_SCI/ad:OMM/' \
+                   'C190531_0432_SCI.fits.gz'
     elif 'apass/catalog' in directory:
         return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' \
                'Examples/DAO/dao_c122_2016_012725.fits'

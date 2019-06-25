@@ -539,14 +539,12 @@ def test_organize_executes_client(test_config):
         test_oe = ec.OrganizeExecutes(test_config)
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
-        assert len(executors) == 4
+        assert len(executors) == 3
         assert isinstance(executors[0], ec.StoreClient), \
             type(executors[0])
         assert isinstance(executors[1],
                           ec.LocalMetaCreateClient)
         assert isinstance(executors[2], ec.LocalDataClient)
-        assert isinstance(
-            executors[3], ec.CompareChecksumClient)
         assert CadcDataClient.__init__.is_called, 'mock not called'
         assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
@@ -568,12 +566,10 @@ def test_organize_executes_client(test_config):
         test_oe = ec.OrganizeExecutes(test_config)
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
-        assert len(executors) == 3
+        assert len(executors) == 2
         assert isinstance(
             executors[0], ec.LocalMetaCreateClient)
         assert isinstance(executors[1], ec.LocalDataClient)
-        assert isinstance(
-            executors[2], ec.CompareChecksumClient)
         assert CadcDataClient.__init__.is_called, 'mock not called'
         assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
@@ -678,14 +674,12 @@ def test_organize_executes_chooser(test_config):
         test_oe = ec.OrganizeExecutes(test_config, test_chooser)
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
-        assert len(executors) == 2
+        assert len(executors) == 1
         assert isinstance(executors[0],
                           ec.LocalMetaDeleteCreateClient)
         assert executors[0].fname == 'test_obs_id.fits', 'file name'
         assert executors[0].stream == 'TEST', 'stream'
         assert executors[0].working_dir == THIS_DIR, 'working_dir'
-        assert isinstance(executors[1],
-                          ec.CompareChecksumClient)
 
         test_config.use_local_files = False
         test_config.task_types = [mc.TaskType.INGEST]
@@ -742,26 +736,6 @@ def test_organize_executes_client_visit(test_config):
     assert isinstance(executors[0], ec.ClientVisit)
     assert CadcDataClient.__init__.is_called, 'mock not called'
     assert CAOM2RepoClient.__init__.is_called, 'mock not called'
-
-
-@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
-                    reason='support one python version')
-def test_checksum_client(test_config):
-    test_executor = ec.CompareChecksumClient(
-        test_config, TestStorageName(), 'test2caom2', None, None, None)
-    compare_orig = mc.compare_checksum_client
-
-    try:
-        mc.compare_checksum_client = Mock()
-        test_executor.execute(None)
-        assert mc.compare_checksum_client.called
-        assert test_executor.fname == 'test_file.fits.gz', 'fname'
-        assert test_executor.working_dir == THIS_DIR, 'working dir'
-        assert test_executor.model_fqn == os.path.join(
-            THIS_DIR, 'test_obs_id.fits.xml'), 'model fqn'
-        assert test_executor.url == 'https://test_url/', 'url'
-    finally:
-        mc.compare_checksum_client = compare_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
