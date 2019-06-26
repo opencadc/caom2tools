@@ -1379,18 +1379,24 @@ def look_pull_and_put(f_name, working_dir, url, archive, stream, mime_type,
     :param stream for storing in ad
     :param mime_type because libmagic is not always available
     :param cadc_client access to the data web service
-    :param checksum what the CAOM observation says the checksum should be
+    :param checksum what the CAOM observation says the checksum should be -
+        just the checksum part of ChecksumURI please, or the comparison will
+        always fail.
     """
-    meta = cadc_client.get_file_info(archive, f_name)
-    if meta is None or meta['md5sum'] != checksum:
+    retrieve = False
+    try:
+        meta = cadc_client.get_file_info(archive, f_name)
+        if checksum is not None and meta['md5sum'] != checksum:
+            retrieve = True
+        else:
+            logging.info('{} already exists at CADC/{}'.format(
+                f_name, archive))
+    except exceptions.NotFoundException:
+        retrieve = True
+
+    if retrieve:
+        logging.info('Retrieving {} for {}'.format(f_name, archive))
         fqn = os.path.join(working_dir, f_name)
-        try:
-            http_get(url, fqn)
-            data_put(cadc_client, working_dir, f_name, archive, stream,
-                     mime_type, mime_encoding=None)
-        except Exception as e:
-            logging.error(str(e))
-            raise e
-    else:
-        logging.info('{} already exists at CADC/{}'.format(
-            f_name, archive))
+        http_get(url, fqn)
+        data_put(cadc_client, working_dir, f_name, archive, stream,
+                 mime_type, mime_encoding=None)
