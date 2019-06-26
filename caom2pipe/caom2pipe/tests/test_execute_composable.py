@@ -89,7 +89,6 @@ if six.PY3:
     from caom2pipe import CadcException
     from caom2pipe import execute_composable as ec
     from caom2pipe import manage_composable as mc
-
     import test_run_methods
 
 PY_VERSION = '3.6'
