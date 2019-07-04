@@ -96,22 +96,22 @@ class TemporalWCSValidatorTests(unittest.TestCase):
         bad_temporal_wcs = TimeTestUtil.bad_ctype_wcs()
         with pytest.raises(InvalidWCSError) as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('unexpected TIMESYS, CTYPE' in str(ex))
+        assert 'unexpected TIMESYS, CTYPE' in repr(ex.value)
 
         bad_temporal_wcs = TimeTestUtil.bad_cunit_wcs()
         with pytest.raises(InvalidWCSError) as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('unexpected CUNIT' in str(ex))
+        assert('unexpected CUNIT' in repr(ex.value))
 
         bad_temporal_wcs = TimeTestUtil.bad_range_wcs()
         with pytest.raises(InvalidWCSError) as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('range.end not >= range.start' in str(ex))
+        assert('range.end not >= range.start' in repr(ex.value))
 
         bad_temporal_wcs = TimeTestUtil.bad_delta()
         with pytest.raises(InvalidWCSError) as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('delta must be greater than 0.0' in str(ex))
+        assert('delta must be greater than 0.0' in repr(ex.value))
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')

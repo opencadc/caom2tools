@@ -1287,12 +1287,11 @@ class OrganizeExecutes(object):
             self.retry_fqn = config.retry_fqn
             self.rejected_fqn = config.rejected_fqn
 
-        if self.config.log_to_file:
-            mc.create_dir(self.config.log_file_directory)
-            now_s = datetime.utcnow().timestamp()
-            for fqn in [self.failure_fqn, self.retry_fqn, self.success_fqn]:
-                back_fqn = '{}.{}.txt'.format(fqn.replace('.txt', ''), now_s)
-                OrganizeExecutes._init_log_file(fqn, back_fqn)
+        mc.create_dir(self.config.log_file_directory)
+        now_s = datetime.utcnow().timestamp()
+        for fqn in [self.failure_fqn, self.retry_fqn, self.success_fqn]:
+            back_fqn = '{}.{}.txt'.format(fqn.replace('.txt', ''), now_s)
+            OrganizeExecutes._init_log_file(fqn, back_fqn)
         self._success_count = 0
         self._complete_record_count = 0
         self.rejected = mc.Rejected(self.rejected_fqn)
@@ -1500,24 +1499,23 @@ class OrganizeExecutes(object):
         :e Exception to log - the entire stack trace, which, if logging
             level is not set to debug, will be lost for debugging purposes.
         """
-        if self.config.log_to_file:
-            with open(self.failure_fqn, 'a') as failure:
-                min_error = self._minimize_error_message(e)
-                failure.write(
-                    '{} {} {} {}\n'.format(datetime.now(), obs_id, file_name,
-                                           min_error))
+        with open(self.failure_fqn, 'a') as failure:
+            min_error = self._minimize_error_message(e)
+            failure.write(
+                '{} {} {} {}\n'.format(datetime.now(), obs_id, file_name,
+                                       min_error))
 
-            # only retry entries that are not permanently marked as rejected
-            reason = mc.Rejected.known_failure(e)
-            if reason == mc.Rejected.NO_REASON:
-                with open(self.retry_fqn, 'a') as retry:
-                    if (self.config.features.use_file_names or
-                            self.config.use_local_files):
-                        retry.write('{}\n'.format(file_name))
-                    else:
-                        retry.write('{}\n'.format(obs_id))
-            else:
-                self.rejected.record(reason, obs_id)
+        # only retry entries that are not permanently marked as rejected
+        reason = mc.Rejected.known_failure(e)
+        if reason == mc.Rejected.NO_REASON:
+            with open(self.retry_fqn, 'a') as retry:
+                if (self.config.features.use_file_names or
+                        self.config.use_local_files):
+                    retry.write('{}\n'.format(file_name))
+                else:
+                    retry.write('{}\n'.format(obs_id))
+        else:
+            self.rejected.record(reason, obs_id)
 
     def capture_success(self, obs_id, file_name, start_time):
         """Capture, with a timestamp, the successful observations/file names
@@ -1527,19 +1525,18 @@ class OrganizeExecutes(object):
         :start_time seconds since beginning of execution.
         """
         self.success_count += 1
-        if self.config.log_to_file:
-            execution_s = datetime.utcnow().timestamp() - start_time
-            success = open(self.success_fqn, 'a')
-            try:
-                success.write(
-                    '{} {} {} {:.2f}\n'.format(
-                        datetime.now(), obs_id, file_name, execution_s))
-                logging.info('Progress - record {} of {} records processed in '
-                             '{:.2f} s.'.format(self.success_count,
-                                                self.complete_record_count,
-                                                execution_s))
-            finally:
-                success.close()
+        execution_s = datetime.utcnow().timestamp() - start_time
+        success = open(self.success_fqn, 'a')
+        try:
+            success.write(
+                '{} {} {} {:.2f}\n'.format(
+                    datetime.now(), obs_id, file_name, execution_s))
+            logging.info('Progress - record {} of {} records processed in '
+                         '{:.2f} s.'.format(self.success_count,
+                                            self.complete_record_count,
+                                            execution_s))
+        finally:
+            success.close()
 
     def is_rejected(self, storage_name):
         """Common code to use the appropriate identifier when checking for

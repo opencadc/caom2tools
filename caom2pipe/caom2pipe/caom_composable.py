@@ -68,13 +68,100 @@
 #
 
 import logging
+import os
 
-from caom2 import TypedSet, ObservationURI, PlaneURI
+from caom2 import TypedSet, ObservationURI, PlaneURI, Chunk, CoordPolygon2D
+from caom2 import ValueCoord2D
 
 from caom2pipe import execute_composable as ec
 from caom2pipe import manage_composable as mc
 
-__all__ = ['update_plane_provenance', 'update_observation_members']
+__all__ = ['exec_footprintfinder', 'update_plane_provenance',
+           'update_observation_members']
+
+
+def exec_footprintfinder(chunk, science_fqn, log_file_directory, obs_id,
+                         params='-f'):
+    """Execute the footprintfinder on a file. All preconditions for successful
+    execution should be in place i.e. the file exists, and is unzipped (because
+    that is faster).
+
+    :param chunk The CAOM Chunk that will have Position Bounds information
+        added
+    :param science_fqn A string of the fully-qualified file name for
+        footprintfinder to run on
+    :param log_file_directory A string of the fully-qualified name for the log
+        directory, where footprintfinder output files will be moved to, after
+        execution
+    :param obs_id specifies location where footprintfinder log files end up
+    :param params specific footprintfinder parameters by collection - default
+        forces full-chip, regardless of illumination
+    """
+    logging.debug('Begin _update_position')
+    mc.check_param(chunk, Chunk)
+
+    # local import because footprintfinder depends on matplotlib being
+    # installed, which is not declared as a caom2pipe dependency
+    import footprintfinder
+
+    if (chunk.position is not None
+            and chunk.position.axis is not None):
+        logging.debug('position exists, calculate footprints for {}.'.format(
+            science_fqn))
+        full_area, footprint_xc, footprint_yc, ra_bary, dec_bary, \
+            footprintstring, stc = footprintfinder.main(
+                '-r {} {}'.format(params, science_fqn))
+        logging.debug('footprintfinder result: full area {} '
+                      'footprint xc {} footprint yc {} ra bary {} '
+                      'dec_bary {} footprintstring {} stc {}'.format(
+                          full_area, footprint_xc, footprint_yc, ra_bary,
+                          dec_bary, footprintstring, stc))
+        bounds = CoordPolygon2D()
+        coords = None
+        fp_results = stc.split('Polygon FK5')
+        if len(fp_results) > 1:
+            coords = fp_results[1].split()
+        else:
+            fp_results = stc.split('Polygon ICRS')
+            if len(fp_results) > 1:
+                coords = fp_results[1].split()
+
+        if coords is None:
+            raise mc.CadcException(
+                'Do not recognize footprint {}'.format(stc))
+
+        index = 0
+        while index < len(coords):
+            vertex = ValueCoord2D(mc.to_float(coords[index]),
+                                  mc.to_float(coords[index + 1]))
+            bounds.vertices.append(vertex)
+            index += 2
+            logging.debug('Adding vertex\n{}'.format(vertex))
+        chunk.position.axis.bounds = bounds
+
+        return_file = '{}_footprint.txt'.format(obs_id)
+        return_string_file = '{}_footprint_returnstring.txt'.format(obs_id)
+        _handle_footprint_logs(log_file_directory, return_file)
+        _handle_footprint_logs(log_file_directory, return_string_file)
+
+    else:
+        logging.info('No position information for footprint generation.')
+    logging.debug('Done _update_position.')
+
+
+def _handle_footprint_logs(log_file_directory, log_file):
+    """Move footprintfinder logs to specific log directory, if there
+    is one."""
+    orig_log_fqn = os.path.join(os.getcwd(), log_file)
+    if log_file_directory is not None and os.path.exists(log_file_directory):
+        if os.path.exists(orig_log_fqn):
+            log_fqn = os.path.join(log_file_directory, log_file)
+            os.rename(orig_log_fqn, log_fqn)
+            logging.debug('Moving footprint log file from {} to {}'.format(
+                orig_log_fqn, log_fqn))
+    else:
+        logging.debug('Removing footprint log file {}'.format(orig_log_fqn))
+        os.unlink(orig_log_fqn)
 
 
 def update_plane_provenance(plane, headers, lookup, collection,
