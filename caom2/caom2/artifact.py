@@ -74,7 +74,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from aenum import Enum
+
 from builtins import str, int
 from six.moves.urllib.parse import urlparse
 
@@ -83,6 +83,10 @@ from .chunk import ProductType
 from .common import AbstractCaomEntity
 from .common import ChecksumURI
 from .part import Part
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    from aenum import Enum
 
 __all__ = ['ReleaseType', 'Artifact']
 

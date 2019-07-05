@@ -663,9 +663,13 @@ class TestTarget(unittest.TestCase):
         target.moving = True
         self.assertTrue(target.moving, "Moving")
 
+        self.assertIsNone(target.target_id)
+        target.target_id = 'target_id'
+        self.assertEqual(target.target_id, 'target_id', "Target ID mismatch")
+
         target = observation.Target("myOtherTarget",
                                     observation.TargetType.OBJECT, False, 1.2,
-                                    {"radio"}, False)
+                                    {"radio"}, False, target_id='mytargetID')
         self.assertEqual("myOtherTarget", target.name, "target name")
         self.assertEqual(observation.TargetType.OBJECT, target.target_type,
                          "target type")
@@ -674,6 +678,7 @@ class TestTarget(unittest.TestCase):
         self.assertEqual(1, len(target.keywords), "Keywords")
         self.assertTrue("radio" in target.keywords, "Keywords")
         self.assertFalse(target.moving, "Moving")
+        self.assertEqual("mytargetID", target.target_id, "Target ID mismatch")
 
 
 class TestTargetPosition(unittest.TestCase):

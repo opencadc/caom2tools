@@ -572,3 +572,26 @@ class TestTime(unittest.TestCase):
         self.assertEqual(12.34, time.sample_size, "Sample size")
         time.exposure = 55.55
         self.assertEqual(55.55, time.exposure, "Exposure")
+
+
+class TestCustomAxis(unittest.TestCase):
+    def test_all(self):
+        with self.assertRaises(AttributeError):
+            plane.CustomAxis(None)
+        my_axis = plane.CustomAxis('Foo')
+        self.assertEqual('Foo', my_axis.ctype, 'CTYPE missmatch')
+        self.assertIsNone(my_axis.bounds, "Default bounds")
+        self.assertIsNone(my_axis.dimension, "Default dimension")
+
+        my_axis.dimension = 777
+        my_axis.bounds = shape.Interval(1.0, 2.0)
+        self.assertEqual(777, my_axis.dimension, "Dimension")
+        self.assertEqual(1.0, my_axis.bounds.lower, "Bounds mismatch")
+        self.assertEqual(2.0, my_axis.bounds.upper, "Bounad mismatch")
+
+        my_axis = plane.CustomAxis('Blah', bounds=shape.Interval(3.0, 4.0),
+                                   dimension=33)
+        self.assertEqual('Blah', my_axis.ctype, 'CTYPE missmatch')
+        self.assertEqual(33, my_axis.dimension, 'Dimension missmatch')
+        self.assertEqual(3.0, my_axis.bounds.lower, "Bounds mismatch")
+        self.assertEqual(4.0, my_axis.bounds.upper, "Bounad mismatch")

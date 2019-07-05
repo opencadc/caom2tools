@@ -71,12 +71,13 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import math
-
-from aenum import Enum
-
 from caom2.caom_util import int_32
 from . import caom_util
 from . import common
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    from aenum import Enum
 
 __all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point',
            'Polygon', 'Vertex', 'MultiPolygon']

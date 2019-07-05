@@ -202,8 +202,6 @@ class Caom2TestInstances(object):
             composite_observation.proposal = self.get_proposal()
             composite_observation.target = self.get_target()
             composite_observation.target_position = self.get_target_position()
-            if self.caom_version == 21:
-                composite_observation.requirements = self.get_requirements()
             composite_observation.telescope = self.get_telescope()
             composite_observation.instrument = self.get_instrument()
             composite_observation.environment = self.get_environment()
@@ -237,6 +235,8 @@ class Caom2TestInstances(object):
 
     def get_target(self):
         target = observation.Target("targetName")
+        if self.caom_version >= 24:
+            target.target_id = 'someTargetID'
         target.target_type = observation.TargetType.OBJECT
         target.standard = False
         target.redshift = 1.5
@@ -313,12 +313,11 @@ class Caom2TestInstances(object):
                     _plane.position = self.get_poly_position()
                 if s == 'circle':
                     _plane.position = self.get_circle_position()
-                if self.caom_version >= 22:
-                    _plane.energy = self.get_energy()
-                    _plane.time = self.get_time()
-                    _plane.polarization = self.get_polarization()
-                if self.caom_version == 21:
-                    _plane.quality = self.get_quality()
+                _plane.energy = self.get_energy()
+                _plane.time = self.get_time()
+                _plane.polarization = self.get_polarization()
+                if self.caom_version >= 24:
+                    _plane.custom_axis = self.get_custom()
 
             if self.depth > 2:
                 for k, v in six.iteritems(self.get_artifacts()):
@@ -352,6 +351,8 @@ class Caom2TestInstances(object):
         position.resolution = 0.5
         position.sample_size = 1.1
         position.time_dependent = False
+        if self.caom_version >= 24:
+            position.resolution_bounds = shape.Interval(1.0, 2.0)
 
         return position
 
@@ -362,7 +363,8 @@ class Caom2TestInstances(object):
         position.resolution = 0.5
         position.sample_size = 1.1
         position.time_dependent = False
-
+        if self.caom_version >= 24:
+            position.resolution_bounds = shape.Interval(1.0, 2.0)
         return position
 
     def get_energy(self):
@@ -406,12 +408,19 @@ class Caom2TestInstances(object):
         interval = shape.Interval(lower, upper2, samples)
 
         time.bounds = interval
+        if self.caom_version >= 24:
+            time.resolution_bounds = shape.Interval(22.2, 33.3)
         time.dimension = 1
         time.resolution = 2.1
         time.sample_size = 3.0
         time.exposure = 10.3
 
         return time
+
+    def get_custom(self):
+        custom = plane.CustomAxis('MyAxis')
+        custom.bounds = shape.Interval(2.2, 3.3)
+        custom.dimension = 1
 
     def get_polarization(self):
         polarization = plane.Polarization()
@@ -447,6 +456,8 @@ class Caom2TestInstances(object):
         metrics.background_std_dev = float(3.0)
         metrics.flux_density_limit = float(4.0)
         metrics.mag_limit = float(5.0)
+        if self.caom_version >= 24:
+            metrics.sample_snr = 33.3
         return metrics
 
     def get_quality(self):
@@ -508,6 +519,9 @@ class Caom2TestInstances(object):
                     "md5:9882dbbf9cadc221019b712fd402bcbd")
                 _chunk.acc_meta_checksum = common.ChecksumURI(
                     "md5:844ce247db0844ad9f721430c80e7a21")
+            if self.caom_version >= 24:
+                _chunk.custom_axis = 3
+                _chunk.custom = self.get_custom_wcs()
         chunks.append(_chunk)
         return chunks
 
@@ -561,6 +575,14 @@ class Caom2TestInstances(object):
                                               wcs.RefCoord(1.0, 1.0))
         pol = chunk.PolarizationWCS(axis1d)
         return pol
+
+    def get_custom_wcs(self):
+        axis = wcs.Axis('Foo')
+        axis1d = wcs.CoordAxis1D(axis)
+        axis1d.function = wcs.CoordFunction1D(int(5), 1.0,
+                                              wcs.RefCoord(1.0, 1.0))
+        custom = chunk.CustomWCS(axis1d)
+        return custom
 
     def get_slice(self):
         return wcs.Slice(wcs.Axis("sliceCtype", "sliceCunit"), int(1))

@@ -77,14 +77,16 @@ from datetime import datetime
 import argparse
 import sys
 from . import obs_reader_writer
-
-from aenum import Enum
+import warnings
 from builtins import bytes, int, str
 
 from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict, int_32
 from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI
 from caom2.common import ChecksumURI
 from caom2.observation import Observation
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    from aenum import Enum
 
 __all__ = ['get_meta_checksum', 'get_acc_meta_checksum',
            'update_meta_checksum']

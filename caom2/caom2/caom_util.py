@@ -80,13 +80,11 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import collections
-import struct
 import sys
-import uuid
 from datetime import datetime
 
 import six
-from builtins import bytes, int, str as newstr
+from builtins import int, str as newstr
 
 
 __all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
@@ -153,34 +151,6 @@ def attr2str(s):
 
 def repr2str(s):
     pass
-
-
-def uuid2long(uid):
-    """
-    UUID is 128 bits (32 bytes). Unpack the 32 bytes into two
-    16 byte longs. For CAOM-2.0 compatibility only the least significant
-    16 bytes in the UUID should have a value.
-
-    return the UUID least significant bytes as a long.
-    """
-    longs = struct.unpack(str('>qq'), bytes(uid.bytes))
-    if longs[0] != 0:
-        longs = struct.unpack(str('>QQ'), bytes(uid.bytes))
-        return (longs[0] << 64) | longs[1]
-    else:
-        return longs[1]
-
-
-def long2uuid(lng):
-    """
-    Takes a long and creates a UUID using the 16 byte long
-    as the least significant bytes in the 32 byte UUID.
-    """
-    if lng.bit_length() <= 63:
-        if lng < 0:
-            lng = (1 << 64) + lng
-
-    return uuid.UUID(int=lng)
 
 
 def type_check(value, value_type, variable, override=None):

@@ -151,7 +151,8 @@ def test_compatibility():
     with open(source_file_path, 'r'):
         obs = reader.read(source_file_path)
 
-    writer = obs_reader_writer.ObservationWriter(True)
+    writer = obs_reader_writer.ObservationWriter(
+        True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
     writer.write(obs, '/tmp/test.xml')
 
     for plane in obs.planes.values():
@@ -359,7 +360,8 @@ def test_compatibility_simple_obs():
     with open(source_file_path, 'r'):
         obs = reader.read(source_file_path)
 
-    writer = obs_reader_writer.ObservationWriter(True)
+    writer = obs_reader_writer.ObservationWriter(
+        True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
     writer.write(obs, '/tmp/test.xml')
 
     for plane in obs.planes.values():
@@ -392,7 +394,8 @@ def test_rountrip():
         obs = reader.read(source_file_path)
 
     filename = tempfile.TemporaryFile()
-    writer = obs_reader_writer.ObservationWriter(True)
+    writer = obs_reader_writer.ObservationWriter(
+        True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
     writer.write(obs, filename)
 
     # go back to the beginning of the file

@@ -75,14 +75,18 @@ import uuid
 from datetime import datetime
 
 from builtins import int, str
-from six.moves.urllib.parse import SplitResult, urlparse
+from six.moves.urllib.parse import SplitResult, urlparse, urlsplit
 import logging
 import six
 
 
 from . import caom_util
 
-__all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI']
+__all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI',
+           'VocabularyTerm']
+
+_OBSCORE_VOCAB_NS = "http://www.ivoa.net/std/ObsCore"
+_CAOM_VOCAB_NS = "http://www.opencadc.org/caom2/DataProductType"
 
 logger = logging.getLogger('caom2')
 
@@ -148,6 +152,7 @@ class AbstractCaomEntity(CaomObject):
         self.max_last_modified = None
         self.meta_checksum = None
         self.acc_meta_checksum = None
+        self.meta_producer = None
 
     @classmethod
     def _gen_id(cls, fulluuid=True):
@@ -230,6 +235,91 @@ class AbstractCaomEntity(CaomObject):
             caom_util.type_check(value, ChecksumURI, "acc_meta_checksum",
                                  False)
             self._acc_meta_checksum = value
+
+    @property
+    def meta_producer(self):
+        """TBD
+
+        type: URI
+
+        """
+        return self._meta_producer
+
+    @meta_producer.setter
+    def meta_producer(self, value):
+        if value is None:
+            self._meta_producer = None
+        else:
+            caom_util.type_check(value, ChecksumURI, "meta_producer",
+                                 False)
+            self._meta_producer = value
+
+
+class VocabularyTerm(object):
+    """ VocabularyTerm """
+
+    def __init__(self, namespace, term, base=False):
+        """
+        Construct a VocabularyTerm instance. This creates a term in the
+        specified vocabulary namespace. If the value of base is False,
+        the string value (from getvalue()) will just be the namespace URI
+        plus the term added as a fragment. If the value of base is True,
+        this is a term in a base vocabulary and the value will just be the
+        term (without the namespace).
+
+        Arguments:
+        namespace : namespace of the vocabulary
+        term : a term in the base vocabulary
+        base : if True, getValue() returns term, otherwise getvalue() returns
+               namespace URI plus term
+        """
+        self.namespace = namespace
+        self.term = term
+        self.base = base
+
+    def get_value(self):
+        """ get_value """
+        if self.base:
+            return self._term
+        else:
+            return self._namespace + "#" + self._term
+
+    def __str__(self):
+        """ __str__ """
+        return self.get_value()
+
+    # Properties
+    @property
+    def namespace(self):
+        """ namespace """
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, value):
+        caom_util.type_check(value, str, "namespace")
+        tmp = urlsplit(value)
+        assert tmp.geturl() == value, "Invalid URI: " + value
+        self._namespace = value
+
+    @property
+    def term(self):
+        """ term """
+        return self._term
+
+    @term.setter
+    def term(self, value):
+        caom_util.type_check(value, str, "term")
+        self._term = value
+
+    @property
+    def base(self):
+        """ base """
+        return self._base
+
+    @base.setter
+    def base(self, value):
+        caom_util.type_check(value, bool, "base")
+        self._base = value
 
 
 class ObservationURI(CaomObject):

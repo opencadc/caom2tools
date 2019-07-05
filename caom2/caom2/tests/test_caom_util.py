@@ -71,7 +71,6 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
-import uuid
 
 from builtins import str, int
 
@@ -329,28 +328,3 @@ class TestCaomUtil(unittest.TestCase):
         my_value = my_dict1.pop('key1')
         self.assertEqual('key1', my_value._key(),
                          'popped the wrong entry from dictionary.')
-
-    def test_uuid2long(self):
-        # > 64 bit uuid
-        u = uuid.UUID('{3d26e30b-10cc-4301-8193-f2e0c6b63302}')
-        self.assertEqual(81284820007192705733791414383501783810,
-                         caom_util.uuid2long(u))
-
-        u = uuid.UUID('00000000-0000-0000-0000-000000000001')
-        lng = caom_util.uuid2long(u)
-        self.assertEqual(int(1), lng)
-
-        u = uuid.UUID('00000000-0000-0000-0000-000000bc614e')
-        lng = caom_util.uuid2long(u)
-        self.assertEqual(int(12345678), lng)
-
-    def test_long2uuid(self):
-        # > 64 bit int
-        lng = int(123456781234567812345678)
-        uuid = caom_util.long2uuid(lng)
-        self.assertEqual('00000000-0000-1a24-9b03-6ec765b5ef4e',
-                         str(uuid))
-
-        lng = 3296038095975885829
-        uid = caom_util.long2uuid(lng)
-        self.assertEqual('00000000-0000-0000-2dbd-e12f64cc2c05', str(uid))
