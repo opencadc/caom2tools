@@ -139,13 +139,14 @@ def test_meta_create_client_execute(test_config):
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     mc.read_obs_from_file = Mock()
     mc.read_obs_from_file.return_value = _read_obs(None)
 
     test_executor = ec.MetaCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None,
-        rejected=None)
+        observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -160,6 +161,7 @@ def test_meta_create_client_execute(test_config):
             logging.debug)
         assert repo_client_mock.create.is_called, 'create call missed'
         assert test_executor.url == 'https://test_url/', 'url'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -173,10 +175,11 @@ def test_meta_update_client_execute(test_config):
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_executor = ec.MetaUpdateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
-        meta_visitors=None, rejected=None)
+        meta_visitors=None, observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -190,6 +193,7 @@ def test_meta_update_client_execute(test_config):
                 TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
             logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observer call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -203,10 +207,11 @@ def test_meta_delete_create_client_execute(test_config):
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_executor = ec.MetaDeleteCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None), None,
-        rejected=None)
+        observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -220,6 +225,7 @@ def test_meta_delete_create_client_execute(test_config):
                 TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
             logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -233,11 +239,12 @@ def test_local_meta_create_client_execute(test_config):
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
 
     test_executor = ec.LocalMetaCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None,
-        rejected=None)
+        observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -251,6 +258,7 @@ def test_local_meta_create_client_execute(test_config):
                 TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
             logging.debug)
         assert repo_client_mock.create.is_called, 'create call missed'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -264,10 +272,11 @@ def test_local_meta_update_client_execute(test_config):
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_executor = ec.LocalMetaUpdateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
-        meta_visitors=None, rejected=None)
+        meta_visitors=None, observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -281,6 +290,7 @@ def test_local_meta_update_client_execute(test_config):
                 TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
                 test_source), logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -294,10 +304,11 @@ def test_local_meta_delete_create_client_execute(test_config):
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_executor = ec.LocalMetaDeleteCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None,
-        observation=_read_obs(None), rejected=None)
+        observation=_read_obs(None), observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -311,6 +322,7 @@ def test_local_meta_delete_create_client_execute(test_config):
                 TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
                 test_source), logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -321,17 +333,19 @@ def test_client_visit(test_config):
     test_cred = None
     data_client_mock = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
 
     test_executor = ec.ClientVisit(test_config,
                                    TestStorageName(), test_cred,
                                    data_client_mock,
                                    repo_client_mock,
                                    meta_visitors=None,
-                                   rejected=None)
+                                   observable=test_observer)
 
     test_executor.execute(None)
     assert repo_client_mock.read.is_called, 'read call missed'
     assert repo_client_mock.update.is_called, 'update call missed'
+    assert test_observer.observe.is_called, 'observe not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -356,7 +370,11 @@ def test_data_execute(test_config):
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_cred = None
+    stat_orig = os.stat
+    os.stat = Mock()
+    os.stat.st_size.return_value = 1243
 
     try:
         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
@@ -365,7 +383,7 @@ def test_data_execute(test_config):
         test_executor = ec.DataClient(
             test_config, TestStorageName(), TEST_APP, test_cred,
             data_client_mock, repo_client_mock, test_data_visitors,
-            mc.TaskType.MODIFY)
+            mc.TaskType.MODIFY, test_observer)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -377,11 +395,13 @@ def test_data_execute(test_config):
         assert data_client_mock.get_file.is_called, 'get_file call missed'
         assert repo_client_mock.read.is_called, 'read call missed'
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
 
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
         os.rmdir = os_rmdir_orig
+        os.stat = stat_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -394,11 +414,13 @@ def test_data_local_execute(test_config):
     repo_client_mock = Mock()
     repo_client_mock.read.return_value = _read_obs(None)
     test_cred = None
+    test_observer = Mock()
 
     # run the test
     test_executor = ec.LocalDataClient(
         test_config, TestStorageName(), TEST_APP,
-        test_cred, data_client_mock, repo_client_mock, test_data_visitors)
+        test_cred, data_client_mock, repo_client_mock, test_data_visitors,
+        observable=test_observer)
     try:
         test_executor.execute(None)
     except CadcException as e:
@@ -410,6 +432,7 @@ def test_data_local_execute(test_config):
     assert data_client_mock.get_file.is_called, 'get_file call missed'
     assert repo_client_mock.read.is_called, 'read call missed'
     assert repo_client_mock.update.is_called, 'update call missed'
+    assert test_observer.observe.is_called, 'observe not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -417,16 +440,23 @@ def test_data_local_execute(test_config):
 def test_data_store(test_config):
     data_client_mock = Mock()
     repo_client_mock = Mock()
-    test_executor = ec.StoreClient(
-        test_config, TestStorageName(), 'command_name', '', data_client_mock,
-        repo_client_mock)
+    test_observer = Mock()
+    stat_orig = os.stat
+    os.stat = Mock()
+    os.stat.st_size.return_value = 1243
     try:
-        test_executor.execute(None)
-    except CadcException as e:
-        assert False, e
+        test_executor = ec.StoreClient(
+            test_config, TestStorageName(), 'command_name', '',
+            data_client_mock, repo_client_mock, observable=test_observer)
+        try:
+            test_executor.execute(None)
+        except CadcException as e:
+            assert False, e
 
-    # check that things worked as expected - no cleanup
-    assert data_client_mock.put_file.is_called, 'put_file call missed'
+        # check that things worked as expected - no cleanup
+        assert data_client_mock.put_file.is_called, 'put_file call missed'
+    finally:
+        os.stat = stat_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -447,7 +477,7 @@ def test_scrape(test_config):
 
     try:
         test_executor = ec.Scrape(
-            test_config, TestStorageName(), 'command_name')
+            test_config, TestStorageName(), 'command_name', observable=None)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -478,7 +508,7 @@ def test_data_scrape_execute(test_config):
         # run the test
         test_executor = ec.DataScrape(
             test_config, TestStorageName(), TEST_APP,
-            test_data_visitors)
+            test_data_visitors, observable=None)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -798,15 +828,15 @@ def test_capture_failure(test_config):
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_run_by_file():
+def test_run_by_file(test_config):
     try:
         os.getcwd = Mock(return_value=TEST_DATA_DIR)
         todo_file = os.path.join(os.getcwd(), 'todo.txt')
         f = open(todo_file, 'w')
         f.write('')
         f.close()
-        ec.run_by_file(ec.StorageName, TEST_APP, 'collection',
-                       proxy=None, meta_visitors=None, data_visitors=None)
+        ec.run_by_file(test_config, ec.StorageName, TEST_APP,
+                       meta_visitors=None, data_visitors=None)
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
 
@@ -923,6 +953,7 @@ def test_local_meta_create_client_remote_storage_execute(test_config):
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_cred = None
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
@@ -938,7 +969,7 @@ def test_local_meta_create_client_remote_storage_execute(test_config):
         # run the test
         test_executor = ec.LocalMetaCreateClientRemoteStorage(
             test_config, TestStorageName(), TEST_APP, test_cred,
-            data_client_mock, repo_client_mock, None, None)
+            data_client_mock, repo_client_mock, None, test_observer)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -954,6 +985,7 @@ def test_local_meta_create_client_remote_storage_execute(test_config):
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, test_local, THIS_DIR, test_source, test_source),
             logging.debug)
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -982,13 +1014,15 @@ def test_local_meta_update_client_remote_storage_execute(test_config):
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     test_local = '{}/test_obs_id.fits'.format(THIS_DIR)
+    test_observer = Mock()
 
     try:
         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
         # run the test
         test_executor = ec.LocalMetaUpdateClientRemoteStorage(
             test_config, TestStorageName(), TEST_APP, test_cred,
-            data_client_mock, repo_client_mock, _read_obs(None), None, None)
+            data_client_mock, repo_client_mock, _read_obs(None), None,
+            test_observer)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -1005,6 +1039,7 @@ def test_local_meta_update_client_remote_storage_execute(test_config):
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, test_local,
                 test_source, test_source), logging.debug)
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -1050,7 +1085,8 @@ def test_pull_client(test_config):
     with patch('requests.get') as get_mock:
         get_mock.return_value = Object()
         test_executor = ec.PullClient(test_config, test_sn, TEST_APP, None,
-                                      data_client_mock, repo_client_mock)
+                                      data_client_mock, repo_client_mock,
+                                      observable=None)
         with pytest.raises(OSError):
             test_executor.execute(None)
             assert data_client_mock.put_file.is_called, 'call missed'

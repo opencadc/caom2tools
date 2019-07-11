@@ -303,19 +303,33 @@ def test_get_artifact_metadata():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('cadcdata.core.CadcDataClient')
-def test_data_put(mock_client):
-    mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default')
+@patch('caom2pipe.manage_composable.Metrics')
+def test_data_put(mock_metrics, mock_client):
+    mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default',
+                metrics=mock_metrics)
     mock_client.put_file.assert_called_with(
         'TEST', 'TEST.fits', archive_stream='default',
         md5_check=True, mime_encoding=None, mime_type=None), 'mock not called'
+    assert mock_metrics.observe.is_called, 'mock not called'
+    args, kwargs = mock_metrics.observe.call_args
+    assert args[2] == 0, 'wrong size'
+    assert args[3] == 'put', 'wrong endpoint'
+    assert args[4] == 'data', 'wrong service'
+    assert args[5] == 'TEST.fits', 'wrong id'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('cadcdata.core.CadcDataClient')
 def test_data_get(mock_client):
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
     with pytest.raises(mc.CadcException):
-        mc.data_get(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST')
+        mc.data_get(mock_client, TEST_DATA_DIR, 'TEST_get.fits', 'TEST',
+                    test_metrics)
+    assert len(test_metrics.failures) == 1, 'wrong failures'
+    assert test_metrics.failures['data']['get']['TEST_get.fits'] == 1, 'count'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -376,12 +390,110 @@ def test_increment_time():
 @patch('cadcdata.core.CadcDataClient')
 @patch('caom2pipe.manage_composable.http_get')
 def test_look_pull_and_put(http_mock, mock_client):
-    f_name = 'test_f_name.fits'
-    url = 'https://localhost/{}'.format(f_name)
-    mc.look_pull_and_put(f_name, TEST_DATA_DIR, url, 'TEST', 'default',
-                         'application/fits', mock_client, 'md5:01234')
-    mock_client.put_file.assert_called_with(
-        'TEST', f_name, archive_stream='default', md5_check=True,
-        mime_encoding=None, mime_type='application/fits'), 'mock not called'
-    http_mock.assert_called_with(
-        url, os.path.join(TEST_DATA_DIR, f_name)), 'http mock not called'
+    stat_orig = os.stat
+    os.stat = Mock()
+    os.stat.return_value = Mock(st_size=1234)
+    try:
+        f_name = 'test_f_name.fits'
+        url = 'https://localhost/{}'.format(f_name)
+        test_config = mc.Config()
+        test_config.observe_execution = True
+        test_metrics = mc.Metrics(test_config)
+        assert len(test_metrics.history) == 0, 'initial history conditions'
+        assert len(test_metrics.failures) == 0, 'initial failure conditions'
+        mc.look_pull_and_put(f_name, TEST_DATA_DIR, url, 'TEST', 'default',
+                             'application/fits', mock_client, 'md5:01234',
+                             test_metrics)
+        mock_client.put_file.assert_called_with(
+            'TEST', f_name, archive_stream='default', md5_check=True,
+            mime_encoding=None,
+            mime_type='application/fits'), 'mock not called'
+        http_mock.assert_called_with(
+            url, os.path.join(TEST_DATA_DIR, f_name)), 'http mock not called'
+        assert len(test_metrics.history) == 1, 'history conditions'
+        assert len(test_metrics.failures) == 0, 'failure conditions'
+    finally:
+        os.stat = stat_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2repo.core.CAOM2RepoClient')
+def test_repo_create(mock_client):
+    test_obs = mc.read_obs_from_file(TEST_OBS_FILE)
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
+    assert len(test_metrics.history) == 0, 'initial history conditions'
+    assert len(test_metrics.failures) == 0, 'initial failure conditions'
+
+    mc.repo_create(mock_client, test_obs, test_metrics)
+
+    mock_client.create.assert_called_with(test_obs), 'mock not called'
+    assert len(test_metrics.history) == 1, 'history conditions'
+    assert len(test_metrics.failures) == 0, 'failure conditions'
+    assert 'caom2' in test_metrics.history, 'history'
+    assert 'create' in test_metrics.history['caom2'], 'create'
+    assert 'test_obs_id' in test_metrics.history['caom2']['create'], 'obs id'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2repo.core.CAOM2RepoClient')
+def test_repo_get(mock_client):
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
+    assert len(test_metrics.history) == 0, 'initial history conditions'
+    assert len(test_metrics.failures) == 0, 'initial failure conditions'
+
+    mc.repo_get(mock_client, 'collection', 'test_obs_id', test_metrics)
+
+    mock_client.read.assert_called_with('collection', 'test_obs_id'), \
+        'mock not called'
+    assert len(test_metrics.history) == 1, 'history conditions'
+    assert len(test_metrics.failures) == 0, 'failure conditions'
+    assert 'caom2' in test_metrics.history, 'history'
+    assert 'read' in test_metrics.history['caom2'], 'create'
+    assert 'test_obs_id' in test_metrics.history['caom2']['read'], 'obs id'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2repo.core.CAOM2RepoClient')
+def test_repo_update(mock_client):
+    test_obs = mc.read_obs_from_file(TEST_OBS_FILE)
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
+    assert len(test_metrics.history) == 0, 'initial history conditions'
+    assert len(test_metrics.failures) == 0, 'initial failure conditions'
+
+    mc.repo_update(mock_client, test_obs, test_metrics)
+
+    mock_client.update.assert_called_with(test_obs), 'mock not called'
+    assert len(test_metrics.history) == 1, 'history conditions'
+    assert len(test_metrics.failures) == 0, 'failure conditions'
+    assert 'caom2' in test_metrics.history, 'history'
+    assert 'update' in test_metrics.history['caom2'], 'update'
+    assert 'test_obs_id' in test_metrics.history['caom2']['update'], 'obs id'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2repo.core.CAOM2RepoClient')
+def test_repo_delete(mock_client):
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
+    assert len(test_metrics.history) == 0, 'initial history conditions'
+    assert len(test_metrics.failures) == 0, 'initial failure conditions'
+
+    mc.repo_delete(mock_client, 'coll', 'test_id', test_metrics)
+
+    mock_client.delete.assert_called_with('coll', 'test_id'), 'mock not called'
+    assert len(test_metrics.history) == 1, 'history conditions'
+    assert len(test_metrics.failures) == 0, 'failure conditions'
+    assert 'caom2' in test_metrics.history, 'history'
+    assert 'delete' in test_metrics.history['caom2'], 'delete'
+    assert 'test_id' in test_metrics.history['caom2']['delete'], 'obs id'

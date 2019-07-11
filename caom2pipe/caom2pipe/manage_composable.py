@@ -72,13 +72,13 @@ import logging
 import os
 import requests
 import subprocess
+import sys
 import yaml
 
 from datetime import datetime
 from enum import Enum
 from hashlib import md5
 from io import BytesIO
-from os import stat
 from requests.adapters import HTTPAdapter
 from urllib import parse as parse
 from urllib3 import Retry
@@ -99,7 +99,9 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
            'data_put', 'data_get', 'build_uri', 'make_seconds',
            'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
-           'record_progress', 'Work', 'look_pull_and_put']
+           'record_progress', 'Work', 'look_pull_and_put', 'Observable',
+           'Metrics', 'repo_create', 'repo_delete', 'repo_get',
+           'repo_update']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 READ_BLOCK_SIZE = 8 * 1024
@@ -242,7 +244,7 @@ class State(object):
         if key in self.bookmarks:
             if 'last_record' in self.bookmarks[key]:
                 self.bookmarks[key]['last_record'] = value
-                logging.info('Saving timestamp {}'.format(value))
+                logging.error('Saving timestamp {} {}'.format(value, self.fqn))
                 write_as_yaml(self.content, self.fqn)
             else:
                 self.logger.warning('No record found for {}'.format(key))
@@ -333,6 +335,88 @@ class Rejected(object):
         return result
 
 
+class Metrics(object):
+    """
+    A class to capture execution metrics.
+    """
+
+    def __init__(self, config):
+        self.enabled = config.observe_execution
+        if self.enabled:
+            self.history = {}
+            self.failures = {}
+            self.observable_dir = config.observable_directory
+
+    def observe(self, start, stop, size, action, service, label):
+        if self.enabled:
+            elapsed = round(stop - start, 3)
+            rate = round(size / (stop - start), 3)
+            if service not in self.history:
+                self.history[service] = {}
+            if action not in self.history[service]:
+                self.history[service][action] = {}
+            self.history[service][action][label] = [elapsed, rate]
+
+    def observe_failure(self, action, service, label):
+        if self.enabled:
+            if service not in self.failures:
+                self.failures[service] = {}
+            if action not in self.failures[service]:
+                self.failures[service][action] = {}
+            if label not in self.failures[service][action]:
+                self.failures[service][action][label] = 1
+            else:
+                self.failures[service][action][label] += 1
+
+    def capture(self):
+        if self.enabled:
+            create_dir(self.observable_dir)
+            now = datetime.utcnow().timestamp()
+            for service in self.history.keys():
+                fqn = '{}/{}.{}.yml'.format(self.observable_dir, now, service)
+                write_as_yaml(self.history[service], fqn)
+
+            fqn = '{}/{}.fail.yml'.format(self.observable_dir, now)
+            # if os.path.exists(fqn):
+            #     temp = read_as_yaml(fqn)
+            write_as_yaml(self.failures, fqn)
+
+
+class Observable(object):
+    """
+    A class to contain all the classes that maintain information between
+    pipeline execution instances.
+    """
+
+    def __init__(self, rejected, metrics):
+        self._rejected = rejected
+        self._metrics = metrics
+
+    @property
+    def rejected(self):
+        return self._rejected
+
+    @property
+    def metrics(self):
+        return self._metrics
+
+
+# the approach to use for making timing a property
+# def profile(method):
+#
+#     def timed(*args, **kwargs):
+#         if enabled:
+#             start = datetime.utcnow().timestamp()
+#             result = method(*args, **kwargs)
+#             end = datetime.utcnow().timestamp()
+#             timing(action, start, end, size)
+#         else:
+#             result = method(*args, **kwargs)
+#         return result
+#
+#     return timed
+
+
 class Config(object):
     """Configuration information that remains the same for all steps and all
      work in a pipeline execution."""
@@ -377,6 +461,8 @@ class Config(object):
         self._progress_file_name = None
         self.progress_fqn = None
         self._interval = None
+        self._observe_execution = False
+        self._observable_directory = None
         self._features = Features()
 
     @property
@@ -650,6 +736,24 @@ class Config(object):
     def interval(self, value):
         self._interval = value
 
+    @property
+    def observe_execution(self):
+        """If true, time and track the CADC service invocations."""
+        return self._observe_execution
+
+    @observe_execution.setter
+    def observe_execution(self, value):
+        self._observe_execution = value
+
+    @property
+    def observable_directory(self):
+        """Directory where to track CADC service invocation information."""
+        return self._observable_directory
+
+    @observable_directory.setter
+    def observable_directory(self, value):
+        self._observable_directory = value
+
     def __str__(self):
         return 'working_directory:: \'{}\' ' \
                'work_fqn:: \'{}\' ' \
@@ -679,6 +783,8 @@ class Config(object):
                'state_fqn:: \'{}\' ' \
                'features:: \'{}\' ' \
                'interval:: \'{}\' ' \
+               'observe_execution:: \'{}\' ' \
+               'observable_directory:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
                 self.archive, self.collection, self.task_types, self.stream,
@@ -690,7 +796,8 @@ class Config(object):
                 self.retry_failures, self.retry_count, self.rejected_file_name,
                 self.rejected_fqn, self.progress_file_name,
                 self.progress_fqn, self.proxy_fqn, self.state_fqn,
-                self.features, self.interval, self.logging_level)
+                self.features, self.interval, self.observe_execution,
+                self.observable_directory, self.logging_level)
 
     @staticmethod
     def _obtain_task_types(config, default=None):
@@ -761,6 +868,9 @@ class Config(object):
             self.features = self._obtain_features(config)
             self.proxy_file_name = config.get('proxy_file_name', None)
             self.state_file_name = config.get('state_file_name', None)
+            self.observe_execution = config.get('observe_execution', False)
+            self.observable_directory = config.get(
+                'observable_directory', None)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -981,7 +1091,7 @@ def get_file_meta(fqn):
     if fqn is None or not os.path.exists(fqn):
         raise CadcException('Could not find {} in get_file_meta'.format(fqn))
     meta = {}
-    s = stat(fqn)
+    s = os.stat(fqn)
     meta['size'] = s.st_size
     meta['md5sum'] = md5(open(fqn, 'rb').read()).hexdigest()
     if fqn.endswith('.header') or fqn.endswith('.txt'):
@@ -1196,8 +1306,18 @@ def get_artifact_metadata(fqn, product_type, release_type, uri=None,
         return artifact
 
 
+def current():
+    """Encapsulate returning UTC now in microsecond resolution."""
+    return datetime.utcnow().timestamp()
+
+
+def sizeof(x):
+    """Encapsulate returning the memory size in bytes."""
+    return sys.getsizeof(x)
+
+
 def data_put(client, working_directory, file_name, archive, stream='raw',
-             mime_type=None, mime_encoding=None):
+             mime_type=None, mime_encoding=None, metrics=None):
     """
     Make a copy of a locally available file by writing it to CADC. Assumes
     file and directory locations are correct. Does a checksum comparison to
@@ -1212,20 +1332,26 @@ def data_put(client, working_directory, file_name, archive, stream='raw',
     :param mime_type: Because libmagic can't see inside a zipped fits file.
     :param mime_encoding: Also because libmagic can't see inside a zipped
         fits file.
+    :param metrics: Tracking success execution times, and failure counts.
     """
+    start = current()
     cwd = os.getcwd()
     try:
         os.chdir(working_directory)
         client.put_file(archive, file_name, archive_stream=stream,
                         mime_type=mime_type, mime_encoding=mime_encoding,
                         md5_check=True)
+        file_size = os.stat(file_name).st_size
     except Exception as e:
+        metrics.observe_failure('get', 'data', file_name)
         raise CadcException('Failed to store data with {}'.format(e))
     finally:
         os.chdir(cwd)
+    end = current()
+    metrics.observe(start, end, file_size, 'put', 'data', file_name)
 
 
-def data_get(client, working_directory, file_name, archive):
+def data_get(client, working_directory, file_name, archive, metrics):
     """
     Retrieve a local copy of a file available from CADC. Assumes the working
     directory location exists and is writeable.
@@ -1235,6 +1361,7 @@ def data_get(client, working_directory, file_name, archive):
     :param file_name: What to copy from CADC storage.
     :param archive: Which archive to retrieve the file from.
     """
+    start = current()
     fqn = os.path.join(working_directory, file_name)
     try:
         client.get_file(archive, file_name, destination=fqn)
@@ -1242,8 +1369,12 @@ def data_get(client, working_directory, file_name, archive):
             raise CadcException(
                 'ad retrieve failed. {} does not exist.'.format(fqn))
     except Exception as e:
+        metrics.observe_failure('get', 'data', file_name)
         raise CadcException('Did not retrieve {} because {}'.format(
             fqn, e))
+    end = current()
+    file_size = os.stat(fqn).st_size
+    metrics.observe(start, end, file_size, 'get', 'data', file_name)
 
 
 def build_uri(archive, file_name, scheme='ad'):
@@ -1365,7 +1496,7 @@ def http_get(url, local_fqn):
 
 
 def look_pull_and_put(f_name, working_dir, url, archive, stream, mime_type,
-                      cadc_client, checksum):
+                      cadc_client, checksum, metrics):
     """Checks to see if a file exists in ad. If yes, stop. If no,
     pull via https to local storage, then put to ad.
 
@@ -1382,6 +1513,7 @@ def look_pull_and_put(f_name, working_dir, url, archive, stream, mime_type,
     :param checksum what the CAOM observation says the checksum should be -
         just the checksum part of ChecksumURI please, or the comparison will
         always fail.
+    :param metrics track how long operations take
     """
     retrieve = False
     try:
@@ -1399,4 +1531,61 @@ def look_pull_and_put(f_name, working_dir, url, archive, stream, mime_type,
         fqn = os.path.join(working_dir, f_name)
         http_get(url, fqn)
         data_put(cadc_client, working_dir, f_name, archive, stream,
-                 mime_type, mime_encoding=None)
+                 mime_type, mime_encoding=None, metrics=metrics)
+
+
+def repo_create(client, observation, metrics):
+    start = current()
+    try:
+        client.create(observation)
+    except Exception as e:
+        metrics.observe_failure('create', 'caom2', observation.observation_id)
+        raise CadcException(
+            'Could not create an observation record for {}. '
+            '{}'.format(observation.observation_id, e))
+    end = current()
+    metrics.observe(start, end, sizeof(observation), 'create', 'caom2',
+                    observation.observation_id)
+
+
+def repo_delete(client, collection, obs_id, metrics):
+    start = current()
+    try:
+        client.delete(collection, obs_id)
+    except Exception as e:
+        metrics.observe_failure('delete', 'caom2', obs_id)
+        raise CadcException(
+            'Could not delete the observation record for {}. '
+            '{}'.format(obs_id, e))
+    end = current()
+    metrics.observe(start, end, 0, 'delete', 'caom2', obs_id)
+
+
+def repo_get(client, collection, obs_id, metrics):
+    start = current()
+    try:
+        observation = client.read(collection, obs_id)
+    except exceptions.NotFoundException:
+        observation = None
+    except Exception:
+        metrics.observe_failure('read', 'caom2', obs_id)
+        raise CadcException(
+            'Could not retrieve an observation record for {}.'.format(obs_id))
+    end = current()
+    metrics.observe(
+        start, end, sizeof(observation), 'read', 'caom2', obs_id)
+    return observation
+
+
+def repo_update(client, observation, metrics):
+    start = current()
+    try:
+        client.update(observation)
+    except Exception as e:
+        metrics.observe_failure('update', 'caom2', observation.observation_id)
+        raise CadcException(
+            'Could not update an observation record for {}. '
+            '{}'.format(observation.observation_id, e))
+    end = current()
+    metrics.observe(start, end, sizeof(observation), 'update', 'caom2',
+                    observation.observation_id)

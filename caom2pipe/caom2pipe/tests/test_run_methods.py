@@ -137,7 +137,7 @@ def test_run_from_state(work_mock, do_mock, test_config):
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('caom2pipe.execute_composable._do_one')
-def test_run_by_file_prime(do_mock, test_config):
+def test_run_by_file(do_mock, test_config):
     cleanup_log_txt(test_config)
 
     test_config.features.expects_retry = True
@@ -151,16 +151,15 @@ def test_run_by_file_prime(do_mock, test_config):
         f.write('{}\n'.format(TEST_OBS_ID))
 
     do_mock.side_effect = _write_retry
-    do_mock.return_value = 0
 
-    test_result = ec.run_by_file_prime(test_config,
-                                       storage_name=ec.StorageName,
-                                       command_name=COMMAND_NAME,
-                                       meta_visitors=None,
-                                       data_visitors=None,
-                                       chooser=None)
+    test_result = ec.run_by_file(test_config,
+                                 storage_name=ec.StorageName,
+                                 command_name=COMMAND_NAME,
+                                 meta_visitors=None,
+                                 data_visitors=None,
+                                 chooser=None)
     assert test_result is not None, 'expect a result'
-    assert test_result == 0, 'wrong result'
+    assert test_result == -1, 'wrong result'
 
     assert do_mock.called, 'do mock not called'
     assert do_mock.call_count == 2, do_mock.call_count
@@ -189,3 +188,4 @@ def _write_retry(config, organizer, storage_name, command_name,
                  meta_visitors, data_visitors):
     with open(config.retry_fqn, 'w') as f:
         f.write('{}\n'.format(TEST_ENTRY))
+    return -1
