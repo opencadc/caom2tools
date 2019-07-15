@@ -890,6 +890,9 @@ class ClientVisit(CaomExecute):
         self.logger.debug('store the xml')
         self._repo_cmd_update_client(observation)
 
+        self.logger.debug('write the updated xml to disk for debugging')
+        self._write_model(observation)
+
         self.logger.debug('clean up the workspace')
         self._cleanup()
 
@@ -1263,9 +1266,11 @@ class OrganizeExecutes(object):
 
         mc.create_dir(self.config.log_file_directory)
         now_s = datetime.utcnow().timestamp()
-        for fqn in [self.failure_fqn, self.retry_fqn, self.success_fqn]:
-            back_fqn = '{}.{}.txt'.format(fqn.replace('.txt', ''), now_s)
-            OrganizeExecutes._init_log_file(fqn, back_fqn)
+        # if log_to_file is False, should leave no logging trace behind
+        if self.config.log_to_file:
+            for fqn in [self.failure_fqn, self.retry_fqn, self.success_fqn]:
+                back_fqn = '{}.{}.txt'.format(fqn.replace('.txt', ''), now_s)
+                OrganizeExecutes._init_log_file(fqn, back_fqn)
         self._success_count = 0
         self._complete_record_count = 0
         self.observable = mc.Observable(mc.Rejected(self.rejected_fqn),
@@ -1471,20 +1476,25 @@ class OrganizeExecutes(object):
         list. The rejected list will be saved to disk when the execute method
         completes.
 
+        If log_to_file is set to False, don't track the failure log file or
+        the retry log file entries, because the application should leave no
+        logging trace.
+
         :obs_id observation ID being processed
         :file_name file name being processed
         :e Exception to log - the entire stack trace, which, if logging
             level is not set to debug, will be lost for debugging purposes.
         """
-        with open(self.failure_fqn, 'a') as failure:
-            min_error = self._minimize_error_message(e)
-            failure.write(
-                '{} {} {} {}\n'.format(datetime.now(), obs_id, file_name,
-                                       min_error))
+        if self.config.log_to_file:
+            with open(self.failure_fqn, 'a') as failure:
+                min_error = self._minimize_error_message(e)
+                failure.write(
+                    '{} {} {} {}\n'.format(datetime.now(), obs_id, file_name,
+                                           min_error))
 
         # only retry entries that are not permanently marked as rejected
         reason = mc.Rejected.known_failure(e)
-        if reason == mc.Rejected.NO_REASON:
+        if reason == mc.Rejected.NO_REASON and self.config.log_to_file:
             with open(self.retry_fqn, 'a') as retry:
                 if (self.config.features.use_file_names or
                         self.config.use_local_files):
@@ -1503,17 +1513,19 @@ class OrganizeExecutes(object):
         """
         self.success_count += 1
         execution_s = datetime.utcnow().timestamp() - start_time
-        success = open(self.success_fqn, 'a')
-        try:
-            success.write(
-                '{} {} {} {:.2f}\n'.format(
-                    datetime.now(), obs_id, file_name, execution_s))
-            logging.info('Progress - record {} of {} records processed in '
-                         '{:.2f} s.'.format(self.success_count,
-                                            self.complete_record_count,
-                                            execution_s))
-        finally:
-            success.close()
+        # if log_to_file is set to False, leave no logging trace
+        if self.config.log_to_file:
+            success = open(self.success_fqn, 'a')
+            try:
+                success.write(
+                    '{} {} {} {:.2f}\n'.format(
+                        datetime.now(), obs_id, file_name, execution_s))
+            finally:
+                success.close()
+        logging.info('Progress - record {} of {} records processed in '
+                     '{:.2f} s.'.format(self.success_count,
+                                        self.complete_record_count,
+                                        execution_s))
 
     def is_rejected(self, storage_name):
         """Common code to use the appropriate identifier when checking for
