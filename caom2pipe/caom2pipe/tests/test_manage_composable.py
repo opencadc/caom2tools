@@ -361,7 +361,12 @@ def test_make_seconds():
     t2 = '2017-07-26T17:07:21.527'
     t2_dt = mc.make_seconds(t2)
     assert t2_dt is not None, 'expect a result'
-    assert t2_dt == 1501088841.52, 'wrong result'
+    assert t2_dt == 1501088841.527, 'wrong result'
+
+    t3 = '16-Jul-2019 09:08'
+    t3_dt = mc.make_seconds(t3)
+    assert t3_dt is not None, 'expect a result'
+    assert t3_dt == 1563268080.0, 'wrong result'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),

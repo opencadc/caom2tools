@@ -1437,14 +1437,18 @@ def make_seconds(from_time):
     try:
         index = from_time.index('+00')
     except ValueError:
-        index = -1
+        index = len(from_time)
 
     try:
         seconds_since_epoch = datetime.strptime(from_time[:index],
                                                 ISO_8601_FORMAT)
     except ValueError:
-        seconds_since_epoch = datetime.strptime(from_time[:index],
-                                                '%Y-%m-%dT%H:%M:%S')
+        try:
+            seconds_since_epoch = datetime.strptime(from_time[:index],
+                                                    '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            seconds_since_epoch = datetime.strptime(from_time[:index],
+                                                    '%d-%b-%Y %H:%M')
     return seconds_since_epoch.timestamp()
 
 
