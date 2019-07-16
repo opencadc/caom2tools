@@ -2025,7 +2025,8 @@ def run_from_state(config, sname, command_name, meta_visitors,
     start_time = state.get_bookmark(bookmark_name)
     end_time = datetime.fromtimestamp(work.max_ts_s)
 
-    prev_exec_time = start_time
+    # make sure prev_exec_time is type datetime
+    prev_exec_time = mc.increment_time(start_time, 0)
     exec_time = min(
         mc.increment_time(prev_exec_time, config.interval), end_time)
 
