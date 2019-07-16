@@ -335,17 +335,20 @@ def test_client_visit(test_config):
     repo_client_mock = Mock()
     test_observer = Mock()
 
-    test_executor = ec.ClientVisit(test_config,
-                                   TestStorageName(), test_cred,
-                                   data_client_mock,
-                                   repo_client_mock,
-                                   meta_visitors=None,
-                                   observable=test_observer)
+    with patch('caom2pipe.manage_composable.write_obs_to_file') as write_mock:
+        test_executor = ec.ClientVisit(test_config,
+                                       TestStorageName(), test_cred,
+                                       data_client_mock,
+                                       repo_client_mock,
+                                       meta_visitors=None,
+                                       observable=test_observer)
 
-    test_executor.execute(None)
-    assert repo_client_mock.read.is_called, 'read call missed'
-    assert repo_client_mock.update.is_called, 'update call missed'
-    assert test_observer.observe.is_called, 'observe not called'
+        test_executor.execute(None)
+        repo_client_mock.read.assert_called_with('OMM', 'test_obs_id'), \
+            'read call missed'
+        assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
+        assert write_mock.is_called, 'write mock not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -835,7 +838,9 @@ def test_run_by_file(test_config):
         f = open(todo_file, 'w')
         f.write('')
         f.close()
-        ec.run_by_file(test_config, ec.StorageName, TEST_APP,
+        test_config.features.use_urls = False
+        test_config.task_types = [mc.TaskType.VISIT]
+        ec.run_by_file(test_config, TestStorageName, TEST_APP,
                        meta_visitors=None, data_visitors=None)
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)

@@ -70,21 +70,26 @@
 import os
 import pytest
 import six
-import sys
 
+no_matplotlib = False
 if six.PY3:
     from caom2 import ValueCoord2D
     from caom2pipe import caom_composable as cc
     from caom2pipe import manage_composable as mc
 
+    try:
+        import matplotlib
+        no_matplotlib = False
+    except ImportError as e:
+        no_matplotlib = True
 
 PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
 
 
-@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
-                    reason='support one python version')
+@pytest.mark.skipif(no_matplotlib,
+                    reason='matplotlib must be installed')
 def test_exec_footprintfinder():
     test_obs_file = 'fpf_start_obs.xml'
     test_obs = mc.read_obs_from_file(os.path.join(

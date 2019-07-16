@@ -1494,13 +1494,14 @@ class OrganizeExecutes(object):
 
         # only retry entries that are not permanently marked as rejected
         reason = mc.Rejected.known_failure(e)
-        if reason == mc.Rejected.NO_REASON and self.config.log_to_file:
-            with open(self.retry_fqn, 'a') as retry:
-                if (self.config.features.use_file_names or
-                        self.config.use_local_files):
-                    retry.write('{}\n'.format(file_name))
-                else:
-                    retry.write('{}\n'.format(obs_id))
+        if reason == mc.Rejected.NO_REASON:
+            if self.config.log_to_file:
+                with open(self.retry_fqn, 'a') as retry:
+                    if (self.config.features.use_file_names or
+                            self.config.use_local_files):
+                        retry.write('{}\n'.format(file_name))
+                    else:
+                        retry.write('{}\n'.format(obs_id))
         else:
             self.observable.rejected.record(reason, obs_id)
 
