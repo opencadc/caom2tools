@@ -83,6 +83,7 @@ from .chunk import ProductType
 from .common import AbstractCaomEntity
 from .common import ChecksumURI
 from .part import Part
+import datetime
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
@@ -121,6 +122,8 @@ class Artifact(AbstractCaomEntity):
                  content_type=None,
                  content_length=None,
                  content_checksum=None,
+                 content_release=None,
+                 content_read_groups=None,
                  parts=None
                  ):
         """
@@ -137,6 +140,8 @@ class Artifact(AbstractCaomEntity):
         self.content_type = content_type
         self.content_length = content_length
         self.content_checksum = content_checksum
+        self.content_release = content_release
+        self.content_read_groups = content_read_groups
         if parts is None:
             parts = caom_util.TypedOrderedDict(Part, )
         self.parts = parts
@@ -194,7 +199,7 @@ class Artifact(AbstractCaomEntity):
         type:   caom2.ReleaseType
         restricted to caom2.ReleaseType
 
-        eg. Artifact.release = caom2.ReleaseType['META']
+        eg. Artifact.release_type = caom2.ReleaseType['META']
         """
         return self._release_type
 
@@ -248,6 +253,36 @@ class Artifact(AbstractCaomEntity):
         else:
             caom_util.type_check(value, ChecksumURI, "checksum_uri", False)
             self._content_checksum = value
+
+    @property
+    def content_release(self):
+        return self._content_release
+
+    @content_release.setter
+    def content_release(self, value):
+        if value:
+            caom_util.type_check(value, datetime, 'content_release', False)
+            caom_util.value_check(value,
+                                  datetime(1800, 1, 1, 0, 0, 0),
+                                  datetime(5000, 1, 1, 0, 0, 0),
+                                  'content_release')
+        self._content_release = value
+
+    @property
+    def content_read_groups(self):
+        return self._content_read_groups
+
+    @content_read_groups.setter
+    def content_read_groups(self, value):
+        """
+            value is a caom_util.URISet
+        """
+        if value is None:
+            self._content_read_groups = caom_util.URISet()
+        else:
+            caom_util.type_check(value, caom_util.URISet,
+                                 'content_read_groups', False)
+            self._content_read_groups = value
 
     @property
     def parts(self):

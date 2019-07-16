@@ -166,7 +166,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             pass
 
     def test_complete_simple(self):
-        for version in (22, 23):  # TODO add 24 when schema file available
+        for version in (22, 23, 24):
             for i in range(1, 6):
                 print("Test Complete Simple {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
@@ -205,7 +205,7 @@ class TestObservationReaderWriter(unittest.TestCase):
                                       version)
 
     def test_complete_composite(self):
-        for version in (22, 23):  # TODO add 24 when schema file available
+        for version in (22, 23, 24):
             for i in range(1, 6):
                 print(
                     "Test Complete Composite {} version {}".format(i, version))
@@ -233,8 +233,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.observation_test(composite_observation, True, True, 22)
         print("check 2.3 schema with 2.2 doc")
         self.observation_test(composite_observation, True, True, 23)
-        # print("check 2.4 schema with 2.2 doc")
-        # self.observation_test(composite_observation, True, True, 24)
+        print("check 2.4 schema with 2.2 doc")
+        self.observation_test(composite_observation, True, True, 24)
 
         composite_observation = complete_composite(6, True, 23)
         complete_composite(6, True, 23, short_uuid=True)
@@ -244,8 +244,8 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.observation_test(composite_observation, True, True, 22)
         print("check 2.3 schema with 2.3 doc")
         self.observation_test(composite_observation, True, True, 23)
-        # print("check 2.4 schema with 2.3 doc")
-        # self.observation_test(composite_observation, True, True, 24)
+        print("check 2.4 schema with 2.3 doc")
+        self.observation_test(composite_observation, True, True, 24)
 
         composite_observation = complete_composite(6, True, 24)
         print("check 2.2 schema with 2.4 doc")
@@ -255,8 +255,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         print("check 2.3 schema with 2.4 doc")
         with self.assertRaises(AttributeError):
             self.observation_test(composite_observation, True, True, 23)
-        # print("check 2.4 schema with 2.4 doc")
-        # self.observation_test(composite_observation, True, True, 24)
+        print("check 2.4 schema with 2.4 doc")
+        self.observation_test(composite_observation, True, True, 24)
 
         # remove 2.4 specific attributes and test with v23
         composite_observation.target.target_id = None

@@ -181,6 +181,7 @@ class Observation(AbstractCaomEntity):
                  instrument=None,
                  target=None,
                  meta_release=None,
+                 meta_read_groups=None,
                  planes=None,
                  environment=None,
                  target_position=None,
@@ -219,6 +220,7 @@ class Observation(AbstractCaomEntity):
         self.target_position = target_position
         self.requirements = requirements
         self.meta_release = meta_release
+        self.meta_read_groups = meta_read_groups
         if planes is None:
             self.planes = caom_util.TypedOrderedDict(Plane, )
         else:
@@ -465,6 +467,22 @@ class Observation(AbstractCaomEntity):
         caom_util.type_check(value, datetime, 'meta_release')
         self._meta_release = value
 
+    @property
+    def meta_read_groups(self):
+        return self._meta_read_groups
+
+    @meta_read_groups.setter
+    def meta_read_groups(self, value):
+        """
+            value is a caom_util.URISet
+        """
+        if value is None:
+            self._meta_read_groups = caom_util.URISet()
+        else:
+            caom_util.type_check(value, caom_util.URISet,
+                                 'meta_read_groups')
+            self._meta_read_groups = value
+
 
 class Algorithm(CaomObject):
     """
@@ -535,6 +553,7 @@ class SimpleObservation(Observation):
                  instrument=None,
                  target=None,
                  meta_release=None,
+                 meta_read_groups=None,
                  planes=None,
                  environment=None,
                  target_position=None
@@ -556,6 +575,7 @@ class SimpleObservation(Observation):
                                                 instrument,
                                                 target,
                                                 meta_release,
+                                                meta_read_groups,
                                                 planes,
                                                 environment,
                                                 target_position
@@ -602,25 +622,27 @@ class DerivedObservation(Observation):
                  instrument=None,
                  target=None,
                  meta_release=None,
+                 meta_read_groups=None,
                  planes=None,
                  environment=None,
                  target_position=None
                  ):
-        super(DerivedObservation, self).__init__(collection,
-                                                 observation_id,
-                                                 algorithm,
-                                                 sequence_number,
-                                                 intent,
-                                                 type,
-                                                 proposal,
-                                                 telescope,
-                                                 instrument,
-                                                 target,
-                                                 meta_release,
-                                                 planes,
-                                                 environment,
-                                                 target_position
-                                                 )
+        super(DerivedObservation, self).__init__(
+            collection = collection,
+            observation_id = observation_id,
+            algorithm = algorithm,
+            sequence_number = sequence_number,
+            intent = intent,
+            type = type,
+            proposal = proposal,
+            telescope = telescope,
+            instrument = instrument,
+            target = target,
+            meta_release = meta_release,
+            meta_read_groups = meta_read_groups,
+            planes = planes,
+            environment = environment,
+            target_position = target_position)
         self._members = caom_util.TypedSet(ObservationURI, )
 
     @property
@@ -663,20 +685,21 @@ class CompositeObservation(DerivedObservation):
                  planes=None,
                  environment=None,
                  target_position=None):
-        super(CompositeObservation, self).__init__(collection,
-                                                   observation_id,
-                                                   algorithm,
-                                                   sequence_number,
-                                                   intent,
-                                                   type,
-                                                   proposal,
-                                                   telescope,
-                                                   instrument,
-                                                   target,
-                                                   meta_release,
-                                                   planes,
-                                                   environment,
-                                                   target_position)
+        super(CompositeObservation, self).__init__(
+            collection=collection,
+            observation_id=observation_id,
+            algorithm=algorithm,
+            sequence_number=sequence_number,
+            intent=intent,
+            type=type,
+            proposal=proposal,
+            telescope=telescope,
+            instrument=instrument,
+            target=target,
+            meta_release=meta_release,
+            planes=planes,
+            environment=environment,
+            target_position=target_position)
         warnings.warn("CompositeObservation has been deprecated. Please use "
                       "DerivedObservation instead.")
 

@@ -84,6 +84,7 @@ import sys
 from datetime import datetime
 
 import six
+from six.moves.urllib.parse import urlsplit
 from builtins import int, str as newstr
 
 
@@ -114,16 +115,15 @@ def validate_path_component(caller, name, test):
     name : name of the component
     test : component to be tested
 
-    An assertionError is thrown when the the provided test argument
+    An ValueError is thrown when the the provided test argument
     is invalid
     """
 
-    assert (' ' not in test and
-            '/' not in test and
-            '||' not in test and
-            '%' not in test), (
-        caller.__class__.__name__ + ": invalid " + name +
-        ": may not contain space ( ), slash (/), escape (\\), or percent (%)")
+    if ' ' in test or '/' in test or '||' in test or '%' in test:
+        raise \
+            ValueError(caller.__class__.__name__ + ": invalid " + name +
+                       ": may not contain space ( ), slash (/), escape (\\), "
+                       "or percent (%)")
 
 
 def date2ivoa(d):
@@ -236,8 +236,9 @@ class TypedList(collections.MutableSequence):
             "(".join(["(%r)" % v for v in self]) + ")")
 
     def check(self, v):
-        assert isinstance(v, self._oktypes), (
-            "Wrong type in list. OK Types: {0}".format(self._oktypes))
+        if not isinstance(v, self._oktypes):
+            raise TypeError("Wrong type in list. OK Types: {0}".
+                            format(self._oktypes))
 
     def __len__(self):
         return len(self.list)
@@ -292,8 +293,9 @@ class TypedSet(collections.MutableSet):
             self.add(arg)
 
     def check(self, v):
-        assert isinstance(v, self._oktypes), (
-            "Wrong type in list. OK Types: {0}".format(self._oktypes))
+        if not isinstance(v, self._oktypes):
+            raise TypeError(
+                "Wrong type in list. OK Types: {0}".format(self._oktypes))
 
     def add(self, v):
         """Add an element."""
@@ -326,6 +328,37 @@ class TypedSet(collections.MutableSet):
             return item in self._set
         except AttributeError:
             return False
+
+
+class URISet(TypedSet):
+    """
+    Class that customizes a TypedSet to check for URIs
+    """
+    def __init__(self, scheme=None, *args):
+        """
+        Arguments:
+        scheme: Enforce a particular scheme, ex 'ivo'
+        *args : values to be stored in the set
+
+        AssertionError will be raised if the types of the arguments
+        are not found valid URIs
+        """
+        self.scheme = scheme
+        super(URISet, self).__init__(str)
+
+    def check(self, v):
+        """
+        Override check to verify that the value is a URI
+        :param v: value to check
+        :return:
+        """
+        if v:
+            tmp = urlsplit(v)
+            if self.scheme and tmp.scheme != self.scheme:
+                raise TypeError("Invalid URI scheme: {}".format(v))
+            if tmp.geturl() == v:
+                return
+        raise TypeError("Invalid URI: " + v)
 
 
 class TypedOrderedDict(collections.OrderedDict):

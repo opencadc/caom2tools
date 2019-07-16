@@ -297,6 +297,28 @@ class ObservationReader(object):
             # what kind of exceptions are thrown?
             return caom_util.str2ivoa(el.text)
 
+    def _get_groups(self, element_tag, parent, ns, required):
+        """Build set of groups from an XML representation
+
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the MetaRelease element
+        ns : namespace of the document
+        required : indicates whether the element is required
+        return : a URI set of group URIs or None
+                None if the document does not contain meta groups element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        else:
+            result = caom_util.URISet()
+            for member_element in el.iterchildren(
+                                    "{" + ns + "}groupURI"):
+                result.add(member_element.text)
+            return result
+
     def _get_proposal(self, element_tag, parent, ns, required):
         """Build a Proposal object from an XML representation
 
@@ -1576,6 +1598,9 @@ class ObservationReader(object):
                     release_type = artifact.ReleaseType(release_type)
 
                 _artifact = artifact.Artifact(uri, product_type, release_type)
+                _artifact.content_read_groups = \
+                    self._get_groups("contentReadGroups", artifact_element,
+                                     ns, False)
                 _artifact.content_type = self._get_child_text("contentType",
                                                               artifact_element,
                                                               ns, False)
@@ -1614,7 +1639,13 @@ class ObservationReader(object):
                                          False))
                 _plane.data_release = caom_util.str2ivoa(
                     self._get_child_text("dataRelease", plane_element, ns,
-                                         False))
+                                      False))
+                _plane.meta_read_groups = self._get_groups("metaReadGroups",
+                                                           plane_element, ns,
+                                                           False)
+                _plane.data_read_groups = self._get_groups("dataReadGroups",
+                                                           plane_element, ns,
+                                                           False)
                 data_product_type = \
                     self._get_child_text("dataProductType", plane_element, ns,
                                          False)
@@ -1703,6 +1734,8 @@ class ObservationReader(object):
             obs.intent = observation.ObservationIntentType(intent)
         obs.meta_release = \
             self._get_meta_release("metaRelease", root, ns, False)
+        obs.meta_read_groups = \
+            self._get_groups('metaReadGroups', root, ns, False)
         obs.proposal = \
             self._get_proposal("proposal", root, ns, False)
         obs.target = \
@@ -1743,11 +1776,11 @@ class ObservationWriter(object):
         if namespace_prefix is None or not namespace_prefix:
             raise RuntimeError('null or empty namespace_prefix not allowed')
 
-        # if namespace is None or namespace == CAOM24_NAMESPACE:
-        #     self._output_version = 24
-        #     self._caom2_namespace = CAOM24
-        #     self._namespace = CAOM24_NAMESPACE
-        if namespace is None or namespace == CAOM23_NAMESPACE:
+        if namespace is None or namespace == CAOM24_NAMESPACE:
+            self._output_version = 24
+            self._caom2_namespace = CAOM24
+            self._namespace = CAOM24_NAMESPACE
+        elif namespace is None or namespace == CAOM23_NAMESPACE:
             self._output_version = 23
             self._caom2_namespace = CAOM23
             self._namespace = CAOM23_NAMESPACE
@@ -1789,10 +1822,10 @@ class ObservationWriter(object):
         if isinstance(obs, observation.SimpleObservation):
             obs_element.set(XSI + "type", "caom2:SimpleObservation")
         else:
-            if self._output_version < 2.4:
-                obs_element.set(XSI + "type", "caom2:DerivedObservation")
-            else:
+            if self._output_version < 24:
                 obs_element.set(XSI + "type", "caom2:CompositeObservation")
+            else:
+                obs_element.set(XSI + "type", "caom2:DerivedObservation")
 
         self._add_entity_attributes(obs, obs_element)
 
@@ -1800,6 +1833,12 @@ class ObservationWriter(object):
         self._add_element("observationID", obs.observation_id, obs_element)
         self._add_datetime_element("metaRelease", obs.meta_release,
                                    obs_element)
+        if self._output_version < 24 and obs.meta_read_groups:
+            raise AttributeError(
+                "Attempt to write CAOM2.4 element "
+                "(observation.meta_read_groups) as CAOM2.3 Observation")
+        self._add_groups_element("metaReadGroups", obs.meta_read_groups,
+                                 obs_element)
         self._add_element("sequenceNumber", obs.sequence_number, obs_element)
         self._add_algorithm_element(obs.algorithm, obs_element)
         self._add_element("type", obs.type, obs_element)
@@ -1953,6 +1992,18 @@ class ObservationWriter(object):
             member_element = self._get_caom_element("observationURI", element)
             member_element.text = member.uri
 
+    def _add_groups_element(self, name, groups, parent):
+        if self._output_version < 24:
+            return
+        if not groups and not self._write_empty_collections:
+            return
+
+        element = self._get_caom_element(name, parent)
+        for gr in groups:
+            gr_elem = self._get_caom_element("groupURI", element)
+            gr_elem.text = gr
+
+
     def _add_planes_element(self, planes, parent):
         if planes is None or \
                 (len(planes) == 0 and not self._write_empty_collections):
@@ -1971,8 +2022,20 @@ class ObservationWriter(object):
                     raise AttributeError('creatorID only available in CAOM2.3')
             self._add_datetime_element("metaRelease", _plane.meta_release,
                                        plane_element)
+            if self._output_version < 24 and _plane.meta_read_groups:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(plane.meta_read_groups) as CAOM2.3 Observation")
+            self._add_groups_element("metaReadGroups", _plane.meta_read_groups,
+                                     plane_element)
             self._add_datetime_element("dataRelease", _plane.data_release,
                                        plane_element)
+            if self._output_version < 24 and _plane.data_read_groups:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(plane.data_read_groups) as CAOM2.3 Observation")
+            self._add_groups_element("dataReadGroups", _plane.meta_read_groups,
+                                     plane_element)
             if _plane.data_product_type is not None:
                 if self._output_version < 23:
                     dpt = urlparse(_plane.data_product_type.value)
@@ -2189,6 +2252,20 @@ class ObservationWriter(object):
                 if _artifact.content_checksum:
                     self._add_element("contentChecksum",
                                       _artifact.content_checksum.uri,
+                                      artifact_element)
+            if self._output_version < 24 and _artifact.content_release:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(artifact.content_realease) as CAOM2.3 Observation")
+            self._add_datetime_element('contentRelease',
+                                       _artifact.content_release,
+                                       artifact_element)
+            if self._output_version < 24 and _artifact.content_read_groups:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(artifact.content_read_groups) as CAOM2.3 Observation")
+            self._add_groups_element( "contentReadGroups",
+                                      _artifact.content_read_groups,
                                       artifact_element)
             self._add_parts_element(_artifact.parts, artifact_element)
 

@@ -71,6 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
+import pytest
 
 from builtins import str, int
 
@@ -94,40 +95,21 @@ class TestCaomUtil(unittest.TestCase):
 
         # try to add the wrong type
         exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list1.append(3)
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list1.extend([2, 4])
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list2 = caom_util.TypedList(int, 2)
             my_list1.extend(my_list2)
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list1.insert(1, 3)
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list2 = caom_util.TypedList(str, 1, 3)
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
         self.assertEqual(2, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
@@ -157,47 +139,31 @@ class TestCaomUtil(unittest.TestCase):
         caom_util.validate_path_component(energy, "something",
                                           "some:test\\path")
 
-        exception = False
-        try:
+        with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
                                               "some:test path")
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
-        exception = False
-        try:
+        with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
                                               "some:test/path")
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
-        exception = False
-        try:
+        with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
                                               "some:test||path")
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
-        exception = False
-        try:
+        with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
                                               "some:test %path")
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
     def test_typed_set(self):
 
         my_set = caom_util.TypedSet(str, )
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             my_set.add(float(1.0))
             my_set.add(int(1))
             my_set.add(bool(1))
 
-        self.assertRaises(AssertionError, caom_util.TypedSet, str, float(1.0))
+        self.assertRaises(TypeError, caom_util.TypedSet, str, float(1.0))
 
         my_set = caom_util.TypedSet(str, "Test1")
         self.assertEqual(1, len(my_set))
@@ -206,7 +172,7 @@ class TestCaomUtil(unittest.TestCase):
         my_set.add("Test1")
         my_set.add("Test2")
         self.assertEqual(2, len(my_set), "set length")
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             my_set.add(float(1.0))
             my_set.add(int(1))
             my_set.add(bool(1))

@@ -330,9 +330,11 @@ class TestSimpleObservation(unittest.TestCase):
             instrument,
             target,
             meta_release,
+            None,
             planes,
             environment)
 
+        obs.meta_read_groups.add('ivo://cadc.nrc.ca/groups?ABC')
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
 
@@ -368,6 +370,9 @@ class TestSimpleObservation(unittest.TestCase):
 
         self.assertIsNotNone(obs.environment, "Environment")
         self.assertEqual(environment, obs.environment, "Environment")
+
+        assert 1 == len(obs.meta_read_groups)
+        assert 'ivo://cadc.nrc.ca/groups?ABC' in obs.meta_read_groups
 
 
 class TestCompositeObservation(unittest.TestCase):
@@ -493,7 +498,7 @@ class TestCompositeObservation(unittest.TestCase):
         target_position = observation.TargetPosition(shape.Point(1.0, 2.0),
                                                      "coordsys")
 
-        obs = observation.CompositeObservation(
+        obs = observation.DerivedObservation(
             collection,
             observation_id,
             algorithm,
@@ -505,10 +510,12 @@ class TestCompositeObservation(unittest.TestCase):
             instrument,
             target,
             meta_release,
+            None,
             planes,
             environment,
             target_position)
 
+        obs.meta_read_groups.add('ivo://cadc.nrc.ca/groups?ABC')
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
 
@@ -557,6 +564,8 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertEqual(observation.Algorithm(algorithm2),
                          obs.algorithm, "Algorithm")
 
+        assert 1 == len(obs.meta_read_groups)
+        assert 'ivo://cadc.nrc.ca/groups?ABC' in obs.meta_read_groups
 
 class TestAlgorithm(unittest.TestCase):
     def test_all(self):

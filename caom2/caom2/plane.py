@@ -233,6 +233,8 @@ class Plane(AbstractCaomEntity):
                  artifacts=None,
                  meta_release=None,
                  data_release=None,
+                 meta_read_groups=None,
+                 data_read_groups=None,
                  data_product_type=None,
                  calibration_level=None,
                  provenance=None,
@@ -255,6 +257,8 @@ class Plane(AbstractCaomEntity):
         self.meta_release = meta_release
         self.data_release = data_release
         self.data_product_type = data_product_type
+        self.meta_read_groups = meta_read_groups
+        self.data_read_groups = data_read_groups
         self.calibration_level = calibration_level
         self.provenance = provenance
         self.metrics = metrics
@@ -267,6 +271,7 @@ class Plane(AbstractCaomEntity):
         self._time = None
         self._polarization = None
         self._custom_axis = None
+        self.observable = observable
 
     def _key(self):
         return self.product_id
@@ -375,6 +380,38 @@ class Plane(AbstractCaomEntity):
         self._data_release = value
 
     @property
+    def meta_read_groups(self):
+        return self._meta_read_groups
+
+    @meta_read_groups.setter
+    def meta_read_groups(self, value):
+        """
+            value is a caom_util.URISet
+        """
+        if value is None:
+            self._meta_read_groups = caom_util.URISet()
+        else:
+            caom_util.type_check(value, caom_util.URISet,
+                                 'meta_read_groups')
+            self._meta_read_groups = value
+
+    @property
+    def data_read_groups(self):
+        return self._data_read_groups
+
+    @data_read_groups.setter
+    def data_read_groups(self, value):
+        """
+            value is a caom_util.URISet
+        """
+        if value is None:
+            self._data_read_groups = caom_util.URISet()
+        else:
+            caom_util.type_check(value, caom_util.URISet,
+                                 'data_read_groups')
+            self._data_read_groups = value
+
+    @property
     def data_product_type(self):
         """The type of file structure that this plane contains.
 
@@ -449,10 +486,14 @@ class Plane(AbstractCaomEntity):
         caom_util.type_check(value, DataQuality, 'quality')
         self._quality = value
 
-    # @property
-    # def observable(self):
-    #    """ """
-    #    return self._observable
+    @property
+    def observable(self):
+        return self._observable
+
+    @observable.setter
+    def observable(self, value):
+        caom_util.type_check(value, str, 'observable')
+        self._observable = value
 
     @property
     def position(self):
