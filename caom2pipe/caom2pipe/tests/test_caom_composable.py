@@ -78,9 +78,10 @@ if six.PY3:
     from caom2pipe import manage_composable as mc
 
     try:
-        import matplotlib
+        import matplotlib.pyplot as plt
+        x = plt.subplots(figsize=(3, 3))
         no_matplotlib = False
-    except ImportError as e:
+    except ImportError:
         no_matplotlib = True
 
 PY_VERSION = '3.6'
