@@ -161,6 +161,12 @@ def test_config_class():
     assert test_config.state_file_name == 'state.yml', 'state file name'
     assert test_config.state_fqn == '{}/state.yml'.format(mock_root), \
         'state fqn'
+    assert test_config.rejected_directory == TEST_DATA_DIR, \
+        'wrong rejected dir'
+    assert test_config.rejected_file_name == 'rejected.yml', \
+        'wrong rejected file'
+    assert test_config.rejected_fqn == '{}/rejected.yml'.format(
+        TEST_DATA_DIR), 'wrong rejected fqn'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),

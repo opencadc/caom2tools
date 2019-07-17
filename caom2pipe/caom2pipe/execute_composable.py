@@ -1017,7 +1017,7 @@ class PullClient(CaomExecute):
 
         self.logger.debug(
             'store the input file {} to ad'.format(self.local_fqn))
-        self._cadc_data_put_client(self.local_fqn, 'application/fits')
+        self._cadc_data_put_client('application/fits')
 
         self.logger.debug('clean up the workspace')
         self._cleanup()

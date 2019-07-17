@@ -355,7 +355,7 @@ class Metrics(object):
                 self.history[service] = {}
             if action not in self.history[service]:
                 self.history[service][action] = {}
-            self.history[service][action][label] = [elapsed, rate]
+            self.history[service][action][label] = [elapsed, rate, start]
 
     def observe_failure(self, action, service, label):
         if self.enabled:
@@ -456,6 +456,7 @@ class Config(object):
         # the fully qualified name for the file
         self.state_fqn = None
         self._rejected_file_name = None
+        self._rejected_directory = None
         # the fully qualified name for the file
         self.rejected_fqn = None
         self._progress_file_name = None
@@ -664,6 +665,22 @@ class Config(object):
         self._retry_count = value
 
     @property
+    def rejected_directory(self):
+        """the directory where rejected entry files are written, by default
+        will be the log file directory"""
+        return self._rejected_directory
+
+    @rejected_directory.setter
+    def rejected_directory(self, value):
+        self._rejected_directory = value
+        if self._rejected_directory is not None:
+            self.rejected_fqn = os.path.join(
+                self._rejected_directory, self._rejected_file_name)
+        elif self._log_file_directory is not None:
+            self.rejected_fqn = os.path.join(
+                self._log_file_directory, self._rejected_file_name)
+
+    @property
     def rejected_file_name(self):
         """the filename where rejected entries are written, this will be created
         in log_file_directory"""
@@ -775,6 +792,7 @@ class Config(object):
                'retry_fqn:: \'{}\' ' \
                'retry_failures:: \'{}\' ' \
                'retry_count:: \'{}\' ' \
+               'rejected_directory:: \'{}\' ' \
                'rejected_file_name:: \'{}\' ' \
                'rejected_fqn:: \'{}\' ' \
                'progress_file_name:: \'{}\' ' \
@@ -794,7 +812,8 @@ class Config(object):
                 self.success_fqn, self.failure_log_file_name,
                 self.failure_fqn, self.retry_file_name, self.retry_fqn,
                 self.retry_failures, self.retry_count, self.rejected_file_name,
-                self.rejected_fqn, self.progress_file_name,
+                self.rejected_directory, self.rejected_fqn,
+                self.progress_file_name,
                 self.progress_fqn, self.proxy_fqn, self.state_fqn,
                 self.features, self.interval, self.observe_execution,
                 self.observable_directory, self.logging_level)
@@ -862,6 +881,8 @@ class Config(object):
             self.retry_count = config.get('retry_count', 1)
             self.rejected_file_name = config.get('rejected_file_name',
                                                  'rejected.yml')
+            self.rejected_directory = config.get('rejected_directory',
+                                                 os.getcwd())
             self.progress_file_name = config.get('progress_file_name',
                                                  'progress.txt')
             self.interval = config.get('interval', 10)
