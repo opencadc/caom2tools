@@ -76,6 +76,7 @@ from datetime import datetime
 
 from builtins import str, int
 from six.moves.urllib.parse import SplitResult, urlsplit
+from deprecated import deprecated
 
 from caom2.caom_util import int_32
 from . import caom_util
@@ -89,7 +90,6 @@ import warnings
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum, extend_enum
-from deprecated import deprecated
 
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PolarizationState', 'Quality', 'Plane',

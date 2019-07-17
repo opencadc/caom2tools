@@ -77,6 +77,7 @@ from datetime import datetime
 import six
 from builtins import str
 import warnings
+from deprecated import deprecated
 
 from . import caom_util
 from .caom_util import int_32
@@ -89,7 +90,6 @@ from six.moves.urllib.parse import urlsplit
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
-from deprecated import deprecated
 
 __all__ = ['ObservationIntentType', 'Status', 'TargetType',
            'Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
