@@ -81,18 +81,15 @@ from six.moves.urllib.parse import urlparse
 from . import caom_util
 from .chunk import ProductType
 from .common import AbstractCaomEntity
-from .common import ChecksumURI
+from .common import ChecksumURI, OrderedEnum
 from .part import Part
 from datetime import datetime
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
-    from aenum import Enum
+
 
 __all__ = ['ReleaseType', 'Artifact']
 
 
-class ReleaseType(Enum):
+class ReleaseType(OrderedEnum):
     """"
     DATA: "data"
     META: "meta"

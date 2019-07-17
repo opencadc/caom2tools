@@ -2057,7 +2057,7 @@ class ObservationWriter(object):
                 raise AttributeError(
                     "Attempt to write CAOM2.4 element "
                     "(plane.data_read_groups) as CAOM2.3 Observation")
-            self._add_groups_element("dataReadGroups", _plane.meta_read_groups,
+            self._add_groups_element("dataReadGroups", _plane.data_read_groups,
                                      plane_element)
             if _plane.data_product_type is not None:
                 if self._output_version < 23:

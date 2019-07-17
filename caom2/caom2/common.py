@@ -79,8 +79,12 @@ from six.moves.urllib.parse import SplitResult, urlparse, urlsplit
 import logging
 import six
 
-
 from . import caom_util
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    from aenum import Enum
+
 
 __all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI',
            'VocabularyTerm']
@@ -100,6 +104,42 @@ def get_current_ivoa_time():
     now = datetime.now()
     return datetime(now.year, now.month, now.day, now.hour, now.minute,
                     now.second, int(str(now.microsecond)[:-3] + '000'))
+
+
+class OrderedEnum(Enum):
+    """
+    Enums are in the order of their definition
+    """
+
+    def __init__(self, *args):
+        try:
+            # attempt to initialize other parents in the hierarchy
+            super().__init__(*args)
+        except TypeError:
+            # ignore -- there are no other parents
+            pass
+        ordered = len(self.__class__.__members__) + 1
+        self._order = ordered
+
+    def __ge__(self, other):
+        if self.__class__ is other.__class__:
+            return self._order >= other._order
+        return NotImplemented
+
+    def __gt__(self, other):
+        if self.__class__ is other.__class__:
+            return self._order > other._order
+        return NotImplemented
+
+    def __le__(self, other):
+        if self.__class__ is other.__class__:
+            return self._order <= other._order
+        return NotImplemented
+
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self._order < other._order
+        return NotImplemented
 
 
 class CaomObject(object):

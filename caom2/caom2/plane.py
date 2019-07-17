@@ -84,7 +84,7 @@ from . import shape
 from . import wcs
 from .artifact import Artifact
 from .common import AbstractCaomEntity, CaomObject, ObservationURI,\
-    VocabularyTerm
+    VocabularyTerm, OrderedEnum
 from .common import _CAOM_VOCAB_NS, _OBSCORE_VOCAB_NS
 import warnings
 with warnings.catch_warnings():
@@ -95,14 +95,6 @@ __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PolarizationState', 'Quality', 'Plane',
            'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position',
            'Energy', 'Polarization', 'Time']
-
-
-class SortedEnum(Enum):
-    def __lt__(self, other):
-        if not isinstance(other, Enum):
-            raise AttributeError(
-                "Cannot compare Enum object with {}".format(type(other)))
-        return self.value < other.value
 
 
 class CalibrationLevel(Enum):
@@ -121,7 +113,7 @@ class CalibrationLevel(Enum):
     ANALYSIS_PRODUCT = int_32(4)
 
 
-class DataProductType(Enum):
+class DataProductType(OrderedEnum):
     """ DataproductType - enum of data product types"""
 
     IMAGE = VocabularyTerm(_OBSCORE_VOCAB_NS, "image", True).get_value()
@@ -150,27 +142,28 @@ class DataProductType(Enum):
                     VocabularyTerm(namespace, name).get_value())
 
 
-class EnergyBand(SortedEnum):
+class EnergyBand(OrderedEnum):
     """
-    GAMMARAY: "Gamma-ray"
-    INFRARED: "Infrared"
-    MILLIMETER: "Millimeter"
-    OPTICAL: "Optical"
     RADIO: "Radio"
+    MILLIMETER: "Millimeter"
+    INFRARED: "Infrared"
+    OPTICAL: "Optical"
     UV: "UV"
+    EUV: "EUV"
     XRAY: "X-ray"
+    GAMMARAY: "Gamma-ray"
     """
-    EUV = "EUV"
-    GAMMARAY = "Gamma-ray"
-    INFRARED = "Infrared"
-    MILLIMETER = "Millimeter"
-    OPTICAL = "Optical"
     RADIO = "Radio"
+    MILLIMETER = "Millimeter"
+    INFRARED = "Infrared"
+    OPTICAL = "Optical"
     UV = "UV"
+    EUV = "EUV"
     XRAY = "X-ray"
+    GAMMARAY = "Gamma-ray"
 
 
-class PolarizationState(Enum):
+class PolarizationState(OrderedEnum):
     """
     I: "I"
     Q: "Q"
@@ -195,12 +188,6 @@ class PolarizationState(Enum):
     Q = "Q"
     U = "U"
     V = "V"
-    POLI = "POLI"
-    FPOLI = "FPOLI"
-    POLA = "POLA"
-    EPOLI = "EPOLI"
-    CPOLI = "CPOLI"
-    NPOLI = "NPOLI"
     RR = "RR"
     LL = "LL"
     RL = "RL"
@@ -209,6 +196,12 @@ class PolarizationState(Enum):
     YY = "YY"
     XY = "XY"
     YX = "YX"
+    POLI = "POLI"
+    FPOLI = "FPOLI"
+    POLA = "POLA"
+    EPOLI = "EPOLI"
+    CPOLI = "CPOLI"
+    NPOLI = "NPOLI"
 
 
 class Quality(Enum):

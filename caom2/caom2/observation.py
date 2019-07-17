@@ -82,7 +82,7 @@ from deprecated import deprecated
 from . import caom_util
 from .caom_util import int_32
 from .common import AbstractCaomEntity, CaomObject, ObservationURI, \
-    VocabularyTerm
+    VocabularyTerm, OrderedEnum
 from .common import _CAOM_VOCAB_NS
 from .plane import Plane
 from .shape import Point
@@ -98,13 +98,13 @@ __all__ = ['ObservationIntentType', 'Status', 'TargetType',
            'CompositeObservation']
 
 
-class ObservationIntentType(Enum):
+class ObservationIntentType(OrderedEnum):
     """
     CALIBRATION: "calibration"
     SCIENCE: "science"
     """
-    CALIBRATION = "calibration"
     SCIENCE = "science"
+    CALIBRATION = "calibration"
 
 
 class Status(Enum):
