@@ -89,11 +89,13 @@ from six.moves.urllib.parse import urlsplit
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
+from deprecated import deprecated
 
 __all__ = ['ObservationIntentType', 'Status', 'TargetType',
            'Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
            'DerivedObservation', 'Environment', 'Instrument', 'Proposal',
-           'Requirements', 'Target', 'TargetPosition', 'Telescope']
+           'Requirements', 'Target', 'TargetPosition', 'Telescope',
+           'CompositeObservation']
 
 
 class ObservationIntentType(Enum):
@@ -664,6 +666,7 @@ class DerivedObservation(Observation):
         return self._members
 
 
+@deprecated(version='CAOM2.4', reason='Replaced by DerivedObservation')
 class CompositeObservation(DerivedObservation):
     """
     deprecated class

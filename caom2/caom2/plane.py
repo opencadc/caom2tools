@@ -89,6 +89,7 @@ import warnings
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum, extend_enum
+from deprecated import deprecated
 
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PolarizationState', 'Quality', 'Plane',
@@ -1163,17 +1164,15 @@ class Energy(CaomObject):
         self._bandpass_name = value
 
     @property
+    @deprecated(version='CAOM2.4', reason='Replaced by energy_bands')
     def em_band(self):
         """ EM Band """
-        warnings.warn(
-            'Deprecated since CAOM2.4. Plase use energy_bands instead')
         return None
 
     @em_band.setter
+    @deprecated(version='CAOM2.4', reason='Replaced by energy_bands')
     def em_band(self, value):
-        if value is not None:
-            raise DeprecationWarning(
-                'Deprecated since CAOM2.4. Plase use energy_bands instead')
+        pass
 
     @property
     def transition(self):
