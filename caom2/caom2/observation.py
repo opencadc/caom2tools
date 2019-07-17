@@ -625,24 +625,23 @@ class DerivedObservation(Observation):
                  meta_read_groups=None,
                  planes=None,
                  environment=None,
-                 target_position=None
-                 ):
+                 target_position=None):
         super(DerivedObservation, self).__init__(
-            collection = collection,
-            observation_id = observation_id,
-            algorithm = algorithm,
-            sequence_number = sequence_number,
-            intent = intent,
-            type = type,
-            proposal = proposal,
-            telescope = telescope,
-            instrument = instrument,
-            target = target,
-            meta_release = meta_release,
-            meta_read_groups = meta_read_groups,
-            planes = planes,
-            environment = environment,
-            target_position = target_position)
+              collection=collection,
+              observation_id=observation_id,
+              algorithm=algorithm,
+              sequence_number=sequence_number,
+              intent=intent,
+              type=type,
+              proposal=proposal,
+              telescope=telescope,
+              instrument=instrument,
+              target=target,
+              meta_release=meta_release,
+              meta_read_groups=meta_read_groups,
+              planes=planes,
+              environment=environment,
+              target_position=target_position)
         self._members = caom_util.TypedSet(ObservationURI, )
 
     @property

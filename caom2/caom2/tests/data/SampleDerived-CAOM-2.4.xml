@@ -1,4 +1,4 @@
-i<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:DerivedObservation" caom2:id="e1f82bfc-cb48-4fe2-a570-564aa0ee8418" caom2:lastModified="2019-07-11T20:00:08.570" caom2:maxLastModified="2019-07-11T20:00:10.570" caom2:metaChecksum="md5:85ad28bda9e14b8dfed556f826740c07" caom2:accMetaChecksum="md5:c60f4aa335409a36de0c62ed78b49410">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>observationID</caom2:observationID>

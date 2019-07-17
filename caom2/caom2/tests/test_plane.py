@@ -509,8 +509,10 @@ class TestEnergy(unittest.TestCase):
         energy.bandpass_name = "EBN"
         self.assertEqual("EBN", energy.bandpass_name, "Energy bandpass name")
         self.assertIsNone(energy.em_band, "Default energy em band")
-        energy.em_band = plane.EnergyBand.OPTICAL
-        self.assertEqual(plane.EnergyBand.OPTICAL, energy.em_band,
+        self.assertTrue(0 == len(energy.energy_bands), "Default energy bands")
+        energy.energy_bands.add(plane.EnergyBand.OPTICAL)
+        self.assertEqual(1, len(energy.energy_bands), 'Energy bands')
+        self.assertEqual(plane.EnergyBand.OPTICAL, energy.energy_bands.pop(),
                          "Energy band")
         self.assertIsNone(energy.transition, "Default energy transition")
         energy.transition = wcs.EnergyTransition("aSpecies", "aTransition")

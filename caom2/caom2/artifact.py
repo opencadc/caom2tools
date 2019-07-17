@@ -83,7 +83,7 @@ from .chunk import ProductType
 from .common import AbstractCaomEntity
 from .common import ChecksumURI
 from .part import Part
-import datetime
+from datetime import datetime
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
@@ -261,7 +261,7 @@ class Artifact(AbstractCaomEntity):
     @content_release.setter
     def content_release(self, value):
         if value:
-            caom_util.type_check(value, datetime, 'content_release', False)
+            caom_util.type_check(value, datetime, 'content_release')
             caom_util.value_check(value,
                                   datetime(1800, 1, 1, 0, 0, 0),
                                   datetime(5000, 1, 1, 0, 0, 0),

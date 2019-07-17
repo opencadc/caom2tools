@@ -96,6 +96,14 @@ __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'Energy', 'Polarization', 'Time']
 
 
+class SortedEnum(Enum):
+    def __lt__(self, other):
+        if not isinstance(other, Enum):
+            raise AttributeError(
+                "Cannot compare Enum object with {}".format(type(other)))
+        return self.value < other.value
+
+
 class CalibrationLevel(Enum):
     """
     PLANNED: -1
@@ -141,7 +149,7 @@ class DataProductType(Enum):
                     VocabularyTerm(namespace, name).get_value())
 
 
-class EnergyBand(Enum):
+class EnergyBand(SortedEnum):
     """
     GAMMARAY: "Gamma-ray"
     INFRARED: "Infrared"
@@ -270,7 +278,7 @@ class Plane(AbstractCaomEntity):
         self._energy = None
         self._time = None
         self._polarization = None
-        self._custom_axis = None
+        self._custom = None
         self.observable = observable
 
     def _key(self):
@@ -562,19 +570,19 @@ class Plane(AbstractCaomEntity):
         self._polarization = value
 
     @property
-    def custom_axis(self):
+    def custom(self):
         """A caom2 Custom Axis object that is developed from
         the aggregation of the Chunks that are children of the Plane.
 
         aggregation happens during ingest and is not part
         of the python module at this time.
         """
-        return self._custom_axis
+        return self._custom
 
-    @custom_axis.setter
-    def custom_axis(self, value):
-        caom_util.type_check(value, CustomAxis, "custom axis")
-        self._custom_axis = value
+    @custom.setter
+    def custom(self, value):
+        caom_util.type_check(value, CustomAxis, "custom")
+        self._custom = value
 
     # Compute derived fields
 
@@ -1134,9 +1142,13 @@ class Energy(CaomObject):
     @energy_bands.setter
     def energy_bands(self, value):
         if value is not None:
-            if not isinstance(value, EnergyBand):
-                raise AttributeError('Energy bands must be of type EnergyBand')
-        self._energy_bands = value
+            if not isinstance(value, caom_util.TypedSet) and \
+                            value.oktypes != EnergyBand:
+                raise AttributeError('Energy bands must be of type '
+                                     'caom_util.TypedSet(EnergyBand)')
+            self._energy_bands = value
+        else:
+            self._energy_bands = caom_util.TypedSet(EnergyBand)
 
     @property
     def bandpass_name(self):
@@ -1153,14 +1165,15 @@ class Energy(CaomObject):
     @property
     def em_band(self):
         """ EM Band """
-        return self._em_band
+        warnings.warn(
+            'Deprecated since CAOM2.4. Plase use energy_bands instead')
+        return None
 
     @em_band.setter
     def em_band(self, value):
         if value is not None:
-            assert isinstance(value, EnergyBand), (
-                "em_Band is not an EnergyBand: {0}".format(value))
-        self._em_band = value
+            raise DeprecationWarning(
+                'Deprecated since CAOM2.4. Plase use energy_bands instead')
 
     @property
     def transition(self):

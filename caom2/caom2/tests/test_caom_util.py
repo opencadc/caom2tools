@@ -94,7 +94,6 @@ class TestCaomUtil(unittest.TestCase):
         self.assertEqual("Test2", my_list1[1], "Non matching elements")
 
         # try to add the wrong type
-        exception = False
         with pytest.raises(TypeError):
             my_list1.append(3)
 

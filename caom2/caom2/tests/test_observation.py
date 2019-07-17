@@ -567,6 +567,7 @@ class TestCompositeObservation(unittest.TestCase):
         assert 1 == len(obs.meta_read_groups)
         assert 'ivo://cadc.nrc.ca/groups?ABC' in obs.meta_read_groups
 
+
 class TestAlgorithm(unittest.TestCase):
     def test_all(self):
         algorithm = observation.Algorithm("myAlgorithm")

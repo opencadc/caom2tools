@@ -387,7 +387,7 @@ class Caom2TestInstances(object):
         energy.resolving_power = 2.0
         energy.sample_size = 1.1
         energy.bandpass_name = "e"
-        energy.em_band = plane.EnergyBand.GAMMARAY
+        energy.energy_bands.add(plane.EnergyBand.GAMMARAY)
         energy.transition = wcs.EnergyTransition("species", "transition")
 
         return energy

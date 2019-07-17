@@ -499,8 +499,8 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.compare_polarization(expected_plane.polarization,
                                       actual_plane.polarization)
             print('compare custom')
-            self.compare_custom(expected_plane.custom_axis,
-                                actual_plane.custom_axis)
+            self.compare_custom(expected_plane.custom,
+                                actual_plane.custom)
 
             self.compare_artifacts(expected_plane.artifacts,
                                    actual_plane.artifacts, version)
@@ -1134,8 +1134,13 @@ class TestRoundTrip(unittest.TestCase):
                 True, False, "caom2", obs_reader_writer.CAOM22_NAMESPACE)
             writer23 = obs_reader_writer.ObservationWriter(
                 True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
+            writer24 = obs_reader_writer.ObservationWriter(
+                True, False, "caom2", obs_reader_writer.CAOM24_NAMESPACE)
             for filename in files:
-                if filename.endswith("CAOM-2.3.xml"):
+                if filename.endswith("CAOM-2.4.xml"):
+                    print("test: {}".format(filename))
+                    self.do_test(reader, writer24, filename)
+                elif filename.endswith("CAOM-2.3.xml"):
                     print("test: {}".format(filename))
                     self.do_test(reader, writer23, filename)
                 else:
