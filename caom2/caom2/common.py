@@ -112,14 +112,8 @@ class OrderedEnum(Enum):
     """
 
     def __init__(self, *args):
-        try:
-            # attempt to initialize other parents in the hierarchy
-            super().__init__(*args)
-        except TypeError:
-            # ignore -- there are no other parents
-            pass
-        ordered = len(self.__class__.__members__) + 1
-        self._order = ordered
+        super(Enum, self).__init__()
+        self._order = len(self.__class__.__members__) + 1
 
     def __ge__(self, other):
         if self.__class__ is other.__class__:
@@ -338,7 +332,8 @@ class VocabularyTerm(object):
     def namespace(self, value):
         caom_util.type_check(value, str, "namespace")
         tmp = urlsplit(value)
-        assert tmp.geturl() == value, "Invalid URI: " + value
+        if not tmp.geturl() == value:
+            raise AttributeError("Invalid URI: " + value)
         self._namespace = value
 
     @property

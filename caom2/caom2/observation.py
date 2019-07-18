@@ -205,7 +205,8 @@ class Observation(AbstractCaomEntity):
 
         self.collection = collection
         self.observation_id = observation_id
-        assert algorithm, 'Algorithm required'
+        if not algorithm:
+            raise AttributeError('Algorithm required')
         self.algorithm = algorithm
 
         self._uri = ObservationURI.get_observation_uri(collection,
@@ -223,10 +224,7 @@ class Observation(AbstractCaomEntity):
         self.requirements = requirements
         self.meta_release = meta_release
         self.meta_read_groups = meta_read_groups
-        if planes is None:
-            self.planes = caom_util.TypedOrderedDict(Plane, )
-        else:
-            self.planes = planes
+        self.planes = planes
 
     # Properties
     @property
@@ -280,8 +278,11 @@ class Observation(AbstractCaomEntity):
 
     @planes.setter
     def planes(self, value):
-        caom_util.type_check(value, caom_util.TypedOrderedDict, 'planes')
-        self._planes = value
+        if value is None:
+            self.planes = caom_util.TypedOrderedDict(Plane, )
+        else:
+            caom_util.type_check(value, caom_util.TypedOrderedDict, 'planes')
+            self._planes = value
 
     @property
     def algorithm(self):
@@ -1133,7 +1134,7 @@ class Target(CaomObject):
         if value is not None:
             tmp = urlsplit(value)
             if tmp.geturl() != value:
-                raise AttributeError("Invalid URI: " + value)
+                raise ValueError("Invalid URI: " + value)
         self._target_id = value
 
 
@@ -1201,10 +1202,10 @@ class Telescope(CaomObject):
         Arguments:
         name : name of the telescope
         """
-
-        assert name is not None, "No telescope name provided"
-        assert isinstance(name, str), "name is not a str: {0}".format(name)
-        self.name = name
+        if not name:
+            raise AttributeError("Telescope name required")
+        caom_util.type_check(name, str, 'name', override=False)
+        self._name = name
         self.geo_location_x = geo_location_x
         self.geo_location_y = geo_location_y
         self.geo_location_z = geo_location_z
@@ -1223,11 +1224,6 @@ class Telescope(CaomObject):
 
         """
         return self._name
-
-    @name.setter
-    def name(self, value):
-        caom_util.type_check(value, str, 'name', override=False)
-        self._name = value
 
     @property
     def keywords(self):

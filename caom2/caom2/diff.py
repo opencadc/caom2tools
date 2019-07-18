@@ -80,6 +80,7 @@ import math
 from caom2.common import CaomObject
 from caom2.caom_util import TypedSet, TypedOrderedDict, TypedList
 from caom2 import Chunk
+from . import caom_util
 
 
 __all__ = ['get_differences']
@@ -118,8 +119,7 @@ def get_differences(expected, actual, parent=None):
             isinstance(expected, list)):
         temp_report = _get_collection_differences(expected, actual, parent)
     elif isinstance(expected, CaomObject):
-        assert isinstance(actual, CaomObject), \
-            'Expecting instance of CaomObject'
+        caom_util.type_check(actual, CaomObject, "CaomObject")
         temp_report = _get_object_differences(expected, actual, parent)
     else:
         if expected != actual:

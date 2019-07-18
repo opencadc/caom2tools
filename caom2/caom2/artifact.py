@@ -259,10 +259,8 @@ class Artifact(AbstractCaomEntity):
     def content_release(self, value):
         if value:
             caom_util.type_check(value, datetime, 'content_release')
-            caom_util.value_check(value,
-                                  datetime(1800, 1, 1, 0, 0, 0),
-                                  datetime(5000, 1, 1, 0, 0, 0),
-                                  'content_release')
+            caom_util.value_check(value, caom_util.MIN_DATETIME,
+                                  caom_util.MAX_DATETIME, 'content_release')
         self._content_release = value
 
     @property
@@ -305,6 +303,9 @@ class Artifact(AbstractCaomEntity):
 
     @parts.setter
     def parts(self, value):
-        caom_util.type_check(value, caom_util.TypedOrderedDict, 'parts',
-                             override=False)
-        self._parts = value
+        if value is None:
+            self._parts = caom_util.TypedOrderedDict()
+        else:
+            caom_util.type_check(value, caom_util.TypedOrderedDict, 'parts',
+                                 override=False)
+            self._parts = value

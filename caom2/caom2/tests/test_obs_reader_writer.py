@@ -108,22 +108,28 @@ def complete_simple(depth, bounds_is_circle, version, short_uuid=False):
     return instances.get_simple_observation(short_uuid=short_uuid)
 
 
-def minimal_composite(depth, bounds_is_circle, version):
+def minimal_derived(depth, bounds_is_circle, version):
     instances = caom_test_instances.Caom2TestInstances()
     instances.complete = False
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
     instances.caom_version = version
-    return instances.get_composite_observation()
+    if version >= 24:
+        return instances.get_derived_observation()
+    else:
+        return instances.get_composite_observation()
 
 
-def complete_composite(depth, bounds_is_circle, version, short_uuid=False):
+def complete_derived(depth, bounds_is_circle, version, short_uuid=False):
     instances = caom_test_instances.Caom2TestInstances()
     instances.complete = True
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
     instances.caom_version = version
-    return instances.get_composite_observation(short_uuid=short_uuid)
+    if version >= 24:
+        return instances.get_derived_observation(short_uuid=short_uuid)
+    else:
+        return instances.get_composite_observation(short_uuid=short_uuid)
 
 
 class TestObservationReaderWriter(unittest.TestCase):
@@ -182,103 +188,118 @@ class TestObservationReaderWriter(unittest.TestCase):
                 # do not write empty elements
                 self.observation_test(simple_observation, True, False, version)
 
-    def test_minimal_composite(self):
+    def test_minimal_derived(self):
+        # * composite for the pre-2.4 versions
         for version in (22, 23, 24):
             for i in range(1, 6):
-                print(
-                    "Test Minimal Composite {} version {}".format(i, version))
+                if version >= 24:
+                    print("Test Minimal Derived {} version {}".
+                          format(i, version))
+                else:
+                    print("Test Minimal Composite {} version {}".
+                          format(i, version))
                 # CoordBounds2D as CoordCircle2D
-                composite_observation = minimal_composite(i, True, version)
+                derived_observation = minimal_derived(i, True, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True,
+                self.observation_test(derived_observation, True, True,
                                       version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False,
+                self.observation_test(derived_observation, True, False,
                                       version)
                 # CoordBounds2D as CoordPolygon2D
-                composite_observation = minimal_composite(i, False, version)
+                derived_observation = minimal_derived(i, False, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True,
+                self.observation_test(derived_observation, True, True,
                                       version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False,
+                self.observation_test(derived_observation, True, False,
                                       version)
 
-    def test_complete_composite(self):
+    def test_complete_derived(self):
+        # * formerly known as composite
         for version in (22, 23, 24):
             for i in range(1, 6):
-                print(
-                    "Test Complete Composite {} version {}".format(i, version))
+                if version >= 24:
+                    print("Test Complete Derived {} version {}".
+                          format(i, version))
+                else:
+                    print("Test Complete Composite {} version {}".
+                          format(i, version))
                 # CoordBounds2D as CoordCircle2D
-                composite_observation = complete_composite(i, True, version)
+                derived_observation = complete_derived(i, True, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True,
+                self.observation_test(derived_observation, True, True,
                                       version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False,
+                self.observation_test(derived_observation, True, False,
                                       version)
                 # CoordBounds2D as CoordPolygon2D
-                composite_observation = complete_composite(i, False, version)
+                derived_observation = complete_derived(i, False, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True,
+                self.observation_test(derived_observation, True, True,
                                       version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False,
+                self.observation_test(derived_observation, True, False,
                                       version)
 
     def test_versions(self):
-        composite_observation = complete_composite(6, True, 22)
-        complete_composite(6, True, 22, short_uuid=True)
+        derived_observation = complete_derived(6, True, 22)
+        complete_derived(6, True, 22, short_uuid=True)
         print("check 2.2 schema with 2.2 doc")
-        self.observation_test(composite_observation, True, True, 22)
+        self.observation_test(derived_observation, True, True, 22)
         print("check 2.3 schema with 2.2 doc")
-        self.observation_test(composite_observation, True, True, 23)
+        self.observation_test(derived_observation, True, True, 23)
         print("check 2.4 schema with 2.2 doc")
-        self.observation_test(composite_observation, True, True, 24)
+        self.observation_test(derived_observation, True, True, 24)
 
-        composite_observation = complete_composite(6, True, 23)
-        complete_composite(6, True, 23, short_uuid=True)
+        derived_observation = complete_derived(6, True, 23)
+        complete_derived(6, True, 23, short_uuid=True)
         print("check 2.2 schema with 2.3 doc")
         with self.assertRaises(AttributeError):
             # creator ID and shape cannot be serialized in v22.
-            self.observation_test(composite_observation, True, True, 22)
+            self.observation_test(derived_observation, True, True, 22)
         print("check 2.3 schema with 2.3 doc")
-        self.observation_test(composite_observation, True, True, 23)
+        self.observation_test(derived_observation, True, True, 23)
         print("check 2.4 schema with 2.3 doc")
-        self.observation_test(composite_observation, True, True, 24)
+        self.observation_test(derived_observation, True, True, 24)
 
-        composite_observation = complete_composite(6, True, 24)
+        derived_observation = complete_derived(6, True, 24)
         print("check 2.2 schema with 2.4 doc")
         with self.assertRaises(AttributeError):
             # creator ID and shape cannot be serialized in v22.
-            self.observation_test(composite_observation, True, True, 22)
+            self.observation_test(derived_observation, True, True, 22)
         print("check 2.3 schema with 2.4 doc")
         with self.assertRaises(AttributeError):
-            self.observation_test(composite_observation, True, True, 23)
+            self.observation_test(derived_observation, True, True, 23)
         print("check 2.4 schema with 2.4 doc")
-        self.observation_test(composite_observation, True, True, 24)
+        self.observation_test(derived_observation, True, True, 24)
 
         # remove 2.4 specific attributes and test with v23
-        composite_observation.target.target_id = None
-        for p in composite_observation.planes.values():
+        derived_observation.target.target_id = None
+        derived_observation.meta_read_groups = None
+        for p in derived_observation.planes.values():
             p.position.resolution_bounds = None
             p.energy.energy_bands = None
             p.energy.resolving_power_bounds = None
             p.time.resolution_bounds = None
             p.metrics.sample_snr = None
+            p.meta_read_groups = None
+            p.data_read_groups = None
             for a in p.artifacts.values():
+                a.content_release = None
+                a.content_read_groups = None
                 for pt in a.parts.values():
                     for c in pt.chunks:
                         c.custom_axis = None
                         c.custom = None
 
-        self.observation_test(composite_observation, True, True, 23)
+        self.observation_test(derived_observation, True, True, 23)
 
         # remove shape and creator IDs ad retest with v22
-        for p in composite_observation.planes.values():
+        for p in derived_observation.planes.values():
             p.position.bounds = None
             p.creator_id = None
-        self.observation_test(composite_observation, True, True, 22)
+        self.observation_test(derived_observation, True, True, 22)
 
     def observation_test(self, obs, validate, write_empty_collections,
                          version):

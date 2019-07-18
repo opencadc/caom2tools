@@ -87,7 +87,6 @@ from caom2.checksum import update_checksum, int_32, checksum_diff
 import tempfile
 from mock import patch
 from six import StringIO
-import pytest
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA = 'data'
@@ -423,7 +422,6 @@ def test_rountrip():
     assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
 
 
-@pytest.mark.skip('Waiting for a fix on the Java side')
 def test_checksum_diff():
     for source_file_path in \
             [os.path.join(THIS_DIR, TEST_DATA, x) for x in

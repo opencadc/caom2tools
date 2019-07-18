@@ -94,7 +94,7 @@ with warnings.catch_warnings():
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PolarizationState', 'Quality', 'Plane',
            'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position',
-           'Energy', 'Polarization', 'Time']
+           'Energy', 'Polarization', 'Time', 'Observable']
 
 
 class CalibrationLevel(Enum):
@@ -312,7 +312,7 @@ class Plane(AbstractCaomEntity):
         if value is not None:
             tmp = urlsplit(value)
             if tmp.geturl() != value:
-                raise AttributeError("Invalid URI: " + value)
+                raise ValueError("Invalid URI: " + value)
         self._creator_id = value
 
     @property
@@ -351,10 +351,8 @@ class Plane(AbstractCaomEntity):
     @meta_release.setter
     def meta_release(self, value):
         caom_util.type_check(value, datetime, 'meta_release')
-        caom_util.value_check(value,
-                              datetime(1800, 1, 1, 0, 0, 0),
-                              datetime(5000, 1, 1, 0, 0, 0),
-                              'meta_release')
+        caom_util.value_check(value, caom_util.MIN_DATETIME,
+                              caom_util.MAX_DATETIME, "meta_release",)
         self._meta_release = value
 
     @property
@@ -375,10 +373,8 @@ class Plane(AbstractCaomEntity):
     @data_release.setter
     def data_release(self, value):
         caom_util.type_check(value, datetime, 'data_release')
-        caom_util.value_check(value,
-                              datetime(1800, 1, 1, 0, 0, 0),
-                              datetime(5000, 1, 1, 0, 0, 0),
-                              'data_release')
+        caom_util.value_check(value, caom_util.MIN_DATETIME,
+                              caom_util.MAX_DATETIME, 'data_release')
         self._data_release = value
 
     @property
@@ -846,10 +842,9 @@ class Provenance(CaomObject):
         name - name of the provenance
         """
 
-        assert name is not None, "No name provided"
-        assert isinstance(name,
-                          str), "name is not a unicode string: {0}".format(
-            name)
+        if not name:
+            raise AttributeError("No name provided")
+        caom_util.type_check(name, str, 'name', override=False)
         self._name = name
 
         self.version = version
@@ -920,7 +915,7 @@ class Provenance(CaomObject):
         if value is not None:
             tmp = urlsplit(value)
             if tmp.geturl() != value:
-                raise AttributeError("Invalid URI: " + value)
+                raise ValueError("Invalid URI: " + value)
         self._reference = value
 
     @property
@@ -977,9 +972,9 @@ class Position(CaomObject):
     @bounds.setter
     def bounds(self, value):
         if value is not None:
-            assert isinstance(value,
-                              (shape.Box, shape.Circle, shape.Polygon)), (
-                "bounds is not a Shape: {0}".format(value))
+            caom_util.type_check(value,
+                                 (shape.Box, shape.Circle, shape.Polygon),
+                                 'bounds', override=False)
         self._bounds = value
 
     @property
@@ -990,8 +985,8 @@ class Position(CaomObject):
     @dimension.setter
     def dimension(self, value):
         if value is not None:
-            assert isinstance(value, wcs.Dimension2D), (
-                "dimension is not a Dimension2D: {0}".format(value))
+            caom_util.type_check(value, wcs.Dimension2D,
+                                 'dimension', override=False)
         self._dimension = value
 
     @property
@@ -1002,8 +997,7 @@ class Position(CaomObject):
     @resolution.setter
     def resolution(self, value):
         if value is not None:
-            assert isinstance(value, float), (
-                "resolution is not a float: {0}".format(value))
+            caom_util.type_check(value, float, 'resolution')
         self._resolution = value
 
     @property
@@ -1025,8 +1019,7 @@ class Position(CaomObject):
     @sample_size.setter
     def sample_size(self, value):
         if value is not None:
-            assert isinstance(value, float), (
-                "sample size is not a float: {0}".format(value))
+            caom_util.type_check(value, float, 'sample_size')
         self._sample_size = value
 
     @property
@@ -1037,8 +1030,7 @@ class Position(CaomObject):
     @time_dependent.setter
     def time_dependent(self, value):
         if value is not None:
-            assert isinstance(value, bool), (
-                "time dependent is not a bool: {0}".format(value))
+            caom_util.type_check(value, bool, 'time_dependent')
         self._time_dependent = value
 
 
@@ -1076,8 +1068,7 @@ class Energy(CaomObject):
     @bounds.setter
     def bounds(self, value):
         if value is not None:
-            assert isinstance(value, shape.Interval), (
-                "energy bounds is not an Interval: {0}".format(value))
+            caom_util.type_check(value, shape.Interval, 'bounds')
         self._bounds = value
 
     @property
@@ -1088,8 +1079,7 @@ class Energy(CaomObject):
     @dimension.setter
     def dimension(self, value):
         if value is not None:
-            assert isinstance(value, int), (
-                "energy dimension is not an int: {0}".format(value))
+            caom_util.type_check(value, int, 'dimension')
         self._dimension = value
 
     @property
@@ -1100,8 +1090,7 @@ class Energy(CaomObject):
     @resolving_power.setter
     def resolving_power(self, value):
         if value is not None:
-            assert isinstance(value, float), (
-                "resolving power is not a float: {0}".format(value))
+            caom_util.type_check(value, float, 'resolving_power')
         self._resolving_power = value
 
     @property
@@ -1124,8 +1113,7 @@ class Energy(CaomObject):
     @sample_size.setter
     def sample_size(self, value):
         if value is not None:
-            assert isinstance(value, float), (
-                "sample size is not a float: {0}".format(value))
+            caom_util.type_check(value, float, 'sample_size')
         self._sample_size = value
 
     @property
@@ -1138,8 +1126,8 @@ class Energy(CaomObject):
         if value is not None:
             if not isinstance(value, caom_util.TypedSet) and \
                             value.oktypes != EnergyBand:
-                raise AttributeError('Energy bands must be of type '
-                                     'caom_util.TypedSet(EnergyBand)')
+                raise TypeError('Energy bands must be of type '
+                                'caom_util.TypedSet(EnergyBand)')
             self._energy_bands = value
         else:
             self._energy_bands = caom_util.TypedSet(EnergyBand)
@@ -1152,8 +1140,7 @@ class Energy(CaomObject):
     @bandpass_name.setter
     def bandpass_name(self, value):
         if value is not None:
-            assert isinstance(value, str), (
-                "bandpass name is not unicode string: {0}".format(value))
+            caom_util.type_check(value, str, 'bandpass_name')
         self._bandpass_name = value
 
     @property
@@ -1175,8 +1162,7 @@ class Energy(CaomObject):
     @transition.setter
     def transition(self, value):
         if value is not None:
-            assert isinstance(value, wcs.EnergyTransition), (
-                "transition is not an EnergyTransition: {0}".format(value))
+            caom_util.type_check(value, wcs.EnergyTransition, 'transition')
         self._transition = value
 
     @property
@@ -1187,8 +1173,7 @@ class Energy(CaomObject):
     @restwav.setter
     def restwav(self, value):
         if value is not None:
-            assert isinstance(value, float), (
-                "restwav is not a float: {0}".format(value))
+            caom_util.type_check(value, float, 'restwav')
         self._restwav = value
 
 

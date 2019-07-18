@@ -308,7 +308,7 @@ class ObservationReader(object):
         parent : element containing the MetaRelease element
         ns : namespace of the document
         required : indicates whether the element is required
-        return : a URI set of group URIs or None
+        return : a URISet of group URIs or None
                 None if the document does not contain meta groups element
         raise : ObservationParsingException
         """
@@ -1838,9 +1838,7 @@ class ObservationWriter(object):
         :param out: stream or file name to write to
         :return:
         """
-        assert isinstance(obs, observation.Observation), (
-            "observation is not an Observation")
-
+        caom_util.type_check(obs, observation.Observation, "observation")
         obs_element = etree.Element(self._caom2_namespace + "Observation",
                                     nsmap=self._nsmap)
         if isinstance(obs, observation.SimpleObservation):
@@ -2103,8 +2101,14 @@ class ObservationWriter(object):
         self._add_shape_element("bounds", position.bounds, element)
         self._add_dimension2d_element("dimension", position.dimension, element)
         self._add_element("resolution", position.resolution, element)
-        self._add_interval_element("resolutionBounds",
-                                   position.resolution_bounds, element)
+        if self._output_version < 24:
+            if position.resolution_bounds is not None:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(position.resolution_bounds) as CAOM2.3 Observation")
+        else:
+            self._add_interval_element("resolutionBounds",
+                                       position.resolution_bounds, element)
         self._add_element("sampleSize", position.sample_size, element)
         self._add_boolean_element("timeDependent", position.time_dependent,
                                   element)
@@ -2116,8 +2120,16 @@ class ObservationWriter(object):
         self._add_interval_element("bounds", energy.bounds, element)
         self._add_element("dimension", energy.dimension, element)
         self._add_element("resolvingPower", energy.resolving_power, element)
-        self._add_interval_element("resolvingPowerBounds",
-                                   energy.resolving_power_bounds, element)
+        if energy.resolving_power_bounds is not None:
+            if self._output_version < 24:
+                if len(energy.energy_bands) > 1:
+                    raise AttributeError(
+                        "Attempt to write CAOM2.4 element "
+                        "(energy.resolving_power_bands) as "
+                        "CAOM2.3 Observation")
+        else:
+            self._add_interval_element("resolvingPowerBounds",
+                                       energy.resolving_power_bounds, element)
         self._add_element("sampleSize", energy.sample_size, element)
         self._add_element("bandpassName", energy.bandpass_name, element)
         if energy.energy_bands:
@@ -2149,8 +2161,14 @@ class ObservationWriter(object):
         self._add_interval_element("bounds", time.bounds, element)
         self._add_element("dimension", time.dimension, element)
         self._add_element("resolution", time.resolution, element)
-        self._add_interval_element("resolutionBounds",
-                                   time.resolution_bounds, element)
+        if self._output_version < 24:
+            if time.resolution_bounds is not None:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(time.resolution_bounds) as CAOM2.3 Observation")
+        else:
+            self._add_interval_element("resolutionBounds",
+                                       time.resolution_bounds, element)
         self._add_element("sampleSize", time.sample_size, element)
         self._add_element("exposure", time.exposure, element)
 

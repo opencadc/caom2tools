@@ -80,14 +80,10 @@ from caom2.caom_util import int_32
 from . import caom_util
 from . import wcs
 from .common import AbstractCaomEntity
-from .common import CaomObject
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
-    from aenum import Enum
+from .common import CaomObject, OrderedEnum
 
 
-class ProductType(Enum):
+class ProductType(OrderedEnum):
     """
     SCIENCE: "science"
     CALIBRATION: "calibration"
@@ -117,7 +113,7 @@ class ProductType(Enum):
 
 
 __all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',
-           'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
+           'SpectralWCS', 'TemporalWCS', 'PolarizationWCS', 'CustomWCS']
 
 
 class Chunk(AbstractCaomEntity):
@@ -149,9 +145,9 @@ class Chunk(AbstractCaomEntity):
                  energy_axis=None,
                  energy=None,
                  time_axis=None,
+                 time=None,
                  custom_axis=None,
                  custom=None,
-                 time=None,
                  polarization_axis=None,
                  polarization=None,
                  observable_axis=None,
@@ -283,7 +279,6 @@ class Chunk(AbstractCaomEntity):
     @time_axis.setter
     def time_axis(self, value):
         caom_util.type_check(value, int_32, 'time_axis')
-        #         util.valueCheck(value, 0, self._naxis, 'polarization_axis')
         self._time_axis = int_32(value) if value is not None else None
 
     @property

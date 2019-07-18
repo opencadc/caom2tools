@@ -88,10 +88,13 @@ from six.moves.urllib.parse import urlsplit
 from builtins import int, str as newstr
 
 
-__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
+__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty',
+           'URISet']
 
 # TODO both these are very bad, implement more sensibly
 IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+MIN_DATETIME = datetime(1800, 1, 1, 0, 0, 0)
+MAX_DATETIME = datetime(5000, 1, 1, 0, 0, 0)
 
 
 class int_32(int):
@@ -115,7 +118,7 @@ def validate_path_component(caller, name, test):
     name : name of the component
     test : component to be tested
 
-    An ValueError is thrown when the the provided test argument
+    An ValueError is thrown when the provided test argument
     is invalid
     """
 
