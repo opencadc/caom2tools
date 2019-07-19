@@ -71,7 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import unittest
-import uuid
+import pytest
 
 from builtins import str, int
 
@@ -94,41 +94,21 @@ class TestCaomUtil(unittest.TestCase):
         self.assertEqual("Test2", my_list1[1], "Non matching elements")
 
         # try to add the wrong type
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list1.append(3)
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list1.extend([2, 4])
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list2 = caom_util.TypedList(int, 2)
             my_list1.extend(my_list2)
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list1.insert(1, 3)
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
-        exception = False
-        try:
+        with pytest.raises(TypeError):
             my_list2 = caom_util.TypedList(str, 1, 3)
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Exception thrown")
 
         self.assertEqual(2, len(my_list1), "list1 length")
         self.assertEqual("Test1", my_list1[0], "Non matching elements")
@@ -158,47 +138,31 @@ class TestCaomUtil(unittest.TestCase):
         caom_util.validate_path_component(energy, "something",
                                           "some:test\\path")
 
-        exception = False
-        try:
+        with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
                                               "some:test path")
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
-        exception = False
-        try:
+        with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
                                               "some:test/path")
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
-        exception = False
-        try:
+        with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
                                               "some:test||path")
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
-        exception = False
-        try:
+        with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
                                               "some:test %path")
-        except AssertionError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
     def test_typed_set(self):
 
         my_set = caom_util.TypedSet(str, )
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             my_set.add(float(1.0))
             my_set.add(int(1))
             my_set.add(bool(1))
 
-        self.assertRaises(AssertionError, caom_util.TypedSet, str, float(1.0))
+        self.assertRaises(TypeError, caom_util.TypedSet, str, float(1.0))
 
         my_set = caom_util.TypedSet(str, "Test1")
         self.assertEqual(1, len(my_set))
@@ -207,7 +171,7 @@ class TestCaomUtil(unittest.TestCase):
         my_set.add("Test1")
         my_set.add("Test2")
         self.assertEqual(2, len(my_set), "set length")
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             my_set.add(float(1.0))
             my_set.add(int(1))
             my_set.add(bool(1))
@@ -329,28 +293,3 @@ class TestCaomUtil(unittest.TestCase):
         my_value = my_dict1.pop('key1')
         self.assertEqual('key1', my_value._key(),
                          'popped the wrong entry from dictionary.')
-
-    def test_uuid2long(self):
-        # > 64 bit uuid
-        u = uuid.UUID('{3d26e30b-10cc-4301-8193-f2e0c6b63302}')
-        self.assertEqual(81284820007192705733791414383501783810,
-                         caom_util.uuid2long(u))
-
-        u = uuid.UUID('00000000-0000-0000-0000-000000000001')
-        lng = caom_util.uuid2long(u)
-        self.assertEqual(int(1), lng)
-
-        u = uuid.UUID('00000000-0000-0000-0000-000000bc614e')
-        lng = caom_util.uuid2long(u)
-        self.assertEqual(int(12345678), lng)
-
-    def test_long2uuid(self):
-        # > 64 bit int
-        lng = int(123456781234567812345678)
-        uuid = caom_util.long2uuid(lng)
-        self.assertEqual('00000000-0000-1a24-9b03-6ec765b5ef4e',
-                         str(uuid))
-
-        lng = 3296038095975885829
-        uid = caom_util.long2uuid(lng)
-        self.assertEqual('00000000-0000-0000-2dbd-e12f64cc2c05', str(uid))

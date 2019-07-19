@@ -74,17 +74,16 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from aenum import Enum
 from builtins import str
 
 from caom2.caom_util import int_32
 from . import caom_util
 from . import wcs
 from .common import AbstractCaomEntity
-from .common import CaomObject
+from .common import CaomObject, OrderedEnum
 
 
-class ProductType(Enum):
+class ProductType(OrderedEnum):
     """
     SCIENCE: "science"
     CALIBRATION: "calibration"
@@ -99,6 +98,9 @@ class ProductType(Enum):
     FLAT: "flat"
     WAVECAL: "wavecal"
     """
+    # __order__ required for Python2.7
+    __order__ = "SCIENCE CALIBRATION PREVIEW INFO NOISE WEIGHT AUXILIARY " \
+                "THUMBNAIL BIAS DARK FLAT WAVECAL"
     SCIENCE = "science"
     CALIBRATION = "calibration"
     PREVIEW = "preview"
@@ -114,7 +116,7 @@ class ProductType(Enum):
 
 
 __all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',
-           'SpectralWCS', 'TemporalWCS', 'PolarizationWCS']
+           'SpectralWCS', 'TemporalWCS', 'PolarizationWCS', 'CustomWCS']
 
 
 class Chunk(AbstractCaomEntity):
@@ -147,6 +149,8 @@ class Chunk(AbstractCaomEntity):
                  energy=None,
                  time_axis=None,
                  time=None,
+                 custom_axis=None,
+                 custom=None,
                  polarization_axis=None,
                  polarization=None,
                  observable_axis=None,
@@ -159,6 +163,8 @@ class Chunk(AbstractCaomEntity):
         self.position_axis_2 = position_axis_2
         self.energy_axis = energy_axis
         self.time_axis = time_axis
+        self.custom_axis = custom_axis
+        self.custom = custom
         self.polarization_axis = polarization_axis
         self.observable_axis = observable_axis
         self.observable = observable
@@ -275,9 +281,19 @@ class Chunk(AbstractCaomEntity):
 
     @time_axis.setter
     def time_axis(self, value):
-        caom_util.type_check(value, int_32, 'polarization_axis')
-        #         util.valueCheck(value, 0, self._naxis, 'polarization_axis')
+        caom_util.type_check(value, int_32, 'time_axis')
         self._time_axis = int_32(value) if value is not None else None
+
+    @property
+    def custom_axis(self):
+        """The axis in the data chunk that is in a custom direction.
+        """
+        return self._custom_axis
+
+    @custom_axis.setter
+    def custom_axis(self, value):
+        caom_util.type_check(value, int_32, 'custom_axis')
+        self._custom_axis = int_32(value) if value is not None else None
 
     @property
     def polarization_axis(self):
@@ -382,7 +398,7 @@ class Chunk(AbstractCaomEntity):
     def polarization(self):
         """The PolarizationWCS of the observation.
 
-        ususally None
+        usually None
 
         type: PolarizationWCS
 
@@ -393,6 +409,22 @@ class Chunk(AbstractCaomEntity):
     def polarization(self, value):
         caom_util.type_check(value, PolarizationWCS, 'polarization')
         self._polarization = value
+
+    @property
+    def custom(self):
+        """The CustomWCS of the observation.
+
+        usually None
+
+        type: CustomWCS
+
+        """
+        return self._custom
+
+    @custom.setter
+    def custom(self, value):
+        caom_util.type_check(value, CustomWCS, 'custom')
+        self._custom = value
 
 
 class ObservableAxis(CaomObject):
@@ -922,7 +954,7 @@ class PolarizationWCS(CaomObject):
     """
 
     def __init__(self, axis):
-        """Set up a CoordAxis1D object to represent the Polariation.
+        """Set up a CoordAxis1D object to represent the Polarization.
 
         """
 
@@ -943,4 +975,32 @@ class PolarizationWCS(CaomObject):
         caom_util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
         if value.axis.ctype != 'STOKES':
             raise ValueError('CTYPE must be STOKES')
+        self._axis = value
+
+
+class CustomWCS(CaomObject):
+    """A WCS structure that describes the relation ship between a pixel
+    location and a custom value.
+
+    """
+
+    def __init__(self, axis):
+        """Set up a CoordAxis1D object to represent the Custom Axis.
+
+        """
+        self.axis = axis
+
+    @property
+    def axis(self):
+        """A CoordAxis1D object that describes the pixel/value relation ship
+        for customized axis of the data.
+
+        type: CoordAxis1D
+
+        """
+        return self._axis
+
+    @axis.setter
+    def axis(self, value):
+        caom_util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
         self._axis = value

@@ -108,29 +108,35 @@ def complete_simple(depth, bounds_is_circle, version, short_uuid=False):
     return instances.get_simple_observation(short_uuid=short_uuid)
 
 
-def minimal_composite(depth, bounds_is_circle, version):
+def minimal_derived(depth, bounds_is_circle, version):
     instances = caom_test_instances.Caom2TestInstances()
     instances.complete = False
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
     instances.caom_version = version
-    return instances.get_composite_observation()
+    if version >= 24:
+        return instances.get_derived_observation()
+    else:
+        return instances.get_composite_observation()
 
 
-def complete_composite(depth, bounds_is_circle, version, short_uuid=False):
+def complete_derived(depth, bounds_is_circle, version, short_uuid=False):
     instances = caom_test_instances.Caom2TestInstances()
     instances.complete = True
     instances.depth = depth
     instances.bounds_is_circle = bounds_is_circle
     instances.caom_version = version
-    return instances.get_composite_observation(short_uuid=short_uuid)
+    if version >= 24:
+        return instances.get_derived_observation(short_uuid=short_uuid)
+    else:
+        return instances.get_composite_observation(short_uuid=short_uuid)
 
 
 class TestObservationReaderWriter(unittest.TestCase):
     def test_invalid_long_id(self):
-        simple_observation = minimal_simple(1, False, 20)
+        simple_observation = minimal_simple(1, False, 22)
         writer = obs_reader_writer.ObservationWriter(
-            False, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
+            False, False, "caom2", obs_reader_writer.CAOM22_NAMESPACE)
         output = BytesIO()
         writer.write(simple_observation, output)
         xml = output.getvalue()
@@ -147,7 +153,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             pass
 
     def test_invalid_uuid(self):
-        simple_observation = minimal_simple(1, False, 21)
+        simple_observation = minimal_simple(1, False, 22)
         writer = obs_reader_writer.ObservationWriter(False,
                                                      False)  # default is 2.1
         output = BytesIO()
@@ -165,25 +171,8 @@ class TestObservationReaderWriter(unittest.TestCase):
         except ValueError:
             pass
 
-    def test_minimal_simple(self):
-        for version in (20, 21):
-            for i in range(1, 6):
-                print("Test Minimal Simple {} version {}".format(i, version))
-                # CoordBounds2D as CoordCircle2D
-                simple_observation = minimal_simple(i, True, version)
-                # write empty elements
-                self.observation_test(simple_observation, True, True, version)
-                # do not write empty elements
-                self.observation_test(simple_observation, True, False, version)
-                # CoordBounds2D as CoordPolygon2D
-                simple_observation = minimal_simple(i, False, version)
-                # write empty elements
-                self.observation_test(simple_observation, True, True, version)
-                # do not write empty elements
-                self.observation_test(simple_observation, True, False, version)
-
     def test_complete_simple(self):
-        for version in (20, 21, 22, 23):
+        for version in (22, 23, 24):
             for i in range(1, 6):
                 print("Test Complete Simple {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
@@ -199,126 +188,122 @@ class TestObservationReaderWriter(unittest.TestCase):
                 # do not write empty elements
                 self.observation_test(simple_observation, True, False, version)
 
-    def test_minimal_composite(self):
-        for version in (20, 21, 22, 23):
+    def test_minimal_derived(self):
+        # * composite for the pre-2.4 versions
+        for version in (22, 23, 24):
             for i in range(1, 6):
-                print(
-                    "Test Minimal Composite {} version {}".format(i, version))
+                if version >= 24:
+                    print("Test Minimal Derived {} version {}".
+                          format(i, version))
+                else:
+                    print("Test Minimal Composite {} version {}".
+                          format(i, version))
                 # CoordBounds2D as CoordCircle2D
-                composite_observation = minimal_composite(i, True, version)
+                derived_observation = minimal_derived(i, True, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True,
+                self.observation_test(derived_observation, True, True,
                                       version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False,
+                self.observation_test(derived_observation, True, False,
                                       version)
                 # CoordBounds2D as CoordPolygon2D
-                composite_observation = minimal_composite(i, False, version)
+                derived_observation = minimal_derived(i, False, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True,
+                self.observation_test(derived_observation, True, True,
                                       version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False,
+                self.observation_test(derived_observation, True, False,
                                       version)
 
-    def test_complete_composite(self):
-        for version in (20, 21, 22, 23):
+    def test_complete_derived(self):
+        # * formerly known as composite
+        for version in (22, 23, 24):
             for i in range(1, 6):
-                print(
-                    "Test Complete Composite {} version {}".format(i, version))
+                if version >= 24:
+                    print("Test Complete Derived {} version {}".
+                          format(i, version))
+                else:
+                    print("Test Complete Composite {} version {}".
+                          format(i, version))
                 # CoordBounds2D as CoordCircle2D
-                composite_observation = complete_composite(i, True, version)
+                derived_observation = complete_derived(i, True, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True,
+                self.observation_test(derived_observation, True, True,
                                       version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False,
+                self.observation_test(derived_observation, True, False,
                                       version)
                 # CoordBounds2D as CoordPolygon2D
-                composite_observation = complete_composite(i, False, version)
+                derived_observation = complete_derived(i, False, version)
                 # write empty elements
-                self.observation_test(composite_observation, True, True,
+                self.observation_test(derived_observation, True, True,
                                       version)
                 # do not write empty elements
-                self.observation_test(composite_observation, True, False,
+                self.observation_test(derived_observation, True, False,
                                       version)
 
     def test_versions(self):
-        composite_observation = complete_composite(6, True, 20)
-        print("comp obs max lst mod: " + str(
-            composite_observation.max_last_modified))
-        print("check 2.0 schema with 2.0 doc")
-        self.observation_test(composite_observation, True, True, 20)
-        print("check 2.1 schema with 2.0 doc")
-        self.observation_test(composite_observation, True, True, 21)
-        print("check 2.2 schema with 2.0 doc")
-        self.observation_test(composite_observation, True, True, 22)
-        print("check 2.3 schema with 2.0 doc")
-        self.observation_test(composite_observation, True, True, 23)
-
-        composite_observation = complete_composite(6, True, 21)
-        short_co = complete_composite(6, True, 21, short_uuid=True)
-        print("check 2.0 schema with 2.1 doc")
-        with self.assertRaises(etree.DocumentInvalid):
-            # default uuids are long so it fails
-            self.observation_test(composite_observation, True, True, 20)
-        # but succeed with short uuids
-        self.observation_test(short_co, True, True, 20)
-        self.observation_test(composite_observation, True, True, 21)
-        print("check 2.1 schema with 2.1 doc")
-        self.observation_test(composite_observation, True, True, 21)
-        print("check 2.2 schema with 2.1 doc")
-        self.observation_test(composite_observation, True, True, 22)
-        print("check 2.3 schema with 2.1 doc")
-        self.observation_test(composite_observation, True, True, 23)
-
-        composite_observation = complete_composite(6, True, 22)
-        short_co = complete_composite(6, True, 22, short_uuid=True)
-        print("check 2.0 schema with 2.2 doc")
-        with self.assertRaises(etree.DocumentInvalid):
-            # default uuids are long so it fails
-            self.observation_test(composite_observation, True, True, 20)
-        # but succeed with short uuids
-        self.observation_test(short_co, True, True, 20)
-        print("check 2.1 schema with 2.2 doc")
-        self.observation_test(composite_observation, True, True, 21)
+        derived_observation = complete_derived(6, True, 22)
+        complete_derived(6, True, 22, short_uuid=True)
         print("check 2.2 schema with 2.2 doc")
-        self.observation_test(composite_observation, True, True, 22)
+        self.observation_test(derived_observation, True, True, 22)
         print("check 2.3 schema with 2.2 doc")
-        self.observation_test(composite_observation, True, True, 23)
+        self.observation_test(derived_observation, True, True, 23)
+        print("check 2.4 schema with 2.2 doc")
+        self.observation_test(derived_observation, True, True, 24)
 
-        composite_observation = complete_composite(6, True, 23)
-        short_co = complete_composite(6, True, 23, short_uuid=True)
-        print("check 2.0 schema with 2.3 doc")
-        with self.assertRaises(etree.DocumentInvalid):
-            # default uuids are long so it fails
-            self.observation_test(composite_observation, True, True, 20)
-        # but succeed with short uuids
-        self.observation_test(short_co, True, True, 20)
-        print("check 2.1 schema with 2.3 doc")
-        self.observation_test(composite_observation, True, True, 21)
+        derived_observation = complete_derived(6, True, 23)
+        complete_derived(6, True, 23, short_uuid=True)
         print("check 2.2 schema with 2.3 doc")
-        with self.assertRaises(TypeError):
-            # shape cannot be serialized in v22.
-            self.observation_test(composite_observation, True, True, 22)
+        with self.assertRaises(AttributeError):
+            # creator ID and shape cannot be serialized in v22.
+            self.observation_test(derived_observation, True, True, 22)
         print("check 2.3 schema with 2.3 doc")
-        self.observation_test(composite_observation, True, True, 23)
-        # remove shape and retest with v22
-        for p in composite_observation.planes.values():
+        self.observation_test(derived_observation, True, True, 23)
+        print("check 2.4 schema with 2.3 doc")
+        self.observation_test(derived_observation, True, True, 24)
+
+        derived_observation = complete_derived(6, True, 24)
+        print("check 2.2 schema with 2.4 doc")
+        with self.assertRaises(AttributeError):
+            # creator ID and shape cannot be serialized in v22.
+            self.observation_test(derived_observation, True, True, 22)
+        print("check 2.3 schema with 2.4 doc")
+        with self.assertRaises(AttributeError):
+            self.observation_test(derived_observation, True, True, 23)
+        print("check 2.4 schema with 2.4 doc")
+        self.observation_test(derived_observation, True, True, 24)
+
+        # remove 2.4 specific attributes and test with v23
+        derived_observation.target.target_id = None
+        derived_observation.meta_read_groups = None
+        for p in derived_observation.planes.values():
+            p.position.resolution_bounds = None
+            p.energy.energy_bands = None
+            p.energy.resolving_power_bounds = None
+            p.time.resolution_bounds = None
+            p.metrics.sample_snr = None
+            p.meta_read_groups = None
+            p.data_read_groups = None
+            for a in p.artifacts.values():
+                a.content_release = None
+                a.content_read_groups = None
+                for pt in a.parts.values():
+                    for c in pt.chunks:
+                        c.custom_axis = None
+                        c.custom = None
+
+        self.observation_test(derived_observation, True, True, 23)
+
+        # remove shape and creator IDs ad retest with v22
+        for p in derived_observation.planes.values():
             p.position.bounds = None
-        self.observation_test(composite_observation, True, True, 22)
+            p.creator_id = None
+        self.observation_test(derived_observation, True, True, 22)
 
     def observation_test(self, obs, validate, write_empty_collections,
                          version):
-        if version == 20:
-            writer = obs_reader_writer.ObservationWriter(
-                validate, write_empty_collections, "caom2",
-                obs_reader_writer.CAOM20_NAMESPACE)
-        elif version == 21:
-            writer = obs_reader_writer.ObservationWriter(
-                validate, write_empty_collections, "caom2",
-                obs_reader_writer.CAOM21_NAMESPACE)
-        elif version == 22:
+        if version == 22:
             writer = obs_reader_writer.ObservationWriter(
                 validate, write_empty_collections, "caom2",
                 obs_reader_writer.CAOM22_NAMESPACE)
@@ -347,9 +332,9 @@ class TestObservationReaderWriter(unittest.TestCase):
 
         assert ((isinstance(expected, observation.SimpleObservation) and
                  isinstance(actual, observation.SimpleObservation)) or
-                (isinstance(expected, observation.CompositeObservation) and
-                 isinstance(actual, observation.CompositeObservation))), \
-                ("Observation types do not match 0 vs 1".
+                (isinstance(expected, observation.DerivedObservation) and
+                 isinstance(actual, observation.DerivedObservation))), \
+                ("Observation types do not match {} vs {}".
                     format(expected.__class__.__name__,
                            actual.__class__.__name__))
 
@@ -505,10 +490,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNotNone(actual_plane._id)
             self.assertEqual(expected_plane._id, actual_plane._id)
 
-            if version >= 23:
-                self.assertEqual(
-                    expected_plane.creator_id, actual_plane.creator_id,
-                    "creator_id")
+            self.assertEqual(
+                expected_plane.creator_id, actual_plane.creator_id,
+                "creator_id")
 
             self.compare_entity_attributes(expected_plane, actual_plane)
 
@@ -524,19 +508,20 @@ class TestObservationReaderWriter(unittest.TestCase):
                                     actual_plane.provenance)
             self.compare_metrics(expected_plane.metrics, actual_plane.metrics)
 
-            if version == 21:
-                self.compare_quality(expected_plane.quality,
-                                     actual_plane.quality)
+            self.compare_quality(expected_plane.quality,
+                                 actual_plane.quality)
 
-            if version >= 22:
-                self.compare_position(expected_plane.position,
-                                      actual_plane.position)
-                self.compare_energy(expected_plane.energy, actual_plane.energy)
-                print('comparing time')
-                self.compare_time(expected_plane.time, actual_plane.time)
-                print('compared time')
-                self.compare_polarization(expected_plane.polarization,
-                                          actual_plane.polarization)
+            self.compare_position(expected_plane.position,
+                                  actual_plane.position)
+            self.compare_energy(expected_plane.energy, actual_plane.energy)
+            print('comparing time')
+            self.compare_time(expected_plane.time, actual_plane.time)
+            print('compared time')
+            self.compare_polarization(expected_plane.polarization,
+                                      actual_plane.polarization)
+            print('compare custom')
+            self.compare_custom(expected_plane.custom,
+                                actual_plane.custom)
 
             self.compare_artifacts(expected_plane.artifacts,
                                    actual_plane.artifacts, version)
@@ -600,6 +585,14 @@ class TestObservationReaderWriter(unittest.TestCase):
                 for index, state in enumerate(expected.polarization_states):
                     self.assertEqual(state, actual.polarization_states[index],
                                      "polarization_state")
+
+    def compare_custom(self, expected, actual):
+        if expected is None:
+            self.assertIsNone(expected, "custom")
+        else:
+            self.assertEqual(expected.ctype, actual.ctype, 'ctype')
+            self.compare_interval(expected.bounds, actual.bounds)
+            self.assertEqual(expected.dimension, actual.dimension, "dimension")
 
     def compare_shape(self, expected, actual):
         if expected is None:
@@ -745,9 +738,8 @@ class TestObservationReaderWriter(unittest.TestCase):
                              actual_artifact.content_length)
             self.assertEqual(expected_artifact.product_type,
                              actual_artifact.product_type)
-            if version > 21:
-                self.assertEqual(expected_artifact.release_type,
-                                 actual_artifact.release_type)
+            self.assertEqual(expected_artifact.release_type,
+                             actual_artifact.release_type)
             self.compare_parts(expected_artifact.parts,
                                actual_artifact.parts, version)
 
@@ -801,6 +793,8 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertEqual(expected_chunk.energy_axis,
                              actual_chunk.energy_axis)
             self.assertEqual(expected_chunk.time_axis, actual_chunk.time_axis)
+            self.assertEqual(expected_chunk.custom_axis,
+                             actual_chunk.custom_axis)
             self.assertEqual(expected_chunk.polarization_axis,
                              actual_chunk.polarization_axis)
             self.compare_observable_axis(expected_chunk.observable,
@@ -812,6 +806,8 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.compare_temporal_wcs(expected_chunk.time, actual_chunk.time)
             self.compare_polarization_wcs(expected_chunk.polarization,
                                           actual_chunk.polarization)
+            self.compare_custom_wcs(expected_chunk.custom,
+                                    actual_chunk.custom)
 
     def compare_observable_axis(self, expected, actual):
         if expected is None and actual is None:
@@ -861,6 +857,13 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertEqual(expected.mjdref, actual.mjdref)
 
     def compare_polarization_wcs(self, expected, actual):
+        if expected is None and actual is None:
+            return
+        self.assertIsNotNone(expected)
+        self.assertIsNotNone(actual)
+        self.compare_coord_axis1d(expected.axis, actual.axis)
+
+    def compare_custom_wcs(self, expected, actual):
         if expected is None and actual is None:
             return
         self.assertIsNotNone(expected)
@@ -1148,24 +1151,21 @@ class TestRoundTrip(unittest.TestCase):
                             'No XML files in test data directory')
 
             reader = obs_reader_writer.ObservationReader(True)
-            writer20 = obs_reader_writer.ObservationWriter(
-                True, False, "caom2", obs_reader_writer.CAOM20_NAMESPACE)
-            writer21 = obs_reader_writer.ObservationWriter(
-                True, False, "caom2", obs_reader_writer.CAOM21_NAMESPACE)
             writer22 = obs_reader_writer.ObservationWriter(
                 True, False, "caom2", obs_reader_writer.CAOM22_NAMESPACE)
             writer23 = obs_reader_writer.ObservationWriter(
                 True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
+            writer24 = obs_reader_writer.ObservationWriter(
+                True, False, "caom2", obs_reader_writer.CAOM24_NAMESPACE)
             for filename in files:
-                if filename.endswith("CAOM-2.3.xml"):
+                if filename.endswith("CAOM-2.4.xml"):
+                    print("test: {}".format(filename))
+                    self.do_test(reader, writer24, filename)
+                elif filename.endswith("CAOM-2.3.xml"):
                     print("test: {}".format(filename))
                     self.do_test(reader, writer23, filename)
-                elif filename.endswith("CAOM-2.2.xml"):
-                    self.do_test(reader, writer22, filename)
-                elif filename.endswith("CAOM-2.1.xml"):
-                    self.do_test(reader, writer21, filename)
                 else:
-                    self.do_test(reader, writer20, filename)
+                    self.do_test(reader, writer22, filename)
 
         except Exception:
             raise

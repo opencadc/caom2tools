@@ -80,19 +80,21 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import collections
-import struct
 import sys
-import uuid
 from datetime import datetime
 
 import six
-from builtins import bytes, int, str as newstr
+from six.moves.urllib.parse import urlsplit
+from builtins import int, str as newstr
 
 
-__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty']
+__all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty',
+           'URISet']
 
 # TODO both these are very bad, implement more sensibly
 IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+MIN_DATETIME = datetime(1800, 1, 1, 0, 0, 0)
+MAX_DATETIME = datetime(5000, 1, 1, 0, 0, 0)
 
 
 class int_32(int):
@@ -116,16 +118,15 @@ def validate_path_component(caller, name, test):
     name : name of the component
     test : component to be tested
 
-    An assertionError is thrown when the the provided test argument
+    An ValueError is thrown when the provided test argument
     is invalid
     """
 
-    assert (' ' not in test and
-            '/' not in test and
-            '||' not in test and
-            '%' not in test), (
-        caller.__class__.__name__ + ": invalid " + name +
-        ": may not contain space ( ), slash (/), escape (\\), or percent (%)")
+    if ' ' in test or '/' in test or '||' in test or '%' in test:
+        raise \
+            ValueError(caller.__class__.__name__ + ": invalid " + name +
+                       ": may not contain space ( ), slash (/), escape (\\), "
+                       "or percent (%)")
 
 
 def date2ivoa(d):
@@ -153,34 +154,6 @@ def attr2str(s):
 
 def repr2str(s):
     pass
-
-
-def uuid2long(uid):
-    """
-    UUID is 128 bits (32 bytes). Unpack the 32 bytes into two
-    16 byte longs. For CAOM-2.0 compatibility only the least significant
-    16 bytes in the UUID should have a value.
-
-    return the UUID least significant bytes as a long.
-    """
-    longs = struct.unpack(str('>qq'), bytes(uid.bytes))
-    if longs[0] != 0:
-        longs = struct.unpack(str('>QQ'), bytes(uid.bytes))
-        return (longs[0] << 64) | longs[1]
-    else:
-        return longs[1]
-
-
-def long2uuid(lng):
-    """
-    Takes a long and creates a UUID using the 16 byte long
-    as the least significant bytes in the 32 byte UUID.
-    """
-    if lng.bit_length() <= 63:
-        if lng < 0:
-            lng = (1 << 64) + lng
-
-    return uuid.UUID(int=lng)
 
 
 def type_check(value, value_type, variable, override=None):
@@ -266,8 +239,9 @@ class TypedList(collections.MutableSequence):
             "(".join(["(%r)" % v for v in self]) + ")")
 
     def check(self, v):
-        assert isinstance(v, self._oktypes), (
-            "Wrong type in list. OK Types: {0}".format(self._oktypes))
+        if not isinstance(v, self._oktypes):
+            raise TypeError("Wrong type in list. OK Types: {0}".
+                            format(self._oktypes))
 
     def __len__(self):
         return len(self.list)
@@ -322,8 +296,9 @@ class TypedSet(collections.MutableSet):
             self.add(arg)
 
     def check(self, v):
-        assert isinstance(v, self._oktypes), (
-            "Wrong type in list. OK Types: {0}".format(self._oktypes))
+        if not isinstance(v, self._oktypes):
+            raise TypeError(
+                "Wrong type in list. OK Types: {0}".format(self._oktypes))
 
     def add(self, v):
         """Add an element."""
@@ -356,6 +331,37 @@ class TypedSet(collections.MutableSet):
             return item in self._set
         except AttributeError:
             return False
+
+
+class URISet(TypedSet):
+    """
+    Class that customizes a TypedSet to check for URIs
+    """
+    def __init__(self, scheme=None, *args):
+        """
+        Arguments:
+        scheme: Enforce a particular scheme, ex 'ivo'
+        *args : values to be stored in the set
+
+        AssertionError will be raised if the types of the arguments
+        are not found valid URIs
+        """
+        self.scheme = scheme
+        super(URISet, self).__init__(str)
+
+    def check(self, v):
+        """
+        Override check to verify that the value is a URI
+        :param v: value to check
+        :return:
+        """
+        if v:
+            tmp = urlsplit(v)
+            if self.scheme and tmp.scheme != self.scheme:
+                raise TypeError("Invalid URI scheme: {}".format(v))
+            if tmp.geturl() == v:
+                return
+        raise TypeError("Invalid URI: " + v)
 
 
 class TypedOrderedDict(collections.OrderedDict):

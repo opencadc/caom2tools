@@ -90,29 +90,27 @@ from . import plane
 from . import shape
 from . import wcs
 from . import common
+import logging
 
 DATA_PKG = 'data'
 
-CAOM20_SCHEMA_FILE = 'CAOM-2.0.xsd'
-CAOM21_SCHEMA_FILE = 'CAOM-2.1.xsd'
 CAOM22_SCHEMA_FILE = 'CAOM-2.2.xsd'
 CAOM23_SCHEMA_FILE = 'CAOM-2.3.xsd'
+CAOM24_SCHEMA_FILE = 'CAOM-2.4.xsd'
 
-CAOM20_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0'
-CAOM21_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.1'
 CAOM22_NAMESPACE = 'vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.2'
 CAOM23_NAMESPACE = 'http://www.opencadc.org/caom2/xml/v2.3'
+CAOM24_NAMESPACE = 'http://www.opencadc.org/caom2/xml/v2.4'
 
-CAOM_VERSION = {CAOM20_NAMESPACE: 20,
-                CAOM21_NAMESPACE: 21,
+CAOM_VERSION = {
                 CAOM22_NAMESPACE: 22,
-                CAOM23_NAMESPACE: 23
+                CAOM23_NAMESPACE: 23,
+                CAOM24_NAMESPACE: 24
                 }
 
-CAOM20 = "{%s}" % CAOM20_NAMESPACE
-CAOM21 = "{%s}" % CAOM21_NAMESPACE
 CAOM22 = "{%s}" % CAOM22_NAMESPACE
 CAOM23 = "{%s}" % CAOM23_NAMESPACE
+CAOM24 = "{%s}" % CAOM24_NAMESPACE
 
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 XSI = "{%s}" % XSI_NAMESPACE
@@ -121,6 +119,8 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 __all__ = ['ObservationReader', 'ObservationWriter',
            'ObservationParsingException']
+
+logger = logging.getLogger(__name__)
 
 
 class ObservationReader(object):
@@ -139,49 +139,35 @@ class ObservationReader(object):
         if self._validate:
             # caom20_schema_path = pkg_resources.resource_filename(
             #     DATA_PKG, CAOM20_SCHEMA_FILE)
-            caom20_schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
-                                              CAOM20_SCHEMA_FILE)
+            caom22_schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
+                                              CAOM22_SCHEMA_FILE)
 
             parser = etree.XMLParser(remove_blank_text=True)
-            xsd = etree.parse(caom20_schema_path, parser)
-
-            caom21_schema = etree.Element(
-                '{http://www.w3.org/2001/XMLSchema}import',
-                namespace=CAOM21_NAMESPACE,
-                schemaLocation=CAOM21_SCHEMA_FILE)
-            xsd.getroot().insert(1, caom21_schema)
-
-            caom22_schema = etree.Element(
-                '{http://www.w3.org/2001/XMLSchema}import',
-                namespace=CAOM22_NAMESPACE,
-                schemaLocation=CAOM22_SCHEMA_FILE)
-            xsd.getroot().insert(2, caom22_schema)
+            xsd = etree.parse(caom22_schema_path, parser)
 
             caom23_schema = etree.Element(
                 '{http://www.w3.org/2001/XMLSchema}import',
                 namespace=CAOM23_NAMESPACE,
                 schemaLocation=CAOM23_SCHEMA_FILE)
-            xsd.getroot().insert(3, caom23_schema)
+            xsd.getroot().insert(1, caom23_schema)
+
+            caom24_schema = etree.Element(
+                '{http://www.w3.org/2001/XMLSchema}import',
+                namespace=CAOM24_NAMESPACE,
+                schemaLocation=CAOM24_SCHEMA_FILE)
+            xsd.getroot().insert(2, caom24_schema)
 
             self._xmlschema = etree.XMLSchema(xsd)
             self.version = None
 
     def _set_entity_attributes(self, element, ns, caom2_entity):
-        expect_uuid = True
-        if CAOM20_NAMESPACE == ns:
-            expect_uuid = False
-
         element_id = element.get("{" + ns + "}id")
         element_last_modified = element.get("{" + ns + "}lastModified")
         element_max_last_modified = element.get("{" + ns + "}maxLastModified")
         element_meta_checksum = element.get("{" + ns + "}metaChecksum")
         element_acc_meta_checksum = element.get("{" + ns + "}accMetaChecksum")
 
-        if expect_uuid:
-            uid = uuid.UUID(element_id)
-        else:
-            uid = caom_util.long2uuid(int(element_id))
-        caom2_entity._id = uid
+        caom2_entity._id = uuid.UUID(element_id)
 
         if element_last_modified:
             caom2_entity._last_modified = caom_util.str2ivoa(
@@ -314,6 +300,28 @@ class ObservationReader(object):
             # what kind of exceptions are thrown?
             return caom_util.str2ivoa(el.text)
 
+    def _get_groups(self, element_tag, parent, ns, required):
+        """Build set of groups from an XML representation
+
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the MetaRelease element
+        ns : namespace of the document
+        required : indicates whether the element is required
+        return : a URISet of group URIs or None
+                None if the document does not contain meta groups element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        else:
+            result = caom_util.URISet()
+            for member_element in el.iterchildren(
+                                    "{" + ns + "}groupURI"):
+                result.add(member_element.text)
+            return result
+
     def _get_proposal(self, element_tag, parent, ns, required):
         """Build a Proposal object from an XML representation
 
@@ -368,6 +376,9 @@ class ObservationReader(object):
             if target_moving is not None:
                 target.moving = ("true" == target_moving)
             self._add_keywords(target.keywords, el, ns, False)
+            target_id = self._get_child_text("targetID", el, ns, False)
+            if target_id is not None:
+                target.target_id = target_id
             return target
 
     def _get_target_position(self, element_tag, parent, ns, required):
@@ -597,6 +608,8 @@ class ObservationReader(object):
                                               False)
             metrics.mag_limit = \
                 self._get_child_text_as_float("magLimit", el, ns, False)
+            metrics.sample_snr = \
+                self._get_child_text_as_float("sampleSNR", el, ns, False)
             return metrics
 
     def _get_quality(self, element_tag, parent, ns, required):
@@ -1207,6 +1220,26 @@ class ObservationReader(object):
             return chunk.PolarizationWCS(
                 self._get_coord_axis1d("axis", el, ns, False))
 
+    def _get_custom_wcs(self, element_tag, parent, ns, required):
+        """Build a CustomWCS object from an XML representation of a
+        polarization element.
+
+        Arguments:
+        elTag : element tag which indentifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a CustomWCS object or
+                 None if the document does not contain a custom WCS element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        else:
+            return chunk.CustomWCS(
+                self._get_coord_axis1d("axis", el, ns, False))
+
     def _get_position(self, element_tag, parent, ns, required):
         """Build a Position object from an XML representation of a
         position element.
@@ -1228,6 +1261,8 @@ class ObservationReader(object):
         pos.dimension = self._get_dimension2d("dimension", el, ns, False)
         pos.resolution = self._get_child_text_as_float("resolution", el, ns,
                                                        False)
+        pos.resolution_bounds = self._get_interval("resolutionBounds", el,
+                                                   ns, False)
         pos.sample_size = self._get_child_text_as_float("sampleSize", el, ns,
                                                         False)
         pos.time_dependent = self._get_child_text_as_boolean("timeDependent",
@@ -1256,13 +1291,13 @@ class ObservationReader(object):
             self._get_child_text_as_int("dimension", el, ns, False)
         energy.resolving_power = self._get_child_text_as_float(
             "resolvingPower", el, ns, False)
+        energy.resolving_power_bounds = self._get_interval(
+            "resolvingPowerBounds", el, ns, False)
         energy.sample_size = \
             self._get_child_text_as_float("sampleSize", el, ns, False)
         energy.bandpass_name = \
             self._get_child_text("bandpassName", el, ns, False)
-        em_band = self._get_child_text("emBand", el, ns, False)
-        if em_band:
-            energy.em_band = plane.EnergyBand(em_band)
+        self._add_energy_bands(energy.energy_bands, el, ns)
         energy.restwav = \
             self._get_child_text_as_float("restwav", el, ns, False)
         _transition_el = \
@@ -1297,12 +1332,37 @@ class ObservationReader(object):
             self._get_child_text_as_int("dimension", el, ns, False)
         time.resolution = \
             self._get_child_text_as_float("resolution", el, ns, False)
+        time.resolution_bounds = self._get_interval("resolutionBounds", el,
+                                                    ns, False)
         time.sample_size = \
             self._get_child_text_as_float("sampleSize", el, ns, False)
         time.exposure = \
             self._get_child_text_as_float("exposure", el, ns, False)
 
         return time
+
+    def _get_custom(self, element_tag, parent, ns, required):
+        """Build a Custom object from an XML representation of a
+        custom axis element.
+
+        Arguments:
+        elTag : element tag which identifies the element
+        parent : element containing the position element
+        ns : namespace of the document
+        required : boolean indicating whether the element is required
+        return : a CustomAxis object or
+                 None if the document does not contain a custom axis element
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element(element_tag, parent, ns, required)
+        if el is None:
+            return None
+        ctype = self._get_child_text("ctype", el, ns, False)
+        custom = plane.CustomAxis(ctype)
+        custom.bounds = self._get_interval("bounds", el, ns, False)
+        custom.dimension = \
+            self._get_child_text_as_int("dimension", el, ns, False)
+        return custom
 
     def _get_polarization(self, element_tag, parent, ns, required):
         """Build a Polarization object from an XML representation of a
@@ -1365,6 +1425,27 @@ class ObservationReader(object):
             return shape.Circle(center=center_point, radius=radius)
         else:
             raise TypeError("Unsupported shape type " + shape_type)
+
+    def _add_energy_bands(self, energy_bands, parent, ns):
+        """Create EnergyBand objects from an XML representation of
+        ObservationURI elements found in energy_band element, and add them to
+        the set of energy_bads
+
+        Arguments:
+        energy_bands : Set of energy bands to add to
+        parent : element containing the Environment element
+        ns : namespace of the document
+        raise : ObservationParsingException
+        """
+        # this is for backwards compatibility with pre 2.4 versions
+        em_band = self._get_child_text("emBand", parent, ns, False)
+        if em_band:
+            energy_bands.add(plane.EnergyBand(em_band))
+
+        el = self._get_child_element("energyBands", parent, ns, False)
+        if el is not None:
+            for eb in el.iterchildren("{" + ns + "}emBand"):
+                energy_bands.add(plane.EnergyBand(eb.text))
 
     def _add_vertices(self, vertices, parent, ns):
         _vertices_element = self._get_child_element("vertices", parent, ns,
@@ -1447,6 +1528,9 @@ class ObservationReader(object):
                 _chunk.time_axis = \
                     self._get_child_text_as_int("timeAxis", chunk_element, ns,
                                                 False)
+                _chunk.custom_axis = \
+                    self._get_child_text_as_int("customAxis", chunk_element,
+                                                ns, False)
                 _chunk.polarization_axis = \
                     self._get_child_text_as_int("polarizationAxis",
                                                 chunk_element, ns, False)
@@ -1462,6 +1546,9 @@ class ObservationReader(object):
                 _chunk.polarization = \
                     self._get_polarization_wcs("polarization", chunk_element,
                                                ns, False)
+                _chunk.custom = \
+                    self._get_custom_wcs("custom", chunk_element,
+                                         ns, False)
                 self._set_entity_attributes(chunk_element, ns, _chunk)
                 chunks.append(_chunk)
 
@@ -1533,6 +1620,12 @@ class ObservationReader(object):
                     release_type = artifact.ReleaseType(release_type)
 
                 _artifact = artifact.Artifact(uri, product_type, release_type)
+                cr = self._get_child_text("contentRelease", artifact_element,
+                                          ns, False)
+                _artifact.content_release = caom_util.str2ivoa(cr)
+                _artifact.content_read_groups = \
+                    self._get_groups("contentReadGroups", artifact_element,
+                                     ns, False)
                 _artifact.content_type = self._get_child_text("contentType",
                                                               artifact_element,
                                                               ns, False)
@@ -1572,6 +1665,12 @@ class ObservationReader(object):
                 _plane.data_release = caom_util.str2ivoa(
                     self._get_child_text("dataRelease", plane_element, ns,
                                          False))
+                _plane.meta_read_groups = self._get_groups("metaReadGroups",
+                                                           plane_element, ns,
+                                                           False)
+                _plane.data_read_groups = self._get_groups("dataReadGroups",
+                                                           plane_element, ns,
+                                                           False)
                 data_product_type = \
                     self._get_child_text("dataProductType", plane_element, ns,
                                          False)
@@ -1611,7 +1710,8 @@ class ObservationReader(object):
                 _plane.polarization = self._get_polarization("polarization",
                                                              plane_element, ns,
                                                              False)
-
+                _plane.custom = \
+                    self._get_custom("custom", plane_element, ns, False)
                 self._add_artifacts(_plane.artifacts, plane_element, ns)
                 self._set_entity_attributes(plane_element, ns, _plane)
                 planes[_plane.product_id] = _plane
@@ -1646,8 +1746,8 @@ class ObservationReader(object):
             obs.algorithm = algorithm
         else:
             obs = \
-                observation.CompositeObservation(collection, observation_id,
-                                                 algorithm)
+                observation.DerivedObservation(collection, observation_id,
+                                               algorithm)
         # Instantiate children of Observation
         obs.sequence_number = \
             self._get_child_text_as_int("sequenceNumber", root, ns, False)
@@ -1658,6 +1758,8 @@ class ObservationReader(object):
             obs.intent = observation.ObservationIntentType(intent)
         obs.meta_release = \
             self._get_meta_release("metaRelease", root, ns, False)
+        obs.meta_read_groups = \
+            self._get_groups('metaReadGroups', root, ns, False)
         obs.proposal = \
             self._get_proposal("proposal", root, ns, False)
         obs.target = \
@@ -1673,7 +1775,7 @@ class ObservationReader(object):
         obs.requirements = \
             self._get_requirements("requirements", root, ns, False)
         self._add_planes(obs.planes, root, ns)
-        if isinstance(obs, observation.CompositeObservation):
+        if isinstance(obs, observation.DerivedObservation):
             self._add_members(obs.members, root, ns)
 
         self._set_entity_attributes(root, ns, obs)
@@ -1698,7 +1800,11 @@ class ObservationWriter(object):
         if namespace_prefix is None or not namespace_prefix:
             raise RuntimeError('null or empty namespace_prefix not allowed')
 
-        if namespace is None or namespace == CAOM23_NAMESPACE:
+        if namespace is None or namespace == CAOM24_NAMESPACE:
+            self._output_version = 24
+            self._caom2_namespace = CAOM24
+            self._namespace = CAOM24_NAMESPACE
+        elif namespace is None or namespace == CAOM23_NAMESPACE:
             self._output_version = 23
             self._caom2_namespace = CAOM23
             self._namespace = CAOM23_NAMESPACE
@@ -1706,26 +1812,16 @@ class ObservationWriter(object):
             self._output_version = 22
             self._caom2_namespace = CAOM22
             self._namespace = CAOM22_NAMESPACE
-        elif namespace == CAOM21_NAMESPACE:
-            self._output_version = 21
-            self._caom2_namespace = CAOM21
-            self._namespace = CAOM21_NAMESPACE
-        elif namespace == CAOM20_NAMESPACE:
-            self._output_version = 20
-            self._caom2_namespace = CAOM20
-            self._namespace = CAOM20_NAMESPACE
         else:
             raise RuntimeError('invalid namespace {}'.format(namespace))
 
         if self._validate:
-            if self._output_version == 20:
-                schema_file = CAOM20_SCHEMA_FILE
-            elif self._output_version == 21:
-                schema_file = CAOM21_SCHEMA_FILE
-            elif self._output_version == 22:
-                schema_file = CAOM22_SCHEMA_FILE
-            else:
+            if self._output_version == 24:
+                schema_file = CAOM24_SCHEMA_FILE
+            elif self._output_version == 23:
                 schema_file = CAOM23_SCHEMA_FILE
+            else:
+                schema_file = CAOM22_SCHEMA_FILE
             schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
                                        schema_file)
             # schema_path = pkg_resources.resource_filename(
@@ -1742,15 +1838,16 @@ class ObservationWriter(object):
         :param out: stream or file name to write to
         :return:
         """
-        assert isinstance(obs, observation.Observation), (
-            "observation is not an Observation")
-
+        caom_util.type_check(obs, observation.Observation, "observation")
         obs_element = etree.Element(self._caom2_namespace + "Observation",
                                     nsmap=self._nsmap)
         if isinstance(obs, observation.SimpleObservation):
             obs_element.set(XSI + "type", "caom2:SimpleObservation")
         else:
-            obs_element.set(XSI + "type", "caom2:CompositeObservation")
+            if self._output_version < 24:
+                obs_element.set(XSI + "type", "caom2:CompositeObservation")
+            else:
+                obs_element.set(XSI + "type", "caom2:DerivedObservation")
 
         self._add_entity_attributes(obs, obs_element)
 
@@ -1758,6 +1855,12 @@ class ObservationWriter(object):
         self._add_element("observationID", obs.observation_id, obs_element)
         self._add_datetime_element("metaRelease", obs.meta_release,
                                    obs_element)
+        if self._output_version < 24 and obs.meta_read_groups:
+            raise AttributeError(
+                "Attempt to write CAOM2.4 element "
+                "(observation.meta_read_groups) as CAOM2.3 Observation")
+        self._add_groups_element("metaReadGroups", obs.meta_read_groups,
+                                 obs_element)
         self._add_element("sequenceNumber", obs.sequence_number, obs_element)
         self._add_algorithm_element(obs.algorithm, obs_element)
         self._add_element("type", obs.type, obs_element)
@@ -1774,7 +1877,7 @@ class ObservationWriter(object):
         self._add_environment_element(obs.environment, obs_element)
         self._add_planes_element(obs.planes, obs_element)
 
-        if isinstance(obs, observation.CompositeObservation):
+        if isinstance(obs, observation.DerivedObservation):
             self._add_members_element(obs.members, obs_element)
 
         if self._validate and self._xmlschema:
@@ -1792,11 +1895,7 @@ class ObservationWriter(object):
                    xml_declaration=True, pretty_print=True)
 
     def _add_entity_attributes(self, entity, element):
-        if self._output_version == 20:
-            uid = caom_util.uuid2long(entity._id)
-            self._add_attribute("id", str(uid), element)
-        else:
-            self._add_attribute("id", str(entity._id), element)
+        self._add_attribute("id", str(entity._id), element)
 
         if entity._last_modified is not None:
             self._add_attribute(
@@ -1839,6 +1938,13 @@ class ObservationWriter(object):
 
         element = self._get_caom_element("target", parent)
         self._add_element("name", target.name, element)
+        if target.target_id is not None:
+            if self._output_version >= 24:
+                self._add_element("targetID", target.target_id, element)
+            else:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element (target.targetID) "
+                    "as CAOM2.3 Observation")
         if target.target_type is not None:
             self._add_element("type", target.target_type.value, element)
         self._add_boolean_element("standard", target.standard, element)
@@ -1858,8 +1964,6 @@ class ObservationWriter(object):
                                 element)
 
     def _add_requirements_element(self, requirements, parent):
-        if self._output_version < 21:
-            return  # Requirements added in CAOM-2.1
         if requirements is None:
             return
 
@@ -1910,6 +2014,17 @@ class ObservationWriter(object):
             member_element = self._get_caom_element("observationURI", element)
             member_element.text = member.uri
 
+    def _add_groups_element(self, name, groups, parent):
+        if self._output_version < 24:
+            return
+        if not groups and not self._write_empty_collections:
+            return
+
+        element = self._get_caom_element(name, parent)
+        for gr in groups:
+            gr_elem = self._get_caom_element("groupURI", element)
+            gr_elem.text = gr
+
     def _add_planes_element(self, planes, parent):
         if planes is None or \
                 (len(planes) == 0 and not self._write_empty_collections):
@@ -1920,13 +2035,28 @@ class ObservationWriter(object):
             plane_element = self._get_caom_element("plane", element)
             self._add_entity_attributes(_plane, plane_element)
             self._add_element("productID", _plane.product_id, plane_element)
-            if self._output_version >= 23:
-                self._add_element("creatorID", _plane.creator_id,
-                                  plane_element)
+            if _plane.creator_id is not None:
+                if self._output_version >= 23:
+                    self._add_element("creatorID", _plane.creator_id,
+                                      plane_element)
+                else:
+                    raise AttributeError('creatorID only available in CAOM2.3')
             self._add_datetime_element("metaRelease", _plane.meta_release,
                                        plane_element)
+            if self._output_version < 24 and _plane.meta_read_groups:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(plane.meta_read_groups) as CAOM2.3 Observation")
+            self._add_groups_element("metaReadGroups", _plane.meta_read_groups,
+                                     plane_element)
             self._add_datetime_element("dataRelease", _plane.data_release,
                                        plane_element)
+            if self._output_version < 24 and _plane.data_read_groups:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(plane.data_read_groups) as CAOM2.3 Observation")
+            self._add_groups_element("dataReadGroups", _plane.data_read_groups,
+                                     plane_element)
             if _plane.data_product_type is not None:
                 if self._output_version < 23:
                     dpt = urlparse(_plane.data_product_type.value)
@@ -1949,12 +2079,17 @@ class ObservationWriter(object):
             self._add_metrics_element(_plane.metrics, plane_element)
             self._add_quality_element(_plane.quality, plane_element)
 
-            if self._output_version >= 22:
-                self._add_position_element(_plane.position, plane_element)
-                self._add_energy_element(_plane.energy, plane_element)
-                self._add_time_element(_plane.time, plane_element)
-                self._add_polarization_element(_plane.polarization,
-                                               plane_element)
+            self._add_position_element(_plane.position, plane_element)
+            self._add_energy_element(_plane.energy, plane_element)
+            self._add_time_element(_plane.time, plane_element)
+            self._add_polarization_element(_plane.polarization,
+                                           plane_element)
+            if _plane.custom is not None:
+                if self._output_version < 24:
+                    raise AttributeError(
+                        'plane custom element only available in CAOM2.4')
+                else:
+                    self._add_custom_element(_plane.custom, plane_element)
 
             self._add_artifacts_element(_plane.artifacts, plane_element)
 
@@ -1966,6 +2101,14 @@ class ObservationWriter(object):
         self._add_shape_element("bounds", position.bounds, element)
         self._add_dimension2d_element("dimension", position.dimension, element)
         self._add_element("resolution", position.resolution, element)
+        if self._output_version < 24:
+            if position.resolution_bounds is not None:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(position.resolution_bounds) as CAOM2.3 Observation")
+        else:
+            self._add_interval_element("resolutionBounds",
+                                       position.resolution_bounds, element)
         self._add_element("sampleSize", position.sample_size, element)
         self._add_boolean_element("timeDependent", position.time_dependent,
                                   element)
@@ -1973,15 +2116,37 @@ class ObservationWriter(object):
     def _add_energy_element(self, energy, parent):
         if energy is None:
             return
-
         element = self._get_caom_element("energy", parent)
         self._add_interval_element("bounds", energy.bounds, element)
         self._add_element("dimension", energy.dimension, element)
         self._add_element("resolvingPower", energy.resolving_power, element)
+        if energy.resolving_power_bounds is not None:
+            if self._output_version < 24:
+                if len(energy.energy_bands) > 1:
+                    raise AttributeError(
+                        "Attempt to write CAOM2.4 element "
+                        "(energy.resolving_power_bands) as "
+                        "CAOM2.3 Observation")
+        else:
+            self._add_interval_element("resolvingPowerBounds",
+                                       energy.resolving_power_bounds, element)
         self._add_element("sampleSize", energy.sample_size, element)
         self._add_element("bandpassName", energy.bandpass_name, element)
-        if energy.em_band:
-            self._add_element("emBand", energy.em_band.value, element)
+        if energy.energy_bands:
+            if self._output_version < 24:
+                if len(energy.energy_bands) > 1:
+                    raise AttributeError(
+                        "Attempt to write CAOM2.4 element "
+                        "(energy.energy_bands) as CAOM2.3 Observation")
+                else:
+                    self._add_element("emBand",
+                                      next(iter(energy.energy_bands)).value,
+                                      element)
+            else:
+                self._add_element("energyBands", None, element)
+                eb_element = self._get_caom_element("energyBands", element)
+                for bb in energy.energy_bands:
+                    self._add_element("emBand", bb.value, eb_element)
         self._add_element("restwav", energy.restwav, element)
         if energy.transition:
             transition = self._get_caom_element("transition", element)
@@ -1992,18 +2157,32 @@ class ObservationWriter(object):
     def _add_time_element(self, time, parent):
         if time is None:
             return
-
         element = self._get_caom_element("time", parent)
         self._add_interval_element("bounds", time.bounds, element)
         self._add_element("dimension", time.dimension, element)
         self._add_element("resolution", time.resolution, element)
+        if self._output_version < 24:
+            if time.resolution_bounds is not None:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(time.resolution_bounds) as CAOM2.3 Observation")
+        else:
+            self._add_interval_element("resolutionBounds",
+                                       time.resolution_bounds, element)
         self._add_element("sampleSize", time.sample_size, element)
         self._add_element("exposure", time.exposure, element)
+
+    def _add_custom_element(self, custom, parent):
+        if custom is None:
+            return
+        element = self._get_caom_element("custom", parent)
+        self._add_element("ctype", custom.ctype, element)
+        self._add_interval_element("bounds", custom.bounds, element)
+        self._add_element("dimension", custom.dimension, element)
 
     def _add_polarization_element(self, polarization, parent):
         if polarization is None:
             return
-
         element = self._get_caom_element("polarization", parent)
         if polarization.polarization_states:
             _pstates_el = self._get_caom_element("states", element)
@@ -2087,10 +2266,10 @@ class ObservationWriter(object):
         self._add_element("fluxDensityLimit", metrics.flux_density_limit,
                           element)
         self._add_element("magLimit", metrics.mag_limit, element)
+        if self._output_version >= 24:
+            self._add_element("sampleSNR", metrics.sample_snr, element)
 
     def _add_quality_element(self, quality, parent):
-        if self._output_version < 21:
-            return  # Requirements added in CAOM-2.1
         if quality is None:
             return
 
@@ -2114,11 +2293,24 @@ class ObservationWriter(object):
             artifact_element = self._get_caom_element("artifact", element)
             self._add_entity_attributes(_artifact, artifact_element)
             self._add_element("uri", _artifact.uri, artifact_element)
-            if self._output_version > 21:
-                self._add_element("productType", _artifact.product_type.value,
-                                  artifact_element)
-                self._add_element("releaseType", _artifact.release_type.value,
-                                  artifact_element)
+            self._add_element("productType", _artifact.product_type.value,
+                              artifact_element)
+            self._add_element("releaseType", _artifact.release_type.value,
+                              artifact_element)
+            if self._output_version < 24 and _artifact.content_release:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(artifact.content_realease) as CAOM2.3 Observation")
+            self._add_datetime_element('contentRelease',
+                                       _artifact.content_release,
+                                       artifact_element)
+            if self._output_version < 24 and _artifact.content_read_groups:
+                raise AttributeError(
+                    "Attempt to write CAOM2.4 element "
+                    "(artifact.content_read_groups) as CAOM2.3 Observation")
+            self._add_groups_element("contentReadGroups",
+                                     _artifact.content_read_groups,
+                                     artifact_element)
             self._add_element("contentType", _artifact.content_type,
                               artifact_element)
             self._add_element("contentLength", _artifact.content_length,
@@ -2128,9 +2320,6 @@ class ObservationWriter(object):
                     self._add_element("contentChecksum",
                                       _artifact.content_checksum.uri,
                                       artifact_element)
-            if self._output_version < 22:
-                self._add_element("productType", _artifact.product_type.value,
-                                  artifact_element)
             self._add_parts_element(_artifact.parts, artifact_element)
 
     def _add_parts_element(self, parts, parent):
@@ -2170,13 +2359,26 @@ class ObservationWriter(object):
             self._add_element("timeAxis", _chunk.time_axis, chunk_element)
             self._add_element("polarizationAxis", _chunk.polarization_axis,
                               chunk_element)
-
+            if _chunk.custom_axis is not None:
+                if self._output_version < 24:
+                    raise AttributeError(
+                        'Chunk.custom_axis only supported in CAOM2.4')
+                else:
+                    self._add_element("customAxis", _chunk.custom_axis,
+                                      chunk_element)
             self._add_observable_axis_element(_chunk.observable, chunk_element)
             self._add_spatial_wcs_element(_chunk.position, chunk_element)
             self._add_spectral_wcs_element(_chunk.energy, chunk_element)
             self._add_temporal_wcs_element(_chunk.time, chunk_element)
             self._add_polarization_wcs_element(_chunk.polarization,
                                                chunk_element)
+            if _chunk.custom is not None:
+                if self._output_version < 24:
+                    raise AttributeError(
+                        'Chunk.custom only supported in CAOM2.4')
+                else:
+                    self._add_custom_wcs_element(_chunk.custom,
+                                                 chunk_element)
 
     def _add_observable_axis_element(self, observable, parent):
         if observable is None:
@@ -2240,6 +2442,15 @@ class ObservationWriter(object):
 
         element = self._get_caom_element("polarization", parent)
         self._add_coord_axis1d_element("axis", polarization.axis, element)
+
+    def _add_custom_wcs_element(self, custom, parent):
+        """ Builds a representation of a CustomWCS and adds it to the
+            parent element. """
+        if custom is None:
+            return
+
+        element = self._get_caom_element("custom", parent)
+        self._add_coord_axis1d_element("axis", custom.axis, element)
 
     # /*+ CAOM2 Types #-*/
 

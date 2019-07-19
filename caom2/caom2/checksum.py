@@ -77,14 +77,16 @@ from datetime import datetime
 import argparse
 import sys
 from . import obs_reader_writer
-
-from aenum import Enum
+import warnings
 from builtins import bytes, int, str
 
 from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict, int_32
 from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI
 from caom2.common import ChecksumURI
 from caom2.observation import Observation
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    from aenum import Enum
 
 __all__ = ['get_meta_checksum', 'get_acc_meta_checksum',
            'update_meta_checksum']
@@ -144,7 +146,8 @@ def get_meta_checksum(entity):
     :param entity: CAOM2 entity
     :return: md5 checksum corresponding to the entity metadata
     """
-    assert (isinstance(entity, AbstractCaomEntity))
+    if not isinstance(entity, AbstractCaomEntity):
+        raise AttributeError('AbstractCaomEntity expected')
     md5 = hashlib.md5()
     update_caom_checksum(md5, entity)
     return ChecksumURI('md5:{}'.format(md5.hexdigest()))
@@ -159,7 +162,8 @@ def get_acc_meta_checksum(entity, no_logging=False):
     :param no_logging: if True turns off any logging while running this method
     :return: md5 checksum corresponding to the entity metadata
     """
-    assert (isinstance(entity, AbstractCaomEntity))
+    if not isinstance(entity, AbstractCaomEntity):
+        raise AttributeError("AbstractCaomEntity class expected")
     if no_logging:
         log_level = logger.getEffectiveLevel()
         logger.setLevel(logging.ERROR)
@@ -176,7 +180,8 @@ def update_meta_checksum(obs):
     of an observation and all it's entities
     :param obs: observation to be updated
     """
-    assert isinstance(obs, Observation), 'Observation required'
+    if not isinstance(obs, Observation):
+        raise AttributeError('Observation required')
     for plane in obs.planes.values():
         for artifact in plane.artifacts.values():
             for part in artifact.parts.values():
@@ -216,7 +221,8 @@ def update_acc_checksum(checksum, entity):
     :param checksum: checksum algorithm that consumes the bytes (md5)
     :param entity: entity to generate the bytes for and consume them
     """
-    assert (isinstance(entity, AbstractCaomEntity))
+    if not isinstance(entity, AbstractCaomEntity):
+        raise AttributeError('AbstractCaomEntity expected')
     md5 = hashlib.md5()
     update_caom_checksum(md5, entity)
     checksum.update(md5.digest())
@@ -325,7 +331,8 @@ def update_caom_checksum(checksum, entity, parent=None):
     :param entity: entity to go through
     :param parent: parent of the entity (used for debugging only)
     """
-    assert isinstance(entity, CaomObject)
+    if not isinstance(entity, CaomObject):
+        raise AttributeError('CaomObject expected')
     # get the id first
     if isinstance(entity, AbstractCaomEntity):
         update_checksum(checksum, entity._id)

@@ -74,24 +74,28 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from aenum import Enum
+
 from builtins import str, int
 from six.moves.urllib.parse import urlparse
 
 from . import caom_util
 from .chunk import ProductType
 from .common import AbstractCaomEntity
-from .common import ChecksumURI
+from .common import ChecksumURI, OrderedEnum
 from .part import Part
+from datetime import datetime
+
 
 __all__ = ['ReleaseType', 'Artifact']
 
 
-class ReleaseType(Enum):
+class ReleaseType(OrderedEnum):
     """"
     DATA: "data"
     META: "meta"
     """
+    # __order__ required for Python2.7
+    __order__ = "DATA META"
     DATA = "data"
     META = "meta"
 
@@ -117,6 +121,8 @@ class Artifact(AbstractCaomEntity):
                  content_type=None,
                  content_length=None,
                  content_checksum=None,
+                 content_release=None,
+                 content_read_groups=None,
                  parts=None
                  ):
         """
@@ -133,6 +139,8 @@ class Artifact(AbstractCaomEntity):
         self.content_type = content_type
         self.content_length = content_length
         self.content_checksum = content_checksum
+        self.content_release = content_release
+        self.content_read_groups = content_read_groups
         if parts is None:
             parts = caom_util.TypedOrderedDict(Part, )
         self.parts = parts
@@ -190,7 +198,7 @@ class Artifact(AbstractCaomEntity):
         type:   caom2.ReleaseType
         restricted to caom2.ReleaseType
 
-        eg. Artifact.release = caom2.ReleaseType['META']
+        eg. Artifact.release_type = caom2.ReleaseType['META']
         """
         return self._release_type
 
@@ -246,6 +254,34 @@ class Artifact(AbstractCaomEntity):
             self._content_checksum = value
 
     @property
+    def content_release(self):
+        return self._content_release
+
+    @content_release.setter
+    def content_release(self, value):
+        if value:
+            caom_util.type_check(value, datetime, 'content_release')
+            caom_util.value_check(value, caom_util.MIN_DATETIME,
+                                  caom_util.MAX_DATETIME, 'content_release')
+        self._content_release = value
+
+    @property
+    def content_read_groups(self):
+        return self._content_read_groups
+
+    @content_read_groups.setter
+    def content_read_groups(self, value):
+        """
+            value is a caom_util.URISet
+        """
+        if value is None:
+            self._content_read_groups = caom_util.URISet()
+        else:
+            caom_util.type_check(value, caom_util.URISet,
+                                 'content_read_groups', False)
+            self._content_read_groups = value
+
+    @property
     def parts(self):
         """A list of caom2.Part objects.
 
@@ -269,6 +305,9 @@ class Artifact(AbstractCaomEntity):
 
     @parts.setter
     def parts(self, value):
-        caom_util.type_check(value, caom_util.TypedOrderedDict, 'parts',
-                             override=False)
-        self._parts = value
+        if value is None:
+            self._parts = caom_util.TypedOrderedDict()
+        else:
+            caom_util.type_check(value, caom_util.TypedOrderedDict, 'parts',
+                                 override=False)
+            self._parts = value
