@@ -108,7 +108,10 @@ def get_current_ivoa_time():
 
 class OrderedEnum(Enum):
     """
-    Enums are in the order of their definition
+    Enums are in the order of their definition.
+
+    This is here just for Python2.7 and to work with aenum.
+    enum.Enum is supposed to support this.
     """
 
     def __init__(self, *args):

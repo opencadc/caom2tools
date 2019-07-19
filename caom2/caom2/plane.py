@@ -153,6 +153,8 @@ class EnergyBand(OrderedEnum):
     XRAY: "X-ray"
     GAMMARAY: "Gamma-ray"
     """
+    # __order__ required for Python2.7
+    __order__ = "RADIO MILLIMETER INFRARED OPTICAL UV EUV XRAY GAMMARAY"
     RADIO = "Radio"
     MILLIMETER = "Millimeter"
     INFRARED = "Infrared"
@@ -184,6 +186,9 @@ class PolarizationState(OrderedEnum):
     XY: "XY"
     YX: "YX"
     """
+    # __order__ required for Python2.7
+    __order__ = "I Q U V RR LL RL LR XX YY XY YX POLI FPOLI POLA EPOLI " \
+                "CPOLI NPOLI"
     I = "I"  # noqa
     Q = "Q"
     U = "U"

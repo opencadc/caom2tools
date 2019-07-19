@@ -94,6 +94,8 @@ class ReleaseType(OrderedEnum):
     DATA: "data"
     META: "meta"
     """
+    # __order__ required for Python2.7
+    __order__ = "DATA META"
     DATA = "data"
     META = "meta"
 

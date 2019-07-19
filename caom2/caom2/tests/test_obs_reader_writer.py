@@ -334,7 +334,7 @@ class TestObservationReaderWriter(unittest.TestCase):
                  isinstance(actual, observation.SimpleObservation)) or
                 (isinstance(expected, observation.DerivedObservation) and
                  isinstance(actual, observation.DerivedObservation))), \
-                ("Observation types do not match 0 vs 1".
+                ("Observation types do not match {} vs {}".
                     format(expected.__class__.__name__,
                            actual.__class__.__name__))
 

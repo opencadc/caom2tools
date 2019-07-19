@@ -103,6 +103,8 @@ class ObservationIntentType(OrderedEnum):
     CALIBRATION: "calibration"
     SCIENCE: "science"
     """
+    # __order__ required for Python2.7
+    __order__ = "SCIENCE CALIBRATION"
     SCIENCE = "science"
     CALIBRATION = "calibration"
 
