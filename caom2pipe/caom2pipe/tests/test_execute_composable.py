@@ -114,7 +114,7 @@ if six.PY3:
             assert observation is not None, 'undefined observation'
 
     class TestStorageName(ec.StorageName):
-        def __init__(self, obs_id=None, file_name=None):
+        def __init__(self, obs_id=None, file_name=None, fname_on_disk=None):
             super(TestStorageName, self).__init__(
                 'test_obs_id', 'TEST', '*', 'test_file.fits.gz')
             self.url = 'https://test_url/'
@@ -830,7 +830,6 @@ def test_capture_failure(test_config):
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-@patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file(test_config):
     try:
         os.getcwd = Mock(return_value=TEST_DATA_DIR)
@@ -840,6 +839,7 @@ def test_run_by_file(test_config):
         f.close()
         test_config.features.use_urls = False
         test_config.task_types = [mc.TaskType.VISIT]
+        sys.argv = ['test_command']
         ec.run_by_file(test_config, TestStorageName, TEST_APP,
                        meta_visitors=None, data_visitors=None)
     except mc.CadcException as e:
@@ -848,7 +848,6 @@ def test_run_by_file(test_config):
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-@patch('sys.exit', Mock(side_effect=MyExitError))
 def test_run_by_file_expects_retry(test_config):
     test_run_methods.cleanup_log_txt(test_config)
 
@@ -873,8 +872,9 @@ def test_run_by_file_expects_retry(test_config):
     assert test_config.work_file == 'retries.txt'
     assert test_config.work_fqn == '{}/retries.txt'.format(TEST_DATA_DIR)
     try:
-        ec._run_by_file(test_config, TestStorageName, TEST_APP,
-                        proxy=None, meta_visitors=[], data_visitors=[])
+        sys.argv = ['test_command']
+        ec.run_by_file(test_config, TestStorageName, TEST_APP,
+                       meta_visitors=[], data_visitors=[])
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
 

@@ -142,7 +142,8 @@ class StorageName(object):
     """
 
     def __init__(self, obs_id=None, collection=None, collection_pattern=None,
-                 fname_on_disk=None, scheme='ad', archive=None, url=None):
+                 fname_on_disk=None, scheme='ad', archive=None, url=None,
+                 mime_encoding=None):
         """
 
         :param obs_id: string value for Observation.observationID
@@ -170,6 +171,7 @@ class StorageName(object):
         else:
             self.archive = collection
         self._url = url
+        self._mime_encoding = mime_encoding
 
     @property
     def file_uri(self):
@@ -247,6 +249,15 @@ class StorageName(object):
     @url.setter
     def url(self, value):
         self._url = value
+
+    @property
+    def mime_encoding(self):
+        """The mime encoding for the file, defaults to None."""
+        return self._mime_encoding
+
+    @mime_encoding.setter
+    def mime_encoding(self, value):
+        self._mime_encoding = value
 
     @property
     def lineage(self):
@@ -379,6 +390,7 @@ class CaomExecute(object):
         self.external_urls_param = self._set_external_urls_param(
             storage_name.external_urls)
         self.observable = observable
+        self.mime_encoding = storage_name.mime_encoding
 
     def _cleanup(self):
         """Remove a directory and all its contents."""
@@ -497,7 +509,7 @@ class CaomExecute(object):
         """Store a collection file."""
         mc.data_put(self.cadc_data_client, self.working_dir,
                     self.fname, self.archive, self.stream, mime_type,
-                    mime_encoding=None, metrics=self.observable.metrics)
+                    self.mime_encoding, metrics=self.observable.metrics)
 
     def _cadc_data_get_client(self):
         """Retrieve an archive file, even if it already exists. This might
@@ -1845,57 +1857,6 @@ def _run_local_files(config, organizer, sname, command_name,
             if not config.need_to_retry():
                 break
         logging.warning('Done retry attempts.')
-
-
-def _run_by_file(config, storage_name, command_name, proxy, meta_visitors,
-                 data_visitors, chooser=None):
-    """Process all entries by file name. The file names may be obtained
-    from the Config todo entry, from the --todo parameter, or from listing
-    files on local disk.
-
-    :param config configures the execution of the application
-    :param storage_name which extension of StorageName to instantiate for the
-        collection
-    :param command_name extension of fits2caom2 for the collection
-    :param meta_visitors List of metadata visit methods.
-    :param data_visitors List of data visit methods.
-    """
-    if config.use_local_files:
-        logging.debug(
-            'Using files from {}'.format(config.working_directory))
-        organize = OrganizeExecutes(config, chooser)
-        _run_local_files(config, organize, storage_name, command_name,
-                         meta_visitors, data_visitors, chooser)
-    else:
-        parser = ArgumentParser()
-        parser.add_argument('--todo',
-                            help='Fully-qualified todo file name.')
-        args = parser.parse_args()
-        if args.todo is not None:
-            logging.debug('Using entries from todo file {}'.format(
-                args.todo))
-            organize = OrganizeExecutes(config, chooser, args.todo)
-        else:
-            logging.debug('Using entries from file {}'.format(
-                config.work_fqn))
-            organize = OrganizeExecutes(config, chooser)
-        _run_todo_file(config, organize, storage_name, command_name,
-                       meta_visitors, data_visitors)
-        if config.need_to_retry():
-            for count in range(0, config.retry_count):
-                logging.warning('Beginning retry {}'.format(count + 1))
-                config.update_for_retry(count)
-                try:
-                    _run_by_file(config, storage_name, command_name,
-                                 meta_visitors, data_visitors, chooser)
-                except Exception as e:
-                    logging.error(e)
-                if not config.need_to_retry():
-                    break
-            logging.warning('Done retry attempts.')
-
-    logging.info('Done, processed {} of {} correctly.'.format(
-            organize.success_count, organize.complete_record_count))
 
 
 def run_by_file(config, storage_name, command_name, meta_visitors,

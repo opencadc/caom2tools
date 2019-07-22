@@ -72,7 +72,7 @@ import pytest
 import sys
 
 from datetime import datetime
-from mock import patch
+from mock import patch, Mock
 
 from caom2pipe import execute_composable as ec
 from caom2pipe import manage_composable as mc
@@ -109,6 +109,8 @@ def test_run_from_state(work_mock, do_mock, test_config):
 
     do_mock.return_value = 0
 
+    sys.argv = ['test_command']
+
     test_result = ec.run_from_state(
         test_config,
         sname=ec.StorageName,
@@ -137,6 +139,85 @@ def test_run_from_state(work_mock, do_mock, test_config):
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('caom2pipe.execute_composable._do_one')
+def test_run_single_from_state(do_mock, test_config):
+    cleanup_log_txt(test_config)
+
+    test_config.features.expects_retry = False
+    test_config.progress_fqn = PROGRESS_FILE
+
+    test_config.state_fqn = STATE_FILE
+    test_config.interval = 5
+    test_state = mc.State(test_config.state_fqn)
+    test_state.save_state('gemini_timestamp', datetime.utcnow())
+
+    do_mock.return_value = 0
+    mock_organizer = Mock()
+
+    test_url = 'http://localhost/test_url.fits'
+    test_storage_name = ec.StorageName(url=test_url)
+
+    test_result = ec.run_single_from_state(
+        mock_organizer,
+        test_config,
+        test_storage_name,
+        COMMAND_NAME,
+        meta_visitors=None,
+        data_visitors=None)
+    assert test_result is not None, 'expect a result'
+    assert test_result == 0, 'wrong result'
+
+    assert do_mock.called, 'do mock not called'
+    assert do_mock.call_count == 1, do_mock.call_count
+    args, kwargs = do_mock.call_args
+    test_storage = args[2]
+    assert isinstance(test_storage, ec.StorageName), type(test_storage)
+    assert test_storage.obs_id is None, 'wrong obs id'
+    assert test_storage.url == test_url, test_storage.url
+
+    assert mock_organizer.observable.rejected.persist_state().is_called, \
+        'organizer should be called'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2pipe.execute_composable._do_one')
+def test_run_single(do_mock, test_config):
+    cleanup_log_txt(test_config)
+
+    test_config.features.expects_retry = False
+    test_config.progress_fqn = PROGRESS_FILE
+
+    test_config.state_fqn = STATE_FILE
+    test_config.interval = 5
+    test_state = mc.State(test_config.state_fqn)
+    test_state.save_state('gemini_timestamp', datetime.utcnow())
+
+    do_mock.return_value = -1
+
+    test_url = 'http://localhost/test_url.fits'
+    test_storage_name = ec.StorageName(url=test_url)
+
+    test_result = ec.run_single(
+        test_config,
+        test_storage_name,
+        COMMAND_NAME,
+        meta_visitors=None,
+        data_visitors=None)
+    assert test_result is not None, 'expect a result'
+    assert test_result == -1, 'wrong result'
+
+    assert do_mock.called, 'do mock not called'
+    assert do_mock.call_count == 1, do_mock.call_count
+    args, kwargs = do_mock.call_args
+    test_storage = args[2]
+    assert isinstance(test_storage, ec.StorageName), type(test_storage)
+    assert test_storage.obs_id is None, 'wrong obs id'
+    assert test_storage.url == test_url, test_storage.url
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2pipe.execute_composable._do_one')
 def test_run_by_file(do_mock, test_config):
     cleanup_log_txt(test_config)
 
@@ -151,6 +232,8 @@ def test_run_by_file(do_mock, test_config):
         f.write('{}\n'.format(TEST_OBS_ID))
 
     do_mock.side_effect = _write_retry
+
+    sys.argv = ['test_command']
 
     test_result = ec.run_by_file(test_config,
                                  storage_name=ec.StorageName,
@@ -169,6 +252,81 @@ def test_run_by_file(do_mock, test_config):
     assert test_storage.obs_id == TEST_ENTRY, 'wrong obs id'
     assert test_storage.url is None, test_storage.url
 
+    assert os.path.exists(REJECTED_FILE)
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2pipe.execute_composable._do_one')
+def test_run_by_file_use_local_files(do_mock, test_config):
+    cleanup_log_txt(test_config)
+
+    test_config.use_local_files = True
+    test_config.features.expects_retry = False
+    test_config.log_to_file = False
+    test_config.features.use_urls = False
+    test_config.features.use_file_names = False
+    test_config.working_directory = os.path.join(TEST_DATA_DIR, 'local_files')
+
+    class TestStorageName(ec.StorageName):
+        def __init__(self, file_name=None, fname_on_disk=None):
+            super(TestStorageName, self).__init__()
+            assert file_name in ['test_file.fits', 'test_file.fits.header'], \
+                'wrong file name'
+
+    test_result = ec.run_by_file(test_config,
+                                 storage_name=TestStorageName,
+                                 command_name=COMMAND_NAME,
+                                 meta_visitors=None,
+                                 data_visitors=None,
+                                 chooser=None)
+    assert test_result is not None, 'expect a result'
+    assert test_result == 0, 'wrong result'
+
+    # no local files, should not be called
+    assert do_mock.called, 'do mock not called'
+    assert do_mock.call_count == 2, do_mock.call_count
+    assert os.path.exists(REJECTED_FILE)
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2pipe.execute_composable._do_one')
+def test_run_by_file_use_local_files_chooser(do_mock, test_config):
+    cleanup_log_txt(test_config)
+
+    test_config.use_local_files = True
+    test_config.features.expects_retry = False
+    test_config.log_to_file = False
+    test_config.features.use_urls = False
+    test_config.features.use_file_names = False
+    test_config.working_directory = os.path.join(TEST_DATA_DIR, 'local_files')
+
+    class TestStorageName(ec.StorageName):
+        def __init__(self, file_name=None, fname_on_disk=None):
+            super(TestStorageName, self).__init__()
+            assert file_name in ['test_file.fits.gz',
+                                 'test_file.fits.header'], 'wrong file name'
+
+    class TestChooser(ec.OrganizeChooser):
+        def __init__(self):
+            super(TestChooser, self).__init__()
+
+        def use_compressed(self):
+            return True
+
+    test_result = ec.run_by_file(test_config,
+                                 storage_name=TestStorageName,
+                                 command_name=COMMAND_NAME,
+                                 meta_visitors=None,
+                                 data_visitors=None,
+                                 chooser=TestChooser())
+    assert test_result is not None, 'expect a result'
+    assert test_result == 0, 'wrong result'
+
+    # no local files, should not be called
+    assert do_mock.called, 'do mock not called'
+    assert do_mock.call_count == 2, do_mock.call_count
     assert os.path.exists(REJECTED_FILE)
 
 
