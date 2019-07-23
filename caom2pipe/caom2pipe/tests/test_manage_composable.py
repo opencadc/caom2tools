@@ -234,6 +234,9 @@ def test_get_file_meta():
 
     # empty file
     fqn = os.path.join(TEST_DATA_DIR, 'todo.txt')
+    if os.path.exists(fqn):
+        os.unlink(fqn)
+    open(fqn, 'w').close()
     result = mc.get_file_meta(fqn)
     assert result['size'] == 0, result['size']
 
@@ -341,7 +344,13 @@ def test_data_get(mock_client):
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 def test_state():
-    test_start = os.path.getmtime(TEST_STATE_FILE)
+    if os.path.exists(TEST_STATE_FILE):
+        os.unlink(TEST_STATE_FILE)
+    with open(TEST_STATE_FILE, 'w') as f:
+        f.write(
+            'bookmarks:\n  gemini_timestamp:\n    last_record: '
+            '2019-07-23 20:52:03.524443\n')
+
     with pytest.raises(mc.CadcException):
         test_subject = mc.State('nonexistent')
 
@@ -352,8 +361,10 @@ def test_state():
     assert isinstance(test_result, datetime)
 
     test_subject.save_state('gemini_timestamp', test_result)
-    test_end = os.path.getmtime(TEST_STATE_FILE)
-    assert test_start != test_end, 'file should be modified'
+
+    with open(TEST_STATE_FILE, 'r') as f:
+        text = f.readlines()
+        assert '20:52:03.524443' not in text, 'content not updated'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),

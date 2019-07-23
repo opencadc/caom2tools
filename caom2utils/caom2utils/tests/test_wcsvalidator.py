@@ -77,6 +77,7 @@ from caom2 import artifact, observation, part, plane, caom_util, Axis, \
 from caom2.caom_util import TypedList, TypedOrderedDict
 from ..wcsvalidator import WcsPolarizationState
 import pytest
+import six
 import unittest
 
 single_test = False
@@ -94,24 +95,24 @@ class TemporalWCSValidatorTests(unittest.TestCase):
 
     def test_bad_temporalwcs(self):
         bad_temporal_wcs = TimeTestUtil.bad_ctype_wcs()
-        with pytest.raises(InvalidWCSError) as ex:
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'unexpected TIMESYS, CTYPE') as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert 'unexpected TIMESYS, CTYPE' in repr(ex.value)
 
         bad_temporal_wcs = TimeTestUtil.bad_cunit_wcs()
-        with pytest.raises(InvalidWCSError) as ex:
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'unexpected CUNIT') as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('unexpected CUNIT' in repr(ex.value))
 
         bad_temporal_wcs = TimeTestUtil.bad_range_wcs()
-        with pytest.raises(InvalidWCSError) as ex:
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'range.end not >= range.start') as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('range.end not >= range.start' in repr(ex.value))
 
         bad_temporal_wcs = TimeTestUtil.bad_delta()
-        with pytest.raises(InvalidWCSError) as ex:
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'delta must be greater than 0.0') as ex:
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-        assert('delta must be greater than 0.0' in repr(ex.value))
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
