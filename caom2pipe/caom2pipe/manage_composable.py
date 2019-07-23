@@ -295,16 +295,21 @@ class Rejected(object):
                 logging.error('ConstructorError reading {}'.format(self.fqn))
                 self.content = {}
         else:
+            dir_name = os.path.dirname(fqn)
+            create_dir(dir_name)
             self.content = {}
         for reason in Rejected.reasons.keys():
             if reason not in self.content:
                 self.content[reason] = []
 
     def check_and_record(self, message, obs_id):
-        """Keep track of an additional entry."""
+        """Keep track of an additional entry.
+        :returns boolean True if the failure is known and tracked."""
         for reason, reason_str in Rejected.reasons.items():
             if reason_str in message:
                 self.content[reason].append(obs_id)
+                return True
+        return False
 
     def record(self, reason, entry):
         """Keep track of an additional entry."""
