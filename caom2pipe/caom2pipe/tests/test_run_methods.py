@@ -69,13 +69,15 @@
 
 import os
 import pytest
+import six
 import sys
 
 from datetime import datetime
 from mock import patch, Mock
 
-from caom2pipe import execute_composable as ec
-from caom2pipe import manage_composable as mc
+if six.PY3:
+    from caom2pipe import execute_composable as ec
+    from caom2pipe import manage_composable as mc
 
 PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))

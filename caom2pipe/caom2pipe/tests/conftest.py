@@ -1,13 +1,19 @@
 import os
 import pytest
+import six
+import sys
 
-from caom2pipe import manage_composable as mc
+if six.PY3:
+    from caom2pipe import manage_composable as mc
 
+PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
 TEST_APP = 'collection2caom2'
 
 
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @pytest.fixture(scope='function')
 def test_config():
     test_config = mc.Config()

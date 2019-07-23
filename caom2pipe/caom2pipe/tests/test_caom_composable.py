@@ -70,6 +70,7 @@
 import os
 import pytest
 import six
+import sys
 
 no_matplotlib = False
 if six.PY3:
@@ -89,6 +90,8 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA_DIR = os.path.join(THIS_DIR, 'data')
 
 
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
 @pytest.mark.skipif(no_matplotlib,
                     reason='matplotlib must be installed')
 def test_exec_footprintfinder():

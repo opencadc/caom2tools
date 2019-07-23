@@ -831,10 +831,9 @@ def test_capture_failure(test_config):
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 def test_run_by_file(test_config):
+    todo_fqn = os.path.join(THIS_DIR, 'todo.txt')
     try:
-        os.getcwd = Mock(return_value=TEST_DATA_DIR)
-        todo_file = os.path.join(os.getcwd(), 'todo.txt')
-        f = open(todo_file, 'w')
+        f = open(todo_fqn, 'w')
         f.write('')
         f.close()
         test_config.features.use_urls = False
@@ -844,7 +843,9 @@ def test_run_by_file(test_config):
                        meta_visitors=None, data_visitors=None)
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
-
+    finally:
+        if os.path.exists(todo_fqn):
+            os.unlink(todo_fqn)
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
