@@ -96,22 +96,22 @@ class TemporalWCSValidatorTests(unittest.TestCase):
     def test_bad_temporalwcs(self):
         bad_temporal_wcs = TimeTestUtil.bad_ctype_wcs()
         with six.assertRaisesRegex(
-                self, InvalidWCSError, 'unexpected TIMESYS, CTYPE') as ex:
+                self, InvalidWCSError, 'unexpected TIMESYS, CTYPE'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
         bad_temporal_wcs = TimeTestUtil.bad_cunit_wcs()
         with six.assertRaisesRegex(
-                self, InvalidWCSError, 'unexpected CUNIT') as ex:
+                self, InvalidWCSError, 'unexpected CUNIT'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
         bad_temporal_wcs = TimeTestUtil.bad_range_wcs()
         with six.assertRaisesRegex(
-                self, InvalidWCSError, 'range.end not >= range.start') as ex:
+                self, InvalidWCSError, 'range.end not >= range.start'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
         bad_temporal_wcs = TimeTestUtil.bad_delta()
         with six.assertRaisesRegex(
-                self, InvalidWCSError, 'delta must be greater than 0.0') as ex:
+                self, InvalidWCSError, 'delta must be greater than 0.0'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
 
