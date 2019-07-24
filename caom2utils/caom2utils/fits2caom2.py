@@ -1632,31 +1632,20 @@ class GenericParser:
             if isinstance(from_value, datetime):
                 return from_value
             else:
-                try:
-                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
-                except ValueError:
+                result = None
+                for dt_format in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f',
+                                  '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
+                                  '%Y/%m/%d %H:%M:%S']:
                     try:
-                        return datetime.strptime(from_value,
-                                                 '%Y-%m-%dT%H:%M:%S.%f')
+                        result = datetime.strptime(from_value, dt_format)
                     except ValueError:
-                        try:
-                            return datetime.strptime(from_value,
-                                                     '%Y-%m-%d %H:%M:%S.%f')
-                        except ValueError:
-                            try:
-                                return datetime.strptime(
-                                    from_value, '%Y-%m-%d')
-                            except ValueError:
-                                try:
-                                    return datetime.strptime(
-                                        from_value, '%Y/%m/%d %H:%M:%S')
-                                except ValueError:
-                                    self.logger.error(
-                                        'Cannot parse datetime {}'.format(
-                                            from_value))
-                                    self.add_error(
-                                        'get_datetime', sys.exc_info()[1])
-                                    return None
+                        pass
+
+                if result is None:
+                    self.logger.error('Cannot parse datetime {}'.format(
+                            from_value))
+                    self.add_error('get_datetime', sys.exc_info()[1])
+                return result
         else:
             return None
 

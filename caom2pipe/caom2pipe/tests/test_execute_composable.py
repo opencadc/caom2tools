@@ -1068,7 +1068,9 @@ def test_omm_name_dots():
 def test_pull_client(test_config):
     # Response mock
     class Object(object):
-        pass
+
+        def __init__(self):
+            self.headers = {}
 
         def raise_for_status(self):
             pass

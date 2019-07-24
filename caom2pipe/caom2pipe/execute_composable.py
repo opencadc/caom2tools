@@ -360,10 +360,8 @@ class CaomExecute(object):
         for handler in self.logger.handlers:
             handler.setLevel(config.logging_level)
             handler.setFormatter(formatter)
-        self.logging_level_param = self._set_logging_level_param(
-            config.logging_level)[0]
-        self.log_level_as = self._set_logging_level_param(
-            config.logging_level)[1]
+        self.logging_level_param, self.log_level_as = \
+            self._specify_logging_level_param(config.logging_level)
         self.obs_id = storage_name.obs_id
         self.uri = storage_name.file_uri
         self.fname = storage_name.file_name
@@ -387,7 +385,7 @@ class CaomExecute(object):
         self.cred_param = cred_param
         self.url = storage_name.url
         self.lineage = storage_name.lineage
-        self.external_urls_param = self._set_external_urls_param(
+        self.external_urls_param = self._specify_external_urls_param(
             storage_name.external_urls)
         self.observable = observable
         self.mime_encoding = storage_name.mime_encoding
@@ -551,7 +549,7 @@ class CaomExecute(object):
                     raise mc.CadcException(e)
 
     @staticmethod
-    def _set_external_urls_param(external_urls):
+    def _specify_external_urls_param(external_urls):
         """Make a list of external urls into a command-line parameter."""
         if external_urls is None:
             result = ''
@@ -560,17 +558,13 @@ class CaomExecute(object):
         return result
 
     @staticmethod
-    def _set_logging_level_param(logging_level):
+    def _specify_logging_level_param(logging_level):
         """Make a configured logging level into command-line parameters."""
-        lookup = {logging.DEBUG: ['--debug', logging.debug],
-                  logging.INFO: ['--verbose', logging.info],
-                  logging.WARNING: ['', logging.warning],
-                  logging.ERROR: ['--quiet', logging.error]}
-        if logging_level in lookup:
-            result = lookup[logging_level]
-        else:
-            result = ['', logging.info]
-        return result
+        lookup = {logging.DEBUG: ('--debug', logging.debug),
+                  logging.INFO: ('--verbose', logging.info),
+                  logging.WARNING: ('', logging.warning),
+                  logging.ERROR: ('--quiet', logging.error)}
+        return lookup.get(logging_level, ('', logging.info))
 
     @staticmethod
     def repo_cmd_get_client(caom_repo_client, collection, observation_id,
@@ -1776,6 +1770,7 @@ def _run_todo_file(config, organizer, sname, command_name,
         for line in f:
             try:
                 entry = line.strip()
+                logging.error('_run_todo_file {}'.format(entry))
                 result |= _run_by_file_list(config, organizer, sname,
                                             command_name, meta_visitors,
                                             data_visitors, entry)
@@ -1992,33 +1987,35 @@ def run_from_state(config, sname, command_name, meta_visitors,
         mc.increment_time(prev_exec_time, config.interval), end_time)
 
     logging.debug('Starting at {}, ending at {}'.format(start_time, end_time))
-
     result = 0
-    cumulative = 0
-    while exec_time <= end_time:
-        logging.info(
-            'Processing from {} to {}'.format(prev_exec_time, exec_time))
-        entries = work.todo(prev_exec_time, exec_time)
-        if len(entries) > 0:
-            work.initialize()
-            logging.info('Processing {} entries.'.format(len(entries)))
-            mc.write_to_file(config.work_fqn, '\n'.join(entries))
-            result |= run_by_file(config, sname, command_name, meta_visitors,
-                                  data_visitors)
-        else:
-            logging.info('No entries in interval from {} to {}.'.format(
-                prev_exec_time, exec_time))
+    if start_time == end_time:
+        logging.info('Start time is the same as end time {}, stopping.'.format(
+            start_time))
+    else:
+        cumulative = 0
+        while exec_time <= end_time:
+            logging.info(
+                'Processing from {} to {}'.format(prev_exec_time, exec_time))
+            entries = work.todo(prev_exec_time, exec_time)
+            if len(entries) > 0:
+                work.initialize()
+                logging.info('Processing {} entries.'.format(len(entries)))
+                mc.write_to_file(config.work_fqn, '\n'.join(entries))
+                result |= run_by_file(config, sname, command_name, meta_visitors,
+                                      data_visitors)
+            else:
+                logging.info('No entries in interval from {} to {}.'.format(
+                    prev_exec_time, exec_time))
 
-        cumulative += len(entries)
-        mc.record_progress(
-            config, command_name, len(entries), cumulative, start_time)
+            cumulative += len(entries)
+            mc.record_progress(
+                config, command_name, len(entries), cumulative, start_time)
+
+            state.save_state(bookmark_name, prev_exec_time)
+            prev_exec_time = exec_time
+            exec_time = mc.increment_time(prev_exec_time, config.interval)
 
         state.save_state(bookmark_name, prev_exec_time)
-        prev_exec_time = exec_time
-        exec_time = mc.increment_time(prev_exec_time, config.interval)
-
-    state.save_state(bookmark_name, prev_exec_time)
-    logging.info(
-        'Done {}, saved state is {}'.format(command_name, prev_exec_time))
-
+        logging.info(
+            'Done {}, saved state is {}'.format(command_name, prev_exec_time))
     return result

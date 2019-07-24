@@ -257,21 +257,28 @@ class Work(object):
     controlling execution by State."""
 
     def __init__(self, max_ts_s):
+        """
+        Ctor
+        :param max_ts_s: the maximum timestamp in seconds, for work that
+        is chunked by time-boxes.
+        """
         self._max_ts_s = max_ts_s
 
     @property
     def max_ts_s(self):
+        # State execution is currently chunked only by time-boxing, so
+        # set the maximum time-box ending for the work to be done.
         return self._max_ts_s
 
     def initialize(self):
         """Anything necessary to make todo work."""
-        pass
+        raise NotImplementedError
 
     def todo(self, prev_exec_date, exec_date):
         """Returns a list of entries for processing by Execute.
-        :param prev_exec_date when chunking by timeboxes, the start time
-        :param exec_date when chunking by timeboxes, the end time"""
-        return []
+        :param prev_exec_date when chunking by time-boxes, the start time
+        :param exec_date when chunking by time-boxes, the end time"""
+        raise NotImplementedError
 
 
 class Rejected(object):
@@ -287,6 +294,13 @@ class Rejected(object):
                NO_PREVIEW: '404 Client Error: Not Found for url'}
 
     def __init__(self, fqn):
+        """
+        Ctor
+        :param fqn: fully-qualified name for reading/writing rejected
+        information records. If the file exists, initialize the in-memory
+        records with the content of the file. Otherwise initialize the
+        in-memory records to be empty.
+        """
         self.fqn = fqn
         if os.path.exists(fqn):
             try:
@@ -307,7 +321,7 @@ class Rejected(object):
         :returns boolean True if the failure is known and tracked."""
         for reason, reason_str in Rejected.reasons.items():
             if reason_str in message:
-                self.content[reason].append(obs_id)
+                self.record(reason, obs_id)
                 return True
         return False
 
@@ -404,22 +418,6 @@ class Observable(object):
     @property
     def metrics(self):
         return self._metrics
-
-
-# the approach to use for making timing a property
-# def profile(method):
-#
-#     def timed(*args, **kwargs):
-#         if enabled:
-#             start = datetime.utcnow().timestamp()
-#             result = method(*args, **kwargs)
-#             end = datetime.utcnow().timestamp()
-#             timing(action, start, end, size)
-#         else:
-#             result = method(*args, **kwargs)
-#         return result
-#
-#     return timed
 
 
 class Config(object):
@@ -1516,6 +1514,20 @@ def http_get(url, local_fqn):
             with open(local_fqn, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=READ_BLOCK_SIZE):
                     f.write(chunk)
+            length = r.headers.get('Content-Length')
+            if length is not None:
+                file_meta = get_file_meta(local_fqn)
+                if file_meta['size'] != length:
+                    raise CadcException(
+                        'Could not retrieve {} from {}. File size '
+                        'error.'.format(local_fqn, url))
+            checksum = r.headers.get('Content-Checksum')
+            if checksum is not None:
+                file_meta = get_file_meta(local_fqn)
+                if file_meta['size'] != length:
+                    raise CadcException(
+                        'Could not retrieve {} from {}. File checksum '
+                        'error.'.format(local_fqn, url))
         if not os.path.exists(local_fqn):
             raise CadcException(
                 'Retrieve failed. {} does not exist.'.format(local_fqn))

@@ -70,6 +70,7 @@
 import os
 import pytest
 import six
+import shutil
 import sys
 
 from datetime import datetime
@@ -339,9 +340,7 @@ def cleanup_log_txt(config):
             os.unlink(fqn)
     retry_dir = '{}_0'.format(TEST_DATA_DIR)
     if os.path.exists(retry_dir):
-        for ii in os.listdir(retry_dir):
-            os.unlink('{}/{}'.format(retry_dir, ii))
-        os.rmdir(retry_dir)
+        shutil.rmtree(retry_dir)
 
 
 def _write_retry(config, organizer, storage_name, command_name,
