@@ -2001,8 +2001,8 @@ def run_from_state(config, sname, command_name, meta_visitors,
                 work.initialize()
                 logging.info('Processing {} entries.'.format(len(entries)))
                 mc.write_to_file(config.work_fqn, '\n'.join(entries))
-                result |= run_by_file(config, sname, command_name, meta_visitors,
-                                      data_visitors)
+                result |= run_by_file(config, sname, command_name,
+                                      meta_visitors, data_visitors)
             else:
                 logging.info('No entries in interval from {} to {}.'.format(
                     prev_exec_time, exec_time))
