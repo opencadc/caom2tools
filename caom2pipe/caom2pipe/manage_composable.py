@@ -1457,23 +1457,24 @@ def make_seconds(from_time):
 
     Timezone information may be present as +00, strip that for returned
     results.
+    :param from_time a string representing some time
+    :return the time as a timestamp, so seconds.microseconds
     """
     try:
         index = from_time.index('+00')
     except ValueError:
         index = len(from_time)
 
-    try:
-        seconds_since_epoch = datetime.strptime(from_time[:index],
-                                                ISO_8601_FORMAT)
-    except ValueError:
+    for fmt in [ISO_8601_FORMAT, '%Y-%m-%dT%H:%M:%S', '%d-%b-%Y %H:%M']:
         try:
-            seconds_since_epoch = datetime.strptime(from_time[:index],
-                                                    '%Y-%m-%dT%H:%M:%S')
+            seconds_since_epoch = datetime.strptime(
+                from_time[:index], fmt).timestamp()
+            break
         except ValueError:
-            seconds_since_epoch = datetime.strptime(from_time[:index],
-                                                    '%d-%b-%Y %H:%M')
-    return seconds_since_epoch.timestamp()
+            seconds_since_epoch = None
+    if seconds_since_epoch is None:
+        raise CadcException('Could not make seconds from {}'.format(from_time))
+    return seconds_since_epoch
 
 
 def increment_time(this_ts, by_interval, unit='%M'):

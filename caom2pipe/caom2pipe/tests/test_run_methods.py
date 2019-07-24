@@ -333,6 +333,156 @@ def test_run_by_file_use_local_files_chooser(do_mock, test_config):
     assert os.path.exists(REJECTED_FILE)
 
 
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_time_box(test_config):
+    _write_state()
+    test_bookmark = 'gemini_timestamp'
+    test_config.state_fqn = STATE_FILE
+    test_config.interval = 700
+
+    class MakeWork(mc.Work):
+
+        def __init__(self):
+            super(MakeWork, self).__init__(
+                mc.make_seconds('24-Jul-2019 09:20'))
+            self.todo_call_count = 0
+            self.zero_called = False
+            self.one_called = False
+            self.two_called = False
+
+        def initialize(self):
+            pass
+
+        def todo(self, prev_exec_date, exec_date):
+            if self.todo_call_count == 0:
+                assert prev_exec_date == datetime(2019, 7, 23, 9, 51), \
+                    'wrong prev'
+                assert exec_date == datetime(2019, 7, 23, 21, 31), 'wrong exec'
+                self.zero_called = True
+            elif self.todo_call_count == 1:
+                assert prev_exec_date == datetime(2019, 7, 23, 21, 31), \
+                    'wrong prev'
+                assert exec_date == datetime(2019, 7, 24, 9, 11), 'wrong exec'
+                self.one_called = True
+            elif self.todo_call_count == 2:
+                assert prev_exec_date == datetime(2019, 7, 24, 9, 11), \
+                    'wrong exec'
+                assert exec_date == datetime(2019, 7, 24, 9, 20), 'wrong exec'
+                self.two_called = True
+            self.todo_call_count += 1
+            assert self.todo_call_count <= 4, 'loop is written wrong'
+            return []
+
+    test_work = MakeWork()
+
+    test_result = ec.run_from_state(test_config,
+                                    sname=ec.StorageName,
+                                    command_name=COMMAND_NAME,
+                                    meta_visitors=None,
+                                    data_visitors=None,
+                                    bookmark_name=test_bookmark,
+                                    work=test_work)
+    assert test_result is not None, 'expect a result'
+
+    test_state = mc.State(test_config.state_fqn)
+    assert test_work.zero_called, 'missed zero'
+    assert test_work.one_called, 'missed one'
+    assert test_work.two_called, 'missed two'
+    assert test_state.get_bookmark(test_bookmark) == \
+        datetime(2019, 7, 24, 9, 20)
+    assert test_work.todo_call_count == 3, 'wrong todo call count'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_time_box_equal(test_config):
+    _write_state()
+    test_bookmark = 'gemini_timestamp'
+    test_config.state_fqn = STATE_FILE
+    test_config.interval = 700
+
+    class MakeWork(mc.Work):
+
+        def __init__(self):
+            super(MakeWork, self).__init__(
+                mc.make_seconds('23-Jul-2019 09:51'))
+            self.todo_call_count = 0
+            self.zero_called = False
+            self.one_called = False
+            self.two_called = False
+
+        def initialize(self):
+            pass
+
+        def todo(self, prev_exec_date, exec_date):
+            self.todo_call_count += 1
+            assert self.todo_call_count <= 4, 'loop is written wrong'
+            return []
+
+    test_work = MakeWork()
+
+    test_result = ec.run_from_state(test_config,
+                                    sname=ec.StorageName,
+                                    command_name=COMMAND_NAME,
+                                    meta_visitors=None,
+                                    data_visitors=None,
+                                    bookmark_name=test_bookmark,
+                                    work=test_work)
+    assert test_result is not None, 'expect a result'
+    test_state = mc.State(test_config.state_fqn)
+    assert test_state.get_bookmark(test_bookmark) == \
+           datetime(2019, 7, 23, 9, 51)
+    assert test_work.todo_call_count == 0, 'wrong todo call count'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_time_box_once_through(test_config):
+    _write_state()
+    test_bookmark = 'gemini_timestamp'
+    test_config.state_fqn = STATE_FILE
+    test_config.interval = 700
+
+    class MakeWork(mc.Work):
+
+        def __init__(self):
+            super(MakeWork, self).__init__(
+                mc.make_seconds('23-Jul-2019 12:20'))
+            self.todo_call_count = 0
+            self.zero_called = False
+
+        def initialize(self):
+            pass
+
+        def todo(self, prev_exec_date, exec_date):
+            if self.todo_call_count == 0:
+                assert prev_exec_date == datetime(2019, 7, 23, 9, 51), \
+                    'wrong prev'
+                assert exec_date == datetime(2019, 7, 23, 12, 20), 'wrong exec'
+                self.zero_called = True
+            self.todo_call_count += 1
+            assert self.todo_call_count <= 4, 'loop is written wrong'
+            return []
+
+    test_work = MakeWork()
+
+    test_result = ec.run_from_state(test_config,
+                                    sname=ec.StorageName,
+                                    command_name=COMMAND_NAME,
+                                    meta_visitors=None,
+                                    data_visitors=None,
+                                    bookmark_name=test_bookmark,
+                                    work=test_work)
+    assert test_result is not None, 'expect a result'
+
+    test_state = mc.State(test_config.state_fqn)
+    assert test_work.zero_called, 'missed zero'
+    assert test_state.get_bookmark(test_bookmark) == \
+           datetime(2019, 7, 23, 12, 20)
+    assert test_work.todo_call_count == 1, 'wrong todo call count'
+
+
 def cleanup_log_txt(config):
     for fqn in [config.success_fqn, config.failure_fqn, config.retry_fqn,
                 config.rejected_fqn, config.progress_fqn]:
@@ -348,3 +498,12 @@ def _write_retry(config, organizer, storage_name, command_name,
     with open(config.retry_fqn, 'w') as f:
         f.write('{}\n'.format(TEST_ENTRY))
     return -1
+
+
+def _write_state():
+    if os.path.exists(STATE_FILE):
+        os.unlink(STATE_FILE)
+    with open(STATE_FILE, 'w') as f:
+        f.write(
+            'bookmarks:\n  gemini_timestamp:\n    last_record: '
+            '23-Jul-2019 09:51\n')

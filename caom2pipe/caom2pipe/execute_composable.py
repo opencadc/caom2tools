@@ -1988,9 +1988,10 @@ def run_from_state(config, sname, command_name, meta_visitors,
 
     logging.debug('Starting at {}, ending at {}'.format(start_time, end_time))
     result = 0
-    if start_time == end_time:
+    if prev_exec_time == end_time:
         logging.info('Start time is the same as end time {}, stopping.'.format(
             start_time))
+        exec_time = prev_exec_time
     else:
         cumulative = 0
         while exec_time <= end_time:
@@ -2011,11 +2012,25 @@ def run_from_state(config, sname, command_name, meta_visitors,
             mc.record_progress(
                 config, command_name, len(entries), cumulative, start_time)
 
-            state.save_state(bookmark_name, prev_exec_time)
-            prev_exec_time = exec_time
-            exec_time = mc.increment_time(prev_exec_time, config.interval)
+            state.save_state(bookmark_name, exec_time)
 
-        state.save_state(bookmark_name, prev_exec_time)
-        logging.info(
-            'Done {}, saved state is {}'.format(command_name, prev_exec_time))
+            if exec_time == end_time:
+                # the last interval will always have the exec time
+                # equal to the end time, which will fail the while check
+                # so leave after the last interval has bee processed
+                #
+                # but the while <= check is required so that an interval
+                # smaller than exec_time -> end_time will get executed,
+                # so don't get rid of the '=' in the while loop
+                # comparison, just because this one exists
+                break
+
+            prev_exec_time = exec_time
+            exec_time = min(
+                mc.increment_time(prev_exec_time, config.interval),
+                end_time)
+
+    state.save_state(bookmark_name, exec_time)
+    logging.info(
+        'Done {}, saved state is {}'.format(command_name, exec_time))
     return result
