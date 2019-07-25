@@ -1097,8 +1097,9 @@ def test_pull_client(test_config):
                                       observable=None)
         with pytest.raises(OSError):
             test_executor.execute(None)
-            assert data_client_mock.put_file.is_called, 'call missed'
-            assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
+
+        assert data_client_mock.put_file.is_called, 'call missed'
+        assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),

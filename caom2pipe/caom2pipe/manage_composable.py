@@ -983,6 +983,11 @@ def to_float(value):
     return float(value) if value is not None else None
 
 
+def to_int(value):
+    """Cast to int, without throwing an exception."""
+    return int(value) if value is not None else None
+
+
 def exec_cmd(cmd, log_leval_as=logging.debug):
     """
     This does command execution as a subprocess call.
@@ -1515,7 +1520,7 @@ def http_get(url, local_fqn):
             with open(local_fqn, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=READ_BLOCK_SIZE):
                     f.write(chunk)
-            length = r.headers.get('Content-Length')
+            length = to_int(r.headers.get('Content-Length'))
             if length is not None:
                 file_meta = get_file_meta(local_fqn)
                 if file_meta['size'] != length:
@@ -1525,7 +1530,7 @@ def http_get(url, local_fqn):
             checksum = r.headers.get('Content-Checksum')
             if checksum is not None:
                 file_meta = get_file_meta(local_fqn)
-                if file_meta['size'] != length:
+                if file_meta['md5sum'] != checksum:
                     raise CadcException(
                         'Could not retrieve {} from {}. File checksum '
                         'error.'.format(local_fqn, url))
@@ -1562,6 +1567,8 @@ def look_pull_and_put(f_name, working_dir, url, archive, stream, mime_type,
     try:
         meta = cadc_client.get_file_info(archive, f_name)
         if checksum is not None and meta['md5sum'] != checksum:
+            logging.debug('Different checksums: CADC {} Source {}'.format(
+                meta['md5sum'], checksum))
             retrieve = True
         else:
             logging.info('{} already exists at CADC/{}'.format(

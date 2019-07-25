@@ -1770,7 +1770,6 @@ def _run_todo_file(config, organizer, sname, command_name,
         for line in f:
             try:
                 entry = line.strip()
-                logging.error('_run_todo_file {}'.format(entry))
                 result |= _run_by_file_list(config, organizer, sname,
                                             command_name, meta_visitors,
                                             data_visitors, entry)

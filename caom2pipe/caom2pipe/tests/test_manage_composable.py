@@ -519,3 +519,60 @@ def test_repo_delete(mock_client):
     assert 'caom2' in test_metrics.history, 'history'
     assert 'delete' in test_metrics.history['caom2'], 'delete'
     assert 'test_id' in test_metrics.history['caom2']['delete'], 'obs id'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('requests.get')
+def test_http_get(mock_req):
+    # Response mock
+    class Object(object):
+
+        def __init__(self):
+            self.headers = {'Date': 'Thu, 25 Jul 2019 16:10:02 GMT',
+                            'Server': 'Apache',
+                            'Content-Length': '4',
+                            'Cache-Control': 'no-cache',
+                            'Expired': '-1',
+                            'Content-Disposition':
+                                'attachment; filename="S20080610S0045.fits"',
+                            'Connection': 'close',
+                            'Content-Type': 'application/fits'}
+
+        def raise_for_status(self):
+            pass
+
+        def iter_content(self, chunk_size):
+            return ['aaa'.encode(), 'bbb'.encode()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, a, b, c):
+            return None
+
+    test_object = Object()
+    mock_req.return_value = test_object
+    # wrong size
+    with pytest.raises(mc.CadcException) as ex:
+        mc.http_get('https://localhost/index.html', '/tmp/abc')
+
+    assert mock_req.called, 'mock not called'
+    assert 'File size error' in repr(ex.value), 'wrong failure'
+    mock_req.reset_mock()
+
+    # wrong checksum
+    test_object.headers['Content-Length'] = 6
+    test_object.headers['Content-Checksum'] = 'md5:abc'
+    with pytest.raises(mc.CadcException) as ex:
+        mc.http_get('https://localhost/index.html', '/tmp/abc')
+
+    assert mock_req.called, 'mock not called'
+    assert 'File checksum error' in repr(ex.value), 'wrong failure'
+    mock_req.reset_mock()
+
+    # checks succeed
+    test_object.headers['Content-Checksum'] = \
+        '6547436690a26a399603a7096e876a2d'
+    mc.http_get('https://localhost/index.html', '/tmp/abc')
+    assert mock_req.called, 'mock not called'
