@@ -432,7 +432,7 @@ def test_time_box_equal(test_config):
     assert test_result is not None, 'expect a result'
     test_state = mc.State(test_config.state_fqn)
     assert test_state.get_bookmark(test_bookmark) == \
-           datetime(2019, 7, 23, 9, 51)
+        datetime(2019, 7, 23, 9, 51)
     assert test_work.todo_call_count == 0, 'wrong todo call count'
 
 
@@ -479,7 +479,7 @@ def test_time_box_once_through(test_config):
     test_state = mc.State(test_config.state_fqn)
     assert test_work.zero_called, 'missed zero'
     assert test_state.get_bookmark(test_bookmark) == \
-           datetime(2019, 7, 23, 12, 20)
+        datetime(2019, 7, 23, 12, 20)
     assert test_work.todo_call_count == 1, 'wrong todo call count'
 
 
