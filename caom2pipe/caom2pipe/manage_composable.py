@@ -1515,7 +1515,7 @@ def http_get(url, local_fqn):
         locally.
     """
     try:
-        with requests.get(url, stream=True) as r:
+        with requests.get(url, stream=True, timeout=10) as r:
             r.raise_for_status()
             with open(local_fqn, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=READ_BLOCK_SIZE):
