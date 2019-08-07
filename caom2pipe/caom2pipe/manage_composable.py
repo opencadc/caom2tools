@@ -244,7 +244,7 @@ class State(object):
         if key in self.bookmarks:
             if 'last_record' in self.bookmarks[key]:
                 self.bookmarks[key]['last_record'] = value
-                logging.error('Saving timestamp {} {}'.format(value, self.fqn))
+                logging.debug('Saving timestamp {} {}'.format(value, self.fqn))
                 write_as_yaml(self.content, self.fqn)
             else:
                 self.logger.warning('No record found for {}'.format(key))
