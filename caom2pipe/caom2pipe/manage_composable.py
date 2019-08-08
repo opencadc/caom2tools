@@ -1134,7 +1134,9 @@ def get_file_meta(fqn):
     elif fqn.endswith('.jpg'):
         meta['type'] = 'image/jpeg'
     elif fqn.endswith('tar.gz'):
-        meta['type'] = 'application/gzip'
+        meta['type'] = 'application/tar+gzip'
+    elif fqn.endswith('h5'):
+        meta['type'] = 'application/x-hdf5'
     else:
         meta['type'] = 'application/fits'
     logging.debug(meta)

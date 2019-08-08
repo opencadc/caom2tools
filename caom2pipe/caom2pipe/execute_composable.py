@@ -143,7 +143,7 @@ class StorageName(object):
 
     def __init__(self, obs_id=None, collection=None, collection_pattern=None,
                  fname_on_disk=None, scheme='ad', archive=None, url=None,
-                 mime_encoding=None):
+                 mime_encoding=None, mime_type='application/fits'):
         """
 
         :param obs_id: string value for Observation.observationID
@@ -172,6 +172,7 @@ class StorageName(object):
             self.archive = collection
         self._url = url
         self._mime_encoding = mime_encoding
+        self._mime_type = mime_type
 
     @property
     def file_uri(self):
@@ -258,6 +259,15 @@ class StorageName(object):
     @mime_encoding.setter
     def mime_encoding(self, value):
         self._mime_encoding = value
+
+    @property
+    def mime_type(self):
+        """The mime type for the file, defaults to application/fits."""
+        return self._mime_type
+
+    @mime_type.setter
+    def mime_type(self, value):
+        self._mime_type = value
 
     @property
     def lineage(self):
@@ -389,6 +399,7 @@ class CaomExecute(object):
             storage_name.external_urls)
         self.observable = observable
         self.mime_encoding = storage_name.mime_encoding
+        self.mime_type = storage_name.mime_type
 
     def _cleanup(self):
         """Remove a directory and all its contents."""
@@ -503,10 +514,10 @@ class CaomExecute(object):
         mc.repo_delete(self.caom_repo_client, observation.collection,
                        observation.observation_id, self.observable.metrics)
 
-    def _cadc_data_put_client(self, mime_type):
+    def _cadc_data_put_client(self):
         """Store a collection file."""
         mc.data_put(self.cadc_data_client, self.working_dir,
-                    self.fname, self.archive, self.stream, mime_type,
+                    self.fname, self.archive, self.stream, self.mime_type,
                     self.mime_encoding, metrics=self.observable.metrics)
 
     def _cadc_data_get_client(self):
@@ -1023,7 +1034,7 @@ class PullClient(CaomExecute):
 
         self.logger.debug(
             'store the input file {} to ad'.format(self.local_fqn))
-        self._cadc_data_put_client('application/fits')
+        self._cadc_data_put_client()
 
         self.logger.debug('clean up the workspace')
         self._cleanup()
@@ -1068,7 +1079,7 @@ class StoreClient(CaomExecute):
         self.logger.debug('Begin execute for {} Data'.format(__name__))
 
         self.logger.debug('store the input file {} to ad'.format(self.fname))
-        self._cadc_data_put_client('application/fits')
+        self._cadc_data_put_client()
 
         self.logger.debug('End execute for {}'.format(__name__))
 
@@ -1814,6 +1825,8 @@ def _run_local_files(config, organizer, sname, command_name,
                 else:
                     temp_list.append(f)
         elif f.endswith('.header'):
+            temp_list.append(f)
+        elif f.endswith('.gz'):
             temp_list.append(f)
 
     # make the entries unique

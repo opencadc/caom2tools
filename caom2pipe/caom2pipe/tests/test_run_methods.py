@@ -483,6 +483,39 @@ def test_time_box_once_through(test_config):
     assert test_work.todo_call_count == 1, 'wrong todo call count'
 
 
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2pipe.execute_composable._do_one')
+def test_run_by_file_use_local_files_gz(do_mock, test_config):
+    cleanup_log_txt(test_config)
+
+    test_config.use_local_files = True
+    test_config.features.expects_retry = False
+    test_config.log_to_file = False
+    test_config.features.use_urls = False
+    test_config.features.use_file_names = True
+    test_config.working_directory = os.path.join(
+        TEST_DATA_DIR, 'local_json_files')
+
+    class TestStorageName(ec.StorageName):
+        def __init__(self, file_name=None, fname_on_disk=None):
+            super(TestStorageName, self).__init__()
+            assert file_name == 'test_file.gz', 'wrong file name'
+
+    test_result = ec.run_by_file(test_config,
+                                 storage_name=TestStorageName,
+                                 command_name=COMMAND_NAME,
+                                 meta_visitors=None,
+                                 data_visitors=None,
+                                 chooser=None)
+    assert test_result is not None, 'expect a result'
+    assert test_result == 0, 'wrong result'
+
+    # no local files, should not be called
+    assert do_mock.called, 'do mock not called'
+    assert do_mock.call_count == 1, do_mock.call_count
+
+
 def cleanup_log_txt(config):
     for fqn in [config.success_fqn, config.failure_fqn, config.retry_fqn,
                 config.rejected_fqn, config.progress_fqn]:
