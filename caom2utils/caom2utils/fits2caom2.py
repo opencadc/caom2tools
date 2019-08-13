@@ -1587,13 +1587,15 @@ class GenericParser:
         :param key:
         :param extension: the current extension name or number.
         """
-        # determine which of the two possible values for parameter the user
+        # determine which of the possible values for parameter the user
         # is hoping for
-        parameter = ''
         if 'uri' in value:
             parameter = self.uri
         elif 'header' in value:
             parameter = self._headers[extension]
+        else:
+            parameter = {'uri': self.uri,
+                         'header': self._headers[extension]}
 
         result = ''
         execute = None
