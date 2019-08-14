@@ -1,5 +1,6 @@
 -e ../caom2
 -e . 
+astropy
 pytest>=3.6
 pytest-cov>=2.5.1
 flake8>=3.4.1
