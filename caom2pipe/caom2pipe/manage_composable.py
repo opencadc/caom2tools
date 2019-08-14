@@ -97,7 +97,10 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'compare_checksum_client', 'Features', 'write_to_file',
            'read_from_file', 'read_file_list_from_archive', 'update_typed_set',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
-           'data_put', 'data_get', 'build_uri']
+           'data_put', 'data_get', 'build_uri',
+           'make_seconds', 'increment_time', 'ISO_8601_FORMAT']
+
+ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
 
 class CadcException(Exception):
@@ -271,6 +274,7 @@ class Config(object):
         self.state_file_name = None
         # the fully qualified name for the file
         self.state_fqn = None
+        self.interval = None
         self.features = Features()
 
     @property
@@ -508,6 +512,15 @@ class Config(object):
     def features(self, value):
         self._features = value
 
+    @property
+    def interval(self):
+        """Interval - used for setting timestamp chunks, for now."""
+        return self._interval
+
+    @interval.setter
+    def interval(self, value):
+        self._interval = value
+
     @staticmethod
     def _lookup(config, lookup, default):
         if lookup in config:
@@ -540,6 +553,7 @@ class Config(object):
                'proxy_file:: \'{}\' ' \
                'state_fqn:: \'{}\' ' \
                'features:: \'{}\' ' \
+               'interval:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
                 self.archive, self.collection, self.task_types, self.stream,
@@ -549,7 +563,8 @@ class Config(object):
                 self.success_fqn, self.failure_log_file_name,
                 self.failure_fqn, self.retry_file_name, self.retry_fqn,
                 self.retry_failures, self.retry_count, self.proxy_fqn,
-                self.state_fqn, self.features, self.logging_level)
+                self.state_fqn, self.features, self.interval,
+                self.logging_level)
 
     @staticmethod
     def _obtain_task_types(config, default=None):
@@ -617,6 +632,7 @@ class Config(object):
                                                 'retries.txt')
             self.retry_failures = self._lookup(config, 'retry_failures', False)
             self.retry_count = self._lookup(config, 'retry_count', 1)
+            self.interval = self._lookup(config, 'interval', 10)
             self.features = self._obtain_features(config)
             self.proxy_file_name = self._lookup(
                 config, 'proxy_file_name', None)
@@ -1194,3 +1210,43 @@ def write_as_yaml(content, fqn):
             logging.debug('End write_as_yaml.')
     except Exception as e:
         logging.error(e)
+
+
+def make_seconds(from_time):
+    """Deal with different time formats to get the number of
+    seconds since the epoch.
+
+    Timezone information may be present as +00, strip that for returned
+    results.
+    """
+    try:
+        index = from_time.index('+00')
+    except ValueError as e:
+        index = -1
+
+    try:
+        seconds_since_epoch = datetime.strptime(from_time[:index],
+                                                ISO_8601_FORMAT)
+    except ValueError as e:
+        seconds_since_epoch = datetime.strptime(from_time[:index],
+                                                '%Y-%m-%dT%H:%M:%S')
+    return seconds_since_epoch.timestamp()
+
+
+def increment_time(this_ts, by_interval, unit='%M'):
+    """
+    Increment time by an interval. Times are in datetime format.
+
+    :param this_ts: datetime
+    :param by_interval: integer - e.g. 10, for a 10 minute increment
+    :param unit: the formatting string, default is minutes
+    :return: this_ts incremented by interval amount
+    """
+    time_s = this_ts.timestamp()
+    if unit == '%M':
+        factor = 60
+    else:
+        raise NotImplementedError('Unexpected unit {}'.format(unit))
+    interval = by_interval * factor
+    temp = time_s + interval
+    return datetime.fromtimestamp(temp)

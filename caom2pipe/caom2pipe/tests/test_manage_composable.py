@@ -73,6 +73,7 @@ import sys
 
 import six
 
+from datetime import datetime
 from mock import Mock, patch
 
 from caom2 import ProductType, ReleaseType, Artifact, ChecksumURI
@@ -362,3 +363,38 @@ def test_state():
     test_subject.save_state('gemini_timestamp', test_result)
     test_end = os.path.getmtime(TEST_STATE_FILE)
     assert test_start != test_end, 'file should be modified'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_make_seconds():
+    t1 = '2017-06-26T17:07:21.527+00'
+    t1_dt = mc.make_seconds(t1)
+    assert t1_dt is not None, 'expect a result'
+    assert t1_dt == 1498496841.527, 'wrong result'
+
+    t2 = '2017-07-26T17:07:21.527'
+    t1_dt = mc.make_seconds(t1)
+    assert t1_dt is not None, 'expect a result'
+    assert t1_dt == 1498496841.527, 'wrong result'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_increment_time():
+    t1 = '2017-06-26T17:07:21.527'
+    t1_dt = datetime.strptime(t1, mc.ISO_8601_FORMAT)
+    result = mc.increment_time(t1_dt, 10)
+    assert result is not None, 'expect a result'
+    assert result == datetime(2017, 6, 26, 17, 17, 21, 527000),\
+        'wrong result'
+
+    t2 = '2017-07-26T17:07:21.527'
+    t2_dt = datetime.strptime(t2, mc.ISO_8601_FORMAT)
+    result = mc.increment_time(t2_dt, 5)
+    assert result is not None, 'expect a result'
+    assert result == datetime(2017, 7, 26, 17, 12, 21, 527000),\
+        'wrong result'
+
+    with pytest.raises(NotImplementedError):
+        ignore = mc.increment_time(t2_dt, 23, '%f')
