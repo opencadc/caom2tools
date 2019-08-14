@@ -1587,13 +1587,15 @@ class GenericParser:
         :param key:
         :param extension: the current extension name or number.
         """
-        # determine which of the two possible values for parameter the user
+        # determine which of the possible values for parameter the user
         # is hoping for
-        parameter = ''
         if 'uri' in value:
             parameter = self.uri
         elif 'header' in value:
             parameter = self._headers[extension]
+        else:
+            parameter = {'uri': self.uri,
+                         'header': self._headers[extension]}
 
         result = ''
         execute = None
@@ -1632,27 +1634,20 @@ class GenericParser:
             if isinstance(from_value, datetime):
                 return from_value
             else:
-                try:
-                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
-                except ValueError:
+                result = None
+                for dt_format in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f',
+                                  '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
+                                  '%Y/%m/%d %H:%M:%S']:
                     try:
-                        return datetime.strptime(from_value,
-                                                 '%Y-%m-%dT%H:%M:%S.%f')
+                        result = datetime.strptime(from_value, dt_format)
                     except ValueError:
-                        try:
-                            return datetime.strptime(from_value,
-                                                     '%Y-%m-%d %H:%M:%S.%f')
-                        except ValueError:
-                            try:
-                                return datetime.strptime(
-                                    from_value, '%Y-%m-%d')
-                            except ValueError:
-                                self.logger.error(
-                                    'Cannot parse datetime {}'.format(
-                                        from_value))
-                                self.add_error(
-                                    'get_datetime', sys.exc_info()[1])
-                                return None
+                        pass
+
+                if result is None:
+                    self.logger.error('Cannot parse datetime {}'.format(
+                            from_value))
+                    self.add_error('get_datetime', sys.exc_info()[1])
+                return result
         else:
             return None
 
@@ -4019,17 +4014,17 @@ def _load_plugin(plugin_name):
     return plgin
 
 
-def _visit(plugn, parser, obs, visit_local, product_id=None, **kwargs):
+def _visit(plugin_name, parser, obs, visit_local, product_id=None, **kwargs):
     result = obs
-    if plugn is not None:
+    if plugin_name is not None:
         if isinstance(parser, FitsParser):
             # TODO make a check that's necessary under both calling conditions
             # here
-            if len(plugn) > 0:
+            if len(plugin_name) > 0:
                 logging.debug(
                     'Begin plugin execution {!r} update method on '
-                    'observation {!r}'.format(plugn, obs.observation_id))
-                plgin = _load_plugin(plugn)
+                    'observation {!r}'.format(plugin_name, obs.observation_id))
+                plgin = _load_plugin(plugin_name)
                 kwargs['headers'] = parser.headers
                 if visit_local is not None:
                     kwargs['fqn'] = visit_local
@@ -4041,7 +4036,7 @@ def _visit(plugn, parser, obs, visit_local, product_id=None, **kwargs):
                         logging.debug(
                             'Finished executing plugin {!r} update '
                             'method on observation {!r}'.format(
-                                plugn, obs.observation_id))
+                                plugin_name, obs.observation_id))
                 except Exception as e:
                     logging.error(e)
                     tb = traceback.format_exc()

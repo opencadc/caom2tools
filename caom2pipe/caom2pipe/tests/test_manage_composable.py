@@ -77,10 +77,9 @@ from datetime import datetime
 from mock import Mock, patch
 
 from caom2 import ProductType, ReleaseType, Artifact, ChecksumURI
-from caom2 import SimpleObservation, CompositeObservation
+from caom2 import SimpleObservation
 if six.PY3:
     from caom2pipe import manage_composable as mc
-    from caom2pipe import caom_composable as cc
 
 
 PY_VERSION = '3.6'
@@ -97,16 +96,6 @@ def test_read_obs():
     test_subject = mc.read_obs_from_file(TEST_OBS_FILE)
     assert test_subject is not None, 'expect a result'
     assert isinstance(test_subject, SimpleObservation), 'wrong read'
-    changed = cc.change_to_composite(test_subject)
-    assert changed is not None, 'expect a result'
-    assert isinstance(changed, CompositeObservation)
-    assert test_subject.sequence_number == changed.sequence_number, 'sn'
-    assert test_subject.intent == changed.intent, 'intent'
-    assert test_subject.type == changed.type, 'type'
-    assert test_subject.meta_release == changed.meta_release, 'meta release'
-    assert len(test_subject.planes) == len(changed.planes), 'planes'
-    assert test_subject.algorithm.name == 'exposure', 'original name'
-    assert changed.algorithm.name == 'composite', 'changed name'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -172,6 +161,12 @@ def test_config_class():
     assert test_config.state_file_name == 'state.yml', 'state file name'
     assert test_config.state_fqn == '{}/state.yml'.format(mock_root), \
         'state fqn'
+    assert test_config.rejected_directory == TEST_DATA_DIR, \
+        'wrong rejected dir'
+    assert test_config.rejected_file_name == 'rejected.yml', \
+        'wrong rejected file'
+    assert test_config.rejected_fqn == '{}/rejected.yml'.format(
+        TEST_DATA_DIR), 'wrong rejected fqn'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -193,26 +188,6 @@ def test_exec_cmd_redirect():
     mc.exec_cmd_redirect(test_cmd, fqn)
     assert os.path.exists(fqn)
     assert os.stat(fqn).st_size > 0
-
-
-@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
-                    reason='support one python version')
-@patch('caom2utils.fits2caom2.CadcDataClient.get_file_info')
-def test_compare_checksum(mock_get_file_info):
-
-    # fail case - file doesn't exist
-    test_file = os.path.join(TEST_DATA_DIR, 'test_omm.fits.gz')
-    test_netrc = os.path.join(TEST_DATA_DIR, 'test_netrc')
-    with pytest.raises(mc.CadcException):
-        mc.compare_checksum(test_netrc, 'OMM', test_file)
-
-    # fail case - file exists, different checksum - make a small test file
-    test_file = os.path.join(TEST_DATA_DIR, 'C111107_0694_SCI.fits')
-    f = open(test_file, 'w')
-    f.write('test')
-    f.close()
-    with pytest.raises(mc.CadcException):
-        mc.compare_checksum(test_netrc, 'OMM', test_file)
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -259,6 +234,9 @@ def test_get_file_meta():
 
     # empty file
     fqn = os.path.join(TEST_DATA_DIR, 'todo.txt')
+    if os.path.exists(fqn):
+        os.unlink(fqn)
+    open(fqn, 'w').close()
     result = mc.get_file_meta(fqn)
     assert result['size'] == 0, result['size']
 
@@ -334,23 +312,45 @@ def test_get_artifact_metadata():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('cadcdata.core.CadcDataClient')
-def test_data_put(mock_client):
-    with pytest.raises(mc.CadcException):
-        mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default')
+@patch('caom2pipe.manage_composable.Metrics')
+def test_data_put(mock_metrics, mock_client):
+    mc.data_put(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST', 'default',
+                metrics=mock_metrics)
+    mock_client.put_file.assert_called_with(
+        'TEST', 'TEST.fits', archive_stream='default',
+        md5_check=True, mime_encoding=None, mime_type=None), 'mock not called'
+    assert mock_metrics.observe.is_called, 'mock not called'
+    args, kwargs = mock_metrics.observe.call_args
+    assert args[2] == 0, 'wrong size'
+    assert args[3] == 'put', 'wrong endpoint'
+    assert args[4] == 'data', 'wrong service'
+    assert args[5] == 'TEST.fits', 'wrong id'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('cadcdata.core.CadcDataClient')
 def test_data_get(mock_client):
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
     with pytest.raises(mc.CadcException):
-        mc.data_get(mock_client, TEST_DATA_DIR, 'TEST.fits', 'TEST')
+        mc.data_get(mock_client, TEST_DATA_DIR, 'TEST_get.fits', 'TEST',
+                    test_metrics)
+    assert len(test_metrics.failures) == 1, 'wrong failures'
+    assert test_metrics.failures['data']['get']['TEST_get.fits'] == 1, 'count'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 def test_state():
-    test_start = os.path.getmtime(TEST_STATE_FILE)
+    if os.path.exists(TEST_STATE_FILE):
+        os.unlink(TEST_STATE_FILE)
+    with open(TEST_STATE_FILE, 'w') as f:
+        f.write(
+            'bookmarks:\n  gemini_timestamp:\n    last_record: '
+            '2019-07-23 20:52:03.524443\n')
+
     with pytest.raises(mc.CadcException):
         test_subject = mc.State('nonexistent')
 
@@ -358,11 +358,13 @@ def test_state():
     assert test_subject is not None, 'expect result'
     test_result = test_subject.get_bookmark('gemini_timestamp')
     assert test_result is not None, 'expect content'
-    assert test_result == '2017-06-19T03:21:29.345417'
+    assert isinstance(test_result, datetime)
 
     test_subject.save_state('gemini_timestamp', test_result)
-    test_end = os.path.getmtime(TEST_STATE_FILE)
-    assert test_start != test_end, 'file should be modified'
+
+    with open(TEST_STATE_FILE, 'r') as f:
+        text = f.readlines()
+        assert '20:52:03.524443' not in text, 'content not updated'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -374,9 +376,14 @@ def test_make_seconds():
     assert t1_dt == 1498496841.527, 'wrong result'
 
     t2 = '2017-07-26T17:07:21.527'
-    t1_dt = mc.make_seconds(t1)
-    assert t1_dt is not None, 'expect a result'
-    assert t1_dt == 1498496841.527, 'wrong result'
+    t2_dt = mc.make_seconds(t2)
+    assert t2_dt is not None, 'expect a result'
+    assert t2_dt == 1501088841.527, 'wrong result'
+
+    t3 = '16-Jul-2019 09:08'
+    t3_dt = mc.make_seconds(t3)
+    assert t3_dt is not None, 'expect a result'
+    assert t3_dt == 1563268080.0, 'wrong result'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -397,4 +404,175 @@ def test_increment_time():
         'wrong result'
 
     with pytest.raises(NotImplementedError):
-        ignore = mc.increment_time(t2_dt, 23, '%f')
+        mc.increment_time(t2_dt, 23, '%f')
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('cadcdata.core.CadcDataClient')
+@patch('caom2pipe.manage_composable.http_get')
+def test_look_pull_and_put(http_mock, mock_client):
+    stat_orig = os.stat
+    os.stat = Mock()
+    os.stat.return_value = Mock(st_size=1234)
+    try:
+        f_name = 'test_f_name.fits'
+        url = 'https://localhost/{}'.format(f_name)
+        test_config = mc.Config()
+        test_config.observe_execution = True
+        test_metrics = mc.Metrics(test_config)
+        assert len(test_metrics.history) == 0, 'initial history conditions'
+        assert len(test_metrics.failures) == 0, 'initial failure conditions'
+        mc.look_pull_and_put(f_name, TEST_DATA_DIR, url, 'TEST', 'default',
+                             'application/fits', mock_client, 'md5:01234',
+                             test_metrics)
+        mock_client.put_file.assert_called_with(
+            'TEST', f_name, archive_stream='default', md5_check=True,
+            mime_encoding=None,
+            mime_type='application/fits'), 'mock not called'
+        http_mock.assert_called_with(
+            url, os.path.join(TEST_DATA_DIR, f_name)), 'http mock not called'
+        assert len(test_metrics.history) == 1, 'history conditions'
+        assert len(test_metrics.failures) == 0, 'failure conditions'
+    finally:
+        os.stat = stat_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2repo.core.CAOM2RepoClient')
+def test_repo_create(mock_client):
+    test_obs = mc.read_obs_from_file(TEST_OBS_FILE)
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
+    assert len(test_metrics.history) == 0, 'initial history conditions'
+    assert len(test_metrics.failures) == 0, 'initial failure conditions'
+
+    mc.repo_create(mock_client, test_obs, test_metrics)
+
+    mock_client.create.assert_called_with(test_obs), 'mock not called'
+    assert len(test_metrics.history) == 1, 'history conditions'
+    assert len(test_metrics.failures) == 0, 'failure conditions'
+    assert 'caom2' in test_metrics.history, 'history'
+    assert 'create' in test_metrics.history['caom2'], 'create'
+    assert 'test_obs_id' in test_metrics.history['caom2']['create'], 'obs id'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2repo.core.CAOM2RepoClient')
+def test_repo_get(mock_client):
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
+    assert len(test_metrics.history) == 0, 'initial history conditions'
+    assert len(test_metrics.failures) == 0, 'initial failure conditions'
+
+    mc.repo_get(mock_client, 'collection', 'test_obs_id', test_metrics)
+
+    mock_client.read.assert_called_with('collection', 'test_obs_id'), \
+        'mock not called'
+    assert len(test_metrics.history) == 1, 'history conditions'
+    assert len(test_metrics.failures) == 0, 'failure conditions'
+    assert 'caom2' in test_metrics.history, 'history'
+    assert 'read' in test_metrics.history['caom2'], 'create'
+    assert 'test_obs_id' in test_metrics.history['caom2']['read'], 'obs id'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2repo.core.CAOM2RepoClient')
+def test_repo_update(mock_client):
+    test_obs = mc.read_obs_from_file(TEST_OBS_FILE)
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
+    assert len(test_metrics.history) == 0, 'initial history conditions'
+    assert len(test_metrics.failures) == 0, 'initial failure conditions'
+
+    mc.repo_update(mock_client, test_obs, test_metrics)
+
+    mock_client.update.assert_called_with(test_obs), 'mock not called'
+    assert len(test_metrics.history) == 1, 'history conditions'
+    assert len(test_metrics.failures) == 0, 'failure conditions'
+    assert 'caom2' in test_metrics.history, 'history'
+    assert 'update' in test_metrics.history['caom2'], 'update'
+    assert 'test_obs_id' in test_metrics.history['caom2']['update'], 'obs id'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2repo.core.CAOM2RepoClient')
+def test_repo_delete(mock_client):
+    test_config = mc.Config()
+    test_config.observe_execution = True
+    test_metrics = mc.Metrics(test_config)
+    assert len(test_metrics.history) == 0, 'initial history conditions'
+    assert len(test_metrics.failures) == 0, 'initial failure conditions'
+
+    mc.repo_delete(mock_client, 'coll', 'test_id', test_metrics)
+
+    mock_client.delete.assert_called_with('coll', 'test_id'), 'mock not called'
+    assert len(test_metrics.history) == 1, 'history conditions'
+    assert len(test_metrics.failures) == 0, 'failure conditions'
+    assert 'caom2' in test_metrics.history, 'history'
+    assert 'delete' in test_metrics.history['caom2'], 'delete'
+    assert 'test_id' in test_metrics.history['caom2']['delete'], 'obs id'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('requests.get')
+def test_http_get(mock_req):
+    # Response mock
+    class Object(object):
+
+        def __init__(self):
+            self.headers = {'Date': 'Thu, 25 Jul 2019 16:10:02 GMT',
+                            'Server': 'Apache',
+                            'Content-Length': '4',
+                            'Cache-Control': 'no-cache',
+                            'Expired': '-1',
+                            'Content-Disposition':
+                                'attachment; filename="S20080610S0045.fits"',
+                            'Connection': 'close',
+                            'Content-Type': 'application/fits'}
+
+        def raise_for_status(self):
+            pass
+
+        def iter_content(self, chunk_size):
+            return ['aaa'.encode(), 'bbb'.encode()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, a, b, c):
+            return None
+
+    test_object = Object()
+    mock_req.return_value = test_object
+    # wrong size
+    with pytest.raises(mc.CadcException) as ex:
+        mc.http_get('https://localhost/index.html', '/tmp/abc')
+
+    assert mock_req.called, 'mock not called'
+    assert 'File size error' in repr(ex.value), 'wrong failure'
+    mock_req.reset_mock()
+
+    # wrong checksum
+    test_object.headers['Content-Length'] = 6
+    test_object.headers['Content-Checksum'] = 'md5:abc'
+    with pytest.raises(mc.CadcException) as ex:
+        mc.http_get('https://localhost/index.html', '/tmp/abc')
+
+    assert mock_req.called, 'mock not called'
+    assert 'File checksum error' in repr(ex.value), 'wrong failure'
+    mock_req.reset_mock()
+
+    # checks succeed
+    test_object.headers['Content-Checksum'] = \
+        '6547436690a26a399603a7096e876a2d'
+    mc.http_get('https://localhost/index.html', '/tmp/abc')
+    assert mock_req.called, 'mock not called'

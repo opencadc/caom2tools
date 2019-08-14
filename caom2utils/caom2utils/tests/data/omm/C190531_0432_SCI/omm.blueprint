@@ -1,0 +1,6 @@
+Observation.type = OBJECT
+Observation.telescope.keywords = OBSERVER
+Plane.dataProductType = image
+Plane.calibrationLevel = 2
+Chunk.position.axis.axis1.ctype = CTYPE1
+Chunk.position.axis.axis2.ctype = CTYPE2

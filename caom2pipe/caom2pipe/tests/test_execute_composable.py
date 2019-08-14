@@ -68,12 +68,14 @@
 #
 
 import distutils.sysconfig
+import logging
 import os
 import pytest
 import sys
 
 import six
 
+from datetime import datetime
 from mock import Mock, patch
 
 from astropy.io import fits
@@ -87,6 +89,7 @@ if six.PY3:
     from caom2pipe import CadcException
     from caom2pipe import execute_composable as ec
     from caom2pipe import manage_composable as mc
+    import test_run_methods
 
 PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -111,7 +114,7 @@ if six.PY3:
             assert observation is not None, 'undefined observation'
 
     class TestStorageName(ec.StorageName):
-        def __init__(self, obs_id=None, file_name=None):
+        def __init__(self, obs_id=None, file_name=None, fname_on_disk=None):
             super(TestStorageName, self).__init__(
                 'test_obs_id', 'TEST', '*', 'test_file.fits.gz')
             self.url = 'https://test_url/'
@@ -126,40 +129,24 @@ if six.PY3:
         def needs_delete(self, observation):
             return True
 
-    def _init_config():
-        test_config = mc.Config()
-        test_config.working_directory = THIS_DIR
-        test_config.collection = 'OMM'
-        test_config.netrc_file = os.path.join(TEST_DATA_DIR, 'test_netrc')
-        test_config.work_file = 'todo.txt'
-        test_config.logging_level = 'DEBUG'
-        test_config.log_file_directory = TEST_DATA_DIR
-        test_config.failure_fqn = '{}/fail.txt'.format(TEST_DATA_DIR)
-        test_config.retry_fqn = '{}/retry.txt'.format(TEST_DATA_DIR)
-        test_config.success_fqn = '{}/good.txt'.format(TEST_DATA_DIR)
-        test_config.resource_id = 'ivo://cadc.nrc.ca/sc2repo'
-        test_config.features.run_in_airflow = False
-        test_config.features.use_file_names = False
-        test_config.stream = 'TEST'
-        return test_config
-
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_meta_create_client_execute():
-    test_config = _init_config()
+def test_meta_create_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     mc.read_obs_from_file = Mock()
     mc.read_obs_from_file.return_value = _read_obs(None)
 
     test_executor = ec.MetaCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
-        data_client_mock, repo_client_mock, meta_visitors=None)
+        data_client_mock, repo_client_mock, meta_visitors=None,
+        observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -167,30 +154,32 @@ def test_meta_create_client_execute():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --observation OMM test_obs_id '
-            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, test_source, test_source),
+            logging.debug)
         assert repo_client_mock.create.is_called, 'create call missed'
         assert test_executor.url == 'https://test_url/', 'url'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_meta_update_client_execute():
-    test_config = _init_config()
+def test_meta_update_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_executor = ec.MetaUpdateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
-        meta_visitors=None)
+        meta_visitors=None, observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -198,28 +187,31 @@ def test_meta_update_client_execute():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --in {}/test_obs_id/test_obs_id.fits.xml '
-            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
+            logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observer call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_meta_delete_create_client_execute():
-    test_config = _init_config()
+def test_meta_delete_create_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_executor = ec.MetaDeleteCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
-        data_client_mock, repo_client_mock, _read_obs(None), None)
+        data_client_mock, repo_client_mock, _read_obs(None), None,
+        observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -227,29 +219,32 @@ def test_meta_delete_create_client_execute():
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --in {}/test_obs_id/test_obs_id.fits.xml '
-            '--out {}/test_obs_id/test_obs_id.fits.xml --plugin {} '
+            '--out {}/test_obs_id/test_obs_id.fits.xml  --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
+            logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_local_meta_create_client_execute():
-    test_config = _init_config()
+def test_local_meta_create_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
 
     test_executor = ec.LocalMetaCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
-        data_client_mock, repo_client_mock, meta_visitors=None)
+        data_client_mock, repo_client_mock, meta_visitors=None,
+        observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -260,26 +255,28 @@ def test_local_meta_create_client_execute():
             '--local {}/test_file.fits --out {}/test_obs_id.fits.xml '
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
+            logging.debug)
         assert repo_client_mock.create.is_called, 'create call missed'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_local_meta_update_client_execute():
-    test_config = _init_config()
+def test_local_meta_update_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_executor = ec.LocalMetaUpdateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, _read_obs(None),
-        meta_visitors=None)
+        meta_visitors=None, observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -291,26 +288,27 @@ def test_local_meta_update_client_execute():
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
-                test_source))
+                test_source), logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_local_meta_delete_create_client_execute():
-    test_config = _init_config()
+def test_local_meta_delete_create_client_execute(test_config):
     test_cred = None
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_executor = ec.LocalMetaDeleteCreateClient(
         test_config, TestStorageName(), TEST_APP, test_cred,
         data_client_mock, repo_client_mock, meta_visitors=None,
-        observation=_read_obs(None))
+        observation=_read_obs(None), observable=test_observer)
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     try:
@@ -322,34 +320,40 @@ def test_local_meta_delete_create_client_execute():
             '--plugin {} --module {} '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
-                test_source))
+                test_source), logging.debug)
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_client_visit():
-    test_config = _init_config()
+def test_client_visit(test_config):
     test_cred = None
     data_client_mock = Mock()
     repo_client_mock = Mock()
+    test_observer = Mock()
 
-    test_executor = ec.ClientVisit(test_config,
-                                   TestStorageName(), test_cred,
-                                   data_client_mock,
-                                   repo_client_mock,
-                                   meta_visitors=None)
+    with patch('caom2pipe.manage_composable.write_obs_to_file') as write_mock:
+        test_executor = ec.ClientVisit(test_config,
+                                       TestStorageName(), test_cred,
+                                       data_client_mock,
+                                       repo_client_mock,
+                                       meta_visitors=None,
+                                       observable=test_observer)
 
-    test_executor.execute(None)
-    assert repo_client_mock.read.is_called, 'read call missed'
-    assert repo_client_mock.update.is_called, 'update call missed'
+        test_executor.execute(None)
+        repo_client_mock.read.assert_called_with('OMM', 'test_obs_id'), \
+            'read call missed'
+        assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
+        assert write_mock.is_called, 'write mock not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_data_execute():
+def test_data_execute(test_config):
     test_obs_id = 'TEST_OBS_ID'
     test_dir = os.path.join(THIS_DIR, test_obs_id)
     test_fits_fqn = os.path.join(test_dir,
@@ -366,11 +370,14 @@ def test_data_execute():
     os.listdir = Mock(return_value=[])
     os_rmdir_orig = os.rmdir
     os.rmdir = Mock()
-    test_config = _init_config()
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_cred = None
+    stat_orig = os.stat
+    os.stat = Mock()
+    os.stat.st_size.return_value = 1243
 
     try:
         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
@@ -379,7 +386,7 @@ def test_data_execute():
         test_executor = ec.DataClient(
             test_config, TestStorageName(), TEST_APP, test_cred,
             data_client_mock, repo_client_mock, test_data_visitors,
-            mc.TaskType.MODIFY)
+            mc.TaskType.MODIFY, test_observer)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -391,16 +398,18 @@ def test_data_execute():
         assert data_client_mock.get_file.is_called, 'get_file call missed'
         assert repo_client_mock.read.is_called, 'read call missed'
         assert repo_client_mock.update.is_called, 'update call missed'
+        assert test_observer.observe.is_called, 'observe not called'
 
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
         os.rmdir = os_rmdir_orig
+        os.stat = stat_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_data_local_execute():
+def test_data_local_execute(test_config):
     test_data_visitors = [TestVisit]
 
     data_client_mock = Mock()
@@ -408,12 +417,13 @@ def test_data_local_execute():
     repo_client_mock = Mock()
     repo_client_mock.read.return_value = _read_obs(None)
     test_cred = None
+    test_observer = Mock()
 
-    test_config = _init_config()
     # run the test
     test_executor = ec.LocalDataClient(
         test_config, TestStorageName(), TEST_APP,
-        test_cred, data_client_mock, repo_client_mock, test_data_visitors)
+        test_cred, data_client_mock, repo_client_mock, test_data_visitors,
+        observable=test_observer)
     try:
         test_executor.execute(None)
     except CadcException as e:
@@ -425,36 +435,42 @@ def test_data_local_execute():
     assert data_client_mock.get_file.is_called, 'get_file call missed'
     assert repo_client_mock.read.is_called, 'read call missed'
     assert repo_client_mock.update.is_called, 'update call missed'
+    assert test_observer.observe.is_called, 'observe not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_data_store():
-    test_config = _init_config()
+def test_data_store(test_config):
     data_client_mock = Mock()
     repo_client_mock = Mock()
-    test_executor = ec.StoreClient(
-        test_config, TestStorageName(), 'command_name', '', data_client_mock,
-        repo_client_mock)
+    test_observer = Mock()
+    stat_orig = os.stat
+    os.stat = Mock()
+    os.stat.st_size.return_value = 1243
     try:
-        test_executor.execute(None)
-    except CadcException as e:
-        assert False, e
+        test_executor = ec.StoreClient(
+            test_config, TestStorageName(), 'command_name', '',
+            data_client_mock, repo_client_mock, observable=test_observer)
+        try:
+            test_executor.execute(None)
+        except CadcException as e:
+            assert False, e
 
-    # check that things worked as expected - no cleanup
-    assert data_client_mock.put_file.is_called, 'put_file call missed'
+        # check that things worked as expected - no cleanup
+        assert data_client_mock.put_file.is_called, 'put_file call missed'
+    finally:
+        os.stat = stat_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_scrape():
+def test_scrape(test_config):
     # clean up from previous tests
     if os.path.exists(TestStorageName().model_file_name):
         os.remove(TestStorageName().model_file_name)
     netrc = os.path.join(TEST_DATA_DIR, 'test_netrc')
     assert os.path.exists(netrc)
 
-    test_config = _init_config()
     test_config.working_directory = TEST_DATA_DIR
     test_config.logging_level = 'INFO'
     exec_cmd_orig = mc.exec_cmd
@@ -464,7 +480,7 @@ def test_scrape():
 
     try:
         test_executor = ec.Scrape(
-            test_config, TestStorageName(), 'command_name')
+            test_config, TestStorageName(), 'command_name', observable=None)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -477,7 +493,8 @@ def test_scrape():
             '--module {} '
             '--local {}/test_file.fits.gz '
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_DATA_DIR, test_source, test_source, TEST_DATA_DIR))
+                TEST_DATA_DIR, test_source, test_source, TEST_DATA_DIR),
+            logging.info)
 
     finally:
         mc.exec_cmd = exec_cmd_orig
@@ -485,18 +502,16 @@ def test_scrape():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_data_scrape_execute():
+def test_data_scrape_execute(test_config):
     test_data_visitors = [TestVisit]
     read_orig = mc.read_obs_from_file
     mc.read_obs_from_file = Mock(side_effect=_read_obs)
     try:
 
-        test_config = _init_config()
-
         # run the test
         test_executor = ec.DataScrape(
             test_config, TestStorageName(), TEST_APP,
-            test_data_visitors)
+            test_data_visitors, observable=None)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -510,9 +525,8 @@ def test_data_scrape_execute():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_organize_executes_client():
+def test_organize_executes_client(test_config):
     test_obs_id = TestStorageName()
-    test_config = _init_config()
     test_config.use_local_files = True
     log_file_directory = os.path.join(THIS_DIR, 'logs')
     test_config.log_file_directory = log_file_directory
@@ -557,14 +571,12 @@ def test_organize_executes_client():
         test_oe = ec.OrganizeExecutes(test_config)
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
-        assert len(executors) == 4
+        assert len(executors) == 3
         assert isinstance(executors[0], ec.StoreClient), \
             type(executors[0])
         assert isinstance(executors[1],
                           ec.LocalMetaCreateClient)
         assert isinstance(executors[2], ec.LocalDataClient)
-        assert isinstance(
-            executors[3], ec.CompareChecksumClient)
         assert CadcDataClient.__init__.is_called, 'mock not called'
         assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
@@ -586,12 +598,10 @@ def test_organize_executes_client():
         test_oe = ec.OrganizeExecutes(test_config)
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
-        assert len(executors) == 3
+        assert len(executors) == 2
         assert isinstance(
             executors[0], ec.LocalMetaCreateClient)
         assert isinstance(executors[1], ec.LocalDataClient)
-        assert isinstance(
-            executors[2], ec.CompareChecksumClient)
         assert CadcDataClient.__init__.is_called, 'mock not called'
         assert CAOM2RepoClient.__init__.is_called, 'mock not called'
 
@@ -645,10 +655,11 @@ def test_organize_executes_client():
         assert executors[0].url == 'https://test_url/', 'url'
         assert executors[0].fname == 'test_obs_id.fits', 'file name'
         assert executors[0].stream == 'TEST', 'stream'
-        assert executors[0].working_dir == '{}/test_obs_id'.format(THIS_DIR), \
-            'working_dir'
+        assert executors[0].working_dir == '{}/test_obs_id'.format(
+            THIS_DIR),  'working_dir'
         assert executors[0].local_fqn == \
-            '{}/test_obs_id/test_obs_id.fits'.format(THIS_DIR), 'local_fqn'
+            '{}/test_obs_id/test_obs_id.fits'.format(
+                THIS_DIR), 'local_fqn'
         assert test_oe.success_fqn == \
             '{}/logs/todo_success_log.txt'.format(THIS_DIR), 'wrong success'
         assert test_oe.retry_fqn == \
@@ -663,9 +674,8 @@ def test_organize_executes_client():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_organize_executes_chooser():
+def test_organize_executes_chooser(test_config):
     test_obs_id = TestStorageName()
-    test_config = _init_config()
     test_config.use_local_files = True
     log_file_directory = os.path.join(THIS_DIR, 'logs')
     test_config.log_file_directory = log_file_directory
@@ -696,14 +706,12 @@ def test_organize_executes_chooser():
         test_oe = ec.OrganizeExecutes(test_config, test_chooser)
         executors = test_oe.choose(test_obs_id, 'command_name', [], [])
         assert executors is not None
-        assert len(executors) == 2
+        assert len(executors) == 1
         assert isinstance(executors[0],
                           ec.LocalMetaDeleteCreateClient)
         assert executors[0].fname == 'test_obs_id.fits', 'file name'
         assert executors[0].stream == 'TEST', 'stream'
         assert executors[0].working_dir == THIS_DIR, 'working_dir'
-        assert isinstance(executors[1],
-                          ec.CompareChecksumClient)
 
         test_config.use_local_files = False
         test_config.task_types = [mc.TaskType.INGEST]
@@ -722,9 +730,8 @@ def test_organize_executes_chooser():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_organize_executes_client_existing():
+def test_organize_executes_client_existing(test_config):
     test_obs_id = TestStorageName()
-    test_config = _init_config()
     test_config.features.use_clients = True
     repo_cmd_orig = ec.CaomExecute.repo_cmd_get_client
     CadcDataClient.__init__ = Mock(return_value=None)
@@ -732,7 +739,6 @@ def test_organize_executes_client_existing():
     try:
 
         ec.CaomExecute.repo_cmd_get_client = Mock(return_value=_read_obs(None))
-
         test_config.task_types = [mc.TaskType.INGEST]
         test_config.use_local_files = False
         test_oe = ec.OrganizeExecutes(test_config)
@@ -748,9 +754,8 @@ def test_organize_executes_client_existing():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_organize_executes_client_visit():
+def test_organize_executes_client_visit(test_config):
     test_obs_id = TestStorageName()
-    test_config = _init_config()
     test_config.features.use_clients = True
     test_config.task_types = [mc.TaskType.VISIT]
     test_config.use_local_files = False
@@ -767,30 +772,10 @@ def test_organize_executes_client_visit():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_checksum_client():
-    test_config = _init_config()
-    test_executor = ec.CompareChecksumClient(
-        test_config, TestStorageName(), 'test2caom2', None, None, None)
-    compare_orig = mc.compare_checksum_client
-
-    try:
-        mc.compare_checksum_client = Mock()
-        test_executor.execute(None)
-        assert mc.compare_checksum_client.called
-        assert test_executor.fname == 'test_file.fits.gz', 'fname'
-        assert test_executor.working_dir == THIS_DIR, 'working dir'
-        assert test_executor.model_fqn == os.path.join(
-            THIS_DIR, 'test_obs_id.fits.xml'), 'model fqn'
-        assert test_executor.url == 'https://test_url/', 'url'
-    finally:
-        mc.compare_checksum_client = compare_orig
-
-
-@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
-                    reason='support one python version')
-def test_capture_failure():
+def test_capture_failure(test_config):
+    start_s = datetime.utcnow().timestamp()
     test_obs_id = 'test_obs_id'
-    test_config = _init_config()
+    test_obs_id_2 = 'test_obs_id_2'
     log_file_directory = os.path.join(THIS_DIR, 'logs')
     test_config.log_to_file = True
     test_config.log_file_directory = log_file_directory
@@ -800,7 +785,10 @@ def test_capture_failure():
     test_config.failure_log_file_name = failure_log_file_name
     retry_file_name = 'retries.txt'
     test_config.retry_file_name = retry_file_name
+    rejected_file_name = 'rejected.yml'
+    test_config.rejected_file_name = rejected_file_name
 
+    # clean up from last execution
     if not os.path.exists(log_file_directory):
         os.mkdir(log_file_directory)
     if os.path.exists(test_config.success_fqn):
@@ -809,64 +797,64 @@ def test_capture_failure():
         os.remove(test_config.failure_fqn)
     if os.path.exists(test_config.retry_fqn):
         os.remove(test_config.retry_fqn)
-
-    # clean up from last execution
+    if os.path.exists(test_config.rejected_fqn):
+        os.remove(test_config.rejected_fqn)
 
     test_oe = ec.OrganizeExecutes(test_config)
+    test_oe.capture_failure(test_obs_id_2, None, 'Cannot build an observation')
     test_oe.capture_failure(test_obs_id, None, 'exception text')
-    test_oe.capture_success(test_obs_id, 'C121212_01234_CAL.fits.gz')
+    test_oe.capture_success(test_obs_id, 'C121212_01234_CAL.fits.gz', start_s)
+    ec._finish_run(test_oe, test_config)
 
     assert os.path.exists(test_config.success_fqn)
     assert os.path.exists(test_config.failure_fqn)
     assert os.path.exists(test_config.retry_fqn)
+    assert os.path.exists(test_config.rejected_fqn)
 
     success_content = open(test_config.success_fqn).read()
-    assert success_content.endswith('test_obs_id C121212_01234_CAL.fits.gz\n')
+    assert 'test_obs_id C121212_01234_CAL.fits.gz' in success_content, \
+        'wrong content'
     retry_content = open(test_config.retry_fqn).read()
     assert retry_content == 'test_obs_id\n'
     failure_content = open(test_config.failure_fqn).read()
-    assert failure_content.endswith('test_obs_id None exception text\n')
+    assert failure_content.endswith(
+        'test_obs_id None exception text\n'), failure_content
+    assert os.path.exists(test_config.rejected_fqn), test_config.rejected_fqn
+    rejected_content = mc.read_as_yaml(test_config.rejected_fqn)
+    assert rejected_content is not None, 'expect a result'
+    test_result = rejected_content.get('bad_metadata')
+    assert test_result is not None, 'wrong result'
+    assert len(test_result) == 1, 'wrong number of entries'
+    assert test_result[0] == test_obs_id_2, 'wrong entry'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-@patch('sys.exit', Mock(side_effect=MyExitError))
-def test_run_by_file():
+def test_run_by_file(test_config):
+    todo_fqn = os.path.join(THIS_DIR, 'todo.txt')
     try:
-        os.getcwd = Mock(return_value=TEST_DATA_DIR)
-        todo_file = os.path.join(os.getcwd(), 'todo.txt')
-        f = open(todo_file, 'w')
+        f = open(todo_fqn, 'w')
         f.write('')
         f.close()
-        ec.run_by_file(ec.StorageName, TEST_APP, 'collection',
-                       proxy=None, meta_visitors=None, data_visitors=None)
+        test_config.features.use_urls = False
+        test_config.task_types = [mc.TaskType.VISIT]
+        sys.argv = ['test_command']
+        ec.run_by_file(test_config, TestStorageName, TEST_APP,
+                       meta_visitors=None, data_visitors=None)
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
-
+    finally:
+        if os.path.exists(todo_fqn):
+            os.unlink(todo_fqn)
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-@patch('sys.exit', Mock(side_effect=MyExitError))
-def test_run_by_file_expects_retry():
-    retry_dir = '{}_0'.format(TEST_DATA_DIR)
-    if os.path.exists(retry_dir):
-        f_log = '{}/failure_log.txt'.format(retry_dir)
-        if os.path.exists(f_log):
-            os.remove(f_log)
-        r_txt = '{}/retries.txt'.format(retry_dir)
-        if os.path.exists(r_txt):
-            os.remove(r_txt)
-        s_log = '{}/success_log.txt'.format(retry_dir)
-        if os.path.exists(s_log):
-            os.remove(s_log)
-        t_log = '{}/test_obs_id.log'.format(retry_dir)
-        if os.path.exists(t_log):
-            os.remove(t_log)
-        os.rmdir(retry_dir)
+def test_run_by_file_expects_retry(test_config):
+    test_run_methods.cleanup_log_txt(test_config)
 
-    test_config = _init_config()
     test_config.log_to_file = True
     test_config.features.expects_retry = True
+    test_config.features.use_urls = False
     test_config.retry_failures = True
     test_config.retry_count = 1
     test_config.retry_file_name = 'retries.txt'
@@ -880,13 +868,14 @@ def test_run_by_file_expects_retry():
     assert test_config.need_to_retry(), 'should require retries'
 
     test_config.update_for_retry(test_retry_count)
-    assert test_config.log_file_directory == '{}_{}'.format(TEST_DATA_DIR,
-                                                            test_retry_count)
+    assert test_config.log_file_directory == '{}/data_{}'.format(
+        THIS_DIR, test_retry_count)
     assert test_config.work_file == 'retries.txt'
-    assert test_config.work_fqn == os.path.join(TEST_DATA_DIR, 'retries.txt')
+    assert test_config.work_fqn == '{}/retries.txt'.format(TEST_DATA_DIR)
     try:
-        ec._run_by_file(test_config, TestStorageName, TEST_APP,
-                        proxy=None, meta_visitors=[], data_visitors=[])
+        sys.argv = ['test_command']
+        ec.run_by_file(test_config, TestStorageName, TEST_APP,
+                       meta_visitors=[], data_visitors=[])
     except mc.CadcException as e:
         assert False, 'but the work list is empty {}'.format(e)
 
@@ -900,8 +889,7 @@ def test_run_by_file_expects_retry():
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
-def test_do_one():
-    test_config = _init_config()
+def test_do_one(test_config):
     test_config.task_types = []
     test_organizer = ec.OrganizeExecutes(test_config)
     # no client
@@ -961,17 +949,17 @@ def test_caom_name():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_local_meta_create_client_remote_storage_execute():
+def test_local_meta_create_client_remote_storage_execute(test_config):
     os_path_exists_orig = os.path.exists
     os.path.exists = Mock(return_value=True)
     os_listdir_orig = os.listdir
     os.listdir = Mock(return_value=[])
     os_rmdir_orig = os.rmdir
     os.rmdir = Mock()
-    test_config = _init_config()
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
+    test_observer = Mock()
     test_cred = None
     exec_cmd_orig = mc.exec_cmd
     mc.exec_cmd = Mock()
@@ -987,7 +975,7 @@ def test_local_meta_create_client_remote_storage_execute():
         # run the test
         test_executor = ec.LocalMetaCreateClientRemoteStorage(
             test_config, TestStorageName(), TEST_APP, test_cred,
-            data_client_mock, repo_client_mock, None)
+            data_client_mock, repo_client_mock, None, test_observer)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -1001,7 +989,9 @@ def test_local_meta_create_client_remote_storage_execute():
             '--out {}/test_obs_id.fits.xml --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, test_local, THIS_DIR, test_source, test_source))
+                TEST_APP, test_local, THIS_DIR, test_source, test_source),
+            logging.debug)
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -1012,14 +1002,13 @@ def test_local_meta_create_client_remote_storage_execute():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_local_meta_update_client_remote_storage_execute():
+def test_local_meta_update_client_remote_storage_execute(test_config):
     os_path_exists_orig = os.path.exists
     os.path.exists = Mock(return_value=True)
     os_listdir_orig = os.listdir
     os.listdir = Mock(return_value=[])
     os_rmdir_orig = os.rmdir
     os.rmdir = Mock()
-    test_config = _init_config()
     data_client_mock = Mock()
     data_client_mock.get_file_info.return_value = {'name': 'test_file.fits'}
     repo_client_mock = Mock()
@@ -1031,13 +1020,15 @@ def test_local_meta_update_client_remote_storage_execute():
     test_source = '{}/{}/{}.py'.format(distutils.sysconfig.get_python_lib(),
                                        TEST_APP, TEST_APP)
     test_local = '{}/test_obs_id.fits'.format(THIS_DIR)
+    test_observer = Mock()
 
     try:
         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
         # run the test
         test_executor = ec.LocalMetaUpdateClientRemoteStorage(
             test_config, TestStorageName(), TEST_APP, test_cred,
-            data_client_mock, repo_client_mock, _read_obs(None), None)
+            data_client_mock, repo_client_mock, _read_obs(None), None,
+            test_observer)
         try:
             test_executor.execute(None)
         except CadcException as e:
@@ -1052,8 +1043,9 @@ def test_local_meta_update_client_remote_storage_execute():
             '--out {}/test_obs_id.fits.xml --local {} --plugin {} '
             '--module {} --lineage '
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
-                TEST_APP, THIS_DIR, THIS_DIR, test_local, test_source,
-                test_source))
+                TEST_APP, THIS_DIR, THIS_DIR, test_local,
+                test_source, test_source), logging.debug)
+        assert test_observer.observe.is_called, 'observe not called'
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -1073,10 +1065,12 @@ def test_omm_name_dots():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_pull_client():
+def test_pull_client(test_config):
     # Response mock
     class Object(object):
-        pass
+
+        def __init__(self):
+            self.headers = {}
 
         def raise_for_status(self):
             pass
@@ -1090,7 +1084,6 @@ def test_pull_client():
         def __exit__(self, a, b, c):
             return None
 
-    test_config = _init_config()
     data_client_mock = Mock()
     repo_client_mock = Mock()
     test_sn = TestStorageName()
@@ -1100,18 +1093,19 @@ def test_pull_client():
     with patch('requests.get') as get_mock:
         get_mock.return_value = Object()
         test_executor = ec.PullClient(test_config, test_sn, TEST_APP, None,
-                                      data_client_mock, repo_client_mock)
+                                      data_client_mock, repo_client_mock,
+                                      observable=None)
         with pytest.raises(OSError):
             test_executor.execute(None)
-            assert data_client_mock.put_file.is_called, 'call missed'
-            assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
+
+        assert data_client_mock.put_file.is_called, 'call missed'
+        assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_choose_exceptions():
-    test_config = _init_config()
+def test_choose_exceptions(test_config):
     test_config.init_local_files = False
     test_config.task_types = [mc.TaskType.SCRAPE]
     with pytest.raises(mc.CadcException):
@@ -1127,7 +1121,7 @@ def test_choose_exceptions():
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('sys.exit', Mock(side_effect=MyExitError))
-def test_storage_name_failure():
+def test_storage_name_failure(test_config):
     class TestStorageNameFails(TestStorageName):
 
         def __init__(self):
@@ -1135,19 +1129,15 @@ def test_storage_name_failure():
 
         def is_valid(self):
             return False
-    test_config = _init_config()
     test_config.log_to_file = True
-    good_start = os.path.getmtime(test_config.success_fqn)
-    fail_start = os.path.getmtime(test_config.failure_fqn)
-    retry_start = os.path.getmtime(test_config.retry_fqn)
+    assert not os.path.exists(test_config.success_fqn)
+    assert not os.path.exists(test_config.failure_fqn)
+    assert not os.path.exists(test_config.retry_fqn)
     test_organizer = ec.OrganizeExecutes(test_config)
     test_organizer.choose(TestStorageNameFails(), 'command name', [], [])
-    good_end = os.path.getmtime(test_config.success_fqn)
-    fail_end = os.path.getmtime(test_config.failure_fqn)
-    retry_end = os.path.getmtime(test_config.retry_fqn)
-    assert good_end > good_start, 'good'
-    assert retry_end > retry_start, 'retry'
-    assert fail_end > fail_start, 'failure'
+    assert os.path.exists(test_config.success_fqn)
+    assert os.path.exists(test_config.failure_fqn)
+    assert os.path.exists(test_config.retry_fqn)
 
 
 def _communicate():

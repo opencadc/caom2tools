@@ -1,0 +1,149 @@
+# HDU 0 in C190531_0432_SCI.fits.gz:
+SIMPLE  =                    T / conforms to FITS standard                      
+BITPIX  =                   32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 2048                                                  
+NAXIS2  =                 2048                                                  
+_QUINOX =                 2000 / Reference                                      
+ORIGIN  = 'LAE'                 / Laboratoire d'Astrophysique Experimentale     
+TELESCOP= 'OMM-1.6m'           / Observatoire du Mont-Megantic                  
+INSTRUME= 'CPAPIR  '           / Instrument name                                
+OBSERVER=                       / Observer name                                 
+OBJECT  = 'J1807+50'            / Nom de l'objet                                
+DATE-OBS= '2019-06-01T04:54:10' / Universal date and time                       
+DATE    = '2019/06/01 00:54:10' / Local date and time                           
+TEXP    =              20.0000  / Exposure time asked for                       
+NLEC    =                    1  / Number of reads per coaddition                
+NCOA    =                    1  / Number of coadditions per file                
+NFIC    =                    3  / Number of files to be written                 
+NATOD   =                   32  / Number of A/D converters                      
+T1      =                       / Temperature 1 = Detector                      
+T2      =                       / Temperature 2 = Lens #8                       
+T3      =                       / Temperature 3 = Nitrogen                      
+T4      =                       / Temperature 4 =                               
+F1      = 'J'                   / Wheel 1 (X), position 2                       
+F2      = 'open    '           / Wheel 2 (Y), position 0                        
+F1NOM   = 'Wheel R ='           / Identification F1                             
+F2NOM   = 'Wheel B ='           / Identification F2                             
+HA      =            -1.293769  / Angle horaire                                 
+RA      =           271.809495 / RA always expressed in DECIMAL DEGREE (0-360)  
+DEC     =            50.257799  / Declinaison                                   
+EPOCH   =          2000.000000  / Epoque des coordonnees                        
+AIRMASS =             1.029902  / Masse d'air                                   
+ST      =            16.834785  / Temps sideral                                 
+UT      =             4.952176  / Temps universel                               
+YEAR    =          2019.416153  / Annee                                         
+FOCUS   =          4473.000000  / Foyer du telescope                            
+DOME    =             0.007709  / Position du dome                              
+ROTATOR =            89.606520  / Angle du rotateur                             
+NLECMAX =                    7  / Maximum number of reads as a function of TEXP 
+TINT    =              20.2950  / Effective integration time                    
+TEFF    =              20.2950  / Effective exposure time                       
+T1LEC   =               1.3530  / Read time for the detector                    
+TCOA    =               4.0590  / Time for one coaddition                       
+TLEC    =               2.7060  / Time for two reads                            
+TSEQ    =                    0  / Time for the last sequence                    
+TUS     =             27488512  / Acquisition time in us                        
+TEC     =               1.0000  / Time elapsed                                  
+FEC     =                    2  / File in progress                              
+LEC     = '1f      '           / Read in progress                               
+CEC     =                    1  / Coaddition in progress                        
+PEC     =                   35  / Percentage in progress                        
+DS9FIC  = /home/cpapir/190531/190531_0432.fits / Filename to display            
+DECALE1 =                    0  / Flip quadrant 1                               
+DECALE2 =                    0  / Ne decale pas le quadrant 2                   
+DECALE3 =                    1  / Flip quadrant 3                               
+DECALE4 =                    0  / Flip quadrant 4                               
+MIRPAT  = 'tim10.lod'          / Read pattern filename                          
+MIRMSG1 = 'seq 20 1 1 3 '                                                       
+MIRMSG2 = '''      '           / home/cpapir/190531/190531_0432.fits (1 of 3) in
+MIRMSG5 = '''TEFF = 20309 ms instead of 20295 ms in' / home/cpapir/190531/190531
+FILTER  = 'J       '                                                            
+SCAN    =                                                                       
+DITHER  = '[21/60]'                                                             
+PARSED  =                    1                                                  
+MJDATE  =    58635.20428240741 / Modified julian day                            
+MEDIMAGE=               2649.0 / Image median                                   
+MEDDEVIM=                276.0 / Median absolute deviation                      
+NIGHTID = '190531  '                                                            
+FILE_INI= '/data/cpapir/data/190531/190531_0432.fits'                           
+OBS_LAT =            45.455556 / Latitude of the telescope                      
+OBS_LON =           -71.152778 / Longitude of the telescope (Negative=West of Gr
+DATATYPE= 'SCIENCE '                                                            
+RATXT   = ' 18:07:14'          / RA expressed as text                           
+DECTXT  = ' 50:15:28'          / DEC expressed as text                          
+BANDPASS=                 0.16 / bandpass in micron                             
+WLEN    =                 1.25                                                  
+SFIELD  =                    1 / success/failure in fitting 2nd order astrometry
+WCSAXES =                    2 / no comment                                     
+CTYPE1  = 'RA---TAN-SIP' / TAN (gnomic) projection + SIP distortions            
+CTYPE2  = 'DEC--TAN-SIP' / TAN (gnomic) projection + SIP distortions            
+EQUINOX =               2000.0 / Equatorial coordinates definition (yr)         
+LONPOLE =                180.0 / no comment                                     
+LATPOLE =                  0.0 / no comment                                     
+CRVAL1  =        271.990438405 / RA  of reference point                         
+CRVAL2  =        50.3948787405 / DEC of reference point                         
+CRPIX1  =               1024.5 / X reference pixel                              
+CRPIX2  =               1024.5 / Y reference pixel                              
+CUNIT1  = 'deg     ' / X pixel scale units                                      
+CUNIT2  = 'deg     ' / Y pixel scale units                                      
+CD1_1   =    -0.00024787339034 / Transformation matrix                          
+CD1_2   =    6.86354961694E-06 / no comment                                     
+CD2_1   =    6.89592761057E-06 / no comment                                     
+CD2_2   =    0.000247914246038 / no comment                                     
+IMAGEW  =                 2048 / Image width,  in pixels.                       
+IMAGEH  =                 2048 / Image height, in pixels.                       
+A_ORDER =                    2 / Polynomial order, axis 1                       
+A_0_0   =                    0 / no comment                                     
+A_0_1   =                    0 / no comment                                     
+A_0_2   =    -9.1639414954E-08 / no comment                                     
+A_1_0   =                    0 / no comment                                     
+A_1_1   =    2.07949569113E-06 / no comment                                     
+A_2_0   =    -7.3700795925E-07 / no comment                                     
+B_ORDER =                    2 / Polynomial order, axis 2                       
+B_0_0   =                    0 / no comment                                     
+B_0_1   =                    0 / no comment                                     
+B_0_2   =    2.87358418826E-06 / no comment                                     
+B_1_0   =                    0 / no comment                                     
+B_1_1   =    -2.6591736903E-07 / no comment                                     
+B_2_0   =    3.91402505168E-07 / no comment                                     
+AP_ORDER=                    2 / Inv polynomial order, axis 1                   
+AP_0_0  =    8.29077959657E-06 / no comment                                     
+AP_0_1  =   -2.43288960005E-06 / no comment                                     
+AP_0_2  =    9.16332629995E-08 / no comment                                     
+AP_1_0  =    5.19309176812E-06 / no comment                                     
+AP_1_1  =   -2.07948358281E-06 / no comment                                     
+AP_2_0  =    7.36998485097E-07 / no comment                                     
+BP_ORDER=                    2 / Inv polynomial order, axis 2                   
+BP_0_0  =   -1.17419499574E-05 / no comment                                     
+BP_0_1  =    1.26550989371E-05 / no comment                                     
+BP_0_2  =   -2.87358890514E-06 / no comment                                     
+BP_1_0  =   -1.54722358873E-06 / no comment                                     
+BP_1_1  =    2.65911267991E-07 / no comment                                     
+BP_2_0  =   -3.91398612756E-07 / no comment                                     
+ZP      =    24.51346719025366 / zero point RAPER = FWHM                        
+ZP1S    =     21.2449945511204 / zero point for texp = 1s                       
+PIXSCALE=   0.8927613515691222 / Pixel scale in arcsec                          
+PIXFWHM =    2.210253568848908 / FWHM in pixels                                 
+FWHM    =    1.973228963436027 / FWHM in arcsec                                 
+COMMENT ***********************************************************             
+COMMENT * All paper using CPAPIR data must include the following  *             
+COMMENT * note in the "Acknowledgement" section :                 *             
+COMMENT * Based on observations obtained with CPAPIR at the       *             
+COMMENT * Observatoire du mont Megantic, funded by the Universite *             
+COMMENT * de Montreal, Universite Laval, the Natural Sciences and *             
+COMMENT * Engineering Research Council of Canada (NSERC), the     *             
+COMMENT * Fond quebecois de la recherche sur la Nature et les     *             
+COMMENT * technologies (FQRNT) and the Canada Economic            *             
+COMMENT * Development program.                                    *             
+COMMENT *                                                         *             
+COMMENT * Please consider contacting the PI before publication    *             
+COMMENT * of this dataset.                                        *             
+COMMENT *                                                         *             
+COMMENT * Please refer to the following paper in any publication  *             
+COMMENT * making use of CPAPIR dataset :                          *             
+COMMENT *  Artigau, E., Doyon, R., Vallee, P., Riopel, M.,        *             
+COMMENT * & Nadeau, D. 2004, Proc. SPIE, 5492, 1479               *             
+COMMENT *                                                         *             
+COMMENT * Visit : www.astro.umontreal.ca/cpapir for more details. *             
+COMMENT ***********************************************************             
