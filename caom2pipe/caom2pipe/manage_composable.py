@@ -1641,3 +1641,7 @@ def repo_update(client, observation, metrics):
     end = current()
     metrics.observe(start, end, sizeof(observation), 'update', 'caom2',
                     observation.observation_id)
+
+
+def find_missing(compare_this, to_this):
+    return [ii for ii in compare_this if ii not in to_this]

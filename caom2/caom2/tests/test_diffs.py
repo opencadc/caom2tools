@@ -69,12 +69,14 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import os
 import unittest
 
 from caom2 import Point, shape, Vertex, SegmentType, Position
 
 from .. import diff
 from .. import observation
+from .. import obs_reader_writer
 from . import caom_test_instances
 
 
@@ -181,3 +183,13 @@ class TestCaomUtil(unittest.TestCase):
 
         report = diff.get_differences(o1, o2, 'caom test instances')
         assert report is None, 'NaN comparison failure'
+
+    def test_two_files(self):
+        here = os.path.dirname(os.path.realpath(__file__))
+        test_fqn_1 = '{}/data/diff_expected.xml'.format(here)
+        test_fqn_2 = '{}/data/diff_actual.xml'.format(here)
+        reader = obs_reader_writer.ObservationReader(False)
+        test_expected = reader.read(test_fqn_1)
+        test_actual = reader.read(test_fqn_2)
+        report = diff.get_differences(test_expected, test_actual, 'obs')
+        assert report is not None, 'expect a difference'
