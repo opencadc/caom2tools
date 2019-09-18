@@ -2546,8 +2546,18 @@ class FitsParser(GenericParser):
             self.logger.debug('name is {}'.format(name))
             aug_tel = Telescope(str(name), geo_x, geo_y, geo_z)
             if keywords:
-                for k in keywords.split():
-                    aug_tel.keywords.add(k)
+                if isinstance(keywords, set):
+                    if len(keywords) == 1:
+                        temp = keywords.pop()
+                        if temp == 'none':
+                            aug_tel.keywords = set()
+                        else:
+                            aug_tel.keywords.add(temp)
+                    else:
+                        aug_tel.keywords = keywords
+                else:
+                    for k in keywords.split():
+                        aug_tel.keywords.add(k)
             return aug_tel
         else:
             return None

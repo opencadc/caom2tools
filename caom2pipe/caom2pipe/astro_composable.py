@@ -70,10 +70,12 @@
 import logging
 import io
 
+from astropy import units
 from astropy.io import fits
 from astropy.io.votable import parse_single_table
 from astropy.coordinates import EarthLocation
 from astropy.time import Time, TimeDelta
+from astropy.coordinates import SkyCoord
 
 from datetime import timedelta as dt_timedelta
 from datetime import datetime as dt_datetime
@@ -90,6 +92,7 @@ from caom2pipe import manage_composable as mc
 
 __all__ = ['convert_time', 'get_datetime', 'build_plane_time',
            'build_plane_time_interval', 'build_plane_time_sample',
+           'build_ra_dec_as_deg',
            'get_location', 'get_timedelta_in_s', 'make_headers_from_string',
            'query_tap']
 
@@ -198,6 +201,12 @@ def build_plane_time_sample(start_date, end_date):
     return caom_shape.SubInterval(
         mc.to_float(start_date.value),
         mc.to_float(end_date.value))
+
+
+def build_ra_dec_as_deg(ra, dec):
+    result = SkyCoord(ra, dec, frame='icrs',
+                      unit=(units.hourangle, units.deg))
+    return result.ra.degree, result.dec.degree
 
 
 def get_timedelta_in_s(from_value):
