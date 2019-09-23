@@ -263,18 +263,19 @@ def _get_uris(collection, fnames, obs):
             f = os.path.basename(fname).replace('.header', '')
             for p in obs.planes.values():
                 for a in p.artifacts.values():
-                    if 'ad:{}/{}'.format(collection, f) in a.uri:
+                    if ('ad:{}/{}'.format(collection, f) in a.uri or
+                            (a.uri.startswith('vos') and f in a.uri)):
                         uris.append(a.uri)
                         meta = {}
                         meta['type'] = a.content_type
                         meta['size'] = a.content_length
                         meta['md5sum'] = a.content_checksum.checksum
                         file_url = urlparse(a.uri)
-                        if file_url.scheme != 'ad':
+                        if file_url.scheme not in ['ad', 'vos']:
                             # TODO add hook to support other service providers
                             raise NotImplementedError(
-                                'Only ad type URIs supported')
-                        archive, file_id = file_url.path.split('/')
+                                'Only ad, vos type URIs supported')
+                        archive, file_id = file_url.path.split('/')[-2:]
                         file_meta[(archive, file_id)] = meta
         return uris, file_meta
     else:

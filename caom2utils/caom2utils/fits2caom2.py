@@ -1637,7 +1637,7 @@ class GenericParser:
                 result = None
                 for dt_format in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f',
                                   '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
-                                  '%Y/%m/%d %H:%M:%S']:
+                                  '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S']:
                     try:
                         result = datetime.strptime(from_value, dt_format)
                     except ValueError:
@@ -2345,8 +2345,9 @@ class FitsParser(GenericParser):
         for header in self.headers:
             sip = False
             for i in range(1, 6):
-                if ('CTYPE{}'.format(i) in header) and \
-                        ('-SIP' in header['CTYPE{}'.format(i)]):
+                if (('CTYPE{}'.format(i) in header) and
+                        isinstance(header['CTYPE{}'.format(i)], str) and
+                        ('-SIP' in header['CTYPE{}'.format(i)])):
                     sip = True
                     break
             if sip:
@@ -2545,8 +2546,18 @@ class FitsParser(GenericParser):
             self.logger.debug('name is {}'.format(name))
             aug_tel = Telescope(str(name), geo_x, geo_y, geo_z)
             if keywords:
-                for k in keywords.split():
-                    aug_tel.keywords.add(k)
+                if isinstance(keywords, set):
+                    if len(keywords) == 1:
+                        temp = keywords.pop()
+                        if temp == 'none':
+                            aug_tel.keywords = set()
+                        else:
+                            aug_tel.keywords.add(temp)
+                    else:
+                        aug_tel.keywords = keywords
+                else:
+                    for k in keywords.split():
+                        aug_tel.keywords.add(k)
             return aug_tel
         else:
             return None
@@ -3379,8 +3390,6 @@ def get_external_headers(external_url):
 def get_vos_headers(uri, subject=None):
     """
     Creates the FITS headers object from a vospace file.
-    The function uses cutouts to retrieve the miniumum amount of data,
-     minimizing the transfer time.
     :param uri: vos URI
     :param subject: user credentials. Anonymous if subject is None
     :return: List of headers corresponding to each extension. Each header is
@@ -3392,12 +3401,8 @@ def get_vos_headers(uri, subject=None):
         else:
             client = Client()
 
-        # make the smallest cutout possible, to get the least amount of data
-        # transferred, then transfer it to a temporary file
-        #
-        uri_with_cutout = '{}[1:1,1:1]'.format(uri)
         temp_filename = tempfile.NamedTemporaryFile()
-        client.copy(uri_with_cutout, temp_filename.name)
+        client.copy(uri, temp_filename.name, head=True)
         return _get_headers_from_fits(temp_filename.name)
     else:
         # this should be a programming error by now
@@ -3515,7 +3520,7 @@ def _get_cadc_meta(subject, path):
     :return:
     """
     client = CadcDataClient(subject)
-    archive, file_id = path.split('/')
+    archive, file_id = path.split('/')[-2:]
     return client.get_file_info(archive, file_id)
 
 
@@ -3635,9 +3640,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
+                meta_uri = 'file://{}'.format(local)
                 logging.debug(
                     'Using a FitsParser for vos local {}'.format(local))
-                parser = FitsParser(get_vos_headers(uri), blueprint, uri=uri)
+                parser = FitsParser(
+                    get_cadc_headers(meta_uri), blueprint, uri=uri)
             elif '.csv' in local:
                 logging.debug(
                     'Using a GenericParser for vos local {}'.format(local))
