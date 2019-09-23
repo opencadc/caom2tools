@@ -3491,10 +3491,12 @@ def _update_artifact_meta(uri, artifact, subject=None):
         raise NotImplementedError(
             'Only ad, gemini and vos type URIs supported')
 
-    if metadata['md5sum'].startswith('md5:'):
-        checksum = ChecksumURI('{}'.format(metadata['md5sum']))
-    else:
-        checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
+    checksum = None
+    if 'md5sum' in metadata:
+        if metadata['md5sum'].startswith('md5:'):
+            checksum = ChecksumURI('{}'.format(metadata['md5sum']))
+        else:
+            checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
@@ -3502,8 +3504,8 @@ def _update_artifact_meta(uri, artifact, subject=None):
                          artifact.content_length,
                          artifact.content_type))
     artifact.content_checksum = checksum
-    artifact.content_length = int(metadata['size'])
-    artifact.content_type = str(metadata['type'])
+    artifact.content_length = _to_int(metadata.get('size'))
+    artifact.content_type = _to_str(metadata.get('type'))
     logging.debug('updated artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
