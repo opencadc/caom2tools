@@ -298,6 +298,10 @@ class StorageName(object):
         return name.replace('.fits', '').replace('.gz', '').replace('.header',
                                                                     '')
 
+    @staticmethod
+    def is_preview(entry):
+        return '.jpg' in entry
+
 
 class CaomName(object):
     """The naming rules for making and decomposing CAOM URIs (i.e. Observation
@@ -965,6 +969,7 @@ class DataClient(CaomExecute):
                   'science_file': self.fname,
                   'log_file_directory': self.log_file_directory,
                   'cadc_client': self.cadc_data_client,
+                  'stream': self.stream,
                   'observable': self.observable}
         for visitor in self.data_visitors:
             try:
