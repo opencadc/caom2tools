@@ -3504,7 +3504,6 @@ def _update_artifact_meta(uri, artifact, subject=None):
         else:
             checksum = ChecksumURI('md5:{}'.format(md5sum))
         artifact.content_checksum = checksum
-
     artifact.content_length = _to_int(metadata.get('size'))
     artifact.content_type = _to_str(metadata.get('type'))
     logging.debug('updated artifact metadata - '

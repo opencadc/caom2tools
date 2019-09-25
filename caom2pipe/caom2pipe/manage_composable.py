@@ -77,6 +77,7 @@ import yaml
 
 from datetime import datetime
 from enum import Enum
+from ftputil import FTPHost
 from hashlib import md5
 from io import BytesIO
 from requests.adapters import HTTPAdapter
@@ -101,7 +102,7 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
            'record_progress', 'Work', 'look_pull_and_put', 'Observable',
            'Metrics', 'repo_create', 'repo_delete', 'repo_get',
-           'repo_update']
+           'repo_update', 'ftp_get']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 READ_BLOCK_SIZE = 8 * 1024
@@ -467,6 +468,7 @@ class Config(object):
         self._interval = None
         self._observe_execution = False
         self._observable_directory = None
+        self._source_host = None
         self._features = Features()
 
     @property
@@ -774,6 +776,16 @@ class Config(object):
     def observable_directory(self, value):
         self._observable_directory = value
 
+    @property
+    def source_host(self):
+        """Host that is the source of something. Initial use case as ftp
+        host name."""
+        return self._source_host
+
+    @source_host.setter
+    def source_host(self, value):
+        self._source_host = value
+
     def __str__(self):
         return 'working_directory:: \'{}\' ' \
                'work_fqn:: \'{}\' ' \
@@ -806,6 +818,7 @@ class Config(object):
                'interval:: \'{}\' ' \
                'observe_execution:: \'{}\' ' \
                'observable_directory:: \'{}\' ' \
+               'source_host:: \'{}\' ' \
                'logging_level:: \'{}\''.format(
                 self.working_directory, self.work_fqn, self.netrc_file,
                 self.archive, self.collection, self.task_types, self.stream,
@@ -819,7 +832,8 @@ class Config(object):
                 self.progress_file_name,
                 self.progress_fqn, self.proxy_fqn, self.state_fqn,
                 self.features, self.interval, self.observe_execution,
-                self.observable_directory, self.logging_level)
+                self.observable_directory, self.source_host,
+                self.logging_level)
 
     @staticmethod
     def _obtain_task_types(config, default=None):
@@ -895,6 +909,7 @@ class Config(object):
             self.observe_execution = config.get('observe_execution', False)
             self.observable_directory = config.get(
                 'observable_directory', None)
+            self.source_host = config.get('source_host', None)
         except KeyError as e:
             raise CadcException(
                 'Error in config file {}'.format(e))
@@ -1068,6 +1083,36 @@ def exec_cmd_redirect(cmd, fqn):
         logging.debug('Error with command {}:: {}'.format(cmd, e))
         raise CadcException('Could not execute cmd {}.'
                             'Exception {}'.format(cmd, e))
+
+
+def ftp_get(ftp_host_name, source_fqn, dest_fqn):
+    """
+    :param ftp_host_name name from which to originate the FTP transfer. Assume
+        anonymous login.
+    :param source_fqn fully-qualified name on the FTP host, of the file to be
+        transferred.
+    :param dest_fqn fully-qualified name, locally valid, for where to transfer
+        the file to.
+
+    Uses ftputil, which always transfers files in binary mode.
+    """
+    try:
+        with FTPHost(ftp_host_name, 'anonymous', '@anonymous') as ftp_host:
+            ftp_host.download(source_fqn, dest_fqn)
+            source_stats = ftp_host.stat(source_fqn)
+            ftp_host.close()
+            dest_meta = get_file_meta(dest_fqn)
+            if source_stats.st_size == dest_meta.get('size'):
+                logging.info('Downloaded {} from {}'.format(
+                    source_fqn, ftp_host_name))
+            else:
+                raise CadcException(
+                    'File size error when transferring {} from {}'.format(
+                        source_fqn, ftp_host_name))
+    except Exception as e:
+        logging.error(e)
+        raise CadcException('Could not transfer {} from {}'.format(
+            source_fqn, ftp_host_name))
 
 
 def get_cadc_headers(uri):
@@ -1472,10 +1517,19 @@ def make_seconds(from_time):
     except ValueError:
         index = len(from_time)
 
-    for fmt in [ISO_8601_FORMAT, '%Y-%m-%dT%H:%M:%S', '%d-%b-%Y %H:%M']:
+    for fmt in [ISO_8601_FORMAT, '%Y-%m-%dT%H:%M:%S', '%d-%b-%Y %H:%M',
+                '%b %d %Y', '%b %d %H:%M']:
         try:
             seconds_since_epoch = datetime.strptime(
                 from_time[:index], fmt).timestamp()
+            if fmt == '%b %d %H:%M':
+                # the format '%b %d %H:%M' results in a timestamp based on
+                # 1900, so need to set it to 'this' year
+                year = datetime.utcnow().year
+                dt = '{} {}'.format(from_time[:index], year)
+                dt_format = '{} %Y'.format(fmt)
+                seconds_since_epoch = datetime.strptime(
+                    dt, dt_format).timestamp()
             break
         except ValueError:
             seconds_since_epoch = None

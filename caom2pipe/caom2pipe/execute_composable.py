@@ -1035,7 +1035,7 @@ class PullClient(CaomExecute):
         self._create_dir()
 
         self.logger.debug('get the input file')
-        self._http_get()
+        self._transfer_get()
 
         self.logger.debug(
             'store the input file {} to ad'.format(self.local_fqn))
@@ -1046,10 +1046,14 @@ class PullClient(CaomExecute):
 
         self.logger.debug('End execute for {}'.format(__name__))
 
-    def _http_get(self):
+    def _transfer_get(self):
         """Retrieve a file via http to temporary local storage."""
         self.logger.debug('retrieve {} from {}'.format(self.fname, self.url))
         mc.http_get(self.url, self.local_fqn)
+        self._transfer_check()
+        self.logger.debug('Successfully retrieved {}'.format(self.fname))
+
+    def _transfer_check(self):
         try:
             hdulist = fits.open(self.local_fqn, memmap=True,
                                 lazy_load_hdus=False)
@@ -1061,6 +1065,36 @@ class PullClient(CaomExecute):
             raise mc.CadcException(
                 'astropy verify error {} when reading {}'.format(
                     self.local_fqn, e))
+
+
+class FtpPullClient(PullClient):
+    """Defines the pipeline step for Collection storage of a file that
+    is retrieved via ftp. The file will be temporarily stored on disk,
+    because the cadc-data client doesn't support streaming (yet)."""
+
+    def __init__(self, config, storage_name, command_name, cred_param,
+                 cadc_data_client, caom_repo_client, observable):
+        super(FtpPullClient, self).__init__(
+            config, storage_name, command_name, cred_param,
+            cadc_data_client, caom_repo_client, observable)
+        self.stream = config.stream
+        self.fname = storage_name.file_name
+        self.local_fqn = os.path.join(self.working_dir, self.fname)
+        self.ftp_host = config.source_host  # TODO TODO TODO
+        logging.error('local_fqn is {} fname is {}'.format(
+            self.local_fqn, self.fname))
+        self.ftp_fqn = storage_name._ftp_fqn
+
+    def _transfer_get(self):
+        """Retrieve a file via ftp to temporary local storage."""
+        ### Right now, using the complete file name as the entry in the
+        # todo.txt file, because ftp clients have been beyond me. Later,
+        # that might change, but I'm working on that, so deal with
+        # the info that I have for now.
+        self.logger.debug('retrieve {} from {}'.format(
+            self.ftp_fqn, self.ftp_host))
+        mc.ftp_get(self.ftp_host, self.ftp_fqn, self.local_fqn)
+        self._transfer_check()
         self.logger.debug('Successfully retrieved {}'.format(self.fname))
 
 
@@ -1476,10 +1510,17 @@ class OrganizeExecutes(object):
                                 'use_local_files must be True with '
                                 'Task Type "REMOTE"')
                 elif task_type == mc.TaskType.PULL:
-                    executors.append(
-                        PullClient(self.config, storage_name, command_name,
-                                   cred_param, cadc_data_client,
-                                   caom_repo_client, self.observable))
+                    if self.config.features.use_urls:
+                        executors.append(
+                            PullClient(self.config, storage_name, command_name,
+                                       cred_param, cadc_data_client,
+                                       caom_repo_client, self.observable))
+                    else:
+                        executors.append(
+                            FtpPullClient(self.config, storage_name,
+                                          command_name,cred_param,
+                                          cadc_data_client, caom_repo_client,
+                                          self.observable))
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
