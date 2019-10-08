@@ -1087,7 +1087,7 @@ class FtpPullClient(PullClient):
 
     def _transfer_get(self):
         """Retrieve a file via ftp to temporary local storage."""
-        ### Right now, using the complete file name as the entry in the
+        # Right now, using the complete file name as the entry in the
         # todo.txt file, because ftp clients have been beyond me. Later,
         # that might change, but I'm working on that, so deal with
         # the info that I have for now.
@@ -1518,7 +1518,7 @@ class OrganizeExecutes(object):
                     else:
                         executors.append(
                             FtpPullClient(self.config, storage_name,
-                                          command_name,cred_param,
+                                          command_name, cred_param,
                                           cadc_data_client, caom_repo_client,
                                           self.observable))
                 else:
