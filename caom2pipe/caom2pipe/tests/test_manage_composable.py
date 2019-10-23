@@ -123,7 +123,7 @@ def test_query_endpoint():
     with patch('requests.Session.get') as session_get_mock:
         test_result = mc.query_endpoint('https://localhost', timeout=25)
         assert test_result is not None, 'expected result'
-        assert session_get_mock.is_called, 'mock not called'
+        assert session_get_mock.called, 'mock not called'
         session_get_mock.assert_called_with('https://localhost', timeout=25)
 
 
@@ -319,7 +319,7 @@ def test_data_put(mock_metrics, mock_client):
     mock_client.put_file.assert_called_with(
         'TEST', 'TEST.fits', archive_stream='default',
         md5_check=True, mime_encoding=None, mime_type=None), 'mock not called'
-    assert mock_metrics.observe.is_called, 'mock not called'
+    assert mock_metrics.observe.called, 'mock not called'
     args, kwargs = mock_metrics.observe.call_args
     assert args[2] == 0, 'wrong size'
     assert args[3] == 'put', 'wrong endpoint'

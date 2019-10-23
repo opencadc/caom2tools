@@ -125,7 +125,7 @@ from caom2pipe import manage_composable as mc
 
 __all__ = ['OrganizeExecutes', 'StorageName', 'CaomName', 'OrganizeChooser',
            'run_single', 'run_by_file', 'run_single_from_state',
-           'run_from_state']
+           'run_from_state', 'run_from_storage_name_instance']
 
 
 class StorageName(object):
@@ -982,7 +982,8 @@ class DataClient(CaomExecute):
 class LocalDataClient(DataClient):
     """Defines the pipeline step for all the operations that
     require access to the file on disk. This class assumes it has access to
-    the files on disk."""
+    the files on disk - i.e. there is not need to retrieve the files from
+    the CADC storage system."""
 
     def __init__(self, config, storage_name, command_name, cred_param,
                  cadc_data_client, caom_repo_client, data_visitors,
@@ -1061,10 +1062,18 @@ class PullClient(CaomExecute):
             for h in hdulist:
                 h.verify('warn')
             hdulist.close()
-        except fits.VerifyError as e:
+        except (fits.VerifyError, OSError) as e:
             raise mc.CadcException(
-                'astropy verify error {} when reading {}'.format(
-                    self.local_fqn, e))
+                f'astropy verify error {self.local_fqn} when reading {e}')
+        # a second check that fails for some NEOSSat cases - if this works,
+        # the file might have been correctly retrieved
+        try:
+            # ignore the return value - if the file is corrupted, the getdata
+            # fails, which is the only interesting behaviour here
+            fits.getdata(self.local_fqn, ext=0)
+        except TypeError as e:
+            raise mc.CadcException(
+                f'astropy getdata error {self.local_fqn} when reading {e}')
 
 
 class FtpPullClient(PullClient):
@@ -1081,8 +1090,6 @@ class FtpPullClient(PullClient):
         self.fname = storage_name.file_name
         self.local_fqn = os.path.join(self.working_dir, self.fname)
         self.ftp_host = config.source_host  # TODO TODO TODO
-        logging.error('local_fqn is {} fname is {}'.format(
-            self.local_fqn, self.fname))
         self.ftp_fqn = storage_name._ftp_fqn
 
     def _transfer_get(self):
@@ -2028,6 +2035,93 @@ def run_from_state(config, sname, command_name, meta_visitors,
         entries to be processed, init does anything required for work.query
         to make sense.
     """
+    return _common_state(config, command_name, meta_visitors, data_visitors,
+                         bookmark_name, work, _state_middle, sname)
+
+
+def run_from_storage_name_instance(config, command_name, meta_visitors,
+                                   data_visitors, bookmark_name, work):
+    """Process a list of StorageName instances by queries that are bounded and
+    controlled by the content of a state file. No sys.exit call. Avoid an
+    interim todo.txt file.
+
+    :param config mc.Config
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods
+    :param data_visitors List of data visit methods
+    :param bookmark_name
+    :param work Work extension for the collection, query returns a list of
+        entries to be processed, init does anything required for work.query
+        to make sense.
+    """
+    return _common_state(config, command_name, meta_visitors, data_visitors,
+                         bookmark_name, work, _storage_name_middle, sname=None)
+
+
+def _storage_name_middle(organizer, entries, config, command_name,
+                         meta_visitors, data_visitors, result, sname=None):
+    organizer.complete_record_count = len(entries)
+    for storage_name in entries:
+        try:
+            result |= _do_one(config, organizer, storage_name,
+                              command_name, meta_visitors,
+                              data_visitors)
+        except Exception as e:
+            organizer.capture_failure(
+                storage_name.obs_id, storage_name.file_name,
+                e=traceback.format_exc())
+            logging.info('Execution failed for {} with {}'.format(
+                storage_name.file_name, e))
+            logging.debug(traceback.format_exc())
+            # then keep processing the rest of the lines in the file
+            result |= -1
+    _finish_run(organizer, config)
+
+    # TODO - figure this out, do it without using a todo file
+    # if config.need_to_retry():
+    #     for count in range(0, config.retry_count):
+    #         logging.warning('Beginning retry {}'.format(
+    # count + 1))
+    #         config.update_for_retry(count)
+    #         organize = OrganizeExecutes(config, chooser)
+    #         try:
+    #             _run_todo_file(config, organize, storage_name,
+    #                            command_name, meta_visitors,
+    # data_visitors)
+    #         except Exception as e:
+    #             logging.error(e)
+    #             result = -1
+    #         if not config.need_to_retry():
+    #             break
+    #     logging.warning('Done retry attempts.')
+
+    return result
+
+
+def _state_middle(organizer=None, entries=None, config=None,
+                  command_name=None, meta_visitors=None, data_visitors=None,
+                  result=None, sname=None):
+    mc.write_to_file(config.work_fqn, '\n'.join(entries))
+    result |= run_by_file(config, sname, command_name,
+                          meta_visitors, data_visitors)
+    return result
+
+
+def _common_state(config, command_name, meta_visitors,
+                  data_visitors, bookmark_name, work, middle, sname=None):
+    """Process a list of StorageName instances by queries that are bounded and
+    controlled by the content of a state file. No sys.exit call. Avoid an
+    interim todo.txt file.
+
+    :param config mc.Config
+    :param command_name extension of fits2caom2 for the collection
+    :param meta_visitors List of metadata visit methods
+    :param data_visitors List of data visit methods
+    :param bookmark_name
+    :param work Work extension for the collection, query returns a list of
+        entries to be processed, init does anything required for work.query
+        to make sense.
+    """
     if not os.path.exists(os.path.dirname(config.progress_fqn)):
         os.makedirs(os.path.dirname(config.progress_fqn))
 
@@ -2037,6 +2131,8 @@ def run_from_state(config, sname, command_name, meta_visitors,
 
     state = mc.State(config.state_fqn)
     start_time = state.get_bookmark(bookmark_name)
+    logging.error('max_ts_s is {} type is {}'.format(
+        work.max_ts_s, type(work.max_ts_s)))
     end_time = datetime.fromtimestamp(work.max_ts_s)
 
     # make sure prev_exec_time is type datetime
@@ -2052,6 +2148,7 @@ def run_from_state(config, sname, command_name, meta_visitors,
         exec_time = prev_exec_time
     else:
         cumulative = 0
+        organizer = OrganizeExecutes(config, chooser=None)
         while exec_time <= end_time:
             logging.info(
                 'Processing from {} to {}'.format(prev_exec_time, exec_time))
@@ -2059,13 +2156,8 @@ def run_from_state(config, sname, command_name, meta_visitors,
             if len(entries) > 0:
                 work.initialize()
                 logging.info('Processing {} entries.'.format(len(entries)))
-                mc.write_to_file(config.work_fqn, '\n'.join(entries))
-                result |= run_by_file(config, sname, command_name,
-                                      meta_visitors, data_visitors)
-            else:
-                logging.info('No entries in interval from {} to {}.'.format(
-                    prev_exec_time, exec_time))
-
+                result |= middle(organizer, entries, config, command_name,
+                                 meta_visitors, data_visitors, result, sname)
             cumulative += len(entries)
             mc.record_progress(
                 config, command_name, len(entries), cumulative, start_time)
@@ -2075,7 +2167,7 @@ def run_from_state(config, sname, command_name, meta_visitors,
             if exec_time == end_time:
                 # the last interval will always have the exec time
                 # equal to the end time, which will fail the while check
-                # so leave after the last interval has bee processed
+                # so leave after the last interval has been processed
                 #
                 # but the while <= check is required so that an interval
                 # smaller than exec_time -> end_time will get executed,

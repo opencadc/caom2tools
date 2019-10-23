@@ -86,7 +86,6 @@ from cadcdata import CadcDataClient
 
 
 if six.PY3:
-    from caom2pipe import CadcException
     from caom2pipe import execute_composable as ec
     from caom2pipe import manage_composable as mc
     import test_run_methods
@@ -159,9 +158,9 @@ def test_meta_create_client_execute(test_config):
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, test_source, test_source),
             logging.debug)
-        assert repo_client_mock.create.is_called, 'create call missed'
+        assert repo_client_mock.create.called, 'create call missed'
         assert test_executor.url == 'https://test_url/', 'url'
-        assert test_observer.observe.is_called, 'observe not called'
+        assert test_observer.metrics.observe.called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -192,8 +191,8 @@ def test_meta_update_client_execute(test_config):
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
             logging.debug)
-        assert repo_client_mock.update.is_called, 'update call missed'
-        assert test_observer.observe.is_called, 'observer call missed'
+        assert repo_client_mock.update.called, 'update call missed'
+        assert test_observer.metrics.observe.called, 'observer call missed'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -224,8 +223,9 @@ def test_meta_delete_create_client_execute(test_config):
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
             logging.debug)
-        assert repo_client_mock.update.is_called, 'update call missed'
-        assert test_observer.observe.is_called, 'observe not called'
+        assert repo_client_mock.delete.called, 'delete call missed'
+        assert repo_client_mock.create.called, 'create call missed'
+        assert test_observer.metrics.observe.called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -257,8 +257,8 @@ def test_local_meta_create_client_execute(test_config):
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, test_source, test_source),
             logging.debug)
-        assert repo_client_mock.create.is_called, 'create call missed'
-        assert test_observer.observe.is_called, 'observe not called'
+        assert repo_client_mock.create.called, 'create call missed'
+        assert test_observer.metrics.observe.called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -289,8 +289,8 @@ def test_local_meta_update_client_execute(test_config):
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
                 test_source), logging.debug)
-        assert repo_client_mock.update.is_called, 'update call missed'
-        assert test_observer.observe.is_called, 'observe not called'
+        assert repo_client_mock.update.called, 'update call missed'
+        assert test_observer.metrics.observe.called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -321,8 +321,9 @@ def test_local_meta_delete_create_client_execute(test_config):
             '--lineage test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, THIS_DIR, test_source,
                 test_source), logging.debug)
-        assert repo_client_mock.update.is_called, 'update call missed'
-        assert test_observer.observe.is_called, 'observe not called'
+        assert repo_client_mock.delete.called, 'delete call missed'
+        assert repo_client_mock.create.called, 'create call missed'
+        assert test_observer.metrics.observe.called, 'observe not called'
     finally:
         mc.exec_cmd = exec_cmd_orig
 
@@ -346,9 +347,9 @@ def test_client_visit(test_config):
         test_executor.execute(None)
         repo_client_mock.read.assert_called_with('OMM', 'test_obs_id'), \
             'read call missed'
-        assert repo_client_mock.update.is_called, 'update call missed'
-        assert test_observer.observe.is_called, 'observe not called'
-        assert write_mock.is_called, 'write mock not called'
+        assert repo_client_mock.update.called, 'update call missed'
+        assert test_observer.metrics.observe.called, 'observe not called'
+        assert write_mock.called, 'write mock not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -387,18 +388,15 @@ def test_data_execute(test_config):
             test_config, TestStorageName(), TEST_APP, test_cred,
             data_client_mock, repo_client_mock, test_data_visitors,
             mc.TaskType.MODIFY, test_observer)
-        try:
-            test_executor.execute(None)
-        except CadcException as e:
-            assert False, e
+        test_executor.execute(None)
 
         # check that things worked as expected
-        assert data_client_mock.get_file_info.is_called, \
+        assert data_client_mock.get_file_info.called, \
             'get_file_info call missed'
-        assert data_client_mock.get_file.is_called, 'get_file call missed'
-        assert repo_client_mock.read.is_called, 'read call missed'
-        assert repo_client_mock.update.is_called, 'update call missed'
-        assert test_observer.observe.is_called, 'observe not called'
+        assert data_client_mock.get_file.called, 'get_file call missed'
+        assert repo_client_mock.read.called, 'read call missed'
+        assert repo_client_mock.update.called, 'update call missed'
+        assert test_observer.metrics.observe.called, 'observe not called'
 
     finally:
         os.path.exists = os_path_exists_orig
@@ -424,18 +422,12 @@ def test_data_local_execute(test_config):
         test_config, TestStorageName(), TEST_APP,
         test_cred, data_client_mock, repo_client_mock, test_data_visitors,
         observable=test_observer)
-    try:
-        test_executor.execute(None)
-    except CadcException as e:
-        assert False, e
+    test_executor.execute(None)
 
     # check that things worked as expected - no cleanup
-    assert data_client_mock.get_file_info.is_called, \
-        'get_file_info call missed'
-    assert data_client_mock.get_file.is_called, 'get_file call missed'
-    assert repo_client_mock.read.is_called, 'read call missed'
-    assert repo_client_mock.update.is_called, 'update call missed'
-    assert test_observer.observe.is_called, 'observe not called'
+    assert repo_client_mock.read.called, 'read call missed'
+    assert repo_client_mock.update.called, 'update call missed'
+    assert test_observer.metrics.observe.called, 'observe not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -451,13 +443,10 @@ def test_data_store(test_config):
         test_executor = ec.StoreClient(
             test_config, TestStorageName(), 'command_name', '',
             data_client_mock, repo_client_mock, observable=test_observer)
-        try:
-            test_executor.execute(None)
-        except CadcException as e:
-            assert False, e
+        test_executor.execute(None)
 
         # check that things worked as expected - no cleanup
-        assert data_client_mock.put_file.is_called, 'put_file call missed'
+        assert data_client_mock.put_file.called, 'put_file call missed'
     finally:
         os.stat = stat_orig
 
@@ -481,10 +470,7 @@ def test_scrape(test_config):
     try:
         test_executor = ec.Scrape(
             test_config, TestStorageName(), 'command_name', observable=None)
-        try:
-            test_executor.execute(None)
-        except CadcException as e:
-            assert False, e
+        test_executor.execute(None)
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             'command_name --verbose  '
@@ -512,12 +498,9 @@ def test_data_scrape_execute(test_config):
         test_executor = ec.DataScrape(
             test_config, TestStorageName(), TEST_APP,
             test_data_visitors, observable=None)
-        try:
-            test_executor.execute(None)
-        except CadcException as e:
-            assert False, e
+        test_executor.execute(None)
 
-        assert mc.read_obs_from_file.is_called, 'read obs call missed'
+        assert mc.read_obs_from_file.called, 'read obs call missed'
 
     finally:
         mc.read_obs_from_file = read_orig
@@ -577,8 +560,8 @@ def test_organize_executes_client(test_config):
         assert isinstance(executors[1],
                           ec.LocalMetaCreateClient)
         assert isinstance(executors[2], ec.LocalDataClient)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
 
         test_config.use_local_files = False
         test_config.task_types = [mc.TaskType.INGEST,
@@ -589,8 +572,8 @@ def test_organize_executes_client(test_config):
         assert len(executors) == 2
         assert isinstance(executors[0], ec.MetaCreateClient)
         assert isinstance(executors[1], ec.DataClient)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
 
         test_config.use_local_files = True
         test_config.task_types = [mc.TaskType.INGEST,
@@ -602,8 +585,8 @@ def test_organize_executes_client(test_config):
         assert isinstance(
             executors[0], ec.LocalMetaCreateClient)
         assert isinstance(executors[1], ec.LocalDataClient)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
 
         test_config.task_types = [mc.TaskType.SCRAPE,
                                   mc.TaskType.MODIFY]
@@ -614,8 +597,8 @@ def test_organize_executes_client(test_config):
         assert len(executors) == 2
         assert isinstance(executors[0], ec.Scrape)
         assert isinstance(executors[1], ec.DataScrape)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
 
         test_config.task_types = [mc.TaskType.REMOTE]
         test_config.use_local_files = True
@@ -624,8 +607,8 @@ def test_organize_executes_client(test_config):
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.LocalMetaCreateClientRemoteStorage)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
 
         test_config.task_types = [mc.TaskType.INGEST]
         test_config.use_local_files = False
@@ -637,8 +620,8 @@ def test_organize_executes_client(test_config):
         assert len(executors) == 1
         assert isinstance(executors[0],
                           ec.MetaDeleteCreateClient)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
 
         test_config.task_types = [mc.TaskType.PULL]
         test_config.use_local_files = False
@@ -650,8 +633,8 @@ def test_organize_executes_client(test_config):
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.PullClient)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
         assert executors[0].url == 'https://test_url/', 'url'
         assert executors[0].fname == 'test_obs_id.fits', 'file name'
         assert executors[0].stream == 'TEST', 'stream'
@@ -721,8 +704,8 @@ def test_organize_executes_chooser(test_config):
         assert len(executors) == 1
         assert isinstance(executors[0],
                           ec.MetaDeleteCreateClient)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
     finally:
         mc.exec_cmd_orig = exec_cmd_orig
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
@@ -746,8 +729,8 @@ def test_organize_executes_client_existing(test_config):
         assert executors is not None
         assert len(executors) == 1
         assert isinstance(executors[0], ec.MetaUpdateClient)
-        assert CadcDataClient.__init__.is_called, 'mock not called'
-        assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+        assert CadcDataClient.__init__.called, 'mock not called'
+        assert CAOM2RepoClient.__init__.called, 'mock not called'
     finally:
         ec.CaomExecute.repo_cmd_get_client = repo_cmd_orig
 
@@ -766,8 +749,8 @@ def test_organize_executes_client_visit(test_config):
     assert executors is not None
     assert len(executors) == 1
     assert isinstance(executors[0], ec.ClientVisit)
-    assert CadcDataClient.__init__.is_called, 'mock not called'
-    assert CAOM2RepoClient.__init__.is_called, 'mock not called'
+    assert CadcDataClient.__init__.called, 'mock not called'
+    assert CAOM2RepoClient.__init__.called, 'mock not called'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -976,13 +959,10 @@ def test_local_meta_create_client_remote_storage_execute(test_config):
         test_executor = ec.LocalMetaCreateClientRemoteStorage(
             test_config, TestStorageName(), TEST_APP, test_cred,
             data_client_mock, repo_client_mock, None, test_observer)
-        try:
-            test_executor.execute(None)
-        except CadcException as e:
-            assert False, e
+        test_executor.execute(None)
 
         # check that things worked as expected
-        assert repo_client_mock.create.is_called, 'create call missed'
+        assert repo_client_mock.create.called, 'create call missed'
         assert mc.exec_cmd.called
         mc.exec_cmd.assert_called_with(
             '{} --debug None --observation OMM test_obs_id --local {} '
@@ -991,7 +971,7 @@ def test_local_meta_create_client_remote_storage_execute(test_config):
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, test_local, THIS_DIR, test_source, test_source),
             logging.debug)
-        assert test_observer.observe.is_called, 'observe not called'
+        assert test_observer.metrics.observe.called, 'observe not called'
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -1029,15 +1009,11 @@ def test_local_meta_update_client_remote_storage_execute(test_config):
             test_config, TestStorageName(), TEST_APP, test_cred,
             data_client_mock, repo_client_mock, _read_obs(None), None,
             test_observer)
-        try:
-            test_executor.execute(None)
-        except CadcException as e:
-            assert False, e
+        test_executor.execute(None)
 
         # check that things worked as expected
-        assert repo_client_mock.read.is_called, 'read call missed'
-        assert repo_client_mock.update.is_called, 'update call missed'
-        assert mc.exec_cmd.called
+        assert repo_client_mock.update.called, 'update call missed'
+        assert mc.exec_cmd.called, 'exec_cmd call missed'
         mc.exec_cmd.assert_called_with(
             '{} --debug None --in {}/test_obs_id.fits.xml '
             '--out {}/test_obs_id.fits.xml --local {} --plugin {} '
@@ -1045,7 +1021,7 @@ def test_local_meta_update_client_remote_storage_execute(test_config):
             'test_obs_id/ad:TEST/test_obs_id.fits.gz'.format(
                 TEST_APP, THIS_DIR, THIS_DIR, test_local,
                 test_source, test_source), logging.debug)
-        assert test_observer.observe.is_called, 'observe not called'
+        assert test_observer.metrics.observe.called, 'observe not called'
     finally:
         os.path.exists = os_path_exists_orig
         os.listdir = os_listdir_orig
@@ -1095,11 +1071,11 @@ def test_pull_client(test_config):
         test_executor = ec.PullClient(test_config, test_sn, TEST_APP, None,
                                       data_client_mock, repo_client_mock,
                                       observable=None)
-        with pytest.raises(OSError):
+        with pytest.raises(mc.CadcException):
             test_executor.execute(None)
 
-        assert data_client_mock.put_file.is_called, 'call missed'
-        assert ec.CaomExecute._cleanup.is_called, 'cleanup call missed'
+        assert not data_client_mock.put_file.called, 'put call done'
+        assert not ec.CaomExecute._cleanup.called, 'cleanup call executed'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -1138,6 +1114,26 @@ def test_storage_name_failure(test_config):
     assert os.path.exists(test_config.success_fqn)
     assert os.path.exists(test_config.failure_fqn)
     assert os.path.exists(test_config.retry_fqn)
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('sys.exit', Mock(side_effect=MyExitError))
+def test_ftp_pull_client_error(test_config):
+    data_client_mock = Mock()
+    repo_client_mock = Mock()
+    test_sn = TestStorageName(
+        obs_id='2019257035830', file_name='NEOS_SCI_2019257035830_cor.fits')
+    test_sn._ftp_fqn = None
+    ec.CaomExecute._cleanup = Mock()
+    test_executor = ec.FtpPullClient(test_config, test_sn, TEST_APP, None,
+                                     data_client_mock, repo_client_mock,
+                                     observable=None)
+    with pytest.raises(mc.CadcException):
+        test_executor.execute(None)
+
+    assert not data_client_mock.put_file.called, 'put file call done'
+    assert not ec.CaomExecute._cleanup.called, 'cleanup call done'
 
 
 def _communicate():

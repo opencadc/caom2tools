@@ -73,12 +73,44 @@ import six
 import shutil
 import sys
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from mock import patch, Mock
 
 if six.PY3:
     from caom2pipe import execute_composable as ec
     from caom2pipe import manage_composable as mc
+
+    class TestWork(mc.Work):
+        def __init__(self):
+            super(TestWork, self).__init__(max_ts_s=12)
+
+        def initialize(self):
+            pass
+
+        def todo(self, prev_exec_date, exec_date):
+            return []
+
+    def _common_check(test_result, do_mock, test_entry,
+                      expected_result=0, expected_call_count=1,
+                      test_obs_id=None):
+        assert test_result is not None, 'expect a result'
+        assert test_result == expected_result, 'wrong result'
+
+        assert do_mock.called, 'do mock not called'
+        assert do_mock.call_count == expected_call_count, do_mock.call_count
+        args, kwargs = do_mock.call_args
+        test_storage = args[2]
+        assert isinstance(test_storage, ec.StorageName), type(test_storage)
+        assert test_storage.obs_id == test_obs_id, 'wrong obs id'
+        assert test_storage.url == test_entry, test_storage.url
+
+    def _write_state(start_time):
+        if os.path.exists(STATE_FILE):
+            os.unlink(STATE_FILE)
+        test_bookmark = {'bookmarks': {TEST_BOOKMARK:
+                                       {'last_record': start_time}}}
+        mc.write_as_yaml(test_bookmark, STATE_FILE)
+
 
 PY_VERSION = '3.6'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -90,6 +122,7 @@ STATE_FILE = os.path.join(TEST_DATA_DIR, 'test_state.yml')
 TEST_URL = 'http://localhost/vlass.fits'
 TEST_OBS_ID = 'TEST_OBS_ID'
 TEST_ENTRY = 'TEST_ENTRY'
+TEST_BOOKMARK = 'TEST_BOOKMARK'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -107,9 +140,7 @@ def test_run_from_state(work_mock, do_mock, test_config):
 
     test_config.state_fqn = STATE_FILE
     test_config.interval = 5
-    test_state = mc.State(test_config.state_fqn)
-    test_state.save_state('gemini_timestamp', datetime.utcnow())
-
+    _write_state(datetime.utcnow())
     do_mock.return_value = 0
 
     sys.argv = ['test_command']
@@ -120,18 +151,9 @@ def test_run_from_state(work_mock, do_mock, test_config):
         command_name=COMMAND_NAME,
         meta_visitors=None,
         data_visitors=None,
-        bookmark_name='gemini_timestamp',
+        bookmark_name=TEST_BOOKMARK,
         work=work_mock)
-    assert test_result is not None, 'expect a result'
-    assert test_result == 0, 'wrong result'
-
-    assert do_mock.called, 'do mock not called'
-    assert do_mock.call_count == 1, do_mock.call_count
-    args, kwargs = do_mock.call_args
-    test_storage = args[2]
-    assert isinstance(test_storage, ec.StorageName), type(test_storage)
-    assert test_storage.obs_id is None, 'wrong obs id'
-    assert test_storage.url == TEST_ENTRY, test_storage.url
+    _common_check(test_result, do_mock, TEST_ENTRY)
 
     assert work_mock.todo.called, 'work todo mock not called'
     assert work_mock.initialize.called, 'work initialize mock not called'
@@ -166,18 +188,9 @@ def test_run_single_from_state(do_mock, test_config):
         COMMAND_NAME,
         meta_visitors=None,
         data_visitors=None)
-    assert test_result is not None, 'expect a result'
-    assert test_result == 0, 'wrong result'
+    _common_check(test_result, do_mock, test_url)
 
-    assert do_mock.called, 'do mock not called'
-    assert do_mock.call_count == 1, do_mock.call_count
-    args, kwargs = do_mock.call_args
-    test_storage = args[2]
-    assert isinstance(test_storage, ec.StorageName), type(test_storage)
-    assert test_storage.obs_id is None, 'wrong obs id'
-    assert test_storage.url == test_url, test_storage.url
-
-    assert mock_organizer.observable.rejected.persist_state().is_called, \
+    assert mock_organizer.observable.rejected.persist_state.called, \
         'organizer should be called'
 
 
@@ -244,16 +257,7 @@ def test_run_by_file(do_mock, test_config):
                                  meta_visitors=None,
                                  data_visitors=None,
                                  chooser=None)
-    assert test_result is not None, 'expect a result'
-    assert test_result == -1, 'wrong result'
-
-    assert do_mock.called, 'do mock not called'
-    assert do_mock.call_count == 2, do_mock.call_count
-    args, kwargs = do_mock.call_args
-    test_storage = args[2]
-    assert isinstance(test_storage, ec.StorageName), type(test_storage)
-    assert test_storage.obs_id == TEST_ENTRY, 'wrong obs id'
-    assert test_storage.url is None, test_storage.url
+    _common_check(test_result, do_mock, None, -1, 2, TEST_ENTRY)
 
     assert os.path.exists(REJECTED_FILE)
 
@@ -262,54 +266,9 @@ def test_run_by_file(do_mock, test_config):
                     reason='support one python version')
 @patch('caom2pipe.execute_composable._do_one')
 def test_run_by_file_use_local_files(do_mock, test_config):
-    cleanup_log_txt(test_config)
 
-    test_config.use_local_files = True
-    test_config.features.expects_retry = False
-    test_config.log_to_file = False
-    test_config.features.use_urls = False
-    test_config.features.use_file_names = False
-    test_config.working_directory = os.path.join(TEST_DATA_DIR, 'local_files')
-
-    class TestStorageName(ec.StorageName):
-        def __init__(self, file_name=None, fname_on_disk=None):
-            super(TestStorageName, self).__init__()
-            assert file_name in ['test_file.fits', 'test_file.fits.header'], \
-                'wrong file name'
-
-    test_result = ec.run_by_file(test_config,
-                                 storage_name=TestStorageName,
-                                 command_name=COMMAND_NAME,
-                                 meta_visitors=None,
-                                 data_visitors=None,
-                                 chooser=None)
-    assert test_result is not None, 'expect a result'
-    assert test_result == 0, 'wrong result'
-
-    # no local files, should not be called
-    assert do_mock.called, 'do mock not called'
-    assert do_mock.call_count == 2, do_mock.call_count
-    assert os.path.exists(REJECTED_FILE)
-
-
-@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
-                    reason='support one python version')
-@patch('caom2pipe.execute_composable._do_one')
-def test_run_by_file_use_local_files_chooser(do_mock, test_config):
-    cleanup_log_txt(test_config)
-
-    test_config.use_local_files = True
-    test_config.features.expects_retry = False
-    test_config.log_to_file = False
-    test_config.features.use_urls = False
-    test_config.features.use_file_names = False
-    test_config.working_directory = os.path.join(TEST_DATA_DIR, 'local_files')
-
-    class TestStorageName(ec.StorageName):
-        def __init__(self, file_name=None, fname_on_disk=None):
-            super(TestStorageName, self).__init__()
-            assert file_name in ['test_file.fits.gz',
-                                 'test_file.fits.header'], 'wrong file name'
+    test_files = [['test_file.fits', 'test_file.fits.header'],
+                  ['test_file.fits.gz', 'test_file.fits.header']]
 
     class TestChooser(ec.OrganizeChooser):
         def __init__(self):
@@ -318,26 +277,47 @@ def test_run_by_file_use_local_files_chooser(do_mock, test_config):
         def use_compressed(self):
             return True
 
-    test_result = ec.run_by_file(test_config,
-                                 storage_name=TestStorageName,
-                                 command_name=COMMAND_NAME,
-                                 meta_visitors=None,
-                                 data_visitors=None,
-                                 chooser=TestChooser())
-    assert test_result is not None, 'expect a result'
-    assert test_result == 0, 'wrong result'
+    for chooser in [None, TestChooser()]:
+        cleanup_log_txt(test_config)
 
-    # no local files, should not be called
-    assert do_mock.called, 'do mock not called'
-    assert do_mock.call_count == 2, do_mock.call_count
-    assert os.path.exists(REJECTED_FILE)
+        test_config.use_local_files = True
+        test_config.features.expects_retry = False
+        test_config.log_to_file = False
+        test_config.features.use_urls = False
+        test_config.features.use_file_names = False
+        test_config.working_directory = os.path.join(
+            TEST_DATA_DIR, 'local_files')
+
+        class TestStorageName(ec.StorageName):
+            def __init__(self, file_name=None, fname_on_disk=None):
+                super(TestStorageName, self).__init__()
+                if chooser is None:
+                    assert file_name in test_files[0], 'wrong file name'
+                else:
+                    assert file_name in test_files[1], 'wrong file name'
+
+        test_result = ec.run_by_file(test_config,
+                                     storage_name=TestStorageName,
+                                     command_name=COMMAND_NAME,
+                                     meta_visitors=None,
+                                     data_visitors=None,
+                                     chooser=chooser)
+        assert test_result is not None, 'expect a result'
+        assert test_result == 0, 'wrong result'
+
+        # no local files, should not be called
+        assert do_mock.called, 'do mock not called'
+        if chooser is None:
+            assert do_mock.call_count == 2, do_mock.call_count
+        else:
+            assert do_mock.call_count == 4, do_mock.call_count
+        assert os.path.exists(REJECTED_FILE)
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 def test_time_box(test_config):
-    _write_state()
-    test_bookmark = 'gemini_timestamp'
+    _write_state('23-Jul-2019 09:51')
     test_config.state_fqn = STATE_FILE
     test_config.interval = 700
 
@@ -381,7 +361,7 @@ def test_time_box(test_config):
                                     command_name=COMMAND_NAME,
                                     meta_visitors=None,
                                     data_visitors=None,
-                                    bookmark_name=test_bookmark,
+                                    bookmark_name=TEST_BOOKMARK,
                                     work=test_work)
     assert test_result is not None, 'expect a result'
 
@@ -389,7 +369,7 @@ def test_time_box(test_config):
     assert test_work.zero_called, 'missed zero'
     assert test_work.one_called, 'missed one'
     assert test_work.two_called, 'missed two'
-    assert test_state.get_bookmark(test_bookmark) == \
+    assert test_state.get_bookmark(TEST_BOOKMARK) == \
         datetime(2019, 7, 24, 9, 20)
     assert test_work.todo_call_count == 3, 'wrong todo call count'
 
@@ -397,8 +377,7 @@ def test_time_box(test_config):
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 def test_time_box_equal(test_config):
-    _write_state()
-    test_bookmark = 'gemini_timestamp'
+    _write_state('23-Jul-2019 09:51')
     test_config.state_fqn = STATE_FILE
     test_config.interval = 700
 
@@ -427,11 +406,11 @@ def test_time_box_equal(test_config):
                                     command_name=COMMAND_NAME,
                                     meta_visitors=None,
                                     data_visitors=None,
-                                    bookmark_name=test_bookmark,
+                                    bookmark_name=TEST_BOOKMARK,
                                     work=test_work)
     assert test_result is not None, 'expect a result'
     test_state = mc.State(test_config.state_fqn)
-    assert test_state.get_bookmark(test_bookmark) == \
+    assert test_state.get_bookmark(TEST_BOOKMARK) == \
         datetime(2019, 7, 23, 9, 51)
     assert test_work.todo_call_count == 0, 'wrong todo call count'
 
@@ -439,8 +418,7 @@ def test_time_box_equal(test_config):
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 def test_time_box_once_through(test_config):
-    _write_state()
-    test_bookmark = 'gemini_timestamp'
+    _write_state('23-Jul-2019 09:51')
     test_config.state_fqn = STATE_FILE
     test_config.interval = 700
 
@@ -472,13 +450,13 @@ def test_time_box_once_through(test_config):
                                     command_name=COMMAND_NAME,
                                     meta_visitors=None,
                                     data_visitors=None,
-                                    bookmark_name=test_bookmark,
+                                    bookmark_name=TEST_BOOKMARK,
                                     work=test_work)
     assert test_result is not None, 'expect a result'
 
     test_state = mc.State(test_config.state_fqn)
     assert test_work.zero_called, 'missed zero'
-    assert test_state.get_bookmark(test_bookmark) == \
+    assert test_state.get_bookmark(TEST_BOOKMARK) == \
         datetime(2019, 7, 23, 12, 20)
     assert test_work.todo_call_count == 1, 'wrong todo call count'
 
@@ -516,6 +494,83 @@ def test_run_by_file_use_local_files_gz(do_mock, test_config):
     assert do_mock.call_count == 1, do_mock.call_count
 
 
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('caom2pipe.execute_composable._do_one')
+def test_run_by_state_storage_name_instance(do_mock, test_config):
+    try:
+        now_minus_15_min = datetime.utcnow()
+        now_minus_15_min = now_minus_15_min - timedelta(minutes=15)
+        _write_state(now_minus_15_min)
+        test_work = TestWork()
+        test_config.features.use_urls = False
+        test_config.task_types = [mc.TaskType.VISIT]
+        test_config.state_fqn = STATE_FILE
+        test_config.interval = 1
+        sys.argv = ['test_command']
+        test_result = ec.run_from_storage_name_instance(
+            test_config,
+            command_name=COMMAND_NAME,
+            meta_visitors=[],
+            data_visitors=[],
+            bookmark_name=TEST_BOOKMARK,
+            work=test_work)
+        assert test_result is not None, 'expect a result'
+        assert test_result == 0, 'wrong result'
+    except mc.CadcException as e:
+        assert False, 'but the work list is empty {}'.format(e)
+
+    assert not do_mock.called, 'do mock called'
+    assert do_mock.call_count == 0, do_mock.call_count
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_run_by_state_expects_retry_storage_name_instance(test_config):
+    cleanup_log_txt(test_config)
+    now_minus_15_min = datetime.utcnow()
+    now_minus_15_min = now_minus_15_min - timedelta(minutes=15)
+    _write_state(now_minus_15_min)
+
+    test_config.log_to_file = True
+    test_config.features.expects_retry = True
+    test_config.features.use_urls = False
+    test_config.retry_failures = True
+    test_config.retry_count = 1
+    test_config.retry_file_name = 'retries.txt'
+    test_config.success_log_file_name = 'success_log.txt'
+    test_config.failure_log_file_name = 'failure_log.txt'
+    test_retry_count = 0
+    test_config.task_types = []
+    test_config.state_fqn = STATE_FILE
+    test_config.interval = 1
+    assert test_config.log_file_directory == TEST_DATA_DIR
+    assert test_config.work_file == 'todo.txt'
+
+    assert test_config.need_to_retry(), 'should require retries'
+
+    test_config.update_for_retry(test_retry_count)
+    assert test_config.log_file_directory == '{}/data_{}'.format(
+        THIS_DIR, test_retry_count)
+    assert test_config.work_file == 'retries.txt'
+    assert test_config.work_fqn == '{}/retries.txt'.format(TEST_DATA_DIR)
+    try:
+        sys.argv = ['test_command']
+        test_work = TestWork()
+        ec.run_from_storage_name_instance(
+            test_config, COMMAND_NAME, meta_visitors=[], data_visitors=[],
+            bookmark_name=TEST_BOOKMARK, work=test_work)
+    except mc.CadcException as e:
+        assert False, 'but the work list is empty {}'.format(e)
+
+    if TEST_DATA_DIR.startswith('/usr/src/app'):
+        # these checks fail on travis ....
+        assert os.path.exists('{}_0'.format(TEST_DATA_DIR))
+        assert os.path.exists(test_config.success_fqn)
+        assert os.path.exists(test_config.failure_fqn)
+        assert os.path.exists(test_config.retry_fqn)
+
+
 def cleanup_log_txt(config):
     for fqn in [config.success_fqn, config.failure_fqn, config.retry_fqn,
                 config.rejected_fqn, config.progress_fqn]:
@@ -531,12 +586,3 @@ def _write_retry(config, organizer, storage_name, command_name,
     with open(config.retry_fqn, 'w') as f:
         f.write('{}\n'.format(TEST_ENTRY))
     return -1
-
-
-def _write_state():
-    if os.path.exists(STATE_FILE):
-        os.unlink(STATE_FILE)
-    with open(STATE_FILE, 'w') as f:
-        f.write(
-            'bookmarks:\n  gemini_timestamp:\n    last_record: '
-            '23-Jul-2019 09:51\n')

@@ -77,7 +77,8 @@ from caom2pipe import execute_composable as ec
 from caom2pipe import manage_composable as mc
 
 __all__ = ['exec_footprintfinder', 'update_plane_provenance',
-           'update_observation_members']
+           'update_observation_members', 'reset_energy', 'reset_position',
+           'reset_observable']
 
 
 def exec_footprintfinder(chunk, science_fqn, log_file_directory, obs_id,
@@ -211,3 +212,30 @@ def update_observation_members(observation):
                 logging.debug('Adding Observation URI {}'.format(
                     inpt.get_observation_uri()))
     mc.update_typed_set(observation.members, members_inputs)
+
+
+def reset_energy(chunk):
+    """
+    :param chunk: Set the energy component of a chunk to None as a side-effect.
+    """
+    chunk.energy = None
+    chunk.energy_axis = None
+
+
+def reset_position(chunk):
+    """
+    :param chunk: Set the position component of a chunk to None as a
+    side-effect.
+    """
+    chunk.position = None
+    chunk.position_axis_1 = None
+    chunk.position_axis_2 = None
+
+
+def reset_observable(chunk):
+    """
+    :param chunk: Set the observable component of a chunk to None as a
+    side-effect.
+    """
+    chunk.observable = None
+    chunk.observable_axis = None

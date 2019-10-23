@@ -127,3 +127,37 @@ def test_exec_footprintfinder():
     assert test_chunk.position.axis.bounds.vertices[16] == \
         ValueCoord2D(coord1=105.165491,
                      coord2=56.050318), 'wrong last vertex'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_reset():
+    test_obs_file = 'fpf_start_obs.xml'
+    test_obs = mc.read_obs_from_file(os.path.join(
+        TEST_DATA_DIR, test_obs_file))
+    test_chunk = \
+        test_obs.planes['VLASS1.2.T07t14.J084202-123000.'
+                        'quicklook.v1'].artifacts[
+            'ad:VLASS/VLASS1.2.ql.T07t14.J084202-123000.10.2048.v1.I.iter1.'
+            'image.pbcor.tt0.subim.fits'].parts[
+            '0'].chunks.pop()
+
+    assert test_chunk is not None, 'chunk expected'
+    assert test_chunk.position is not None, 'position expected'
+    assert test_chunk.position.axis is not None, 'axis expected'
+    assert test_chunk.position.axis.bounds is None, 'bounds not expected'
+    assert test_chunk.energy is not None, 'energy expected'
+    assert test_chunk.energy_axis is not None, 'energy axis expected'
+
+    cc.reset_position(test_chunk)
+    assert test_chunk.position is None, 'position not expected'
+    assert test_chunk.position_axis_1 is None, 'axis 1 not expected'
+    assert test_chunk.position_axis_2 is None, 'axis 2 not expected'
+
+    cc.reset_energy(test_chunk)
+    assert test_chunk.energy is None, 'energy not expected'
+    assert test_chunk.energy_axis is None, 'energy axis not expected'
+
+    cc.reset_observable(test_chunk)
+    assert test_chunk.observable is None, 'observable not expected'
+    assert test_chunk.observable_axis is None, 'observable axis not expected'
