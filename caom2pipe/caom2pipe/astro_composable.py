@@ -204,6 +204,10 @@ def build_plane_time_sample(start_date, end_date):
 
 
 def build_ra_dec_as_deg(ra, dec):
+    """
+    Common code to go from units.hourangle, units.deg to both values in
+    units.deg
+    """
     result = SkyCoord(ra, dec, frame='icrs',
                       unit=(units.hourangle, units.deg))
     return result.ra.degree, result.dec.degree

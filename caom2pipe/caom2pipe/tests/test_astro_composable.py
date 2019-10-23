@@ -184,3 +184,15 @@ def test_query_tap(caps_mock, base_mock, test_config):
     assert result is not None, 'expect a result'
     assert len(result) == 1, 'wrong amount of test data'
     assert result['count'] == 3212556, 'wrong test data'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_build_ra_dec_as_deg():
+    test_ra = '18:51:46.723100'
+    test_dec = '+00:35:32.36300'
+    result_ra, result_dec = ac.build_ra_dec_as_deg(test_ra, test_dec)
+    assert result_ra is not None
+    assert math.isclose(result_ra,  282.9446795833333), 'wrong ra value'
+    assert result_dec is not None
+    assert math.isclose(result_dec, 0.5923230555555556), 'wrong dec value'
