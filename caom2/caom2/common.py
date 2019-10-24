@@ -182,14 +182,14 @@ class CaomObject(object):
 class AbstractCaomEntity(CaomObject):
     """Class that defines the persistence unique ID and last mod date """
 
-    def __init__(self, fulluuid=True):
+    def __init__(self, fulluuid=True, meta_producer=None):
         super(CaomObject, self).__init__()
         self._id = AbstractCaomEntity._gen_id(fulluuid)
         self.last_modified = None
         self.max_last_modified = None
         self.meta_checksum = None
         self.acc_meta_checksum = None
-        self.meta_producer = None
+        self._meta_producer = meta_producer
 
     @classmethod
     def _gen_id(cls, fulluuid=True):
@@ -273,23 +273,13 @@ class AbstractCaomEntity(CaomObject):
                                  False)
             self._acc_meta_checksum = value
 
-    @property
-    def meta_producer(self):
+    def get_meta_producer(self):
         """TBD
 
         type: URI
 
         """
         return self._meta_producer
-
-    @meta_producer.setter
-    def meta_producer(self, value):
-        if value is None:
-            self._meta_producer = None
-        else:
-            caom_util.type_check(value, ChecksumURI, "meta_producer",
-                                 False)
-            self._meta_producer = value
 
 
 class VocabularyTerm(object):

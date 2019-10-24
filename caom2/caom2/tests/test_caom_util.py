@@ -144,10 +144,6 @@ class TestCaomUtil(unittest.TestCase):
 
         with pytest.raises(ValueError):
             caom_util.validate_path_component(energy, "energyfield",
-                                              "some:test/path")
-
-        with pytest.raises(ValueError):
-            caom_util.validate_path_component(energy, "energyfield",
                                               "some:test||path")
 
         with pytest.raises(ValueError):

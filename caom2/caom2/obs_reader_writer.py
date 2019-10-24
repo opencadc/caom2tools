@@ -166,6 +166,7 @@ class ObservationReader(object):
         element_max_last_modified = element.get("{" + ns + "}maxLastModified")
         element_meta_checksum = element.get("{" + ns + "}metaChecksum")
         element_acc_meta_checksum = element.get("{" + ns + "}accMetaChecksum")
+        element_meta_producer = element.get("{" + ns + "}metaProducer")
 
         caom2_entity._id = uuid.UUID(element_id)
 
@@ -181,6 +182,9 @@ class ObservationReader(object):
         if element_acc_meta_checksum:
             caom2_entity._acc_meta_checksum = common.ChecksumURI(
                 element_acc_meta_checksum)
+        if element_meta_producer:
+            caom2_entity._meta_producer = common.ChecksumURI(
+                element_meta_producer)
 
     def _get_child_element(self, element_tag, parent, ns, required):
         for element in list(parent):
@@ -1913,6 +1917,9 @@ class ObservationWriter(object):
             if entity._acc_meta_checksum is not None:
                 self._add_attribute(
                     "accMetaChecksum", entity._acc_meta_checksum.uri, element)
+            if entity._meta_producer is not None:
+                self._add_attribute(
+                    "metaProducer", entity.get_meta_producer().uri, element)
 
     def _add_algorithm_element(self, algorithm, parent):
         if algorithm is None:

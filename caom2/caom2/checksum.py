@@ -336,6 +336,8 @@ def update_caom_checksum(checksum, entity, parent=None):
     # get the id first
     if isinstance(entity, AbstractCaomEntity):
         update_checksum(checksum, entity._id)
+        if entity._meta_producer:
+            update_checksum(checksum, entity._meta_producer)
 
     # determine the excluded fields if necessary
     checksum_excluded_fields = []
