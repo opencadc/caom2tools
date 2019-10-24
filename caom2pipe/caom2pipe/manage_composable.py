@@ -77,6 +77,7 @@ import yaml
 
 from datetime import datetime
 from enum import Enum
+from ftplib import FTP
 from ftputil import FTPHost
 from hashlib import md5
 from io import BytesIO
@@ -102,7 +103,7 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
            'record_progress', 'Work', 'look_pull_and_put', 'Observable',
            'Metrics', 'repo_create', 'repo_delete', 'repo_get',
-           'repo_update', 'ftp_get']
+           'repo_update', 'ftp_get', 'ftp_get_timeout']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 READ_BLOCK_SIZE = 8 * 1024
@@ -1115,6 +1116,40 @@ def ftp_get(ftp_host_name, source_fqn, dest_fqn):
             source_fqn, ftp_host_name))
 
 
+def ftp_get_timeout(ftp_host_name, source_fqn, dest_fqn, timeout=20):
+    """
+    :param ftp_host_name name from which to originate the FTP transfer. Assume
+        anonymous login.
+    :param source_fqn fully-qualified name on the FTP host, of the file to be
+        transferred.
+    :param dest_fqn fully-qualified name, locally valid, for where to transfer
+        the file to.
+    :param timeout in seconds for blocking operations
+
+    Uses ftplib, which supports specifying timeouts in the connection.
+    """
+    try:
+        with FTP(ftp_host_name, timeout=timeout) as ftp_host:
+            ftp_host.login()
+            with open(dest_fqn, 'wb') as fp:
+                ftp_host.retrbinary(f'RETR {source_fqn}', fp.write)
+            ftp_host.voidcmd('TYPE I')
+            source_size = ftp_host.size(source_fqn)
+            ftp_host.quit()
+            dest_meta = get_file_meta(dest_fqn)
+            if source_size == dest_meta.get('size'):
+                logging.info('Downloaded {} from {}'.format(
+                    source_fqn, ftp_host_name))
+            else:
+                raise CadcException(
+                    'File size error when transferring {} from {}'.format(
+                        source_fqn, ftp_host_name))
+    except Exception as e:
+        logging.error(e)
+        raise CadcException('Could not transfer {} from {}'.format(
+            source_fqn, ftp_host_name))
+
+
 def get_cadc_headers(uri):
     """
     Creates the FITS headers object by fetching the FITS headers of a CADC
@@ -1396,8 +1431,8 @@ def data_put(client, working_directory, file_name, archive, stream='raw',
              mime_type=None, mime_encoding=None, metrics=None):
     """
     Make a copy of a locally available file by writing it to CADC. Assumes
-    file and directory locations are correct. Does a checksum comparison to
-    test whether the file made it to storage as it exists on disk.
+    file and directory locations are correct. Requires a checksum comparison
+    by the client.
 
     :param client: The CadcDataClient for write access to CADC storage.
     :param working_directory: Where 'file_name' exists locally.

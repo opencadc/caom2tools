@@ -1100,7 +1100,7 @@ class FtpPullClient(PullClient):
         # the info that I have for now.
         self.logger.debug('retrieve {} from {}'.format(
             self.ftp_fqn, self.ftp_host))
-        mc.ftp_get(self.ftp_host, self.ftp_fqn, self.local_fqn)
+        mc.ftp_get_timeout(self.ftp_host, self.ftp_fqn, self.local_fqn)
         self._transfer_check()
         self.logger.debug('Successfully retrieved {}'.format(self.fname))
 
