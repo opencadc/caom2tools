@@ -2131,8 +2131,6 @@ def _common_state(config, command_name, meta_visitors,
 
     state = mc.State(config.state_fqn)
     start_time = state.get_bookmark(bookmark_name)
-    logging.error('max_ts_s is {} type is {}'.format(
-        work.max_ts_s, type(work.max_ts_s)))
     end_time = datetime.fromtimestamp(work.max_ts_s)
 
     # make sure prev_exec_time is type datetime
