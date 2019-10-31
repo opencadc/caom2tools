@@ -125,7 +125,8 @@ from caom2pipe import manage_composable as mc
 
 __all__ = ['OrganizeExecutes', 'StorageName', 'CaomName', 'OrganizeChooser',
            'run_single', 'run_by_file', 'run_single_from_state',
-           'run_from_state', 'run_from_storage_name_instance']
+           'run_from_state', 'run_from_storage_name_instance',
+           'run_by_file_storage_name']
 
 
 class StorageName(object):
@@ -1982,13 +1983,13 @@ def run_by_file(config, storage_name, command_name, meta_visitors,
 
 
 def run_by_file_storage_name(config, command_name, meta_visitors,
-                             data_visitors, work, chooser=None):
+                             data_visitors, name_builder, chooser=None):
     """Process all entries by a list of work provided by the 'work'
     parameter.
 
     :param config configures the execution of the application
     :param command_name extension of fits2caom2 for the collection
-    :param work the list of work, should be StorageName instances
+    :param name_builder builds StorageName instances cleverly
     :param meta_visitors List of metadata visit methods.
     :param data_visitors List of data visit methods.
     :param chooser OrganizeChooser instance for detailed CaomExecute
@@ -2000,18 +2001,20 @@ def run_by_file_storage_name(config, command_name, meta_visitors,
 
     result = 0
 
-    if config.use_local_files:
-        raise NotImplementedError(
-            'This option combination is not supported yet.')
-    else:
-        work.initialize()
-        organizer = OrganizeExecutes(config, chooser)
-        entries = work.todo()
-        organizer.complete_record_count = len(entries)
-        for entry in entries:
+    organizer = OrganizeExecutes(config, chooser)
+
+    with open(organizer.todo_fqn) as f:
+        todo_list_length = sum(1 for _ in f)
+    organizer.complete_record_count = todo_list_length
+
+    with open(organizer.todo_fqn) as f:
+        for line in f:
             try:
-                result |= _do_one(config, organizer, entry, command_name,
-                                  meta_visitors, data_visitors)
+                entry = line.strip()
+                storage_name = name_builder.build(entry)
+                result |= _do_one(config, organizer, storage_name,
+                                  command_name, meta_visitors,
+                                  data_visitors)
             except Exception as e:
                 organizer.capture_failure(
                     entry, entry, e=traceback.format_exc())
@@ -2020,7 +2023,7 @@ def run_by_file_storage_name(config, command_name, meta_visitors,
                 logging.debug(traceback.format_exc())
                 # then keep processing the rest of the entries
                 result = -1
-        _finish_run(organizer, config)
+    _finish_run(organizer, config)
 
         # if config.need_to_retry():  # TODO
         #     for count in range(0, config.retry_count):
@@ -2038,8 +2041,8 @@ def run_by_file_storage_name(config, command_name, meta_visitors,
         #             break
         #     logging.warning('Done retry attempts.')
 
-        logging.info('Done, processed {} of {} correctly.'.format(
-            organizer.success_count, organizer.complete_record_count))
+    logging.info('Done, processed {} of {} correctly.'.format(
+        organizer.success_count, organizer.complete_record_count))
     return result
 
 

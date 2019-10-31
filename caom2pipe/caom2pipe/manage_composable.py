@@ -101,8 +101,8 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'get_cadc_headers', 'get_lineage', 'get_artifact_metadata',
            'data_put', 'data_get', 'build_uri', 'make_seconds',
            'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
-           'record_progress', 'Work', 'look_pull_and_put', 'Observable',
-           'Metrics', 'repo_create', 'repo_delete', 'repo_get',
+           'record_progress', 'Builder', 'Work', 'look_pull_and_put',
+           'Observable', 'Metrics', 'repo_create', 'repo_delete', 'repo_get',
            'repo_update', 'ftp_get', 'ftp_get_timeout']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
@@ -252,6 +252,24 @@ class State(object):
                 self.logger.warning('No record found for {}'.format(key))
         else:
             self.logger.warning('No bookmarks found for {}'.format(key))
+
+
+class Builder(object):
+    """"Abstract-like class that defines the operations used to build
+    StorageName instances"""
+
+    def __init__(self, config):
+        """
+        Ctor
+        :param config: the source of all knowledge.
+        """
+        self._config = config
+
+    def build(self, entry):
+        """Returns an instance of StorageName, based on all the configuration
+         information, and the knowledge about the relationship between
+         file names and CAOM2 Observations that is specific to a Collection."""
+        raise NotImplementedError
 
 
 class Work(object):
