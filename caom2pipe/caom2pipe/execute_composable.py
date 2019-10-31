@@ -1981,6 +1981,68 @@ def run_by_file(config, storage_name, command_name, meta_visitors,
     return result
 
 
+def run_by_file_storage_name(config, command_name, meta_visitors,
+                             data_visitors, work, chooser=None):
+    """Process all entries by a list of work provided by the 'work'
+    parameter.
+
+    :param config configures the execution of the application
+    :param command_name extension of fits2caom2 for the collection
+    :param work the list of work, should be StorageName instances
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param chooser OrganizeChooser instance for detailed CaomExecute
+        descendant choices
+    """
+    logger = logging.getLogger()
+    logger.setLevel(config.logging_level)
+    logging.debug(config)
+
+    result = 0
+
+    if config.use_local_files:
+        raise NotImplementedError(
+            'This option combination is not supported yet.')
+    else:
+        work.initialize()
+        organizer = OrganizeExecutes(config, chooser)
+        entries = work.todo()
+        organizer.complete_record_count = len(entries)
+        for entry in entries:
+            try:
+                result |= _do_one(config, organizer, entry, command_name,
+                                  meta_visitors, data_visitors)
+            except Exception as e:
+                organizer.capture_failure(
+                    entry, entry, e=traceback.format_exc())
+                logging.info('Execution failed for {} with {}'.format(
+                    entry, e))
+                logging.debug(traceback.format_exc())
+                # then keep processing the rest of the entries
+                result = -1
+        _finish_run(organizer, config)
+
+        # if config.need_to_retry():  # TODO
+        #     for count in range(0, config.retry_count):
+        #         logging.warning('Beginning retry {}'.format(count + 1))
+        #         config.update_for_retry(count)
+        #         organize = OrganizeExecutes(config, chooser)
+        #         try:
+        #             _run_todo_file(config, organize, storage_name,
+        #                            command_name, meta_visitors,
+        #                            data_visitors)
+        #         except Exception as e:
+        #             logging.error(e)
+        #             result = -1
+        #         if not config.need_to_retry():
+        #             break
+        #     logging.warning('Done retry attempts.')
+
+        logging.info('Done, processed {} of {} correctly.'.format(
+            organizer.success_count, organizer.complete_record_count))
+    return result
+
+
 def run_single(config, storage_name, command_name, meta_visitors,
                data_visitors, chooser=None):
     """Process a single entry by StorageName detail.
@@ -2061,6 +2123,7 @@ def run_from_storage_name_instance(config, command_name, meta_visitors,
 def _storage_name_middle(organizer, entries, config, command_name,
                          meta_visitors, data_visitors, result, sname=None):
     organizer.complete_record_count = len(entries)
+    organizer.success_count = 0
     for storage_name in entries:
         try:
             result |= _do_one(config, organizer, storage_name,
@@ -2131,8 +2194,6 @@ def _common_state(config, command_name, meta_visitors,
 
     state = mc.State(config.state_fqn)
     start_time = state.get_bookmark(bookmark_name)
-    logging.error('max_ts_s is {} type is {}'.format(
-        work.max_ts_s, type(work.max_ts_s)))
     end_time = datetime.fromtimestamp(work.max_ts_s)
 
     # make sure prev_exec_time is type datetime
