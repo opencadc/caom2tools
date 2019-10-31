@@ -77,6 +77,10 @@ centre. The details about the model and its components can be found at:
 
 http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2/
 """
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    import aenum  # noqa
 from .artifact import *  # noqa
 from .caom_util import *  # noqa
 from .checksum import *  # noqa

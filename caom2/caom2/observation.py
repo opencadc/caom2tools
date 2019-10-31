@@ -75,37 +75,45 @@ from __future__ import (absolute_import, division, print_function,
 from datetime import datetime
 
 import six
-from aenum import Enum
 from builtins import str
+import warnings
+from deprecated import deprecated
 
 from . import caom_util
 from .caom_util import int_32
-from .common import AbstractCaomEntity
-from .common import CaomObject
-from .common import ObservationURI
+from .common import AbstractCaomEntity, CaomObject, ObservationURI, \
+    VocabularyTerm, OrderedEnum
+from .common import _CAOM_VOCAB_NS
 from .plane import Plane
 from .shape import Point
+from six.moves.urllib.parse import urlsplit
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    from aenum import Enum
 
 __all__ = ['ObservationIntentType', 'Status', 'TargetType',
            'Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
-           'CompositeObservation', 'Environment', 'Instrument', 'Proposal',
-           'Requirements', 'Target', 'TargetPosition', 'Telescope']
+           'DerivedObservation', 'Environment', 'Instrument', 'Proposal',
+           'Requirements', 'Target', 'TargetPosition', 'Telescope',
+           'CompositeObservation']
 
 
-class ObservationIntentType(Enum):
+class ObservationIntentType(OrderedEnum):
     """
     CALIBRATION: "calibration"
     SCIENCE: "science"
     """
-    CALIBRATION = "calibration"
+    # __order__ required for Python2.7
+    __order__ = "SCIENCE CALIBRATION"
     SCIENCE = "science"
+    CALIBRATION = "calibration"
 
 
 class Status(Enum):
     """
     FAIL: "fail"
     """
-    FAIL = "fail"
+    FAIL = VocabularyTerm(_CAOM_VOCAB_NS, "fail", True).get_value()
 
 
 class TargetType(Enum):
@@ -113,8 +121,8 @@ class TargetType(Enum):
     FIELD: "field",
     OBJECT: "object"
     """
-    FIELD = "field"
-    OBJECT = "object"
+    FIELD = VocabularyTerm(_CAOM_VOCAB_NS, "field", True).get_value()
+    OBJECT = VocabularyTerm(_CAOM_VOCAB_NS, "object", True).get_value()
 
 
 class Observation(AbstractCaomEntity):
@@ -177,6 +185,7 @@ class Observation(AbstractCaomEntity):
                  instrument=None,
                  target=None,
                  meta_release=None,
+                 meta_read_groups=None,
                  planes=None,
                  environment=None,
                  target_position=None,
@@ -198,7 +207,8 @@ class Observation(AbstractCaomEntity):
 
         self.collection = collection
         self.observation_id = observation_id
-        assert algorithm, 'Algorithm required'
+        if not algorithm:
+            raise AttributeError('Algorithm required')
         self.algorithm = algorithm
 
         self._uri = ObservationURI.get_observation_uri(collection,
@@ -215,10 +225,8 @@ class Observation(AbstractCaomEntity):
         self.target_position = target_position
         self.requirements = requirements
         self.meta_release = meta_release
-        if planes is None:
-            self.planes = caom_util.TypedOrderedDict(Plane, )
-        else:
-            self.planes = planes
+        self.meta_read_groups = meta_read_groups
+        self.planes = planes
 
     # Properties
     @property
@@ -272,8 +280,11 @@ class Observation(AbstractCaomEntity):
 
     @planes.setter
     def planes(self, value):
-        caom_util.type_check(value, caom_util.TypedOrderedDict, 'planes')
-        self._planes = value
+        if value is None:
+            self.planes = caom_util.TypedOrderedDict(Plane, )
+        else:
+            caom_util.type_check(value, caom_util.TypedOrderedDict, 'planes')
+            self._planes = value
 
     @property
     def algorithm(self):
@@ -461,6 +472,22 @@ class Observation(AbstractCaomEntity):
         caom_util.type_check(value, datetime, 'meta_release')
         self._meta_release = value
 
+    @property
+    def meta_read_groups(self):
+        return self._meta_read_groups
+
+    @meta_read_groups.setter
+    def meta_read_groups(self, value):
+        """
+            value is a caom_util.URISet
+        """
+        if value is None:
+            self._meta_read_groups = caom_util.URISet()
+        else:
+            caom_util.type_check(value, caom_util.URISet,
+                                 'meta_read_groups')
+            self._meta_read_groups = value
+
 
 class Algorithm(CaomObject):
     """
@@ -531,6 +558,7 @@ class SimpleObservation(Observation):
                  instrument=None,
                  target=None,
                  meta_release=None,
+                 meta_read_groups=None,
                  planes=None,
                  environment=None,
                  target_position=None
@@ -552,6 +580,7 @@ class SimpleObservation(Observation):
                                                 instrument,
                                                 target,
                                                 meta_release,
+                                                meta_read_groups,
                                                 planes,
                                                 environment,
                                                 target_position
@@ -574,13 +603,76 @@ class SimpleObservation(Observation):
         self._algorithm = value
 
 
-class CompositeObservation(Observation):
+class DerivedObservation(Observation):
     """
-    Composite Observation
+    Derived Observation
 
-     A CompositeObservation is created by collecting data from multiple
-    SimpleObservations together.
+     A DerivedObservation is created by collecting data from multiple
+    SimpleObservations together. They could represent:
+        - stacked observations
+        - observations that are extracted subsets of other observations
+        - virtual observations that are define groups but don't have products
 
+    """
+
+    def __init__(self,
+                 collection,
+                 observation_id,
+                 algorithm,
+                 sequence_number=None,
+                 intent=None,
+                 type=None,
+                 proposal=None,
+                 telescope=None,
+                 instrument=None,
+                 target=None,
+                 meta_release=None,
+                 meta_read_groups=None,
+                 planes=None,
+                 environment=None,
+                 target_position=None):
+        super(DerivedObservation, self).__init__(
+              collection=collection,
+              observation_id=observation_id,
+              algorithm=algorithm,
+              sequence_number=sequence_number,
+              intent=intent,
+              type=type,
+              proposal=proposal,
+              telescope=telescope,
+              instrument=instrument,
+              target=target,
+              meta_release=meta_release,
+              meta_read_groups=meta_read_groups,
+              planes=planes,
+              environment=environment,
+              target_position=target_position)
+        self._members = caom_util.TypedSet(ObservationURI, )
+
+    @property
+    def algorithm(self):
+        return super(DerivedObservation, self).algorithm
+
+    @algorithm.setter
+    def algorithm(self, value):
+        if value is None:
+            raise ValueError('Algorithm name required')
+        if isinstance(value, str):
+            value = Algorithm(value)
+        if value.name == SimpleObservation._DEFAULT_ALGORITHM_NAME:
+            raise ValueError("cannot set DerivedObservation.algorithm to {0}"
+                             " (reserved for SimpleObservation)".format(value))
+        self._algorithm = value
+
+    @property
+    def members(self):
+        return self._members
+
+
+@deprecated(version='CAOM2.4', reason='Replaced by DerivedObservation')
+class CompositeObservation(DerivedObservation):
+    """
+    deprecated class
     """
 
     def __init__(self,
@@ -597,43 +689,24 @@ class CompositeObservation(Observation):
                  meta_release=None,
                  planes=None,
                  environment=None,
-                 target_position=None
-                 ):
-        super(CompositeObservation, self).__init__(collection,
-                                                   observation_id,
-                                                   algorithm,
-                                                   sequence_number,
-                                                   intent,
-                                                   type,
-                                                   proposal,
-                                                   telescope,
-                                                   instrument,
-                                                   target,
-                                                   meta_release,
-                                                   planes,
-                                                   environment,
-                                                   target_position
-                                                   )
-        self._members = caom_util.TypedSet(ObservationURI, )
-
-    @property
-    def algorithm(self):
-        return super(CompositeObservation, self).algorithm
-
-    @algorithm.setter
-    def algorithm(self, value):
-        if value is None:
-            raise ValueError('Algorithm name required')
-        if isinstance(value, str):
-            value = Algorithm(value)
-        if value.name == SimpleObservation._DEFAULT_ALGORITHM_NAME:
-            raise ValueError("cannot set CompositeObservation.algorithm to {0}"
-                             " (reserved for SimpleObservation)".format(value))
-        self._algorithm = value
-
-    @property
-    def members(self):
-        return self._members
+                 target_position=None):
+        super(CompositeObservation, self).__init__(
+            collection=collection,
+            observation_id=observation_id,
+            algorithm=algorithm,
+            sequence_number=sequence_number,
+            intent=intent,
+            type=type,
+            proposal=proposal,
+            telescope=telescope,
+            instrument=instrument,
+            target=target,
+            meta_release=meta_release,
+            planes=planes,
+            environment=environment,
+            target_position=target_position)
+        warnings.warn("CompositeObservation has been deprecated. Please use "
+                      "DerivedObservation instead.")
 
 
 class Environment(CaomObject):
@@ -938,7 +1011,8 @@ class Target(CaomObject):
                  standard=None,
                  redshift=None,
                  keywords=None,
-                 moving=None):
+                 moving=None,
+                 target_id=None):
         """
         Initializes a Target instance
 
@@ -955,6 +1029,7 @@ class Target(CaomObject):
             keywords = set()
         self.keywords = keywords
         self.moving = moving
+        self.target_id = target_id
 
     # Properties
 
@@ -976,7 +1051,6 @@ class Target(CaomObject):
     @property
     def target_type(self):
         """A keyword describing the type of target.
-
         must be from the list
         """ + str(list(TargetType)) + """
         type: TargetType
@@ -1052,6 +1126,19 @@ class Target(CaomObject):
         caom_util.type_check(value, bool, 'moving')
         self._moving = value
 
+    @property
+    def target_id(self):
+        return self._target_id
+
+    @target_id.setter
+    def target_id(self, value):
+        caom_util.type_check(value, str, 'target_id')
+        if value is not None:
+            tmp = urlsplit(value)
+            if tmp.geturl() != value:
+                raise ValueError("Invalid URI: " + value)
+        self._target_id = value
+
 
 class TargetPosition(CaomObject):
     """ TargetPosition """
@@ -1117,10 +1204,10 @@ class Telescope(CaomObject):
         Arguments:
         name : name of the telescope
         """
-
-        assert name is not None, "No telescope name provided"
-        assert isinstance(name, str), "name is not a str: {0}".format(name)
-        self.name = name
+        if not name:
+            raise AttributeError("Telescope name required")
+        caom_util.type_check(name, str, 'name', override=False)
+        self._name = name
         self.geo_location_x = geo_location_x
         self.geo_location_y = geo_location_y
         self.geo_location_z = geo_location_z
@@ -1139,11 +1226,6 @@ class Telescope(CaomObject):
 
         """
         return self._name
-
-    @name.setter
-    def name(self, value):
-        caom_util.type_check(value, str, 'name', override=False)
-        self._name = value
 
     @property
     def keywords(self):

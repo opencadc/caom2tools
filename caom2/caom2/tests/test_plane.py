@@ -509,8 +509,10 @@ class TestEnergy(unittest.TestCase):
         energy.bandpass_name = "EBN"
         self.assertEqual("EBN", energy.bandpass_name, "Energy bandpass name")
         self.assertIsNone(energy.em_band, "Default energy em band")
-        energy.em_band = plane.EnergyBand.OPTICAL
-        self.assertEqual(plane.EnergyBand.OPTICAL, energy.em_band,
+        self.assertTrue(0 == len(energy.energy_bands), "Default energy bands")
+        energy.energy_bands.add(plane.EnergyBand.OPTICAL)
+        self.assertEqual(1, len(energy.energy_bands), 'Energy bands')
+        self.assertEqual(plane.EnergyBand.OPTICAL, energy.energy_bands.pop(),
                          "Energy band")
         self.assertIsNone(energy.transition, "Default energy transition")
         energy.transition = wcs.EnergyTransition("aSpecies", "aTransition")
@@ -572,3 +574,26 @@ class TestTime(unittest.TestCase):
         self.assertEqual(12.34, time.sample_size, "Sample size")
         time.exposure = 55.55
         self.assertEqual(55.55, time.exposure, "Exposure")
+
+
+class TestCustomAxis(unittest.TestCase):
+    def test_all(self):
+        with self.assertRaises(AttributeError):
+            plane.CustomAxis(None)
+        my_axis = plane.CustomAxis('Foo')
+        self.assertEqual('Foo', my_axis.ctype, 'CTYPE missmatch')
+        self.assertIsNone(my_axis.bounds, "Default bounds")
+        self.assertIsNone(my_axis.dimension, "Default dimension")
+
+        my_axis.dimension = 777
+        my_axis.bounds = shape.Interval(1.0, 2.0)
+        self.assertEqual(777, my_axis.dimension, "Dimension")
+        self.assertEqual(1.0, my_axis.bounds.lower, "Bounds mismatch")
+        self.assertEqual(2.0, my_axis.bounds.upper, "Bounad mismatch")
+
+        my_axis = plane.CustomAxis('Blah', bounds=shape.Interval(3.0, 4.0),
+                                   dimension=33)
+        self.assertEqual('Blah', my_axis.ctype, 'CTYPE missmatch')
+        self.assertEqual(33, my_axis.dimension, 'Dimension missmatch')
+        self.assertEqual(3.0, my_axis.bounds.lower, "Bounds mismatch")
+        self.assertEqual(4.0, my_axis.bounds.upper, "Bounad mismatch")
