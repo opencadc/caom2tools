@@ -102,9 +102,7 @@ On the structure and responsibility of the 'run' methods:
   pipelines, so that collection-specific changes will not be surprises
   during execution
 - exception handling is also in composable, except for retry loops
-- TODO - run_by_file_prime should replace run_by_file, when OMM testing can
-  be more exhaustive
-
+-
 """
 
 import distutils.sysconfig
@@ -1529,6 +1527,8 @@ class OrganizeExecutes(object):
                                           command_name, cred_param,
                                           cadc_data_client, caom_repo_client,
                                           self.observable))
+                elif task_type == mc.TaskType.DEFAULT:
+                    pass
                 else:
                     raise mc.CadcException(
                         'Do not understand task type {}'.format(task_type))
@@ -1764,7 +1764,7 @@ def _do_one(config, organizer, storage_name, command_name, meta_visitors,
             return 0
         else:
             logging.info('No executors for {}'.format(
-                storage_name.obs_id))
+                storage_name))
             return -1  # cover the case where file name validation fails
     except Exception as e:
         organizer.capture_failure(storage_name.obs_id,
@@ -2025,25 +2025,45 @@ def run_by_file_storage_name(config, command_name, meta_visitors,
                 result = -1
     _finish_run(organizer, config)
 
-        # if config.need_to_retry():  # TODO
-        #     for count in range(0, config.retry_count):
-        #         logging.warning('Beginning retry {}'.format(count + 1))
-        #         config.update_for_retry(count)
-        #         organize = OrganizeExecutes(config, chooser)
-        #         try:
-        #             _run_todo_file(config, organize, storage_name,
-        #                            command_name, meta_visitors,
-        #                            data_visitors)
-        #         except Exception as e:
-        #             logging.error(e)
-        #             result = -1
-        #         if not config.need_to_retry():
-        #             break
-        #     logging.warning('Done retry attempts.')
+    # if config.need_to_retry():  # TODO
+    #     for count in range(0, config.retry_count):
+    #         logging.warning('Beginning retry {}'.format(count + 1))
+    #         config.update_for_retry(count)
+    #         organize = OrganizeExecutes(config, chooser)
+    #         try:
+    #             _run_todo_file(config, organize, storage_name,
+    #                            command_name, meta_visitors,
+    #                            data_visitors)
+    #         except Exception as e:
+    #             logging.error(e)
+    #             result = -1
+    #         if not config.need_to_retry():
+    #             break
+    #     logging.warning('Done retry attempts.')
 
     logging.info('Done, processed {} of {} correctly.'.format(
         organizer.success_count, organizer.complete_record_count))
     return result
+
+
+def run_by_builder(config, command_name, bookmark_name, meta_visitors,
+                   data_visitors, work, name_builder, chooser=None):
+    """Process all entries by a list of work provided by the 'work'
+    parameter.
+
+    :param config configures the execution of the application
+    :param command_name extension of fits2caom2 for the collection
+    :param bookmark_name
+    :param meta_visitors List of metadata visit methods.
+    :param data_visitors List of data visit methods.
+    :param work
+    :param name_builder builds StorageName instances cleverly
+    :param chooser OrganizeChooser instance for detailed CaomExecute
+        descendant choices
+    """
+    return _common_state(config, command_name, meta_visitors, data_visitors,
+                         bookmark_name, work, middle=None, sname=name_builder,
+                         through=_for_loop_through)
 
 
 def run_single(config, storage_name, command_name, meta_visitors,
@@ -2101,7 +2121,8 @@ def run_from_state(config, sname, command_name, meta_visitors,
         to make sense.
     """
     return _common_state(config, command_name, meta_visitors, data_visitors,
-                         bookmark_name, work, _state_middle, sname)
+                         bookmark_name, work, _state_middle, sname,
+                         _timebox_through)
 
 
 def run_from_storage_name_instance(config, command_name, meta_visitors,
@@ -2120,7 +2141,8 @@ def run_from_storage_name_instance(config, command_name, meta_visitors,
         to make sense.
     """
     return _common_state(config, command_name, meta_visitors, data_visitors,
-                         bookmark_name, work, _storage_name_middle, sname=None)
+                         bookmark_name, work, _storage_name_middle, sname=None,
+                         through=_timebox_through)
 
 
 def _storage_name_middle(organizer, entries, config, command_name,
@@ -2174,7 +2196,8 @@ def _state_middle(organizer=None, entries=None, config=None,
 
 
 def _common_state(config, command_name, meta_visitors,
-                  data_visitors, bookmark_name, work, middle, sname=None):
+                  data_visitors, bookmark_name, work, middle, sname=None,
+                  through=None):
     """Process a list of StorageName instances by queries that are bounded and
     controlled by the content of a state file. No sys.exit call. Avoid an
     interim todo.txt file.
@@ -2211,40 +2234,141 @@ def _common_state(config, command_name, meta_visitors,
             start_time))
         exec_time = prev_exec_time
     else:
-        cumulative = 0
-        organizer = OrganizeExecutes(config, chooser=None)
-        while exec_time <= end_time:
-            logging.info(
-                'Processing from {} to {}'.format(prev_exec_time, exec_time))
-            entries = work.todo(prev_exec_time, exec_time)
-            if len(entries) > 0:
-                work.initialize()
-                logging.info('Processing {} entries.'.format(len(entries)))
-                result |= middle(organizer, entries, config, command_name,
-                                 meta_visitors, data_visitors, result, sname)
-            cumulative += len(entries)
-            mc.record_progress(
-                config, command_name, len(entries), cumulative, start_time)
-
-            state.save_state(bookmark_name, exec_time)
-
-            if exec_time == end_time:
-                # the last interval will always have the exec time
-                # equal to the end time, which will fail the while check
-                # so leave after the last interval has been processed
-                #
-                # but the while <= check is required so that an interval
-                # smaller than exec_time -> end_time will get executed,
-                # so don't get rid of the '=' in the while loop
-                # comparison, just because this one exists
-                break
-
-            prev_exec_time = exec_time
-            exec_time = min(
-                mc.increment_time(prev_exec_time, config.interval),
-                end_time)
+        temp_result, exec_time = through(
+            config, state, work, middle, command_name, bookmark_name,
+            meta_visitors, data_visitors, sname, exec_time, end_time,
+            prev_exec_time, start_time)
+        result |= temp_result
+        # cumulative = 0
+        # organizer = OrganizeExecutes(config, chooser=None)
+        # while exec_time <= end_time:
+        #     logging.info(
+        #         'Processing from {} to {}'.format(prev_exec_time, exec_time))
+        #     entries = work.todo(prev_exec_time, exec_time)
+        #     if len(entries) > 0:
+        #         work.initialize()
+        #         logging.info('Processing {} entries.'.format(len(entries)))
+        #         result |= middle(organizer, entries, config, command_name,
+        #                          meta_visitors, data_visitors, result, sname)
+        #     cumulative += len(entries)
+        #     mc.record_progress(
+        #         config, command_name, len(entries), cumulative, start_time)
+        #
+        #     state.save_state(bookmark_name, exec_time)
+        #
+        #     if exec_time == end_time:
+        #         # the last interval will always have the exec time
+        #         # equal to the end time, which will fail the while check
+        #         # so leave after the last interval has been processed
+        #         #
+        #         # but the while <= check is required so that an interval
+        #         # smaller than exec_time -> end_time will get executed,
+        #         # so don't get rid of the '=' in the while loop
+        #         # comparison, just because this one exists
+        #         break
+        #
+        #     prev_exec_time = exec_time
+        #     exec_time = min(
+        #         mc.increment_time(prev_exec_time, config.interval),
+        #         end_time)
 
     state.save_state(bookmark_name, exec_time)
     logging.info(
         'Done {}, saved state is {}'.format(command_name, exec_time))
     return result
+
+
+def _timebox_through(config, state, work, middle, command_name, bookmark_name,
+                     meta_visitors, data_visitors, sname, exec_time, end_time,
+                     prev_exec_time, start_time):
+    cumulative = 0
+    result = 0
+    organizer = OrganizeExecutes(config, chooser=None)
+    while exec_time <= end_time:
+        logging.info(
+            'Processing from {} to {}'.format(prev_exec_time, exec_time))
+        entries = work.todo(prev_exec_time, exec_time)
+        if len(entries) > 0:
+            work.initialize()
+            logging.info('Processing {} entries.'.format(len(entries)))
+            result |= middle(organizer, entries, config, command_name,
+                             meta_visitors, data_visitors, result, sname)
+        cumulative += len(entries)
+        mc.record_progress(
+            config, command_name, len(entries), cumulative, start_time)
+
+        state.save_state(bookmark_name, exec_time)
+
+        if exec_time == end_time:
+            # the last interval will always have the exec time
+            # equal to the end time, which will fail the while check
+            # so leave after the last interval has been processed
+            #
+            # but the while <= check is required so that an interval
+            # smaller than exec_time -> end_time will get executed,
+            # so don't get rid of the '=' in the while loop
+            # comparison, just because this one exists
+            break
+
+        prev_exec_time = exec_time
+        exec_time = min(
+            mc.increment_time(prev_exec_time, config.interval),
+            end_time)
+
+    return result, exec_time
+
+
+def _for_loop_through(config, state, work, middle, command_name, bookmark_name,
+                      meta_visitors, data_visitors, name_builder, exec_time,
+                      end_time, prev_exec_time, start_time):
+    result = 0
+    organizer = OrganizeExecutes(config, chooser=None)
+    todo_list = work.todo()
+    name_builder.todo_list = todo_list
+    organizer.complete_record_count = len(todo_list)
+    for entry in todo_list.values():
+        logging.error(f'Processing {entry}')
+        try:
+            storage_name = name_builder.build(entry)
+            result |= _do_one(config, organizer, storage_name,
+                              command_name, meta_visitors,
+                              data_visitors)
+            # the todo list is sorted by last modified timestamps
+            exec_time = storage_name.last_modified_s
+        except Exception as e:
+            organizer.capture_failure(
+                entry, entry, e=traceback.format_exc())
+            logging.info(f'Execution failed for {entry} with {e}.')
+            logging.debug(traceback.format_exc())
+            # then keep processing the rest of the entries
+            result = -1
+
+    # interim save - see how this works for now
+    if organizer.success_count % 100 == 0:
+        logging.debug(f'Saving interim state of {exec_time}')
+        state.save_state(bookmark_name, exec_time)
+        # note that this will save timestamps past failures, but
+        # the failures are recorded in the failure log, so they're
+        # known
+    _finish_run(organizer, config)
+
+    # if config.need_to_retry():  # TODO
+    #     for count in range(0, config.retry_count):
+    #         logging.warning('Beginning retry {}'.format(count + 1))
+    #         config.update_for_retry(count)
+    #         organize = OrganizeExecutes(config, chooser)
+    #         try:
+    #             _run_todo_file(config, organize, storage_name,
+    #                            command_name, meta_visitors,
+    #                            data_visitors)
+    #         except Exception as e:
+    #             logging.error(e)
+    #             result = -1
+    #         if not config.need_to_retry():
+    #             break
+    #     logging.warning('Done retry attempts.')
+
+    logging.info(f'Done, processed {organizer.success_count} of '
+                 f'{organizer.complete_record_count} correctly.')
+
+    return result, exec_time

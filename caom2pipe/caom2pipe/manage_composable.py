@@ -264,6 +264,18 @@ class Builder(object):
         :param config: the source of all knowledge.
         """
         self._config = config
+        self._todo_list = None
+
+    @property
+    def todo_list(self):
+        return self._todo_list
+
+    @todo_list.setter
+    def todo_list(self, to_list):
+        """Set the list of work to be done. It probably contains useful
+        information like timestamps, and relationships between obs ids
+        and file names, hence make it possible to set it independently."""
+        raise NotImplementedError
 
     def build(self, entry):
         """Returns an instance of StorageName, based on all the configuration
