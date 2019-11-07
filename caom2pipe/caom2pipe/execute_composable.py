@@ -2239,39 +2239,6 @@ def _common_state(config, command_name, meta_visitors,
             meta_visitors, data_visitors, sname, exec_time, end_time,
             prev_exec_time, start_time)
         result |= temp_result
-        # cumulative = 0
-        # organizer = OrganizeExecutes(config, chooser=None)
-        # while exec_time <= end_time:
-        #     logging.info(
-        #         'Processing from {} to {}'.format(prev_exec_time, exec_time))
-        #     entries = work.todo(prev_exec_time, exec_time)
-        #     if len(entries) > 0:
-        #         work.initialize()
-        #         logging.info('Processing {} entries.'.format(len(entries)))
-        #         result |= middle(organizer, entries, config, command_name,
-        #                          meta_visitors, data_visitors, result, sname)
-        #     cumulative += len(entries)
-        #     mc.record_progress(
-        #         config, command_name, len(entries), cumulative, start_time)
-        #
-        #     state.save_state(bookmark_name, exec_time)
-        #
-        #     if exec_time == end_time:
-        #         # the last interval will always have the exec time
-        #         # equal to the end time, which will fail the while check
-        #         # so leave after the last interval has been processed
-        #         #
-        #         # but the while <= check is required so that an interval
-        #         # smaller than exec_time -> end_time will get executed,
-        #         # so don't get rid of the '=' in the while loop
-        #         # comparison, just because this one exists
-        #         break
-        #
-        #     prev_exec_time = exec_time
-        #     exec_time = min(
-        #         mc.increment_time(prev_exec_time, config.interval),
-        #         end_time)
-
     state.save_state(bookmark_name, exec_time)
     logging.info(
         'Done {}, saved state is {}'.format(command_name, exec_time))
