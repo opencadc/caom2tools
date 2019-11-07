@@ -170,14 +170,14 @@ class TestInterval(unittest.TestCase):
         self.assertRaises(TypeError, shape.Interval, "string", None, samples)
         self.assertRaises(TypeError, shape.Interval, "string1", "string2",
                           int(1))
-        self.assertRaises(ValueError, shape.Interval, 2.0, 1.0, None)
+        self.assertRaises(AssertionError, shape.Interval, 2.0, 1.0, None)
         # validate errors
-        self.assertRaises(ValueError, shape.Interval, lower, lower, [])
-        self.assertRaises(ValueError, shape.Interval, lower1, upper,
+        self.assertRaises(AssertionError, shape.Interval, lower, lower, [])
+        self.assertRaises(AssertionError, shape.Interval, lower1, upper,
                           invalid_samples_lower_mismatch)
-        self.assertRaises(ValueError, shape.Interval, lower, upper,
+        self.assertRaises(AssertionError, shape.Interval, lower, upper,
                           invalid_samples_upper_mismatch)
-        self.assertRaises(ValueError, shape.Interval, lower, upper2,
+        self.assertRaises(AssertionError, shape.Interval, lower, upper2,
                           invalid_samples_middle_bounds_overlap)
 
         # test cannot set interval with upper < lower
@@ -185,7 +185,7 @@ class TestInterval(unittest.TestCase):
         has_assertionError = False
         try:
             interval.upper = 0.5
-        except ValueError:
+        except AssertionError:
             has_assertionError = True
         self.assertEqual(has_assertionError, True)
 
@@ -257,14 +257,14 @@ class TestSubInterval(unittest.TestCase):
         self.assertRaises(TypeError, shape.SubInterval, None, 1.0)
         self.assertRaises(TypeError, shape.SubInterval, 1.0, None)
         self.assertRaises(TypeError, shape.SubInterval, "string1", "string2")
-        self.assertRaises(ValueError, shape.SubInterval, 2.0, 1.0)
+        self.assertRaises(AssertionError, shape.SubInterval, 2.0, 1.0)
 
         # test cannot set subInterval with upper < lower
         subInterval = shape.SubInterval(1.0, 2.0)
         has_assertionError = False
         try:
             subInterval.upper = 0.5
-        except ValueError:
+        except AssertionError:
             has_assertionError = True
         self.assertEqual(has_assertionError, True)
 

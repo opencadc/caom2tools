@@ -516,10 +516,9 @@ def test_help():
 
 EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
-        """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" """ + \
+        """ xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" """ + \
         """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
-        """xsi:type="caom2:SimpleObservation" """ + \
-        """caom2:id="00000000-0000-0000-0000-000000000123">
+        """xsi:type="caom2:SimpleObservation" caom2:id="123">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
@@ -544,7 +543,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
     <caom2:name>DRAO-ST</caom2:name>
   </caom2:instrument>
   <caom2:planes>
-    <caom2:plane caom2:id="00000000-0000-0000-0000-000000000124">
+    <caom2:plane caom2:id="123">
       <caom2:productID>HI-line</caom2:productID>
       <caom2:dataProductType>cube</caom2:dataProductType>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
@@ -556,11 +555,11 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
         <caom2:lastExecuted>2000-10-16T00:00:00.000</caom2:lastExecuted>
       </caom2:provenance>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="00000000-0000-0000-0000-000000000125">
+        <caom2:artifact caom2:id="123">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
           <caom2:productType>info</caom2:productType>
           <caom2:parts>
-            <caom2:part caom2:id="00000000-0000-0000-0000-000000000126">
+            <caom2:part caom2:id="123">
               <caom2:name>0</caom2:name>
               <caom2:chunks/>
             </caom2:part>
@@ -611,7 +610,7 @@ def test_augment_observation():
     test_part.chunks.pop()
     output = BytesIO()
     ow = ObservationWriter(False, False, "caom2",
-                           obs_reader_writer.CAOM23_NAMESPACE)
+                           obs_reader_writer.CAOM20_NAMESPACE)
     ow.write(test_obs, output)
     result = output.getvalue().decode('UTF-8')
     output.close()

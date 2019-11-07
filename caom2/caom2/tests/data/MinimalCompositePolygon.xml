@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:caom2="vos://cadc.nrc.ca!vospace/CADC/xml/CAOM/v2.0" xsi:type="caom2:CompositeObservation" caom2:id="-2478170592496011442" caom2:lastModified="2012-07-16T15:22:28.157">
+  <caom2:collection>collection</caom2:collection>
+  <caom2:observationID>observationID</caom2:observationID>
+  <caom2:algorithm>
+    <caom2:name>algorithmName</caom2:name>
+  </caom2:algorithm>
+  <caom2:planes>
+    <caom2:plane caom2:id="3643065726030624688" caom2:lastModified="2012-07-16T15:22:28.157">
+      <caom2:productID>productID</caom2:productID>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="-2946826428719253524" caom2:lastModified="2012-07-16T15:22:28.157">
+          <caom2:uri>ad:foo/bar1</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:parts>
+            <caom2:part caom2:id="5005686088286910501" caom2:lastModified="2012-07-16T15:22:28.157">
+              <caom2:name>x</caom2:name>
+              <caom2:chunks/>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+  <caom2:members>
+    <caom2:observationURI>caom:foo/bar</caom2:observationURI>
+  </caom2:members>
+</caom2:Observation>

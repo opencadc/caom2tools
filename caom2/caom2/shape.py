@@ -71,13 +71,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import math
+
+from aenum import Enum
+
 from caom2.caom_util import int_32
 from . import caom_util
 from . import common
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
-    from aenum import Enum
 
 __all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point',
            'Polygon', 'Vertex', 'MultiPolygon']
@@ -135,7 +134,7 @@ class Box(common.CaomObject):
 
     @width.setter
     def width(self, value):
-        caom_util.value_check(value, 0, 1E10, "width")
+        assert value > 0, "width must be positive"
         caom_util.type_check(value, float, 'width', override=False)
         self._width = value
 
@@ -148,7 +147,7 @@ class Box(common.CaomObject):
 
     @height.setter
     def height(self, value):
-        caom_util.value_check(value, 0, 1E10, "height")
+        assert value > 0, "height must be positive"
         caom_util.type_check(value, float, 'height', override=False)
         self._height = value
 
@@ -192,7 +191,7 @@ class Circle(common.CaomObject):
 
     @radius.setter
     def radius(self, value):
-        caom_util.value_check(value, 0, 1E10, "radius")
+        assert value > 0, "radius must be positive"
         caom_util.type_check(value, float, 'radius', override=False)
         self._radius = value
 
@@ -219,9 +218,10 @@ class SubInterval(common.CaomObject):
             self._upper
         except AttributeError:
             has_upper = False
-        if has_upper and self._upper < value:
-            raise ValueError("SubInterval: attempt to set upper < lower "
-                             "for {}, {}".format(str(value), self._lower))
+        if has_upper:
+            assert not self._upper < value, \
+                "SubInterval: attempt to set upper < lower for {}, {}".\
+                format(str(value), str(self._lower))
         self._lower = value
 
     @property
@@ -239,9 +239,10 @@ class SubInterval(common.CaomObject):
             self._lower
         except AttributeError:
             has_lower = False
-        if has_lower and value < self._lower:
-            raise ValueError("SubInterval: attempt to set upper < lower "
-                             "for {}, {}".format(value, self._lower))
+        if has_lower:
+            assert not value < self._lower, \
+                "SubInterval: attempt to set upper < lower for {}, {}".\
+                format(value, self._lower)
         self._upper = value
 
 
@@ -282,9 +283,10 @@ class Interval(common.CaomObject):
             self._upper
         except AttributeError:
             has_upper = False
-        if has_upper and self._upper < value:
-            raise ValueError("Interval: attempt to set upper < lower "
-                             "for {], {}".format(self._upper, value))
+        if has_upper:
+            assert not self._upper < value, \
+                "Interval: attempt to set upper < lower for {], {}".\
+                format(self._upper, value)
         self._lower = value
 
     @property
@@ -302,9 +304,10 @@ class Interval(common.CaomObject):
             self._lower
         except AttributeError:
             has_lower = False
-        if has_lower and value < self._lower:
-            raise ValueError("Interval: attempt to set upper < lower "
-                             "for {}, {}".format(value, self._lower))
+        if has_lower:
+            assert not value < self._lower, \
+                "Interval: attempt to set upper < lower for {}, {}".\
+                format(value, self._lower)
         self._upper = value
 
     @property
@@ -330,22 +333,22 @@ class Interval(common.CaomObject):
         if self._samples is not None:
 
             if len(self._samples) == 0:
-                raise ValueError(
+                raise AssertionError(
                     'invalid interval (samples cannot be empty)')
 
             prev = None
             for sample in self._samples:
                 if sample.lower < self._lower:
-                    raise ValueError(
+                    raise AssertionError(
                         'invalid interval: sample extends below lower bound: '
                         '{} vs {}'.format(sample, self._lower))
                 if sample.upper > self._upper:
-                    raise ValueError(
+                    raise AssertionError(
                         'invalid interval: sample extends above upper bound: '
                         '{} vs {}'.format(sample, self._upper))
                 if prev is not None:
                     if sample.lower <= prev.upper:
-                        raise ValueError(
+                        raise AssertionError(
                             'invalid interval: sample overlaps previous '
                             'sample:\n{}\nvs\n{}'.format(sample, prev))
                 prev = sample

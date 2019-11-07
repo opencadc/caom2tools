@@ -330,11 +330,9 @@ class TestSimpleObservation(unittest.TestCase):
             instrument,
             target,
             meta_release,
-            None,
             planes,
             environment)
 
-        obs.meta_read_groups.add('ivo://cadc.nrc.ca/groups?ABC')
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
 
@@ -370,9 +368,6 @@ class TestSimpleObservation(unittest.TestCase):
 
         self.assertIsNotNone(obs.environment, "Environment")
         self.assertEqual(environment, obs.environment, "Environment")
-
-        assert 1 == len(obs.meta_read_groups)
-        assert 'ivo://cadc.nrc.ca/groups?ABC' in obs.meta_read_groups
 
 
 class TestCompositeObservation(unittest.TestCase):
@@ -498,7 +493,7 @@ class TestCompositeObservation(unittest.TestCase):
         target_position = observation.TargetPosition(shape.Point(1.0, 2.0),
                                                      "coordsys")
 
-        obs = observation.DerivedObservation(
+        obs = observation.CompositeObservation(
             collection,
             observation_id,
             algorithm,
@@ -510,12 +505,10 @@ class TestCompositeObservation(unittest.TestCase):
             instrument,
             target,
             meta_release,
-            None,
             planes,
             environment,
             target_position)
 
-        obs.meta_read_groups.add('ivo://cadc.nrc.ca/groups?ABC')
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
 
@@ -563,9 +556,6 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertNotEqual(algorithm, obs.algorithm, "Algorithm")
         self.assertEqual(observation.Algorithm(algorithm2),
                          obs.algorithm, "Algorithm")
-
-        assert 1 == len(obs.meta_read_groups)
-        assert 'ivo://cadc.nrc.ca/groups?ABC' in obs.meta_read_groups
 
 
 class TestAlgorithm(unittest.TestCase):
@@ -673,13 +663,9 @@ class TestTarget(unittest.TestCase):
         target.moving = True
         self.assertTrue(target.moving, "Moving")
 
-        self.assertIsNone(target.target_id)
-        target.target_id = 'target_id'
-        self.assertEqual(target.target_id, 'target_id', "Target ID mismatch")
-
         target = observation.Target("myOtherTarget",
                                     observation.TargetType.OBJECT, False, 1.2,
-                                    {"radio"}, False, target_id='mytargetID')
+                                    {"radio"}, False)
         self.assertEqual("myOtherTarget", target.name, "target name")
         self.assertEqual(observation.TargetType.OBJECT, target.target_type,
                          "target type")
@@ -688,7 +674,6 @@ class TestTarget(unittest.TestCase):
         self.assertEqual(1, len(target.keywords), "Keywords")
         self.assertTrue("radio" in target.keywords, "Keywords")
         self.assertFalse(target.moving, "Moving")
-        self.assertEqual("mytargetID", target.target_id, "Target ID mismatch")
 
 
 class TestTargetPosition(unittest.TestCase):
