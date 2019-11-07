@@ -2294,7 +2294,7 @@ def _for_loop_through(config, state, work, middle, command_name, bookmark_name,
     name_builder.todo_list = todo_list
     organizer.complete_record_count = len(todo_list)
     for entry in todo_list.values():
-        logging.error(f'Processing {entry}')
+        logging.info(f'Processing {entry}')
         try:
             storage_name = name_builder.build(entry)
             result |= _do_one(config, organizer, storage_name,
