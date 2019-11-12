@@ -125,7 +125,7 @@ def validate_path_component(caller, name, test):
     if ' ' in test or '||' in test or '%' in test:
         raise \
             ValueError(caller.__class__.__name__ + ": invalid " + name +
-                       ": may not contain space ( ), slash (/), escape (\\), "
+                       ": may not contain space ( ), escape (\\), "
                        "or percent (%)")
 
 

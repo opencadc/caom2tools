@@ -274,8 +274,8 @@ class AbstractCaomEntity(CaomObject):
             self._acc_meta_checksum = value
 
     def get_meta_producer(self):
-        """TBD
-
+        """
+        Returns meta producer
         type: URI
 
         """

@@ -5,6 +5,7 @@ python:
     - 3.4
     - 3.5
     - 3.6
+    - 3.7
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
@@ -20,7 +21,7 @@ script:
       do 
         cd $i; 
         pytest --cov $i || exit -1;
-        if [[ $TRAVIS_PYTHON_VERSION == '3.5' ]]; then 
+        if [[ $TRAVIS_PYTHON_VERSION == '3.7' ]]; then 
            flake8 -v $i || exit -1; 
         fi;
         cd ..; 
@@ -36,7 +37,7 @@ after_success:
 jobs:
   include:
     - stage: publish
-      python: 3.4
+      python: 3.7
       deploy:
          provider: script
          script: ./.publish.sh
