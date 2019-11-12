@@ -71,6 +71,7 @@ import distutils.sysconfig
 import logging
 import os
 import pytest
+import stat
 import sys
 
 import six
@@ -379,6 +380,8 @@ def test_data_execute(test_config):
     stat_orig = os.stat
     os.stat = Mock()
     os.stat.st_size.return_value = 1243
+    os_isfile_orig = os.path.isfile
+    os.path.isfile = Mock(return_value=False)
 
     try:
         ec.CaomExecute._data_cmd_info = Mock(side_effect=_get_fname)
@@ -403,6 +406,7 @@ def test_data_execute(test_config):
         os.listdir = os_listdir_orig
         os.rmdir = os_rmdir_orig
         os.stat = stat_orig
+        os.path.isfile = os_isfile_orig
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),

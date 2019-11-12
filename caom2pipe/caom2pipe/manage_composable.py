@@ -1255,7 +1255,10 @@ def get_file_meta(fqn):
 
 def create_dir(dir_name):
     """Create the working area if it does not already exist."""
-    if not os.path.exists(dir_name):
+    if os.path.exists(dir_name):
+        if os.path.isfile(dir_name):
+            raise CadcException(f'{dir_name} already exists as a file.')
+    else:
         os.mkdir(dir_name)
         if not os.path.exists(dir_name):
             raise CadcException(

@@ -576,3 +576,26 @@ def test_http_get(mock_req):
         '6547436690a26a399603a7096e876a2d'
     mc.http_get('https://localhost/index.html', '/tmp/abc')
     assert mock_req.called, 'mock not called'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+def test_create_dir():
+    test_f_name = f'{TEST_DATA_DIR}/test_file_dir'
+    if os.path.exists(test_f_name):
+        if os.path.isdir(test_f_name):
+            os.rmdir(test_f_name)
+        else:
+            os.unlink(test_f_name)
+
+    with open(test_f_name, 'w') as f:
+        f.write('test content')
+
+    with pytest.raises(mc.CadcException) as ex:
+        mc.create_dir(test_f_name)
+
+    os.unlink(test_f_name)
+
+    mc.create_dir(test_f_name)
+
+    assert os.path.exists(test_f_name), 'should have been created'
