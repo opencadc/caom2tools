@@ -3700,14 +3700,15 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
 
         result = _visit(plugin, parser, obs, visit_local, product_id, **kwargs)
 
-        if validate_wcs:
-            try:
-                validate(obs)
-            except InvalidWCSError as e:
-                logging.error(e)
-                tb = traceback.format_exc()
-                logging.error(tb)
-                raise e
+        if result is not None:
+            if validate_wcs:
+                try:
+                    validate(obs)
+                except InvalidWCSError as e:
+                    logging.error(e)
+                    tb = traceback.format_exc()
+                    logging.error(tb)
+                    raise e
 
         if len(parser._errors) > 0:
             logging.debug(
@@ -4062,6 +4063,7 @@ def gen_proc(args, blueprints, **kwargs):
     and a plugin parameter, that supports external programmatic blueprint
     modification."""
     _set_logging(args.verbose, args.debug, args.quiet)
+    result = 0
 
     if args.in_obs_xml:
         obs = _gen_obs(blueprints, args.in_obs_xml)
@@ -4103,6 +4105,7 @@ def gen_proc(args, blueprints, **kwargs):
         else:
             log_id = args.observation
         logging.warning('No Observation generated for {}'.format(log_id))
+        result = -1
     else:
         writer = ObservationWriter()
         if args.out_obs_xml:
@@ -4110,6 +4113,7 @@ def gen_proc(args, blueprints, **kwargs):
         else:
             sys.stdout.flush()
             writer.write(obs, sys.stdout)
+    return result
 
 
 def get_gen_proc_arg_parser():
