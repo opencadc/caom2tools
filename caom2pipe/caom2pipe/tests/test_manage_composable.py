@@ -591,7 +591,7 @@ def test_create_dir():
     with open(test_f_name, 'w') as f:
         f.write('test content')
 
-    with pytest.raises(mc.CadcException) as ex:
+    with pytest.raises(mc.CadcException):
         mc.create_dir(test_f_name)
 
     os.unlink(test_f_name)

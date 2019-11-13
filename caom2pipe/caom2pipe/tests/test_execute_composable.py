@@ -71,7 +71,6 @@ import distutils.sysconfig
 import logging
 import os
 import pytest
-import stat
 import sys
 
 import six
