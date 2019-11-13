@@ -2310,13 +2310,14 @@ def _for_loop_through(config, state, work, middle, command_name, bookmark_name,
             # then keep processing the rest of the entries
             result = -1
 
-    # interim save - see how this works for now
-    if organizer.success_count % 100 == 0:
-        logging.debug(f'Saving interim state of {exec_time}')
-        state.save_state(bookmark_name, exec_time)
-        # note that this will save timestamps past failures, but
-        # the failures are recorded in the failure log, so they're
-        # known
+        # interim save - see how this works for now
+        if organizer.success_count % 100 == 0:
+            logging.debug(f'Saving interim state of {exec_time}')
+            state.save_state(bookmark_name, exec_time)
+            # note that this will save timestamps past failures, but
+            # the failures are recorded in the failure log, so they're
+            # known
+
     _finish_run(organizer, config)
 
     # if config.need_to_retry():  # TODO
