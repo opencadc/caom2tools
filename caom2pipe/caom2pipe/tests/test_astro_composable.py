@@ -160,8 +160,8 @@ def test_query_tap(caps_mock, base_mock, test_config):
     caps_mock.return_value = 'https://localhost'
     response = Mock()
     response.status_code = 200
-    response.raw.read.return_value = \
-        b'<?xml version="1.0" encoding="UTF-8"?>\r\n<VOTABLE ' \
+    response.iter_content.return_value = \
+        [b'<?xml version="1.0" encoding="UTF-8"?>\r\n<VOTABLE ' \
         b'xmlns="http://www.ivoa.net/xml/VOTable/v1.3" ' \
         b'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' \
         b'version="1.3">\r\n  <RESOURCE type="results">\r\n    ' \
@@ -176,7 +176,7 @@ def test_query_tap(caps_mock, base_mock, test_config):
         b'</TABLEDATA>\r\n      ' \
         b'</DATA>\r\n    </TABLE>\r\n    ' \
         b'<INFO name="QUERY_STATUS" value="OK" />\r\n  ' \
-        b'</RESOURCE>\r\n</VOTABLE>\r\n'
+        b'</RESOURCE>\r\n</VOTABLE>\r\n']
     base_mock.return_value.__enter__.return_value = response
     test_config.tap_id = 'https://cadc.nrc.ca/sc2tap'
     result = ac.query_tap('select count(*) from caom2.Observation',

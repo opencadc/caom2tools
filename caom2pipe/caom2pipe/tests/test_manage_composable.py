@@ -131,7 +131,7 @@ def test_query_endpoint():
                     reason='support one python version')
 def test_config_class():
     os.getcwd = Mock(return_value=TEST_DATA_DIR)
-    mock_root = '/usr/src/app/omm2caom2/omm2caom2/tests/data'
+    mock_root = '/usr/src/app/caom2pipe/caom2pipe/tests/data'
     test_config = mc.Config()
     test_config.get_executors()
     assert test_config is not None
@@ -141,8 +141,8 @@ def test_config_class():
     assert test_config.working_directory == mock_root, 'wrong dir'
     assert test_config.work_fqn == '{}/todo.txt'.format(mock_root), 'work_fqn'
     assert test_config.netrc_file == '.netrc', 'netrc'
-    assert test_config.archive == 'TEST', 'archive'
-    assert test_config.collection == 'TEST', 'collection'
+    assert test_config.archive == 'NEOSS', 'archive'
+    assert test_config.collection == 'NEOSSAT', 'collection'
     assert test_config.log_file_directory == mock_root, 'logging dir'
     assert test_config.success_fqn == '{}/success_log.txt'.format(mock_root), \
         'success fqn'
@@ -295,9 +295,9 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.product_type == ProductType.WEIGHT, 'wrong product type'
-    assert result.content_length == 314, 'wrong length'
+    assert result.content_length == 382, 'wrong length'
     assert result.content_checksum.uri == \
-        'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
+        'md5:52518c602ab10a4669fdcdc76d9a4b84', 'wrong checksum'
 
     # update action
     result.content_checksum = ChecksumURI('md5:abc')
@@ -306,7 +306,7 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.content_checksum.uri == \
-        'md5:a75377d8d7cc55464944947c01cef816', 'wrong checksum'
+        'md5:52518c602ab10a4669fdcdc76d9a4b84', 'wrong checksum'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -599,3 +599,83 @@ def test_create_dir():
     mc.create_dir(test_f_name)
 
     assert os.path.exists(test_f_name), 'should have been created'
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('cadcdata.core.net.BaseWsClient.post')
+@patch('cadcutils.net.ws.WsCapabilities.get_access_url')
+def test_validator(caps_mock, tap_mock):
+    caps_mock.return_value = 'https://sc2.canfar.net/sc2repo'
+    response = Mock()
+    response.status_code = 200
+    response.iter_content.return_value = \
+    [b'<?xml version="1.0" encoding="UTF-8"?>\n'
+     b'<VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.3" '
+     b'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.3">\n'
+     b'<RESOURCE type="results">\n'
+     b'<INFO name="QUERY_STATUS" value="OK" />\n'
+     b'<INFO name="QUERY_TIMESTAMP" value="2019-11-14T16:26:46.274" />\n'
+     b'<INFO name="QUERY" value="SELECT distinct A.uri&#xA;FROM '
+     b'caom2.Observation as O&#xA;JOIN caom2.Plane as P on O.obsID = '
+     b'P.obsID&#xA;JOIN caom2.Artifact as A on P.planeID = A.planeID&#xA;'
+     b'WHERE O.collection = \'NEOSSAT\'&#xA;AND A.uri like '
+     b'\'%2019213215700%\'" />\n'
+     b'<TABLE>\n'
+     b'<FIELD name="uri" datatype="char" arraysize="*" '
+     b'utype="caom2:Artifact.uri" xtype="uri">\n'
+     b'<DESCRIPTION>external URI for the physical artifact</DESCRIPTION>\n'
+     b'</FIELD>\n'
+     b'<DATA>\n'
+     b'<TABLEDATA>\n'
+     b'<TR>\n'
+     b'<TD>ad:NEOSS/NEOS_SCI_2019213215700_cord.fits</TD>\n'
+     b'</TR>\n'
+     b'<TR>\n'
+     b'<TD>ad:NEOSS/NEOS_SCI_2019213215700_cor.fits</TD>\n'
+     b'</TR>\n'
+     b'<TR>\n'
+     b'<TD>ad:NEOSS/NEOS_SCI_2019213215700.fits</TD>\n'
+     b'</TR>\n'
+     b'</TABLEDATA>\n'
+     b'</DATA>\n'
+     b'</TABLE>\n'
+     b'<INFO name="QUERY_STATUS" value="OK" />\n'
+     b'</RESOURCE>\n'
+     b'</VOTABLE>\n']
+
+    tap_mock.return_value.__enter__.return_value = response
+
+    getcwd_orig = os.getcwd
+    os.getcwd = Mock(return_value=TEST_DATA_DIR)
+
+    class TestValidator(mc.Validator):
+
+        def __init__(self, source_name, preview_suffix):
+            super(TestValidator, self).__init__(
+                source_name, preview_suffix=preview_suffix)
+
+        def read_list_from_source(self):
+            return []
+    try:
+
+        test_subject = TestValidator('TEST_SOURCE_NAME', 'png')
+        test_destination = test_subject._read_list_from_destination()
+        assert test_destination is not None, 'expected result'
+        assert len(test_destination) == 3, 'wrong number of results'
+        assert test_destination[0] == 'NEOS_SCI_2019213215700_cord.fits', \
+            f'wrong value format, should be just a file name, ' \
+            f'{test_destination[0]}'
+
+        test_listing_fqn = f'{TEST_DATA_DIR}/{mc.VALIDATE_OUTPUT}'
+        if os.path.exists(test_listing_fqn):
+            os.unlink(test_listing_fqn)
+
+        test_source, test_destination = test_subject.validate()
+        assert test_source is not None, 'expected source result'
+        assert test_destination is not None, 'expected destination result'
+        assert len(test_source) == 0, 'wrong number of source results'
+        assert len(test_destination) == 3, 'wrong # of destination results'
+        assert os.path.exists(test_listing_fqn), 'should create file record'
+    finally:
+        os.getcwd = getcwd_orig

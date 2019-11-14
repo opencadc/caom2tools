@@ -68,6 +68,7 @@
 #
 
 import csv
+import io
 import logging
 import os
 import requests
@@ -85,8 +86,11 @@ from requests.adapters import HTTPAdapter
 from urllib import parse as parse
 from urllib3 import Retry
 
+from astropy.io.votable import parse_single_table
+
 from cadcutils import net, exceptions
 from cadcdata import CadcDataClient
+from cadctap import CadcTapClient
 from caom2 import ObservationWriter, ObservationReader, Artifact
 from caom2 import ChecksumURI
 
@@ -103,10 +107,11 @@ __all__ = ['CadcException', 'Config', 'State', 'to_float', 'TaskType',
            'increment_time', 'ISO_8601_FORMAT', 'http_get', 'Rejected',
            'record_progress', 'Builder', 'Work', 'look_pull_and_put',
            'Observable', 'Metrics', 'repo_create', 'repo_delete', 'repo_get',
-           'repo_update', 'ftp_get', 'ftp_get_timeout']
+           'repo_update', 'ftp_get', 'ftp_get_timeout', 'VALIDATE_OUTPUT']
 
 ISO_8601_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 READ_BLOCK_SIZE = 8 * 1024
+VALIDATE_OUTPUT = 'validated.yml'
 
 
 class CadcException(Exception):
@@ -1022,6 +1027,82 @@ class Config(object):
         except (yaml.scanner.ScannerError, FileNotFoundError) as e:
             logging.error(e)
             return None
+
+
+class Validator(object):
+    """
+    Compares the state of CAOM entries at CADC with the state of the source
+    of the data.
+
+    CADC is the destination, where the data and metadata originate from
+    is the source.
+
+
+    """
+    def __init__(self, source_name, scheme='ad', preview_suffix='jpg'):
+        """
+
+        :param source_name: String value used for logging
+        :param source_read_function: function to  This function
+            takes a Config instance as a parameter.
+        :param todo_write_function:  It expects a _
+        :param scheme: string which encapsulates scheme as used in CAOM
+            Artifact URIs. The default of 'ad' means the canonical version
+            of the file is stored at CADC.
+        :param preview_suffix String value that is excluded from queries,
+            because it's produced at CADC, so something like '256.jpg' should
+            work for Gemini.
+        """
+        self._config = Config()
+        self._config.get_executors()
+        self._source = None
+        self._destination = None
+        self._source_name = source_name
+        self._scheme = scheme
+        self._preview_suffix = preview_suffix
+
+    def _read_list_from_destination(self):
+        query = f"SELECT A.uri FROM caom2.Observation AS O " \
+                f"JOIN caom2.Plane AS P ON O.obsID = P.obsID " \
+                f"JOIN caom2.Artifact AS A ON P.planeID = A.planeID " \
+                f"WHERE O.collection='{self._config.collection}' " \
+                f"AND A.uri not like '%{self._preview_suffix}'"
+        subject = net.Subject(certificate=self._config.proxy_fqn)
+        tap_client = CadcTapClient(subject, resource_id=self._config.tap_id)
+        buffer = io.BytesIO()
+        tap_client.query(query, output_file=buffer, data_only=True)
+        temp = parse_single_table(buffer).to_table()
+        return [ii.decode().replace(
+            f'{self._scheme}:{self._config.archive}/', '').strip()
+                for ii in temp['uri']]
+
+    def read_list_from_source(self):
+        """Read the entire source site listing. This function is expected to
+        return a list of all the file names available from the source."""
+        raise NotImplementedError()
+
+    def validate(self):
+        dest_temp = self._read_list_from_destination()
+        logging.error(f'dest_temp {dest_temp}')
+        source_temp = self.read_list_from_source()
+        logging.error(f'source_temp {source_temp}')
+        self._destination = find_missing(dest_temp, source_temp)
+        self._source = find_missing(source_temp, dest_temp)
+        result = {f'{self._source_name}': self._source,
+                  'cadc': self._destination}
+        result_fqn = os.path.join(
+            self._config.working_directory, VALIDATE_OUTPUT)
+        write_as_yaml(result, result_fqn)
+        logging.info(f'There are {len(self._source)} files at '
+                     f'{self._source_name} that are not represented at CADC, '
+                     f'and {len(self._destination)} CAOM entries at CADC that '
+                     f'are not available from {self._source_name}.')
+        return self._source, self._destination
+
+    def write_todo(self):
+        """Write a todo.txt file, given the list of entries available from
+        the source, that are not currently at the destination (CADC)."""
+        raise NotImplementedError()
 
 
 def to_float(value):
