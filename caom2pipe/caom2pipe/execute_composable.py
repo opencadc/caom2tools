@@ -2312,6 +2312,8 @@ def _for_loop_through(config, state, work, middle, command_name, bookmark_name,
 
         # interim save - see how this works for now
         if organizer.success_count % 100 == 0:
+            if isinstance(exec_time, float):
+                exec_time = datetime.fromtimestamp(exec_time)
             logging.debug(f'Saving interim state of {exec_time}')
             state.save_state(bookmark_name, exec_time)
             # note that this will save timestamps past failures, but
@@ -2339,4 +2341,6 @@ def _for_loop_through(config, state, work, middle, command_name, bookmark_name,
     logging.info(f'Done, processed {organizer.success_count} of '
                  f'{organizer.complete_record_count} correctly.')
 
+    if isinstance(exec_time, float):
+        exec_time = datetime.fromtimestamp(exec_time)
     return result, exec_time
