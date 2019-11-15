@@ -131,7 +131,7 @@ def test_query_endpoint():
                     reason='support one python version')
 def test_config_class():
     os.getcwd = Mock(return_value=TEST_DATA_DIR)
-    mock_root = '/usr/src/app/caom2pipe/caom2pipe/tests/data'
+    mock_root = '/usr/src/app/caom2tools/caom2pipe/caom2pipe/tests/data'
     test_config = mc.Config()
     test_config.get_executors()
     assert test_config is not None
@@ -295,9 +295,9 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.product_type == ProductType.WEIGHT, 'wrong product type'
-    assert result.content_length == 382, 'wrong length'
+    assert result.content_length == 393, 'wrong length'
     assert result.content_checksum.uri == \
-        'md5:52518c602ab10a4669fdcdc76d9a4b84', 'wrong checksum'
+        'md5:c9228e7ff6a3147c389e63e4ea8c683c', 'wrong checksum'
 
     # update action
     result.content_checksum = ChecksumURI('md5:abc')
@@ -306,7 +306,7 @@ def test_get_artifact_metadata():
     assert result is not None, 'expect a result'
     assert isinstance(result, Artifact), 'expect an artifact'
     assert result.content_checksum.uri == \
-        'md5:52518c602ab10a4669fdcdc76d9a4b84', 'wrong checksum'
+        'md5:c9228e7ff6a3147c389e63e4ea8c683c', 'wrong checksum'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -458,6 +458,12 @@ def test_repo_create(mock_client):
     assert 'create' in test_metrics.history['caom2'], 'create'
     assert 'test_obs_id' in test_metrics.history['caom2']['create'], 'obs id'
 
+    mock_client.reset_mock()
+    mock_client.create.side_effect = Exception('boo')
+    with pytest.raises(mc.CadcException):
+        mc.repo_create(mock_client, test_obs, test_metrics)
+    assert len(test_metrics.failures) == 1, 'should have failure counts'
+
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
@@ -478,6 +484,12 @@ def test_repo_get(mock_client):
     assert 'caom2' in test_metrics.history, 'history'
     assert 'read' in test_metrics.history['caom2'], 'create'
     assert 'test_obs_id' in test_metrics.history['caom2']['read'], 'obs id'
+
+    mock_client.reset_mock()
+    mock_client.read.side_effect = Exception('boo')
+    with pytest.raises(mc.CadcException):
+        mc.repo_get(mock_client, 'collection', 'test_obs_id', test_metrics)
+    assert len(test_metrics.failures) == 1, 'should have failure counts'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -500,6 +512,12 @@ def test_repo_update(mock_client):
     assert 'update' in test_metrics.history['caom2'], 'update'
     assert 'test_obs_id' in test_metrics.history['caom2']['update'], 'obs id'
 
+    mock_client.reset_mock()
+    mock_client.update.side_effect = Exception('boo')
+    with pytest.raises(mc.CadcException):
+        mc.repo_update(mock_client, test_obs, test_metrics)
+    assert len(test_metrics.failures) == 1, 'should have failure counts'
+
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
@@ -519,6 +537,12 @@ def test_repo_delete(mock_client):
     assert 'caom2' in test_metrics.history, 'history'
     assert 'delete' in test_metrics.history['caom2'], 'delete'
     assert 'test_id' in test_metrics.history['caom2']['delete'], 'obs id'
+
+    mock_client.reset_mock()
+    mock_client.delete.side_effect = Exception('boo')
+    with pytest.raises(mc.CadcException):
+        mc.repo_delete(mock_client, 'coll', 'test_id', test_metrics)
+    assert len(test_metrics.failures) == 1, 'should have failure counts'
 
 
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
@@ -610,39 +634,40 @@ def test_validator(caps_mock, tap_mock):
     response = Mock()
     response.status_code = 200
     response.iter_content.return_value = \
-    [b'<?xml version="1.0" encoding="UTF-8"?>\n'
-     b'<VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.3" '
-     b'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.3">\n'
-     b'<RESOURCE type="results">\n'
-     b'<INFO name="QUERY_STATUS" value="OK" />\n'
-     b'<INFO name="QUERY_TIMESTAMP" value="2019-11-14T16:26:46.274" />\n'
-     b'<INFO name="QUERY" value="SELECT distinct A.uri&#xA;FROM '
-     b'caom2.Observation as O&#xA;JOIN caom2.Plane as P on O.obsID = '
-     b'P.obsID&#xA;JOIN caom2.Artifact as A on P.planeID = A.planeID&#xA;'
-     b'WHERE O.collection = \'NEOSSAT\'&#xA;AND A.uri like '
-     b'\'%2019213215700%\'" />\n'
-     b'<TABLE>\n'
-     b'<FIELD name="uri" datatype="char" arraysize="*" '
-     b'utype="caom2:Artifact.uri" xtype="uri">\n'
-     b'<DESCRIPTION>external URI for the physical artifact</DESCRIPTION>\n'
-     b'</FIELD>\n'
-     b'<DATA>\n'
-     b'<TABLEDATA>\n'
-     b'<TR>\n'
-     b'<TD>ad:NEOSS/NEOS_SCI_2019213215700_cord.fits</TD>\n'
-     b'</TR>\n'
-     b'<TR>\n'
-     b'<TD>ad:NEOSS/NEOS_SCI_2019213215700_cor.fits</TD>\n'
-     b'</TR>\n'
-     b'<TR>\n'
-     b'<TD>ad:NEOSS/NEOS_SCI_2019213215700.fits</TD>\n'
-     b'</TR>\n'
-     b'</TABLEDATA>\n'
-     b'</DATA>\n'
-     b'</TABLE>\n'
-     b'<INFO name="QUERY_STATUS" value="OK" />\n'
-     b'</RESOURCE>\n'
-     b'</VOTABLE>\n']
+        [b'<?xml version="1.0" encoding="UTF-8"?>\n'
+         b'<VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.3" '
+         b'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+         b'version="1.3">\n'
+         b'<RESOURCE type="results">\n'
+         b'<INFO name="QUERY_STATUS" value="OK" />\n'
+         b'<INFO name="QUERY_TIMESTAMP" value="2019-11-14T16:26:46.274" />\n'
+         b'<INFO name="QUERY" value="SELECT distinct A.uri&#xA;FROM '
+         b'caom2.Observation as O&#xA;JOIN caom2.Plane as P on O.obsID = '
+         b'P.obsID&#xA;JOIN caom2.Artifact as A on P.planeID = A.planeID&#xA;'
+         b'WHERE O.collection = \'NEOSSAT\'&#xA;AND A.uri like '
+         b'\'%2019213215700%\'" />\n'
+         b'<TABLE>\n'
+         b'<FIELD name="uri" datatype="char" arraysize="*" '
+         b'utype="caom2:Artifact.uri" xtype="uri">\n'
+         b'<DESCRIPTION>external URI for the physical artifact</DESCRIPTION>\n'
+         b'</FIELD>\n'
+         b'<DATA>\n'
+         b'<TABLEDATA>\n'
+         b'<TR>\n'
+         b'<TD>ad:NEOSS/NEOS_SCI_2019213215700_cord.fits</TD>\n'
+         b'</TR>\n'
+         b'<TR>\n'
+         b'<TD>ad:NEOSS/NEOS_SCI_2019213215700_cor.fits</TD>\n'
+         b'</TR>\n'
+         b'<TR>\n'
+         b'<TD>ad:NEOSS/NEOS_SCI_2019213215700.fits</TD>\n'
+         b'</TR>\n'
+         b'</TABLEDATA>\n'
+         b'</DATA>\n'
+         b'</TABLE>\n'
+         b'<INFO name="QUERY_STATUS" value="OK" />\n'
+         b'</RESOURCE>\n'
+         b'</VOTABLE>\n']
 
     tap_mock.return_value.__enter__.return_value = response
 
