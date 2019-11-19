@@ -1,1 +1,0 @@
-2019-08-15 12:54:45.887223 test_obs_id test_obs_id.fits Invalid observation ID
