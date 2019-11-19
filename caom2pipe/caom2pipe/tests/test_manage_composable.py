@@ -625,15 +625,29 @@ def test_create_dir():
     assert os.path.exists(test_f_name), 'should have been created'
 
 
+class TestValidator(mc.Validator):
+
+    def __init__(self, source_name, preview_suffix):
+        super(TestValidator, self).__init__(
+            source_name, preview_suffix=preview_suffix)
+
+    def read_from_source(self):
+        return {}
+
+    def find_unaligned_dates(self):
+        return []
+
+
 @pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
                     reason='support one python version')
 @patch('cadcdata.core.net.BaseWsClient.post')
+@patch('cadcdata.core.net.BaseWsClient.get')
 @patch('cadcutils.net.ws.WsCapabilities.get_access_url')
-def test_validator(caps_mock, tap_mock):
+def test_validator(caps_mock, ad_mock, tap_mock):
     caps_mock.return_value = 'https://sc2.canfar.net/sc2repo'
-    response = Mock()
-    response.status_code = 200
-    response.iter_content.return_value = \
+    tap_response = Mock()
+    tap_response.status_code = 200
+    tap_response.iter_content.return_value = \
         [b'<?xml version="1.0" encoding="UTF-8"?>\n'
          b'<VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.3" '
          b'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
@@ -669,38 +683,113 @@ def test_validator(caps_mock, tap_mock):
          b'</RESOURCE>\n'
          b'</VOTABLE>\n']
 
-    tap_mock.return_value.__enter__.return_value = response
+    tap_mock.return_value.__enter__.return_value = tap_response
+    ad_response = Mock()
+    ad_response.status_code = 200
+    ad_response.text = []
+    ad_mock.return_value = ad_response
 
     getcwd_orig = os.getcwd
     os.getcwd = Mock(return_value=TEST_DATA_DIR)
 
-    class TestValidator(mc.Validator):
-
-        def __init__(self, source_name, preview_suffix):
-            super(TestValidator, self).__init__(
-                source_name, preview_suffix=preview_suffix)
-
-        def read_list_from_source(self):
-            return []
     try:
-
         test_subject = TestValidator('TEST_SOURCE_NAME', 'png')
-        test_destination = test_subject._read_list_from_destination()
-        assert test_destination is not None, 'expected result'
-        assert len(test_destination) == 3, 'wrong number of results'
-        assert test_destination[0] == 'NEOS_SCI_2019213215700_cord.fits', \
+        test_destination_meta = test_subject._read_list_from_destination_meta()
+        assert test_destination_meta is not None, 'expected result'
+        assert len(test_destination_meta) == 3, 'wrong number of results'
+        assert test_destination_meta[0] == 'NEOS_SCI_2019213215700_cord.fits', \
             f'wrong value format, should be just a file name, ' \
-            f'{test_destination[0]}'
+            f'{test_destination_meta[0]}'
 
         test_listing_fqn = f'{TEST_DATA_DIR}/{mc.VALIDATE_OUTPUT}'
         if os.path.exists(test_listing_fqn):
             os.unlink(test_listing_fqn)
 
-        test_source, test_destination = test_subject.validate()
+        test_source, test_meta, test_data = test_subject.validate()
         assert test_source is not None, 'expected source result'
-        assert test_destination is not None, 'expected destination result'
+        assert test_meta is not None, 'expected meta dest result'
+        assert test_data is not None, 'expected data dest result'
         assert len(test_source) == 0, 'wrong number of source results'
-        assert len(test_destination) == 3, 'wrong # of destination results'
+        assert len(test_meta) == 3, 'wrong # of meta dest results'
+        assert len(test_data) == 0, 'wrong # of meta dest results'
         assert os.path.exists(test_listing_fqn), 'should create file record'
+    finally:
+        os.getcwd = getcwd_orig
+
+
+@pytest.mark.skipif(not sys.version.startswith(PY_VERSION),
+                    reason='support one python version')
+@patch('cadcdata.core.net.BaseWsClient.get')
+@patch('cadcutils.net.ws.WsCapabilities.get_access_url')
+def test_fuck_off_and_die(caps_mock, ad_mock):
+    caps_mock.return_value = 'https://sc2.canfar.net/sc2repo'
+    response = Mock()
+    response.status_code = 200
+    response.text = \
+        ['ingestDate,fileName\n',
+         '2019-10-23T16:27:19.000,NEOS_SCI_2015347000000_clean.fits\n',
+         '2019-10-23T16:27:27.000,NEOS_SCI_2015347000000.fits\n',
+         '2019-10-23T16:27:33.000,NEOS_SCI_2015347002200_clean.fits\n',
+         '2019-10-23T16:27:40.000,NEOS_SCI_2015347002200.fits\n',
+         '2019-10-23T16:27:47.000,NEOS_SCI_2015347002500_clean.fits\n']
+
+    ad_mock.return_value = response
+    getcwd_orig = os.getcwd
+    os.getcwd = Mock(return_value=TEST_DATA_DIR)
+    try:
+        test_subject = TestValidator('TEST_SOURCE_NAME', 'png')
+        test_destination_data = test_subject._read_list_from_destination_data()
+        assert test_destination_data is not None, 'expected data result'
+        assert len(test_destination_data) == 5, 'wrong number of data results'
+        test_result = test_destination_data[1]
+        assert test_result['fileName'] == 'NEOS_SCI_2015347000000.fits', \
+            f'wrong value format, should be just a file name, ' \
+            f'{test_result["fileName"]}'
+        assert test_result['ingestDate'] == '2019-10-23T16:27:27.000', \
+            f'wrong value format, should be a datetime value, ' \
+            f'{test_result["ingestDate"]}'
+    finally:
+        os.getcwd = getcwd_orig
+
+
+def test_define_subject():
+
+    getcwd_orig = os.getcwd
+    os.getcwd = Mock(return_value=TEST_DATA_DIR)
+
+    try:
+        test_config = mc.Config()
+        test_config.get_executors()
+        test_config.proxy_fqn = None
+        assert test_config.netrc_file is not None, 'netrc branch pre-condition'
+        test_netrc_fqn = os.path.join(test_config.working_directory,
+                                      test_config.netrc_file)
+        if not os.path.exists(test_netrc_fqn):
+            with open(test_netrc_fqn, 'w') as f:
+                f.write(
+                    'machine www.example.com login userid password userpass')
+
+        test_subject = mc.define_subject(test_config)
+        assert test_subject is not None, 'expect a netrc subject'
+        test_config.netrc_file = 'nonexistent'
+        test_subject = mc.define_subject(test_config)
+        assert test_subject is None, 'expect no subject, cannot find content'
+        test_config.netrc_file = None
+        # proxy pre-condition
+        test_config.proxy_fqn = f'{TEST_DATA_DIR}/proxy.pem'
+
+        if not os.path.exists(test_config.proxy_fqn):
+            with open(test_config.proxy_fqn, 'w') as f:
+                f.write('proxy content')
+
+        test_subject = mc.define_subject(test_config)
+        assert test_subject is not None, 'expect a proxy subject'
+        test_config.proxy_fqn = '/nonexistent'
+        test_subject = mc.define_subject(test_config)
+        assert test_subject is None, 'expect no subject, cannot find content'
+
+        test_config.proxy_fqn = None
+        test_subject = mc.define_subject(test_config)
+        assert test_subject is None, 'expect no subject, no defined sources'
     finally:
         os.getcwd = getcwd_orig

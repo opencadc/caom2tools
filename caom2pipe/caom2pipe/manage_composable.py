@@ -82,11 +82,13 @@ from ftplib import FTP
 from ftputil import FTPHost
 from hashlib import md5
 from io import BytesIO
+from pytz import timezone
 from requests.adapters import HTTPAdapter
 from urllib import parse as parse
 from urllib3 import Retry
 
 from astropy.io.votable import parse_single_table
+from astropy.table import Table
 
 from cadcutils import net, exceptions
 from cadcdata import CadcDataClient
@@ -1032,36 +1034,82 @@ class Config(object):
 class Validator(object):
     """
     Compares the state of CAOM entries at CADC with the state of the source
-    of the data.
+    of the data. Identifies files that are in CAOM entries that do not exist
+    at the source, and files at the source that are not represented in CAOM.
+    Checks that the timestamp associated with the file at the source is less
+    than the ad timestamp.
 
     CADC is the destination, where the data and metadata originate from
     is the source.
-
-
     """
-    def __init__(self, source_name, scheme='ad', preview_suffix='jpg'):
+    def __init__(self, source_name, scheme='ad', preview_suffix='jpg',
+                 source_tz='UTC'):
         """
 
         :param source_name: String value used for logging
-        :param source_read_function: function to  This function
-            takes a Config instance as a parameter.
-        :param todo_write_function:  It expects a _
         :param scheme: string which encapsulates scheme as used in CAOM
             Artifact URIs. The default of 'ad' means the canonical version
             of the file is stored at CADC.
         :param preview_suffix String value that is excluded from queries,
             because it's produced at CADC, so something like '256.jpg' should
             work for Gemini.
+        :param source_tz String representation of timezone name, as understood
+            by pytz.
         """
         self._config = Config()
         self._config.get_executors()
+        logger = logging.getLogger()
+        logger.setLevel(self._config.logging_level)
+        logging.debug(self._config)
         self._source = None
-        self._destination = None
+        self._destination_data = None
+        self._destination_meta = None
         self._source_name = source_name
         self._scheme = scheme
         self._preview_suffix = preview_suffix
+        self._source_tz = timezone(source_tz)
 
-    def _read_list_from_destination(self):
+    def _find_unaligned_dates(self, source, meta, data):
+        result = []
+        for f_name in meta:
+            if f_name in source and f_name in data:
+                source_dt = datetime.strptime(source[f_name], ISO_8601_FORMAT)
+                source_utc = source_dt.astimezone(timezone(self._source_tz))
+                dest_dt = datetime.strptime(data[f_name], ISO_8601_FORMAT)
+                dest_utc = dest_dt.astimezone(timezone('US/Pacific'))
+                if dest_utc < source_utc:
+                    result.append(f_name)
+        return list(set(result))
+
+    def _read_list_from_destination_data(self):
+        """Code to execute a query for files and the arrival time, that are in
+        CADC storage.
+        """
+        ad_resource_id = 'ivo://cadc.nrc.ca/ad'
+        agent = '{}/{}'.format(self._source_name, '1.0')
+        subject = define_subject(self._config)
+        client = net.BaseWsClient(resource_id=ad_resource_id,
+                                  subject=subject, agent=agent, retry=True)
+        query_meta = f"SELECT fileName, ingestDate FROM archive_files WHERE " \
+                     f"archiveName = '{self._config.archive}' " \
+                     f"AND fileName not like '%{self._preview_suffix} " \
+                     f"ORDER BY fileName"
+        data = {'QUERY': query_meta, 'LANG': 'ADQL', 'FORMAT': 'csv'}
+        logging.debug('Query is {}'.format(query_meta))
+        try:
+            response = client.get(
+                f'https://{client.host}/ad/sync?{parse.urlencode(data)}')
+            if response.status_code == 200:
+                table = Table.read(response.text, format='csv')
+                return table
+            else:
+                logging.warning('No work to do. Query failure {!r}'.format(
+                    response))
+                return Table()
+        except Exception as e:
+            raise CadcException('Failed ad content query: {}'.format(e))
+
+    def _read_list_from_destination_meta(self):
         query = f"SELECT A.uri FROM caom2.Observation AS O " \
                 f"JOIN caom2.Plane AS P ON O.obsID = P.obsID " \
                 f"JOIN caom2.Artifact AS A ON P.planeID = A.planeID " \
@@ -1076,28 +1124,50 @@ class Validator(object):
             f'{self._scheme}:{self._config.archive}/', '').strip()
                 for ii in temp['uri']]
 
-    def read_list_from_source(self):
+    def read_from_source(self):
         """Read the entire source site listing. This function is expected to
-        return a list of all the file names available from the source."""
+        return a dict of all the file names available from the source, where
+        the keys are the file names, and the values are the timestamps at the
+        source."""
         raise NotImplementedError()
 
     def validate(self):
-        dest_temp = self._read_list_from_destination()
-        logging.error(f'dest_temp {dest_temp}')
-        source_temp = self.read_list_from_source()
-        logging.error(f'source_temp {source_temp}')
-        self._destination = find_missing(dest_temp, source_temp)
-        self._source = find_missing(source_temp, dest_temp)
+        logging.info('Query destination metadata.')
+        dest_meta_temp = self._read_list_from_destination_meta()
+
+        logging.info('Query source metadata.')
+        source_temp = self.read_from_source()
+
+        logging.info('Find files that are missing from CADC.')
+        self._destination_meta = find_missing(
+            dest_meta_temp, source_temp.keys())
+
+        logging.info(f'Find files that do not appear at {self._source_name}.')
+        self._source = find_missing(source_temp.keys(), dest_meta_temp)
+
+        logging.info('Query destination data.')
+        dest_data_temp = self._read_list_from_destination_data()
+
+        logging.info(f'Find files that are newer at {self._source_name} '
+                     f'than at CADC.')
+        self._destination_data = self._find_unaligned_dates(
+            source_temp, dest_meta_temp, dest_data_temp)
+
+        logging.info('Log the results.')
         result = {f'{self._source_name}': self._source,
-                  'cadc': self._destination}
+                  'cadc': self._destination_meta,
+                  'timestamps': self._destination_data}
         result_fqn = os.path.join(
             self._config.working_directory, VALIDATE_OUTPUT)
         write_as_yaml(result, result_fqn)
+
         logging.info(f'There are {len(self._source)} files at '
                      f'{self._source_name} that are not represented at CADC, '
-                     f'and {len(self._destination)} CAOM entries at CADC that '
-                     f'are not available from {self._source_name}.')
-        return self._source, self._destination
+                     f'and {len(self._destination_meta)} CAOM entries at '
+                     f'CADC that are not available from {self._source_name}.\n'
+                     f'There are {len(self._destination_data)} files that are '
+                     f'newer at {self._source_name}.')
+        return self._source, self._destination_meta, self._destination_data
 
     def write_todo(self):
         """Write a todo.txt file, given the list of entries available from
@@ -1113,6 +1183,33 @@ def to_float(value):
 def to_int(value):
     """Cast to int, without throwing an exception."""
     return int(value) if value is not None else None
+
+
+def define_subject(config):
+    """Common code to figure out which credentials to use based on the
+    content of a Config instance."""
+    subject = None
+    if config.proxy_fqn is not None and os.path.exists(config.proxy_fqn):
+        logging.debug(
+            f'Using proxy certificate {config.proxy_fqn} for credentials.')
+        subject = net.Subject(username=None,
+                              certificate=config.proxy_fqn)
+    elif config.netrc_file is not None:
+        netrc_fqn = os.path.join(config.working_directory, config.netrc_file)
+        if os.path.exists(netrc_fqn):
+            logging.error(
+                f'Using netrc file {netrc_fqn} for credentials.')
+            subject = net.Subject(username=None, certificate=None,
+                                  netrc=netrc_fqn)
+        else:
+            logging.warning(f'Cannot find netrc file {netrc_fqn}')
+    else:
+        logging.warning(
+            'No credentials provided (proxy certificate or netrc file).')
+        logging.warning(
+            'Proxy certificate is {}, netrc file is {}.'.format(
+                config.proxy_fqn, config.netrc_file))
+    return subject
 
 
 def exec_cmd(cmd, log_leval_as=logging.debug):
