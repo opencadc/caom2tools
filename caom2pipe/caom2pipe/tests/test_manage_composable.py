@@ -697,7 +697,8 @@ def test_validator(caps_mock, ad_mock, tap_mock):
         test_destination_meta = test_subject._read_list_from_destination_meta()
         assert test_destination_meta is not None, 'expected result'
         assert len(test_destination_meta) == 3, 'wrong number of results'
-        assert test_destination_meta[0] == 'NEOS_SCI_2019213215700_cord.fits', \
+        assert test_destination_meta[0] == \
+            'NEOS_SCI_2019213215700_cord.fits', \
             f'wrong value format, should be just a file name, ' \
             f'{test_destination_meta[0]}'
 

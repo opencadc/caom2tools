@@ -116,7 +116,6 @@ from astropy.io import fits
 from datetime import datetime
 from shutil import move
 
-from cadcutils import net
 from cadcdata import CadcDataClient
 from caom2repo import CAOM2RepoClient
 from caom2pipe import manage_composable as mc
