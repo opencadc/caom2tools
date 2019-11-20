@@ -610,7 +610,7 @@ def test_augment_observation():
     test_part.chunks.pop()
     output = BytesIO()
     ow = ObservationWriter(False, False, "caom2",
-                           obs_reader_writer.CAOM20_NAMESPACE)
+                           obs_reader_writer.CAOM23_NAMESPACE)
     ow.write(test_obs, output)
     result = output.getvalue().decode('UTF-8')
     output.close()
