@@ -518,7 +518,8 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
         """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
         """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
-        """xsi:type="caom2:SimpleObservation" caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
+        """xsi:type="caom2:SimpleObservation"
+caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
