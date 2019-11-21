@@ -1,3 +1,0 @@
-# saved from url=(0106)https://archive.nrao.edu/archive/ArchiveQuery?PROTOCOL=TEXT-stream&QUERYTYPE=ARCHIVE&PROJECT_CODE=VLASS1.1 
-# file_root  logical_file lock_status project_code segment starttime stoptime filesize telescope:config obs_bands format calib raw_project_code arch_file_id thread_id = 6414 queryDateTime = 2018-Aug-08 19:13:31
-ngas_host=aocngas-master.aoc.nrao.edu:7777, VLASS1.1.sb34346984.eb34356943.58004.0160307176, public, VLASS1.1, x, 17-Sep-08 00:23:24, 17-Sep-08 04:11:11, 353899621, EVLA:B, X L S, SDMset, raw, VLASS1.1, 558163504, #### ngas_host=aocngas-master.aoc.nrao.edu:7777,VLASS1.1.sb34346984.eb34356943.58004.0160307176,VLASS1.1,x,xxxxxx,170908,1,all,SDMset,353.90GB

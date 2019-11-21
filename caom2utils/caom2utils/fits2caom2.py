@@ -1587,13 +1587,15 @@ class GenericParser:
         :param key:
         :param extension: the current extension name or number.
         """
-        # determine which of the two possible values for parameter the user
+        # determine which of the possible values for parameter the user
         # is hoping for
-        parameter = ''
         if 'uri' in value:
             parameter = self.uri
         elif 'header' in value:
             parameter = self._headers[extension]
+        else:
+            parameter = {'uri': self.uri,
+                         'header': self._headers[extension]}
 
         result = ''
         execute = None
@@ -1632,27 +1634,20 @@ class GenericParser:
             if isinstance(from_value, datetime):
                 return from_value
             else:
-                try:
-                    return datetime.strptime(from_value, '%Y-%m-%dT%H:%M:%S')
-                except ValueError:
+                result = None
+                for dt_format in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f',
+                                  '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
+                                  '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S']:
                     try:
-                        return datetime.strptime(from_value,
-                                                 '%Y-%m-%dT%H:%M:%S.%f')
+                        result = datetime.strptime(from_value, dt_format)
                     except ValueError:
-                        try:
-                            return datetime.strptime(from_value,
-                                                     '%Y-%m-%d %H:%M:%S.%f')
-                        except ValueError:
-                            try:
-                                return datetime.strptime(
-                                    from_value, '%Y-%m-%d')
-                            except ValueError:
-                                self.logger.error(
-                                    'Cannot parse datetime {}'.format(
-                                        from_value))
-                                self.add_error(
-                                    'get_datetime', sys.exc_info()[1])
-                                return None
+                        pass
+
+                if result is None:
+                    self.logger.error('Cannot parse datetime {}'.format(
+                            from_value))
+                    self.add_error('get_datetime', sys.exc_info()[1])
+                return result
         else:
             return None
 
@@ -2350,8 +2345,9 @@ class FitsParser(GenericParser):
         for header in self.headers:
             sip = False
             for i in range(1, 6):
-                if ('CTYPE{}'.format(i) in header) and \
-                        ('-SIP' in header['CTYPE{}'.format(i)]):
+                if (('CTYPE{}'.format(i) in header) and
+                        isinstance(header['CTYPE{}'.format(i)], str) and
+                        ('-SIP' in header['CTYPE{}'.format(i)])):
                     sip = True
                     break
             if sip:
@@ -2550,8 +2546,18 @@ class FitsParser(GenericParser):
             self.logger.debug('name is {}'.format(name))
             aug_tel = Telescope(str(name), geo_x, geo_y, geo_z)
             if keywords:
-                for k in keywords.split():
-                    aug_tel.keywords.add(k)
+                if isinstance(keywords, set):
+                    if len(keywords) == 1:
+                        temp = keywords.pop()
+                        if temp == 'none':
+                            aug_tel.keywords = set()
+                        else:
+                            aug_tel.keywords.add(temp)
+                    else:
+                        aug_tel.keywords = keywords
+                else:
+                    for k in keywords.split():
+                        aug_tel.keywords.add(k)
             return aug_tel
         else:
             return None
@@ -3384,8 +3390,6 @@ def get_external_headers(external_url):
 def get_vos_headers(uri, subject=None):
     """
     Creates the FITS headers object from a vospace file.
-    The function uses cutouts to retrieve the miniumum amount of data,
-     minimizing the transfer time.
     :param uri: vos URI
     :param subject: user credentials. Anonymous if subject is None
     :return: List of headers corresponding to each extension. Each header is
@@ -3397,12 +3401,8 @@ def get_vos_headers(uri, subject=None):
         else:
             client = Client()
 
-        # make the smallest cutout possible, to get the least amount of data
-        # transferred, then transfer it to a temporary file
-        #
-        uri_with_cutout = '{}[1:1,1:1]'.format(uri)
         temp_filename = tempfile.NamedTemporaryFile()
-        client.copy(uri_with_cutout, temp_filename.name)
+        client.copy(uri, temp_filename.name, head=True)
         return _get_headers_from_fits(temp_filename.name)
     else:
         # this should be a programming error by now
@@ -3491,19 +3491,21 @@ def _update_artifact_meta(uri, artifact, subject=None):
         raise NotImplementedError(
             'Only ad, gemini and vos type URIs supported')
 
-    if metadata['md5sum'].startswith('md5:'):
-        checksum = ChecksumURI('{}'.format(metadata['md5sum']))
-    else:
-        checksum = ChecksumURI('md5:{}'.format(metadata['md5sum']))
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
                          artifact.content_checksum,
                          artifact.content_length,
                          artifact.content_type))
-    artifact.content_checksum = checksum
-    artifact.content_length = int(metadata['size'])
-    artifact.content_type = str(metadata['type'])
+    md5sum = metadata.get('md5sum')
+    if md5sum is not None:
+        if md5sum.startswith('md5:'):
+            checksum = ChecksumURI('{}'.format(md5sum))
+        else:
+            checksum = ChecksumURI('md5:{}'.format(md5sum))
+        artifact.content_checksum = checksum
+    artifact.content_length = _to_int(metadata.get('size'))
+    artifact.content_type = _to_str(metadata.get('type'))
     logging.debug('updated artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
@@ -3520,7 +3522,7 @@ def _get_cadc_meta(subject, path):
     :return:
     """
     client = CadcDataClient(subject)
-    archive, file_id = path.split('/')
+    archive, file_id = path.split('/')[-2:]
     return client.get_file_info(archive, file_id)
 
 
@@ -3640,9 +3642,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
+                meta_uri = 'file://{}'.format(local)
                 logging.debug(
                     'Using a FitsParser for vos local {}'.format(local))
-                parser = FitsParser(get_vos_headers(uri), blueprint, uri=uri)
+                parser = FitsParser(
+                    get_cadc_headers(meta_uri), blueprint, uri=uri)
             elif '.csv' in local:
                 logging.debug(
                     'Using a GenericParser for vos local {}'.format(local))
@@ -3696,14 +3700,15 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
 
         result = _visit(plugin, parser, obs, visit_local, product_id, **kwargs)
 
-        if validate_wcs:
-            try:
-                validate(obs)
-            except InvalidWCSError as e:
-                logging.error(e)
-                tb = traceback.format_exc()
-                logging.error(tb)
-                raise e
+        if result is not None:
+            if validate_wcs:
+                try:
+                    validate(obs)
+                except InvalidWCSError as e:
+                    logging.error(e)
+                    tb = traceback.format_exc()
+                    logging.error(tb)
+                    raise e
 
         if len(parser._errors) > 0:
             logging.debug(
@@ -4058,6 +4063,7 @@ def gen_proc(args, blueprints, **kwargs):
     and a plugin parameter, that supports external programmatic blueprint
     modification."""
     _set_logging(args.verbose, args.debug, args.quiet)
+    result = 0
 
     if args.in_obs_xml:
         obs = _gen_obs(blueprints, args.in_obs_xml)
@@ -4099,6 +4105,7 @@ def gen_proc(args, blueprints, **kwargs):
         else:
             log_id = args.observation
         logging.warning('No Observation generated for {}'.format(log_id))
+        result = -1
     else:
         writer = ObservationWriter()
         if args.out_obs_xml:
@@ -4106,6 +4113,7 @@ def gen_proc(args, blueprints, **kwargs):
         else:
             sys.stdout.flush()
             writer.write(obs, sys.stdout)
+    return result
 
 
 def get_gen_proc_arg_parser():

@@ -516,10 +516,10 @@ def test_help():
 
 EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation""" + \
-        """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" """ + \
+        """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """ + \
         """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """ + \
-        """xsi:type="caom2:SimpleObservation" """ + \
-        """caom2:id="00000000-0000-0000-0000-000000000123">
+        """xsi:type="caom2:SimpleObservation"
+caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>MA1_DRAO-ST</caom2:observationID>
   <caom2:metaRelease>1999-01-01T00:00:00.000</caom2:metaRelease>
@@ -544,7 +544,7 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
     <caom2:name>DRAO-ST</caom2:name>
   </caom2:instrument>
   <caom2:planes>
-    <caom2:plane caom2:id="00000000-0000-0000-0000-000000000124">
+    <caom2:plane caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
       <caom2:productID>HI-line</caom2:productID>
       <caom2:dataProductType>cube</caom2:dataProductType>
       <caom2:calibrationLevel>2</caom2:calibrationLevel>
@@ -556,11 +556,11 @@ EXPECTED_OBS_XML = """<?xml version='1.0' encoding='UTF-8'?>
         <caom2:lastExecuted>2000-10-16T00:00:00.000</caom2:lastExecuted>
       </caom2:provenance>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="00000000-0000-0000-0000-000000000125">
+        <caom2:artifact caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
           <caom2:productType>info</caom2:productType>
           <caom2:parts>
-            <caom2:part caom2:id="00000000-0000-0000-0000-000000000126">
+            <caom2:part caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
               <caom2:name>0</caom2:name>
               <caom2:chunks/>
             </caom2:part>
@@ -1207,35 +1207,34 @@ def test_visit_generic_parser():
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-def test_get_vos_headers():
+@patch('caom2utils.fits2caom2.Client')
+def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
-    client_orig = vos.Client
     get_orig = caom2utils.fits2caom2._get_headers_from_fits
 
     try:
         caom2utils.fits2caom2._get_headers_from_fits = Mock(
             side_effect=_get_headers)
-        vos.Client = Mock()
         test_headers = caom2utils.get_vos_headers(test_uri, subject=None)
-        assert test_headers is not None
-        assert len(test_headers) == 1
+        assert test_headers is not None, 'expect result'
+        assert len(test_headers) == 1, 'wrong size of result'
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
+        assert vos_mock.called, 'mock not called'
     finally:
-        vos.Client = client_orig
         caom2utils.fits2caom2._get_headers_from_fits = get_orig
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
-def test_get_vos_meta():
+@patch('caom2utils.fits2caom2.Client')
+def test_get_vos_meta(vos_mock):
     get_orig = caom2utils.get_vos_headers
-    node_orig = vos.Client.get_node
     try:
         caom2utils.get_vos_headers = Mock(
             return_value={'md5sum': '5b00b00d4b06aba986c3663d09aa581f',
                           'size': 682560,
                           'type': 'application/octet-stream'})
-        vos.Client.get_node = Mock(side_effect=_get_node)
+        vos_mock.return_value.get_node.side_effect = _get_node
         test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                    'dao_c122_2016_012725.fits'
         test_artifact = Artifact(test_uri, ProductType.SCIENCE,
@@ -1247,9 +1246,9 @@ def test_get_vos_meta():
         assert test_artifact.content_length == 682560, 'length wrong'
         assert test_artifact.content_type == 'application/fits', \
             'content_type wrong'
+        assert vos_mock.called, 'mock not called'
     finally:
         caom2utils.get_vos_headers = get_orig
-        vos.Client.get_node = node_orig
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')

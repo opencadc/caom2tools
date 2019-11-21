@@ -139,10 +139,29 @@ def test_differences(directory):
         cardinality = '{} {}'.format(product_id, temp)
         # return  # TODO shorter testing cycle
 
-    with patch('caom2utils.fits2caom2.CadcDataClient') as data_client_mock:
+    with patch('caom2utils.fits2caom2.CadcDataClient') as dc_mock,  \
+            patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
+            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock:
         def get_file_info(archive, file_id):
             return file_meta[1][(archive, file_id)]
-        data_client_mock.return_value.get_file_info.side_effect = get_file_info
+
+        def _get_vos_headers(uri, subject=None):
+            if uri.startswith('vos'):
+                fname = data_files_parameter.split()[1].strip()
+                fits_header = open(fname).read()
+                return fits2caom2._make_headers_from_string(fits_header)
+            else:
+                return None
+
+        def _vos_client_meta(subject, uri):
+            return {'md5sum': '5b00b00d4b06aba986c3663d09aa581f',
+                    'size': 682560,
+                    'type': 'application/fits'}
+
+        dc_mock.return_value.get_file_info.side_effect = get_file_info
+        gvh_mock.side_effect = _get_vos_headers
+        gvm_mock.side_effect = _vos_client_meta
+
         temp = tempfile.NamedTemporaryFile()
         sys.argv = ('{} -o {} --observation {} {} {} {} '.format(
                         application, temp.name,
@@ -168,7 +187,12 @@ def _get_cardinality(directory):
                'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
                'MegaPipe.080.156.Z.MP9801.fits.gif'
     elif '/omm/' in directory:
-        return '--lineage Cdemo_ext2_SCIRED/ad:OMM/Cdemo_ext2_SCIRED.fits.gz'
+        if 'SCIRED' in directory:
+            return '--lineage Cdemo_ext2_SCIRED/ad:OMM/' \
+                   'Cdemo_ext2_SCIRED.fits.gz'
+        else:
+            return '--lineage C190531_0432_SCI/ad:OMM/' \
+                   'C190531_0432_SCI.fits.gz'
     elif 'apass/catalog' in directory:
         return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' \
                'Examples/DAO/dao_c122_2016_012725.fits'
@@ -239,18 +263,19 @@ def _get_uris(collection, fnames, obs):
             f = os.path.basename(fname).replace('.header', '')
             for p in obs.planes.values():
                 for a in p.artifacts.values():
-                    if 'ad:{}/{}'.format(collection, f) in a.uri:
+                    if ('ad:{}/{}'.format(collection, f) in a.uri or
+                            (a.uri.startswith('vos') and f in a.uri)):
                         uris.append(a.uri)
                         meta = {}
                         meta['type'] = a.content_type
                         meta['size'] = a.content_length
                         meta['md5sum'] = a.content_checksum.checksum
                         file_url = urlparse(a.uri)
-                        if file_url.scheme != 'ad':
+                        if file_url.scheme not in ['ad', 'vos']:
                             # TODO add hook to support other service providers
                             raise NotImplementedError(
-                                'Only ad type URIs supported')
-                        archive, file_id = file_url.path.split('/')
+                                'Only ad, vos type URIs supported')
+                        archive, file_id = file_url.path.split('/')[-2:]
                         file_meta[(archive, file_id)] = meta
         return uris, file_meta
     else:
