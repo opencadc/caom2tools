@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2019.                            (c) 2019.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -120,11 +120,13 @@ class TestChunk(unittest.TestCase):
         self.assertIsNone(test_chunk.energy_axis)
         self.assertIsNone(test_chunk.time_axis)
         self.assertIsNone(test_chunk.polarization_axis)
+        self.assertIsNone(test_chunk.custom_axis)
         self.assertIsNone(test_chunk.observable)
         self.assertIsNone(test_chunk.position)
         self.assertIsNone(test_chunk.energy)
         self.assertIsNone(test_chunk.time)
         self.assertIsNone(test_chunk.polarization)
+        self.assertIsNone(test_chunk.custom)
 
     def test_attributes(self):
         test_chunk = chunk.Chunk()
@@ -136,11 +138,13 @@ class TestChunk(unittest.TestCase):
             test_chunk.energy_axis = float(1.0)
             test_chunk.time_axis = float(1.0)
             test_chunk.polarization_axis = float(1.0)
+            test_chunk.custom_axis = float(1.0)
             test_chunk.observable = float(1.0)
             test_chunk.position = float(1.0)
             test_chunk.energy = float(1.0)
             test_chunk.time = float(1.0)
             test_chunk.polarization = float(1.0)
+            test_chunk.custom = float(1.0)
 
         test_chunk.product_type = chunk.ProductType.SCIENCE
         self.assertEqual(chunk.ProductType.SCIENCE.name,
@@ -163,6 +167,9 @@ class TestChunk(unittest.TestCase):
 
         test_chunk.polarization_axis = int(5)
         self.assertEqual(int(5), test_chunk.polarization_axis)
+
+        test_chunk.custom_axis = int(6)
+        self.assertEqual(int(6), test_chunk.custom_axis)
 
         axis = wcs.Axis("ctype", "cunit")
         dependent = wcs.Slice(axis, 1)
@@ -190,6 +197,10 @@ class TestChunk(unittest.TestCase):
             wcs.CoordAxis1D(wcs.Axis('STOKES')))
         test_chunk.polarization = polarization
         self.assertEqual(polarization, test_chunk.polarization)
+
+        custom = chunk.CustomWCS(wcs.CoordAxis1D(axis1))
+        test_chunk.custom = custom
+        self.assertEqual(custom, test_chunk.custom)
 
 
 class TestObservableAxis(unittest.TestCase):
@@ -339,3 +350,17 @@ class TestPolarizationWCS(unittest.TestCase):
         axis_1d = wcs.CoordAxis1D(axis)
         polarization = chunk.PolarizationWCS(axis_1d)
         self.assertEqual(polarization.axis, axis_1d)
+
+
+class TestCustomWCS(unittest.TestCase):
+    def test_init(self):
+        self.assertRaises(TypeError, chunk.CustomWCS, None)
+        self.assertRaises(TypeError, chunk.CustomWCS, int(1))
+        self.assertRaises(TypeError, chunk.CustomWCS, str("s"))
+
+        axis = wcs.Axis("ctype", "cunit")
+        axis_1d = wcs.CoordAxis1D(axis)
+        custom = chunk.CustomWCS(axis_1d)
+        self.assertEqual(custom.axis, axis_1d)
+        with self.assertRaises(AttributeError):
+            custom.axis = axis_1d
