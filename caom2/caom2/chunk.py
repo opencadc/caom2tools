@@ -1000,4 +1000,3 @@ class CustomWCS(CaomObject):
 
         """
         return self._axis
-
