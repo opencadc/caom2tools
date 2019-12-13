@@ -402,13 +402,8 @@ class CustomTestUtil:
     def bad_function_wcs():
         ctype = "RM"
         unit = "rad/m^2"
-        px = float(0.5)
-        sx = float(1.0)
-        nx = 200
-        ds = float(0.01)
         error = None
         range = None
-        bounds = None
         c1 = RefCoord(float(0.9), float(1.1))
         c2 = RefCoord(float(10.9), float(1.1))
         bounds = CoordBounds1D()
@@ -417,7 +412,8 @@ class CustomTestUtil:
         delta = 0.0
         ref_coord = RefCoord(float(0.9), float(1.1))
         func = CoordFunction1D(naxis, delta, ref_coord)
-        axis_1d = CoordAxis1D(wcs.Axis(ctype, unit), error, range, bounds, func)
+        axis_1d = CoordAxis1D(wcs.Axis(ctype, unit), error, range, bounds,
+                              func)
         return chunk.CustomWCS(axis_1d)
 
     @staticmethod

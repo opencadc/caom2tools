@@ -586,7 +586,8 @@ class CustomUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Chunk.product (CALIBRATION), user_chunk = False
+        # _choose_product returns Chunk.product (CALIBRATION),
+        # user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -620,7 +621,8 @@ class CustomUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is None
+        # _choose_product returns Artifact.product (SCIENCE),
+        # user_chunk = True, Chunk.custom is None
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
         test_chunk.custom = None
@@ -637,7 +639,8 @@ class CustomUtilTests(unittest.TestCase):
         expected_axis = None
         actual_axis = wcs_util.CustomUtil.compute(artifacts)
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
+        # _choose_product returns Artifact.product (SCIENCE),
+        # user_chunk = True, Chunk.custom is not None
         # bad Chunk.custom.axis.axis.ctype
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
@@ -655,7 +658,8 @@ class CustomUtilTests(unittest.TestCase):
         with pytest.raises(ValueError) as ex:
             actual_axis = wcs_util.CustomUtil.compute(artifacts)
         assert ('Unsupported CTYPE:' in str(ex.value))
-        # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
+        # _choose_product returns Artifact.product (SCIENCE),
+        # user_chunk = True, Chunk.custom is not None
         # first_ctype == Chunk.custom.axis.axis.ctype
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
@@ -675,15 +679,19 @@ class CustomUtilTests(unittest.TestCase):
         expected_samples = [expected_sample]
         expected_bounds = Interval(-49.5, 19950.5, expected_samples)
         expected_dimension = 200
-        expected_axis = plane.CustomAxis(expected_ctype, expected_bounds, expected_dimension)
+        expected_axis = plane.CustomAxis(expected_ctype, expected_bounds,
+                                         expected_dimension)
         actual_axis = wcs_util.CustomUtil.compute(artifacts)
         self.assertEqual(expected_axis.ctype, actual_axis.ctype)
         self.assertEqual(expected_axis.bounds.lower, actual_axis.bounds.lower)
         self.assertEqual(expected_axis.bounds.upper, actual_axis.bounds.upper)
-        self.assertEqual(expected_axis.bounds.samples[0].lower, actual_axis.bounds.samples[0].lower)
-        self.assertEqual(expected_axis.bounds.samples[0].upper, actual_axis.bounds.samples[0].upper)
+        self.assertEqual(expected_axis.bounds.samples[0].lower,
+                         actual_axis.bounds.samples[0].lower)
+        self.assertEqual(expected_axis.bounds.samples[0].upper,
+                         actual_axis.bounds.samples[0].upper)
         self.assertEqual(expected_axis.dimension, actual_axis.dimension)
-        # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
+        # _choose_product returns Artifact.product (SCIENCE),
+        # user_chunk = True, Chunk.custom is not None
         # first_ctype == Chunk.custom.axis.axis.ctype
         test_chunk_1 = Chunk()
         test_chunk_1.product_type = chunk.ProductType.SCIENCE
@@ -707,10 +715,12 @@ class CustomUtilTests(unittest.TestCase):
         expected_samples = [expected_sample]
         expected_bounds = Interval(-49.5, 19950.5, expected_samples)
         expected_dimension = 200
-        expected_axis = plane.CustomAxis(expected_ctype, expected_bounds, expected_dimension)
+        expected_axis = plane.CustomAxis(expected_ctype, expected_bounds,
+                                         expected_dimension)
         with pytest.raises(ValueError) as ex:
             actual_axis = wcs_util.CustomUtil.compute(artifacts)
         assert ('CTYPE must be the same across all Artifacts' in str(ex.value))
+
 
 # Supporting Classes for generating test data
 class CustomTestUtil:
@@ -745,7 +755,8 @@ class CustomTestUtil:
         sx = float(54321.0)
         nx = 200
         ds = float(0.01)
-        return CustomTestUtil.get_test_function_with_range(ctype, unit, px, sx, nx, ds)
+        return CustomTestUtil.get_test_function_with_range(
+            ctype, unit, px, sx, nx, ds)
 
     @staticmethod
     def good_wcs_with_bounds_3_samples():
@@ -755,7 +766,8 @@ class CustomTestUtil:
         sx = float(54321.0)
         nx = 200
         ds = float(0.01)
-        return CustomTestUtil.get_test_function_with_bounds_3_samples(ctype, unit, px, sx, nx, ds)
+        return CustomTestUtil.get_test_function_with_bounds_3_samples(
+            ctype, unit, px, sx, nx, ds)
 
     @staticmethod
     def good_wcs_with_function():
@@ -765,7 +777,8 @@ class CustomTestUtil:
         sx = float(1.0)
         nx = 200
         ds = float(0.01)
-        return CustomTestUtil.get_test_function_with_function(ctype, unit, px, sx, nx, ds)
+        return CustomTestUtil.get_test_function_with_function(
+            ctype, unit, px, sx, nx, ds)
 
     @staticmethod
     def bad_ctype_wcs():
@@ -850,7 +863,8 @@ class CustomTestUtil:
         start = RefCoord(float(-0.9), float(-1.2))
         end = RefCoord(float(0.6), float(0.2))
         b_range_3 = CoordRange1D(start, end)
-        samples = caom_util.TypedList(CoordRange1D, b_range_1, b_range_2, b_range_3)
+        samples = caom_util.TypedList(CoordRange1D, b_range_1, b_range_2,
+                                      b_range_3)
         bounds = CoordBounds1D(samples)
         axis_1d = wcs.CoordAxis1D(wcs.Axis(ctype, unit), error, range, bounds)
         ref_coord = wcs.RefCoord(px, sx)
@@ -867,9 +881,9 @@ class CustomTestUtil:
         delta = float(2.5)
         ref_coord = wcs.RefCoord(float(1.0), float(2.0))
         function = CoordFunction1D(naxis, delta, ref_coord)
-        axis_1d = CoordAxis1D(wcs.Axis(ctype, unit), error, range, bounds, function)
+        axis_1d = CoordAxis1D(wcs.Axis(ctype, unit), error, range, bounds,
+                              function)
         ref_coord = RefCoord(px, sx)
         axis_1d.function = CoordFunction1D(nx, ds, ref_coord)
         custom_wcs = chunk.CustomWCS(axis_1d)
         return custom_wcs
-
