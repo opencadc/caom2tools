@@ -194,7 +194,7 @@ class CustomUtil:
             tmp = []
             # Find intervals that overlap the new one, move from samples -> tmp
             for sample in samples:
-                f = union_scale * sample.upper - sample.lower
+                f = union_scale * (sample.upper - sample.lower)
                 c = sample.lower - f
                 d = sample.upper + f
                 # [a,b] U [c,d]
@@ -430,7 +430,8 @@ class CustomUtil:
             for p_key in a.parts:
                 p = a.parts[p_key]
                 for c in p.chunks:
-                    if CustomUtil._use_chunk(a.product_type, p.product_type, c.product_type, product_type):
+                    if c is not None and c.custom is not None and \
+                            CustomUtil._use_chunk(a.product_type, p.product_type, c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
                         if current_ctype is None or current_ctype != expected_ctype:
                             raise ValueError(
@@ -488,7 +489,8 @@ class CustomUtil:
             for p_key in a.parts:
                 p = a.parts[p_key]
                 for c in p.chunks:
-                    if CustomUtil._use_chunk(a.product_type, p.product_type, \
+                    if c is not None and c.custom is not None and \
+                            CustomUtil._use_chunk(a.product_type, p.product_type, \
                                             c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
                         if current_ctype is None or current_ctype != expected_ctype:

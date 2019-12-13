@@ -322,9 +322,11 @@ def _validate_axes(chunk):
                 value = attr_dict.get(key)
                 if value is not None and value <= chunk.naxis:
                     # Ignore axes greater than naxis: situation is allowed
-                    if axis_list[value] is not None and len(axis_list[value].strip()) > 0:
+                    if axis_list[value] is not None and \
+                                    len(axis_list[value].strip()) > 0:
                         # Flag duplicate axis definitions
-                        error_msg
+                        error_msg += "Duplicate axis number: {}: {}, {}"\
+                            .format(value, key, axis_list[value])
                     else:
                         axis_list[value] = key
 
