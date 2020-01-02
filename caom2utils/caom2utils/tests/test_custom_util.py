@@ -110,7 +110,7 @@ class CustomUtilTests(unittest.TestCase):
         val = 0.1
         pix = wcs_util.CustomUtil.val2pix(wcs, func, val)
         expected_pix = -10.0
-        self.assertEquals(pix, expected_pix)
+        self.assertEqual(pix, expected_pix)
 
     def test_function1d_to_interval_happy_path(self):
         # happy path
@@ -122,9 +122,9 @@ class CustomUtilTests(unittest.TestCase):
         actual_interval = wcs_util.CustomUtil.function1d_to_interval(
             wcs, function_1d)
         expected_interval = Interval(-502.5, -2.5)
-        self.assertEquals(expected_interval.lower, actual_interval.lower)
-        self.assertEquals(expected_interval.upper, actual_interval.upper)
-        self.assertEquals(None, actual_interval.samples)
+        self.assertEqual(expected_interval.lower, actual_interval.lower)
+        self.assertEqual(expected_interval.upper, actual_interval.upper)
+        self.assertEqual(None, actual_interval.samples)
         # function_1d.delta == 0.0 && function_1d.naxis > 1
         naxis = int(100)
         delta = 0.0
@@ -143,9 +143,9 @@ class CustomUtilTests(unittest.TestCase):
         actual_interval = wcs_util.CustomUtil.range1d_to_interval(
             wcs, range_1d)
         expected_interval = Interval(1.1, 11.1)
-        self.assertEquals(expected_interval.lower, actual_interval.lower)
-        self.assertEquals(expected_interval.upper, actual_interval.upper)
-        self.assertEquals(None, actual_interval.samples)
+        self.assertEqual(expected_interval.lower, actual_interval.lower)
+        self.assertEqual(expected_interval.upper, actual_interval.upper)
+        self.assertEqual(None, actual_interval.samples)
         # function_1d.delta == 0.0 && function_1d.naxis > 1
         start = RefCoord(float(0.9), float(1.1))
         end = RefCoord(float(10.9), float(1.1))
