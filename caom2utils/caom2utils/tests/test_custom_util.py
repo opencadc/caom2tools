@@ -112,14 +112,15 @@ class CustomUtilTests(unittest.TestCase):
         expected_pix = -10.0
         self.assertEquals(pix, expected_pix)
 
-    def test_function1d_to_interval(self):
+    def test_function1d_to_interval_happy_path(self):
         # happy path
         wcs = CustomTestUtil.good_wcs()
         naxis = int(100)
         delta = -0.2
         ref_coord = RefCoord(0.0, 0.0)
         function_1d = CoordFunction1D(naxis, delta, ref_coord)
-        actual_interval = wcs_util.CustomUtil.function1d_to_interval(wcs, function_1d)
+        actual_interval = wcs_util.CustomUtil.function1d_to_interval(
+            wcs, function_1d)
         expected_interval = Interval(-502.5, -2.5)
         self.assertEquals(expected_interval.lower, actual_interval.lower)
         self.assertEquals(expected_interval.upper, actual_interval.upper)
@@ -130,7 +131,7 @@ class CustomUtilTests(unittest.TestCase):
         ref_coord = RefCoord(0.0, 0.0)
         function_1d = CoordFunction1D(naxis, delta, ref_coord)
         with pytest.raises(ValueError) as ex:
-            actual_interval = wcs_util.CustomUtil.function1d_to_interval(wcs, function_1d)
+            wcs_util.CustomUtil.function1d_to_interval(wcs, function_1d)
         assert ('Invalid CoordFunction1D:' in str(ex.value))
 
     def test_range1d_to_interval(self):
@@ -139,7 +140,8 @@ class CustomUtilTests(unittest.TestCase):
         start = RefCoord(float(0.9), float(1.1))
         end = RefCoord(float(10.9), float(11.1))
         range_1d = CoordRange1D(start, end)
-        actual_interval = wcs_util.CustomUtil.range1d_to_interval(wcs, range_1d)
+        actual_interval = wcs_util.CustomUtil.range1d_to_interval(
+            wcs, range_1d)
         expected_interval = Interval(1.1, 11.1)
         self.assertEquals(expected_interval.lower, actual_interval.lower)
         self.assertEquals(expected_interval.upper, actual_interval.upper)
@@ -149,7 +151,7 @@ class CustomUtilTests(unittest.TestCase):
         end = RefCoord(float(10.9), float(1.1))
         range_1d = CoordRange1D(start, end)
         with pytest.raises(ValueError) as ex:
-            actual_interval = wcs_util.CustomUtil.range1d_to_interval(wcs, range_1d)
+            wcs_util.CustomUtil.range1d_to_interval(wcs, range_1d)
         assert ('Invalid CoordRange1D:' in str(ex.value))
 
     def test_compute_dimension_from_range_bounds(self):
@@ -169,7 +171,9 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = None
         expected_ctype = "RM"
-        actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
+        actual_num_pixels = \
+            wcs_util.CustomUtil.compute_dimension_from_range_bounds(
+                artifacts, product_type, expected_ctype)
         expected_num_pixels = None
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = False, ctype not match
@@ -188,7 +192,9 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
+        actual_num_pixels = \
+            wcs_util.CustomUtil.compute_dimension_from_range_bounds(
+                artifacts, product_type, expected_ctype)
         expected_num_pixels = None
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = False, ptype not match
@@ -207,7 +213,9 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
+        actual_num_pixels = \
+            wcs_util.CustomUtil.compute_dimension_from_range_bounds(
+                artifacts, product_type, expected_ctype)
         expected_num_pixels = None
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = False, atype not match
@@ -226,7 +234,9 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
+        actual_num_pixels = \
+            wcs_util.CustomUtil.compute_dimension_from_range_bounds(
+                artifacts, product_type, expected_ctype)
         expected_num_pixels = None
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = True, current_type != expected_ctype
@@ -246,7 +256,8 @@ class CustomUtilTests(unittest.TestCase):
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "FARADAY"
         with pytest.raises(ValueError) as ex:
-            actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
+            wcs_util.CustomUtil.compute_dimension_from_range_bounds(
+                artifacts, product_type, expected_ctype)
         assert ('CTYPE must be the same across all Artifacts' in str(ex.value))
         # user_chunk = True, get_num_pixels: range is not None
         test_chunk = Chunk()
@@ -267,7 +278,8 @@ class CustomUtilTests(unittest.TestCase):
         actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
         expected_num_pixels = 10
         self.assertEqual(expected_num_pixels, actual_num_pixels)
-        # user_chunk = True, get_num_pixels: bounds with 3 samples that traverses _merge_into_list completely
+        # user_chunk = True, get_num_pixels: bounds with 3 samples that
+        # traverses _merge_into_list completely
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_bounds_3_samples()
@@ -283,10 +295,13 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
+        actual_num_pixels = \
+            wcs_util.CustomUtil.compute_dimension_from_range_bounds(
+                artifacts, product_type, expected_ctype)
         expected_num_pixels = 11
         self.assertEqual(expected_num_pixels, actual_num_pixels)
-        # user_chunk = True, range = None, bounds = None, use_func and function = None
+        # user_chunk = True, range = None, bounds = None, use_func and
+        # function = None
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -302,7 +317,9 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
+        actual_num_pixels = \
+            wcs_util.CustomUtil.compute_dimension_from_range_bounds(
+            artifacts, product_type, expected_ctype)
         expected_num_pixels = None
         self.assertEqual(expected_num_pixels, actual_num_pixels)
 
@@ -312,7 +329,8 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = None
         product_type = None
         expected_ctype = None
-        actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype)
+        actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(
+            bounds, artifacts, product_type, expected_ctype)
         expected_dimension = None
         self.assertEqual(expected_dimension, actual_dimension)
         # bounds is not None, user_chunk = True, current_type != expected_ctype
@@ -333,10 +351,11 @@ class CustomUtilTests(unittest.TestCase):
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "FARADAY"
         with pytest.raises(ValueError) as ex:
-            actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype)
+            wcs_util.CustomUtil.compute_dimension_from_wcs(
+                bounds, artifacts, product_type, expected_ctype)
         assert ('CTYPE must be the same across all Artifacts' in str(ex.value))
-        # bounds is not None, user_chunk = True, current_type is not None and current_type == expected_ctype
-        # ss >= scale, num = 1
+        # bounds is not None, user_chunk = True, current_type is not None and
+        # current_type == expected_ctype, ss >= scale, num = 1
         bounds = Interval(1.1, 11.1)
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
@@ -353,7 +372,8 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype)
+        actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(
+            bounds, artifacts, product_type, expected_ctype)
         expected_dimension = 200
         self.assertEqual(expected_dimension, actual_dimension)
         # bounds is not None, user_chunk = False, sw = None
@@ -372,11 +392,12 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = None
         expected_ctype = "RM"
-        actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype)
+        actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(
+            bounds, artifacts, product_type, expected_ctype)
         expected_dimension = None
         self.assertEqual(expected_dimension, actual_dimension)
-        # bounds is not None, user_chunk = True, current_type is not None and current_type == expected_ctype
-        # ss >= scale, num = 2
+        # bounds is not None, user_chunk = True, current_type is not None and
+        # current_type == expected_ctype, ss >= scale, num = 2
         bounds = Interval(1.1, 11.1)
         test_chunk1 = Chunk()
         test_chunk1.product_type = chunk.ProductType.CALIBRATION
@@ -396,7 +417,8 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype)
+        actual_dimension = wcs_util.CustomUtil.compute_dimension_from_wcs(
+            bounds, artifacts, product_type, expected_ctype)
         expected_dimension = 500
         self.assertEqual(expected_dimension, actual_dimension)
 
@@ -417,7 +439,8 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = None
         expected_ctype = "RM"
-        actual_bounds = wcs_util.CustomUtil.compute_bounds(artifacts, product_type, expected_ctype)
+        actual_bounds = wcs_util.CustomUtil.compute_bounds(
+            artifacts, product_type, expected_ctype)
         expected_bounds = None
         self.assertEqual(expected_bounds, actual_bounds)
         # user_chunk = True, current_type != expected_ctype
@@ -437,7 +460,8 @@ class CustomUtilTests(unittest.TestCase):
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "FARADAY"
         with pytest.raises(ValueError) as ex:
-            actual_num_pixels = wcs_util.CustomUtil.compute_bounds(artifacts, product_type, expected_ctype)
+            wcs_util.CustomUtil.compute_bounds(
+                artifacts, product_type, expected_ctype)
         assert ('CTYPE must be the same across all Artifacts' in str(ex.value))
         # user_chunk = True, range is not None
         test_chunk = Chunk()
@@ -455,11 +479,13 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_interval = wcs_util.CustomUtil.compute_bounds(artifacts, product_type, expected_ctype)
+        actual_interval = wcs_util.CustomUtil.compute_bounds(
+            artifacts, product_type, expected_ctype)
         expected_interval = Interval(1.1, 11.1)
         self.assertEqual(expected_interval.lower, actual_interval.lower)
         self.assertEqual(expected_interval.upper, actual_interval.upper)
-        # user_chunk = True, get_num_pixels: bounds with 3 samples that traverses _merge_into_list completely
+        # user_chunk = True, get_num_pixels: bounds with 3 samples that
+        # traverses _merge_into_list completely
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_bounds_3_samples()
@@ -475,8 +501,9 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_interval = wcs_util.CustomUtil.compute_bounds(artifacts, product_type, expected_ctype)
-        expected_interval = Interval(-1.2,11.2)
+        actual_interval = wcs_util.CustomUtil.compute_bounds(
+            artifacts, product_type, expected_ctype)
+        expected_interval = Interval(-1.2, 11.2)
         self.assertEqual(expected_interval.lower, actual_interval.lower)
         self.assertEqual(expected_interval.upper, actual_interval.upper)
         # user_chunk = True, function is not None
@@ -495,13 +522,15 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_interval = wcs_util.CustomUtil.compute_bounds(artifacts, product_type, expected_ctype)
+        actual_interval = wcs_util.CustomUtil.compute_bounds(
+            artifacts, product_type, expected_ctype)
         expected_interval = Interval(-49.5, 19950.5)
         self.assertEqual(expected_interval.lower, actual_interval.lower)
         self.assertEqual(expected_interval.upper, actual_interval.upper)
 
     def test_compute(self):
-        # _choose_product returns Artifact.product (SCIENCE), user_chunk = False
+        # _choose_product returns Artifact.product (SCIENCE),
+        # user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -518,7 +547,8 @@ class CustomUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Artifact.product (CALIBRATION), user_chunk = False
+        # _choose_product returns Artifact.product (CALIBRATION),
+        # user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -535,7 +565,8 @@ class CustomUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Part.product (SCIENCE), user_chunk = False
+        # _choose_product returns Part.product (SCIENCE),
+        # user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -552,7 +583,8 @@ class CustomUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Part.product (CALIBRATION), user_chunk = False
+        # _choose_product returns Part.product (CALIBRATION),
+        # user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
