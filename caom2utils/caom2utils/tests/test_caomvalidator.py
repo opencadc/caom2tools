@@ -75,7 +75,7 @@ import os
 from caom2utils import validate
 from caom2utils.caomvalidator import _validate_keyword
 from caom2 import ObservationReader
-from caom2 import SimpleObservation, CompositeObservation, Proposal
+from caom2 import SimpleObservation, DerivedObservation, Proposal
 from caom2 import Algorithm, Telescope, Instrument, Target
 from caom2 import Plane, Provenance
 
@@ -108,7 +108,7 @@ def test_validate_observation():
     obs = SimpleObservation('test_collection', 'test_obs_id',
                             Algorithm('test_name'))
     validate(obs)
-    obs = CompositeObservation('test_collection', 'test_obs_id',
+    obs = DerivedObservation('test_collection', 'test_obs_id',
                                Algorithm('test_name'),
                                proposal=Proposal('test_proposal'),
                                telescope=Telescope('test_telescope'),
