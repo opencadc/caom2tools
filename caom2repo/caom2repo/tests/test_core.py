@@ -172,7 +172,7 @@ class TestCAOM2Repo(unittest.TestCase):
         expect_obs = copy.deepcopy(obs)
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'addplaneplugin.py'))
         visitor.plugin.update(obs)
-        self.assertNotEquals(expect_obs, obs)
+        self.assertNotEqual(expect_obs, obs)
         self.assertEqual(len(expect_obs.planes) + 1, len(obs.planes))
 
         # non-existent the plugin file
@@ -212,8 +212,8 @@ class TestCAOM2Repo(unittest.TestCase):
         ibuffer.seek(0)  # reposition the buffer for reading
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level, host=service_url)
-        self.assertEqual(obs,
-                          visitor.get_observation(collection, observation_id))
+        self.assertEqual(obs, visitor.get_observation(
+            collection, observation_id))
 
         # signal problems
         http_error = requests.HTTPError()
@@ -268,7 +268,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         expect_observations = ['700000o', '700001o']
         self.assertEqual(expect_observations,
-                          visitor._get_observations('cfht'))
+                         visitor._get_observations('cfht'))
         self.assertEqual(end_date, visitor._start)
         mock_get.assert_called_once_with((
             'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1',

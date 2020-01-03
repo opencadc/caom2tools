@@ -275,22 +275,22 @@ class CustomUtil:
             return False
 
         if ctype is not None and ctype != matches:
-            logger.debug("use_chunk=False: Chunk.product_type={}"\
-                         .format(ctype))
+            logger.debug(
+                "use_chunk=False: Chunk.product_type={}".format(ctype))
             return False
 
         if ptype is not None and ptype != matches:
-            logger.debug("use_chunk=False: Part.product_type={}"\
-                         .format(ptype))
+            logger.debug(
+                "use_chunk=False: Part.product_type={}".format(ptype))
             return False
 
         if atype == matches:
-            logger.debug("use_chunk=True: Artifact.product_type={}"\
-                         .format(atype))
+            logger.debug(
+                "use_chunk=True: Artifact.product_type={}".format(atype))
             return True
 
-        logger.debug("use_chunk=False: product_type={},{},{}"\
-                     .format(atype, ptype, ctype))
+        logger.debug("use_chunk=False: product_type={},{},{}".
+                     format(atype, ptype, ctype))
         return False
 
     @staticmethod
@@ -317,8 +317,8 @@ class CustomUtil:
         CustomUtil.validate_wcs(wcs)
         if func.delta == 0.0 and func.naxis > 1:
             raise ValueError(
-                "Invalid CoordFunction1D: found {} pixels and delta = 0.0"\
-                    .format(func.naxis))
+                "Invalid CoordFunction1D: found {} pixels and delta = 0.0".
+                    format(func.naxis))
 
         p1 = 0.5
         p2 = float(func.naxis) + 0.5
@@ -383,19 +383,22 @@ class CustomUtil:
                 p = a.parts[p_key]
                 for c in p.chunks:
                     if c.custom is not None and \
-                            CustomUtil._use_chunk(a.product_type, p.product_type, c.product_type, product_type):
+                            CustomUtil._use_chunk(
+                                a.product_type, p.product_type,
+                                c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
                         if first_ctype is None:
                             if current_ctype in CustomUtil.ctype_cunit_map:
                                 first_ctype = current_ctype
                             else:
-                                raise ValueError(
-                                    "Unsupported CTYPE: {}".format(current_ctype))
+                                raise ValueError("Unsupported CTYPE: {}".
+                                                 format(current_ctype))
 
                         if current_ctype != first_ctype:
                             raise ValueError(
                                 "CTYPE must be the same across all Artifacts. \
-                                Found: {} and {}".format(current_ctype, first_ctype))
+                                Found: {} and {}".format(current_ctype,
+                                                         first_ctype))
 
         return first_ctype
 
@@ -406,10 +409,13 @@ class CustomUtil:
         if axis_ctype is not None:
             c = plane.CustomAxis(axis_ctype)
             if product_type is not None:
-                c.bounds = CustomUtil.compute_bounds(artifacts, product_type, axis_ctype)
-                c.dimension = CustomUtil.compute_dimension_from_wcs(c.bounds, artifacts, product_type, axis_ctype)
+                c.bounds = CustomUtil.compute_bounds(artifacts, product_type,
+                                                     axis_ctype)
+                c.dimension = CustomUtil.compute_dimension_from_wcs(
+                    c.bounds, artifacts, product_type, axis_ctype)
                 if c.dimension is None:
-                    c.dimension = CustomUtil.compute_dimension_from_wcs(c.bounds, artifacts, product_type, axis_ctype)
+                    c.dimension = CustomUtil.compute_dimension_from_wcs(
+                        c.bounds, artifacts, product_type, axis_ctype)
             return c
         else:
             # No ctype found for chosen product type
@@ -431,29 +437,45 @@ class CustomUtil:
                 p = a.parts[p_key]
                 for c in p.chunks:
                     if c is not None and c.custom is not None and \
-                            CustomUtil._use_chunk(a.product_type, p.product_type, c.product_type, product_type):
+                            CustomUtil._use_chunk(
+                                a.product_type, p.product_type,
+                                c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
-                        if current_ctype is None or current_ctype != expected_ctype:
+                        if current_ctype is None or \
+                                        current_ctype != expected_ctype:
                             raise ValueError(
                                 "CTYPE must be the same across all Artifacts. \
-                                Found: {}. Expected: {}".format(current_ctype, expected_ctype))
+                                Found: {}. Expected: {}".format(current_ctype,
+                                                                expected_ctype))
                         else:
                             range = c.custom.axis.range
                             bounds = c.custom.axis.bounds
                             function = c.custom.axis.function
                             if range is not None:
-                                s = CustomUtil.range1d_to_interval(c.custom, range)
-                                logger.debug("[compute_bounds] range -> sub: {}".format(s))
-                                CustomUtil._merge_into_list(s, subs, union_scale)
+                                s = CustomUtil.range1d_to_interval(c.custom,
+                                                                   range)
+                                logger.debug(
+                                    "[compute_bounds] range -> sub: {}".
+                                        format(s))
+                                CustomUtil._merge_into_list(s, subs,
+                                                            union_scale)
                             elif bounds is not None:
                                 for cr in bounds.samples:
-                                    s = CustomUtil.range1d_to_interval(c.custom, cr)
-                                    logger.debug("[compute_bounds] bounds -> sub: {}".format(s))
-                                    CustomUtil._merge_into_list(s, subs, union_scale)
+                                    s = CustomUtil.range1d_to_interval(
+                                        c.custom, cr)
+                                    logger.debug(
+                                        "[compute_bounds] bounds -> sub: {}".
+                                            format(s))
+                                    CustomUtil._merge_into_list(
+                                        s, subs, union_scale)
                             elif function is not None:
-                                s = CustomUtil.function1d_to_interval(c.custom, function)
-                                logger.debug("[compute_bounds] function -> sub: {}".format(s))
-                                CustomUtil._merge_into_list(s, subs, union_scale)
+                                s = CustomUtil.function1d_to_interval(
+                                    c.custom, function)
+                                logger.debug(
+                                    "[compute_bounds] function -> sub: {}".
+                                        format(s))
+                                CustomUtil._merge_into_list(
+                                    s, subs, union_scale)
 
         if len(subs) == 0:
             return None
@@ -468,7 +490,8 @@ class CustomUtil:
         return shape.Interval(lb, ub, subs)
 
     @staticmethod
-    def compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype):
+    def compute_dimension_from_wcs(bounds, artifacts,
+                                   product_type, expected_ctype):
         """ Compute dimensionality (number of pixels).
 
         :param bounds A sampled interval
@@ -490,13 +513,16 @@ class CustomUtil:
                 p = a.parts[p_key]
                 for c in p.chunks:
                     if c is not None and c.custom is not None and \
-                            CustomUtil._use_chunk(a.product_type, p.product_type, \
-                                            c.product_type, product_type):
+                            CustomUtil._use_chunk(
+                                a.product_type, p.product_type,
+                                c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
-                        if current_ctype is None or current_ctype != expected_ctype:
+                        if current_ctype is None or \
+                                        current_ctype != expected_ctype:
                             raise ValueError(
                                 "CTYPE must be the same across all Artifacts. \
-                                Found: {}. Expected: ".format(current_ctype, expected_ctype))
+                                Found: {}. Expected: ".format(
+                                    current_ctype, expected_ctype))
                         else:
                             num += 1
                             ss = abs(c.custom.axis.function.delta)
@@ -520,7 +546,8 @@ class CustomUtil:
         return int(round(abs(x2 - x1)))
 
     @staticmethod
-    def compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype):
+    def compute_dimension_from_range_bounds(
+            artifacts, product_type, expected_ctype):
         """ Compute dimensionality (number of pixels).
 
         :param artifacts List of Artifacts
@@ -528,25 +555,30 @@ class CustomUtil:
         :param expected_ctype Expected CTYPE
         :return long
         """
-        # Assumption: all ...pixels are distinct so just add up the number of pixels
+        # Assumption: all ...pixels are distinct so just add up the
+        # number of pixels
         num_pixels = float(0.0)
         for a in artifacts:
             for p_key in a.parts:
                 p = a.parts[p_key]
                 for c in p.chunks:
-                    if CustomUtil._use_chunk(a.product_type, p.product_type, \
-                                            c.product_type, product_type):
+                    if CustomUtil._use_chunk(a.product_type, p.product_type,
+                                             c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
-                        if current_ctype is None or current_ctype != expected_ctype:
+                        if current_ctype is None or \
+                                        current_ctype != expected_ctype:
                             raise ValueError(
                                 "CTYPE must be the same across all Artifacts. \
-                                Found: {}. Expected: {}".format(current_ctype, expected_ctype))
+                                Found: {}. Expected: {}".format(
+                                    current_ctype, expected_ctype))
                         else:
-                            n = CustomUtil._get_num_pixels(c.custom.axis, False)
+                            n = CustomUtil._get_num_pixels(
+                                c.custom.axis, False)
                             num_pixels += n
 
         if num_pixels > 0.0:
-            logger.debug("compute_dimension_from_range_bounds: {}".format(num_pixels))
+            logger.debug("compute_dimension_from_range_bounds: {}".format(
+                num_pixels))
             return int(num_pixels)
 
         logger.debug("compute_dimension_from_range_bounds: None")
@@ -568,16 +600,19 @@ class CustomUtil:
         if map_cunit != cunit:
             raise ValueError(
                 "Invalid CUNIT for CTYPE: {}. Expected: {}. Found {} \
-                (normalized, raw: {})".format(ctype, map_cunit, cunit, raw_cunit))
+                (normalized, raw: {})".format(
+                    ctype, map_cunit, cunit, raw_cunit))
 
     @staticmethod
     def _normalize_unit(raw_cunit):
         normalized_unit = raw_cunit
         if "^" in raw_cunit:
             normalized_unit = raw_cunit.replace("^", "**")
-            logger.debug("normalized unit: {} to {}".format(raw_cunit, normalized_unit))
+            logger.debug("normalized unit: {} to {}".format(
+                raw_cunit, normalized_unit))
 
         return normalized_unit
+
 
 class EnergyUtil:
     def __init__(self):
