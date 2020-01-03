@@ -69,14 +69,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from six.moves import range
 from caom2utils import wcs_util
 from caom2 import ReleaseType, Artifact, Part, Chunk, plane, caom_util, \
     chunk, CoordAxis1D, CoordBounds1D, CoordFunction1D, CoordRange1D, \
     Interval, RefCoord, wcs
 from caom2.caom_util import TypedList, TypedOrderedDict
 import pytest
-import six
 import unittest
 
 single_test = False
