@@ -119,32 +119,32 @@ class TestCAOM2Repo(unittest.TestCase):
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
             obs_id_list = visitor._get_obs_from_file(obs_file, None, None,
                                                      False)
-            self.assertEquals('obs_id_1', obs_id_list[0])
-            self.assertEquals('obs_id_2', obs_id_list[1])
-            self.assertEquals('obs_id_3', obs_id_list[2])
+            self.assertEqual('obs_id_1', obs_id_list[0])
+            self.assertEqual('obs_id_2', obs_id_list[1])
+            self.assertEqual('obs_id_3', obs_id_list[2])
 
         # last_modified_date is earlier than start
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
             obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa(
                 '2000-10-11T12:30:00.333'), None, False)
-            self.assertEquals('obs_id_1', obs_id_list[0])
+            self.assertEqual('obs_id_1', obs_id_list[0])
 
         # last_modified_date is between start and end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
             obs_id_list = visitor._get_obs_from_file(
                 obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
                 util.str2ivoa('2016-10-11T12:30:00.333'), False)
-            self.assertEquals('obs_id_1', obs_id_list[0])
-            self.assertEquals('obs_id_2', obs_id_list[1])
+            self.assertEqual('obs_id_1', obs_id_list[0])
+            self.assertEqual('obs_id_2', obs_id_list[1])
 
         # last_modified_date is after end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
             obs_id_list = visitor._get_obs_from_file(
                 obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
                 util.str2ivoa('2017-10-11T12:30:00.333'), False)
-            self.assertEquals('obs_id_1', obs_id_list[0])
-            self.assertEquals('obs_id_2', obs_id_list[1])
-            self.assertEquals('obs_id_3', obs_id_list[2])
+            self.assertEqual('obs_id_1', obs_id_list[0])
+            self.assertEqual('obs_id_2', obs_id_list[1])
+            self.assertEqual('obs_id_3', obs_id_list[2])
 
         # error in file
         with open(os.path.join(THIS_DIR, 'data/obs_id_error.txt')) as obs_file:
@@ -164,7 +164,7 @@ class TestCAOM2Repo(unittest.TestCase):
         expect_obs = copy.deepcopy(obs)
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'passplugin.py'))
         visitor.plugin.update(obs)
-        self.assertEquals(expect_obs, obs)
+        self.assertEqual(expect_obs, obs)
 
         # plugin class adds a plane to the observation
         visitor = CAOM2RepoClient(auth.Subject(), level)
@@ -173,7 +173,7 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'addplaneplugin.py'))
         visitor.plugin.update(obs)
         self.assertNotEquals(expect_obs, obs)
-        self.assertEquals(len(expect_obs.planes) + 1, len(obs.planes))
+        self.assertEqual(len(expect_obs.planes) + 1, len(obs.planes))
 
         # non-existent the plugin file
         with self.assertRaises(Exception):
@@ -212,7 +212,7 @@ class TestCAOM2Repo(unittest.TestCase):
         ibuffer.seek(0)  # reposition the buffer for reading
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level, host=service_url)
-        self.assertEquals(obs,
+        self.assertEqual(obs,
                           visitor.get_observation(collection, observation_id))
 
         # signal problems
@@ -267,9 +267,9 @@ class TestCAOM2Repo(unittest.TestCase):
         end_date = util.utils.str2ivoa(last_datetime)
 
         expect_observations = ['700000o', '700001o']
-        self.assertEquals(expect_observations,
+        self.assertEqual(expect_observations,
                           visitor._get_observations('cfht'))
-        self.assertEquals(end_date, visitor._start)
+        self.assertEqual(end_date, visitor._start)
         mock_get.assert_called_once_with((
             'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1',
             'cfht'),
