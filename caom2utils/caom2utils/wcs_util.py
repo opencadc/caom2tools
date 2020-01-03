@@ -318,7 +318,7 @@ class CustomUtil:
         if func.delta == 0.0 and func.naxis > 1:
             raise ValueError(
                 "Invalid CoordFunction1D: found {} pixels and delta = 0.0".
-                    format(func.naxis))
+                format(func.naxis))
 
         p1 = 0.5
         p2 = float(func.naxis) + 0.5
@@ -442,11 +442,11 @@ class CustomUtil:
                                 c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
                         if current_ctype is None or \
-                                        current_ctype != expected_ctype:
+                                current_ctype != expected_ctype:
                             raise ValueError(
                                 "CTYPE must be the same across all Artifacts. \
-                                Found: {}. Expected: {}".format(current_ctype,
-                                                                expected_ctype))
+                                Found: {}. Expected: {}".format(
+                                    current_ctype, expected_ctype))
                         else:
                             range = c.custom.axis.range
                             bounds = c.custom.axis.bounds
@@ -456,7 +456,7 @@ class CustomUtil:
                                                                    range)
                                 logger.debug(
                                     "[compute_bounds] range -> sub: {}".
-                                        format(s))
+                                    format(s))
                                 CustomUtil._merge_into_list(s, subs,
                                                             union_scale)
                             elif bounds is not None:
@@ -465,7 +465,7 @@ class CustomUtil:
                                         c.custom, cr)
                                     logger.debug(
                                         "[compute_bounds] bounds -> sub: {}".
-                                            format(s))
+                                        format(s))
                                     CustomUtil._merge_into_list(
                                         s, subs, union_scale)
                             elif function is not None:
@@ -473,7 +473,7 @@ class CustomUtil:
                                     c.custom, function)
                                 logger.debug(
                                     "[compute_bounds] function -> sub: {}".
-                                        format(s))
+                                    format(s))
                                 CustomUtil._merge_into_list(
                                     s, subs, union_scale)
 
@@ -518,7 +518,7 @@ class CustomUtil:
                                 c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
                         if current_ctype is None or \
-                                        current_ctype != expected_ctype:
+                                current_ctype != expected_ctype:
                             raise ValueError(
                                 "CTYPE must be the same across all Artifacts. \
                                 Found: {}. Expected: ".format(
@@ -566,7 +566,7 @@ class CustomUtil:
                                              c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
                         if current_ctype is None or \
-                                        current_ctype != expected_ctype:
+                                current_ctype != expected_ctype:
                             raise ValueError(
                                 "CTYPE must be the same across all Artifacts. \
                                 Found: {}. Expected: {}".format(

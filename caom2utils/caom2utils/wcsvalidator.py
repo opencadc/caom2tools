@@ -333,7 +333,8 @@ def _validate_axes(chunk):
         # Validate the number and quality of the axis definitions
         # Count from 1, as 0 will never be filled
         if axis_list[0] is not None:
-            error_msg += "\tInvalid axis definition (0): {}.".format(axis_list[0])
+            error_msg += "\tInvalid axis definition (0): {}.".\
+                format(axis_list[0])
 
         for i in range(1, chunk.naxis + 1):
             if axis_list[i] is None:

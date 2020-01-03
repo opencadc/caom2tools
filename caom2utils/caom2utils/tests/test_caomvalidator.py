@@ -109,11 +109,11 @@ def test_validate_observation():
                             Algorithm('test_name'))
     validate(obs)
     obs = DerivedObservation('test_collection', 'test_obs_id',
-                               Algorithm('test_name'),
-                               proposal=Proposal('test_proposal'),
-                               telescope=Telescope('test_telescope'),
-                               instrument=Instrument('test_instrument'),
-                               target=Target('test_targets'))
+                             Algorithm('test_name'),
+                             proposal=Proposal('test_proposal'),
+                             telescope=Telescope('test_telescope'),
+                             instrument=Instrument('test_instrument'),
+                             target=Target('test_targets'))
     obs.algorithm.keywords = 'foo'
     obs.proposal.keywords = set('foo=42')
     obs.telescope.keywords = set('foo:42')

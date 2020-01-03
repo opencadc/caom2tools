@@ -275,7 +275,9 @@ class CustomUtilTests(unittest.TestCase):
         artifacts = TypedList(Artifact, artifact)
         product_type = chunk.ProductType.CALIBRATION
         expected_ctype = "RM"
-        actual_num_pixels = wcs_util.CustomUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
+        actual_num_pixels = \
+            wcs_util.CustomUtil.compute_dimension_from_range_bounds(
+                artifacts, product_type, expected_ctype)
         expected_num_pixels = 10
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = True, get_num_pixels: bounds with 3 samples that
@@ -319,7 +321,7 @@ class CustomUtilTests(unittest.TestCase):
         expected_ctype = "RM"
         actual_num_pixels = \
             wcs_util.CustomUtil.compute_dimension_from_range_bounds(
-            artifacts, product_type, expected_ctype)
+                artifacts, product_type, expected_ctype)
         expected_num_pixels = None
         self.assertEqual(expected_num_pixels, actual_num_pixels)
 
