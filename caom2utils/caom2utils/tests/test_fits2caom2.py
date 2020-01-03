@@ -407,9 +407,11 @@ def test_get_wcs_values():
                             sample_file_4axes, 0)
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
-    naxis1, naxis2 = w.pixel_shape
-    #result = getattr(w, '_naxis1')
-    assert naxis1 == 1
+    if hasattr(w, 'pixel_shape'):
+        result = w.pixel_shape[0]
+    else:
+        result = getattr(w, '_naxis1')
+    assert result == 1
     assert w.wcs.has_cd() is False
 
 
