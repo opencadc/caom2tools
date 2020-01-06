@@ -408,8 +408,11 @@ def test_get_wcs_values():
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
     if hasattr(w, 'pixel_shape'):
+        # Astropy #7973, deprecated '_naxis1' and '_naxis2'
+        # replaced by pixel_shape, applies to Python 3.x
         result = w.pixel_shape[0]
     else:
+        # '_naxis1' and '_naxis2' not deprecated for Python 2.x
         result = getattr(w, '_naxis1')
     assert result == 1
     assert w.wcs.has_cd() is False
