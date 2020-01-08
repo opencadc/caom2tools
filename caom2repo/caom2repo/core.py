@@ -440,11 +440,11 @@ class CAOM2RepoClient(object):
         self.logger.debug('GET '.format(path))
 
         try:
-            response = self._repo_client.get(
-                CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, path)
+            response = self._repo_client.get((
+                CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, path))
         except KeyError:
-            response = self._repo_client.get(
-                PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID, path)
+            response = self._repo_client.get((
+                PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID, path))
 
         obs_reader = ObservationReader()
         content = response.content
