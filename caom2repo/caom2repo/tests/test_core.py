@@ -271,7 +271,7 @@ class TestCAOM2Repo(unittest.TestCase):
                          visitor._get_observations('cfht'))
         self.assertEqual(end_date, visitor._start)
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1',
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
             'cfht'),
             params={'MAXREC': core.BATCH_SIZE})
 
@@ -279,7 +279,7 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11',
                                                                 '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1',
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
             'cfht'),
             params={'END': '2000-11-11T00:00:00.000',
                     'MAXREC': core.BATCH_SIZE})
@@ -291,7 +291,7 @@ class TestCAOM2Repo(unittest.TestCase):
                                   end=datetime.strptime('2000-11-12',
                                                         '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1',
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
             'cfht'), params={'START': '2000-11-11T00:00:00.000',
                              'END': '2000-11-12T00:00:00.000',
                              'MAXREC': core.BATCH_SIZE})
@@ -563,9 +563,9 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(4, len(updated))
         self.assertEqual(0, len(skipped))
         self.assertEqual(0, len(failed))
-        calls = [call((core.CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
+        calls = [call((core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
                       params={'START': start, 'END': end, 'MAXREC': 3}),
-                 call((core.CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
+                 call((core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
                       params={'START': '2011-01-01T12:00:00.000',
                               # datetime of the last record in the batch
                               'END': end,
