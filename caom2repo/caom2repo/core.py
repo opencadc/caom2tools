@@ -95,7 +95,9 @@ __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
 
-CAOM2REPO_OBS_CAPABILITY_ID =\
+CURRENT_CAOM2REPO_OBS_CAPABILITY_ID = \
+    'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2'
+PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID =\
     'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1'
 
 # resource ID for info
@@ -377,9 +379,15 @@ class CAOM2RepoClient(object):
         if end is not None:
             params['END'] = util.date2ivoa(end)
 
-        response = self._repo_client.get(
-            (CAOM2REPO_OBS_CAPABILITY_ID, collection),
-            params=params)
+        try:
+            response = self._repo_client.get(
+                (CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, collection),
+                params=params)
+        except KeyError:
+            response = self._repo_client.get(
+                (PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID, collection),
+                params=params)
+
         last_datetime = None
         for line in response.text.splitlines():
             columns = line.split('\t')
@@ -431,7 +439,11 @@ class CAOM2RepoClient(object):
         path = '/{}/{}'.format(collection, observation_id)
         self.logger.debug('GET '.format(path))
 
-        response = self._repo_client.get((CAOM2REPO_OBS_CAPABILITY_ID, path))
+        try:
+            response = self._repo_client.get((CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, path))
+        except KeyError:
+            response = self._repo_client.get((PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID, path))
+
         obs_reader = ObservationReader()
         content = response.content
         if len(content) == 0:
@@ -456,8 +468,13 @@ class CAOM2RepoClient(object):
         ObservationWriter().write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
-        self._repo_client.post(
-            (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
+        try:
+            self._repo_client.post(
+                (CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
+        except KeyError:
+            self._repo_client.post(
+                (PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
+
         self.logger.debug('Successfully updated Observation')
 
     def put_observation(self, observation):
@@ -476,8 +493,13 @@ class CAOM2RepoClient(object):
         ObservationWriter().write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
-        self._repo_client.put(
-            (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
+        try:
+            self._repo_client.put(
+                (CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
+        except KeyError:
+            self._repo_client.put(
+                (PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
+
         self.logger.debug('Successfully put Observation')
 
     def delete_observation(self, collection, observation_id):
@@ -489,8 +511,13 @@ class CAOM2RepoClient(object):
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
         self.logger.debug('DELETE {}'.format(path))
-        self._repo_client.delete(
-            (CAOM2REPO_OBS_CAPABILITY_ID, path))
+        try:
+            self._repo_client.delete(
+                (CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, path))
+        except KeyError:
+            self._repo_client.delete(
+                (PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID, path))
+
         self.logger.info('Successfully deleted Observation')
 
 
