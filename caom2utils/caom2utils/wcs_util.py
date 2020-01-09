@@ -81,8 +81,7 @@ import logging
 import sys
 
 
-APP_NAME = 'wcs_util'
-logger = logging.getLogger(APP_NAME)
+logger = logging.getLogger(__name__)
 
 __all__ = ['TimeUtil', 'CustomUtil', 'EnergyUtil', 'ORIGIN']
 
