@@ -738,7 +738,7 @@ def main_app():
         logger.info("Read")
         observation = client.get_observation(args.collection,
                                              args.observationID)
-        observation_writer = ObservationWriter()
+        observation_writer = ObservationWriter(False, False, 'caom2', client.namespace)
         if args.output:
             observation_writer.write(observation, args.output)
         else:
