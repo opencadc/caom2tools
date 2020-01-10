@@ -137,11 +137,13 @@ class CAOM2RepoClient(object):
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host)
         try:
-            self._repo_client.caps.get_access_url(CURRENT_CAOM2REPO_OBS_CAPABILITY_ID)
+            self._repo_client.caps.get_access_url(
+                CURRENT_CAOM2REPO_OBS_CAPABILITY_ID)
             self.capability_id = CURRENT_CAOM2REPO_OBS_CAPABILITY_ID
             self.namespace = obs_reader_writer.CAOM24_NAMESPACE
         except KeyError:
-            self._repo_client.caps.get_access_url(PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID)
+            self._repo_client.caps.get_access_url(
+                PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID)
             self.capability_id = PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID
             self.namespace = obs_reader_writer.CAOM23_NAMESPACE
 
@@ -464,7 +466,8 @@ class CAOM2RepoClient(object):
         self.logger.debug('POST {}'.format(path))
 
         ibuffer = BytesIO()
-        ObservationWriter(False, False, 'caom2', self.namespace).write(observation, ibuffer)
+        ObservationWriter(False, False, 'caom2', self.namespace).write(
+            observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.post(
@@ -485,7 +488,8 @@ class CAOM2RepoClient(object):
         self.logger.debug('PUT {}'.format(path))
 
         ibuffer = BytesIO()
-        ObservationWriter(False, False, 'caom2', self.namespace).write(observation, ibuffer)
+        ObservationWriter(False, False, 'caom2', self.namespace).write(
+            observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.put(
