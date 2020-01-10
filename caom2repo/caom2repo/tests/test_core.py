@@ -82,6 +82,7 @@ import requests
 from cadcutils import util, exceptions
 from cadcutils.net import auth
 from caom2.obs_reader_writer import ObservationWriter
+from caom2 import obs_reader_writer
 from caom2.observation import SimpleObservation
 from mock import Mock, patch, MagicMock, ANY, call
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
@@ -839,6 +840,7 @@ class TestCAOM2Repo(unittest.TestCase):
                     'ivo://ca.nrc.ca/resource',
                     collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
+        client_mock.return_value.namespace = obs_reader_writer.CAOM24_NAMESPACE
         core.main_app()
         client_mock.return_value.get_observation.\
             assert_called_with(collection, observation_id)
