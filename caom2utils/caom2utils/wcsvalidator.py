@@ -73,7 +73,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.wcs import Wcsprm
 from caom2utils.wcs_util import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
-from .wcs_util import PolarizationWcsUtil, CustomUtil
+from .wcs_util import PolarizationWcsUtil, CustomAxisUtil
 from caom2 import Artifact, Chunk, Observation, Part, Plane, \
     PolarizationState
 import numpy as np
@@ -358,20 +358,21 @@ def _validate_custom_wcs(custom):
             # CoordRange1D
             if custom_axis.range is not None:
                 logger.debug('custom_axis.range to interval validation.')
-                CustomUtil.range1d_to_interval(custom, custom_axis.range)
+                CustomAxisUtil.range1d_to_interval(custom, custom_axis.range)
                 logger.debug('time_axis.range to interval succeeded.')
 
             # CoordBounds1D
             if custom_axis.bounds is not None:
                 logger.debug('custom_axis.bounds to interval validation.')
                 for cr in custom_axis.bounds.samples:
-                    CustomUtil.range1d_to_interval(custom, cr)
+                    CustomAxisUtil.range1d_to_interval(custom, cr)
                 logger.debug('custom_axis.bounds to interval succeeded.')
 
             # CoordFunction1D
             if custom_axis.function is not None:
                 logger.debug('custom_axis.function to interval validation.')
-                CustomUtil.function1d_to_interval(custom, custom_axis.function)
+                CustomAxisUtil.function1d_to_interval(
+                    custom, custom_axis.function)
                 logger.debug('custom_axis.function to interval succeeded.')
 
         except Exception as e:

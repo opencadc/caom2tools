@@ -83,7 +83,7 @@ import sys
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['TimeUtil', 'CustomUtil', 'EnergyUtil', 'ORIGIN']
+__all__ = ['TimeUtil', 'CustomAxisUtil', 'EnergyUtil', 'ORIGIN']
 
 # TODO both these are very bad, implement more sensibly
 TARGET_TIMESYS = "UTC"
@@ -171,7 +171,13 @@ class TimeUtil:
             raise ValueError(sb)
 
 
-class CustomUtil:
+class CustomAxisUtil:
+    """
+    Utility class for Custom calculations. Ported from the Java version
+    of CustomAxisUtil. Additional functions were ported from
+    caom2/compute/Util.java
+    """
+
     ctype_cunit_map = {"FARADAY": "rad/m**2", "RM": "rad/m**2"}
 
     def __init__(self):
@@ -247,7 +253,7 @@ class CustomUtil:
             bins = []
             for cr in bounds.samples:
                 si = shape.Interval(cr.start.pix, cr.end.pix)
-                CustomUtil._merge_into_list(si, bins, float(0.0))
+                CustomAxisUtil._merge_into_list(si, bins, float(0.0))
 
             ret = float(0.0)
             for si in bins:
@@ -301,7 +307,7 @@ class CustomUtil:
         :param val A float
         :return A float
         """
-        CustomUtil.validate_wcs(wcs)
+        CustomAxisUtil.validate_wcs(wcs)
         ref_val = func.ref_coord.val
         return func.ref_coord.pix + (val - ref_val) / func.delta
 
@@ -313,7 +319,7 @@ class CustomUtil:
         :param r A CoordFunction1D
         :return An Interval
         """
-        CustomUtil.validate_wcs(wcs)
+        CustomAxisUtil.validate_wcs(wcs)
         if func.delta == 0.0 and func.naxis > 1:
             raise ValueError(
                 "Invalid CoordFunction1D: found {} pixels and delta = 0.0".
@@ -321,8 +327,8 @@ class CustomUtil:
 
         p1 = 0.5
         p2 = float(func.naxis) + 0.5
-        a = CustomUtil.val2pix(wcs, func, p1)
-        b = CustomUtil.val2pix(wcs, func, p2)
+        a = CustomAxisUtil.val2pix(wcs, func, p1)
+        b = CustomAxisUtil.val2pix(wcs, func, p2)
 
         return shape.Interval(min(a, b), max(a, b))
 
@@ -334,7 +340,7 @@ class CustomUtil:
         :param r A CoordRange1D
         :return An Interval
         """
-        CustomUtil.validate_wcs(wcs)
+        CustomAxisUtil.validate_wcs(wcs)
         np = abs(r.start.pix - r.end.pix)
         a = r.start.val
         b = r.end.val
@@ -382,12 +388,12 @@ class CustomUtil:
                 p = a.parts[p_key]
                 for c in p.chunks:
                     if c.custom is not None and \
-                            CustomUtil._use_chunk(
+                            CustomAxisUtil._use_chunk(
                                 a.product_type, p.product_type,
                                 c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
                         if first_ctype is None:
-                            if current_ctype in CustomUtil.ctype_cunit_map:
+                            if current_ctype in CustomAxisUtil.ctype_cunit_map:
                                 first_ctype = current_ctype
                             else:
                                 raise ValueError("Unsupported CTYPE: {}".
@@ -403,17 +409,17 @@ class CustomUtil:
 
     @staticmethod
     def compute(artifacts):
-        product_type = CustomUtil._chose_product_type(artifacts)
-        axis_ctype = CustomUtil._get_ctype(artifacts, product_type)
+        product_type = CustomAxisUtil._chose_product_type(artifacts)
+        axis_ctype = CustomAxisUtil._get_ctype(artifacts, product_type)
         if axis_ctype is not None:
             c = plane.CustomAxis(axis_ctype)
             if product_type is not None:
-                c.bounds = CustomUtil.compute_bounds(artifacts, product_type,
-                                                     axis_ctype)
-                c.dimension = CustomUtil.compute_dimension_from_wcs(
+                c.bounds = CustomAxisUtil.compute_bounds(
+                    artifacts, product_type, axis_ctype)
+                c.dimension = CustomAxisUtil.compute_dimension_from_wcs(
                     c.bounds, artifacts, product_type, axis_ctype)
                 if c.dimension is None:
-                    c.dimension = CustomUtil.compute_dimension_from_wcs(
+                    c.dimension = CustomAxisUtil.compute_dimension_from_wcs(
                         c.bounds, artifacts, product_type, axis_ctype)
             return c
         else:
@@ -436,7 +442,7 @@ class CustomUtil:
                 p = a.parts[p_key]
                 for c in p.chunks:
                     if c is not None and c.custom is not None and \
-                            CustomUtil._use_chunk(
+                            CustomAxisUtil._use_chunk(
                                 a.product_type, p.product_type,
                                 c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
@@ -451,29 +457,29 @@ class CustomUtil:
                             bounds = c.custom.axis.bounds
                             function = c.custom.axis.function
                             if range is not None:
-                                s = CustomUtil.range1d_to_interval(c.custom,
-                                                                   range)
+                                s = CustomAxisUtil.range1d_to_interval(
+                                    c.custom, range)
                                 logger.debug(
                                     "[compute_bounds] range -> sub: {}".
                                     format(s))
-                                CustomUtil._merge_into_list(s, subs,
-                                                            union_scale)
+                                CustomAxisUtil._merge_into_list(
+                                    s, subs, union_scale)
                             elif bounds is not None:
                                 for cr in bounds.samples:
-                                    s = CustomUtil.range1d_to_interval(
+                                    s = CustomAxisUtil.range1d_to_interval(
                                         c.custom, cr)
                                     logger.debug(
                                         "[compute_bounds] bounds -> sub: {}".
                                         format(s))
-                                    CustomUtil._merge_into_list(
+                                    CustomAxisUtil._merge_into_list(
                                         s, subs, union_scale)
                             elif function is not None:
-                                s = CustomUtil.function1d_to_interval(
+                                s = CustomAxisUtil.function1d_to_interval(
                                     c.custom, function)
                                 logger.debug(
                                     "[compute_bounds] function -> sub: {}".
                                     format(s))
-                                CustomUtil._merge_into_list(
+                                CustomAxisUtil._merge_into_list(
                                     s, subs, union_scale)
 
         if len(subs) == 0:
@@ -512,7 +518,7 @@ class CustomUtil:
                 p = a.parts[p_key]
                 for c in p.chunks:
                     if c is not None and c.custom is not None and \
-                            CustomUtil._use_chunk(
+                            CustomAxisUtil._use_chunk(
                                 a.product_type, p.product_type,
                                 c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
@@ -538,8 +544,8 @@ class CustomUtil:
         if num == 1:
             return sw.axis.function.naxis
 
-        x1 = CustomUtil.val2pix(sw, sw.axis.function, bounds.lower)
-        x2 = CustomUtil.val2pix(sw, sw.axis.function, bounds.upper)
+        x1 = CustomAxisUtil.val2pix(sw, sw.axis.function, bounds.lower)
+        x2 = CustomAxisUtil.val2pix(sw, sw.axis.function, bounds.upper)
 
         logger.debug("compute_dimension_from_wcs: {},{}".format(x1, x2))
         return int(round(abs(x2 - x1)))
@@ -561,8 +567,9 @@ class CustomUtil:
             for p_key in a.parts:
                 p = a.parts[p_key]
                 for c in p.chunks:
-                    if CustomUtil._use_chunk(a.product_type, p.product_type,
-                                             c.product_type, product_type):
+                    if CustomAxisUtil._use_chunk(
+                            a.product_type, p.product_type,
+                            c.product_type, product_type):
                         current_ctype = c.custom.axis.axis.ctype
                         if current_ctype is None or \
                                 current_ctype != expected_ctype:
@@ -571,7 +578,7 @@ class CustomUtil:
                                 Found: {}. Expected: {}".format(
                                     current_ctype, expected_ctype))
                         else:
-                            n = CustomUtil._get_num_pixels(
+                            n = CustomAxisUtil._get_num_pixels(
                                 c.custom.axis, False)
                             num_pixels += n
 
@@ -587,10 +594,10 @@ class CustomUtil:
     def validate_wcs(custom_wcs):
         ctype = custom_wcs.axis.axis.ctype
         raw_cunit = custom_wcs.axis.axis.cunit
-        cunit = CustomUtil()._normalize_unit(raw_cunit)
+        cunit = CustomAxisUtil()._normalize_unit(raw_cunit)
         map_cunit = None
-        if ctype in CustomUtil.ctype_cunit_map:
-            map_cunit = CustomUtil.ctype_cunit_map[ctype]
+        if ctype in CustomAxisUtil.ctype_cunit_map:
+            map_cunit = CustomAxisUtil.ctype_cunit_map[ctype]
 
         if map_cunit is None:
             raise ValueError(
