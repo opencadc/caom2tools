@@ -464,7 +464,7 @@ class CAOM2RepoClient(object):
         self.logger.debug('POST {}'.format(path))
 
         ibuffer = BytesIO()
-        ObservationWriter('False', 'False', 'caom2', self.namespace).write(observation, ibuffer)
+        ObservationWriter(False, False, 'caom2', self.namespace).write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.post(
@@ -485,7 +485,7 @@ class CAOM2RepoClient(object):
         self.logger.debug('PUT {}'.format(path))
 
         ibuffer = BytesIO()
-        ObservationWriter('False', 'False', 'caom2', self.namespace).write(observation, ibuffer)
+        ObservationWriter(False, False, 'caom2', self.namespace).write(observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.put(
