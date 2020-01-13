@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2018.                            (c) 2018.
+#  (c) 2019.                            (c) 2019.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -73,7 +73,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.wcs import Wcsprm
 from caom2utils.wcs_util import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
-from .wcs_util import PolarizationWcsUtil
+from .wcs_util import PolarizationWcsUtil, CustomAxisUtil
 from caom2 import Artifact, Chunk, Observation, Part, Plane, \
     PolarizationState
 import numpy as np
@@ -149,10 +149,20 @@ def _validate_chunk(chunk):
     """
     Validate all WCS in this chunk individually
     """
+    _validate_axes(chunk)
     _validate_spatial_wcs(chunk.position)
     _validate_spectral_wcs(chunk.energy)
     _validate_temporal_wcs(chunk.time)
     _validate_polarization_wcs(chunk.polarization)
+    # Only case to ignore is if both are declared as null
+    if chunk.custom_axis is not None or chunk.custom is not None:
+        if chunk.custom_axis is not None and chunk.custom is not None:
+            _validate_custom_wcs(chunk.custom)
+        else:
+            error_string = "CustomWCS or axis definition null."
+            raise InvalidWCSError(
+                "Invalid CustomWCS: {} Axis: {}, WCS: {}".format(
+                    error_string, str(chunk.custom_axis), str(chunk.custom)))
 
 
 def _validate_spatial_wcs(position):
@@ -296,6 +306,81 @@ def _validate_polarization_wcs(polarization_wcs):
         except Exception as e:
             raise InvalidWCSError(
                 "Invalid Polarization WCS: {}".format(str(e)))
+
+
+def _validate_axes(chunk):
+    # keep track of all errors in the axis definition
+    error_msg = ''
+
+    if chunk.naxis is not None:
+        # Have axisList offset by 1 because the list will be counted
+        # from 1 to naxis. Nones in the list are missing axis definitions.
+        axis_list = ["" for x in range(chunk.naxis + 1)]
+        attr_dict = vars(chunk)
+        for key in attr_dict.keys():
+            if key[0] != '_' and 'axis' in key:
+                value = attr_dict.get(key)
+                if value is not None and value <= chunk.naxis:
+                    # Ignore axes greater than naxis: situation is allowed
+                    if axis_list[value] is not None and \
+                                    len(axis_list[value].strip()) > 0:
+                        # Flag duplicate axis definitions
+                        error_msg += "Duplicate axis number: {}: {}, {}"\
+                            .format(value, key, axis_list[value])
+                    else:
+                        axis_list[value] = key
+
+        # Validate the number and quality of the axis definitions
+        # Count from 1, as 0 will never be filled
+        if axis_list[0] is not None:
+            error_msg += "\tInvalid axis definition (0): {}.".\
+                format(axis_list[0])
+
+        for i in range(1, chunk.naxis + 1):
+            if axis_list[i] is None:
+                error_msg = "\tMissing axis number: {}".format(i)
+    else:
+        error_msg += "\tnaxis is None."
+
+    if not error_msg.strip():
+        # Report all errors found during validation, throw an error and go
+        raise InvalidWCSError(
+            "Invalid Axes: {}".format(error_msg))
+
+
+def _validate_custom_wcs(custom):
+    error_msg = ""
+    if custom is not None:
+        try:
+            # CoordAxis1D
+            custom_axis = custom.axis
+
+            # CoordRange1D
+            if custom_axis.range is not None:
+                logger.debug('custom_axis.range to interval validation.')
+                CustomAxisUtil.range1d_to_interval(custom, custom_axis.range)
+                logger.debug('time_axis.range to interval succeeded.')
+
+            # CoordBounds1D
+            if custom_axis.bounds is not None:
+                logger.debug('custom_axis.bounds to interval validation.')
+                for cr in custom_axis.bounds.samples:
+                    CustomAxisUtil.range1d_to_interval(custom, cr)
+                logger.debug('custom_axis.bounds to interval succeeded.')
+
+            # CoordFunction1D
+            if custom_axis.function is not None:
+                logger.debug('custom_axis.function to interval validation.')
+                CustomAxisUtil.function1d_to_interval(
+                    custom, custom_axis.function)
+                logger.debug('custom_axis.function to interval succeeded.')
+
+        except Exception as e:
+            error_msg = repr(e)
+
+        if len(error_msg) > 0:
+            raise InvalidWCSError(
+                "CUSTOM_WCS_VALIDATION_ERROR: {}".format(error_msg))
 
 
 class WcsPolarizationState():

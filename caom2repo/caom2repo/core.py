@@ -84,6 +84,7 @@ from datetime import datetime
 from cadcutils import net
 from cadcutils import util
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
+from caom2 import obs_reader_writer
 from caom2.version import version as caom2_version
 from six import BytesIO
 from six.moves import xrange
@@ -95,7 +96,9 @@ __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
 
-CAOM2REPO_OBS_CAPABILITY_ID =\
+CURRENT_CAOM2REPO_OBS_CAPABILITY_ID = \
+    'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2'
+PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID =\
     'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1'
 
 # resource ID for info
@@ -133,6 +136,16 @@ class CAOM2RepoClient(object):
 
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host)
+        try:
+            self._repo_client.caps.get_access_url(
+                CURRENT_CAOM2REPO_OBS_CAPABILITY_ID)
+            self.capability_id = CURRENT_CAOM2REPO_OBS_CAPABILITY_ID
+            self.namespace = obs_reader_writer.CAOM24_NAMESPACE
+        except KeyError:
+            self._repo_client.caps.get_access_url(
+                PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID)
+            self.capability_id = PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID
+            self.namespace = obs_reader_writer.CAOM23_NAMESPACE
 
     # shortcuts for the CRUD operations
     def create(self, observation):
@@ -378,8 +391,8 @@ class CAOM2RepoClient(object):
             params['END'] = util.date2ivoa(end)
 
         response = self._repo_client.get(
-            (CAOM2REPO_OBS_CAPABILITY_ID, collection),
-            params=params)
+            (self.capability_id, collection), params=params)
+
         last_datetime = None
         for line in response.text.splitlines():
             columns = line.split('\t')
@@ -430,8 +443,8 @@ class CAOM2RepoClient(object):
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
         self.logger.debug('GET '.format(path))
+        response = self._repo_client.get((self.capability_id, path))
 
-        response = self._repo_client.get((CAOM2REPO_OBS_CAPABILITY_ID, path))
         obs_reader = ObservationReader()
         content = response.content
         if len(content) == 0:
@@ -453,11 +466,13 @@ class CAOM2RepoClient(object):
         self.logger.debug('POST {}'.format(path))
 
         ibuffer = BytesIO()
-        ObservationWriter().write(observation, ibuffer)
+        ObservationWriter(False, False, 'caom2', self.namespace).write(
+            observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.post(
-            (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
+            (self.capability_id, path), headers=headers, data=obs_xml)
+
         self.logger.debug('Successfully updated Observation')
 
     def put_observation(self, observation):
@@ -473,11 +488,13 @@ class CAOM2RepoClient(object):
         self.logger.debug('PUT {}'.format(path))
 
         ibuffer = BytesIO()
-        ObservationWriter().write(observation, ibuffer)
+        ObservationWriter(False, False, 'caom2', self.namespace).write(
+            observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
         self._repo_client.put(
-            (CAOM2REPO_OBS_CAPABILITY_ID, path), headers=headers, data=obs_xml)
+            (self.capability_id, path), headers=headers, data=obs_xml)
+
         self.logger.debug('Successfully put Observation')
 
     def delete_observation(self, collection, observation_id):
@@ -489,8 +506,8 @@ class CAOM2RepoClient(object):
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
         self.logger.debug('DELETE {}'.format(path))
-        self._repo_client.delete(
-            (CAOM2REPO_OBS_CAPABILITY_ID, path))
+        self._repo_client.delete((self.capability_id, path))
+
         self.logger.info('Successfully deleted Observation')
 
 
@@ -721,7 +738,8 @@ def main_app():
         logger.info("Read")
         observation = client.get_observation(args.collection,
                                              args.observationID)
-        observation_writer = ObservationWriter()
+        observation_writer = ObservationWriter(
+            False, False, 'caom2', client.namespace)
         if args.output:
             observation_writer.write(observation, args.output)
         else:
