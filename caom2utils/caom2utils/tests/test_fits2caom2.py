@@ -728,7 +728,7 @@ def test_update_fits_headers():
     assert test_parser._headers[5]['CRVAL1'] == 0.000000000, 'override HDU 5'
     assert test_parser._headers[0][
                'CRVAL3'] == 56789.429806900000, 'override HDU 0'
-    # this will fail because of CompositeObservation.members errors
+    # this will fail because of DerivedObservation.members errors
     assert len(test_parser._errors) == 0, test_parser._errors
 
 
