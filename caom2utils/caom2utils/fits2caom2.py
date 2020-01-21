@@ -1573,8 +1573,7 @@ class GenericParser:
             artifact = Artifact(artifact_uri, self._to_product_type(
                 self._get_from_list('Artifact.productType', index=0)),
                                 self._to_release_type(self._get_from_list(
-                                    'Artifact.releaseType', index=0)),
-                                meta_producer=meta_producer)
+                                    'Artifact.releaseType', index=0)))
             plane.artifacts[artifact_uri] = artifact
         self.augment_artifact(artifact)
         self.logger.debug(
@@ -1711,7 +1710,7 @@ class GenericParser:
             logging.error(msg)
             self._errors.append(msg)
             tb = traceback.format_exc()
-            logging.error(tb)
+            logging.debug(tb)
             logging.error(e)
         try:
             result = execute(parameter)
@@ -1719,12 +1718,13 @@ class GenericParser:
                 'Key {} calculated value of {} using {}'.format(
                     key, result, value))
         except Exception as e:
-            msg = 'Failed to execute {} for {}'.format(execute.__name__, key)
+            msg = 'Failed to execute {} for {} in {}'.format(
+                execute.__name__, key, self.uri)
             logging.error(msg)
             logging.debug('Input parameter was {}'.format(parameter))
             self._errors.append(msg)
             tb = traceback.format_exc()
-            logging.error(tb)
+            logging.debug(tb)
             logging.error(e)
         return result
 
@@ -3087,7 +3087,7 @@ class WcsParser(object):
         if not chunk.custom:
             chunk.custom = CustomWCS(naxis)
         else:
-            chunk.custom.naxis = naxis
+            chunk.custom.axis = naxis
 
         self.logger.debug('End Custom WCS augmentation.')
 
@@ -3122,7 +3122,7 @@ class WcsParser(object):
         if not chunk.energy:
             chunk.energy = SpectralWCS(naxis, specsys)
         else:
-            chunk.energy.naxis = naxis
+            chunk.energy.axis = naxis
             chunk.energy.specsys = specsys
 
         chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.ssysobs))
@@ -3210,7 +3210,7 @@ class WcsParser(object):
         if not chunk.time:
             chunk.time = TemporalWCS(naxis)
         else:
-            chunk.time.naxis = naxis
+            chunk.time.axis = naxis
 
         chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
         chunk.time.resolution = self.header.get('TIMEDEL')
@@ -3250,7 +3250,7 @@ class WcsParser(object):
         if not chunk.polarization:
             chunk.polarization = PolarizationWCS(naxis)
         else:
-            chunk.polarization.naxis = naxis
+            chunk.polarization.axis = naxis
 
         self.logger.debug('End Polarization WCS augmentation.')
 
@@ -4063,6 +4063,10 @@ def _get_common_arg_parser():
     parser.add_argument('--dumpconfig', action='store_true',
                         help=('output the utype to keyword mapping to '
                               'the console'))
+
+    parser.add_argument('--not_connected', action='store_true',
+                        help=('if set, there is no internet connection, so'
+                              'skip service invocations.'))
 
     parser.add_argument('--no_validate', action='store_true',
                         help=('by default, the application will validate the '
