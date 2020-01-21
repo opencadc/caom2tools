@@ -1,5 +1,5 @@
 Observation.type = OBJECT
-CompositeObservation.members = ('BINTABLE', ['FICS'], 1)
+DerivedObservation.members = ('BINTABLE', ['FICS'], 1)
 Plane.dataProductType = image
 Plane.calibrationLevel = 2
 Chunk.position.axis.axis1.ctype = CTYPE1

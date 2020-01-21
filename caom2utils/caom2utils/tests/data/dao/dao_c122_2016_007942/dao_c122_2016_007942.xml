@@ -1,4 +1,4 @@
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-70f4-0161dda5f8b3">
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-70f4-0161dda5f8b3">
   <caom2:collection>DAO</caom2:collection>
   <caom2:observationID>dao_c122_2016_007942</caom2:observationID>
   <caom2:metaRelease>2016-07-31T12:52:52.000</caom2:metaRelease>

@@ -734,7 +734,7 @@ def test_update_fits_headers():
     assert test_parser._headers[5]['CRVAL1'] == 0.000000000, 'override HDU 5'
     assert test_parser._headers[0][
                'CRVAL3'] == 56789.429806900000, 'override HDU 0'
-    # this will fail because of CompositeObservation.members errors
+    # this will fail because of DerivedObservation.members errors
     assert len(test_parser._errors) == 0, test_parser._errors
 
 
@@ -962,7 +962,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2555</caom2:contentLength>
+          <caom2:contentLength>2709</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://""" + text_file + """</caom2:uri>
         </caom2:artifact>
