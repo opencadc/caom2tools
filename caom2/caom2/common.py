@@ -285,8 +285,8 @@ class AbstractCaomEntity(CaomObject):
     @meta_producer.setter
     def meta_producer(self, value):
         try:
-            ignore = urlparse(value)
-        except ValueError as e:
+            urlparse(value)
+        except ValueError:
             raise TypeError('Expected any IVOA URI for meta_producer, '
                             'received {}'.format(value))
         self._meta_producer = value
