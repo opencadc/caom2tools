@@ -407,7 +407,13 @@ def test_get_wcs_values():
                             sample_file_4axes, 0)
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
-    result = getattr(w, '_naxis1')
+    if hasattr(w, 'pixel_shape'):
+        # Astropy #7973, deprecated '_naxis1' and '_naxis2'
+        # replaced by pixel_shape, applies to Python 3.x
+        result = w.pixel_shape[0]
+    else:
+        # '_naxis1' and '_naxis2' not deprecated for Python 2.x
+        result = getattr(w, '_naxis1')
     assert result == 1
     assert w.wcs.has_cd() is False
 
@@ -956,7 +962,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2555</caom2:contentLength>
+          <caom2:contentLength>2709</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://""" + text_file + """</caom2:uri>
         </caom2:artifact>

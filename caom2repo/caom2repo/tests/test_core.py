@@ -82,6 +82,7 @@ import requests
 from cadcutils import util, exceptions
 from cadcutils.net import auth
 from caom2.obs_reader_writer import ObservationWriter
+from caom2 import obs_reader_writer
 from caom2.observation import SimpleObservation
 from mock import Mock, patch, MagicMock, ANY, call
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
@@ -119,32 +120,32 @@ class TestCAOM2Repo(unittest.TestCase):
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
             obs_id_list = visitor._get_obs_from_file(obs_file, None, None,
                                                      False)
-            self.assertEquals('obs_id_1', obs_id_list[0])
-            self.assertEquals('obs_id_2', obs_id_list[1])
-            self.assertEquals('obs_id_3', obs_id_list[2])
+            self.assertEqual('obs_id_1', obs_id_list[0])
+            self.assertEqual('obs_id_2', obs_id_list[1])
+            self.assertEqual('obs_id_3', obs_id_list[2])
 
         # last_modified_date is earlier than start
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
             obs_id_list = visitor._get_obs_from_file(obs_file, util.str2ivoa(
                 '2000-10-11T12:30:00.333'), None, False)
-            self.assertEquals('obs_id_1', obs_id_list[0])
+            self.assertEqual('obs_id_1', obs_id_list[0])
 
         # last_modified_date is between start and end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
             obs_id_list = visitor._get_obs_from_file(
                 obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
                 util.str2ivoa('2016-10-11T12:30:00.333'), False)
-            self.assertEquals('obs_id_1', obs_id_list[0])
-            self.assertEquals('obs_id_2', obs_id_list[1])
+            self.assertEqual('obs_id_1', obs_id_list[0])
+            self.assertEqual('obs_id_2', obs_id_list[1])
 
         # last_modified_date is after end
         with open(os.path.join(THIS_DIR, 'data/obs_id.txt')) as obs_file:
             obs_id_list = visitor._get_obs_from_file(
                 obs_file, util.str2ivoa('2000-10-9T12:30:00.333'),
                 util.str2ivoa('2017-10-11T12:30:00.333'), False)
-            self.assertEquals('obs_id_1', obs_id_list[0])
-            self.assertEquals('obs_id_2', obs_id_list[1])
-            self.assertEquals('obs_id_3', obs_id_list[2])
+            self.assertEqual('obs_id_1', obs_id_list[0])
+            self.assertEqual('obs_id_2', obs_id_list[1])
+            self.assertEqual('obs_id_3', obs_id_list[2])
 
         # error in file
         with open(os.path.join(THIS_DIR, 'data/obs_id_error.txt')) as obs_file:
@@ -164,7 +165,7 @@ class TestCAOM2Repo(unittest.TestCase):
         expect_obs = copy.deepcopy(obs)
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'passplugin.py'))
         visitor.plugin.update(obs)
-        self.assertEquals(expect_obs, obs)
+        self.assertEqual(expect_obs, obs)
 
         # plugin class adds a plane to the observation
         visitor = CAOM2RepoClient(auth.Subject(), level)
@@ -172,8 +173,8 @@ class TestCAOM2Repo(unittest.TestCase):
         expect_obs = copy.deepcopy(obs)
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'addplaneplugin.py'))
         visitor.plugin.update(obs)
-        self.assertNotEquals(expect_obs, obs)
-        self.assertEquals(len(expect_obs.planes) + 1, len(obs.planes))
+        self.assertNotEqual(expect_obs, obs)
+        self.assertEqual(len(expect_obs.planes) + 1, len(obs.planes))
 
         # non-existent the plugin file
         with self.assertRaises(Exception):
@@ -212,8 +213,8 @@ class TestCAOM2Repo(unittest.TestCase):
         ibuffer.seek(0)  # reposition the buffer for reading
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level, host=service_url)
-        self.assertEquals(obs,
-                          visitor.get_observation(collection, observation_id))
+        self.assertEqual(obs, visitor.get_observation(
+            collection, observation_id))
 
         # signal problems
         http_error = requests.HTTPError()
@@ -267,11 +268,11 @@ class TestCAOM2Repo(unittest.TestCase):
         end_date = util.utils.str2ivoa(last_datetime)
 
         expect_observations = ['700000o', '700001o']
-        self.assertEquals(expect_observations,
-                          visitor._get_observations('cfht'))
-        self.assertEquals(end_date, visitor._start)
+        self.assertEqual(expect_observations,
+                         visitor._get_observations('cfht'))
+        self.assertEqual(end_date, visitor._start)
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1',
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
             'cfht'),
             params={'MAXREC': core.BATCH_SIZE})
 
@@ -279,7 +280,7 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11',
                                                                 '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1',
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
             'cfht'),
             params={'END': '2000-11-11T00:00:00.000',
                     'MAXREC': core.BATCH_SIZE})
@@ -291,7 +292,7 @@ class TestCAOM2Repo(unittest.TestCase):
                                   end=datetime.strptime('2000-11-12',
                                                         '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1',
+            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
             'cfht'), params={'START': '2000-11-11T00:00:00.000',
                              'END': '2000-11-12T00:00:00.000',
                              'MAXREC': core.BATCH_SIZE})
@@ -563,9 +564,9 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(4, len(updated))
         self.assertEqual(0, len(skipped))
         self.assertEqual(0, len(failed))
-        calls = [call((core.CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
+        calls = [call((core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
                       params={'START': start, 'END': end, 'MAXREC': 3}),
-                 call((core.CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
+                 call((core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID, 'cfht'),
                       params={'START': '2011-01-01T12:00:00.000',
                               # datetime of the last record in the batch
                               'END': end,
@@ -839,6 +840,7 @@ class TestCAOM2Repo(unittest.TestCase):
                     'ivo://ca.nrc.ca/resource',
                     collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
+        client_mock.return_value.namespace = obs_reader_writer.CAOM24_NAMESPACE
         core.main_app()
         client_mock.return_value.get_observation.\
             assert_called_with(collection, observation_id)

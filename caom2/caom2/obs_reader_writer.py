@@ -183,8 +183,7 @@ class ObservationReader(object):
             caom2_entity._acc_meta_checksum = common.ChecksumURI(
                 element_acc_meta_checksum)
         if element_meta_producer:
-            caom2_entity._meta_producer = common.ChecksumURI(
-                element_meta_producer)
+            caom2_entity._meta_producer = element_meta_producer
 
     def _get_child_element(self, element_tag, parent, ns, required):
         for element in list(parent):
@@ -1917,9 +1916,11 @@ class ObservationWriter(object):
             if entity._acc_meta_checksum is not None:
                 self._add_attribute(
                     "accMetaChecksum", entity._acc_meta_checksum.uri, element)
+
+        if self._output_version >= 24:
             if entity._meta_producer is not None:
                 self._add_attribute(
-                    "metaProducer", entity.get_meta_producer().uri, element)
+                    "metaProducer", entity.meta_producer, element)
 
     def _add_algorithm_element(self, algorithm, parent):
         if algorithm is None:

@@ -353,6 +353,7 @@ class ObsBlueprint(object):
 
         'Part.name',
         'Part.productType',
+        'Part.metaProducer',
 
         'Chunk',
         'Chunk.naxis',
@@ -362,6 +363,7 @@ class ObsBlueprint(object):
         'Chunk.energyAxis',
         'Chunk.timeAxis',
         'Chunk.polarizationAxis',
+        'Chunk.metaProducer',
 
         'Chunk.observable.dependent.bin',
         'Chunk.observable.dependent.axis.ctype',
@@ -1519,6 +1521,8 @@ class GenericParser:
         observation.meta_read_groups = self._get_from_list(
             'Observation.metaReadGroups', index=0,
             current=observation.meta_read_groups)
+        observation.meta_producer = self._get_from_list(
+            'Observation.metaProducer', index=0)
 
         plane = None
         if not product_id:
@@ -1531,8 +1535,7 @@ class GenericParser:
                 plane = observation.planes[product_id]
                 break
         if plane is None:
-            meta_producer = self._get_from_list('Plane.metaProducer', index=0)
-            plane = Plane(str(product_id), meta_producer=meta_producer)
+            plane = Plane(product_id=product_id)
             observation.planes[product_id] = plane
         self.augment_plane(plane, artifact_uri)
         self.logger.debug(
@@ -1561,6 +1564,7 @@ class GenericParser:
         plane.calibration_level = self._to_calibration_level(_to_int_32(
             self._get_from_list('Plane.calibrationLevel', index=0,
                                 current=plane.calibration_level)))
+        plane.meta_producer = self._get_from_list('Plane.metaProducer', index=0)
 
         artifact = None
         for ii in plane.artifacts:
@@ -1568,8 +1572,6 @@ class GenericParser:
             if artifact.uri == artifact_uri:
                 break
         if artifact is None or artifact.uri != artifact_uri:
-            meta_producer = self._get_from_list(
-                'Artifact.metaProducer', index=0)
             artifact = Artifact(artifact_uri, self._to_product_type(
                 self._get_from_list('Artifact.productType', index=0)),
                                 self._to_release_type(self._get_from_list(
@@ -1611,6 +1613,8 @@ class GenericParser:
         artifact.content_read_groups = self._get_from_list(
             'Artifact.contentReadGroups', index=0,
             current=artifact.content_read_groups)
+        artifact.meta_producer = self._get_from_list(
+            'Artifact.metaProducer', index=0, current=artifact.meta_producer)
         self.logger.debug(
             'End generic CAOM2 artifact augmentation for {}.'.format(
                 self.logging_name))
@@ -1870,12 +1874,16 @@ class FitsParser(GenericParser):
 
             part = artifact.parts[ii]
             part.product_type = self._get_from_list('Part.productType', i)
+            part.meta_producer = self._get_from_list(
+                'Part.metaProducer', index=0, current=part.meta_producer)
 
             # each Part has one Chunk, if it's not an empty part as determined
             # just previously
             if not part.chunks:
                 part.chunks.append(Chunk())
             chunk = part.chunks[0]
+            chunk.meta_producer = self._get_from_list(
+                'Chunk.metaProducer', index=0, current=chunk.meta_producer)
 
             wcs_parser = WcsParser(header, self.file, ii)
             # NOTE: astropy.wcs does not distinguished between WCS axes and
@@ -2311,8 +2319,8 @@ class FitsParser(GenericParser):
             self._get_from_list('Observation.metaRelease', 0))
         observation.meta_release_groups = self._get_from_list(
             'Observation.metaReleaseGroups', 0)
-        # observation.meta_producer = self._get_from_list(
-        #     'Observation.metaProducer', 0)
+        observation.meta_producer = self._get_from_list(
+            'Observation.metaProducer', 0, current=observation.meta_producer)
         observation.requirements = self._get_requirements()
         observation.instrument = self._get_instrument()
         observation.proposal = self._get_proposal(observation.proposal)
@@ -2343,6 +2351,8 @@ class FitsParser(GenericParser):
         plane.calibration_level = self._to_calibration_level(_to_int_32(
             self._get_from_list('Plane.calibrationLevel', index=0,
                                 current=plane.calibration_level)))
+        plane.meta_producer = self._get_from_list(
+            'Plane.metaProducer', index=0, current=plane.meta_producer)
         plane.observable = self._get_observable()
         plane.provenance = self._get_provenance(plane.provenance)
         plane.metrics = self._get_metrics()
@@ -4065,7 +4075,7 @@ def _get_common_arg_parser():
                               'the console'))
 
     parser.add_argument('--not_connected', action='store_true',
-                        help=('if set, there is no internet connection, so'
+                        help=('if set, there is no internet connection, so '
                               'skip service invocations.'))
 
     parser.add_argument('--no_validate', action='store_true',

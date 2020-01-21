@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2019.                            (c) 2019.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -988,7 +988,8 @@ class CustomWCS(CaomObject):
         """Set up a CoordAxis1D object to represent the Custom Axis.
 
         """
-        self.axis = axis
+        caom_util.type_check(axis, wcs.CoordAxis1D, 'axis', override=False)
+        self._axis = axis
 
     @property
     def axis(self):
@@ -999,8 +1000,3 @@ class CustomWCS(CaomObject):
 
         """
         return self._axis
-
-    @axis.setter
-    def axis(self, value):
-        caom_util.type_check(value, wcs.CoordAxis1D, 'axis', override=False)
-        self._axis = value
