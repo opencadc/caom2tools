@@ -300,9 +300,6 @@ def _get_sequence_differences(expected, actual, parent):
     for ex_index, e in enumerate(expected):
         label = '{}[\'{}\']'.format(parent, ex_index)
         if isinstance(e, Chunk):
-            if len(expected) > 1:
-                report.append('Sequence:: more Chunks than expected {}'.format(
-                    len(expected)))
             temp_report = get_differences(e, actual[0])
             if temp_report is not None:
                 report.extend(temp_report)

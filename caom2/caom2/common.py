@@ -273,13 +273,23 @@ class AbstractCaomEntity(CaomObject):
                                  False)
             self._acc_meta_checksum = value
 
-    def get_meta_producer(self):
+    @property
+    def meta_producer(self):
         """
         Returns meta producer
         type: URI
 
         """
         return self._meta_producer
+
+    @meta_producer.setter
+    def meta_producer(self, value):
+        try:
+            urlparse(value)
+        except ValueError:
+            raise TypeError('Expected any IVOA URI for meta_producer, '
+                            'received {}'.format(value))
+        self._meta_producer = value
 
 
 class VocabularyTerm(object):
