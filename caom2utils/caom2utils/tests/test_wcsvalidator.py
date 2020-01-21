@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2018.                            (c) 2018.
+#  (c) 2019.                            (c) 2019.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -113,6 +113,43 @@ class TemporalWCSValidatorTests(unittest.TestCase):
         with six.assertRaisesRegex(
                 self, InvalidWCSError, 'delta must be greater than 0.0'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
+
+
+# CustomWCS validator tests
+@pytest.mark.skipif(single_test, reason='Single test mode')
+class CustomWCSValidatorTests(unittest.TestCase):
+    def test_customwcs_validator(self):
+        good_custom_wcs = CustomTestUtil.good_wcs()
+        assert(good_custom_wcs.axis is not None)
+
+        wcsvalidator._validate_custom_wcs(good_custom_wcs)
+        wcsvalidator._validate_custom_wcs(None)
+
+    def test_bad_customwcs(self):
+        bad_custom_wcs = CustomTestUtil.bad_ctype_wcs()
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+            wcsvalidator._validate_custom_wcs(bad_custom_wcs)
+
+        bad_custom_wcs = CustomTestUtil.bad_cunit_wcs()
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+            wcsvalidator._validate_custom_wcs(bad_custom_wcs)
+
+        bad_custom_wcs = CustomTestUtil.bad_range_wcs()
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+            wcsvalidator._validate_custom_wcs(bad_custom_wcs)
+
+        bad_custom_wcs = CustomTestUtil.bad_bounds_wcs()
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+            wcsvalidator._validate_custom_wcs(bad_custom_wcs)
+
+        bad_custom_wcs = CustomTestUtil.bad_function_wcs()
+        with six.assertRaisesRegex(
+                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+            wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
@@ -299,6 +336,93 @@ class TimeTestUtil:
         ref_coord = wcs.RefCoord(px, sx)
         temporal_wcs.axis.function = wcs.CoordFunction1D(nx, ds, ref_coord)
         return temporal_wcs
+
+
+# Supporting Classes for generating test data
+class CustomTestUtil:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def good_wcs():
+        ctype = "RM"
+        unit = "rad/m^2"
+        px = float(0.5)
+        sx = float(54321.0)
+        nx = 200
+        ds = float(0.01)
+        return CustomTestUtil.get_test_function(ctype, unit, px, sx, nx, ds)
+
+    @staticmethod
+    def bad_ctype_wcs():
+        #  Should fail on the ctype
+        ctype = "bla"
+        unit = "rad/m^2"
+        px = float(0.5)
+        sx = float(54321.0)
+        nx = 200
+        ds = float(0.01)
+        return CustomTestUtil.get_test_function(ctype, unit, px, sx, nx, ds)
+
+    @staticmethod
+    def bad_cunit_wcs():
+        ctype = "RM"
+        unit = "foo"
+        px = float(0.5)
+        sx = float(1.0)
+        nx = 200
+        ds = float(0.01)
+        return CustomTestUtil.get_test_function(ctype, unit, px, sx, nx, ds)
+
+    @staticmethod
+    def bad_range_wcs():
+        ctype = "RM"
+        unit = "rad/m^2"
+        error = None
+        start = RefCoord(float(0.9), float(1.1))
+        end = RefCoord(float(10.9), float(1.1))
+        range = CoordRange1D(start, end)
+        axis_1d = CoordAxis1D(wcs.Axis(ctype, unit), error, range)
+        return chunk.CustomWCS(axis_1d)
+
+    @staticmethod
+    def bad_bounds_wcs():
+        ctype = "RM"
+        unit = "rad/m^2"
+        error = None
+        range = None
+        c1 = RefCoord(float(0.9), float(1.1))
+        c2 = RefCoord(float(10.9), float(1.1))
+        bounds = CoordBounds1D()
+        bounds.samples.append(CoordRange1D(c1, c2))
+        axis_1d = CoordAxis1D(wcs.Axis(ctype, unit), error, range, bounds)
+        return chunk.CustomWCS(axis_1d)
+
+    @staticmethod
+    def bad_function_wcs():
+        ctype = "RM"
+        unit = "rad/m^2"
+        error = None
+        range = None
+        c1 = RefCoord(float(0.9), float(1.1))
+        c2 = RefCoord(float(10.9), float(1.1))
+        bounds = CoordBounds1D()
+        bounds.samples.append(CoordRange1D(c1, c2))
+        naxis = 1
+        delta = 0.0
+        ref_coord = RefCoord(float(0.9), float(1.1))
+        func = CoordFunction1D(naxis, delta, ref_coord)
+        axis_1d = CoordAxis1D(wcs.Axis(ctype, unit), error, range, bounds,
+                              func)
+        return chunk.CustomWCS(axis_1d)
+
+    @staticmethod
+    def get_test_function(ctype, unit, px, sx, nx, ds):
+        axis_1d = wcs.CoordAxis1D(wcs.Axis(ctype, unit))
+        ref_coord = wcs.RefCoord(px, sx)
+        axis_1d.function = wcs.CoordFunction1D(nx, ds, ref_coord)
+        custom_wcs = chunk.CustomWCS(axis_1d)
+        return custom_wcs
 
 
 class SpatialTestUtil:
@@ -491,6 +615,8 @@ class ArtifactTestUtil():
         test_chunk.energy = EnergyTestUtil.good_wcs()
         test_chunk.time = TimeTestUtil.good_wcs()
         # test_chunk.polarization = PolarizationTestUtil.good_wcs()
+        test_chunk.custom_axis = 1
+        test_chunk.custom = CustomTestUtil.good_wcs()
 
         return test_chunk
 
