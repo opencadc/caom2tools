@@ -2317,8 +2317,8 @@ class FitsParser(GenericParser):
         observation.type = self._get_from_list('Observation.type', 0)
         observation.meta_release = self._get_datetime(
             self._get_from_list('Observation.metaRelease', 0))
-        observation.meta_release_groups = self._get_from_list(
-            'Observation.metaReleaseGroups', 0)
+        observation.meta_read_groups = self._get_from_list(
+            'Observation.metaReadGroups', 0)
         observation.meta_producer = self._get_from_list(
             'Observation.metaProducer', 0, current=observation.meta_producer)
         observation.requirements = self._get_requirements()
@@ -3851,7 +3851,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 'Using a FitsParser for remote headers {}'.format(uri))
             parser = FitsParser(headers, blueprint, uri=uri)
     else:
-        if uri.endswith('.fits') or uri.endswith('.fits.gz'):
+        if (uri.endswith('.fits') or uri.endswith('.fits.gz') or
+                uri.endswith('.fits.fz')):
             if uri.startswith('vos'):
                 headers = get_vos_headers(uri, subject)
             else:
@@ -3872,7 +3873,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 
-        result = _visit(plugin, parser, obs, visit_local, product_id, **kwargs)
+        result = _visit(plugin, parser, obs, visit_local, product_id, uri,
+                        **kwargs)
 
         if result is not None:
             if validate_wcs:
@@ -4208,7 +4210,8 @@ def _load_plugin(plugin_name):
     return plgin
 
 
-def _visit(plugin_name, parser, obs, visit_local, product_id=None, **kwargs):
+def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
+           **kwargs):
     result = obs
     if plugin_name is not None:
         if isinstance(parser, FitsParser):
@@ -4224,6 +4227,8 @@ def _visit(plugin_name, parser, obs, visit_local, product_id=None, **kwargs):
                     kwargs['fqn'] = visit_local
                 if product_id is not None:
                     kwargs['product_id'] = product_id
+                if uri is not None:
+                    kwargs['uri'] = uri
                 try:
                     result = plgin.update(observation=obs, **kwargs)
                     if result is not None:
