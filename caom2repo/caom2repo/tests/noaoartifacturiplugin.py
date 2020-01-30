@@ -74,7 +74,7 @@ from six.moves.urllib.parse import urlparse
 
 class ObservationUpdater(object):
     """
-    Plugin that updates the Artifact URIs from a URL to a 
+    Plugin that updates the Artifact URIs from a URL to a
     proper URI for NOAO.
     """
 
