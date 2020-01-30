@@ -674,7 +674,7 @@ def main_app():
         '--halt-on-error', action='store_true',
         help='stop visitor on first update exception raised by plugin')
     visit_parser.add_argument('--dry_run', action='store_true',
-        help='Perform a dry run on this Visitor plugin.')
+        help='perform a dry run on this Visitor plugin.')
     visit_parser.add_argument('collection',
                               help='data collection in CAOM2 repo')
 

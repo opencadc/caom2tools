@@ -4,6 +4,7 @@ usage: caom2-repo visit [-h]
                         [-d | -q | -v] --plugin PLUGIN [--start START]
                         [--end END] [--obs_file OBS_FILE]
                         [--threads {2,3,4,5,6,7,8,9}] [--halt-on-error]
+                        [--dry_run]
                         collection
 
 Visit observations in a collection
@@ -15,6 +16,7 @@ optional arguments:
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
   -d, --debug           debug messages
+  --dry_run             perform a dry run on this Visitor plugin.
   --end END             latest observation to visit (UTC IVOA format: YYYY-mm-
                         ddTH:M:S)
   --halt-on-error       stop visitor on first update exception raised by
