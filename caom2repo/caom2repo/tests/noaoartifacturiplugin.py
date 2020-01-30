@@ -70,11 +70,13 @@
 
 from caom2 import Observation
 from six.moves.urllib.parse import urlparse
-from builtins import str
 
 
 class ObservationUpdater(object):
-    """Plugin that updates the Artifact URIs from a URL to a proper URI for NOAO."""
+    """
+    Plugin that updates the Artifact URIs from a URL to a 
+    proper URI for NOAO.
+    """
 
     def _generate_uri_from(self, url):
         query_dict = urlparse.parse_qs(url.query)
