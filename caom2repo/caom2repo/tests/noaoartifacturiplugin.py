@@ -70,12 +70,22 @@
 
 from caom2 import Observation
 from six.moves.urllib.parse import urlparse
-from six.moves.urllib.parse_qs import urlparse_qs
 from builtins import str
 
 
 class ObservationUpdater(object):
     """Plugin that updates the Artifact URIs from a URL to a proper URI for NOAO."""
+
+    def _generate_uri_from(self, url):
+        query_dict = urlparse.parse_qs(url.query)
+        file_ref_key = 'fileRef'
+        if file_ref_key in query_dict:
+            return 'noao:{}'.format(query_dict[file_ref_key])
+        else:
+            raise ValueError('Unable to create URI from {}'.format(url))
+
+    def _update_uri(self, artifact, url):
+        artifact.uri = self._generate_uri_from(url)
 
     def update(self, observation, **kwargs):
         """
@@ -92,24 +102,8 @@ class ObservationUpdater(object):
             for artifact in plane.artifacts.values():
                 uri = urlparse(artifact.uri)
                 if uri.scheme in ('http', 'https'):
-                    if 'dry-run' in kwargs:
-                        print('**** Dry run generated {} ****'.format(
-                            self.generate_uri_from(uri)))
-                    else:
-                        self.update_uri(artifact, uri)
+                    self._update_uri(artifact, uri)
+                    return True
                 else:
                     print('URI {} is safe.  Skipping...'.format(uri))
-
-    def generate_uri_from(self, url):
-        query_dict = urlparse_qs(url.query)
-        file_ref_key = 'fileRef'
-        if file_ref_key in query_dict:
-            return 'noao:{}'.format(query_dict[file_ref_key])
-        else:
-            raise ValueError('Unable to create URI from {}'.format(url))
-
-    def update_uri(self, artifact, url):
-        try:
-            artifact.uri = self.generate_uri_from(url)
-        except ValueError as value_error:
-            print(str(value_error))
+                    return False

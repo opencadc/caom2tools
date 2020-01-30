@@ -71,6 +71,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import argparse
+import copy
 import imp
 import logging
 import multiprocessing
@@ -190,7 +191,7 @@ class CAOM2RepoClient(object):
         self.delete_observation(collection, observation_id)
 
     def visit(self, plugin, collection, start=None, end=None, obs_file=None,
-              nthreads=None, halt_on_error=False):
+              nthreads=None, halt_on_error=False, dry_run=False):
         """
         Main processing function that iterates through the observations of
         the collection and updates them according to the algorithm
@@ -204,6 +205,8 @@ class CAOM2RepoClient(object):
         :param halt_on_error if True halts the execution on the first exception
                raised by the plugin update function otherwise logs the error
                and continues
+        :param dry_run  if True, will not perform an update to the backend, but
+               print a diff.
         :return: tuple (list of visited observations, list of updated
                observation, list of skipped observations, list of failure
                observations)
@@ -238,7 +241,7 @@ class CAOM2RepoClient(object):
             if nthreads is None:
                 results = [
                     self._process_observation_id(collection, observationID,
-                                                 halt_on_error)
+                                                 halt_on_error, dry_run)
                     for observationID in observations]
                 for v, u, s, f in results:
                     if v:
@@ -286,7 +289,7 @@ class CAOM2RepoClient(object):
         return visited, updated, skipped, failed
 
     def _process_observation_id(self, collection, observationID,
-                                halt_on_error):
+                                halt_on_error, dry_run):
         visited = None
         updated = None
         skipped = None
@@ -294,10 +297,16 @@ class CAOM2RepoClient(object):
         self.logger.info('Process observation: ' + observationID)
         try:
             observation = self.get_observation(collection, observationID)
+            preserved_observation = copy.deepcopy(observation)
             if self.plugin.update(observation=observation,
-                                  subject=self._subject) is False:
+                                  subject=self._subject) is False\
+               or dry_run is True:
                 self.logger.info('SKIP {}'.format(observation.observation_id))
                 skipped = observation.observation_id
+
+                if dry_run is True:
+                    print('\nOriginal observation is {}\n\n\
+Updated observation is {}.\n'.format(preserved_observation, observation))
             else:
                 self.post_observation(observation)
                 self.logger.debug(
@@ -664,6 +673,8 @@ def main_app():
     visit_parser.add_argument(
         '--halt-on-error', action='store_true',
         help='stop visitor on first update exception raised by plugin')
+    visit_parser.add_argument('--dry_run', action='store_true',
+        help='Perform a dry run on this Visitor plugin.')
     visit_parser.add_argument('collection',
                               help='data collection in CAOM2 repo')
 
@@ -713,9 +724,9 @@ def main_app():
         print("Visit")
         logger.debug(
             "Call visitor with plugin={}, start={}, end={}, collection={}, " +
-            "obs_file={}, threads={}".
+            "obs_file={}, threads={}, dry_run={}".
             format(args.plugin.name, args.start, args.end,
-                   args.collection, args.obs_file, args.threads))
+                   args.collection, args.obs_file, args.threads, args.dry_run))
         try:
             (visited, updated, skipped, failed) = \
                 client.visit(args.plugin.name, args.collection,
