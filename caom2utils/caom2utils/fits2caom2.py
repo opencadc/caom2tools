@@ -1902,6 +1902,9 @@ class FitsParser(GenericParser):
                 wcs_parser.augment_position(chunk)
                 if chunk.position is None:
                     self._try_position_with_blueprint(chunk, i)
+            if chunk.position:
+                chunk.position.resolution = self._get_from_list(
+                    'Chunk.position.resolution', index=i)
             if self.blueprint._energy_axis_configed:
                 wcs_parser.augment_energy(chunk)
             if chunk.energy:
