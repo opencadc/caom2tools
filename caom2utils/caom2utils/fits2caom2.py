@@ -530,6 +530,8 @@ class ObsBlueprint(object):
                'Observation.telescope.geoLocationZ': (['OBSGEO-Z'],
                                                       None),
                'Observation.observationID': (['OBSID'], None),
+               'Plane.calibrationLevel': ([], CalibrationLevel.RAW_STANDARD),
+               'Plane.dataProductType': ([], DataProductType.IMAGE),
                'Plane.metaRelease': (['RELEASE', 'REL_DATE'], None),
                'Plane.dataRelease': (['RELEASE', 'REL_DATE'], None),
                'Plane.productID': (['RUNID'], None),
@@ -1683,7 +1685,7 @@ class GenericParser:
             if ObsBlueprint.is_fits(value) and value[1]:
                 # there is a default value set
                 if key in plan:
-                    plan[key] = value
+                    plan[key] = value[1]
 
     def _execute_external(self, value, key, extension):
         """Execute a function supplied by a user, assign a value to a
@@ -1819,7 +1821,12 @@ class FitsParser(GenericParser):
             # assume file
             self.file = src
             self._headers = _get_headers_from_fits(self.file)
-        super(FitsParser, self).__init__(obs_blueprint, self.file, uri)
+        if obs_blueprint:
+            self._blueprint = obs_blueprint
+        else:
+            self._blueprint = ObsBlueprint()
+        self._errors = []
+        self.logging_name = self.file
         # for command-line parameter to module execution
         self.uri = uri
         self.apply_blueprint_to_fits()
@@ -3226,7 +3233,7 @@ class WcsParser(object):
             chunk.time.axis = naxis
 
         chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
-        chunk.time.resolution = self.header.get('TIMEDEL')
+        chunk.time.resolution = _to_float(self.header.get('TIMEDEL'))
         chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
         chunk.time.trefpos = self.header.get('TREFPOS', None)
         chunk.time.mjdref = self.header.get('MJDREF',
@@ -3744,11 +3751,13 @@ def _get_type(path):
     elif path.endswith('.jpg'):
         return 'image/jpeg'
     elif path.endswith('.tar.gz'):
-        return 'application/gzip'
+        return 'application/x-tar'
     elif path.endswith('.jpg'):
         return 'image/jpeg'
     elif path.endswith('.csv'):
         return 'text/csv'
+    elif path.endswith('.hdf5') or path.endswith('.h5'):
+        return 'application/x-hdf'
     else:
         return 'application/fits'
 
@@ -4216,36 +4225,32 @@ def _load_plugin(plugin_name):
 def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
            **kwargs):
     result = obs
-    if plugin_name is not None:
+    if plugin_name is not None and len(plugin_name) > 0:
+        # TODO make a check that's necessary under both calling conditions here
+        logging.debug(
+            'Begin plugin execution {!r} update method on '
+            'observation {!r}'.format(plugin_name, obs.observation_id))
+        plgin = _load_plugin(plugin_name)
         if isinstance(parser, FitsParser):
-            # TODO make a check that's necessary under both calling conditions
-            # here
-            if len(plugin_name) > 0:
+            kwargs['headers'] = parser.headers
+        if visit_local is not None:
+            kwargs['fqn'] = visit_local
+        if product_id is not None:
+            kwargs['product_id'] = product_id
+        if uri is not None:
+            kwargs['uri'] = uri
+        try:
+            result = plgin.update(observation=obs, **kwargs)
+            if result is not None:
                 logging.debug(
-                    'Begin plugin execution {!r} update method on '
-                    'observation {!r}'.format(plugin_name, obs.observation_id))
-                plgin = _load_plugin(plugin_name)
-                kwargs['headers'] = parser.headers
-                if visit_local is not None:
-                    kwargs['fqn'] = visit_local
-                if product_id is not None:
-                    kwargs['product_id'] = product_id
-                if uri is not None:
-                    kwargs['uri'] = uri
-                try:
-                    result = plgin.update(observation=obs, **kwargs)
-                    if result is not None:
-                        logging.debug(
-                            'Finished executing plugin {!r} update '
-                            'method on observation {!r}'.format(
-                                plugin_name, obs.observation_id))
-                except Exception as e:
-                    logging.error(e)
-                    tb = traceback.format_exc()
-                    logging.debug(tb)
-                    raise e
-        else:
-            logging.debug('Not a FitsParser, no plugin execution.')
+                    'Finished executing plugin {!r} update '
+                    'method on observation {!r}'.format(
+                        plugin_name, obs.observation_id))
+        except Exception as e:
+            logging.error(e)
+            tb = traceback.format_exc()
+            logging.debug(tb)
+            raise e
     return result
 
 
