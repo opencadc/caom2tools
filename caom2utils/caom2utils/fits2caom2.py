@@ -3636,11 +3636,12 @@ def _get_headers_from_fits(path):
     return headers
 
 
-def _update_artifact_meta(uri, artifact, subject=None):
+def _update_artifact_meta(uri, artifact, subject=None, connected=True):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
     :param subject: User credentials
+    :param connected: True if there's a network connection
     :return:
     """
     file_url = urlparse(uri)
@@ -3658,7 +3659,8 @@ def _update_artifact_meta(uri, artifact, subject=None):
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
-        if file_url.path.endswith('.header') and subject is not None:
+        if (file_url.path.endswith('.header') and subject is not None and
+                connected):
             # if header is on disk, get the content_* from ad
             try:
                 metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
@@ -3788,7 +3790,7 @@ def _extract_ids(cardinality):
 
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
              validate_wcs=True, plugin=None, local=None,
-             external_url=None, **kwargs):
+             external_url=None, connected=True, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3880,7 +3882,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if parser is None:
         result = None
     else:
-        _update_artifact_meta(meta_uri, plane.artifacts[uri], subject)
+        _update_artifact_meta(
+            meta_uri, plane.artifacts[uri], subject, connected)
 
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
@@ -4272,6 +4275,9 @@ def gen_proc(args, blueprints, **kwargs):
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
+    connected = True
+    if args.not_connected:
+        connected = False
 
     for ii, cardinality in enumerate(args.lineage):
         product_id, uri = _extract_ids(cardinality)
@@ -4290,7 +4296,7 @@ def gen_proc(args, blueprints, **kwargs):
 
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
-                       external_url, **kwargs)
+                       external_url, connected, **kwargs)
 
         if obs is None:
             logging.warning('No observation. Stop processing.')
