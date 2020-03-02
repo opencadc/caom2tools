@@ -1524,7 +1524,8 @@ class GenericParser:
             'Observation.metaReadGroups', index=0,
             current=observation.meta_read_groups)
         observation.meta_producer = self._get_from_list(
-            'Observation.metaProducer', index=0)
+            'Observation.metaProducer', index=0,
+            current=observation.meta_producer)
 
         plane = None
         if not product_id:
@@ -1566,7 +1567,8 @@ class GenericParser:
         plane.calibration_level = self._to_calibration_level(_to_int_32(
             self._get_from_list('Plane.calibrationLevel', index=0,
                                 current=plane.calibration_level)))
-        plane.meta_producer = self._get_from_list('Plane.metaProducer', index=0)
+        plane.meta_producer = self._get_from_list(
+            'Plane.metaProducer', index=0, current=plane.meta_producer)
 
         artifact = None
         for ii in plane.artifacts:
