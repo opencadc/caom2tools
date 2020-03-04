@@ -1059,7 +1059,8 @@ class Energy(CaomObject):
         self.sample_size = sample_size
         self.bandpass_name = bandpass_name
         self.energy_bands = energy_bands
-        self.em_band = em_band
+        if em_band is not None:
+            self.energy_bands.add(em_band)
         self.transition = transition
         self.restwav = restwav
 
