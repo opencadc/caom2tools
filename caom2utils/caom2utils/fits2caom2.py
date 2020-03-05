@@ -92,6 +92,7 @@ from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, DerivedObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
 from caom2 import CoordRange2D, TypedSet, CustomWCS, Observable
+from caom2.obs_reader_writer import CAOM23_NAMESPACE
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -4106,6 +4107,11 @@ def _get_common_arg_parser():
                         help='output of augmented observation in XML',
                         required=False)
 
+    parser.add_argument('--caom_namespace',
+                        help=('if this parameter is specified, over-ride the '
+                              'default CAOM2 version when writing XML. The '
+                              'default is the latest version of CAOM2.3.'))
+
     in_group = parser.add_mutually_exclusive_group(required=True)
     in_group.add_argument('-i', '--in', dest='in_obs_xml',
                           type=argparse.FileType('r'),
@@ -4200,12 +4206,7 @@ def proc(args, obs_blueprints):
                        args.dumpconfig, validate_wcs, plugin=None,
                        local=file_name)
 
-    writer = ObservationWriter()
-    if args.out_obs_xml:
-        writer.write(obs, args.out_obs_xml)
-    else:
-        sys.stdout.flush()
-        writer.write(obs, sys.stdout)
+    _write_observation(obs, args)
 
 
 def _load_plugin(plugin_name):
@@ -4257,6 +4258,19 @@ def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
             logging.debug(tb)
             raise e
     return result
+
+
+def _write_observation(obs, args):
+    caom_namespace = CAOM23_NAMESPACE
+    if args.caom_namespace:
+        caom_namespace = args.caom_namespace
+
+    writer = ObservationWriter(namespace=caom_namespace)
+    if args.out_obs_xml:
+        writer.write(obs, args.out_obs_xml)
+    else:
+        sys.stdout.flush()
+        writer.write(obs, sys.stdout)
 
 
 def gen_proc(args, blueprints, **kwargs):
@@ -4312,12 +4326,7 @@ def gen_proc(args, blueprints, **kwargs):
         logging.warning('No Observation generated for {}'.format(log_id))
         result = -1
     else:
-        writer = ObservationWriter()
-        if args.out_obs_xml:
-            writer.write(obs, args.out_obs_xml)
-        else:
-            sys.stdout.flush()
-            writer.write(obs, sys.stdout)
+        _write_observation(obs, args)
     return result
 
 
@@ -4364,7 +4373,8 @@ def get_gen_proc_arg_parser():
 def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
             out_obs_xml=None, in_obs_xml=None, collection=None,
             observation=None, product_id=None, uri=None, netrc=False,
-            file_name=None, verbose=False, debug=False, quiet=False, **kwargs):
+            file_name=None, verbose=False, debug=False, quiet=False,
+            caom_namespace=CAOM23_NAMESPACE, **kwargs):
     _set_logging(verbose, debug, quiet)
     logging.debug(
         'Begin augmentation for product_id {}, uri {}'.format(product_id,
@@ -4388,7 +4398,7 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
         obs = _augment(obs, product_id, uri, blueprints[ii], subject,
                        dump_config, validate_wcs, plugin, file_name, **kwargs)
 
-    writer = ObservationWriter()
+    writer = ObservationWriter(caom_namespace)
     writer.write(obs, out_obs_xml)
     logging.info('Done augment.')
 

@@ -491,7 +491,7 @@ def test_help():
         with pytest.raises(MyExitError):
             main_app()
         result = stderr_mock.getvalue()
-        assert result.endswith(bad_product_id), result
+        assert bad_product_id in result, result
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -500,7 +500,8 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert stderr_mock.getvalue().endswith(missing_product_id)
+        result = stderr_mock.getvalue()
+        assert missing_product_id.strip() in result, result
 
     # missing required --observation
     """
@@ -962,7 +963,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2709</caom2:contentLength>
+          <caom2:contentLength>2981</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://""" + text_file + """</caom2:uri>
         </caom2:artifact>
