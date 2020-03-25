@@ -1060,6 +1060,8 @@ class Energy(CaomObject):
         self.bandpass_name = bandpass_name
         self.energy_bands = energy_bands
         self.em_band = em_band
+        if em_band is not None:
+            self.energy_bands.add(em_band)
         self.transition = transition
         self.restwav = restwav
 
@@ -1153,20 +1155,13 @@ class Energy(CaomObject):
                 reason='Replaced by energy_bands, gone in 2.5')
     def em_band(self):
         """ EM Band """
-        result = None
-        if len(self._energy_bands) == 1:
-            result = next(iter(self._energy_bands)).value
-        return result
+        return None
 
     @em_band.setter
     @deprecated(version='CAOM2.4',
                 reason='Replaced by energy_bands, gone in 2.5')
     def em_band(self, value):
-        if len(self._energy_bands) == 0:
-            if value is not None:
-                self._energy_bands.add(value)
-        else:
-            raise ValueError('Expected a single value for em_band.')
+        pass
 
     @property
     def transition(self):
