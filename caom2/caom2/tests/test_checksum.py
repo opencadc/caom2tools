@@ -155,20 +155,7 @@ def test_compatibility():
         True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
     writer.write(obs, '/tmp/test.xml')
 
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    assert chunk.meta_checksum == get_meta_checksum(chunk)
-                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
-                        chunk)
-                assert part.meta_checksum == get_meta_checksum(part)
-                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
-            assert artifact.meta_checksum == get_meta_checksum(artifact)
-            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                artifact)
-        assert plane.meta_checksum == get_meta_checksum(plane)
-        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    _common_check(obs)
 
     # check observation
     assert obs.meta_checksum == get_meta_checksum(obs)
@@ -181,20 +168,7 @@ def test_compatibility():
     # now change some attributes and see how the checksums start to diverge
     old_val = obs.collection
     obs.collection = 'OTHER'
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    assert chunk.meta_checksum == get_meta_checksum(chunk)
-                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
-                        chunk)
-                assert part.meta_checksum == get_meta_checksum(part)
-                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
-            assert artifact.meta_checksum == get_meta_checksum(artifact)
-            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                artifact)
-        assert plane.meta_checksum == get_meta_checksum(plane)
-        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    _common_check(obs)
     assert obs.meta_checksum != get_meta_checksum(obs)
     assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
     obs.collection = old_val
@@ -332,20 +306,7 @@ def test_compatibility():
 
     # update the checksums and everything should match again
     update_meta_checksum(obs)
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    assert chunk.meta_checksum == get_meta_checksum(chunk)
-                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
-                        chunk)
-                assert part.meta_checksum == get_meta_checksum(part)
-                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
-            assert artifact.meta_checksum == get_meta_checksum(artifact)
-            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                artifact)
-        assert plane.meta_checksum == get_meta_checksum(plane)
-        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    _common_check(obs)
 
 
 def test_compatibility_simple_obs():
@@ -364,21 +325,7 @@ def test_compatibility_simple_obs():
         True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
     writer.write(obs, '/tmp/test.xml')
 
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    assert chunk.meta_checksum == get_meta_checksum(chunk)
-                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
-                        chunk)
-                assert part.meta_checksum == get_meta_checksum(part)
-                assert part.acc_meta_checksum == get_acc_meta_checksum(
-                    part)
-            assert artifact.meta_checksum == get_meta_checksum(artifact)
-            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                artifact)
-        assert plane.meta_checksum == get_meta_checksum(plane)
-        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    _common_check(obs)
 
     # check observation
     assert obs.meta_checksum == get_meta_checksum(obs)
@@ -386,7 +333,7 @@ def test_compatibility_simple_obs():
     logger.setLevel(level)
 
 
-def test_rountrip():
+def test_round_trip():
     source_file_path = os.path.join(THIS_DIR, TEST_DATA,
                                     'SampleComposite-CAOM-2.3.xml')
     reader = obs_reader_writer.ObservationReader(True)
@@ -402,20 +349,7 @@ def test_rountrip():
     filename.seek(0)
     obs = reader.read(filename)
 
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    assert chunk.meta_checksum == get_meta_checksum(chunk)
-                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
-                        chunk)
-                assert part.meta_checksum == get_meta_checksum(part)
-                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
-            assert artifact.meta_checksum == get_meta_checksum(artifact)
-            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                artifact)
-        assert plane.meta_checksum == get_meta_checksum(plane)
-        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
+    _common_check(obs)
 
     # check observation
     assert obs.meta_checksum == get_meta_checksum(obs)
@@ -446,3 +380,21 @@ def test_checksum_diff():
         expected = reader.read(source_file_path)
         actual = reader.read(output_file.name)
         assert get_acc_meta_checksum(expected) == get_acc_meta_checksum(actual)
+
+
+def _common_check(obs):
+    for plane in obs.planes.values():
+        for artifact in plane.artifacts.values():
+            for part in artifact.parts.values():
+                for chunk in part.chunks:
+                    assert chunk.meta_checksum == get_meta_checksum(chunk)
+                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
+                        chunk)
+                assert part.meta_checksum == get_meta_checksum(part)
+                assert part.acc_meta_checksum == get_acc_meta_checksum(
+                    part)
+            assert artifact.meta_checksum == get_meta_checksum(artifact)
+            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
+                artifact)
+        assert plane.meta_checksum == get_meta_checksum(plane)
+        assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
