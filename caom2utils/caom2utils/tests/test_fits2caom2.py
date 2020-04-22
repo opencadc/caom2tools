@@ -491,7 +491,7 @@ def test_help():
         with pytest.raises(MyExitError):
             main_app()
         result = stderr_mock.getvalue()
-        assert result.endswith(bad_product_id), result
+        assert bad_product_id in result, result
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -500,7 +500,8 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert stderr_mock.getvalue().endswith(missing_product_id)
+        result = stderr_mock.getvalue()
+        assert missing_product_id in result, result
 
     # missing required --observation
     """

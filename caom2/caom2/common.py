@@ -284,12 +284,15 @@ class AbstractCaomEntity(CaomObject):
 
     @meta_producer.setter
     def meta_producer(self, value):
-        try:
-            urlparse(value)
-        except ValueError:
-            raise TypeError('Expected any IVOA URI for meta_producer, '
-                            'received {}'.format(value))
-        self._meta_producer = value
+        if value is None:
+            self._meta_producer = None
+        else:
+            try:
+                urlparse(value)
+            except ValueError:
+                raise TypeError('Expected any IVOA URI for meta_producer, '
+                                'received {}'.format(value))
+            self._meta_producer = value
 
 
 class VocabularyTerm(object):
