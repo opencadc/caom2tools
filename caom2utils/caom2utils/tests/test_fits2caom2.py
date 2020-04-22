@@ -501,7 +501,7 @@ def test_help():
         with pytest.raises(MyExitError):
             main_app()
         result = stderr_mock.getvalue()
-        assert missing_product_id.strip() in result, result
+        assert missing_product_id in result, result
 
     # missing required --observation
     """

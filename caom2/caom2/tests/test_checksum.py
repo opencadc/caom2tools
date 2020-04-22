@@ -156,6 +156,10 @@ def test_compatibility():
     writer.write(obs, '/tmp/test.xml')
     _common_check(obs)
 
+    # check observation
+    assert obs.meta_checksum == get_meta_checksum(obs)
+    assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
+
     # white spaces around strings should not affect the checksum
     obs.algorithm = ' {}\t\n'.format(obs.algorithm.name)
     assert obs.meta_checksum == get_meta_checksum(obs)
