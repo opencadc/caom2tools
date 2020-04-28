@@ -1,4 +1,4 @@
-CompositeObservation.members = getInputs(headers)
+DerivedObservation.members = getInputs(headers)
 Observation.type = OBJECT
 Observation.intent = science
 Observation.metaRelease = ['DATE'], default = None

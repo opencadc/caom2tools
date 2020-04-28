@@ -131,7 +131,7 @@ class ConvertFromJava(object):
 # This is for drop-in functionality support only, and should not be relied on
 # going forward.
 _JAVA_CAOM2_CONFIG = {
-    'CompositeObservation.members': 'members',
+    'DerivedObservation.members': 'members',
 
     'Observation.type': 'OBSTYPE',
     'Observation.intent': 'obs.intent',

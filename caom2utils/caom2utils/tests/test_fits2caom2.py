@@ -66,6 +66,7 @@
 #
 # ***********************************************************************
 #
+
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -81,7 +82,7 @@ from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
-from caom2 import Axis, CoordAxis1D, CoordAxis2D, ChecksumURI
+from caom2 import Axis, CoordAxis1D, CoordAxis2D, ChecksumURI, DataProductType
 import logging
 
 import caom2utils
@@ -490,7 +491,7 @@ def test_help():
         with pytest.raises(MyExitError):
             main_app()
         result = stderr_mock.getvalue()
-        assert result.endswith(bad_product_id), result
+        assert bad_product_id in result, result
 
     # missing productID when blueprint doesn't have one either
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -499,7 +500,8 @@ def test_help():
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
         with pytest.raises(MyExitError):
             main_app()
-        assert stderr_mock.getvalue().endswith(missing_product_id)
+        result = stderr_mock.getvalue()
+        assert missing_product_id in result, result
 
     # missing required --observation
     """
@@ -684,7 +686,6 @@ def test_update_fits_headers():
     test_defaults = {'CTYPE1': 'RA--TAN',
                      'CTYPE2': 'DEC--TAN',
                      'CTYPE3': 'TIME',
-                     'plane.dataProductType': 'image',
                      'provenance.producer': 'CFHT',
                      'provenance.project': 'STANDARD PIPELINE'}
     test_config = load_config(java_config_file)
@@ -692,7 +693,7 @@ def test_update_fits_headers():
     update_blueprint(test_blueprint, test_uri, test_config,
                      test_defaults, test_overrides)
     assert test_blueprint._get('Plane.dataProductType') == \
-        'image', 'default value assigned to configuration'
+        ([], DataProductType.IMAGE), 'default value assigned to configuration'
     assert test_blueprint._get('Plane.provenance.producer') == \
         (['ORIGIN'], 'CFHT'), \
         'default value assigned to configuration, all upper-case'
@@ -734,7 +735,7 @@ def test_update_fits_headers():
     assert test_parser._headers[5]['CRVAL1'] == 0.000000000, 'override HDU 5'
     assert test_parser._headers[0][
                'CRVAL3'] == 56789.429806900000, 'override HDU 0'
-    # this will fail because of CompositeObservation.members errors
+    # this will fail because of DerivedObservation.members errors
     assert len(test_parser._errors) == 0, test_parser._errors
 
 
@@ -962,7 +963,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2555</caom2:contentLength>
+          <caom2:contentLength>2709</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://""" + text_file + """</caom2:uri>
         </caom2:artifact>
@@ -1208,6 +1209,8 @@ def test_visit_generic_parser():
                                      observation_id='test_obs_id',
                                      algorithm=Algorithm('exposure'))
         _visit(test_plugin, test_parser, test_obs, visit_local=None, **kwargs)
+    except ImportError:
+        pass  # expect this exception
     except BaseException as e:
         assert False, 'should not get here {}'.format(e)
 
@@ -1297,17 +1300,28 @@ def test_apply_blueprint():
     hdr1 = fits.Header()
     hdr1['ORIGIN'] = '123'
     test_blueprint = ObsBlueprint()
+    assert test_blueprint._get('Plane.provenance.producer') == (['ORIGIN'],
+                                                                None)
     test_blueprint.set_default('Plane.provenance.producer', 'abc')
+    assert test_blueprint._get('Plane.provenance.producer') == (['ORIGIN'],
+                                                                'abc')
     test_blueprint.add_fits_attribute('Plane.provenance.producer', 'IMAGESWV')
+    assert test_blueprint._get('Plane.provenance.producer') == (['IMAGESWV',
+                                                                 'ORIGIN'],
+                                                                'abc')
     test_parser = FitsParser(src=[hdr1], obs_blueprint=test_blueprint)
-    logging.error(test_parser._headers)
+    assert test_blueprint._get('Plane.provenance.producer') == (['IMAGESWV',
+                                                                 'ORIGIN'],
+                                                                'abc')
     assert test_parser._headers[0]['ORIGIN'] == '123', 'existing over-ridden'
     with pytest.raises(KeyError):
         test_parser._headers[0]['IMAGESWV'], 'should not be set'
 
+    assert test_blueprint._get('Plane.provenance.producer') == (['IMAGESWV',
+                                                                 'ORIGIN'],
+                                                                'abc')
     hdr1 = fits.Header()
     test_parser = FitsParser(src=[hdr1], obs_blueprint=test_blueprint)
-    logging.error(test_parser._headers)
     assert test_parser._headers[0]['ORIGIN'] == 'abc', 'should be set'
 
     with pytest.raises(KeyError):

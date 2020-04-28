@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-836b-e8ba93f9b4a9">
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:DerivedObservation" caom2:id="00000000-0000-0000-836b-e8ba93f9b4a9">
   <caom2:collection>CFHT</caom2:collection>
   <caom2:observationID>2136164p</caom2:observationID>
   <caom2:metaRelease>2017-09-07T00:00:00.000</caom2:metaRelease>
