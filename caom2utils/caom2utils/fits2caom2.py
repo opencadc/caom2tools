@@ -1736,7 +1736,7 @@ class GenericParser:
                 parameter, value))
             self._errors.append(msg)
             tb = traceback.format_exc()
-            logging.debug(tb)
+            logging.error(tb)
             logging.error(e)
         return result
 
@@ -2351,7 +2351,8 @@ class FitsParser(GenericParser):
         observation.target = self._get_target()
         observation.target_position = self._get_target_position()
         observation.telescope = self._get_telescope(observation.telescope)
-        observation.environment = self._get_environment()
+        observation.environment = self._get_environment(
+            observation.environment)
         self.logger.debug(
             'End observation augmentation for {}.'.format(artifact_uri))
 
@@ -2730,26 +2731,51 @@ class FitsParser(GenericParser):
         else:
             return None
 
-    def _get_environment(self):
+    def _get_environment(self, current):
         """
         Create an Environment instance populated with available FITS
         information.
+        :current Environment instance, if one already exists in the
+            Observation
         :return: Environment
         """
         self.logger.debug('Begin Environment augmentation.')
-        seeing = self._get_from_list('Observation.environment.seeing', index=0)
-        humidity = _to_float(
-            self._get_from_list('Observation.environment.humidity', index=0))
-        elevation = self._get_from_list('Observation.environment.elevation',
-                                        index=0)
-        tau = self._get_from_list('Observation.environment.tau', index=0)
-        wavelength_tau = self._get_from_list(
-            'Observation.environment.wavelengthTau', index=0)
-        ambient = _to_float(
-            self._get_from_list('Observation.environment.ambientTemp',
-                                index=0))
-        photometric = self._cast_as_bool(self._get_from_list(
-            'Observation.environment.photometric', index=0))
+        if current is None:
+            seeing = self._get_from_list('Observation.environment.seeing',
+                                         index=0)
+            humidity = _to_float(
+                self._get_from_list('Observation.environment.humidity',
+                                    index=0))
+            elevation = self._get_from_list(
+                'Observation.environment.elevation', index=0)
+            tau = self._get_from_list('Observation.environment.tau', index=0)
+            wavelength_tau = self._get_from_list(
+                'Observation.environment.wavelengthTau', index=0)
+            ambient = _to_float(
+                self._get_from_list('Observation.environment.ambientTemp',
+                                    index=0))
+            photometric = self._cast_as_bool(self._get_from_list(
+                'Observation.environment.photometric', index=0))
+        else:
+            seeing = self._get_from_list('Observation.environment.seeing',
+                                         index=0, current=current.seeing)
+            humidity = _to_float(
+                self._get_from_list('Observation.environment.humidity',
+                                    index=0, current=current.humidity))
+            elevation = self._get_from_list(
+                'Observation.environment.elevation', index=0,
+                current=current.elevation)
+            tau = self._get_from_list('Observation.environment.tau', index=0,
+                                      current=current.tau)
+            wavelength_tau = self._get_from_list(
+                'Observation.environment.wavelengthTau', index=0,
+                current=current.wavelength_tau)
+            ambient = _to_float(
+                self._get_from_list('Observation.environment.ambientTemp',
+                                    index=0, current=current.ambient_temp))
+            photometric = self._cast_as_bool(self._get_from_list(
+                'Observation.environment.photometric', index=0,
+                current=current.photometric))
 
         if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = Environment()
