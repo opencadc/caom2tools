@@ -1736,7 +1736,7 @@ class GenericParser:
                 parameter, value))
             self._errors.append(msg)
             tb = traceback.format_exc()
-            logging.error(tb)
+            logging.debug(tb)
             logging.error(e)
         return result
 
@@ -2519,12 +2519,12 @@ class FitsParser(GenericParser):
             raise TypeError(
                 ('Cannot apply blueprint for DerivedObservation to a '
                  'simple observation'))
-        elif isinstance(obs, CompositeObservation):
-            lookup = self.blueprint._get('CompositeObservation.members',
+        elif isinstance(obs, DerivedObservation):
+            lookup = self.blueprint._get('DerivedObservation.members',
                                          extension=1)
             if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
                 member_list = self._get_from_table(
-                    'CompositeObservation.members', 1)
+                    'DerivedObservation.members', 1)
                 # ensure the members are good little ObservationURIs
                 if member_list.startswith('caom:'):
                     members = member_list
