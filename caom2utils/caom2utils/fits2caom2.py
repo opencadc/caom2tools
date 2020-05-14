@@ -2514,7 +2514,7 @@ class FitsParser(GenericParser):
         """
         members = None
         self.logger.debug('Begin Members augmentation.')
-        if (isinstance(obs, SimpleObservation) and \
+        if (isinstance(obs, SimpleObservation) and
                 (self.blueprint._get('DerivedObservation.members') or
                  self.blueprint._get('CompositeObservation.members'))):
             raise TypeError(
