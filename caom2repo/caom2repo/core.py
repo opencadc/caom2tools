@@ -326,8 +326,8 @@ class CAOM2RepoClient(object):
     def _get_obs_from_file(self, obs_file, start, end, halt_on_error):
         obs = []
         failed = []
-        for l in obs_file:
-            tokens = l.split()
+        for entry in obs_file:
+            tokens = entry.split()
             if len(tokens) > 0:
                 obs_id = tokens[0]
                 if len(tokens) > 1:
@@ -337,13 +337,13 @@ class CAOM2RepoClient(object):
                         if len(tokens) > 2:
                             # we have more than two tokens in line
                             raise Exception(
-                                'Extra token one line: {}'.format(l))
+                                'Extra token one line: {}'.format(entry))
                         elif (start and last_mod_datetime < start) or \
                                 (end and last_mod_datetime > end):
                             # last modified date is out of start/end range
                             self.logger.info(
                                 'last modified date is out of start/end ' +
-                                'range: {}'.format(l))
+                                'range: {}'.format(entry))
                         else:
                             # two tokens in line: <observation id> <last
                             # modification date>
@@ -442,7 +442,7 @@ class CAOM2RepoClient(object):
         assert collection is not None
         assert observation_id is not None
         path = '/{}/{}'.format(collection, observation_id)
-        self.logger.debug('GET '.format(path))
+        self.logger.debug('GET {}'.format(path))
         response = self._repo_client.get((self.capability_id, path))
 
         obs_reader = ObservationReader()
@@ -712,10 +712,11 @@ def main_app():
     if args.cmd == 'visit':
         print("Visit")
         logger.debug(
-            "Call visitor with plugin={}, start={}, end={}, collection={}, " +
-            "obs_file={}, threads={}".
-            format(args.plugin.name, args.start, args.end,
-                   args.collection, args.obs_file, args.threads))
+            "Call visitor with plugin={}, start={}, end={}".
+            format(args.plugin.name, args.start, args.end))
+        logger.debug(
+            "collection={}, obs_file={}, threads={}".
+            format(args.collection, args.obs_file, args.threads))
         try:
             (visited, updated, skipped, failed) = \
                 client.visit(args.plugin.name, args.collection,
