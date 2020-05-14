@@ -2514,8 +2514,9 @@ class FitsParser(GenericParser):
         """
         members = None
         self.logger.debug('Begin Members augmentation.')
-        if isinstance(obs, SimpleObservation) and \
-           self.blueprint._get('DerivedObservation.members'):
+        if (isinstance(obs, SimpleObservation) and \
+                (self.blueprint._get('DerivedObservation.members') or
+                 self.blueprint._get('CompositeObservation.members'))):
             raise TypeError(
                 ('Cannot apply blueprint for DerivedObservation to a '
                  'simple observation'))
@@ -2535,17 +2536,17 @@ class FitsParser(GenericParser):
             else:
                 if obs.members is None:
                     members = self._get_from_list(
-                        'CompositeObservation.members', index=0)
+                        'DerivedObservation.members', index=0)
                 else:
                     members = self._get_from_list(
-                        'CompositeObservation.members', index=0,
+                        'DerivedObservation.members', index=0,
                         current=obs.members)
-        elif isinstance(obs, DerivedObservation):
-            lookup = self.blueprint._get('DerivedObservation.members',
+        elif isinstance(obs, CompositeObservation):
+            lookup = self.blueprint._get('CompositeObservation.members',
                                          extension=1)
             if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
                 member_list = self._get_from_table(
-                    'DerivedObservation.members', 1)
+                    'CompositeObservation.members', 1)
                 # ensure the members are good little ObservationURIs
                 if member_list.startswith('caom:'):
                     members = member_list
@@ -2554,8 +2555,13 @@ class FitsParser(GenericParser):
                         obs.collection, i) if not i.startswith('caom') else i
                                         for i in member_list.split()])
             else:
-                members = self._get_from_list('DerivedObservation.members',
-                                              index=0)
+                if obs.members is None:
+                    members = self._get_from_list(
+                        'CompositeObservation.members', index=0)
+                else:
+                    members = self._get_from_list(
+                        'CompositeObservation.members', index=0,
+                        current=obs.members)
         self.logger.debug('End Members augmentation.')
         return members
 
