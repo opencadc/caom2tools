@@ -2513,7 +2513,7 @@ class FitsParser(GenericParser):
         :return: members value
         """
         members = None
-        self.logger.debug(f'Begin Members augmentation.')
+        self.logger.debug('Begin Members augmentation.')
         if isinstance(obs, SimpleObservation) and \
            self.blueprint._get('DerivedObservation.members'):
             raise TypeError(
