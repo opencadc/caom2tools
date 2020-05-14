@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-b392-8aa445c34474" caom2:lastModified="2018-01-30T23:06:49.784" caom2:maxLastModified="2018-01-30T23:06:49.784" caom2:metaChecksum="md5:975eed2b3ecb42344616a9ca89d75f59" caom2:accMetaChecksum="md5:1f325e7cfe13bac59f8eed7097a4f982">
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-b392-8aa445c34474" caom2:lastModified="2018-01-30T23:06:49.784" caom2:maxLastModified="2018-01-30T23:06:49.784" caom2:metaChecksum="md5:975eed2b3ecb42344616a9ca89d75f59" caom2:accMetaChecksum="md5:ab5e46a8f7f542756d61eb186921271b">
   <caom2:collection>HST</caom2:collection>
   <caom2:observationID>y34b0101t</caom2:observationID>
   <caom2:metaRelease>1996-02-28T17:38:41.000</caom2:metaRelease>
@@ -61,7 +61,7 @@
     <caom2:photometric>true</caom2:photometric>
   </caom2:environment>
   <caom2:planes>
-    <caom2:plane caom2:id="00000000-0000-0000-88e3-1064dc9a2f03" caom2:lastModified="2018-01-30T23:06:49.784" caom2:maxLastModified="2018-01-30T23:06:49.784" caom2:metaChecksum="md5:4f648fd25023bb596177e6ec6425df03" caom2:accMetaChecksum="md5:0edc306f7b78a077b1ec8d8f11cd23d4">
+    <caom2:plane caom2:id="00000000-0000-0000-88e3-1064dc9a2f03" caom2:lastModified="2018-01-30T23:06:49.784" caom2:maxLastModified="2018-01-30T23:06:49.784" caom2:metaChecksum="md5:69a9331341a767ee7d37483d77212c8c" caom2:accMetaChecksum="md5:28ceceee9910bde2e9fdc74398dfdb71">
       <caom2:productID>y34b0101t-RAW_STANDARD</caom2:productID>
       <caom2:creatorID>ivo://archive.stsci.edu/HST?y34b0101t/y34b0101t-RAW_STANDARD</caom2:creatorID>
       <caom2:metaRelease>1996-02-28T17:38:41.000</caom2:metaRelease>

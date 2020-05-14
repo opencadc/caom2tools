@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-5ca9-015f07dcb325" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:7d0e7b22db294a2fa7b78d6ef616885e" caom2:accMetaChecksum="md5:52b4dd89194b9caab676746b2ec3c1df">
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-5ca9-015f07dcb325" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:7d0e7b22db294a2fa7b78d6ef616885e" caom2:accMetaChecksum="md5:d18962d6eb95428bd4502258c81a4106">
   <caom2:collection>collection</caom2:collection>
   <caom2:observationID>observationID</caom2:observationID>
   <caom2:metaRelease>2017-10-10T19:57:03.770</caom2:metaRelease>
@@ -68,7 +68,7 @@
     <caom2:photometric>true</caom2:photometric>
   </caom2:environment>
   <caom2:planes>
-    <caom2:plane caom2:id="00000000-0000-0000-5ca9-015f07dcb326" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:d3873648f37b83b0c8f5008434410a21" caom2:accMetaChecksum="md5:625c240043aa5f42a727248f10957cad">
+    <caom2:plane caom2:id="00000000-0000-0000-5ca9-015f07dcb326" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:b347997a10050cc7e865a45ef058ea26" caom2:accMetaChecksum="md5:dbd4a761e817d123f3da8ecd614903ba">
       <caom2:productID>productID0</caom2:productID>
       <caom2:creatorID>ivo://example.org/foo?productID0</caom2:creatorID>
       <caom2:metaRelease>2017-10-10T19:57:03.770</caom2:metaRelease>
@@ -2476,7 +2476,7 @@
         </caom2:artifact>
       </caom2:artifacts>
     </caom2:plane>
-    <caom2:plane caom2:id="00000000-0000-0000-5ca9-015f07dcb337" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:5ce57663f8e2ddea345e645a10211ba3" caom2:accMetaChecksum="md5:c8da797b12c66b62678a9c6e8198ccfb">
+    <caom2:plane caom2:id="00000000-0000-0000-5ca9-015f07dcb337" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:f85d6bcd2c85d739df2582332434dece" caom2:accMetaChecksum="md5:6a7096b6eb9e446915a6004e84b707b1">
       <caom2:productID>productID1</caom2:productID>
       <caom2:creatorID>ivo://example.org/foo?productID1</caom2:creatorID>
       <caom2:metaRelease>2017-10-10T19:57:03.770</caom2:metaRelease>
