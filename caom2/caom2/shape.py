@@ -284,7 +284,7 @@ class Interval(common.CaomObject):
             has_upper = False
         if has_upper and self._upper < value:
             raise ValueError("Interval: attempt to set upper < lower "
-                             "for {], {}".format(self._upper, value))
+                             "for {}, {}".format(self._upper, value))
         self._lower = value
 
     @property

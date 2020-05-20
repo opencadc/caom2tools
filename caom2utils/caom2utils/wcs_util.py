@@ -526,7 +526,7 @@ class CustomAxisUtil:
                                 current_ctype != expected_ctype:
                             raise ValueError(
                                 "CTYPE must be the same across all Artifacts. \
-                                Found: {}. Expected: ".format(
+                                Found: {}. Expected: {}".format(
                                     current_ctype, expected_ctype))
                         else:
                             num += 1

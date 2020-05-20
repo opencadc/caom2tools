@@ -1,1 +1,1 @@
-ERROR:root        :565:A productID parameter is required if there are zero or more than one planes in the input observation.
+A productID parameter is required if there are zero or more than one planes in the input observation.

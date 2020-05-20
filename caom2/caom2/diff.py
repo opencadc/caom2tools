@@ -249,10 +249,12 @@ def _get_list_differences(expected, actual, parent):
                 if temp_report is None:
                     match_found = True
                     start_index = act_index + 1
-                    actual_index = actual_copy.index(a)
-                    actual_copy.pop(actual_index)
-                    expected_index = expected_copy.index(e)
-                    expected_copy.pop(expected_index)
+                    if a in actual_copy:
+                        actual_index = actual_copy.index(a)
+                        actual_copy.pop(actual_index)
+                    if e in expected_copy:
+                        expected_index = expected_copy.index(e)
+                        expected_copy.pop(expected_index)
                     break
                 else:
                     # every non-matching comparison will have failures,
@@ -269,10 +271,12 @@ def _get_list_differences(expected, actual, parent):
 
         if not match_found:
             report.extend(tracking_report)
-            actual_index = actual_copy.index(tracking_actual)
-            actual_copy.pop(actual_index)
-            expected_index = expected_copy.index(tracking_expected)
-            expected_copy.pop(expected_index)
+            if tracking_actual in actual_copy:
+                actual_index = actual_copy.index(tracking_actual)
+                actual_copy.pop(actual_index)
+            if tracking_expected in expected_copy:
+                expected_index = expected_copy.index(tracking_expected)
+                expected_copy.pop(expected_index)
 
     for e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, e)

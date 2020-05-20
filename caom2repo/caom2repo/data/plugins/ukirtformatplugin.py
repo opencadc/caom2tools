@@ -1,4 +1,3 @@
-#!/usr/bin/env python2.7
 # # -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
@@ -81,7 +80,7 @@ class ObservationUpdater(object):
         Processes an observation and updates it
         """
         assert isinstance(observation, Observation), (
-            "observation %s is not an Observation".format(observation))
+            "observation {} is not an Observation".format(observation))
 
         updated = False
         for plane in observation.planes.values():

@@ -92,6 +92,8 @@ from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, DerivedObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
 from caom2 import CoordRange2D, TypedSet, CustomWCS, Observable
+from caom2 import CompositeObservation
+from caom2.obs_reader_writer import CAOM23_NAMESPACE
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -1700,11 +1702,12 @@ class GenericParser:
         """
         # determine which of the possible values for parameter the user
         # is hoping for
+        parameter = None
         if 'uri' in value:
             parameter = self.uri
-        elif 'header' in value:
+        elif 'header' in value and isinstance(self, FitsParser):
             parameter = self._headers[extension]
-        else:
+        elif isinstance(self, FitsParser):
             parameter = {'uri': self.uri,
                          'header': self._headers[extension]}
 
@@ -1729,7 +1732,8 @@ class GenericParser:
             msg = 'Failed to execute {} for {} in {}'.format(
                 execute.__name__, key, self.uri)
             logging.error(msg)
-            logging.debug('Input parameter was {}'.format(parameter))
+            logging.debug('Input parameter was {}, value was {}'.format(
+                parameter, value))
             self._errors.append(msg)
             tb = traceback.format_exc()
             logging.debug(tb)
@@ -1747,9 +1751,12 @@ class GenericParser:
                 return from_value
             else:
                 result = None
+                # CFHT 2003/03/29,01:34:54
+                # CFHT 2003/03/29
                 for dt_format in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f',
                                   '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
-                                  '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S']:
+                                  '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S',
+                                  '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d']:
                     try:
                         result = datetime.strptime(from_value, dt_format)
                     except ValueError:
@@ -2315,9 +2322,13 @@ class FitsParser(GenericParser):
             'Begin observation augmentation for URI {}.'.format(
                 artifact_uri))
         members = self._get_members(observation)
-        if members and not isinstance(members, TypedSet):
-            for m in members.split():
-                observation.members.add(ObservationURI(m))
+        if members:
+            if isinstance(members, TypedSet):
+                for m in members:
+                    observation.members.add(m)
+            else:
+                for m in members.split():
+                    observation.members.add(ObservationURI(m))
         observation.algorithm = self._get_algorithm(observation)
 
         observation.sequence_number = _to_int(self._get_from_list(
@@ -2328,7 +2339,8 @@ class FitsParser(GenericParser):
                                       observation.intent))
         observation.type = self._get_from_list('Observation.type', 0)
         observation.meta_release = self._get_datetime(
-            self._get_from_list('Observation.metaRelease', 0))
+            self._get_from_list('Observation.metaRelease', 0,
+                                current=observation.meta_release))
         observation.meta_read_groups = self._get_from_list(
             'Observation.metaReadGroups', 0)
         observation.meta_producer = self._get_from_list(
@@ -2339,7 +2351,8 @@ class FitsParser(GenericParser):
         observation.target = self._get_target()
         observation.target_position = self._get_target_position()
         observation.telescope = self._get_telescope(observation.telescope)
-        observation.environment = self._get_environment()
+        observation.environment = self._get_environment(
+            observation.environment)
         self.logger.debug(
             'End observation augmentation for {}.'.format(artifact_uri))
 
@@ -2354,7 +2367,7 @@ class FitsParser(GenericParser):
             'Begin plane augmentation for {}.'.format(artifact_uri))
 
         plane.meta_release = self._get_datetime(self._get_from_list(
-            'Plane.metaRelease', index=0))
+            'Plane.metaRelease', index=0, current=plane.meta_release))
         plane.data_release = self._get_datetime(self._get_from_list(
             'Plane.dataRelease', index=0))
         plane.data_product_type = self._to_data_product_type(
@@ -2367,7 +2380,7 @@ class FitsParser(GenericParser):
             'Plane.metaProducer', index=0, current=plane.meta_producer)
         plane.observable = self._get_observable()
         plane.provenance = self._get_provenance(plane.provenance)
-        plane.metrics = self._get_metrics()
+        plane.metrics = self._get_metrics(current=plane.metrics)
         plane.quality = self._get_quality()
 
         self.logger.debug(
@@ -2501,8 +2514,9 @@ class FitsParser(GenericParser):
         """
         members = None
         self.logger.debug('Begin Members augmentation.')
-        if isinstance(obs, SimpleObservation) and \
-           self.blueprint._get('DerivedObservation.members'):
+        if (isinstance(obs, SimpleObservation) and
+                (self.blueprint._get('DerivedObservation.members') or
+                 self.blueprint._get('CompositeObservation.members'))):
             raise TypeError(
                 ('Cannot apply blueprint for DerivedObservation to a '
                  'simple observation'))
@@ -2520,8 +2534,34 @@ class FitsParser(GenericParser):
                         obs.collection, i) if not i.startswith('caom') else i
                                         for i in member_list.split()])
             else:
-                members = self._get_from_list('DerivedObservation.members',
-                                              index=0)
+                if obs.members is None:
+                    members = self._get_from_list(
+                        'DerivedObservation.members', index=0)
+                else:
+                    members = self._get_from_list(
+                        'DerivedObservation.members', index=0,
+                        current=obs.members)
+        elif isinstance(obs, CompositeObservation):
+            lookup = self.blueprint._get('CompositeObservation.members',
+                                         extension=1)
+            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
+                member_list = self._get_from_table(
+                    'CompositeObservation.members', 1)
+                # ensure the members are good little ObservationURIs
+                if member_list.startswith('caom:'):
+                    members = member_list
+                else:
+                    members = ' '.join(['caom:{}/{}'.format(
+                        obs.collection, i) if not i.startswith('caom') else i
+                                        for i in member_list.split()])
+            else:
+                if obs.members is None:
+                    members = self._get_from_list(
+                        'CompositeObservation.members', index=0)
+                else:
+                    members = self._get_from_list(
+                        'CompositeObservation.members', index=0,
+                        current=obs.members)
         self.logger.debug('End Members augmentation.')
         return members
 
@@ -2697,26 +2737,51 @@ class FitsParser(GenericParser):
         else:
             return None
 
-    def _get_environment(self):
+    def _get_environment(self, current):
         """
         Create an Environment instance populated with available FITS
         information.
+        :current Environment instance, if one already exists in the
+            Observation
         :return: Environment
         """
         self.logger.debug('Begin Environment augmentation.')
-        seeing = self._get_from_list('Observation.environment.seeing', index=0)
-        humidity = _to_float(
-            self._get_from_list('Observation.environment.humidity', index=0))
-        elevation = self._get_from_list('Observation.environment.elevation',
-                                        index=0)
-        tau = self._get_from_list('Observation.environment.tau', index=0)
-        wavelength_tau = self._get_from_list(
-            'Observation.environment.wavelengthTau', index=0)
-        ambient = _to_float(
-            self._get_from_list('Observation.environment.ambientTemp',
-                                index=0))
-        photometric = self._cast_as_bool(self._get_from_list(
-            'Observation.environment.photometric', index=0))
+        if current is None:
+            seeing = self._get_from_list('Observation.environment.seeing',
+                                         index=0)
+            humidity = _to_float(
+                self._get_from_list('Observation.environment.humidity',
+                                    index=0))
+            elevation = self._get_from_list(
+                'Observation.environment.elevation', index=0)
+            tau = self._get_from_list('Observation.environment.tau', index=0)
+            wavelength_tau = self._get_from_list(
+                'Observation.environment.wavelengthTau', index=0)
+            ambient = _to_float(
+                self._get_from_list('Observation.environment.ambientTemp',
+                                    index=0))
+            photometric = self._cast_as_bool(self._get_from_list(
+                'Observation.environment.photometric', index=0))
+        else:
+            seeing = self._get_from_list('Observation.environment.seeing',
+                                         index=0, current=current.seeing)
+            humidity = _to_float(
+                self._get_from_list('Observation.environment.humidity',
+                                    index=0, current=current.humidity))
+            elevation = self._get_from_list(
+                'Observation.environment.elevation', index=0,
+                current=current.elevation)
+            tau = self._get_from_list('Observation.environment.tau', index=0,
+                                      current=current.tau)
+            wavelength_tau = self._get_from_list(
+                'Observation.environment.wavelengthTau', index=0,
+                current=current.wavelength_tau)
+            ambient = _to_float(
+                self._get_from_list('Observation.environment.ambientTemp',
+                                    index=0, current=current.ambient_temp))
+            photometric = self._cast_as_bool(self._get_from_list(
+                'Observation.environment.photometric', index=0,
+                current=current.photometric))
 
         if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = Environment()
@@ -2921,11 +2986,19 @@ class FitsParser(GenericParser):
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
             if keywords:
-                for k in keywords.split():
-                    prov.keywords.add(k)
-            if inputs and not isinstance(inputs, TypedSet):
-                for i in inputs.split():
-                    prov.inputs.add(PlaneURI(str(i)))
+                if isinstance(keywords, set):
+                    for k in keywords:
+                        prov.keywords.add(k)
+                else:
+                    for k in keywords.split():
+                        prov.keywords.add(k)
+            if inputs:
+                if isinstance(inputs, TypedSet):
+                    for i in inputs:
+                        prov.inputs.add(i)
+                else:
+                    for i in inputs.split():
+                        prov.inputs.add(PlaneURI(str(i)))
             self.logger.debug('End Provenance augmentation.')
             return prov
         else:
@@ -2933,12 +3006,14 @@ class FitsParser(GenericParser):
                 'End Provenance augmentation - no provenance information.')
             return None
 
-    def _get_metrics(self):
+    def _get_metrics(self, current):
         """
         Create a Metrics instance populated with available FITS information.
         :return: Metrics
         """
         self.logger.debug('Begin Metrics augmentation.')
+        metrics = Metrics() if current is None else current
+
         source_number_density = self._get_from_list(
             'Plane.metrics.sourceNumberDensity', index=0)
         background = self._get_from_list('Plane.metrics.background', index=0)
@@ -2951,15 +3026,26 @@ class FitsParser(GenericParser):
 
         if (source_number_density or background or background_stddev or
                 flux_density_limit or mag_limit or sample_snr):
-            metrics = Metrics()
-            metrics.source_number_density = source_number_density
-            metrics.background = background
-            metrics.background_std_dev = background_stddev
-            metrics.flux_density_limit = flux_density_limit
-            metrics.mag_limit = mag_limit
-            metrics.sample_snr = sample_snr
+            metrics.source_number_density = (metrics.source_number_density
+                                             if source_number_density is None
+                                             else source_number_density)
+            metrics.background = (metrics.background
+                                  if background is None
+                                  else background)
+            metrics.background_std_dev = (metrics.background_std_dev
+                                          if background_stddev is None
+                                          else background_stddev)
+            metrics.flux_density_limit = (metrics.flux_density_limit
+                                          if flux_density_limit is None
+                                          else flux_density_limit)
+            metrics.mag_limit = (metrics.mag_limit
+                                 if mag_limit is None
+                                 else mag_limit)
+            metrics.sample_snr = (metrics.sample_snr
+                                  if sample_snr is None
+                                  else sample_snr)
         else:
-            metrics = None
+            metrics = current
         self.logger.debug('End Metrics augmentation.')
         return metrics
 
@@ -3746,7 +3832,8 @@ def _get_vos_meta(subject, uri):
 
 def _get_type(path):
     """Basic header extension to content_type lookup."""
-    if path.endswith('.header') or path.endswith('.txt'):
+    if (path.endswith('.header') or path.endswith('.txt') or
+            path.endswith('.cat')):
         return 'text/plain'
     elif path.endswith('.gif'):
         return 'image/gif'
@@ -3792,7 +3879,8 @@ def _extract_ids(cardinality):
 
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
              validate_wcs=True, plugin=None, local=None,
-             external_url=None, connected=True, **kwargs):
+             external_url=None, connected=True, use_generic_parser=False,
+             **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3828,7 +3916,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
 
     meta_uri = uri
     visit_local = None
-    if local:
+    if use_generic_parser:
+        logging.debug(
+            'Using a GenericParser as requested for {}'.format(uri))
+        parser = GenericParser(blueprint, uri=uri)
+    elif local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
                 meta_uri = 'file://{}'.format(local)
@@ -4015,7 +4107,7 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
         obs = reader.read(in_obs_xml)
     else:
         # determine the type of observation to create by looking for the
-        # the DerviedObservation.members in the blueprints. If present
+        # the DerivedObservation.members in the blueprints. If present
         # in any of it assume derived
         for bp in obs_blueprints.values():
             if bp._get('DerivedObservation.members') is not None:
@@ -4025,9 +4117,9 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
                     observation_id=obs_id,
                     algorithm=Algorithm(str('composite')))
                 break
-            elif bp._get('DerivedObservation.members') is not None:
-                logging.debug('Build a DerivedObservation')
-                obs = DerivedObservation(
+            elif bp._get('CompositeObservation.members') is not None:
+                logging.debug('Build a CompositeObservation')
+                obs = CompositeObservation(
                     collection=collection, observation_id=obs_id,
                     algorithm=Algorithm(str('composite')))
                 break
@@ -4105,6 +4197,11 @@ def _get_common_arg_parser():
     parser.add_argument('-o', '--out', dest='out_obs_xml',
                         help='output of augmented observation in XML',
                         required=False)
+
+    parser.add_argument('--caom_namespace',
+                        help=('if this parameter is specified, over-ride the '
+                              'default CAOM2 version when writing XML. The '
+                              'default is the latest version of CAOM2.3.'))
 
     in_group = parser.add_mutually_exclusive_group(required=True)
     in_group.add_argument('-i', '--in', dest='in_obs_xml',
@@ -4200,12 +4297,7 @@ def proc(args, obs_blueprints):
                        args.dumpconfig, validate_wcs, plugin=None,
                        local=file_name)
 
-    writer = ObservationWriter()
-    if args.out_obs_xml:
-        writer.write(obs, args.out_obs_xml)
-    else:
-        sys.stdout.flush()
-        writer.write(obs, sys.stdout)
+    _write_observation(obs, args)
 
 
 def _load_plugin(plugin_name):
@@ -4259,6 +4351,19 @@ def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
     return result
 
 
+def _write_observation(obs, args):
+    caom_namespace = CAOM23_NAMESPACE
+    if args.caom_namespace:
+        caom_namespace = args.caom_namespace
+
+    writer = ObservationWriter(namespace=caom_namespace)
+    if args.out_obs_xml:
+        writer.write(obs, args.out_obs_xml)
+    else:
+        sys.stdout.flush()
+        writer.write(obs, sys.stdout)
+
+
 def gen_proc(args, blueprints, **kwargs):
     """The implementation that expects a product ID to be provided as
     part of the lineage parameter, and blueprints as input parameters,
@@ -4296,9 +4401,13 @@ def gen_proc(args, blueprints, **kwargs):
         if args.external_url:
             external_url = args.external_url[ii]
 
+        use_generic_parser = False
+        if args.use_generic_parser:
+            use_generic_parser = uri in args.use_generic_parser
+
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
-                       external_url, connected, **kwargs)
+                       external_url, connected, use_generic_parser, **kwargs)
 
         if obs is None:
             logging.warning('No observation. Stop processing.')
@@ -4312,12 +4421,7 @@ def gen_proc(args, blueprints, **kwargs):
         logging.warning('No Observation generated for {}'.format(log_id))
         result = -1
     else:
-        writer = ObservationWriter()
-        if args.out_obs_xml:
-            writer.write(obs, args.out_obs_xml)
-        else:
-            sys.stdout.flush()
-            writer.write(obs, sys.stdout)
+        _write_observation(obs, args)
     return result
 
 
@@ -4358,13 +4462,18 @@ def get_gen_proc_arg_parser():
                         help=('productID/artifactURI. List of plane/artifact '
                               'identifiers that will be'
                               'created for the identified observation.'))
+    parser.add_argument('--use_generic_parser', nargs='+',
+                        help=('productID/artifactURI. List of lineage entries '
+                              'that will be processed with a GenericParser. '
+                              'Good for non-fits files.'))
     return parser
 
 
 def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
             out_obs_xml=None, in_obs_xml=None, collection=None,
             observation=None, product_id=None, uri=None, netrc=False,
-            file_name=None, verbose=False, debug=False, quiet=False, **kwargs):
+            file_name=None, verbose=False, debug=False, quiet=False,
+            caom_namespace=CAOM23_NAMESPACE, **kwargs):
     _set_logging(verbose, debug, quiet)
     logging.debug(
         'Begin augmentation for product_id {}, uri {}'.format(product_id,
@@ -4388,7 +4497,7 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
         obs = _augment(obs, product_id, uri, blueprints[ii], subject,
                        dump_config, validate_wcs, plugin, file_name, **kwargs)
 
-    writer = ObservationWriter()
+    writer = ObservationWriter(caom_namespace)
     writer.write(obs, out_obs_xml)
     logging.info('Done augment.')
 

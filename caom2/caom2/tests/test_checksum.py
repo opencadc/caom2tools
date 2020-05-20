@@ -154,7 +154,6 @@ def test_compatibility():
     writer = obs_reader_writer.ObservationWriter(
         True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
     writer.write(obs, '/tmp/test.xml')
-
     _common_check(obs)
 
     # check observation
@@ -324,7 +323,6 @@ def test_compatibility_simple_obs():
     writer = obs_reader_writer.ObservationWriter(
         True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
     writer.write(obs, '/tmp/test.xml')
-
     _common_check(obs)
 
     # check observation
@@ -348,7 +346,6 @@ def test_round_trip():
     # go back to the beginning of the file
     filename.seek(0)
     obs = reader.read(filename)
-
     _common_check(obs)
 
     # check observation

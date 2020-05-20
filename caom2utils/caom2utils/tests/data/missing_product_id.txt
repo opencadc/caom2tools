@@ -1,1 +1,1 @@
-ERROR:root        :565:A productID parameter is required if one is not identified in the blueprint.
+A productID
