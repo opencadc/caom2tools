@@ -4118,14 +4118,17 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
                     algorithm=Algorithm(str('composite')))
                 break
             elif bp._get('CompositeObservation.members') is not None:
-                logging.debug('Build a CompositeObservation')
+                logging.debug(
+                    'Build a CompositeObservation with obs_id {}'.format(
+                        obs_id))
                 obs = CompositeObservation(
                     collection=collection, observation_id=obs_id,
                     algorithm=Algorithm(str('composite')))
                 break
     if not obs:
         # build a simple observation
-        logging.debug('Build a SimpleObservation')
+        logging.debug(
+            'Build a SimpleObservation with obs_id {}'.format(obs_id))
         obs = SimpleObservation(collection=collection,
                                 observation_id=obs_id,
                                 algorithm=Algorithm(str('exposure')))
