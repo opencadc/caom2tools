@@ -1,14 +1,9 @@
-This is the user documentation for the CADC Python Data Engineering Tools.
+# Working With CAOM2
 
-CAOM XML records can be created and modified using customized software built off the caom2 (TODO link) and caom2utils (TODO link) modules.
-These modules enable the user to create more complex relations between observational datasets than can be achieved using the fits2caom2 (TODO link) process. The modules assist the user in creating CAOM objects which can then be written to an XML file and uploaded to the CADC caom2repo (TODO link) service.
+For observations to appear in [CADC search services](http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/), an observation must first be described by a CAOM record. That description will then need to be loaded into the CADC CAOM repository, using a CADC web service. This web service will create a corresponding database record.
 
-# USAGE
+There are two ways to describe and load an Observation:
+1. [Create a Python script](./script_description.md)
+1. [Use the Command Line Interface](./cli_description.md)
 
-caom2 (TODO link) and caom2utils (TODO link) are python modules that enable writing customized software. One must build the various objects that make up the Observation records, put them together, and then provide that object to the CAOM2 repository service (TODO link).
-
-## Example
-
-Here (TODO link to caom2 README.md) is a bare-bones example of how one might use caom2 (TODO link) to build a CAOM XML record.
-
-Here (TODO link to opencadc-metadata-curation) are operational examples of workflows that incorporate caom2 (TODO link) and caom2utils (TODO link) to manage the entire life-cycle of a CAOM observation.
+Once an Observation has been described and loaded, it is searchable from CADC's UI.
