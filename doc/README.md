@@ -1,19 +1,58 @@
-This is the CADC Python Data Engineering Tools documentation.
+# Working With CAOM2
 
-# User
+For observations to appear in [CADC search services](http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/), an observation must first be described by a CAOM record. That description will then need to be loaded into the CADC CAOM repository, using a CADC web service. This web service will create a corresponding database record. 
 
-If you are interested in using CADC Python Data Engineering tools, you should start [here](./user/README.md).
+Once an Observation has been described and loaded, it is searchable from CADC's UI.
+
+* If you are interested in using CADC Python Data Engineering tools, you should start [here](./user/cli_description.md).
   
-# Developer
-
-If you are interested in developing with the CADC Python Data Engineering tools, you should start [here](./developer/README.md).
+* If you are interested in developing with the CADC Python Data Engineering tools, you should start [here](./user/script_description.md).
   
-# Installation
+## Preconditions
 
-The Python packages in this repository can be installed using Python's pip command:
+1. These descriptions assume:
+    1. a working knowledge of python. [Prefer python3, please](https://pythonclock.org/),
+    1. a linux-type environment,
+    1. a working directory location, where all files discussed are placed, and
+    1. that you have a [CADC account](http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/auth/request.html), which is configured by CADC to have read and write access to a CAOM `COLLECTION`.
 
-   ```
-   pip install caom2
-   pip install caom2repo
-   pip install caom2utils
-   ```
+1. This description uses the parameters `test_file.fits`, `test_obs.xml` and `COLLECTION`. Replace these values appropriately when executing the commands.
+
+1. Copy the file `test_file.fits` in the working directory. This metadata in this file will be described in the CAOM Observation created during this example.
+
+1. The example will cause an instance to be created in the [CAOM2 sandbox](http://sc2.canfar.net/search/).  If you visit prior to the creation of the first CAOM instance for a collection, that collection will not show in the Collection data train. Even after successful creation of a CAOM instance for a collection, it can take up to one day for the collection to be displayed on the UI.
+
+    To use production CADC services, remove `resource-id` parameters.
+
+1. Install the following python dependencies:
+
+    ```
+    pip install caom2repo
+    pip install caom2utils
+    ```
+
+1. Get credentials organized. The examples assume the use of a [.netrc file](https://www.systutorials.com/docs/linux/man/5-netrc/). The examples expect this file to be named `netrc` and located in the working directory. The .netrc file content should include the following, with cadcusername and cadcpassword replaced with your CADC username and password values:
+
+    ````
+    machine www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca login canfarusername password canfarpassword
+    machine www.canfar.net login canfarusername password canfarpassword
+    machine ws-cadc.canfar.net login canfarusername password canfarpassword
+    machine sc2.canfar.net login canfarusername password canfarpassword
+    ````
+
+1. The caom2-repo client also supports username/password and X509 certificates. If you want to use X509 
+certificates use the --cert parameter instead of the -n parameter in all the commands. Obtaining and using a CADC certificate is described TBD.
+
+
+1. Test the install. Commands are case-sensitive.
+
+    ```
+    caom2-repo read --netrc ./netrc --resource-id ivo://cadc.nrc.ca/sc2repo COLLECTION abc
+    ```
+
+    This will report an error:
+
+    ```
+    Client Error: Not Found for url: http://sc2.canfar.net/sc2repo/auth-observations/COLLECTION/abc.
+    ```
+
