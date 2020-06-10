@@ -21,7 +21,7 @@
     pip install caom2utils
     ```
 
-1. Get credentials organized. The examples assume the use of a [.netrc file](https://www.systutorials.com/docs/linux/man/5-netrc/). The .netrc file content should include the following, with cadcusername and cadcpassword replaced with your CADC username and password values:
+1. Get credentials organized. The examples assume the use of a [.netrc file](https://www.systutorials.com/docs/linux/man/5-netrc/). The examples expect this file to be named `netrc` and located in the working directory. The .netrc file content should include the following, with cadcusername and cadcpassword replaced with your CADC username and password values:
 
     ````
     machine www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca login canfarusername password canfarpassword
