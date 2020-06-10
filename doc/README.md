@@ -2,17 +2,11 @@ This is the CADC Python Data Engineering Tools documentation.
 
 # User
 
-If you are interested in using CADC Python Data Engineering tools, you should start here:
-
-  * [Installation](https://github.com/SharonGoliath/caom2tools/blob/s2505/doc/README.md#installation)
-  * [Usage](./user/README.md)
+If you are interested in using CADC Python Data Engineering tools, you should start [here](./user/README.md).
   
 # Developer
 
-If you are interested in developing with the CADC Python Data Engineering tools, you should start here:
-
-  * [Installation](https://github.com/SharonGoliath/caom2tools/blob/s2505/doc/README.md#installation)
-  * [Usage](./developer/README.md)
+If you are interested in developing with the CADC Python Data Engineering tools, you should start [here](./developer/README.md).
   
 # Installation
 
