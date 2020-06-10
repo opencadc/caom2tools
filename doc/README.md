@@ -6,7 +6,7 @@ Once an Observation has been described and loaded, it is searchable from CADC's 
 
 * If you are interested in using CADC Python Data Engineering tools, you should start [here](./user/cli_description.md).
   
-* If you are interested in developing with the CADC Python Data Engineering tools, you should start [here](./user/script_description.md).
+* If you are interested in scripting with the CADC Python Data Engineering tools, you should start [here](./user/script_description.md).
   
 ## Preconditions
 
