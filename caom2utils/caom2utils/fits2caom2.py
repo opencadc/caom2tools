@@ -3652,6 +3652,7 @@ def get_external_headers(external_url):
             logging.warning('Error {} when retrieving {} headers.'.format(
                 r.status_code, external_url))
         r.close()
+        logging.error(f'{len(headers)}')
         return headers
     except Exception as e:
         logging.error('Connection failed to {}.\n{}'.format(external_url, e))
@@ -3698,11 +3699,17 @@ def _clean_headers(fits_header):
     :param fits_header: fits_header a string of keyword/value pairs
     """
     new_header = []
+    first_header_encountered = False
     for line in fits_header.split('\n'):
         if len(line.strip()) == 0:
             pass
+        elif line.startswith('--- PHU ---'):
+            first_header_encountered = True
         elif line.startswith('--- HDU 0'):
-            pass
+            if first_header_encountered:
+                new_header.append('END\n')
+            else:
+                first_header_encountered = True
         elif line.startswith('--- HDU'):
             new_header.append('END\n')
         elif line.strip() == 'END':
@@ -3992,7 +3999,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 except InvalidWCSError as e:
                     logging.error(e)
                     tb = traceback.format_exc()
-                    logging.error(tb)
+                    logging.debug(tb)
                     raise e
 
         if len(parser._errors) > 0:
@@ -4118,14 +4125,17 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
                     algorithm=Algorithm(str('composite')))
                 break
             elif bp._get('CompositeObservation.members') is not None:
-                logging.debug('Build a CompositeObservation')
+                logging.debug(
+                    'Build a CompositeObservation with obs_id {}'.format(
+                        obs_id))
                 obs = CompositeObservation(
                     collection=collection, observation_id=obs_id,
                     algorithm=Algorithm(str('composite')))
                 break
     if not obs:
         # build a simple observation
-        logging.debug('Build a SimpleObservation')
+        logging.debug(
+            'Build a SimpleObservation with obs_id {}'.format(obs_id))
         obs = SimpleObservation(collection=collection,
                                 observation_id=obs_id,
                                 algorithm=Algorithm(str('exposure')))
