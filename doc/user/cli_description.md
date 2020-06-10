@@ -75,17 +75,15 @@ certificates use the --cert parameter instead of the -n parameter in all the com
     ```
     caom2gen -o test_obs.xml --in test_obs_read.xml  --blueprint ./test_obs.blueprint --local ./test_file.fits 
     --lineage test_file/ad:COLLECTION/test_file.fits
-    caom2-repo update -n --resource-id ivo://cadc.nrc.ca/sc2repo test_obs.xml
+    caom2-repo update --netrc ./netrc --resource-id ivo://cadc.nrc.ca/sc2repo test_obs.xml
     ```
 
 1. In your browser, go to http://sc2.canfar.net/search, enter `test_fits` into the `Observation ID` search field, click search, then click the `test_fits` link in the `Obs. ID`. This will display the details of the CAOM2 instance for `test_Fits` in a new tab.
 
-1. Modify the blueprint to change mappings between the `COLLECTION` data model and the CAOM2 data model. If more complicated metadata mappings are required, investigate the use of the --module and --plugin parameters to [caom2gen](https://github.com/opencadc/caom2tools/tree/master/caom2utils).
-
-1. [How To Use caom2gen](https://github.com/opencadc-metadata-curation/collection2caom2/wiki/How-To-Use-caom2gen).
+1. Modify the blueprint to change mappings between the `COLLECTION` data model and the CAOM2 data model. If more complicated metadata mappings are required, investigate the use of the --module and --plugin parameters to [caom2gen](https://github.com/opencadc/caom2tools/tree/master/caom2utils). There are addition `caom2gen` parameters described here as well.
 
 1. Should entries ever need to be deleted from the CAOM2 repository, replace `COLLECTION` with the appropriate value, and replace `test_fits` with the observation ID that is being deleted:
 
     ```
-    caom2-repo delete -n --resource-id ivo://cadc.nrc.ca/sc2repo COLLECTION test_fits
+    caom2-repo delete --netrc ./netrc --resource-id ivo://cadc.nrc.ca/sc2repo COLLECTION test_fits
     ```
