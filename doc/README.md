@@ -4,15 +4,15 @@ This is the CADC Python Data Engineering Tools documentation.
 
 If you are interested in using CADC Python Data Engineering tools, you should start here:
 
-  * Installation (TODO link)
-  * Usage (TODO link)
+  * [Installation](TODO link)
+  * [Usage](./user/README.md)
   
 # Developer
 
 If you are interested in developing with the CADC Python Data Engineering tools, you should start here:
 
-  * Installation (TODO link)
-  * Usage (TODO link)
+  * [Installation](TODO link)
+  * [Usage](./developer/README.md)
   
 # Installation
 
