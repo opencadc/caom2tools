@@ -1,6 +1,6 @@
 # How to describe and load a CAOM2 Observation using the Command Line
 
-1. Ensure the pre-conditions as described [here](./README.md)
+1. Ensure the pre-conditions as described [here](https://github.com/SharonGoliath/caom2tools/tree/s2505/doc#preconditions)
 
 1. Use the file [test_obs.blueprint](https://github.com/opencadc-metadata-curation/collection2caom2/blob/master/test_obs.blueprint) as the initial version of the blueprint file.
 
