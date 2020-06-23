@@ -76,8 +76,14 @@ certificates use the --cert parameter instead of the -n parameter in all the com
     pip install --upgrade vos
     ```
 
-    Then uninstall `enum34`, the package raisng the AttributeError:
+    Uninstall `enum34`, the package raisng the AttributeError:
     
     ```
     pip uninstall enum34
+    ```
+
+    Then retry the `caom2utils` install:
+    
+    ```
+    pip install caom2utils
     ```
