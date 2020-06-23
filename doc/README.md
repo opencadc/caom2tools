@@ -16,7 +16,7 @@ Once an Observation has been described and loaded, it is searchable from CADC's 
     1. a working directory location, where all files discussed are placed, and
     1. that you have a [CADC account](http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/auth/request.html), which is configured by CADC to have read and write access to a CAOM `COLLECTION`.
 
-1. This description uses the parameters `test_file.fits`, `test_obs.xml` and `COLLECTION`. Replace these values appropriately when executing the commands.
+1. This description uses the parameters `TEST_FILE.FITS`, `TEST_OBS.XML` and `COLLECTION`. Replace these values appropriately when executing the commands.
 
 1. Copy the file `test_file.fits` in the working directory. This metadata in this file will be described in the CAOM Observation created during this example.
 
@@ -31,7 +31,7 @@ Once an Observation has been described and loaded, it is searchable from CADC's 
     pip install caom2utils
     ```
 
-1. Get credentials organized. The examples assume the use of a [.netrc file](https://www.systutorials.com/docs/linux/man/5-netrc/). The examples expect this file to be named `netrc` and located in the working directory. The .netrc file content should include the following, with cadcusername and cadcpassword replaced with your CADC username and password values:
+1. Get credentials organized. The examples assume the use of a [./.netrc file](https://www.systutorials.com/docs/linux/man/5-netrc/). The examples expect this file to be named `./.netrc` and located in the working directory. The `./.netrc` file content should include the following, with cadcusername and cadcpassword replaced with your CADC username and password values:
 
     ````
     machine www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca login canfarusername password canfarpassword
@@ -41,7 +41,7 @@ Once an Observation has been described and loaded, it is searchable from CADC's 
     ````
 
 1. The caom2-repo client also supports username/password and X509 certificates. If you want to use X509 
-certificates use the --cert parameter instead of the -n parameter in all the commands. Obtaining and using a CADC certificate is described TBD.
+certificates use the --cert parameter instead of the -n parameter in all the commands. The command line client `cadc-get-cert` is installed with the prerequisites for the `caom2repo` package, and `cadc-get-cert --help` from a terminal prompt will describe how to obtain a CADC certificate.
 
 
 1. Test the install. Commands are case-sensitive.
@@ -50,9 +50,34 @@ certificates use the --cert parameter instead of the -n parameter in all the com
     caom2-repo read --netrc ./netrc --resource-id ivo://cadc.nrc.ca/sc2repo COLLECTION abc
     ```
 
-    This will report an error:
+    If the install was successful, this will report an error:
 
     ```
     Client Error: Not Found for url: http://sc2.canfar.net/sc2repo/auth-observations/COLLECTION/abc.
     ```
 
+## Troubleshooting
+
+1. If `pip install caom2utils` fails with the following error:
+
+    ```
+    AttributeError: module ‘enum’ has no attribute ‘IntFlag’
+    ```
+
+    Ensure the version of vos is >= 3.1.1:
+
+    ```
+    pip list | grep vos
+    ```
+    
+    Upgrade vos if necessary:
+
+    ```
+    pip install --upgrade vos
+    ```
+
+    Then uninstall `enum34`, the package raisng the AttributeError:
+    
+    ```
+    pip uninstall enum34
+    ```
