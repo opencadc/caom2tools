@@ -76,49 +76,82 @@ To make WCS content available in the blueprint, instead of setting the indices i
 
 The following script is an end-to-end example of describing and loading a CAOM2 Observation given a FITS file, and a blueprint.
 
-    ```
+    import importlib
+    import os
     from cadcutils import net
     from caom2 import obs_reader_writer, DataProductType, CalibrationLevel
     from caom2repo import CAOM2RepoClient
     from caom2utils import fits2caom2
 
+
+    def get_meta_release(header):
+        """
+        Use functions when the value of many header keywords are needed
+        to set one CAOM2 attribute.
+        """
+        obs_type = header.get('OBSTYPE')
+        if obs_type == 'OBJECT':
+            # science observation
+            rel_date = header.get('REL_DATE')
+        else:
+            # calibration observation
+            rel_date = header.get('DATE-OBS')
+        return rel_date
+
+
     # configure and create the CADC service client
-    netrc_fqn = '/usr/src/app/.netrc'
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    netrc_fqn = f'{this_dir}/netrc'
     subject = net.Subject(netrc=netrc_fqn)
     # remove the resource_id parameter to use production resources
     repo_client = CAOM2RepoClient(subject, resource_id='ivo://cadc.nrc.ca/sc2repo')
 
     # describe the Observation by setting up the mapping between the
-    # COLLECTION and CAOM2
-    bp = fits2caom2.ObsBlueprint()
+    # COLLECTION and CAOM2, which is captured in an instance of
+    # ObsBlueprint
+
+    # so functions can be used in the blueprint
+    module = importlib.import_module(__name__)
+
+    bp = fits2caom2.ObsBlueprint(module=module)
     bp.configure_position_axes((1, 2))
+    # set a default value that will be used if FITS header values are not
+    # available
     bp.set_default('Observation.observationID', 'TEST_OBS')
+    # set a hard-coded value
     bp.set('Plane.dataRelease', '2017-08-31T00:00:00')
+    # use an enumerated value for a hard-coded value
     bp.set('Plane.calibrationLevel', CalibrationLevel.RAW_STANDARD)
     bp.set('Plane.dataProductType', DataProductType.IMAGE)
+    # add the FITS keyword 'RADECSYS' to the list of FITS keywords
+    # checked for a value
     bp.add_fits_attribute('Chunk.position.coordsys', 'RADECSYS')
+    # execute a function to set a value - parameter may be either
+    # 'header' or 'uri'
+    bp.set('Plane.metaRelease', 'get_meta_release(header)')
 
-    # apply the mapping to the FITS file
+    # apply the mapping to the FITS file, which writes the Observation to
+    # an xml file on disk
     kwargs = {}
     uri = 'ad:COLLECTION/TEST_FILE.FITS'
     blueprints = {uri: bp}
-    result = fits2caom2.augment(blueprints=blueprints,
-                                no_validate=False,
-                                dump_config=False,
-                                plugin=None,
-                                out_obs_xml='./TEST_OBS.XML',
-                                in_obs_xml=None,
-                                collection='COLLECTION',
-                                observation='TEST_OBS',
-                                product_id='TEST_PRODUCT_ID',
-                                uri=uri,
-                                netrc=netrc_fqn,
-                                file_name='file:///usr/src/app/TEST_FILE.FITS',
-                                verbose=False,
-                                debug=False,
-                                quiet=False,
-                                caom_namespace=obs_reader_writer.CAOM23_NAMESPACE,
-                                **kwargs)
+    fits2caom2.augment(blueprints=blueprints,
+                       no_validate=False,
+                       dump_config=False,
+                       plugin=None,
+                       out_obs_xml='./TEST_OBS.XML',
+                       in_obs_xml=None,
+                       collection='COLLECTION',
+                       observation='TEST_OBS',
+                       product_id='TEST_PRODUCT_ID',
+                       uri=uri,
+                       netrc=netrc_fqn,
+                       file_name='file:///test_files/TEST_FILE.FITS',
+                       verbose=False,
+                       debug=True,
+                       quiet=False,
+                       caom_namespace=obs_reader_writer.CAOM23_NAMESPACE,
+                       **kwargs)
 
     # load the observation into memory
     reader = obs_reader_writer.ObservationReader(False)
@@ -126,12 +159,12 @@ The following script is an end-to-end example of describing and loading a CAOM2 
 
     # create the observation record with the service
     #
-    # use 'update' if the observation has already been loaded to the CADC service. The service
-    # generates a parallel set of database keys that must be honoured. The id values must be
-    # consistent when doing 'create' and 'update' calls, or a "This observation already exists"
-    # error will occur.
+    # use 'update' if the observation has already been loaded to the CADC service.
+    # The service generates a parallel set of database keys that must be honoured.
+    # The id values must be consistent when doing 'create' and 'update' calls, or
+    # a "This observation already exists" error will occur.
+    # repo_client.update(observation)
     repo_client.create(observation)
-    ```
 
 ## More Information
 
