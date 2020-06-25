@@ -20,7 +20,7 @@ The blueprint is one way to capture the mapping of the TDM to the CAOM2 data mod
 * what information to obtain from the FITS header, 
 * defaults in case the FITS header is incomplete,
 * hard-coded value when the FITS header should be ignored, or doesn't have information, and
-* python functions which will be loaded and executed at run-time to augment FITS keyword values.
+* python functions which will be loaded and executed at run-time to augment FITS keyword values. See [this section](https://github.com/SharonGoliath/caom2tools/blob/s2505/doc/user/script_description.md#putting-it-all-together) for an example of how to make this work.
 
 The blueprint is a set of key-value pairs, where the values have three possible representations.
 
