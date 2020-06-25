@@ -3989,7 +3989,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                                    product_id=plane.product_id)
 
         result = _visit(plugin, parser, obs, visit_local, product_id, uri,
-                        **kwargs)
+                        subject, **kwargs)
 
         if result is not None:
             if validate_wcs:
@@ -4329,7 +4329,7 @@ def _load_plugin(plugin_name):
 
 
 def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
-           **kwargs):
+           subject=None, **kwargs):
     result = obs
     if plugin_name is not None and len(plugin_name) > 0:
         # TODO make a check that's necessary under both calling conditions here
@@ -4345,6 +4345,8 @@ def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
             kwargs['product_id'] = product_id
         if uri is not None:
             kwargs['uri'] = uri
+        if subject is not None:
+            kwargs['subject'] = subject
         try:
             result = plgin.update(observation=obs, **kwargs)
             if result is not None:
