@@ -20,7 +20,7 @@ The blueprint is one way to capture the mapping of the TDM to the CAOM2 data mod
 * what information to obtain from the FITS header, 
 * defaults in case the FITS header is incomplete,
 * hard-coded value when the FITS header should be ignored, or doesn't have information, and
-* python functions which will be loaded and executed at run-time to augment FITS keyword values. See [this section](https://github.com/SharonGoliath/caom2tools/blob/s2505/doc/user/script_description.md#putting-it-all-together) for an example of how to make this work.
+* python functions which will be loaded and executed at run-time to augment FITS keyword values. See [this section](https://github.com/SharonGoliath/caom2tools/blob/s2505/doc/user/script_description.md#putting-it-all-together) for an example.
 
 The blueprint is a set of key-value pairs, where the values have three possible representations.
 
@@ -44,7 +44,7 @@ A blueprint may be provided by one of two ways: as a file on disk, or programmat
     Plane.dataRelease = 2017-08-31T00:00:00
     Chunk.position.coordsys = ['RADECSYS,RADESYS']
 
-   * Observation.observationID provides a default value of `TEST_OBS`, which is used if the keyword `OBSID` does not exist in the FITS file.
+   * Observation.observationID provides a default value of `TEST_OBS`, which is used if the `OBSID` keyword does not exist in the FITS file.
    * Plane.dataRelease provides an override value, which is always used.
    * Chunk.position.coordsys provides a list of FITS keywords to try. If the first value is not in the FITS header, the second one is queried. If neither of them exist, there will be no value for Chunk.position.coordsys in the CAOM2 observation.
 
@@ -58,9 +58,9 @@ An example of this implementation is in (https://github.com/opencadc-metadata-cu
     bp.add_fits_attribute('Chunk.position.coordsys', 'RADECSYS')
     bp.add_fits_attribute('Chunk.position.coordsys', 'RADESYS')
 
-   * Observation.observationID provides a default value of `TEST_OBS`, which is used if the keyword `OBSID` does not exist in the FITS file.
+   * Observation.observationID provides a default value of `TEST_OBS`, which is used if the `OBSID` keyword does not exist in the FITS file.
    * Plane.dataRelease provides an override value, which is always used when setting the plane-level data release date in the CAOM2 instance.
-   * Chunk.position.coordsys provides a list of FITS keywords to try.
+   * Chunk.position.coordsys provides a list of FITS keywords to try. The last keyword listed will be tried first, and the first keyword found will be used to set the value.
 
 To make WCS content available in the blueprint, instead of setting the indices in the ObsBlueprint constructor any of the following functions for which there is metadata in a FITS file may be called on a blueprint instance:
 
@@ -74,7 +74,7 @@ To make WCS content available in the blueprint, instead of setting the indices i
 
 ## Putting It All Together
 
-The following script is an end-to-end example of describing and loading a CAOM2 Observation given a FITS file, and a blueprint.
+The following script is an end-to-end example of describing and loading a CAOM2 Observation to the CADC service, given a FITS file and programatically constructing a blueprint.
 
     import importlib
     import os
