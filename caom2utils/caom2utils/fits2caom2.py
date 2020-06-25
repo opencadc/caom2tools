@@ -3652,7 +3652,6 @@ def get_external_headers(external_url):
             logging.warning('Error {} when retrieving {} headers.'.format(
                 r.status_code, external_url))
         r.close()
-        logging.error(f'{len(headers)}')
         return headers
     except Exception as e:
         logging.error('Connection failed to {}.\n{}'.format(external_url, e))
@@ -3714,7 +3713,7 @@ def _clean_headers(fits_header):
             new_header.append('END\n')
         elif line.strip() == 'END':
             new_header.append('END\n')
-        elif '=' not in line:
+        elif '=' not in line and not line.startswith('COMMENT'):
             pass
         else:
             new_header.append('{}\n'.format(line))
@@ -4494,8 +4493,10 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
     # dependent on that collection-specific implementation. The args to the
     # visit function are not set in fits2caom2.
 
-    params = kwargs['params']
-    kwargs = params['visit_args']
+    params = kwargs.get('params')
+    kwargs = {}
+    if params is not None:
+        kwargs = params.get('visit_args')
 
     obs = _gen_obs(blueprints, in_obs_xml, collection, observation)
     subject = net.Subject(username=None, certificate=None, netrc=netrc)
