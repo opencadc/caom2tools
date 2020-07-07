@@ -3652,6 +3652,7 @@ def get_external_headers(external_url):
             logging.warning('Error {} when retrieving {} headers.'.format(
                 r.status_code, external_url))
         r.close()
+        logging.error(f'{len(headers)}')
         return headers
     except Exception as e:
         logging.error('Connection failed to {}.\n{}'.format(external_url, e))
