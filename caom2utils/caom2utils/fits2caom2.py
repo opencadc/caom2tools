@@ -3714,7 +3714,7 @@ def _clean_headers(fits_header):
             new_header.append('END\n')
         elif line.strip() == 'END':
             new_header.append('END\n')
-        elif '=' not in line:
+        elif '=' not in line and not line.startswith('COMMENT'):
             pass
         else:
             new_header.append('{}\n'.format(line))
@@ -3990,7 +3990,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                                    product_id=plane.product_id)
 
         result = _visit(plugin, parser, obs, visit_local, product_id, uri,
-                        **kwargs)
+                        subject, **kwargs)
 
         if result is not None:
             if validate_wcs:
@@ -4330,7 +4330,7 @@ def _load_plugin(plugin_name):
 
 
 def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
-           **kwargs):
+           subject=None, **kwargs):
     result = obs
     if plugin_name is not None and len(plugin_name) > 0:
         # TODO make a check that's necessary under both calling conditions here
@@ -4346,6 +4346,8 @@ def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
             kwargs['product_id'] = product_id
         if uri is not None:
             kwargs['uri'] = uri
+        if subject is not None:
+            kwargs['subject'] = subject
         try:
             result = plgin.update(observation=obs, **kwargs)
             if result is not None:
@@ -4494,8 +4496,10 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
     # dependent on that collection-specific implementation. The args to the
     # visit function are not set in fits2caom2.
 
-    params = kwargs['params']
-    kwargs = params['visit_args']
+    params = kwargs.get('params')
+    kwargs = {}
+    if params is not None:
+        kwargs = params.get('visit_args')
 
     obs = _gen_obs(blueprints, in_obs_xml, collection, observation)
     subject = net.Subject(username=None, certificate=None, netrc=netrc)
