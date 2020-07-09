@@ -163,6 +163,15 @@ The following script is an end-to-end example of describing and loading a CAOM2 
     # The service generates a parallel set of database keys that must be honoured.
     # The id values must be consistent when doing 'create' and 'update' calls, or
     # a "This observation already exists" error will occur.
+    #
+    # existing_obs = repo_client.read('COLLECTION', 'TEST_OBS_ID')
+    # writer = obs_reader_writer.ObservationWriter()
+    # writer.write(existing_obs, '/fully/qualified/EXISTING.XML')
+    # fits2caom2.augment(...
+    #                    in_obs_xml='/fully/qualified/EXISTING.XML',
+    #                    ...)
+    # load the observation into memory
+    # then use:
     # repo_client.update(observation)
     repo_client.create(observation)
 
