@@ -30,9 +30,7 @@ There is a sample blueprint in [this file](https://github.com/opencadc-metadata-
 
 The keys are the long-form names for the CAOM2 model elements and attributes. The complete set of valid keys can be found by executing the following:
 
-    python
-    > import caom2utils
-    > pydoc caom2utils.fits2caom2.ObsBlueprint
+    pydoc caom2utils.fits2caom2.ObsBlueprint
 
 ### Changing What a Blueprint Looks Like, By Extension
 
@@ -183,6 +181,6 @@ If you want:
 
 * a description of the latest version of the CAOM2 model, see [here](http://www.opencadc.org/caom2/).
 
-* a description of the operational version of the CADC service, see [here](http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/ams/).
+* a description of the operational version of the CADC Archive Metadata Service, see [here](http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/ams/).
 
 * examples of the model and the client embedded in end-to-end workflows, see [here](https://github.com/opencadc-metadata-curation). Each application in this repository uses the tactic of programatically creating a unique blueprint for each file that is ingested, and then creating or updating the resulting CAOM2 Observation.
