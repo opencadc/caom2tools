@@ -20,7 +20,7 @@ Once an Observation has been described and loaded, it is searchable from CADC's 
 
 1. Copy the file `TEST_FILE.FITS` in the working directory. The metadata in this file will be described in the CAOM Observation created during this example.
 
-1. The example will cause an instance to be created in the [CAOM2 sandbox](http://sc2.canfar.net/search/).  If you visit the CAOM2 sandbox URL prior to the creation of the first CAOM instance for a `COLLECTION`, that `COLLECTION` will not show in the `Additional Constraints -> Collection` . Even after successful creation of a CAOM instance, it can take up to one day for the `COLLECTION` to be selectable from the UI.
+1. The example will cause an instance to be created in the [CAOM2 sandbox](http://sc2.canfar.net/search/).  If you click the CAOM2 sandbox URL prior to the creation of the first CAOM instance for a `COLLECTION`, that `COLLECTION` will not show in the `Additional Constraints -> Collection` . Even after successful creation of a CAOM instance, it can take up to one day for the `COLLECTION` to be selectable from the UI. The CAOM2 'sandbox' is a site that mimics the production CADC CAOM2 storage service and search UI. This sandbox site allows developers and scientists to debug collection-specific code for creating and updating CAOM2 Observations. It also allows developers and scientiests to immediately view CAOM2 records as they will appear to users in the search interface.
 
     To use production CADC services, remove `resource-id` parameters in `caom2-repo` commands.
 
