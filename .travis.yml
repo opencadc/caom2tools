@@ -20,12 +20,14 @@ install:
 script:
     - for i in $(ls -d */); 
       do 
-        cd $i; 
-        pytest --cov $i || exit -1;
-        if [[ $TRAVIS_PYTHON_VERSION == '3.7' ]]; then 
-           flake8 -v $i || exit -1; 
+        if [[ $i != "doc/" ]]; then
+           cd $i; 
+           pytest --cov $i || exit -1;
+           if [[ $TRAVIS_PYTHON_VERSION == '3.7' ]]; then 
+              flake8 -v $i || exit -1; 
+           fi;
+           cd ..; 
         fi;
-        cd ..; 
      done
 
 after_success:

@@ -1,8 +1,8 @@
 # How to describe and load a CAOM2 Observation using the Command Line
 
-1. Ensure the pre-conditions as described [here](https://github.com/SharonGoliath/caom2tools/tree/s2505/doc#preconditions)
+1. Ensure the pre-conditions as described [here](https://github.com/opencadc/caom2tools/blob/master/doc#preconditions)
 
-1. Use the file [test_obs.blueprint](https://github.com/opencadc-metadata-curation/collection2caom2/blob/master/test_obs.blueprint) as the initial version of the blueprint file. For more information on the concept of blueprints, and their use, see [here](https://github.com/SharonGoliath/caom2tools/blob/s2505/doc/user/script_description.md#observation-blueprints).
+1. Use the file [test_obs.blueprint](https://github.com/opencadc-metadata-curation/collection2caom2/blob/master/test_obs.blueprint) as the initial version of the blueprint file. For more information on the concept of blueprints, and their use, see [here](https://github.com/opencadc/caom2tools/blob/master/doc/user/script_description.md#observation-blueprints).
 
 1. Run caom2gen. The value provided for the `--local` parameter must be a fully qualified path name.
 
