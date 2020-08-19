@@ -7,6 +7,7 @@ target.standard = false
 proposal.project =  
 proposal.title =  
 plane.calibrationLevel = 1
+plane.dataProductType = spectrum
 plane.dataRelease = 2017-11-05T00:00:00
 artifact.productType = calibration
 artifact.contentChecksum = md5:a448e8df9e6261f7161e76a5db87c072

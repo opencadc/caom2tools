@@ -6,6 +6,7 @@ proposal.project =
 proposal.pi = Mary Laychak
 proposal.title =  
 plane.calibrationLevel = 2
+plane.dataProductType = image
 plane.dataRelease = 2018-08-31T00:00:00
 provenance.inputs = caom:CFHT/2087482/2087482o
 provenance.keywords = 

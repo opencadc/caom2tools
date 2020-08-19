@@ -489,7 +489,8 @@ class ObsBlueprint(object):
 
     def __init__(self, position_axes=None, energy_axis=None,
                  polarization_axis=None, time_axis=None,
-                 obs_axis=None, custom_axis=None, module=None):
+                 obs_axis=None, custom_axis=None, module=None,
+                 update=True):
         """
         Ctor
         :param position_axes: tuple of form (int, int) indicating the indexes
@@ -520,7 +521,8 @@ class ObsBlueprint(object):
                'Observation.type': (['OBSTYPE'], None),
                'Observation.environment.ambientTemp': (['TEMPERAT'],
                                                        None),
-               'Observation.algorithm.name': (['PROCNAME'], None),
+               # set the default for SimpleObservation construction
+               'Observation.algorithm.name': (['PROCNAME'], 'exposure'),
                'Observation.instrument.keywords': (['INSTMODE'], None),
                'Observation.proposal.id': (['RUNID'], None),
                'Observation.target.name': (['OBJECT'], None),
@@ -542,6 +544,7 @@ class ObsBlueprint(object):
                'Plane.provenance.producer': (['ORIGIN'], None),
                'Plane.provenance.reference': (['XREFER'], None),
                'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
+               'Artifact.releaseType': ([], ReleaseType.DATA),
                'Chunk': 'include'
                }
         # using the tmp to make sure that the keywords are valid
@@ -583,6 +586,8 @@ class ObsBlueprint(object):
             self._module = module
         else:
             self._module = None
+        # if True, existing values are used instead of defaults
+        self._update = update
 
     def configure_custom_axis(self, axis, override=True):
         """
@@ -1479,6 +1484,14 @@ class ObsBlueprint(object):
             configed_axes += 1
         return configed_axes
 
+    @property
+    def update(self):
+        return self._update
+
+    @update.setter
+    def update(self, value):
+        self._update = value
+
 
 @add_metaclass(ABCMeta)
 class GenericParser:
@@ -1600,8 +1613,6 @@ class GenericParser:
             raise ValueError(
                 'Artifact type mis-match for {}'.format(artifact))
 
-        artifact.uri = self._get_from_list('Artifact.uri', index=0,
-                                           current=artifact.uri)
         artifact.product_type = self._to_product_type(self._get_from_list(
             'Artifact.productType', index=0, current=artifact.product_type))
         artifact.release_type = self._to_release_type(self._get_from_list(
@@ -1642,8 +1653,10 @@ class GenericParser:
         if (keywords and not ObsBlueprint.is_fits(keywords)
                 and not ObsBlueprint.is_function(keywords)):
             value = keywords
-        elif current:
-            value = current
+        elif self._blueprint.update:
+            if (current is not None or
+                    (current is None and isinstance(value, bool))):
+                value = current
 
         self.logger.debug('{}: value is {}'.format(lookup, value))
         return value
@@ -2346,10 +2359,11 @@ class FitsParser(GenericParser):
         observation.meta_producer = self._get_from_list(
             'Observation.metaProducer', 0, current=observation.meta_producer)
         observation.requirements = self._get_requirements()
-        observation.instrument = self._get_instrument()
+        observation.instrument = self._get_instrument(observation.instrument)
         observation.proposal = self._get_proposal(observation.proposal)
-        observation.target = self._get_target()
-        observation.target_position = self._get_target_position()
+        observation.target = self._get_target(observation.target)
+        observation.target_position = self._get_target_position(
+            observation.target_position)
         observation.telescope = self._get_telescope(observation.telescope)
         observation.environment = self._get_environment(
             observation.environment)
@@ -2574,22 +2588,28 @@ class FitsParser(GenericParser):
         # TODO DEFAULT VALUE
         name = self._get_from_list('Observation.algorithm.name', index=0,
                                    current=obs.algorithm.name)
-        self.logger.debug('End Algorithm augmentation.')
+        result = None
         if name:
-            return Algorithm(str(name))
-        else:
-            return None
+            result = Algorithm(str(name))
+        self.logger.debug('End Algorithm augmentation.')
+        return result
 
-    def _get_instrument(self):
+    def _get_instrument(self, current):
         """
         Create an Instrument instance populated with available FITS
         information.
         :return: Instrument
         """
         self.logger.debug('Begin Instrument augmentation.')
-        name = self._get_from_list('Observation.instrument.name', index=0)
-        keywords = self._get_from_list('Observation.instrument.keywords',
-                                       index=0)
+        if current is None:
+            name = self._get_from_list('Observation.instrument.name', index=0)
+            keywords = self._get_from_list('Observation.instrument.keywords',
+                                           index=0)
+        else:
+            name = self._get_from_list('Observation.instrument.name', index=0,
+                                       current=current.name)
+            keywords = self._get_from_list('Observation.instrument.keywords',
+                                           index=0, current=current.keywords)
         self.logger.debug('End Instrument augmentation.')
         if name:
             instr = Instrument(str(name))
@@ -2625,32 +2645,52 @@ class FitsParser(GenericParser):
                                         current=current.title)
             keywords = self._get_from_list('Observation.proposal.keywords',
                                            index=0)
-        self.logger.debug('End Proposal augmentation.')
+        self.logger.debug(f'End Proposal augmentation {prop_id}.')
+        proposal = current
         if prop_id:
             proposal = Proposal(str(prop_id), pi, project, title)
             if keywords:
                 proposal.keywords = keywords
-            return proposal
-        else:
-            return None
+        return proposal
 
-    def _get_target(self):
+    def _get_target(self, current):
         """
         Create a Target instance populated with available FITS information.
         :return: Target
         """
         self.logger.debug('Begin Target augmentation.')
-        name = self._get_from_list('Observation.target.name', index=0)
-        target_type = self._get_from_list('Observation.target.type',
-                                          index=0)
-        standard = self._cast_as_bool(self._get_from_list(
-            'Observation.target.standard', index=0))
-        redshift = self._get_from_list('Observation.target.redshift', index=0)
-        keywords = self._get_set_from_list('Observation.target.keywords',
-                                           index=0)  # TODO
-        moving = self._cast_as_bool(
-            self._get_from_list('Observation.target.moving', index=0))
-        target_id = self._get_from_list('Observation.target.targetID', index=0)
+        if current is None:
+            name = self._get_from_list('Observation.target.name', index=0)
+            target_type = self._get_from_list('Observation.target.type',
+                                              index=0)
+            standard = self._cast_as_bool(self._get_from_list(
+                'Observation.target.standard', index=0))
+            redshift = self._get_from_list('Observation.target.redshift', index=0)
+            keywords = self._get_set_from_list('Observation.target.keywords',
+                                               index=0)  # TODO
+            moving = self._cast_as_bool(
+                self._get_from_list('Observation.target.moving', index=0))
+            target_id = self._get_from_list('Observation.target.targetID', index=0)
+            self.logger.debug('End Target augmentation.')
+        else:
+            name = self._get_from_list('Observation.target.name', index=0,
+                                       current=current.name)
+            target_type = self._get_from_list(
+                'Observation.target.type', index=0,
+                current=current.target_type)
+            standard = self._cast_as_bool(self._get_from_list(
+                'Observation.target.standard', index=0,
+                current=current.standard))
+            redshift = self._get_from_list('Observation.target.redshift',
+                                           index=0, current=current.redshift)
+            keywords = self._get_set_from_list(
+                'Observation.target.keywords', index=0)  # TODO
+            moving = self._cast_as_bool(
+                self._get_from_list('Observation.target.moving', index=0,
+                                    current=current.moving))
+            target_id = self._get_from_list(
+                'Observation.target.targetID', index=0,
+                current=current.target_id)
         self.logger.debug('End Target augmentation.')
         if name:
             return Target(str(name), target_type, standard, redshift,
@@ -2658,20 +2698,33 @@ class FitsParser(GenericParser):
         else:
             return None
 
-    def _get_target_position(self):
+    def _get_target_position(self, current):
         """
         Create a Target Position instance populated with available FITS
         information.
         :return: Target Position
         """
-        x = self._get_from_list('Observation.target_position.point.cval1',
-                                index=0)
-        y = self._get_from_list('Observation.target_position.point.cval2',
-                                index=0)
-        coordsys = self._get_from_list('Observation.target_position.coordsys',
-                                       index=0)
-        equinox = self._get_from_list('Observation.target_position.equinox',
-                                      index=0)
+        if current is None:
+            x = self._get_from_list('Observation.target_position.point.cval1',
+                                    index=0)
+            y = self._get_from_list('Observation.target_position.point.cval2',
+                                    index=0)
+            coordsys = self._get_from_list(
+                'Observation.target_position.coordsys', index=0)
+            equinox = self._get_from_list('Observation.target_position.equinox',
+                                          index=0)
+        else:
+            x = self._get_from_list('Observation.target_position.point.cval1',
+                                    index=0, current=current.point.x)
+            y = self._get_from_list('Observation.target_position.point.cval2',
+                                    index=0, current=current.point.y)
+            coordsys = self._get_from_list(
+                'Observation.target_position.coordsys', index=0,
+                current=current.coordsys)
+            equinox = self._get_from_list(
+                'Observation.target_position.equinox', index=0,
+                current=current.equinox)
+
         if x and y:
             self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
             aug_point = Point(x, y)
@@ -2845,10 +2898,14 @@ class FitsParser(GenericParser):
                             '{}: assigned default value {}.'.format(lookup,
                                                                     value))
             if value is None:
-                if current:
-                    value = current
-                    self.logger.debug(
-                        '{}: used current value {!r}.'.format(lookup, value))
+                # checking current does not work in the general case,
+                # because current might legitimately be 'None'
+                if self._blueprint.update:
+                    if (current is not None or
+                            (current is None and isinstance(value, bool))):
+                        value = current
+                        self.logger.debug('{}: used current value '
+                                          '{!r}.'.format(lookup, value))
                 else:
                     # assign a default value, if one exists
                     if keywords[1]:

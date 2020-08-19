@@ -1,4 +1,5 @@
 Observation.type = OBJECT
+Observation.algorithm.name = composite
 DerivedObservation.members = ('BINTABLE', ['FICS'], 1)
 Plane.dataProductType = image
 Plane.calibrationLevel = 2

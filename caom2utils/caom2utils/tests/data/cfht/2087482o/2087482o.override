@@ -6,6 +6,7 @@ proposal.project =
 proposal.pi = Mary Laychak
 proposal.title =  
 plane.calibrationLevel = 1
+plane.dataProductType = image
 plane.dataRelease = 2018-08-31T00:00:00
 artifact.productType = science
 artifact.contentChecksum = md5:214f02f46f936d26ebc7c79af82a1f63

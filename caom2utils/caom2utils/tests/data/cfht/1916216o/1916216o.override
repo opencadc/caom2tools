@@ -7,6 +7,7 @@ target.standard = false
 proposal.project = BINAMICS
 proposal.title = Binamics: Binarity and Magnetic Interactions in various classes of Stars
 plane.calibrationLevel = 1
+plane.dataProductType = spectrum
 plane.dataRelease = 2017-08-31T00:00:00
 artifact.productType = science
 artifact.contentChecksum = md5:147df938dceac8e987b99b241bf1d794
