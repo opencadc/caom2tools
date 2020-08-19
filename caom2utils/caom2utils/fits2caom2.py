@@ -2715,9 +2715,9 @@ class FitsParser(GenericParser):
                                           index=0)
         else:
             x = self._get_from_list('Observation.target_position.point.cval1',
-                                    index=0, current=current.point.x)
+                                    index=0, current=current.coordinates.cval1)
             y = self._get_from_list('Observation.target_position.point.cval2',
-                                    index=0, current=current.point.y)
+                                    index=0, current=current.coordinates.cval2)
             coordsys = self._get_from_list(
                 'Observation.target_position.coordsys', index=0,
                 current=current.coordsys)
