@@ -2613,9 +2613,7 @@ class FitsParser(GenericParser):
         self.logger.debug('End Instrument augmentation.')
         if name:
             instr = Instrument(str(name))
-            if keywords:
-                for k in keywords.split():
-                    instr.keywords.add(k)
+            FitsParser._add_keywords(keywords, instr)
             return instr
         else:
             return None
@@ -2649,8 +2647,7 @@ class FitsParser(GenericParser):
         proposal = current
         if prop_id:
             proposal = Proposal(str(prop_id), pi, project, title)
-            if keywords:
-                proposal.keywords.add(keywords)
+            FitsParser._add_keywords(keywords, proposal)
         return proposal
 
     def _get_target(self, current):
@@ -2692,11 +2689,12 @@ class FitsParser(GenericParser):
                 'Observation.target.targetID', index=0,
                 current=current.target_id)
         self.logger.debug('End Target augmentation.')
+        target = None
         if name:
-            return Target(str(name), target_type, standard, redshift,
-                          keywords, moving, target_id)
-        else:
-            return None
+            target = Target(str(name), target_type, standard, redshift,
+                            moving=moving, target_id=target_id)
+            FitsParser._add_keywords(keywords, target.keywords)
+        return target
 
     def _get_target_position(self, current):
         """
@@ -2725,14 +2723,14 @@ class FitsParser(GenericParser):
                 'Observation.target_position.equinox', index=0,
                 current=current.equinox)
 
+        aug_target_position = None
         if x and y:
             self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
             aug_point = Point(x, y)
             aug_target_position = TargetPosition(aug_point, coordsys)
             aug_target_position.equinox = _to_float(equinox)
             self.logger.debug('End CAOM2 TargetPosition augmentation.')
-            return aug_target_position
-        return None
+        return aug_target_position
 
     def _get_telescope(self, current):
         """
@@ -2769,26 +2767,12 @@ class FitsParser(GenericParser):
                 'Observation.telescope.keywords', index=0)  # TODO
             if keywords is None:
                 keywords = current.keywords
-        self.logger.debug('End Telescope augmentation.')
+        aug_tel = None
         if name:
-            self.logger.debug('name is {}'.format(name))
             aug_tel = Telescope(str(name), geo_x, geo_y, geo_z)
-            if keywords:
-                if isinstance(keywords, set):
-                    if len(keywords) == 1:
-                        temp = keywords.pop()
-                        if temp == 'none':
-                            aug_tel.keywords = set()
-                        else:
-                            aug_tel.keywords.add(temp)
-                    else:
-                        aug_tel.keywords = keywords
-                else:
-                    for k in keywords.split():
-                        aug_tel.keywords.add(k)
-            return aug_tel
-        else:
-            return None
+            FitsParser._add_keywords(keywords, aug_tel)
+        self.logger.debug('End Telescope augmentation.')
+        return aug_tel
 
     def _get_environment(self, current):
         """
@@ -2836,6 +2820,7 @@ class FitsParser(GenericParser):
                 'Observation.environment.photometric', index=0,
                 current=current.photometric))
 
+        enviro = None
         if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = Environment()
             enviro.seeing = seeing
@@ -2846,9 +2831,7 @@ class FitsParser(GenericParser):
             enviro.ambient_temp = ambient
             enviro.photometric = photometric
             self.logger.debug('End Environment augmentation.')
-            return enviro
-        else:
-            return None
+        return enviro
 
     def _get_requirements(self):
         """
@@ -2859,10 +2842,10 @@ class FitsParser(GenericParser):
         self.logger.debug('Begin Requirement augmentation.')
         flag = self._get_from_list('Observation.requirements.flag', index=0)
         self.logger.debug('End Requirement augmentation.')
+        reqts = None
         if flag:
-            return Requirements(flag)
-        else:
-            return None
+            reqts = Requirements(flag)
+        return reqts
 
     def _get_from_list(self, lookup, index, current=None):
         value = None
@@ -3039,16 +3022,11 @@ class FitsParser(GenericParser):
                                            index=0, current=current.keywords)
             inputs = self._get_from_list('Plane.provenance.inputs', index=0,
                                          current=current.inputs)
+        prov = None
         if name:
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
-            if keywords:
-                if isinstance(keywords, set):
-                    for k in keywords:
-                        prov.keywords.add(k)
-                else:
-                    for k in keywords.split():
-                        prov.keywords.add(k)
+            FitsParser._add_keywords(keywords, prov)
             if inputs:
                 if isinstance(inputs, TypedSet):
                     for i in inputs:
@@ -3056,12 +3034,8 @@ class FitsParser(GenericParser):
                 else:
                     for i in inputs.split():
                         prov.inputs.add(PlaneURI(str(i)))
-            self.logger.debug('End Provenance augmentation.')
-            return prov
-        else:
-            self.logger.debug(
-                'End Provenance augmentation - no provenance information.')
-            return None
+        self.logger.debug('End Provenance augmentation.')
+        return prov
 
     def _get_metrics(self, current):
         """
@@ -3114,10 +3088,10 @@ class FitsParser(GenericParser):
         self.logger.debug('Begin Quality augmentation.')
         flag = self._get_from_list('Plane.dataQuality', index=0)
         self.logger.debug('End Quality augmentation.')
+        quality = None
         if flag:
-            return DataQuality(flag)
-        else:
-            return None
+            quality = DataQuality(flag)
+        return quality
 
     def _get_observable(self):
         """
@@ -3127,10 +3101,10 @@ class FitsParser(GenericParser):
         self.logger.debug('Begin Observable augmentation.')
         ucd = self._get_from_list('Plane.observable.ucd', index=0)
         self.logger.debug('End Observable augmentation.')
+        observable = None
         if ucd:
-            return Observable(ucd)
-        else:
-            return None
+            observable = Observable(ucd)
+        return observable
 
     def _cast_as_bool(self, from_value):
         """
@@ -3181,6 +3155,28 @@ class FitsParser(GenericParser):
         if not bitpix:
             return False
         return True
+
+    @staticmethod
+    def _add_keywords(keywords, to_set):
+        """
+        Common code for adding keywords to a CAOM2 set.
+
+        :param keywords: Keywords to add to a CAOM2 set.
+        :param to_set: A CAOM2 entity with a keywords attribute.
+        """
+        if keywords:
+            if isinstance(keywords, set):
+                if len(keywords) == 1:
+                    temp = keywords.pop()
+                    if temp == 'none':
+                        to_set.keywords = set()
+                    else:
+                        to_set.keywords.add(temp)
+                else:
+                    to_set.keywords = keywords
+            else:
+                for k in keywords.split():
+                    to_set.keywords.add(k)
 
 
 class WcsParser(object):
