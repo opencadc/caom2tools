@@ -2693,7 +2693,7 @@ class FitsParser(GenericParser):
         if name:
             target = Target(str(name), target_type, standard, redshift,
                             moving=moving, target_id=target_id)
-            FitsParser._add_keywords(keywords, target.keywords)
+            FitsParser._add_keywords(keywords, target)
         return target
 
     def _get_target_position(self, current):
@@ -3159,7 +3159,8 @@ class FitsParser(GenericParser):
     @staticmethod
     def _add_keywords(keywords, to_set):
         """
-        Common code for adding keywords to a CAOM2 set.
+        Common code for adding keywords to a CAOM2 entity, capturing all
+        the weird metadata cases that happen at CADC.
 
         :param keywords: Keywords to add to a CAOM2 set.
         :param to_set: A CAOM2 entity with a keywords attribute.
@@ -3177,6 +3178,8 @@ class FitsParser(GenericParser):
             else:
                 for k in keywords.split():
                     to_set.keywords.add(k)
+        if to_set.keywords is not None and None in to_set.keywords:
+            to_set.keywords.remove(None)
 
 
 class WcsParser(object):
@@ -3684,7 +3687,8 @@ def get_cadc_headers(uri, subject=None):
             headers = _get_headers_from_fits(file_url.path)
     else:
         # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad type URIs supported')
+        raise NotImplementedError('Only ad type URIs supported for '
+                                  '{}'.format(uri))
     return headers
 
 
@@ -3821,7 +3825,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True):
     else:
         # TODO add hook to support other service providers
         raise NotImplementedError(
-            'Only ad, gemini and vos type URIs supported')
+            'Only ad, gemini and vos type URIs supported for {}'.format(uri))
 
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
