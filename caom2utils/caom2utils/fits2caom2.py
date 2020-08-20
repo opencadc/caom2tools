@@ -2650,7 +2650,7 @@ class FitsParser(GenericParser):
         if prop_id:
             proposal = Proposal(str(prop_id), pi, project, title)
             if keywords:
-                proposal.keywords = keywords
+                proposal.keywords.add(keywords)
         return proposal
 
     def _get_target(self, current):
