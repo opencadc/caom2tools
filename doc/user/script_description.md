@@ -148,7 +148,7 @@ The following script is an end-to-end example of describing and loading a CAOM2 
                        verbose=False,
                        debug=True,
                        quiet=False,
-                       caom_namespace=obs_reader_writer.CAOM23_NAMESPACE,
+                       caom_namespace=obs_reader_writer.CAOM24_NAMESPACE,
                        **kwargs)
 
     # load the observation into memory
@@ -161,17 +161,33 @@ The following script is an end-to-end example of describing and loading a CAOM2 
     # The service generates a parallel set of database keys that must be honoured.
     # The id values must be consistent when doing 'create' and 'update' calls, or
     # a "This observation already exists" error will occur.
-    #
-    # existing_obs = repo_client.read('COLLECTION', 'TEST_OBS_ID')
-    # writer = obs_reader_writer.ObservationWriter()
-    # writer.write(existing_obs, '/fully/qualified/EXISTING.XML')
-    # fits2caom2.augment(...
-    #                    in_obs_xml='/fully/qualified/EXISTING.XML',
-    #                    ...)
-    # load the observation into memory
-    # then use:
-    # repo_client.update(observation)
-    repo_client.create(observation)
+    try:
+        existing_obs = repo_client.read(collection, observation_id)
+        existing_xml = os.path.join(this_dir, 'EXISTING.XML')
+        writer = obs_reader_writer.ObservationWriter()
+        writer.write(existing_obs, existing_xml)
+        fits2caom2.augment(blueprints=blueprints,
+                           no_validate=False,
+                           dump_config=False,
+                           plugin=None,
+                           out_obs_xml='./TEST_OBS.XML',
+                           in_obs_xml=existing_xml,
+                           collection='COLLECTION',
+                           observation='TEST_OBS',
+                           product_id='TEST_PRODUCT_ID',
+                           uri=uri,
+                           netrc=netrc_fqn,
+                           file_name='file:///test_files/TEST_FILE.FITS',
+                           verbose=False,
+                           debug=True,
+                           quiet=False,
+                           caom_namespace=obs_reader_writer.CAOM24_NAMESPACE,
+                           **kwargs)
+        reader = obs_reader_writer.ObservationReader(False)
+        observation = reader.read(xml_file)
+        repo_client.update(observation)
+    except:
+        repo_client.create(observation)
 
 ## More Information
 
