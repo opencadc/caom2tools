@@ -1654,10 +1654,17 @@ class GenericParser:
                 and not ObsBlueprint.is_function(keywords)):
             value = keywords
         elif self._blueprint.update:
-            # boolean fields are used to represent something that might have
-            # three values
-            if (current is not None or
-                    (current is None and isinstance(value, bool))):
+            # The first clause: boolean attributes are used to represent
+            # three different values: True, False, and unknown. For boolean
+            # attributes _only_ assessed that the risk of setting to None
+            # accidentally was better than being unable to set a value of
+            # 'unknown'.
+            #
+            # The second clause: the default value for the current parameter
+            # in the method signature is 'None', so do not want to
+            # inadvertently assign the default value.
+            #
+            if isinstance(value, bool) or current is not None:
                 value = current
 
         self.logger.debug('{}: value is {}'.format(lookup, value))
