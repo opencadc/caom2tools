@@ -3266,7 +3266,9 @@ class WcsParser(object):
             chunk.position = SpatialWCS(axis)
 
         chunk.position.coordsys = _to_str(self._sanitize(self.wcs.radesys))
-        chunk.position.equinox = self._sanitize(self.wcs.equinox)
+        temp = self._sanitize(self.wcs.equinox)
+        if (temp is not None and 1800.0 <= temp <= 2500) or temp is None:
+            chunk.position.equinox = temp
         self.logger.debug('End Spatial WCS augmentation.')
 
     def augment_temporal(self, chunk):
