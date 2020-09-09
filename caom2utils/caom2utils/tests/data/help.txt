@@ -1,7 +1,7 @@
 usage: fits2caom2 [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
                   [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v]
                   [-V] [--dumpconfig] [--not_connected] [--no_validate]
-                  [-o OUT_OBS_XML] [--caom_namespace CAOM_NAMESPACE]
+                  [-o OUT_OBS_XML]
                   (-i IN_OBS_XML | --observation collection observationID)
                   [--local LOCAL [LOCAL ...]] [--productID PRODUCTID]
                   [--config CONFIG] [--default DEFAULT] [--override OVERRIDE]
@@ -13,10 +13,6 @@ positional arguments:
   fileURI               URI of a fits file
 
 optional arguments:
-  --caom_namespace CAOM_NAMESPACE
-                        if this parameter is specified, over-ride the default
-                        CAOM2 version when writing XML. The default is the
-                        latest version of CAOM2.3.
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
   --config CONFIG       optional CAOM2 utype to keyword config file to merge
