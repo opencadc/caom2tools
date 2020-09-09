@@ -1774,10 +1774,12 @@ class GenericParser:
                 result = None
                 # CFHT 2003/03/29,01:34:54
                 # CFHT 2003/03/29
+                # DDO 12/02/95
                 for dt_format in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f',
                                   '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
                                   '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S',
-                                  '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d']:
+                                  '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d',
+                                  '%d/%m/%y']:
                     try:
                         result = datetime.strptime(from_value, dt_format)
                     except ValueError:
