@@ -78,6 +78,7 @@ from logging.handlers import TimedRotatingFileHandler
 import math
 from astropy.wcs import Wcsprm
 from astropy.io import fits
+from astropy.time import Time
 from cadcutils import version, exceptions
 from caom2.caom_util import int_32
 from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
@@ -1770,6 +1771,8 @@ class GenericParser:
         if from_value:
             if isinstance(from_value, datetime):
                 return from_value
+            elif isinstance(from_value, Time):
+                return from_value.datetime
             else:
                 result = None
                 # CFHT 2003/03/29,01:34:54
@@ -1779,7 +1782,7 @@ class GenericParser:
                                   '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
                                   '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S',
                                   '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d',
-                                  '%d/%m/%y']:
+                                  '%d/%m/%y', '%d/%m/%y %H:%M:%S']:
                     try:
                         result = datetime.strptime(from_value, dt_format)
                     except ValueError:
@@ -2646,7 +2649,7 @@ class FitsParser(GenericParser):
         if prop_id:
             proposal = Proposal(str(prop_id), pi, project, title)
             FitsParser._add_keywords(keywords, current, proposal)
-        self.logger.debug(f'End Proposal augmentation {prop_id}.')
+        self.logger.debug('End Proposal augmentation {}.'.format(prop_id))
         return proposal
 
     def _get_target(self, current):
