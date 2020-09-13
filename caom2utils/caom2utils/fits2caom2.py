@@ -3675,7 +3675,8 @@ def get_vos_headers(uri, subject=None):
 
         temp_filename = tempfile.NamedTemporaryFile()
         client.copy(uri, temp_filename.name, head=True)
-        return _get_headers_from_fits(temp_filename.name)
+        return get_cadc_headers('file://{}'.format(temp_filename.name),
+                                subject=None)
     else:
         # this should be a programming error by now
         raise NotImplementedError('Only vos type URIs supported')
