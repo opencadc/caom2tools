@@ -7,6 +7,7 @@ target.standard = false
 proposal.project = BINAMICS
 proposal.title = Binamics: Binarity and Magnetic Interactions in various classes of Stars
 plane.calibrationLevel = 2
+plane.dataProductType = spectrum
 plane.dataRelease = 2017-08-31T00:00:00
 provenance.inputs = caom:CFHT/1916216/1916216o caom:CFHT/1916217/1916217o caom:CFHT/1916218/1916218o caom:CFHT/1916219/1916219o
 provenance.lastExecuted = 2016-03-29T02:20:54

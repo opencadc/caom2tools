@@ -7,6 +7,7 @@ proposal.project =
 proposal.pi = Jean-Gabriel Cuby
 proposal.title =  
 plane.calibrationLevel = 2
+plane.dataProductType = image
 plane.dataRelease = 2015-02-01T00:00:00
 observation.metaRelease = 2014-05-12T10:18:55
 plane.metaRelease = 2014-05-12T10:18:55

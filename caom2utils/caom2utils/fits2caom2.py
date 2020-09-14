@@ -78,6 +78,7 @@ from logging.handlers import TimedRotatingFileHandler
 import math
 from astropy.wcs import Wcsprm
 from astropy.io import fits
+from astropy.time import Time
 from cadcutils import version, exceptions
 from caom2.caom_util import int_32
 from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
@@ -93,7 +94,6 @@ from caom2 import SimpleObservation, DerivedObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
 from caom2 import CoordRange2D, TypedSet, CustomWCS, Observable
 from caom2 import CompositeObservation
-from caom2.obs_reader_writer import CAOM23_NAMESPACE
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -489,7 +489,8 @@ class ObsBlueprint(object):
 
     def __init__(self, position_axes=None, energy_axis=None,
                  polarization_axis=None, time_axis=None,
-                 obs_axis=None, custom_axis=None, module=None):
+                 obs_axis=None, custom_axis=None, module=None,
+                 update=True):
         """
         Ctor
         :param position_axes: tuple of form (int, int) indicating the indexes
@@ -520,7 +521,8 @@ class ObsBlueprint(object):
                'Observation.type': (['OBSTYPE'], None),
                'Observation.environment.ambientTemp': (['TEMPERAT'],
                                                        None),
-               'Observation.algorithm.name': (['PROCNAME'], None),
+               # set the default for SimpleObservation construction
+               'Observation.algorithm.name': (['PROCNAME'], 'exposure'),
                'Observation.instrument.keywords': (['INSTMODE'], None),
                'Observation.proposal.id': (['RUNID'], None),
                'Observation.target.name': (['OBJECT'], None),
@@ -542,6 +544,7 @@ class ObsBlueprint(object):
                'Plane.provenance.producer': (['ORIGIN'], None),
                'Plane.provenance.reference': (['XREFER'], None),
                'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
+               'Artifact.releaseType': ([], ReleaseType.DATA),
                'Chunk': 'include'
                }
         # using the tmp to make sure that the keywords are valid
@@ -583,6 +586,8 @@ class ObsBlueprint(object):
             self._module = module
         else:
             self._module = None
+        # if True, existing values are used instead of defaults
+        self._update = update
 
     def configure_custom_axis(self, axis, override=True):
         """
@@ -1479,6 +1484,14 @@ class ObsBlueprint(object):
             configed_axes += 1
         return configed_axes
 
+    @property
+    def update(self):
+        return self._update
+
+    @update.setter
+    def update(self, value):
+        self._update = value
+
 
 @add_metaclass(ABCMeta)
 class GenericParser:
@@ -1600,8 +1613,6 @@ class GenericParser:
             raise ValueError(
                 'Artifact type mis-match for {}'.format(artifact))
 
-        artifact.uri = self._get_from_list('Artifact.uri', index=0,
-                                           current=artifact.uri)
         artifact.product_type = self._to_product_type(self._get_from_list(
             'Artifact.productType', index=0, current=artifact.product_type))
         artifact.release_type = self._to_release_type(self._get_from_list(
@@ -1642,8 +1653,19 @@ class GenericParser:
         if (keywords and not ObsBlueprint.is_fits(keywords)
                 and not ObsBlueprint.is_function(keywords)):
             value = keywords
-        elif current:
-            value = current
+        elif self._blueprint.update:
+            # The first clause: boolean attributes are used to represent
+            # three different values: True, False, and unknown. For boolean
+            # attributes _only_ assessed that the risk of setting to None
+            # accidentally was better than being unable to set a value of
+            # 'unknown'.
+            #
+            # The second clause: the default value for the current parameter
+            # in the method signature is 'None', so do not want to
+            # inadvertently assign the default value.
+            #
+            if isinstance(value, bool) or current is not None:
+                value = current
 
         self.logger.debug('{}: value is {}'.format(lookup, value))
         return value
@@ -1749,14 +1771,18 @@ class GenericParser:
         if from_value:
             if isinstance(from_value, datetime):
                 return from_value
+            elif isinstance(from_value, Time):
+                return from_value.datetime
             else:
                 result = None
                 # CFHT 2003/03/29,01:34:54
                 # CFHT 2003/03/29
+                # DDO 12/02/95
                 for dt_format in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f',
                                   '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
                                   '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S',
-                                  '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d']:
+                                  '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d',
+                                  '%d/%m/%y', '%d/%m/%y %H:%M:%S']:
                     try:
                         result = datetime.strptime(from_value, dt_format)
                     except ValueError:
@@ -2345,11 +2371,13 @@ class FitsParser(GenericParser):
             'Observation.metaReadGroups', 0)
         observation.meta_producer = self._get_from_list(
             'Observation.metaProducer', 0, current=observation.meta_producer)
-        observation.requirements = self._get_requirements()
-        observation.instrument = self._get_instrument()
+        observation.requirements = self._get_requirements(
+            observation.requirements)
+        observation.instrument = self._get_instrument(observation.instrument)
         observation.proposal = self._get_proposal(observation.proposal)
-        observation.target = self._get_target()
-        observation.target_position = self._get_target_position()
+        observation.target = self._get_target(observation.target)
+        observation.target_position = self._get_target_position(
+            observation.target_position)
         observation.telescope = self._get_telescope(observation.telescope)
         observation.environment = self._get_environment(
             observation.environment)
@@ -2378,10 +2406,10 @@ class FitsParser(GenericParser):
                                 current=plane.calibration_level)))
         plane.meta_producer = self._get_from_list(
             'Plane.metaProducer', index=0, current=plane.meta_producer)
-        plane.observable = self._get_observable()
+        plane.observable = self._get_observable(current=plane.observable)
         plane.provenance = self._get_provenance(plane.provenance)
         plane.metrics = self._get_metrics(current=plane.metrics)
-        plane.quality = self._get_quality()
+        plane.quality = self._get_quality(current=plane.quality)
 
         self.logger.debug(
             'End plane augmentation for {}.'.format(artifact_uri))
@@ -2574,31 +2602,28 @@ class FitsParser(GenericParser):
         # TODO DEFAULT VALUE
         name = self._get_from_list('Observation.algorithm.name', index=0,
                                    current=obs.algorithm.name)
+        result = Algorithm(str(name)) if name else None
         self.logger.debug('End Algorithm augmentation.')
-        if name:
-            return Algorithm(str(name))
-        else:
-            return None
+        return result
 
-    def _get_instrument(self):
+    def _get_instrument(self, current):
         """
         Create an Instrument instance populated with available FITS
         information.
         :return: Instrument
         """
         self.logger.debug('Begin Instrument augmentation.')
-        name = self._get_from_list('Observation.instrument.name', index=0)
-        keywords = self._get_from_list('Observation.instrument.keywords',
-                                       index=0)
-        self.logger.debug('End Instrument augmentation.')
+        name = self._get_from_list(
+            'Observation.instrument.name', index=0,
+            current=None if current is None else current.name)
+        keywords = self._get_set_from_list(
+            'Observation.instrument.keywords', index=0)
+        instr = None
         if name:
             instr = Instrument(str(name))
-            if keywords:
-                for k in keywords.split():
-                    instr.keywords.add(k)
-            return instr
-        else:
-            return None
+            FitsParser._add_keywords(keywords, current, instr)
+        self.logger.debug('End Instrument augmentation.')
+        return instr
 
     def _get_proposal(self, current):
         """
@@ -2606,80 +2631,88 @@ class FitsParser(GenericParser):
         :return: Proposal
         """
         self.logger.debug('Begin Proposal augmentation.')
-        keywords = None
-        if current is None:
-            prop_id = self._get_from_list('Observation.proposal.id', index=0)
-            pi = self._get_from_list('Observation.proposal.pi', index=0)
-            project = self._get_from_list('Observation.proposal.project',
-                                          index=0)
-            title = self._get_from_list('Observation.proposal.title', index=0)
-        else:
-            prop_id = self._get_from_list('Observation.proposal.id', index=0,
-                                          current=current.id)
-            pi = self._get_from_list('Observation.proposal.pi', index=0,
-                                     current=current.pi_name)
-            project = self._get_from_list(
-                'Observation.proposal.project', index=0,
-                current=current.project)
-            title = self._get_from_list('Observation.proposal.title', index=0,
-                                        current=current.title)
-            keywords = self._get_from_list('Observation.proposal.keywords',
-                                           index=0)
-        self.logger.debug('End Proposal augmentation.')
+        prop_id = self._get_from_list(
+            'Observation.proposal.id', index=0,
+            current=None if current is None else current.id)
+        pi = self._get_from_list(
+            'Observation.proposal.pi', index=0,
+            current=None if current is None else current.pi_name)
+        project = self._get_from_list(
+            'Observation.proposal.project', index=0,
+            current=None if current is None else current.project)
+        title = self._get_from_list(
+            'Observation.proposal.title', index=0,
+            current=None if current is None else current.title)
+        keywords = self._get_set_from_list(
+            'Observation.proposal.keywords', index=0)
+        proposal = current
         if prop_id:
             proposal = Proposal(str(prop_id), pi, project, title)
-            if keywords:
-                proposal.keywords = keywords
-            return proposal
-        else:
-            return None
+            FitsParser._add_keywords(keywords, current, proposal)
+        self.logger.debug('End Proposal augmentation {}.'.format(prop_id))
+        return proposal
 
-    def _get_target(self):
+    def _get_target(self, current):
         """
         Create a Target instance populated with available FITS information.
         :return: Target
         """
         self.logger.debug('Begin Target augmentation.')
-        name = self._get_from_list('Observation.target.name', index=0)
-        target_type = self._get_from_list('Observation.target.type',
-                                          index=0)
+        name = self._get_from_list(
+            'Observation.target.name', index=0,
+            current=None if current is None else current.name)
+        target_type = self._get_from_list(
+            'Observation.target.type', index=0,
+            current=None if current is None else current.target_type)
         standard = self._cast_as_bool(self._get_from_list(
-            'Observation.target.standard', index=0))
-        redshift = self._get_from_list('Observation.target.redshift', index=0)
-        keywords = self._get_set_from_list('Observation.target.keywords',
-                                           index=0)  # TODO
+            'Observation.target.standard', index=0,
+            current=None if current is None else current.standard))
+        redshift = self._get_from_list(
+            'Observation.target.redshift', index=0,
+            current=None if current is None else current.redshift)
+        keywords = self._get_set_from_list(
+            'Observation.target.keywords', index=0)
         moving = self._cast_as_bool(
-            self._get_from_list('Observation.target.moving', index=0))
-        target_id = self._get_from_list('Observation.target.targetID', index=0)
-        self.logger.debug('End Target augmentation.')
+            self._get_from_list(
+                'Observation.target.moving', index=0,
+                current=None if current is None else current.moving))
+        target_id = self._get_from_list(
+            'Observation.target.targetID', index=0,
+            current=None if current is None else current.target_id)
+        target = None
         if name:
-            return Target(str(name), target_type, standard, redshift,
-                          keywords, moving, target_id)
-        else:
-            return None
+            target = Target(str(name), target_type, standard, redshift,
+                            moving=moving, target_id=target_id)
+            FitsParser._add_keywords(keywords, current, target)
+        self.logger.debug('End Target augmentation.')
+        return target
 
-    def _get_target_position(self):
+    def _get_target_position(self, current):
         """
         Create a Target Position instance populated with available FITS
         information.
         :return: Target Position
         """
-        x = self._get_from_list('Observation.target_position.point.cval1',
-                                index=0)
-        y = self._get_from_list('Observation.target_position.point.cval2',
-                                index=0)
-        coordsys = self._get_from_list('Observation.target_position.coordsys',
-                                       index=0)
-        equinox = self._get_from_list('Observation.target_position.equinox',
-                                      index=0)
+        self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
+        x = self._get_from_list(
+            'Observation.target_position.point.cval1', index=0,
+            current=None if current is None else current.coordinates.cval1)
+        y = self._get_from_list(
+            'Observation.target_position.point.cval2', index=0,
+            current=None if current is None else current.coordinates.cval2)
+        coordsys = self._get_from_list(
+            'Observation.target_position.coordsys', index=0,
+            current=None if current is None else current.coordsys)
+        equinox = self._get_from_list(
+            'Observation.target_position.equinox', index=0,
+            current=None if current is None else current.equinox)
+        aug_target_position = None
         if x and y:
-            self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
             aug_point = Point(x, y)
             aug_target_position = TargetPosition(aug_point, coordsys)
             aug_target_position.equinox = _to_float(equinox)
-            self.logger.debug('End CAOM2 TargetPosition augmentation.')
-            return aug_target_position
-        return None
+        self.logger.debug('End CAOM2 TargetPosition augmentation.')
+        return aug_target_position
 
     def _get_telescope(self, current):
         """
@@ -2687,55 +2720,29 @@ class FitsParser(GenericParser):
         :return: Telescope
         """
         self.logger.debug('Begin Telescope augmentation.')
-        if current is None:
-            name = self._get_from_list('Observation.telescope.name', index=0)
-            geo_x = _to_float(
-                self._get_from_list(
-                    'Observation.telescope.geoLocationX', index=0))
-            geo_y = _to_float(
-                self._get_from_list(
-                    'Observation.telescope.geoLocationY', index=0))
-            geo_z = _to_float(
-                self._get_from_list(
-                    'Observation.telescope.geoLocationZ', index=0))
-            keywords = self._get_set_from_list(
-                'Observation.telescope.keywords', index=0)  # TODO
-        else:
-            name = self._get_from_list('Observation.telescope.name', index=0,
-                                       current=current.name)
-            geo_x = _to_float(
-                self._get_from_list('Observation.telescope.geoLocationX',
-                                    index=0, current=current.geo_location_x))
-            geo_y = _to_float(
-                self._get_from_list('Observation.telescope.geoLocationY',
-                                    index=0, current=current.geo_location_y))
-            geo_z = _to_float(
-                self._get_from_list('Observation.telescope.geoLocationZ',
-                                    index=0, current=current.geo_location_z))
-            keywords = self._get_set_from_list(
-                'Observation.telescope.keywords', index=0)  # TODO
-            if keywords is None:
-                keywords = current.keywords
-        self.logger.debug('End Telescope augmentation.')
+        name = self._get_from_list(
+            'Observation.telescope.name', index=0,
+            current=None if current is None else current.name)
+        geo_x = _to_float(
+            self._get_from_list(
+                'Observation.telescope.geoLocationX', index=0,
+                current=None if current is None else current.geo_location_x))
+        geo_y = _to_float(
+            self._get_from_list(
+                'Observation.telescope.geoLocationY', index=0,
+                current=None if current is None else current.geo_location_y))
+        geo_z = _to_float(
+            self._get_from_list(
+                'Observation.telescope.geoLocationZ', index=0,
+                current=None if current is None else current.geo_location_z))
+        keywords = self._get_set_from_list(
+            'Observation.telescope.keywords', index=0)
+        aug_tel = None
         if name:
-            self.logger.debug('name is {}'.format(name))
             aug_tel = Telescope(str(name), geo_x, geo_y, geo_z)
-            if keywords:
-                if isinstance(keywords, set):
-                    if len(keywords) == 1:
-                        temp = keywords.pop()
-                        if temp == 'none':
-                            aug_tel.keywords = set()
-                        else:
-                            aug_tel.keywords.add(temp)
-                    else:
-                        aug_tel.keywords = keywords
-                else:
-                    for k in keywords.split():
-                        aug_tel.keywords.add(k)
-            return aug_tel
-        else:
-            return None
+            FitsParser._add_keywords(keywords, current, aug_tel)
+        self.logger.debug('End Telescope augmentation.')
+        return aug_tel
 
     def _get_environment(self, current):
         """
@@ -2746,43 +2753,30 @@ class FitsParser(GenericParser):
         :return: Environment
         """
         self.logger.debug('Begin Environment augmentation.')
-        if current is None:
-            seeing = self._get_from_list('Observation.environment.seeing',
-                                         index=0)
-            humidity = _to_float(
-                self._get_from_list('Observation.environment.humidity',
-                                    index=0))
-            elevation = self._get_from_list(
-                'Observation.environment.elevation', index=0)
-            tau = self._get_from_list('Observation.environment.tau', index=0)
-            wavelength_tau = self._get_from_list(
-                'Observation.environment.wavelengthTau', index=0)
-            ambient = _to_float(
-                self._get_from_list('Observation.environment.ambientTemp',
-                                    index=0))
-            photometric = self._cast_as_bool(self._get_from_list(
-                'Observation.environment.photometric', index=0))
-        else:
-            seeing = self._get_from_list('Observation.environment.seeing',
-                                         index=0, current=current.seeing)
-            humidity = _to_float(
-                self._get_from_list('Observation.environment.humidity',
-                                    index=0, current=current.humidity))
-            elevation = self._get_from_list(
-                'Observation.environment.elevation', index=0,
-                current=current.elevation)
-            tau = self._get_from_list('Observation.environment.tau', index=0,
-                                      current=current.tau)
-            wavelength_tau = self._get_from_list(
-                'Observation.environment.wavelengthTau', index=0,
-                current=current.wavelength_tau)
-            ambient = _to_float(
-                self._get_from_list('Observation.environment.ambientTemp',
-                                    index=0, current=current.ambient_temp))
-            photometric = self._cast_as_bool(self._get_from_list(
-                'Observation.environment.photometric', index=0,
-                current=current.photometric))
-
+        seeing = self._get_from_list(
+            'Observation.environment.seeing', index=0,
+            current=None if current is None else current.seeing)
+        humidity = _to_float(
+            self._get_from_list(
+                'Observation.environment.humidity', index=0,
+                current=None if current is None else current.humidity))
+        elevation = self._get_from_list(
+            'Observation.environment.elevation', index=0,
+            current=None if current is None else current.elevation)
+        tau = self._get_from_list(
+            'Observation.environment.tau', index=0,
+            current=None if current is None else current.tau)
+        wavelength_tau = self._get_from_list(
+            'Observation.environment.wavelengthTau', index=0,
+            current=None if current is None else current.wavelength_tau)
+        ambient = _to_float(
+            self._get_from_list(
+                'Observation.environment.ambientTemp', index=0,
+                current=None if current is None else current.ambient_temp))
+        photometric = self._cast_as_bool(self._get_from_list(
+            'Observation.environment.photometric', index=0,
+            current=None if current is None else current.photometric))
+        enviro = None
         if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = Environment()
             enviro.seeing = seeing
@@ -2792,24 +2786,22 @@ class FitsParser(GenericParser):
             enviro.wavelength_tau = wavelength_tau
             enviro.ambient_temp = ambient
             enviro.photometric = photometric
-            self.logger.debug('End Environment augmentation.')
-            return enviro
-        else:
-            return None
+        self.logger.debug('End Environment augmentation.')
+        return enviro
 
-    def _get_requirements(self):
+    def _get_requirements(self, current):
         """
         Create a Requirements instance populated with available FITS
         information.
         :return: Requirements
         """
         self.logger.debug('Begin Requirement augmentation.')
-        flag = self._get_from_list('Observation.requirements.flag', index=0)
+        flag = self._get_from_list(
+            'Observation.requirements.flag', index=0,
+            current=None if current is None else current.flag)
+        reqts = Requirements(flag) if flag else None
         self.logger.debug('End Requirement augmentation.')
-        if flag:
-            return Requirements(flag)
-        else:
-            return None
+        return reqts
 
     def _get_from_list(self, lookup, index, current=None):
         value = None
@@ -2845,10 +2837,14 @@ class FitsParser(GenericParser):
                             '{}: assigned default value {}.'.format(lookup,
                                                                     value))
             if value is None:
-                if current:
-                    value = current
-                    self.logger.debug(
-                        '{}: used current value {!r}.'.format(lookup, value))
+                # checking current does not work in the general case,
+                # because current might legitimately be 'None'
+                if self._blueprint.update:
+                    if (current is not None or
+                            (current is None and isinstance(value, bool))):
+                        value = current
+                        self.logger.debug('{}: used current value '
+                                          '{!r}.'.format(lookup, value))
                 else:
                     # assign a default value, if one exists
                     if keywords[1]:
@@ -2938,60 +2934,41 @@ class FitsParser(GenericParser):
         :return: Provenance
         """
         self.logger.debug('Begin Provenance augmentation.')
-        if current is None:
-            name = _to_str(
-                self._get_from_list('Plane.provenance.name', index=0))
-            p_version = _to_str(self._get_from_list('Plane.provenance.version',
-                                                    index=0))
-            project = _to_str(
-                self._get_from_list('Plane.provenance.project', index=0))
-            producer = _to_str(
-                self._get_from_list('Plane.provenance.producer', index=0))
-            run_id = _to_str(
-                self._get_from_list('Plane.provenance.runID', index=0))
-            reference = _to_str(
-                self._get_from_list('Plane.provenance.reference', index=0))
-            last_executed = self._get_datetime(
-                self._get_from_list('Plane.provenance.lastExecuted', index=0))
-            keywords = self._get_from_list(
-                'Plane.provenance.keywords', index=0)
-            inputs = self._get_from_list('Plane.provenance.inputs', index=0)
-        else:
-            name = _to_str(
-                self._get_from_list('Plane.provenance.name', index=0,
-                                    current=current.name))
-            p_version = _to_str(self._get_from_list('Plane.provenance.version',
-                                                    index=0,
-                                                    current=current.version))
-            project = _to_str(
-                self._get_from_list('Plane.provenance.project', index=0,
-                                    current=current.project))
-            producer = _to_str(
-                self._get_from_list('Plane.provenance.producer', index=0,
-                                    current=current.producer))
-            run_id = _to_str(
-                self._get_from_list('Plane.provenance.runID', index=0,
-                                    current=current.run_id))
-            reference = _to_str(
-                self._get_from_list('Plane.provenance.reference', index=0,
-                                    current=current.reference))
-            last_executed = self._get_datetime(
-                self._get_from_list('Plane.provenance.lastExecuted', index=0,
-                                    current=current.last_executed))
-            keywords = self._get_from_list('Plane.provenance.keywords',
-                                           index=0, current=current.keywords)
-            inputs = self._get_from_list('Plane.provenance.inputs', index=0,
-                                         current=current.inputs)
+        name = _to_str(
+            self._get_from_list(
+                'Plane.provenance.name', index=0,
+                current=None if current is None else current.name))
+        p_version = _to_str(self._get_from_list(
+            'Plane.provenance.version', index=0,
+            current=None if current is None else current.version))
+        project = _to_str(
+            self._get_from_list(
+                'Plane.provenance.project', index=0,
+                current=None if current is None else current.project))
+        producer = _to_str(
+            self._get_from_list(
+                'Plane.provenance.producer', index=0,
+                current=None if current is None else current.producer))
+        run_id = _to_str(
+            self._get_from_list(
+                'Plane.provenance.runID', index=0,
+                current=None if current is None else current.run_id))
+        reference = _to_str(
+            self._get_from_list(
+                'Plane.provenance.reference', index=0,
+                current=None if current is None else current.reference))
+        last_executed = self._get_datetime(
+            self._get_from_list(
+                'Plane.provenance.lastExecuted', index=0,
+                current=None if current is None else current.last_executed))
+        keywords = self._get_set_from_list(
+            'Plane.provenance.keywords', index=0)
+        inputs = self._get_set_from_list('Plane.provenance.inputs', index=0)
+        prov = None
         if name:
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
-            if keywords:
-                if isinstance(keywords, set):
-                    for k in keywords:
-                        prov.keywords.add(k)
-                else:
-                    for k in keywords.split():
-                        prov.keywords.add(k)
+            FitsParser._add_keywords(keywords, current, prov)
             if inputs:
                 if isinstance(inputs, TypedSet):
                     for i in inputs:
@@ -2999,12 +2976,8 @@ class FitsParser(GenericParser):
                 else:
                     for i in inputs.split():
                         prov.inputs.add(PlaneURI(str(i)))
-            self.logger.debug('End Provenance augmentation.')
-            return prov
-        else:
-            self.logger.debug(
-                'End Provenance augmentation - no provenance information.')
-            return None
+        self.logger.debug('End Provenance augmentation.')
+        return prov
 
     def _get_metrics(self, current):
         """
@@ -3012,68 +2985,63 @@ class FitsParser(GenericParser):
         :return: Metrics
         """
         self.logger.debug('Begin Metrics augmentation.')
-        metrics = Metrics() if current is None else current
-
         source_number_density = self._get_from_list(
-            'Plane.metrics.sourceNumberDensity', index=0)
-        background = self._get_from_list('Plane.metrics.background', index=0)
+            'Plane.metrics.sourceNumberDensity', index=0,
+            current=None if current is None else current.source_number_density)
+        background = self._get_from_list(
+            'Plane.metrics.background', index=0,
+            current=None if current is None else current.background)
         background_stddev = self._get_from_list(
-            'Plane.metrics.backgroundStddev', index=0)
+            'Plane.metrics.backgroundStddev', index=0,
+            current=None if current is None else current.background_std_dev)
         flux_density_limit = self._get_from_list(
-            'Plane.metrics.fluxDensityLimit', index=0)
-        mag_limit = self._get_from_list('Plane.metrics.magLimit', index=0)
-        sample_snr = self._get_from_list('Plane.metrics.sampleSNR', index=0)
+            'Plane.metrics.fluxDensityLimit', index=0,
+            current=None if current is None else current.flux_density_limit)
+        mag_limit = self._get_from_list(
+            'Plane.metrics.magLimit', index=0,
+            current=None if current is None else current.mag_limit)
+        sample_snr = self._get_from_list(
+            'Plane.metrics.sampleSNR', index=0,
+            current=None if current is None else current.sample_snr)
 
+        metrics = None
         if (source_number_density or background or background_stddev or
                 flux_density_limit or mag_limit or sample_snr):
-            metrics.source_number_density = (metrics.source_number_density
-                                             if source_number_density is None
-                                             else source_number_density)
-            metrics.background = (metrics.background
-                                  if background is None
-                                  else background)
-            metrics.background_std_dev = (metrics.background_std_dev
-                                          if background_stddev is None
-                                          else background_stddev)
-            metrics.flux_density_limit = (metrics.flux_density_limit
-                                          if flux_density_limit is None
-                                          else flux_density_limit)
-            metrics.mag_limit = (metrics.mag_limit
-                                 if mag_limit is None
-                                 else mag_limit)
-            metrics.sample_snr = (metrics.sample_snr
-                                  if sample_snr is None
-                                  else sample_snr)
-        else:
-            metrics = current
+            metrics = Metrics()
+            metrics.source_number_density = source_number_density
+            metrics.background = background
+            metrics.background_std_dev = background_stddev
+            metrics.flux_density_limit = flux_density_limit
+            metrics.mag_limit = mag_limit
+            metrics.sample_snr = sample_snr
         self.logger.debug('End Metrics augmentation.')
         return metrics
 
-    def _get_quality(self):
+    def _get_quality(self, current):
         """
         Create a Quality instance populated with available FITS information.
         :return: Quality
         """
         self.logger.debug('Begin Quality augmentation.')
-        flag = self._get_from_list('Plane.dataQuality', index=0)
+        flag = self._get_from_list(
+            'Plane.dataQuality', index=0,
+            current=None if current is None else current.flag)
+        quality = DataQuality(flag) if flag else None
         self.logger.debug('End Quality augmentation.')
-        if flag:
-            return DataQuality(flag)
-        else:
-            return None
+        return quality
 
-    def _get_observable(self):
+    def _get_observable(self, current):
         """
         Create a Observable instance populated with available FITS information.
         :return: Observable
         """
         self.logger.debug('Begin Observable augmentation.')
-        ucd = self._get_from_list('Plane.observable.ucd', index=0)
+        ucd = self._get_from_list(
+            'Plane.observable.ucd', index=0,
+            current=None if current is None else current.ucd)
+        observable = Observable(ucd) if ucd else None
         self.logger.debug('End Observable augmentation.')
-        if ucd:
-            return Observable(ucd)
-        else:
-            return None
+        return observable
 
     def _cast_as_bool(self, from_value):
         """
@@ -3124,6 +3092,36 @@ class FitsParser(GenericParser):
         if not bitpix:
             return False
         return True
+
+    @staticmethod
+    def _add_keywords(keywords, current, to_set):
+        """
+        Common code for adding keywords to a CAOM2 entity, capturing all
+        the weird metadata cases that happen at CADC.
+
+        :param keywords: Keywords to add to a CAOM2 set.
+        :param current: Existing CAOM2 entity with a keywords attribute.
+        :param to_set: A CAOM2 entity with a keywords attribute.
+        """
+        if keywords:
+            if isinstance(keywords, set):
+                if len(keywords) == 1:
+                    temp = keywords.pop()
+                    if temp == 'none':
+                        to_set.keywords = set()
+                    else:
+                        to_set.keywords.add(temp)
+                else:
+                    to_set.keywords.update(keywords)
+            else:
+                for k in keywords.split():
+                    to_set.keywords.add(k)
+        else:
+            if current is not None:
+                # preserve the original value
+                to_set.keywords.update(current.keywords)
+        if to_set.keywords is not None and None in to_set.keywords:
+            to_set.keywords.remove(None)
 
 
 class WcsParser(object):
@@ -3272,7 +3270,9 @@ class WcsParser(object):
             chunk.position = SpatialWCS(axis)
 
         chunk.position.coordsys = _to_str(self._sanitize(self.wcs.radesys))
-        chunk.position.equinox = self._sanitize(self.wcs.equinox)
+        temp = self._sanitize(self.wcs.equinox)
+        if (temp is not None and 1800.0 <= temp <= 2500) or temp is None:
+            chunk.position.equinox = temp
         self.logger.debug('End Spatial WCS augmentation.')
 
     def augment_temporal(self, chunk):
@@ -3631,7 +3631,8 @@ def get_cadc_headers(uri, subject=None):
             headers = _get_headers_from_fits(file_url.path)
     else:
         # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad type URIs supported')
+        raise NotImplementedError('Only ad type URIs supported for '
+                                  '{}'.format(uri))
     return headers
 
 
@@ -3725,6 +3726,7 @@ def _get_headers_from_fits(path):
     """Create a list of fits.Header instances from a fits file.
     :param path where the FITS files resides on disk."""
     hdulist = fits.open(path, memmap=True, lazy_load_hdus=False)
+    hdulist.verify('fix')
     hdulist.close()
     headers = [h.header for h in hdulist]
     return headers
@@ -3768,7 +3770,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True):
     else:
         # TODO add hook to support other service providers
         raise NotImplementedError(
-            'Only ad, gemini and vos type URIs supported')
+            'Only ad, gemini and vos type URIs supported for {}'.format(uri))
 
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
@@ -4207,11 +4209,6 @@ def _get_common_arg_parser():
                         help='output of augmented observation in XML',
                         required=False)
 
-    parser.add_argument('--caom_namespace',
-                        help=('if this parameter is specified, over-ride the '
-                              'default CAOM2 version when writing XML. The '
-                              'default is the latest version of CAOM2.3.'))
-
     in_group = parser.add_mutually_exclusive_group(required=True)
     in_group.add_argument('-i', '--in', dest='in_obs_xml',
                           type=argparse.FileType('r'),
@@ -4363,11 +4360,7 @@ def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
 
 
 def _write_observation(obs, args):
-    caom_namespace = CAOM23_NAMESPACE
-    if args.caom_namespace:
-        caom_namespace = args.caom_namespace
-
-    writer = ObservationWriter(namespace=caom_namespace)
+    writer = ObservationWriter()
     if args.out_obs_xml:
         writer.write(obs, args.out_obs_xml)
     else:
@@ -4483,8 +4476,7 @@ def get_gen_proc_arg_parser():
 def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
             out_obs_xml=None, in_obs_xml=None, collection=None,
             observation=None, product_id=None, uri=None, netrc=False,
-            file_name=None, verbose=False, debug=False, quiet=False,
-            caom_namespace=CAOM23_NAMESPACE, **kwargs):
+            file_name=None, verbose=False, debug=False, quiet=False, **kwargs):
     _set_logging(verbose, debug, quiet)
     logging.debug(
         'Begin augmentation for product_id {}, uri {}'.format(product_id,
@@ -4510,7 +4502,7 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
         obs = _augment(obs, product_id, uri, blueprints[ii], subject,
                        dump_config, validate_wcs, plugin, file_name, **kwargs)
 
-    writer = ObservationWriter(caom_namespace)
+    writer = ObservationWriter()
     writer.write(obs, out_obs_xml)
     logging.info('Done augment.')
 
