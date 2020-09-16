@@ -3726,8 +3726,7 @@ def _clean_headers(fits_header):
 def _get_headers_from_fits(path):
     """Create a list of fits.Header instances from a fits file.
     :param path where the FITS files resides on disk."""
-    hdulist = fits.open(path, memmap=True, lazy_load_hdus=False,
-                        ignore_missing_end=True)
+    hdulist = fits.open(path, memmap=True, lazy_load_hdus=False)
     hdulist.verify('fix')
     hdulist.close()
     headers = [h.header for h in hdulist]

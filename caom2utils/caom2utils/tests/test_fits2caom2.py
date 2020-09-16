@@ -1220,10 +1220,10 @@ def test_visit_generic_parser():
 def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
-    get_orig = caom2utils.fits2caom2._get_headers_from_fits
+    get_orig = caom2utils.fits2caom2.get_cadc_headers
 
     try:
-        caom2utils.fits2caom2._get_headers_from_fits = Mock(
+        caom2utils.fits2caom2.get_cadc_headers = Mock(
             side_effect=_get_headers)
         test_headers = caom2utils.get_vos_headers(test_uri, subject=None)
         assert test_headers is not None, 'expect result'
@@ -1231,7 +1231,7 @@ def test_get_vos_headers(vos_mock):
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
         assert vos_mock.called, 'mock not called'
     finally:
-        caom2utils.fits2caom2._get_headers_from_fits = get_orig
+        caom2utils.fits2caom2.get_cadc_headers = get_orig
 
 
 @pytest.mark.skipif(single_test, reason='Single test mode')
@@ -1370,7 +1370,7 @@ def test_update_artifact_meta_errors():
         assert test_artifact.content_checksum is None, 'checksum'
 
 
-def _get_headers(subject):
+def _get_headers(file_name, subject):
     x = """SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
 BITPIX  =                  -32 / Bits per pixel
 NAXIS   =                    2 / Number of dimensions
