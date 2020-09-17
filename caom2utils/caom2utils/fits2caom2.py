@@ -3105,14 +3105,7 @@ class FitsParser(GenericParser):
         """
         if keywords:
             if isinstance(keywords, set):
-                if len(keywords) == 1:
-                    temp = keywords.pop()
-                    if temp == 'none':
-                        to_set.keywords = set()
-                    else:
-                        to_set.keywords.add(temp)
-                else:
-                    to_set.keywords.update(keywords)
+                to_set.keywords.update(keywords)
             else:
                 for k in keywords.split():
                     to_set.keywords.add(k)
@@ -3122,6 +3115,8 @@ class FitsParser(GenericParser):
                 to_set.keywords.update(current.keywords)
         if to_set.keywords is not None and None in to_set.keywords:
             to_set.keywords.remove(None)
+        if to_set.keywords is not None and 'none' in to_set.keywords:
+            to_set.keywords.remove('none')
 
 
 class WcsParser(object):
