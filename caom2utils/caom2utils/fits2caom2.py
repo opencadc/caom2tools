@@ -1597,6 +1597,8 @@ class GenericParser:
                                     'Artifact.releaseType', index=0)))
             plane.artifacts[artifact_uri] = artifact
         self.augment_artifact(artifact)
+        if plane.provenance is not None:
+            logging.error(f'generic {len(plane.provenance.inputs)} {artifact_uri}')
         self.logger.debug(
             'End generic CAOM2 plane augmentation for {}.'.format(
                 artifact_uri))
@@ -3729,7 +3731,8 @@ def _clean_headers(fits_header):
             new_header.append('END\n')
         elif line.strip() == 'END':
             new_header.append('END\n')
-        elif '=' not in line and not line.startswith('COMMENT'):
+        elif '=' not in line and not (line.startswith('COMMENT') or
+                                      line.startswith('HISTORY')):
             pass
         else:
             new_header.append('{}\n'.format(line))
