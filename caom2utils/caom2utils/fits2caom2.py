@@ -3874,7 +3874,7 @@ def _get_type(path):
     elif path.endswith('.csv'):
         return 'text/csv'
     elif path.endswith('.hdf5') or path.endswith('.h5'):
-        return 'application/x-hdf'
+        return 'application/x-hdf5'
     else:
         return 'application/fits'
 
