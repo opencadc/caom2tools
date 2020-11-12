@@ -3715,7 +3715,7 @@ def _clean_headers(fits_header):
         elif line.strip() == 'END':
             new_header.append('END\n')
         elif '=' not in line and not (line.startswith('COMMENT') or
-                                     (line.startswith('HISTORY')):
+                                      line.startswith('HISTORY')):
             pass
         else:
             new_header.append('{}\n'.format(line))
