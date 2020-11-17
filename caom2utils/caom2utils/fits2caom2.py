@@ -1597,8 +1597,6 @@ class GenericParser:
                                     'Artifact.releaseType', index=0)))
             plane.artifacts[artifact_uri] = artifact
         self.augment_artifact(artifact)
-        if plane.provenance is not None:
-            logging.error(f'generic {len(plane.provenance.inputs)} {artifact_uri}')
         self.logger.debug(
             'End generic CAOM2 plane augmentation for {}.'.format(
                 artifact_uri))
@@ -2997,6 +2995,10 @@ class FitsParser(GenericParser):
                 else:
                     for i in inputs.split():
                         prov.inputs.add(PlaneURI(str(i)))
+            else:
+                if current is not None and len(current.inputs) > 0:
+                    # preserve the original value
+                    prov.inputs.update(current.inputs)
         self.logger.debug('End Provenance augmentation.')
         return prov
 
