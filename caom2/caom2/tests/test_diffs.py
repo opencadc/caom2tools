@@ -194,3 +194,14 @@ class TestCaomUtil(unittest.TestCase):
         expected_obs = reader.read(expected_fqn)
         report = diff.get_differences(expected_obs, actual_obs)
         assert report is None, report
+
+    def test_xml_sequence(self):
+        test_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                'data')
+        actual_fqn = os.path.join(test_dir, 'diff-actual-CAOM-2.4.xml')
+        expected_fqn = os.path.join(test_dir, 'diff-expected-CAOM-2.4.xml')
+        reader = obs_reader_writer.ObservationReader(False)
+        actual_obs = reader.read(actual_fqn)
+        expected_obs = reader.read(expected_fqn)
+        report = diff.get_differences(expected_obs, actual_obs)
+        assert report is None, report

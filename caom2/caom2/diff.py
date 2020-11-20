@@ -336,10 +336,12 @@ def _get_sequence_differences(expected, actual, parent):
 
             if not match_found:
                 report.extend(tracking_report)
-                actual_index = actual_copy.index(tracking_actual)
-                actual_copy.pop(actual_index)
-                expected_index = expected_copy.index(tracking_expected)
-                expected_copy.pop(expected_index)
+                if tracking_actual in actual_copy:
+                    actual_index = actual_copy.index(tracking_actual)
+                    actual_copy.pop(actual_index)
+                if tracking_expected in expected_copy:
+                    expected_index = expected_copy.index(tracking_expected)
+                    expected_copy.pop(expected_index)
 
     for e in enumerate(expected_copy):
         label = '{}[\'{}\']'.format(parent, e)

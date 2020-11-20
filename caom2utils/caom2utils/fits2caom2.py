@@ -93,7 +93,7 @@ from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
 from caom2 import SimpleObservation, DerivedObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
 from caom2 import CoordRange2D, TypedSet, CustomWCS, Observable
-from caom2 import CompositeObservation
+from caom2 import CompositeObservation, EnergyTransition
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -1952,8 +1952,8 @@ class FitsParser(GenericParser):
             if chunk.energy:
                 chunk.energy.bandpass_name = self._get_from_list(
                     'Chunk.energy.bandpassName', index=i)
-                chunk.energy.transition = self._get_from_list(
-                    'Chunk.energy.transition', index=i)
+                chunk.energy.transition = self._get_energy_transition(
+                    chunk.energy.transition)
                 chunk.energy.resolving_power = _to_float(self._get_from_list(
                     'Chunk.energy.resolvingPower', index=i))
             else:
@@ -2606,6 +2606,25 @@ class FitsParser(GenericParser):
         self.logger.debug('End Algorithm augmentation.')
         return result
 
+    def _get_energy_transition(self, current):
+        """
+        Create an EnergyTransition instance populated with available FITS
+        information.
+        :return: EnergyTransition
+        """
+        self.logger.debug('Begin EnergyTransition augmentation.')
+        species = self._get_from_list(
+            'Chunk.energy.transition.species', index=0,
+            current=None if current is None else current.species)
+        transition = self._get_from_list(
+            'Chunk.energy.transition.transition', index=0,
+            current=None if current is None else current.transition)
+        result = None
+        if species is not None and transition is not None:
+            result = EnergyTransition(species, transition)
+        self.logger.debug('End EnergyTransition augmentation.')
+        return result
+
     def _get_instrument(self, current):
         """
         Create an Instrument instance populated with available FITS
@@ -2976,6 +2995,10 @@ class FitsParser(GenericParser):
                 else:
                     for i in inputs.split():
                         prov.inputs.add(PlaneURI(str(i)))
+            else:
+                if current is not None and len(current.inputs) > 0:
+                    # preserve the original value
+                    prov.inputs.update(current.inputs)
         self.logger.debug('End Provenance augmentation.')
         return prov
 
@@ -3105,14 +3128,7 @@ class FitsParser(GenericParser):
         """
         if keywords:
             if isinstance(keywords, set):
-                if len(keywords) == 1:
-                    temp = keywords.pop()
-                    if temp == 'none':
-                        to_set.keywords = set()
-                    else:
-                        to_set.keywords.add(temp)
-                else:
-                    to_set.keywords.update(keywords)
+                to_set.keywords.update(keywords)
             else:
                 for k in keywords.split():
                     to_set.keywords.add(k)
@@ -3122,6 +3138,8 @@ class FitsParser(GenericParser):
                 to_set.keywords.update(current.keywords)
         if to_set.keywords is not None and None in to_set.keywords:
             to_set.keywords.remove(None)
+        if to_set.keywords is not None and 'none' in to_set.keywords:
+            to_set.keywords.remove('none')
 
 
 class WcsParser(object):
@@ -3675,7 +3693,8 @@ def get_vos_headers(uri, subject=None):
 
         temp_filename = tempfile.NamedTemporaryFile()
         client.copy(uri, temp_filename.name, head=True)
-        return _get_headers_from_fits(temp_filename.name)
+        return get_cadc_headers('file://{}'.format(temp_filename.name),
+                                subject=None)
     else:
         # this should be a programming error by now
         raise NotImplementedError('Only vos type URIs supported')

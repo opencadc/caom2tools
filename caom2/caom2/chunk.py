@@ -438,7 +438,7 @@ class ObservableAxis(CaomObject):
 
     The Slice refers to a column in a FITS image. The bin is the
     column index and ctype/cunit for the axis describe what the column
-    contiains.
+    contains.
 
     eg.
 
@@ -455,10 +455,10 @@ class ObservableAxis(CaomObject):
     where l? is the wavelength at which a measure of flux f? has been
     made and l is the first column of a FITS data structure that is
     3,N in size.  s? is a third slice that would be used to define
-    another observable. When defining the s? obserable the independent
+    another observable. When defining the s? observable the independent
     variable must be defined for that ObservableAxis too.
 
-    The l/f obserable would be recorded as
+    The l/f observable would be recorded as
 
     dependent=Slice(Axis('wave','nm'),bin=1)
     independent=Slice(Axis('flux','Jy'),bin=2)
