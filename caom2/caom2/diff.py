@@ -360,6 +360,11 @@ def _get_dict_differences(expected, actual, parent):
     """Reports on how two dictionaries are different."""
     report = []
     for expected_key, expected_value in expected.items():
+        if expected_key == 'meta_producer':
+            # ignore meta_producer value changes - there's a lot of noise in
+            # git otherwise
+            actual.pop(expected_key)
+            continue
         if expected_key in actual:
             actual_value = actual[expected_key]
             if _is_composite_instance_type(actual_value):

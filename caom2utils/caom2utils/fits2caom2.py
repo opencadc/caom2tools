@@ -3772,7 +3772,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True):
             # because the metadata is available long before the data
             # will be stored at CADC
             return
-    elif file_url.scheme == 'vos':
+    elif file_url.scheme in ['cadc', 'vos']:
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
         if (file_url.path.endswith('.header') and subject is not None and

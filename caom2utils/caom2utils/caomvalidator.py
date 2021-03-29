@@ -215,7 +215,7 @@ def _validate_keyword(name, keywords):
     if not keywords:
         return
     for keyword in keywords:
-        if keyword.find('|') != -1:
+        if keyword is not None and keyword.find('|') != -1:
             raise AssertionError(
                 'invalid {}: may not contain pipe (|)'.format(name))
 
