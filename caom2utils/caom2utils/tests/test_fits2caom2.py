@@ -74,7 +74,8 @@ from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from cadcutils import exceptions, net
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
-from caom2utils import ObsBlueprint, GenericParser
+from caom2utils import ObsBlueprint, GenericParser, gen_proc
+from caom2utils import get_gen_proc_arg_parser
 from caom2utils.legacy import load_config
 from caom2utils.fits2caom2 import _visit, _load_plugin, _update_artifact_meta
 
@@ -114,10 +115,6 @@ test_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin.py')
 test_class_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin_class.py')
 non_conformant_plugin_module = os.path.join(TESTDATA_DIR, 'nonconformant.py')
 
-# to execute only one test in the file set this var to True and comment
-# out the skipif decorator of the test
-single_test = False
-
 
 class MyExitError(Exception):
     pass
@@ -147,7 +144,6 @@ EXPECTED_ENERGY_XML = \
 '''
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_energy():
     bp = ObsBlueprint(energy_axis=1)
     test_fitsparser = FitsParser(sample_file_4axes, bp)
@@ -161,7 +157,6 @@ def test_augment_energy():
     assert result is None, repr(energy)
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_artifact_energy_from_blueprint():
     test_blueprint = ObsBlueprint(energy_axis=1)
     test_blueprint.set('Chunk.energyAxis', 1)
@@ -204,7 +199,6 @@ EXPECTED_POLARIZATION_XML = \
 '''
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_polarization():
     test_fitsparser = FitsParser(sample_file_4axes,
                                  ObsBlueprint(polarization_axis=1))
@@ -219,7 +213,6 @@ def test_augment_polarization():
     assert result is None, result
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_artifact_polarization_from_blueprint():
     test_blueprint = ObsBlueprint(polarization_axis=1)
     test_blueprint.set('Chunk.polarizationAxis', '1')
@@ -277,7 +270,6 @@ EXPECTED_POSITION_XML = \
 '''
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_artifact():
     test_blueprint = ObsBlueprint(position_axes=(1, 2))
     test_fitsparser = FitsParser(sample_file_4axes, test_blueprint)
@@ -296,7 +288,6 @@ def test_augment_artifact():
     assert result is None
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_artifact_position_from_blueprint():
     test_blueprint = ObsBlueprint(position_axes=(1, 2))
     test_blueprint.set('Chunk.positionAxis1', '1')
@@ -356,7 +347,6 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = \
 '''
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_artifact_time():
     test_fitsparser = FitsParser(sample_file_time_axes,
                                  ObsBlueprint(time_axis=1))
@@ -375,7 +365,6 @@ def test_augment_artifact_time():
     assert result is None
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_artifact_time_from_blueprint():
     test_blueprint = ObsBlueprint(time_axis=1)
     test_blueprint.set('Chunk.timeAxis', '1')
@@ -401,7 +390,6 @@ def test_augment_artifact_time_from_blueprint():
     assert result is None
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_get_wcs_values():
     w = get_test_wcs(sample_file_4axes)
     test_parser = WcsParser(get_test_header(sample_file_4axes)[0].header,
@@ -441,7 +429,6 @@ def _get_from_str_xml(string_xml, get_func, element_tag):
     return act_obj
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                      MyExitError, MyExitError,
                                      MyExitError]))
@@ -581,7 +568,6 @@ caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
 """
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_observation():
     test_obs_blueprint = ObsBlueprint(position_axes=(1, 2))
     test_obs_blueprint.set('Observation.target.name', 'CGPS Mosaic MA1')
@@ -629,7 +615,6 @@ def test_augment_observation():
     assert diff_result is None
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_get_from_list():
     test_fitsparser = FitsParser(sample_file_4axes)
     test_fitsparser.blueprint = ObsBlueprint()
@@ -638,7 +623,6 @@ def test_get_from_list():
     assert result == ObservationIntentType.SCIENCE
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_update_fits_headers():
     # The rules for the values:
     # all upper case - a FITS keyword
@@ -808,14 +792,12 @@ TEST_OVERRIDES = \
      }}
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_load_config_overrides():
     # cool override file content
     result = load_config(override_file)
     assert result == TEST_OVERRIDES
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_chunk_naxis():
     hdr1 = fits.Header()
     test_blueprint = ObsBlueprint()
@@ -916,7 +898,6 @@ EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
 """
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_file_scheme_uris():
     """ Tests that local files as URIs will be accepted and processed."""
 
@@ -974,7 +955,6 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
 """
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_generic_parser():
     """ Tests that GenericParser will be created."""
 
@@ -993,7 +973,6 @@ def test_generic_parser():
             assert result is None
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_visit():
     test_obs = _get_obs(EXPECTED_FILE_SCHEME_XML)
 
@@ -1117,7 +1096,6 @@ EXPECTED_POS_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencad
 '''
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_augment_artifact_bounds_range_from_blueprint():
     test_blueprint = ObsBlueprint(energy_axis=1, time_axis=2,
                                   polarization_axis=3,
@@ -1197,7 +1175,6 @@ def test_augment_artifact_bounds_range_from_blueprint():
     assert result is None
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_visit_generic_parser():
     try:
         sys.argv = ['fits2caom2', '--local', 'fname', '--observation',
@@ -1215,7 +1192,6 @@ def test_visit_generic_parser():
         assert False, 'should not get here {}'.format(e)
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 @patch('caom2utils.fits2caom2.Client')
 def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
@@ -1234,7 +1210,6 @@ def test_get_vos_headers(vos_mock):
         caom2utils.fits2caom2.get_cadc_headers = get_orig
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 @patch('caom2utils.fits2caom2.Client')
 def test_get_vos_meta(vos_mock):
     get_orig = caom2utils.get_vos_headers
@@ -1260,7 +1235,6 @@ def test_get_vos_meta(vos_mock):
         caom2utils.get_vos_headers = get_orig
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_generic_parser1():
     test_key = 'Plane.metaRelease'
     test_value = '2013-10-10'
@@ -1275,7 +1249,6 @@ def test_generic_parser1():
         'original value over-ridden'
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_get_external_headers():
     test_uri = 'http://localhost/obs23/collection/obsid-1'
     with patch('requests.Session.get') as session_get_mock:
@@ -1289,7 +1262,6 @@ def test_get_external_headers():
         assert session_get_mock.is_called_with(test_uri)
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_apply_blueprint():
     # test a Gemini case where there are two keywords, one each for
     # different instruments, and the default ends up getting set when the
@@ -1328,7 +1300,6 @@ def test_apply_blueprint():
         test_parser._headers[0]['IMAGESWV'], 'should not be set'
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_update_artifact_meta_errors():
     test_uri = 'gemini:GEMINI/abc.jpg'
     test_artifact = Artifact(uri=test_uri,
@@ -1368,6 +1339,28 @@ def test_update_artifact_meta_errors():
         assert test_artifact.content_type is None, 'type'
         assert test_artifact.content_length is None, 'length'
         assert test_artifact.content_checksum is None, 'checksum'
+
+
+@patch('sys.stdout', new_callable=BytesIO)
+@patch('caom2utils.fits2caom2._augment')
+def test_gen_proc_failure(augment_mock, stdout_mock):
+    """ Tests that gen_proc can return -1."""
+
+    augment_mock.return_value = None  # return a broken Observation instance
+    fname = 'file://{}'.format(text_file)
+    sys.argv = ['fits2caom2', '--local', fname,
+                '--observation', 'test_collection_id',
+                'test_observation_id', '--lineage',
+                'test_product_id/ad:TEST/{}'.format(fname)]
+    test_args = get_gen_proc_arg_parser().parse_args()
+    test_blueprints = {'test_collection_id': ObsBlueprint()}
+    test_result = gen_proc(test_args, test_blueprints)
+    assert test_result == -1, 'expect failure'
+    if stdout_mock.getvalue():
+        expected = _get_obs(EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML)
+        actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
+        result = get_differences(expected, actual, 'Observation')
+        assert result is None
 
 
 def _get_headers(file_name, subject):
