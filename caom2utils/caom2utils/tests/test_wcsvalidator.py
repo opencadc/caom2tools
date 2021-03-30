@@ -109,11 +109,6 @@ class TemporalWCSValidatorTests(unittest.TestCase):
                 self, InvalidWCSError, 'range.end not >= range.start'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
-        bad_temporal_wcs = TimeTestUtil.bad_delta()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'delta must be greater than 0.0'):
-            wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
-
 
 # CustomWCS validator tests
 @pytest.mark.skipif(single_test, reason='Single test mode')
@@ -289,18 +284,6 @@ class TimeTestUtil:
         badcunit = TimeTestUtil.good_wcs()
         badcunit.axis.axis.cunit = "foo"
         return badcunit
-
-    @staticmethod
-    def bad_delta():
-        axis_1d = wcs.CoordAxis1D(wcs.Axis("UTC", "d"))
-        temporal_wcs = chunk.TemporalWCS(axis_1d)
-
-        # delta < 0.0 is bad
-        ref_coord = wcs.RefCoord(float(1.0), float(2.0))
-        temporal_wcs.axis.function = CoordFunction1D(
-            int(100), -0.01, ref_coord)
-
-        return temporal_wcs
 
     @staticmethod
     def bad_range_wcs():
