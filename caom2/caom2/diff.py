@@ -368,10 +368,13 @@ def _get_dict_differences(expected, actual, parent):
     """Reports on how two dictionaries are different."""
     report = []
     for expected_key, expected_value in expected.items():
+        found = False
         for ignore_key in ignore_keys:
             if expected_key == ignore_key:
                 actual.pop(expected_key)
-                continue
+                found = True
+        if found:
+            continue
         if expected_key in actual:
             actual_value = actual[expected_key]
             if _is_composite_instance_type(actual_value):
