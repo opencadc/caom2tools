@@ -25,8 +25,6 @@ jobs:
         run: cd caom2utils && tox -e egg_info
       - name: egg-info caom2repo
         run: cd caom2repo && tox -e egg_info
-      - name: egg-info caom2pipe
-        run: cd caom2pipe && tox -e egg_info
 
   tests:
     needs: egginfo
@@ -37,7 +35,7 @@ jobs:
         #TODO 2.7 fails on GH Actions but cannot be reproduced locally. Disabled for now.
         # python-version: [2.7,3.5,3.6,3.7,3.8,3.9]
         python-version: [3.5,3.6,3.7,3.8,3.9]
-        package: [caom2, caom2utils, caom2repo, caom2pipe]
+        package: [caom2, caom2utils, caom2repo]
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -71,12 +69,10 @@ jobs:
         run: cd caom2utils && tox -e checkstyle && tox -e cov
       - name: checkstyle & coverage caom2repo
         run: cd caom2repo &&  tox -e checkstyle && tox -e cov
-      - name: checkstyle & coverage caom2pipe
-        run: cd caom2pipe &&  tox -e checkstyle && tox -e cov
       - name: Upload coverage to codecov
         uses: codecov/codecov-action@v1
         with:
-          files: ./caom2/coverage.xml,./caom2utils/coverage.xml,./cao2repo/coverage.xml,./caom2pipe/coverage.xml
+          files: ./caom2/coverage.xml,./caom2utils/coverage.xml,./cao2repo/coverage.xml
        
   build-n-publish:
     name: Build and publish to PyPI
