@@ -86,6 +86,14 @@ from . import caom_util
 __all__ = ['get_differences']
 
 
+# a list of dict keys that are not checked as a result of a get_differences
+# call:
+# 'meta_producer' is ignored because it can cause a lot of noise in github
+#                 commits for not a lot of value
+#
+ignore_keys = ['meta_producer']
+
+
 def get_differences(expected, actual, parent=None):
     """
     Compare two entities. Provide a report if differences exist between the two
@@ -360,6 +368,13 @@ def _get_dict_differences(expected, actual, parent):
     """Reports on how two dictionaries are different."""
     report = []
     for expected_key, expected_value in expected.items():
+        found = False
+        for ignore_key in ignore_keys:
+            if expected_key == ignore_key:
+                actual.pop(expected_key)
+                found = True
+        if found:
+            continue
         if expected_key in actual:
             actual_value = actual[expected_key]
             if _is_composite_instance_type(actual_value):

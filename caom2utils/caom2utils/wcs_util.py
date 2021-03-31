@@ -131,13 +131,18 @@ class TimeUtil:
             # // units, like days, hours, minutes, seconds, and smaller
             # // since they are offsets from mjdref
 
+            # PD - 16-04-20
+            # technically there is nothing wrong with a WCS axis that
+            # decreases in coord values while increasing in pixel values
+            # (it's just a line with negative slope).
+            #
+            # the computation of the time bounds interval sorts out the
+            # min/max so it also doesn't care about the "direction"
+
             p1 = float(0.5)
             p2 = float(function_1d.naxis + 0.5)
             a = pix2val(function_1d, p1)
             b = pix2val(function_1d, p2)
-            if function_1d.delta < 0.0:
-                raise ValueError(
-                    '{} delta must be greater than 0.0'.format(function_1d))
 
             if temporal_wcs.mjdref is not None:
                 a += float(temporal_wcs.mjdref)

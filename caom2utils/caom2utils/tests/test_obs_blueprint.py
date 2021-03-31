@@ -100,6 +100,7 @@ def test_obs_blueprint():
     ob.configure_polarization_axis(axis=4)
     ob.configure_time_axis(axis=5)
     ob.configure_observable_axis(axis=6)
+    ob.configure_custom_axis(axis=7)
 
     # test that configuring something that's already configured doesn't break
     # anything
@@ -108,6 +109,7 @@ def test_obs_blueprint():
     ob.configure_polarization_axis(axis=4)
     ob.configure_time_axis(axis=5)
     ob.configure_observable_axis(axis=6)
+    ob.configure_custom_axis(axis=7)
 
     # set attribute
     ob.set('Observation.instrument.name', 'NIRI')
@@ -325,3 +327,8 @@ def test_has_chunk():
     ob.set('Chunk', '{ignore}', 1)
     assert ob.has_chunk(0)
     assert not ob.has_chunk(1)
+
+
+def test_ctor_failure():
+    with pytest.raises(ValueError):
+        test_subject = ObsBlueprint(position_axes=(1, 2, 3))

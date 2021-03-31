@@ -86,6 +86,8 @@ class TestCaomUtil(unittest.TestCase):
             collection='test_collection',
             observation_id='test_observation_id',
             algorithm=observation.Algorithm('EXPOSURE'))
+        # meta_producer field is ignored by get_difference
+        expected_simple.meta_producer = 'meta_producer/0.1'
         report = diff.get_differences(expected_simple, expected_simple,
                                       'obs')
         self.assertTrue(report is None, repr(report))
