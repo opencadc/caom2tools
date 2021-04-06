@@ -2363,7 +2363,8 @@ class FitsParser(GenericParser):
             'Observation.intent', 0, (ObservationIntentType.SCIENCE if
                                       observation.intent is None else
                                       observation.intent))
-        observation.type = self._get_from_list('Observation.type', 0)
+        observation.type = self._get_from_list('Observation.type', 0,
+                                               current=observation.type)
         observation.meta_release = self._get_datetime(
             self._get_from_list('Observation.metaRelease', 0,
                                 current=observation.meta_release))
@@ -2850,7 +2851,7 @@ class FitsParser(GenericParser):
                     if keywords[0].index(ii) == len(keywords[0]) - 1:
                         self.add_error(lookup, sys.exc_info()[1])
                     # assign a default value, if one exists
-                    if keywords[1]:
+                    if keywords[1] and current is None:
                         value = keywords[1]
                         self.logger.debug(
                             '{}: assigned default value {}.'.format(lookup,
@@ -2866,7 +2867,7 @@ class FitsParser(GenericParser):
                                           '{!r}.'.format(lookup, value))
                 else:
                     # assign a default value, if one exists
-                    if keywords[1]:
+                    if keywords[1] and current is None:
                         value = keywords[1]
                         self.logger.debug(
                             '{}: assigned default value {}.'.format(lookup,
