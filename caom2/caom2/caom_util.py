@@ -79,11 +79,12 @@ engineer get the correct meta data more quickly.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import collections
 import sys
+import collections
 from datetime import datetime
 
 import six
+from six.moves import collections_abc
 from six.moves.urllib.parse import urlsplit
 from builtins import int, str as newstr
 
@@ -203,7 +204,7 @@ def value_check(value, min_value, max_value, variable, override=None):
     return True
 
 
-class TypedList(collections.MutableSequence):
+class TypedList(collections_abc.MutableSequence):
     """
     Class that implements a typed list in Python. Supported types
     are specified when instance is created. Example:
@@ -266,7 +267,7 @@ class TypedList(collections.MutableSequence):
         return self._oktypes
 
 
-class TypedSet(collections.MutableSet):
+class TypedSet(collections_abc.MutableSet):
     """
     Class that implements a typed set in Python. Supported types
     are specified when instance is created. Example:

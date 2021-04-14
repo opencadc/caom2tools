@@ -236,8 +236,8 @@ class CAOM2RepoClient(object):
         while len(observations) > 0:
             if nthreads is None:
                 results = [
-                    self._process_observation_id(collection, observationID,
-                                                 halt_on_error)
+                    self.process_observation_id(collection, observationID,
+                                                halt_on_error)
                     for observationID in observations]
                 for v, u, s, f in results:
                     if v:
@@ -284,24 +284,37 @@ class CAOM2RepoClient(object):
                 break
         return visited, updated, skipped, failed
 
-    def _process_observation_id(self, collection, observationID,
-                                halt_on_error):
-        visited = None
+    def process_observation_id(self, collection, observation_id,
+                               halt_on_error):
+        """
+        Reads an observation, calls a plugin to update it and, if modified,
+        uploads it to the repo.
+
+        :param collection:
+        :param observationID:
+        :param halt_on_error: if true, raise and exception when error
+        encountered otherwise log the error.
+        :return: (visited, updated, skipped, failed) tuple with values
+        equalled to None or observationID depending on the outcome case
+        (visited=observationID always)
+        """
+        visited = observation_id
         updated = None
         skipped = None
         failed = None
-        self.logger.info('Process observation: ' + observationID)
+        self.logger.info('Process observation: ' + observation_id)
         try:
-            observation = self.get_observation(collection, observationID)
+            observation = self.get_observation(collection, observation_id)
+            orig_checksum = observation.acc_meta_checksum
             if self.plugin.update(observation=observation,
                                   subject=self._subject) is False:
                 self.logger.info('SKIP {}'.format(observation.observation_id))
                 skipped = observation.observation_id
             else:
-                self.post_observation(observation)
+                self.post_observation(observation, orig_checksum)
                 self.logger.debug(
                     'UPDATED {}'.format(observation.observation_id))
-                updated = observation.observation_id
+                updated = observation_id
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
                 raise RuntimeError(
@@ -312,13 +325,11 @@ class CAOM2RepoClient(object):
                 # other unexpected TypeError
                 raise e
         except Exception as e:
-            failed = observationID
+            failed = observation_id
             self.logger.error(
-                'FAILED {} - Reason: {}'.format(observationID, e))
+                'FAILED {} - Reason: {}'.format(observation_id, e))
             if halt_on_error:
                 raise e
-
-        visited = observationID
 
         return visited, updated, skipped, failed
 
@@ -452,10 +463,13 @@ class CAOM2RepoClient(object):
             raise Exception('Got empty response for resource: {}'.format(path))
         return obs_reader.read(BytesIO(content))
 
-    def post_observation(self, observation):
+    def post_observation(self, observation, orig_checksum=None):
         """
         Updates an observation in the CAOM2 repo
         :param observation: observation to update
+        :param orig_checksum: the checksum of the observation to be updated.
+        Posting this value prevents race conditions when observations are
+        updated concurrently
         :return: updated observation
         """
         assert observation.collection is not None
@@ -469,6 +483,8 @@ class CAOM2RepoClient(object):
             observation, ibuffer)
         obs_xml = ibuffer.getvalue()
         headers = {'Content-Type': 'application/xml'}
+        if orig_checksum:
+            headers['If-Match'] = orig_checksum
         self._repo_client.post(
             (self.capability_id, path), headers=headers, data=obs_xml)
 
@@ -535,9 +551,9 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
                                 log_level, resource_id, host, agent,
                                 halt_on_error):
     """
-    Multi-process version of CAOM2RepoClient._process_observation_id().
+    Multi-process version of CAOM2RepoClient.process_observation_id().
     Each process handles Control-C via KeyboardInterrupt, which is not needed
-    in CAOM2RepoClient._process_observation_id().
+    in CAOM2RepoClient.process_observation_id().
     :param collection: Name of the collection
     :param observationID: Observation identifier
     :param plugin: path to python file that contains the algorithm to be
@@ -551,13 +567,6 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     :return: Tuple of observationID representing visited, updated, skipped
         and failed
     """
-    visited = None
-    updated = None
-    skipped = None
-    failed = None
-    observation = None
-    # set up logging for each process
-    subject = subject
     logging.basicConfig(
         format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s ' +
                '%(funcName)s %(message)s',
@@ -566,34 +575,10 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
         'multiprocess_observation_id(): {}'.format(observationID))
 
     client = CAOM2RepoClient(subject, log_level, resource_id, host, agent)
-    try:
-        observation = client.get_observation(collection, observationID)
-        if plugin.update(observation=observation,
-                         subject=subject) is False:
-            rootLogger.info('SKIP {}'.format(observation.observation_id))
-            skipped = observation.observation_id
-        else:
-            client.post_observation(observation)
-            rootLogger.debug('UPDATED {}'.format(observation.observation_id))
-            updated = observation.observation_id
-    except TypeError as e:
-        if "unexpected keyword argument" in str(e):
-            raise RuntimeError(
-                "{} - To fix the problem, please add the **kwargs "
-                "argument to the list of arguments for the update"
-                " method of your plugin.".format(str(e)))
-        else:
-            # other unexpected TypeError
-            raise e
-    except Exception as e:
-        failed = observationID
-        rootLogger.error('FAILED {} - Reason: {}'.format(observationID, e))
-        if halt_on_error:
-            raise e
-
-    visited = observationID
-
-    return visited, updated, skipped, failed
+    client.plugin = plugin
+    client.logger = rootLogger
+    return \
+        client.process_observation_id(collection, observationID, halt_on_error)
 
 
 def main_app():
