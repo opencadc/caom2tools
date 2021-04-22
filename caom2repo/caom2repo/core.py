@@ -80,8 +80,7 @@ import signal
 import sys
 from datetime import datetime
 
-from cadcutils import net
-from cadcutils import util
+from cadcutils import net, util, exceptions
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 from caom2 import obs_reader_writer
 from caom2.version import version as caom2_version
@@ -311,7 +310,7 @@ class CAOM2RepoClient(object):
                 self.logger.info('SKIP {}'.format(observation.observation_id))
                 skipped = observation.observation_id
             else:
-                self.post_observation(observation, orig_checksum)
+                self.post_observation(observation, orig_checksum.uri)
                 self.logger.debug(
                     'UPDATED {}'.format(observation.observation_id))
                 updated = observation_id
@@ -324,14 +323,28 @@ class CAOM2RepoClient(object):
             else:
                 # other unexpected TypeError
                 raise e
+        except exceptions.UnexpectedException as e:
+            if e.orig_exception.response.status_code == 412:
+                self.logger.info(
+                    'Race condition: observation {} updated on the server '
+                    'while being visited. Re-trying.'.format(observation_id))
+                return self.process_observation_id(collection, observation_id,
+                                                   halt_on_error)
+            else:
+                failed = observation_id
+                self._handle_error(e, observation_id, halt_on_error)
         except Exception as e:
             failed = observation_id
-            self.logger.error(
-                'FAILED {} - Reason: {}'.format(observation_id, e))
-            if halt_on_error:
-                raise e
-
+            self._handle_error(e, observation_id, halt_on_error)
         return visited, updated, skipped, failed
+
+    def _handle_error(self, exception, observation_id, halt_on_error):
+        self.logger.error(
+            'FAILED {} - Reason: {}'.format(observation_id, str(exception)))
+        if halt_on_error:
+            raise exception
+        else:
+            self.logger.debug(exception)
 
     def _get_obs_from_file(self, obs_file, start, end, halt_on_error):
         obs = []

@@ -572,6 +572,32 @@ class TestCAOM2Repo(unittest.TestCase):
                               'MAXREC': 3})]
         visitor._repo_client.get.assert_has_calls(calls)
 
+    @patch('caom2repo.core.net.BaseWsClient', Mock())
+    def test_visit_retry412(self):
+        # retry get/post of an observation when post
+        # returns 412 - precondition (observation updated on server while
+        # being visited
+        obs = [['a', 'b']]
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), level)
+        visitor.get_observation = MagicMock(
+            return_value=MagicMock(spec=SimpleObservation))
+        e412 = exceptions.UnexpectedException(
+            orig_exception=Mock(response=Mock(status_code=412)))
+        visitor.post_observation = Mock(side_effect = [e412, None, None])
+        visitor._get_observations = MagicMock(side_effect=obs)
+
+        (visited, updated, skipped, failed) = visitor.visit(
+            os.path.join(THIS_DIR, 'passplugin.py'), 'cfht')
+        self.assertEqual(2, len(visited))
+        self.assertEqual(2, len(updated))
+        self.assertEqual(0, len(skipped))
+        self.assertEqual(0, len(failed))
+        # First observation war retrieved and updated twice, hence 3 get
+        # and post calls
+        self.assertEqual(3, visitor.get_observation.call_count)
+        self.assertEquals(3, visitor.post_observation.call_count)
+
     def mock_get_observation(self, collection, observationID):
         return SimpleObservation(collection, observationID)
 
