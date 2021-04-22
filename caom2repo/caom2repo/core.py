@@ -336,6 +336,7 @@ class CAOM2RepoClient(object):
         except Exception as e:
             failed = observation_id
             self._handle_error(e, observation_id, halt_on_error)
+        visited = observation_id
         return visited, updated, skipped, failed
 
     def _handle_error(self, exception, observation_id, halt_on_error):
