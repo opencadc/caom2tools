@@ -290,11 +290,11 @@ class CAOM2RepoClient(object):
         uploads it to the repo.
 
         :param collection:
-        :param observationID:
+        :param observation_id:
         :param halt_on_error: if true, raise and exception when error
         encountered otherwise log the error.
         :return: (visited, updated, skipped, failed) tuple with values
-        equalled to None or observationID depending on the outcome case
+        equalled to None or observation_id depending on the outcome case
         (visited=observationID always)
         """
         visited = observation_id
