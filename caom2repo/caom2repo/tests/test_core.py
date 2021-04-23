@@ -775,8 +775,6 @@ class TestCAOM2Repo(unittest.TestCase):
         # raises exception for 'ERROR'
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
         get_mock.side_effect = self.mock_get_observation
-        # client_mock.side_effect = \
-        #     self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
