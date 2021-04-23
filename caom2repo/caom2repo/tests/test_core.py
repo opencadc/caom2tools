@@ -572,32 +572,6 @@ class TestCAOM2Repo(unittest.TestCase):
                               'MAXREC': 3})]
         visitor._repo_client.get.assert_has_calls(calls)
 
-    @patch('caom2repo.core.net.BaseWsClient', Mock())
-    def test_visit_retry412(self):
-        # retry get/post of an observation when post
-        # returns 412 - precondition (observation updated on server while
-        # being visited
-        obs = [['a', 'b']]
-        level = logging.DEBUG
-        visitor = CAOM2RepoClient(auth.Subject(), level)
-        visitor.get_observation = MagicMock(
-            return_value=MagicMock(spec=SimpleObservation))
-        e412 = exceptions.UnexpectedException(
-            orig_exception=Mock(response=Mock(status_code=412)))
-        visitor.post_observation = Mock(side_effect = [e412, None, None])
-        visitor._get_observations = MagicMock(side_effect=obs)
-
-        (visited, updated, skipped, failed) = visitor.visit(
-            os.path.join(THIS_DIR, 'passplugin.py'), 'cfht')
-        self.assertEqual(2, len(visited))
-        self.assertEqual(2, len(updated))
-        self.assertEqual(0, len(skipped))
-        self.assertEqual(0, len(failed))
-        # First observation war retrieved and updated twice, hence 3 get
-        # and post calls
-        self.assertEqual(3, visitor.get_observation.call_count)
-        self.assertEquals(3, visitor.post_observation.call_count)
-
     def mock_get_observation(self, collection, observationID):
         return SimpleObservation(collection, observationID)
 
@@ -609,22 +583,21 @@ class TestCAOM2Repo(unittest.TestCase):
                                                         observationID):
         raise TypeError("unexpected TypeError")
 
-    def mock_post_observation_with_exception(self, observation, orig_checksum):
+    def mock_post_observation_with_exception(self, observation,
+                                             obs_checksum=None):
         raise Exception("exception with observation")
 
-    @patch('caom2repo.core.CAOM2RepoClient')
-    def test_multiprocess_with_exception(self, client_mock):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation')
+    def test_multiprocess_with_exception(self, get_mock, post_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
-        subject = auth.Subject()
-        level = logging.DEBUG
-        # mock some methods in the client created by each process
-        proc_client_mock = CAOM2RepoClient(subject, level)
-        proc_client_mock.get_observation = self.mock_get_observation
-        proc_client_mock.post_observation = \
+        get_mock.side_effect = \
+            self.mock_get_observation
+        post_mock.side_effect = \
             self.mock_post_observation_with_exception
-        client_mock.return_value = proc_client_mock
-        visitor = CAOM2RepoClient(subject, level)
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -636,22 +609,19 @@ class TestCAOM2Repo(unittest.TestCase):
                 end=None, obs_file=None, nthreads=3,
                 halt_on_error=True)
         except Exception as e:
-            self.assertTrue("exception with observation" in str(e), e)
+            self.assertTrue("exception with observation" in str(e))
         finally:
             logging.info("DONE")
 
-    @patch('caom2repo.core.CAOM2RepoClient')
-    def test_multiprocess_with_expected_type_error(self, client_mock):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
+    def test_multiprocess_with_expected_type_error(self, get_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
-        level = logging.DEBUG
-        subject = auth.Subject()
-        # mock some methods in the client created by each process
-        proc_client_mock = CAOM2RepoClient(subject, level)
-        proc_client_mock.get_observation = \
+        get_mock.side_effect = \
             self.mock_get_observation_with_expected_type_error
-        client_mock.return_value = proc_client_mock
-        visitor = CAOM2RepoClient(subject, level)
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -667,25 +637,22 @@ class TestCAOM2Repo(unittest.TestCase):
         finally:
             logging.info("DONE")
 
-    @patch('caom2repo.core.CAOM2RepoClient')
-    def test_multiprocess_with_unexpected_type_error(self, client_mock):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
+    def test_multiprocess_with_unexpected_type_error(self, get_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
-        subject = auth.Subject()
-        level = logging.DEBUG
-        # mock some methods in the client created by each process
-        proc_client_mock = CAOM2RepoClient(subject, level)
-        proc_client_mock.get_observation = \
+        get_mock.side_effect = \
             self.mock_get_observation_with_unexpected_type_error
-        client_mock.return_value = proc_client_mock
-        visitor = CAOM2RepoClient(subject, level)
+        level = logging.DEBUG
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
         visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
 
         try:
-            visitor.visit(
+            (visited, updated, skipped, failed) = visitor.visit(
                 os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None,
                 end=None, obs_file=None, nthreads=3,
                 halt_on_error=True)
@@ -694,18 +661,14 @@ class TestCAOM2Repo(unittest.TestCase):
         finally:
             logging.info("DONE")
 
-    @patch('caom2repo.core.CAOM2RepoClient')
-    def test_multiprocess_with_obs_id(self, client_mock):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
+    def test_multiprocess_with_obs_id(self, get_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
+        get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
-        subject = auth.Subject()
-        # mock some methods in the client created by each process
-        proc_client_mock = CAOM2RepoClient(subject, level)
-        proc_client_mock.get_observation = self.mock_get_observation
-        proc_client_mock.post_observation = Mock()
-        client_mock.return_value = proc_client_mock
-        visitor = CAOM2RepoClient(subject, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -731,20 +694,17 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertTrue('d' in updated)
             self.assertFalse('e' in updated)
         finally:
+            # lp.join()
             logging.info("DONE")
 
-    @patch('caom2repo.core.CAOM2RepoClient')
-    def test_multiprocess_with_more_obs_id(self, client_mock):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
+    def test_multiprocess_with_more_obs_id(self, get_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d', 'e', 'f'], []]
+        get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
-        subject = auth.Subject()
-        # mock some methods in the client created by each process
-        proc_client_mock = CAOM2RepoClient(subject, level)
-        proc_client_mock.get_observation = self.mock_get_observation
-        proc_client_mock.post_observation = Mock()
-        client_mock.return_value = proc_client_mock
-        visitor = CAOM2RepoClient(subject, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -774,24 +734,20 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertTrue('f' in updated)
             self.assertFalse('g' in updated)
         finally:
+            # lp.join()
             logging.info("DONE")
 
-    @patch('caom2repo.core.CAOM2RepoClient')
-    def test_multiprocess_with_different_statuses(self, client_mock):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
+    def test_multiprocess_with_different_statuses(self, get_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         # make it return different status. errorplugin returns according to the
         # id of the observation: True for 'UPDATE', False for 'SKIP' and
         # raises exception for 'ERROR'
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
+        get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
-        subject = auth.Subject()
-        # mock some methods in the client created by each process
-        proc_client_mock = CAOM2RepoClient(subject, level)
-        proc_client_mock.get_observation = self.mock_get_observation
-        post_obs_mock = Mock()
-        proc_client_mock.post_observation = post_obs_mock
-        client_mock.return_value = proc_client_mock
-        visitor = CAOM2RepoClient(subject, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
@@ -807,23 +763,22 @@ class TestCAOM2Repo(unittest.TestCase):
             self.assertEqual(1, len(skipped))
             self.assertEqual(1, len(failed))
         finally:
+            # lp.join()
             logging.info("DONE")
 
-    @patch('caom2repo.core.CAOM2RepoClient')
-    def test_multiprocess_with_more_different_statuses(self, client_mock):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
+    def test_multiprocess_with_more_different_statuses(self, get_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         # make it return different status. errorplugin returns according to the
         # id of the observation: True for 'UPDATE', False for 'SKIP' and
         # raises exception for 'ERROR'
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
-        # mock some methods in the client created by each process
+        get_mock.side_effect = self.mock_get_observation
+        # client_mock.side_effect = \
+        #     self.mock_get_observation
         level = logging.DEBUG
-        subject = auth.Subject()
-        proc_client_mock = CAOM2RepoClient(subject, level)
-        proc_client_mock.get_observation = self.mock_get_observation
-        proc_client_mock.post_observation = Mock()
-        client_mock.return_value = proc_client_mock
-        visitor = CAOM2RepoClient(subject, level)
+        visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = PickableMagicMock(
             return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
