@@ -1262,6 +1262,32 @@ def test_get_external_headers():
         assert session_get_mock.is_called_with(test_uri)
 
 
+@patch('caom2utils.fits2caom2.get_external_headers')
+def test_get_external_headers_fails(get_external_mock):
+    get_external_mock.return_value = None
+    test_collection = 'TEST_COLLECTION'
+    test_obs_id = 'TEST_OBS_ID'
+    test_uri = 'gemini:{}/abc.fits'.format(test_collection)
+    test_product_id = 'TEST_PRODUCT_ID'
+    test_blueprint = caom2utils.fits2caom2.ObsBlueprint()
+    test_observation = SimpleObservation(collection=test_collection,
+                                         observation_id=test_obs_id,
+                                         algorithm=Algorithm(name='exposure'))
+    test_result = caom2utils.fits2caom2._augment(
+        obs=test_observation,
+        product_id=test_product_id,
+        uri=test_uri,
+        blueprint=test_blueprint,
+        subject=net.Subject(),
+        external_url='https://localhost/files/test_file.fits.gz',
+    )
+    assert test_result is not None, 'expect a result'
+    assert len(test_result.planes.values()) == 1, 'plane added to result'
+    test_plane = test_result.planes[test_product_id]
+    assert len(test_plane.artifacts.values()) == 1, 'artifact added to plane'
+    assert test_uri in test_plane.artifacts.keys(), 'wrong artifact uri'
+
+
 def test_apply_blueprint():
     # test a Gemini case where there are two keywords, one each for
     # different instruments, and the default ends up getting set when the

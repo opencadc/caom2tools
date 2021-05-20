@@ -1732,6 +1732,9 @@ class GenericParser:
         elif isinstance(self, FitsParser):
             parameter = {'uri': self.uri,
                          'header': self._headers[extension]}
+        else:
+            parameter = {'uri': self.uri,
+                         'header': None}
 
         result = ''
         execute = None
@@ -2851,11 +2854,14 @@ class FitsParser(GenericParser):
                     if keywords[0].index(ii) == len(keywords[0]) - 1:
                         self.add_error(lookup, sys.exc_info()[1])
                     # assign a default value, if one exists
-                    if keywords[1] and current is None:
-                        value = keywords[1]
-                        self.logger.debug(
-                            '{}: assigned default value {}.'.format(lookup,
-                                                                    value))
+                    if keywords[1]:
+                        if current is None:
+                            value = keywords[1]
+                            self.logger.debug(
+                                '{}: assigned default value {}.'.format(lookup,
+                                                                        value))
+                        else:
+                            value = current
             if value is None:
                 # checking current does not work in the general case,
                 # because current might legitimately be 'None'
@@ -2867,11 +2873,14 @@ class FitsParser(GenericParser):
                                           '{!r}.'.format(lookup, value))
                 else:
                     # assign a default value, if one exists
-                    if keywords[1] and current is None:
-                        value = keywords[1]
-                        self.logger.debug(
-                            '{}: assigned default value {}.'.format(lookup,
-                                                                    value))
+                    if keywords[1]:
+                        if current is None:
+                            value = keywords[1]
+                            self.logger.debug(
+                                '{}: assigned default value {}.'.format(lookup,
+                                                                        value))
+                        else:
+                            value = current
 
         elif (keywords is not None) and (keywords != ''):
             value = keywords
@@ -3628,6 +3637,7 @@ def get_cadc_headers(uri, subject=None):
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
     file_url = urlparse(uri)
+    # TODO if file_url.scheme == 'cadc', need to get vos headers
     if (file_url.scheme == 'ad' or
             file_url.scheme == 'gemini'):
         # create possible types of subjects
@@ -3762,6 +3772,8 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True):
     :return:
     """
     file_url = urlparse(uri)
+    # TODO - if file_url.scheme == 'cadc', need to use vos to get
+    # artifact metadata
     if file_url.scheme == 'ad':
         metadata = _get_cadc_meta(subject, file_url.path)
     elif file_url.scheme == 'gemini':
@@ -3982,7 +3994,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     elif external_url:
         headers = get_external_headers(external_url)
         if headers is None:
-            parser = None
+            logging.debug(
+                'Using a GenericParser for un-retrievable remote headers '
+                '{}'.format(uri)
+            )
+            parser = GenericParser(blueprint, uri=uri)
         else:
             logging.debug(
                 'Using a FitsParser for remote headers {}'.format(uri))
