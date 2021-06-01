@@ -94,6 +94,7 @@ from lxml import etree
 from mock import Mock, patch
 from six import StringIO, BytesIO
 
+import importlib
 import os
 import sys
 
@@ -1262,6 +1263,32 @@ def test_get_external_headers():
         assert session_get_mock.is_called_with(test_uri)
 
 
+@patch('caom2utils.fits2caom2.get_external_headers')
+def test_get_external_headers_fails(get_external_mock):
+    get_external_mock.return_value = None
+    test_collection = 'TEST_COLLECTION'
+    test_obs_id = 'TEST_OBS_ID'
+    test_uri = 'gemini:{}/abc.fits'.format(test_collection)
+    test_product_id = 'TEST_PRODUCT_ID'
+    test_blueprint = caom2utils.fits2caom2.ObsBlueprint()
+    test_observation = SimpleObservation(collection=test_collection,
+                                         observation_id=test_obs_id,
+                                         algorithm=Algorithm(name='exposure'))
+    test_result = caom2utils.fits2caom2._augment(
+        obs=test_observation,
+        product_id=test_product_id,
+        uri=test_uri,
+        blueprint=test_blueprint,
+        subject=net.Subject(),
+        external_url='https://localhost/files/test_file.fits.gz',
+    )
+    assert test_result is not None, 'expect a result'
+    assert len(test_result.planes.values()) == 1, 'plane added to result'
+    test_plane = test_result.planes[test_product_id]
+    assert len(test_plane.artifacts.values()) == 1, 'artifact added to plane'
+    assert test_uri in test_plane.artifacts.keys(), 'wrong artifact uri'
+
+
 def test_apply_blueprint():
     # test a Gemini case where there are two keywords, one each for
     # different instruments, and the default ends up getting set when the
@@ -1298,6 +1325,29 @@ def test_apply_blueprint():
 
     with pytest.raises(KeyError):
         test_parser._headers[0]['IMAGESWV'], 'should not be set'
+
+
+def test_apply_blueprint_execute_external():
+    test_module = importlib.import_module(__name__)
+    test_generic_blueprint = ObsBlueprint(module=test_module)
+    test_generic_blueprint.set('Observation.type', '_get_test_obs_type(parameters)')
+
+    # generic parser
+    test_generic_parser = GenericParser(test_generic_blueprint)
+    assert test_generic_parser is not None, \
+        'expect generic construction to complete'
+    assert test_generic_parser._get_from_list('Observation.type', index=0) \
+           == 'generic_parser_value', 'wrong generic plan value'
+
+    # fits parser
+    test_fits_blueprint = ObsBlueprint(module=test_module)
+    test_fits_blueprint.set('Observation.type', '_get_test_obs_type(parameters)')
+    test_fits_parser = FitsParser(src=sample_file_4axes,
+                                  obs_blueprint=test_fits_blueprint)
+    assert test_fits_parser is not None, \
+        'expect fits construction to complete'
+    assert test_fits_parser._get_from_list('Observation.type', index=0) \
+           == 'fits_parser_value', 'wrong fits plan value'
 
 
 def test_update_artifact_meta_errors():
@@ -1415,3 +1465,11 @@ def _get_node(uri, limit, force):
     node.props = {'MD5': '5b00b00d4b06aba986c3663d09aa581f',
                   'length': 682560}
     return node
+
+
+def _get_test_obs_type(parameters):
+    assert parameters is not None
+    if parameters.get('header') is None:
+        return 'generic_parser_value'
+    else:
+        return 'fits_parser_value'
