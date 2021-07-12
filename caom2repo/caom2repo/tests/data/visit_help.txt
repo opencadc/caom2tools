@@ -1,8 +1,7 @@
 usage: caom2-repo visit [-h]
                         [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
-                        [--host HOST] [--resource-id RESOURCE_ID]
-                        [-d | -q | -v] --plugin PLUGIN [--start START]
-                        [--end END] [--obs_file OBS_FILE]
+                        [--resource-id RESOURCE_ID] [-q | -v] --plugin PLUGIN
+                        [--start START] [--end END] [--obs_file OBS_FILE]
                         [--threads {2,3,4,5,6,7,8,9}] [--halt-on-error]
                         collection
 
@@ -14,14 +13,11 @@ positional arguments:
 optional arguments:
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
-  -d, --debug           debug messages
   --end END             latest observation to visit (UTC IVOA format: YYYY-mm-
                         ddTH:M:S)
   --halt-on-error       stop visitor on first update exception raised by
                         plugin
   -h, --help            show this help message and exit
-  --host HOST           base hostname for services - used mainly for testing
-                        (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
   -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication

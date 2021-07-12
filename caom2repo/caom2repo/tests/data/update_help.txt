@@ -1,7 +1,6 @@
 usage: caom2-repo update [-h]
                          [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
-                         [--host HOST] [--resource-id RESOURCE_ID]
-                         [-d | -q | -v]
+                         [--resource-id RESOURCE_ID] [-q | -v]
                          observation
 
 Update an existing observation
@@ -12,10 +11,7 @@ positional arguments:
 optional arguments:
   --cert CERT           location of your X509 certificate to use for
                         authentication (unencrypted, in PEM format)
-  -d, --debug           debug messages
   -h, --help            show this help message and exit
-  --host HOST           base hostname for services - used mainly for testing
-                        (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
   -n                    use .netrc in $HOME for authentication
   --netrc-file NETRC_FILE
                         netrc file to use for authentication
