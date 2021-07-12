@@ -1,7 +1,6 @@
 usage: fits2caom2 [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
-                  [--host HOST] [--resource-id RESOURCE_ID] [-d | -q | -v]
-                  [-V] [--dumpconfig] [--not_connected] [--no_validate]
-                  [-o OUT_OBS_XML]
+                  [--resource-id RESOURCE_ID] [-q | -v] [-V] [--dumpconfig]
+                  [--not_connected] [--no_validate] [-o OUT_OBS_XML]
                   (-i IN_OBS_XML | --observation collection observationID)
                   [--local LOCAL [LOCAL ...]] [--productID PRODUCTID]
                   [--config CONFIG] [--default DEFAULT] [--override OVERRIDE]
@@ -17,12 +16,9 @@ optional arguments:
                         authentication (unencrypted, in PEM format)
   --config CONFIG       optional CAOM2 utype to keyword config file to merge
                         with the internal configuration
-  -d, --debug           debug messages
   --default DEFAULT     file with default values for keywords
   --dumpconfig          output the utype to keyword mapping to the console
   -h, --help            show this help message and exit
-  --host HOST           base hostname for services - used mainly for testing
-                        (default: www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca)
   -i, --in IN_OBS_XML   input of observation to be augmented in XML
   --local LOCAL [LOCAL ...]
                         list of files in local filesystem (same order as uri)
