@@ -3695,6 +3695,7 @@ def get_si_headers(uri, subject, resource_id):
         subject = net.Subject()
     client = StorageInventoryClient(subject=subject, resource_id=resource_id)
     b = BytesIO()
+    b.name = uri
     client.cadcget(uri, b, fhead=True)
     fits_header = b.getvalue().decode('ascii')
     b.close()
