@@ -110,7 +110,7 @@ from hashlib import md5
 from os import stat
 from six.moves.urllib.parse import urlparse
 from cadcutils import net, util
-from cadcdata import CadcDataClient
+from cadcdata import CadcDataClient, StorageInventoryClient
 from vos import Client
 from io import BytesIO
 import six
@@ -3652,6 +3652,8 @@ def get_cadc_headers(uri, subject=None):
         fits_header = b.getvalue().decode('ascii')
         b.close()
         headers = _make_headers_from_string(fits_header)
+    elif file_url.scheme == 'cadc':
+        headers = get_si_headers(uri, subject)
     elif file_url.scheme == 'file':
         try:
             fits_header = open(file_url.path).read()
@@ -3660,7 +3662,7 @@ def get_cadc_headers(uri, subject=None):
             headers = _get_headers_from_fits(file_url.path)
     else:
         # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad type URIs supported for '
+        raise NotImplementedError('Only ad/cadc type URIs supported for '
                                   '{}'.format(uri))
     return headers
 
@@ -3686,6 +3688,17 @@ def get_external_headers(external_url):
     except Exception as e:
         logging.error('Connection failed to {}.\n{}'.format(external_url, e))
         raise RuntimeError(e)
+
+
+def get_si_headers(uri, subject, resource_id):
+    if subject is None:
+        subject = net.Subject()
+    client = StorageInventoryClient(subject=subject, resource_id=resource_id)
+    b = BytesIO()
+    client.cadcget(uri, b, fhead=True)
+    fits_header = b.getvalue().decode('ascii')
+    b.close()
+    return _make_headers_from_string(fits_header)
 
 
 def get_vos_headers(uri, subject=None):
@@ -3763,7 +3776,8 @@ def _get_headers_from_fits(path):
     return headers
 
 
-def _update_artifact_meta(uri, artifact, subject=None, connected=True):
+def _update_artifact_meta(uri, artifact, subject=None, connected=True,
+                          resource_id=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
@@ -3785,19 +3799,25 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True):
             # because the metadata is available long before the data
             # will be stored at CADC
             return
-    elif file_url.scheme in ['cadc', 'vos']:
+    elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
+    elif file_url.scheme == 'cadc':
+        metadata = _get_si_meta(subject, uri, resource_id)
     elif file_url.scheme == 'file':
         if (file_url.path.endswith('.header') and subject is not None and
                 connected):
-            # if header is on disk, get the content_* from ad
+            # if header is on disk, get the content_* from CADC
             try:
-                metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
+                metadata = _get_si_meta(subject, artifact.uri, resource_id)
             except exceptions.NotFoundException:
-                logging.info(
-                    'Could not find {} at CADC. No Artifact metadata.'.format(
-                        urlparse(artifact.uri).path))
-                return
+                try:
+                    metadata = _get_cadc_meta(
+                        subject, urlparse(artifact.uri).path)
+                except exceptions.NotFoundException:
+                    logging.info(
+                        'Could not find {} at CADC. No Artifact '
+                        'metadata.'.format(urlparse(artifact.uri).path))
+                    return
         else:
             metadata = _get_file_meta(file_url.path)
     else:
@@ -3852,6 +3872,19 @@ def _get_file_meta(path):
     meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
     meta['type'] = _get_type(path)
     return meta
+
+
+def _get_si_meta(subject, uri, resource_id):
+    """
+    Gets contentType, contentLength and contentChecksum of an artifact in
+    StorageInventory.
+    """
+    client = StorageInventoryClient(subject=subject, resource_id=resource_id)
+    temp = client.cadcinfo(uri)
+    # make the result look like the other possible ways to obtain metadata
+    return {'size': temp.size,
+            'md5sum': temp.md5sum,
+            'type': temp.file_type}
 
 
 def _get_vos_meta(subject, uri):
@@ -4004,10 +4037,12 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 'Using a FitsParser for remote headers {}'.format(uri))
             parser = FitsParser(headers, blueprint, uri=uri)
     else:
-        if (uri.endswith('.fits') or uri.endswith('.fits.gz') or
-                uri.endswith('.fits.fz')):
+        if '.fits' in uri:
             if uri.startswith('vos'):
                 headers = get_vos_headers(uri, subject)
+            elif uri.startswith('cadc'):
+                resource_id = kwargs.get('resource_id')
+                headers = get_si_headers(uri, subject, resource_id)
             else:
                 headers = get_cadc_headers(uri, subject)
             logging.debug('Using a FitsParser for remote file {}'.format(uri))
@@ -4021,8 +4056,9 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if parser is None:
         result = None
     else:
+        resource_id = kwargs.get('resource_id')
         _update_artifact_meta(
-            meta_uri, plane.artifacts[uri], subject, connected)
+            meta_uri, plane.artifacts[uri], subject, connected, resource_id)
 
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
@@ -4528,6 +4564,7 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
     kwargs = {}
     if params is not None:
         kwargs = params.get('visit_args')
+    kwargs['resource_id'] = args.resource_id
 
     obs = _gen_obs(blueprints, in_obs_xml, collection, observation)
     subject = net.Subject(username=None, certificate=None, netrc=netrc)

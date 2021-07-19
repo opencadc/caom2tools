@@ -69,6 +69,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from cadcutils import exceptions
 from caom2utils import legacy, fits2caom2
 from caom2 import ObservationReader, ObservationWriter
 from caom2.diff import get_differences
@@ -141,7 +142,11 @@ def test_differences(directory):
 
     with patch('caom2utils.fits2caom2.CadcDataClient') as dc_mock,  \
             patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
-            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock:
+            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock, \
+            patch('caom2utils.fits2caom2.StorageInventoryClient') as si_mock:
+        def cadcinfo_mock(uri):
+            raise exceptions.NotFoundException(uri)
+
         def get_file_info(archive, file_id):
             return file_meta[1][(archive, file_id)]
 
@@ -161,6 +166,7 @@ def test_differences(directory):
         dc_mock.return_value.get_file_info.side_effect = get_file_info
         gvh_mock.side_effect = _get_vos_headers
         gvm_mock.side_effect = _vos_client_meta
+        si_mock.return_value.cadcinfo.side_effect = cadcinfo_mock
 
         temp = tempfile.NamedTemporaryFile()
         sys.argv = ('{} -o {} --observation {} {} {} {} '.format(

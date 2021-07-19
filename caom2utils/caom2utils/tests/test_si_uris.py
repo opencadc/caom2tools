@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2017.                            (c) 2017.
+#  (c) 2021.                            (c) 2021.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -62,72 +62,61 @@
 #  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
 #                                       <http://www.gnu.org/licenses/>.
 #
-#  $Revision: 4 $
+#  : 4 $
 #
 # ***********************************************************************
 #
 
-""" Defines TestCaom2IdGenerator class """
+from __future__ import (absolute_import, unicode_literals)
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-import unittest
-import binascii
 import os
 import sys
-import logging
-
-from cadcutils.net import auth
-from caom2repo.core import CAOM2RepoClient
-from caom2 import observation
-from datetime import datetime
-
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-
-logger = logging.getLogger('TestCaom2Integration')
-
-class TestCaom2Integration(unittest.TestCase):
+from cadcdata import FileInfo
+from caom2 import obs_reader_writer
+from caom2utils import fits2caom2
+from mock import patch
+from . import test_collections as tc
 
 
-    def runTest(self):
-        self.test_create_and_visit()
-            
-    def test_create_and_visit(self):
+@patch('caom2utils.fits2caom2.StorageInventoryClient', autospec=True)
+def test_cadc_uri(si_mock):
+    def _get_mock(id_ignore, dest, fhead):
+        dest.write(b"""SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
+BITPIX  =                  -32 / Bits per pixel
+NAXIS   =                    2 / Number of dimensions
+NAXIS1  =                 2048 /
+NAXIS2  =                 2048 /
+DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
+END
+"""
+            )
 
-        #logger.setLevel(logging.DEBUG)
-        logger.info('-- START: test_create_and_visit --')
+    def _info_mock(uri):
+        return FileInfo(
+            id=uri, size=12, file_type='application/fits', md5sum='abc')
 
-        start = datetime.now()
-        name = obs_name = 'caom2pyinttest{}'.format(start.microsecond)
+    si_mock.return_value.cadcget.side_effect = _get_mock
+    si_mock.return_value.cadcinfo.side_effect = _info_mock
 
-        try:
-            env_a = os.environ['A']
-            cert_file = env_a + '/test-certificates/x509_CADCAuthtest1.pem'
-            subject = auth.Subject(certificate=cert_file)
-            client = CAOM2RepoClient(subject)
-            
-            # create one observation for today
-            algorithm = observation.SimpleObservation._DEFAULT_ALGORITHM_NAME
+    working_dir = os.path.join(tc.TESTDATA_DIR, 'si')
+    out_fqn = os.path.join(working_dir, 'test_out.xml')
+    bp_fqn = os.path.join(working_dir, 'si.blueprint')
 
-            logger.debug("test obs name {}".format(name))
-            obs = observation.SimpleObservation("TEST", obs_name)
-            obs.algorithm = algorithm
-            client.put_observation(obs)
+    if os.path.exists(out_fqn):
+        os.unlink(out_fqn)
 
-            plugin = os.path.join(THIS_DIR, 'visitor-plugin.py')
-            (visited, updated, skipped, failed) = client.visit(plugin, 'TEST', start=start, halt_on_error=True)
-            logger.debug("observations visited: {}".format(len(visited)))
-            
-            self.assertGreater(len(visited), 0, msg="No Observations Visited")
-            
-        finally:
-            try:
-                client.delete_observation("TEST", name)
-            except:
-                logger.warning('Failed to delete test observation, continuing')
-            logger.info('-- END :test_create_and_visit --')
-        
+    sys.argv = ('caom2gen --debug -o {} '
+                '--resource-id ivo://cadc.nrc.ca/test '
+                '--observation TEST_COLLECTION TEST_OBS_ID '
+                '--lineage test_product_id/cadc:TEST/test_file.fits '
+                '--blueprint {}'.format(out_fqn, bp_fqn)).split()
+    fits2caom2.caom2gen()
 
-if __name__ == '__main__':
-    unittest.main()
+    assert os.path.exists(out_fqn), 'expect output file'
+    obs_reader = obs_reader_writer.ObservationReader()
+    obs = obs_reader.read(out_fqn)
+    assert obs is not None, 'expect an Observation'
+    assert obs.algorithm.name == 'exposure', 'wrong algorithm construction'
+
+    if os.path.exists(out_fqn):
+        os.unlink(out_fqn)

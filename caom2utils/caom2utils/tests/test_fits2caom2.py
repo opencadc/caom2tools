@@ -1376,16 +1376,23 @@ def test_update_artifact_meta_errors():
         assert test_artifact.content_length == 42, 'length'
         assert test_artifact.content_type == 'application/octet', 'type'
 
-    with patch('caom2utils.fits2caom2._get_cadc_meta') as get_meta_mock:
+    with patch('caom2utils.fits2caom2._get_cadc_meta') as get_meta_mock, \
+         patch('caom2utils.fits2caom2._get_si_meta') as get_si_meta_mock:
         def _mock(ig, nore):
-            logging.error('here?')
             raise exceptions.NotFoundException()
+
+        def _si_mock(subject_ignore, uri_ignore, resource_id_ignore):
+            raise exceptions.NotFoundException()
+
         get_meta_mock.side_effect = _mock
+        get_si_meta_mock.side_effect = _si_mock
         test_uri = 'file:///test.fits.header'
         test_artifact = Artifact(uri=test_uri,
                                  product_type=ProductType.SCIENCE,
                                  release_type=ReleaseType.DATA)
-        _update_artifact_meta(test_uri, test_artifact, net.Subject())
+        test_resource_id = 'ivo://cadc.nrc.ca/test'
+        _update_artifact_meta(test_uri, test_artifact, net.Subject(),
+                              test_resource_id)
         assert test_artifact.content_type is None, 'type'
         assert test_artifact.content_length is None, 'length'
         assert test_artifact.content_checksum is None, 'checksum'
