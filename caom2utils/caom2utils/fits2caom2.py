@@ -4481,6 +4481,8 @@ def gen_proc(args, blueprints, **kwargs):
         use_generic_parser = False
         if args.use_generic_parser:
             use_generic_parser = uri in args.use_generic_parser
+        if args.resource_id:
+            kwargs['resource_id'] = args.resource_id
 
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
