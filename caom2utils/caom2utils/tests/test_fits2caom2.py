@@ -1412,7 +1412,8 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     sys.argv = ['fits2caom2', '--local', fname,
                 '--observation', 'test_collection_id',
                 'test_observation_id', '--lineage',
-                f'test_product_id/ad:TEST/{fname}']
+                f'test_product_id/ad:TEST/{fname}', '--resource-id',
+                'ivo://cadc.nrc.ca/test']
     test_args = get_gen_proc_arg_parser().parse_args()
     test_blueprints = {'test_collection_id': ObsBlueprint()}
     test_result = gen_proc(test_args, test_blueprints)

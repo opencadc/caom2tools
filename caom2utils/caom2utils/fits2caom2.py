@@ -4186,7 +4186,13 @@ def proc(args, obs_blueprints):
             raise RuntimeError(msg)
 
     subject = net.Subject.from_cmd_line_args(args)
-    client = StorageClientWrapper(subject, resource_id=args.resource_id)
+    if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
+        # if the resource_id is the default value, using CadcDataClient
+        client = StorageClientWrapper(subject, using_storage_inventory=False)
+    else:
+        # using the new Storage Inventory system, since it's the one that
+        # depends on a resource_id
+        client = StorageClientWrapper(subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
@@ -4292,7 +4298,13 @@ def gen_proc(args, blueprints, **kwargs):
                        args.observation[1])
 
     subject = net.Subject.from_cmd_line_args(args)
-    client = StorageClientWrapper(subject, resource_id=args.resource_id)
+    if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
+        # if the resource_id is the default value, using CadcDataClient
+        client = StorageClientWrapper(subject, using_storage_inventory=False)
+    else:
+        # using the new Storage Inventory system, since it's the one that
+        # depends on a resource_id
+        client = StorageClientWrapper(subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
