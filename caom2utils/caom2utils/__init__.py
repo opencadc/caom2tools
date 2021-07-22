@@ -4,6 +4,7 @@
 TODO
 """
 
+from .cadc_client_wrapper import *
 from .fits2caom2 import *  # noqa
 from .legacy import *  # noqa
 from .wcs_util import * # noqa

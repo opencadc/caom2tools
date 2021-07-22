@@ -79,7 +79,7 @@ import math
 from astropy.wcs import Wcsprm
 from astropy.io import fits
 from astropy.time import Time
-from cadcutils import version, exceptions
+from cadcutils import version
 from caom2.caom_util import int_32
 from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
@@ -94,6 +94,7 @@ from caom2 import SimpleObservation, DerivedObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
 from caom2 import CoordRange2D, TypedSet, CustomWCS, Observable
 from caom2 import CompositeObservation, EnergyTransition
+from caom2utils.cadc_client_wrapper import StorageClientWrapper
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -106,13 +107,10 @@ import tempfile
 import traceback
 from abc import ABCMeta
 from six import add_metaclass
-from hashlib import md5
-from os import stat
 from six.moves.urllib.parse import urlparse
 from cadcutils import net, util
-from cadcdata import CadcDataClient, StorageInventoryClient
+from cadcdata import FileInfo
 from vos import Client
-from io import BytesIO
 import six
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -120,7 +118,7 @@ from requests.packages.urllib3.util.retry import Retry
 APP_NAME = 'caom2gen'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
-           'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
+           'ObsBlueprint', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
            'GenericParser', 'augment', 'get_vos_headers',
            'get_external_headers']
@@ -3625,45 +3623,14 @@ def _set_by_type(header, keyword, value):
         header.set(keyword, value)
 
 
-def get_cadc_headers(uri, subject=None):
-    """
-    Creates the FITS headers object from a either a local file or it
-    fetches the FITS headers of a CADC file. The function takes advantage
-    of the fhead feature of the CADC storage service and retrieves just the
-    headers and no data, minimizing the transfer time.
-    :param uri: CADC ('ad:') or local file ('file:') URI
-    :param subject: user credentials. Anonymous if subject is None
-    :return: List of headers corresponding to each extension. Each header is
-    of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
-    """
-    file_url = urlparse(uri)
-    # TODO if file_url.scheme == 'cadc', need to get vos headers
-    if (file_url.scheme == 'ad' or
-            file_url.scheme == 'gemini'):
-        # create possible types of subjects
-        if not subject:
-            subject = net.Subject()
-        client = CadcDataClient(subject)
-        # do a fhead on the file
-        archive, file_id = file_url.path.split('/')
-        b = BytesIO()
-        b.name = uri
-        client.get_file(archive, file_id, b, fhead=True)
-        fits_header = b.getvalue().decode('ascii')
-        b.close()
-        headers = _make_headers_from_string(fits_header)
-    elif file_url.scheme == 'cadc':
-        headers = get_si_headers(uri, subject)
-    elif file_url.scheme == 'file':
-        try:
-            fits_header = open(file_url.path).read()
-            headers = _make_headers_from_string(fits_header)
-        except UnicodeDecodeError:
-            headers = _get_headers_from_fits(file_url.path)
-    else:
-        # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad/cadc type URIs supported for '
-                                  '{}'.format(uri))
+def get_local_file_headers(fqn):
+    file_uri = urlparse(fqn)
+    try:
+        fits_header = open(file_uri.path).read()
+        headers = StorageClientWrapper.make_headers_from_string(
+            fits_header)
+    except UnicodeDecodeError:
+        headers = _get_headers_from_fits(file_uri.path)
     return headers
 
 
@@ -3678,7 +3645,7 @@ def get_external_headers(external_url):
         session.mount('https://', adapter)
         r = session.get(external_url, timeout=20)
         if r.status_code == requests.codes.ok:
-            headers = _make_headers_from_string(r.text)
+            headers = StorageClientWrapper.make_headers_from_string(r.text)
         else:
             headers = None
             logging.warning('Error {} when retrieving {} headers.'.format(
@@ -3690,23 +3657,12 @@ def get_external_headers(external_url):
         raise RuntimeError(e)
 
 
-def get_si_headers(uri, subject, resource_id):
-    if subject is None:
-        subject = net.Subject()
-    client = StorageInventoryClient(subject=subject, resource_id=resource_id)
-    b = BytesIO()
-    b.name = uri
-    client.cadcget(uri, b, fhead=True)
-    fits_header = b.getvalue().decode('ascii')
-    b.close()
-    return _make_headers_from_string(fits_header)
-
-
 def get_vos_headers(uri, subject=None):
     """
     Creates the FITS headers object from a vospace file.
     :param uri: vos URI
     :param subject: user credentials. Anonymous if subject is None
+    :param cadc_client: StorageClientWrapper instance
     :return: List of headers corresponding to each extension. Each header is
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
@@ -3718,53 +3674,10 @@ def get_vos_headers(uri, subject=None):
 
         temp_filename = tempfile.NamedTemporaryFile()
         client.copy(uri, temp_filename.name, head=True)
-        return get_cadc_headers('file://{}'.format(temp_filename.name),
-                                subject=None)
+        return get_local_file_headers('file://{}'.format(temp_filename.name))
     else:
         # this should be a programming error by now
         raise NotImplementedError('Only vos type URIs supported')
-
-
-def _make_headers_from_string(fits_header):
-    """Create a list of fits.Header instances from a string.
-    ":param fits_header a string of keyword/value pairs"""
-    fits_header = _clean_headers(fits_header)
-    delim = 'END\n'
-    extensions = \
-        [e + delim for e in fits_header.split(delim) if e.strip()]
-    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
-    return headers
-
-
-def _clean_headers(fits_header):
-    """
-    Hopefully not Gemini specific.
-    Remove invalid cards and add missing END cards after extensions.
-    :param fits_header: fits_header a string of keyword/value pairs
-    """
-    new_header = []
-    first_header_encountered = False
-    for line in fits_header.split('\n'):
-        if len(line.strip()) == 0:
-            pass
-        elif line.startswith('--- PHU ---'):
-            first_header_encountered = True
-        elif line.startswith('--- HDU 0'):
-            if first_header_encountered:
-                new_header.append('END\n')
-            else:
-                first_header_encountered = True
-        elif line.startswith('--- HDU'):
-            new_header.append('END\n')
-        elif line.strip() == 'END':
-            new_header.append('END\n')
-        elif '=' not in line and not (line.startswith('COMMENT') or
-                                      line.startswith('HISTORY')):
-            pass
-        else:
-            new_header.append('{}\n'.format(line))
-    new_header.append('END\n')
-    return ''.join(new_header)
 
 
 def _get_headers_from_fits(path):
@@ -3778,53 +3691,46 @@ def _get_headers_from_fits(path):
 
 
 def _update_artifact_meta(uri, artifact, subject=None, connected=True,
-                          resource_id=None):
+                          client=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
     :param subject: User credentials
     :param connected: True if there's a network connection
+    :param client: connection to CADC storage
     :return:
     """
     file_url = urlparse(uri)
-    # TODO - if file_url.scheme == 'cadc', need to use vos to get
-    # artifact metadata
-    if file_url.scheme == 'ad':
-        metadata = _get_cadc_meta(subject, file_url.path)
-    elif file_url.scheme == 'gemini':
-        if '.jpg' in file_url.path:
-            # will always get file metadata from CADC for previews
-            metadata = _get_cadc_meta(subject, file_url.path)
-        else:
-            # will get file metadata from Gemini JSON summary for fits,
-            # because the metadata is available long before the data
-            # will be stored at CADC
-            return
+    if (file_url.scheme in ['ad', 'cadc'] or
+            (file_url.scheme == 'gemini' and '.jpg' in file_url.path)):
+        metadata = client.info(uri)
+    elif file_url.scheme == 'gemini' and '.jpg' not in file_url.path:
+        # will get file metadata from Gemini JSON summary for fits,
+        # because the metadata is available long before the data
+        # will be stored at CADC
+        return
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
-    elif file_url.scheme == 'cadc':
-        metadata = _get_si_meta(subject, uri, resource_id)
     elif file_url.scheme == 'file':
         if (file_url.path.endswith('.header') and subject is not None and
                 connected):
-            # if header is on disk, get the content_* from CADC
-            try:
-                metadata = _get_si_meta(subject, artifact.uri, resource_id)
-            except exceptions.NotFoundException:
-                try:
-                    metadata = _get_cadc_meta(
-                        subject, urlparse(artifact.uri).path)
-                except exceptions.NotFoundException:
+            if artifact.uri.startswith('vos'):
+                metadata = _get_vos_meta(subject, artifact.uri)
+            else:
+                # if header is on disk, get the content_* from CADC
+                metadata = client.info(artifact.uri)
+                if metadata is None:
                     logging.info(
                         'Could not find {} at CADC. No Artifact '
-                        'metadata.'.format(urlparse(artifact.uri).path))
+                        'metadata.'.format(artifact.uri))
                     return
         else:
-            metadata = _get_file_meta(file_url.path)
+            metadata = StorageClientWrapper.get_local_file_info(file_url.path)
     else:
         # TODO add hook to support other service providers
         raise NotImplementedError(
-            'Only ad, gemini and vos type URIs supported for {}'.format(uri))
+            'Only ad, cadc, gemini and vos type URIs supported for {}'.format(
+                uri))
 
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
@@ -3832,60 +3738,20 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
                          artifact.content_checksum,
                          artifact.content_length,
                          artifact.content_type))
-    md5sum = metadata.get('md5sum')
-    if md5sum is not None:
-        if md5sum.startswith('md5:'):
-            checksum = ChecksumURI('{}'.format(md5sum))
+    if metadata.md5sum is not None:
+        if metadata.md5sum.startswith('md5:'):
+            checksum = ChecksumURI(metadata.md5sum)
         else:
-            checksum = ChecksumURI('md5:{}'.format(md5sum))
+            checksum = ChecksumURI('md5:{}'.format(metadata.md5sum))
         artifact.content_checksum = checksum
-    artifact.content_length = _to_int(metadata.get('size'))
-    artifact.content_type = _to_str(metadata.get('type'))
+    artifact.content_length = _to_int(metadata.size)
+    artifact.content_type = _to_str(metadata.file_type)
     logging.debug('updated artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
                          artifact.content_checksum,
                          artifact.content_length,
                          artifact.content_type))
-
-
-def _get_cadc_meta(subject, path):
-    """
-    Gets contentType, contentLength and contentChecksum of a CADC artifact
-    :param subject: user credentials
-    :param path:
-    :return:
-    """
-    client = CadcDataClient(subject)
-    archive, file_id = path.split('/')[-2:]
-    return client.get_file_info(archive, file_id)
-
-
-def _get_file_meta(path):
-    """
-    Gets contentType, contentLength and contentChecksum of an artifact on disk.
-    :param path:
-    :return:
-    """
-    meta = {}
-    s = stat(path)
-    meta['size'] = s.st_size
-    meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
-    meta['type'] = _get_type(path)
-    return meta
-
-
-def _get_si_meta(subject, uri, resource_id):
-    """
-    Gets contentType, contentLength and contentChecksum of an artifact in
-    StorageInventory.
-    """
-    client = StorageInventoryClient(subject=subject, resource_id=resource_id)
-    temp = client.cadcinfo(uri)
-    # make the result look like the other possible ways to obtain metadata
-    return {'size': temp.size,
-            'md5sum': temp.md5sum,
-            'type': temp.file_type}
 
 
 def _get_vos_meta(subject, uri):
@@ -3900,32 +3766,9 @@ def _get_vos_meta(subject, uri):
     else:
         client = Client()
     node = client.get_node(uri, limit=None, force=False)
-    return {'size': node.props['length'],
-            'md5sum': node.props['MD5'],
-            'type': _get_type(uri)}
-
-
-def _get_type(path):
-    """Basic header extension to content_type lookup."""
-    if (path.endswith('.header') or path.endswith('.txt') or
-            path.endswith('.cat')):
-        return 'text/plain'
-    elif path.endswith('.gif'):
-        return 'image/gif'
-    elif path.endswith('.png'):
-        return 'image/png'
-    elif path.endswith('.jpg'):
-        return 'image/jpeg'
-    elif path.endswith('.tar.gz'):
-        return 'application/x-tar'
-    elif path.endswith('.jpg'):
-        return 'image/jpeg'
-    elif path.endswith('.csv'):
-        return 'text/csv'
-    elif path.endswith('.hdf5') or path.endswith('.h5'):
-        return 'application/x-hdf5'
-    else:
-        return 'application/fits'
+    return FileInfo(id=uri, size=node.props['length'],
+                    md5sum=node.props['MD5'],
+                    file_type=StorageClientWrapper.get_file_type(uri))
 
 
 def _lookup_blueprint(blueprints, uri):
@@ -3955,7 +3798,7 @@ def _extract_ids(cardinality):
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
              validate_wcs=True, plugin=None, local=None,
              external_url=None, connected=True, use_generic_parser=False,
-             **kwargs):
+             client=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3973,6 +3816,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     :param local: the input is the name of a file on disk
     :param external_url: if header information should be retrieved
         externally, this is where to find it
+    :param client: StorageClientWrapper
     :return: an updated Observation
     """
     if dumpconfig:
@@ -4001,8 +3845,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 meta_uri = 'file://{}'.format(local)
                 logging.debug(
                     'Using a FitsParser for vos local {}'.format(local))
-                parser = FitsParser(
-                    get_cadc_headers(meta_uri), blueprint, uri=uri)
+                headers = get_local_file_headers(local)
+                parser = FitsParser(headers, blueprint, uri=uri)
             elif '.csv' in local:
                 logging.debug(
                     'Using a GenericParser for vos local {}'.format(local))
@@ -4015,8 +3859,9 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             if '.header' in local and '.fits' in local:
                 logging.debug(
                     'Using a FitsParser for local file {}'.format(local))
-                parser = FitsParser(get_cadc_headers(meta_uri),
-                                    blueprint, uri=uri)
+                parser = FitsParser(
+                    get_local_file_headers(local), blueprint,
+                    uri=uri)
             elif (local.endswith('.fits') or local.endswith('.fits.gz') or
                     local.endswith('.fits.fz')):
                 logging.debug('Using a FitsParser for {}'.format(local))
@@ -4041,11 +3886,10 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         if '.fits' in uri:
             if uri.startswith('vos'):
                 headers = get_vos_headers(uri, subject)
-            elif uri.startswith('cadc'):
-                resource_id = kwargs.get('resource_id')
-                headers = get_si_headers(uri, subject, resource_id)
+            elif uri.startswith('file'):
+                headers = get_local_file_headers(uri)
             else:
-                headers = get_cadc_headers(uri, subject)
+                headers = client.get_head(uri)
             logging.debug('Using a FitsParser for remote file {}'.format(uri))
             parser = FitsParser(headers, blueprint, uri=uri)
         else:
@@ -4057,10 +3901,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if parser is None:
         result = None
     else:
-        resource_id = kwargs.get('resource_id')
         _update_artifact_meta(
-            meta_uri, plane.artifacts[uri], subject, connected, resource_id)
-
+            meta_uri, plane.artifacts[uri], subject, connected, client)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 
@@ -4352,6 +4194,7 @@ def proc(args, obs_blueprints):
             raise RuntimeError(msg)
 
     subject = net.Subject.from_cmd_line_args(args)
+    client = StorageClientWrapper(subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
@@ -4375,7 +4218,7 @@ def proc(args, obs_blueprints):
 
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, plugin=None,
-                       local=file_name)
+                       local=file_name, client=client)
 
     _write_observation(obs, args)
 
@@ -4457,6 +4300,7 @@ def gen_proc(args, blueprints, **kwargs):
                        args.observation[1])
 
     subject = net.Subject.from_cmd_line_args(args)
+    client = StorageClientWrapper(subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
@@ -4482,12 +4326,11 @@ def gen_proc(args, blueprints, **kwargs):
         use_generic_parser = False
         if args.use_generic_parser:
             use_generic_parser = uri in args.use_generic_parser
-        if args.resource_id:
-            kwargs['resource_id'] = args.resource_id
 
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
-                       external_url, connected, use_generic_parser, **kwargs)
+                       external_url, connected, use_generic_parser, client,
+                       **kwargs)
 
         if obs is None:
             logging.warning('No observation. Stop processing.')
@@ -4567,7 +4410,6 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
     kwargs = {}
     if params is not None:
         kwargs = params.get('visit_args')
-    kwargs['resource_id'] = args.resource_id
 
     obs = _gen_obs(blueprints, in_obs_xml, collection, observation)
     subject = net.Subject(username=None, certificate=None, netrc=netrc)

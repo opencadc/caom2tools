@@ -78,8 +78,9 @@ from mock import patch
 from . import test_collections as tc
 
 
-@patch('caom2utils.fits2caom2.StorageInventoryClient', autospec=True)
-def test_cadc_uri(si_mock):
+@patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
+@patch('caom2utils.cadc_client_wrapper.StorageInventoryClient', autospec=True)
+def test_cadc_uri(si_mock, ws_mock):
     def _get_mock(id_ignore, dest, fhead):
         dest.write(b"""SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
 BITPIX  =                  -32 / Bits per pixel

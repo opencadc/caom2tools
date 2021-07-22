@@ -69,8 +69,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from cadcutils import exceptions
-from caom2utils import legacy, fits2caom2
+from cadcdata import FileInfo
+from caom2utils import legacy, fits2caom2, cadc_client_wrapper
 from caom2 import ObservationReader, ObservationWriter
 from caom2.diff import get_differences
 
@@ -140,36 +140,48 @@ def test_differences(directory):
         cardinality = '{} {}'.format(product_id, temp)
         # return  # TODO shorter testing cycle
 
-    with patch('caom2utils.fits2caom2.CadcDataClient') as dc_mock,  \
+    with patch('caom2utils.cadc_client_wrapper.StorageInventoryClient') as swc_si_mock,\
+            patch('caom2utils.cadc_client_wrapper.CadcDataClient') as swc_data_mock,\
+            patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True) as cap_mock,\
             patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
-            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock, \
-            patch('caom2utils.fits2caom2.StorageInventoryClient') as si_mock:
-        def cadcinfo_mock(uri):
-            raise exceptions.NotFoundException(uri)
-
-        def get_file_info(archive, file_id):
-            return file_meta[1][(archive, file_id)]
+            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock:
+        def info_mock(uri):
+            if uri.startswith('vos'):
+                archive = uri.split('/')[-2]
+            elif uri.startswith('/'):
+                archive = uri.split('/')[-3].upper()
+            else:
+                archive = uri.split(':')[1].split('/')[0]
+            file_id = uri.split('/')[-1]
+            temp = file_meta[1][(archive, file_id)]
+            logging.error(temp)
+            return temp
 
         def _get_vos_headers(uri, subject=None):
             if uri.startswith('vos'):
                 fname = data_files_parameter.split()[1].strip()
                 fits_header = open(fname).read()
-                return fits2caom2._make_headers_from_string(fits_header)
+                return cadc_client_wrapper.StorageClientWrapper.\
+                    make_headers_from_string(fits_header)
             else:
                 return None
 
         def _vos_client_meta(subject, uri):
-            return {'md5sum': '5b00b00d4b06aba986c3663d09aa581f',
-                    'size': 682560,
-                    'type': 'application/fits'}
+            return FileInfo(id=uri,
+                            md5sum='5b00b00d4b06aba986c3663d09aa581f',
+                            size=682560,
+                            file_type='application/fits')
 
-        dc_mock.return_value.get_file_info.side_effect = get_file_info
+        swc_si_mock.return_value.cadcinfo.side_effect = info_mock
+        swc_si_mock.cadcget.return_value = []
+        cadc_client_wrapper.StorageClientWrapper.get_local_file_info.side_effect = info_mock
         gvh_mock.side_effect = _get_vos_headers
         gvm_mock.side_effect = _vos_client_meta
-        si_mock.return_value.cadcinfo.side_effect = cadcinfo_mock
+        cap_mock.return_value = 'https://localhost'
 
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('{} -o {} --observation {} {} {} {} '.format(
+        sys.argv = ('{} -o {} --observation {} {} {} {} '
+                    '--resource-id ivo://cadc.nrc.ca/test'.format(
                         application, temp.name,
                         expected.collection, expected.observation_id,
                         inputs, cardinality)).split()
@@ -272,12 +284,12 @@ def _get_uris(collection, fnames, obs):
                     if ('ad:{}/{}'.format(collection, f) in a.uri or
                             (a.uri.startswith('vos') and f in a.uri)):
                         uris.append(a.uri)
-                        meta = {}
-                        meta['type'] = a.content_type
-                        meta['size'] = a.content_length
-                        meta['md5sum'] = a.content_checksum.checksum
+                        meta = FileInfo(id=a.uri,
+                                        file_type=a.content_type,
+                                        size=a.content_length,
+                                        md5sum=a.content_checksum.checksum)
                         file_url = urlparse(a.uri)
-                        if file_url.scheme not in ['ad', 'vos']:
+                        if file_url.scheme not in ['ad', 'vos', 'cadc']:
                             # TODO add hook to support other service providers
                             raise NotImplementedError(
                                 'Only ad, vos type URIs supported')

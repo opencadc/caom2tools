@@ -73,6 +73,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from cadcutils import exceptions, net
+from cadcdata import FileInfo
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser
@@ -485,7 +486,8 @@ def test_help():
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         sys.argv = ["fits2caom2", "--observation", "test_collection_id",
                     "test_observation_id",
-                    "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
+                    "ad:CGPS/CGPS_MA1_HI_line_image.fits",
+                    "--resource-id", "ivo://cadc.nrc.ca/uvic/minoc"]
         with pytest.raises(MyExitError):
             main_app()
         result = stderr_mock.getvalue()
@@ -903,7 +905,12 @@ def test_file_scheme_uris():
     """ Tests that local files as URIs will be accepted and processed."""
 
     fname = 'file://{}'.format(sample_file_4axes)
-    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
+         patch('caom2utils.cadc_client_wrapper.StorageInventoryClient',
+               autospec=True), \
+         patch('cadcutils.net.ws.WsCapabilities.get_access_url',
+               autospec=True) as cap_mock:
+        cap_mock.return_value = 'https://localhost'
         sys.argv = ['fits2caom2', '--observation', 'test_collection_id',
                     'test_observation_id', '--productID', 'test_product_id',
                     '--config', java_config_file, '--override', test_override,
@@ -960,7 +967,12 @@ def test_generic_parser():
     """ Tests that GenericParser will be created."""
 
     fname = 'file://{}'.format(text_file)
-    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
+            patch('caom2utils.cadc_client_wrapper.StorageInventoryClient',
+                autospec=True), \
+            patch('cadcutils.net.ws.WsCapabilities.get_access_url',
+                autospec=True) as cap_mock:
+        cap_mock.return_value = 'https://localhost'
         sys.argv = ['fits2caom2', '--local', fname,
                     '--observation', 'test_collection_id',
                     'test_observation_id', '--productID', 'test_product_id',
@@ -1197,18 +1209,18 @@ def test_visit_generic_parser():
 def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
-    get_orig = caom2utils.fits2caom2.get_cadc_headers
+    get_orig = caom2utils.fits2caom2.get_local_file_headers
 
     try:
-        caom2utils.fits2caom2.get_cadc_headers = Mock(
-            side_effect=_get_headers)
+        caom2utils.fits2caom2.get_local_file_headers = Mock(
+            side_effect=_get_local_headers)
         test_headers = caom2utils.get_vos_headers(test_uri, subject=None)
         assert test_headers is not None, 'expect result'
         assert len(test_headers) == 1, 'wrong size of result'
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
         assert vos_mock.called, 'mock not called'
     finally:
-        caom2utils.fits2caom2.get_cadc_headers = get_orig
+        caom2utils.fits2caom2.get_local_file_headers = get_orig
 
 
 @patch('caom2utils.fits2caom2.Client')
@@ -1359,48 +1371,41 @@ def test_update_artifact_meta_errors():
         test_cirada = 'cirada://abc'
         _update_artifact_meta(test_cirada, test_artifact)
 
-    with patch('caom2utils.fits2caom2._get_cadc_meta') as get_meta_mock:
-        get_meta_mock.return_value = {'type': 'application/octet',
-                                      'size': 42,
-                                      'md5sum': 'md5:42'}
-        test_uri = 'gemini://test.fits'
-        _update_artifact_meta(test_uri, test_artifact)
-        assert test_artifact.content_checksum is None, 'checksum'
-        assert test_artifact.content_length is None, 'length'
-        assert test_artifact.content_type is None, 'type'
+    client_mock = Mock(autospec=True)
+    client_mock.info.return_value = \
+        FileInfo(id=test_uri, file_type='application/octet', size=42,
+                 md5sum='md5:42')
+    test_uri = 'gemini://test.fits'
+    _update_artifact_meta(test_uri, test_artifact, client=client_mock)
+    assert test_artifact.content_checksum is None, 'checksum'
+    assert test_artifact.content_length is None, 'length'
+    assert test_artifact.content_type is None, 'type'
 
-        test_uri = 'gemini:GEMINI/abc.jpg'
-        _update_artifact_meta(test_uri, test_artifact)
-        assert test_artifact.content_checksum == ChecksumURI(uri='md5:42'), \
-            'checksum'
-        assert test_artifact.content_length == 42, 'length'
-        assert test_artifact.content_type == 'application/octet', 'type'
+    test_uri = 'gemini:GEMINI/abc.jpg'
+    _update_artifact_meta(test_uri, test_artifact, client=client_mock)
+    assert test_artifact.content_checksum == ChecksumURI(uri='md5:42'), \
+        'checksum'
+    assert test_artifact.content_length == 42, 'length'
+    assert test_artifact.content_type == 'application/octet', 'type'
 
-    with patch('caom2utils.fits2caom2._get_cadc_meta') as get_meta_mock, \
-         patch('caom2utils.fits2caom2._get_si_meta') as get_si_meta_mock:
-        def _mock(ig, nore):
-            raise exceptions.NotFoundException()
-
-        def _si_mock(subject_ignore, uri_ignore, resource_id_ignore):
-            raise exceptions.NotFoundException()
-
-        get_meta_mock.side_effect = _mock
-        get_si_meta_mock.side_effect = _si_mock
-        test_uri = 'file:///test.fits.header'
-        test_artifact = Artifact(uri=test_uri,
-                                 product_type=ProductType.SCIENCE,
-                                 release_type=ReleaseType.DATA)
-        test_resource_id = 'ivo://cadc.nrc.ca/test'
-        _update_artifact_meta(test_uri, test_artifact, net.Subject(),
-                              test_resource_id)
-        assert test_artifact.content_type is None, 'type'
-        assert test_artifact.content_length is None, 'length'
-        assert test_artifact.content_checksum is None, 'checksum'
+    # TODO - does this increase coverage?
+    test_uri = 'file:///test.fits.header'
+    test_artifact = Artifact(uri=test_uri,
+                             product_type=ProductType.SCIENCE,
+                             release_type=ReleaseType.DATA)
+    client_mock.info.return_value = None
+    _update_artifact_meta(test_uri, test_artifact, net.Subject(),
+                          client=client_mock)
+    assert test_artifact.content_type is None, 'type'
+    assert test_artifact.content_length is None, 'length'
+    assert test_artifact.content_checksum is None, 'checksum'
 
 
+@patch('caom2utils.cadc_client_wrapper.StorageInventoryClient', autospec=True)
+@patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
 @patch('sys.stdout', new_callable=BytesIO)
 @patch('caom2utils.fits2caom2._augment')
-def test_gen_proc_failure(augment_mock, stdout_mock):
+def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     """ Tests that gen_proc can return -1."""
 
     augment_mock.return_value = None  # return a broken Observation instance
@@ -1418,6 +1423,10 @@ def test_gen_proc_failure(augment_mock, stdout_mock):
         actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
         result = get_differences(expected, actual, 'Observation')
         assert result is None
+
+
+def _get_local_headers(file_name):
+    return _get_headers(file_name, None)
 
 
 def _get_headers(file_name, subject):
