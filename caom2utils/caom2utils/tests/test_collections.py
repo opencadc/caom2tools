@@ -140,9 +140,10 @@ def test_differences(directory):
         cardinality = '{} {}'.format(product_id, temp)
         # return  # TODO shorter testing cycle
 
-    with patch('caom2utils.cadc_client_wrapper.StorageInventoryClient') as swc_si_mock,\
-            patch('caom2utils.cadc_client_wrapper.CadcDataClient') as swc_data_mock,\
-            patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True) as cap_mock,\
+    with patch('caom2utils.cadc_client_wrapper.StorageInventoryClient') as \
+            swc_si_mock,\
+            patch('cadcutils.net.ws.WsCapabilities.get_access_url',
+                  autospec=True) as cap_mock,\
             patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
             patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock:
         def info_mock(uri):
@@ -174,7 +175,8 @@ def test_differences(directory):
 
         swc_si_mock.return_value.cadcinfo.side_effect = info_mock
         swc_si_mock.cadcget.return_value = []
-        cadc_client_wrapper.StorageClientWrapper.get_local_file_info.side_effect = info_mock
+        cadc_client_wrapper.StorageClientWrapper.get_local_file_info.\
+            side_effect = info_mock
         gvh_mock.side_effect = _get_vos_headers
         gvm_mock.side_effect = _vos_client_meta
         cap_mock.return_value = 'https://localhost'

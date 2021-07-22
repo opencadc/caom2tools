@@ -82,15 +82,15 @@ from . import test_collections as tc
 @patch('caom2utils.cadc_client_wrapper.StorageInventoryClient', autospec=True)
 def test_cadc_uri(si_mock, ws_mock):
     def _get_mock(id_ignore, dest, fhead):
-        dest.write(b"""SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
+        dest.write(
+            b"""SIMPLE  =                    T / Written by IDL:  Fri Oct  6 01:48:35 2017
 BITPIX  =                  -32 / Bits per pixel
 NAXIS   =                    2 / Number of dimensions
 NAXIS1  =                 2048 /
 NAXIS2  =                 2048 /
 DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
-END
-"""
-            )
+END"""
+        )
 
     def _info_mock(uri):
         return FileInfo(

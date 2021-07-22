@@ -75,7 +75,7 @@ from cadcutils import exceptions
 from caom2utils import cadc_client_wrapper as ccw
 
 import pytest
-from mock import Mock, patch, ANY
+from mock import Mock, patch
 from . import test_fits2caom2
 
 
@@ -170,7 +170,7 @@ def test_storage_inventory_client(cadc_client_mock):
 
     def info_si_mock(ignore):
         return FileInfo(id=test_uri, file_type='application/fits',
-            md5sum='abc', size=42)
+                        md5sum='abc', size=42)
 
     def get_si_mock(ignore2, dest, **kwargs):
         fhead = kwargs.get('fhead')
@@ -266,7 +266,7 @@ def _check_put_result(client_mock):
             mime_encoding='',
             md5_check=True,
         ), 'wrong put args call'
-    except AssertionError as e:
+    except AssertionError:
         client_mock.assert_called_with(
             'cadc:TEST/test_file.fits',
             src=f'{test_fits2caom2.TESTDATA_DIR}/test_file.fits',

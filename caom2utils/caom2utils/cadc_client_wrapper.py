@@ -172,7 +172,7 @@ class StorageClientWrapper:
                     file_type=temp.get('type'),
                     md5sum=temp.get('md5sum')
                 )
-        except exceptions.NotFoundException as e1_ignore:
+        except exceptions.NotFoundException:
             self._logger.info(f'cadcinfo:: {uri} not found')
             result = None
         return result

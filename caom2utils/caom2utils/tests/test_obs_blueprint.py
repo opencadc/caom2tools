@@ -331,4 +331,4 @@ def test_has_chunk():
 
 def test_ctor_failure():
     with pytest.raises(ValueError):
-        test_subject = ObsBlueprint(position_axes=(1, 2, 3))
+        ObsBlueprint(position_axes=(1, 2, 3))

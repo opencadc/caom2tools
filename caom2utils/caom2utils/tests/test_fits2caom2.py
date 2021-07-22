@@ -72,7 +72,7 @@ from __future__ import (absolute_import, division, print_function,
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
-from cadcutils import exceptions, net
+from cadcutils import net
 from cadcdata import FileInfo
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
@@ -969,9 +969,9 @@ def test_generic_parser():
     fname = 'file://{}'.format(text_file)
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
             patch('caom2utils.cadc_client_wrapper.StorageInventoryClient',
-                autospec=True), \
+                  autospec=True), \
             patch('cadcutils.net.ws.WsCapabilities.get_access_url',
-                autospec=True) as cap_mock:
+                  autospec=True) as cap_mock:
         cap_mock.return_value = 'https://localhost'
         sys.argv = ['fits2caom2', '--local', fname,
                     '--observation', 'test_collection_id',
@@ -1342,7 +1342,8 @@ def test_apply_blueprint():
 def test_apply_blueprint_execute_external():
     test_module = importlib.import_module(__name__)
     test_generic_blueprint = ObsBlueprint(module=test_module)
-    test_generic_blueprint.set('Observation.type', '_get_test_obs_type(parameters)')
+    test_generic_blueprint.set(
+        'Observation.type', '_get_test_obs_type(parameters)')
 
     # generic parser
     test_generic_parser = GenericParser(test_generic_blueprint)
@@ -1353,7 +1354,8 @@ def test_apply_blueprint_execute_external():
 
     # fits parser
     test_fits_blueprint = ObsBlueprint(module=test_module)
-    test_fits_blueprint.set('Observation.type', '_get_test_obs_type(parameters)')
+    test_fits_blueprint.set(
+        'Observation.type', '_get_test_obs_type(parameters)')
     test_fits_parser = FitsParser(src=sample_file_4axes,
                                   obs_blueprint=test_fits_blueprint)
     assert test_fits_parser is not None, \
