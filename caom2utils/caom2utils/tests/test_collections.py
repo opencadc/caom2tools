@@ -77,8 +77,7 @@ import os
 import sys
 import tempfile
 from unittest.mock import patch, Mock
-from six.moves.urllib.parse import urlparse
-import six
+from urllib.parse import urlparse
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')

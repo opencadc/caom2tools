@@ -2334,8 +2334,7 @@ class FitsParser(GenericParser):
         :param artifact_uri: the key for finding the artifact to augment
         :param product_id: the key for finding for the plane to augment
         """
-        super().augment_observation(observation, artifact_uri,
-                                                    product_id)
+        super().augment_observation(observation, artifact_uri, product_id)
         self.logger.debug(
             'Begin observation augmentation for URI {}.'.format(
                 artifact_uri))
@@ -2540,7 +2539,7 @@ class FitsParser(GenericParser):
                  self.blueprint._get('CompositeObservation.members'))):
             raise TypeError(
                 'Cannot apply blueprint for DerivedObservation to a '
-                 'simple observation')
+                'simple observation')
         elif isinstance(obs, DerivedObservation):
             lookup = self.blueprint._get('DerivedObservation.members',
                                          extension=1)

@@ -73,7 +73,6 @@ from caom2 import artifact, observation, part, plane, caom_util, Axis, \
 from caom2.caom_util import TypedList, TypedOrderedDict
 from ..wcsvalidator import WcsPolarizationState
 import pytest
-import six
 import unittest
 
 single_test = False
@@ -91,7 +90,8 @@ class TemporalWCSValidatorTests(unittest.TestCase):
 
     def test_bad_temporalwcs(self):
         bad_temporal_wcs = TimeTestUtil.bad_ctype_wcs()
-        with self.assertRaisesRegex(InvalidWCSError, 'unexpected TIMESYS, CTYPE'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'unexpected TIMESYS, CTYPE'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
         bad_temporal_wcs = TimeTestUtil.bad_cunit_wcs()
@@ -99,7 +99,8 @@ class TemporalWCSValidatorTests(unittest.TestCase):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
         bad_temporal_wcs = TimeTestUtil.bad_range_wcs()
-        with self.assertRaisesRegex(InvalidWCSError, 'range.end not >= range.start'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'range.end not >= range.start'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
 
@@ -115,23 +116,28 @@ class CustomWCSValidatorTests(unittest.TestCase):
 
     def test_bad_customwcs(self):
         bad_custom_wcs = CustomTestUtil.bad_ctype_wcs()
-        with self.assertRaisesRegex(InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
         bad_custom_wcs = CustomTestUtil.bad_cunit_wcs()
-        with self.assertRaisesRegex(InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
         bad_custom_wcs = CustomTestUtil.bad_range_wcs()
-        with self.assertRaisesRegex(InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
         bad_custom_wcs = CustomTestUtil.bad_bounds_wcs()
-        with self.assertRaisesRegex(InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
         bad_custom_wcs = CustomTestUtil.bad_function_wcs()
-        with self.assertRaisesRegex(InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
 
