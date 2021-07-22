@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,8 +66,6 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 import os
 
@@ -135,7 +132,7 @@ def test_compatibility():
     source_file_path = os.path.join(THIS_DIR, TEST_DATA,
                                     'SampleComposite-CAOM-2.3.xml')
     reader = ObservationReader(True)
-    with open(source_file_path, 'r'):
+    with open(source_file_path):
         obs = reader.read(source_file_path)
 
     # shallow validates first

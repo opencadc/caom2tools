@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -264,7 +263,7 @@ class StorageClientWrapper:
                                           line.startswith('HISTORY')):
                 pass
             else:
-                new_header.append('{}\n'.format(line))
+                new_header.append(f'{line}\n')
         new_header.append('END\n')
         return ''.join(new_header)
 

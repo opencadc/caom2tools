@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,14 +66,12 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, unicode_literals)
-
 import os
 import sys
 from cadcdata import FileInfo
 from caom2 import obs_reader_writer
 from caom2utils import fits2caom2
-from mock import patch
+from unittest.mock import patch
 from . import test_collections as tc
 
 

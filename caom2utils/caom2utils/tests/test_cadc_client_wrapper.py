@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -75,7 +74,7 @@ from cadcutils import exceptions
 from caom2utils import cadc_client_wrapper as ccw
 
 import pytest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from . import test_fits2caom2
 
 

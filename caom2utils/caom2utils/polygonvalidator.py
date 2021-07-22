@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,10 +65,6 @@
 #
 # ***********************************************************************
 #
-
-from __future__ import (absolute_import, print_function, unicode_literals)
-
-import six
 
 import numpy as np
 from spherical_geometry import polygon, vector
@@ -170,7 +165,7 @@ def _validate_self_intersection_and_direction(ras, decs):
             'Polygon contains self intersecting segments')
 
     spolygon = polygon.SphericalPolygon.from_radec(ras, decs)
-    lon, lat = six.next(spolygon.to_lonlat())
+    lon, lat = next(spolygon.to_lonlat())
     _validate_is_clockwise(ras, lon)
 
 
@@ -186,7 +181,7 @@ def validate_multipolygon(mp):
         return
     if not isinstance(mp, MultiPolygon):
         raise ValueError(
-            'MultiPoligon expected in validation received {}'.format(type(mp)))
+            f'MultiPoligon expected in validation received {type(mp)}')
 
     _validate_size_and_end_vertices(mp)
 

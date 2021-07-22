@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,8 +65,6 @@
 #
 # ***********************************************************************
 #
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from caom2utils import ObsBlueprint
 
@@ -118,7 +115,7 @@ def test_obs_blueprint():
 
     # set default
     ob.clear('Observation.instrument.keywords')
-    ob.add_fits_attribute('Observation.instrument.keywords', str('INSTMODE'))
+    ob.add_fits_attribute('Observation.instrument.keywords', 'INSTMODE')
     assert "Observation.instrument.keywords = ['INSTMODE'], default = None" \
            in str(ob)
     ob.set_default('Observation.instrument.keywords', 'TEST')
@@ -128,8 +125,8 @@ def test_obs_blueprint():
            in str(ob)
 
     # set fits attribute
-    ob.add_fits_attribute('Observation.proposal.id', str('PROP'))
-    ob.add_fits_attribute('Observation.proposal.id', str('PROP2'))
+    ob.add_fits_attribute('Observation.proposal.id', 'PROP')
+    ob.add_fits_attribute('Observation.proposal.id', 'PROP2')
     ob.set_default('Observation.proposal.id', 'NOPROP')
     assert ob._plan['Observation.proposal.id'][0] == ['PROP2', 'PROP', 'RUNID']
     assert ob._plan['Observation.proposal.id'][1] == 'NOPROP'
@@ -146,9 +143,9 @@ def test_obs_blueprint():
     assert 'Chunk.energy.velang = 33' in extension1_str
 
     # set fits attribute in extension
-    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', str('MYCTYPE'),
+    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE',
                           extension=1)
-    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', str('MYCTYPE2'),
+    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
                           extension=1)
     ob.set_default('Chunk.energy.axis.axis.ctype', 'NOCTYPE', extension=1)
     extension1_str = str(ob)[str(ob).index('extension 1'):]

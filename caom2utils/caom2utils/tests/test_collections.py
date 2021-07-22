@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,8 +65,6 @@
 #
 # ***********************************************************************
 #
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from cadcdata import FileInfo
 from caom2utils import legacy, fits2caom2, cadc_client_wrapper
@@ -79,7 +76,7 @@ import logging
 import os
 import sys
 import tempfile
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 from six.moves.urllib.parse import urlparse
 import six
 
@@ -105,8 +102,8 @@ def test_differences(directory):
     assert len(expected_fname) == 1
     expected = _read_observation(expected_fname[0])  # expected observation
     assert len(expected.planes) == 1
-    prod_id = [p.product_id for p in six.itervalues(expected.planes)][0]
-    product_id = '--productID {}'.format(prod_id)
+    prod_id = [p.product_id for p in expected.planes.values()][0]
+    product_id = f'--productID {prod_id}'
     collection_id = expected.collection
     data_files = _get_files(['header', 'png', 'gif', 'cat', 'fits'], directory)
     assert data_files
@@ -123,7 +120,7 @@ def test_differences(directory):
         module = _get_parameter('module', directory)
         cardinality = _get_cardinality(directory)
         if module is not None:
-            inputs = '{} {}'.format(blueprints, module)
+            inputs = f'{blueprints} {module}'
         else:
             inputs = blueprints
         application = '{} {} '.format('caom2gen', data_files_parameter)
@@ -133,11 +130,11 @@ def test_differences(directory):
         assert defaults
         overrides = _get_parameter('override', directory)
         assert overrides
-        inputs = '{} {} {}'.format(config, defaults, overrides)
+        inputs = f'{config} {defaults} {overrides}'
         application = '{} {}'.format('fits2caom2', data_files_parameter)
         app_cmd = legacy.main_app
         temp = ' '.join(file_meta[0])
-        cardinality = '{} {}'.format(product_id, temp)
+        cardinality = f'{product_id} {temp}'
         # return  # TODO shorter testing cycle
 
     with patch('caom2utils.cadc_client_wrapper.StorageInventoryClient') as \
@@ -245,7 +242,7 @@ def _get_subdirs(dir_name):
 def _get_parameter(extension, dir_name):
     fnames = _get_file(extension, dir_name)
     if fnames:
-        result = '--{} {}'.format(extension, fnames[0])
+        result = f'--{extension} {fnames[0]}'
         return result
     else:
         return None
@@ -254,9 +251,9 @@ def _get_parameter(extension, dir_name):
 def _get_multi_parameter(extension, dir_name):
     fnames = _get_file(extension, dir_name)
     if fnames:
-        result = '--{}'.format(extension)
+        result = f'--{extension}'
         for fname in fnames:
-            result = '{} {}'.format(result, fname)
+            result = f'{result} {fname}'
         return result
     else:
         return None
@@ -266,7 +263,7 @@ def _get_data_files_parameter(fnames):
     if fnames:
         result = '--local'
         for fname in fnames:
-            result = '{} {}'.format(result, fname)
+            result = f'{result} {fname}'
         return result
     else:
         return None
@@ -283,7 +280,7 @@ def _get_uris(collection, fnames, obs):
             f = os.path.basename(fname).replace('.header', '')
             for p in obs.planes.values():
                 for a in p.artifacts.values():
-                    if ('ad:{}/{}'.format(collection, f) in a.uri or
+                    if (f'ad:{collection}/{f}' in a.uri or
                             (a.uri.startswith('vos') and f in a.uri)):
                         uris.append(a.uri)
                         meta = FileInfo(id=a.uri,
@@ -303,7 +300,7 @@ def _get_uris(collection, fnames, obs):
 
 
 def _get_file(pattern, dir_name):
-    files = glob.glob('{}/*.{}'.format(dir_name, pattern))
+    files = glob.glob(f'{dir_name}/*.{pattern}')
     if files:
         files.sort(reverse=True)
         return files

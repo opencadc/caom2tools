@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,8 +66,6 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
@@ -92,7 +89,7 @@ import caom2utils
 import vos
 from lxml import etree
 
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from six import StringIO, BytesIO
 
 import importlib
@@ -438,22 +435,22 @@ def test_help():
     """ Tests the helper displays for commands in main"""
 
     # expected helper messages
-    with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt'), 'r') \
+    with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt')) \
             as myfile:
         bad_product_id = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt'), 'r') \
+    with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt')) \
             as myfile:
         missing_product_id = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt'), 'r') \
+    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt')) \
             as myfile:
         too_few_arguments_usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
+    with open(os.path.join(TESTDATA_DIR, 'help.txt')) as myfile:
         usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r')\
+    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'))\
             as myfile:
         myfile.read()
     with open(os.path.join(TESTDATA_DIR,
-                           'missing_positional_argument_help.txt'), 'r') \
+                           'missing_positional_argument_help.txt')) \
             as myfile:
         myfile.read()
 
@@ -904,7 +901,7 @@ EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
 def test_file_scheme_uris():
     """ Tests that local files as URIs will be accepted and processed."""
 
-    fname = 'file://{}'.format(sample_file_4axes)
+    fname = f'file://{sample_file_4axes}'
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
          patch('caom2utils.cadc_client_wrapper.StorageInventoryClient',
                autospec=True), \
@@ -966,7 +963,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
 def test_generic_parser():
     """ Tests that GenericParser will be created."""
 
-    fname = 'file://{}'.format(text_file)
+    fname = f'file://{text_file}'
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
             patch('caom2utils.cadc_client_wrapper.StorageInventoryClient',
                   autospec=True), \
@@ -1202,7 +1199,7 @@ def test_visit_generic_parser():
     except ImportError:
         pass  # expect this exception
     except BaseException as e:
-        assert False, 'should not get here {}'.format(e)
+        assert False, f'should not get here {e}'
 
 
 @patch('caom2utils.fits2caom2.Client')
@@ -1280,7 +1277,7 @@ def test_get_external_headers_fails(get_external_mock):
     get_external_mock.return_value = None
     test_collection = 'TEST_COLLECTION'
     test_obs_id = 'TEST_OBS_ID'
-    test_uri = 'gemini:{}/abc.fits'.format(test_collection)
+    test_uri = f'gemini:{test_collection}/abc.fits'
     test_product_id = 'TEST_PRODUCT_ID'
     test_blueprint = caom2utils.fits2caom2.ObsBlueprint()
     test_observation = SimpleObservation(collection=test_collection,
@@ -1411,11 +1408,11 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     """ Tests that gen_proc can return -1."""
 
     augment_mock.return_value = None  # return a broken Observation instance
-    fname = 'file://{}'.format(text_file)
+    fname = f'file://{text_file}'
     sys.argv = ['fits2caom2', '--local', fname,
                 '--observation', 'test_collection_id',
                 'test_observation_id', '--lineage',
-                'test_product_id/ad:TEST/{}'.format(fname)]
+                f'test_product_id/ad:TEST/{fname}']
     test_args = get_gen_proc_arg_parser().parse_args()
     test_blueprints = {'test_collection_id': ObsBlueprint()}
     test_result = gen_proc(test_args, test_blueprints)

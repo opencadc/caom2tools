@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,8 +65,6 @@
 #
 # ***********************************************************************
 #
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from caom2utils import ObsBlueprint
 from caom2utils.legacy import ConvertFromJava, load_config
@@ -120,4 +117,4 @@ def test_class_apply_defaults(override_file):
             for r in result:
                 ob._get(r)
         except ValueError:
-            assert False, 'Could not find key {} in ObsBlueprint'.format(key)
+            assert False, f'Could not find key {key} in ObsBlueprint'

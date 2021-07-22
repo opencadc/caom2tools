@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,11 +66,6 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-# from builtins import str
-
 import logging
 import sys
 
@@ -81,7 +75,7 @@ import traceback
 APP_NAME = 'fits2caom2'
 
 
-class ConvertFromJava(object):
+class ConvertFromJava:
     """
     Do the work that makes the input from a Java fits2caom2 run usable by the
     ObsBlueprint class in this python implementation.
@@ -389,7 +383,7 @@ def _update_axis_info(parser, defaults, overrides, config):
                 elif value in fits2caom2.OBSERVABLE_CTYPES:
                     obs_axis = key[-1]
                 else:
-                    raise ValueError('Unrecognized CTYPE: {}'.format(value))
+                    raise ValueError(f'Unrecognized CTYPE: {value}')
 
     ignore = '{ignore}'
     if ('Chunk.position' not in config) or \
@@ -446,7 +440,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
     errors = []
     if config:
         logging.debug(
-            'Setting user-supplied configuration for {}.'.format(artifact_uri))
+            f'Setting user-supplied configuration for {artifact_uri}.')
         for key, value in config.items():
             try:
                 if value.isupper() and value.find('.') == -1:
@@ -455,12 +449,12 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                     for caom2_key in convert.get_caom2_elements(key):
                         obs_blueprint.add_fits_attribute(caom2_key, value)
             except ValueError:
-                errors.append(('{}: {}'.format(key, sys.exc_info()[1])))
+                errors.append(f'{key}: {sys.exc_info()[1]}')
         logging.debug(
-            'User-supplied configuration applied for {}.'.format(artifact_uri))
+            f'User-supplied configuration applied for {artifact_uri}.')
 
     if defaults:
-        logging.debug('Setting defaults for {}'.format(artifact_uri))
+        logging.debug(f'Setting defaults for {artifact_uri}')
         for key, value in defaults.items():
             try:
                 for caom2_key in convert.get_caom2_elements(key):
@@ -469,14 +463,14 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                         '{} setting default value to {}'.format(
                             caom2_key, value))
             except ValueError:
-                errors.append('{}: {}'.format(key, sys.exc_info()[1]))
-        logging.debug('Defaults set for {}.'.format(artifact_uri))
+                errors.append(f'{key}: {sys.exc_info()[1]}')
+        logging.debug(f'Defaults set for {artifact_uri}.')
 
     if overrides:
-        logging.debug('Setting overrides for {}.'.format(artifact_uri))
+        logging.debug(f'Setting overrides for {artifact_uri}.')
         for key, value in overrides.items():
             if key == 'BITPIX':
-                logging.debug('01/11/18 Chris said ignore {!r}.'.format(key))
+                logging.debug(f'01/11/18 Chris said ignore {key!r}.')
                 continue
             if key == 'artifacts' and artifact_uri in overrides['artifacts']:
                 logging.debug('Found extension overrides for URI {}.'.format(
@@ -486,7 +480,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                       overrides['artifacts'][artifact_uri][extension].items():
                         if ext_key == 'BITPIX':
                             logging.debug(
-                                '01/11/18 Chris said ignore {!r}.'.format(key))
+                                f'01/11/18 Chris said ignore {key!r}.')
                             continue
                         try:
                             for caom2_key in \
@@ -504,8 +498,8 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                     for caom2_key in convert.get_caom2_elements(key):
                         obs_blueprint.set(caom2_key, value)
                 except ValueError:
-                    errors.append('{}: {}'.format(key, sys.exc_info()[1]))
-        logging.debug('Overrides set for {}.'.format(artifact_uri))
+                    errors.append(f'{key}: {sys.exc_info()[1]}')
+        logging.debug(f'Overrides set for {artifact_uri}.')
 
         if errors:
             return '\n'.join(errors)
@@ -529,7 +523,7 @@ def main_app():
     if len(sys.argv) < 2:
         # correct error message when running python3
         parser.print_usage(file=sys.stderr)
-        sys.stderr.write("{}: error: too few arguments\n".format(APP_NAME))
+        sys.stderr.write(f"{APP_NAME}: error: too few arguments\n")
         sys.exit(-1)
 
     args = parser.parse_args()
@@ -537,17 +531,17 @@ def main_app():
     config = None
     if args.config:
         config = apply_java_config(args.config)
-        logging.debug('Apply configuration from {}.'.format(args.config))
+        logging.debug(f'Apply configuration from {args.config}.')
 
     defaults = {}
     if args.default:
         defaults = load_config(args.default)
-        logging.debug('Apply defaults from {}.'.format(args.default))
+        logging.debug(f'Apply defaults from {args.default}.')
 
     overrides = {}
     if args.override:
         overrides = load_config(args.override)
-        logging.debug('Apply overrides from {}.'.format(args.override))
+        logging.debug(f'Apply overrides from {args.override}.')
 
     obs_blueprint = {}
     for i, uri in enumerate(args.fileURI):
@@ -557,7 +551,7 @@ def main_app():
                                       config, defaults, overrides)
             if result:
                 logging.debug(
-                    'Errors parsing the config files: {}'.format(result))
+                    f'Errors parsing the config files: {result}')
 
     try:
         fits2caom2.proc(args, obs_blueprint)

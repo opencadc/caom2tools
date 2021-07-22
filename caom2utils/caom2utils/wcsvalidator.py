@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,9 +65,6 @@
 #
 # ***********************************************************************
 #
-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from astropy.wcs import Wcsprm
 from caom2utils.wcs_util import TimeUtil, EnergyUtil, ORIGIN
@@ -305,7 +301,7 @@ def _validate_polarization_wcs(polarization_wcs):
             logger.debug('polarization_axis.function succeeded.')
         except Exception as e:
             raise InvalidWCSError(
-                "Invalid Polarization WCS: {}".format(str(e)))
+                f"Invalid Polarization WCS: {str(e)}")
 
 
 def _validate_axes(chunk):
@@ -338,14 +334,14 @@ def _validate_axes(chunk):
 
         for i in range(1, chunk.naxis + 1):
             if axis_list[i] is None:
-                error_msg = "\tMissing axis number: {}".format(i)
+                error_msg = f"\tMissing axis number: {i}"
     else:
         error_msg += "\tnaxis is None."
 
     if not error_msg.strip():
         # Report all errors found during validation, throw an error and go
         raise InvalidWCSError(
-            "Invalid Axes: {}".format(error_msg))
+            f"Invalid Axes: {error_msg}")
 
 
 def _validate_custom_wcs(custom):
@@ -380,7 +376,7 @@ def _validate_custom_wcs(custom):
 
         if len(error_msg) > 0:
             raise InvalidWCSError(
-                "CUSTOM_WCS_VALIDATION_ERROR: {}".format(error_msg))
+                f"CUSTOM_WCS_VALIDATION_ERROR: {error_msg}")
 
 
 class WcsPolarizationState():

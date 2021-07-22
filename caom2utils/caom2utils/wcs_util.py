@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -72,11 +71,7 @@ WCS Validation Utilities
 
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-from six.moves import range
 from caom2 import shape, chunk, plane
-from builtins import int
 import logging
 import sys
 
@@ -152,7 +147,7 @@ class TimeUtil:
 
         except Exception as ex:
             raise ValueError(
-                "Invalid function in Temporal WCS: {}".format(repr(ex)))
+                f"Invalid function in Temporal WCS: {repr(ex)}")
 
     @staticmethod
     def validate_wcs(temporal_wcs):
@@ -170,7 +165,7 @@ class TimeUtil:
 
         cunit = temporal_wcs.axis.axis.cunit
         if TARGET_CUNIT != cunit:
-            sb = sb + "unexpected CUNIT: {}".format(cunit)
+            sb = sb + f"unexpected CUNIT: {cunit}"
 
         if len(sb) > 0:
             raise ValueError(sb)
@@ -286,17 +281,17 @@ class CustomAxisUtil:
 
         if ctype is not None and ctype != matches:
             logger.debug(
-                "use_chunk=False: Chunk.product_type={}".format(ctype))
+                f"use_chunk=False: Chunk.product_type={ctype}")
             return False
 
         if ptype is not None and ptype != matches:
             logger.debug(
-                "use_chunk=False: Part.product_type={}".format(ptype))
+                f"use_chunk=False: Part.product_type={ptype}")
             return False
 
         if atype == matches:
             logger.debug(
-                "use_chunk=True: Artifact.product_type={}".format(atype))
+                f"use_chunk=True: Artifact.product_type={atype}")
             return True
 
         logger.debug("use_chunk=False: product_type={},{},{}".
@@ -510,7 +505,7 @@ class CustomAxisUtil:
         :param expected_ctype Expected CTYPE
         :return long
         """
-        logger.debug("compute_dimension_from_wcs: {}".format(bounds))
+        logger.debug(f"compute_dimension_from_wcs: {bounds}")
         if bounds is None:
             return None
 
@@ -552,7 +547,7 @@ class CustomAxisUtil:
         x1 = CustomAxisUtil.val2pix(sw, sw.axis.function, bounds.lower)
         x2 = CustomAxisUtil.val2pix(sw, sw.axis.function, bounds.upper)
 
-        logger.debug("compute_dimension_from_wcs: {},{}".format(x1, x2))
+        logger.debug(f"compute_dimension_from_wcs: {x1},{x2}")
         return int(round(abs(x2 - x1)))
 
     @staticmethod
@@ -606,7 +601,7 @@ class CustomAxisUtil:
 
         if map_cunit is None:
             raise ValueError(
-               "Invalid CTYPE: {}".format(ctype))
+               f"Invalid CTYPE: {ctype}")
 
         if map_cunit != cunit:
             raise ValueError(
@@ -699,5 +694,5 @@ class PolarizationWcsUtil:
                 return range(1, function.naxis + 1)
             else:
                 raise ValueError(
-                    'Invalid naxis value: {}'.format(function.naxis))
+                    f'Invalid naxis value: {function.naxis}')
         return None
