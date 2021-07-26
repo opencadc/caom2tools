@@ -278,6 +278,29 @@ class StorageClientWrapper:
         return path.dirname(temp.path), path.basename(temp.path)
 
     @staticmethod
+    def get_headers_from_fits(fqn):
+        """Create a list of fits.Header instances from a fits file.
+        :param fqn where the FITS files resides on disk."""
+        hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=False)
+        hdulist.verify('fix')
+        hdulist.close()
+        headers = [h.header for h in hdulist]
+        return headers
+
+    @staticmethod
+    def get_local_file_headers(fqn):
+        file_uri = urlparse(fqn)
+        try:
+            fits_header = open(file_uri.path).read()
+            headers = StorageClientWrapper.make_headers_from_string(
+                fits_header)
+        except UnicodeDecodeError:
+            headers = StorageClientWrapper.get_headers_from_fits(
+                file_uri.path
+            )
+        return headers
+
+    @staticmethod
     def get_local_file_info(fqn):
         """
         Gets contentType, contentLength and contentChecksum of an artifact

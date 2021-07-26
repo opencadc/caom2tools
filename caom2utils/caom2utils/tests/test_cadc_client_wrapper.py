@@ -158,7 +158,7 @@ def test_cadc_data_client(cadc_client_mock):
     assert test_result is None, 'expected when not found'
 
 
-@patch('caom2utils.cadc_client_wrapper.StorageInventoryClient', autospec=True)
+@patch('caom2utils.cadc_client_wrapper.StorageInventoryClient')
 def test_storage_inventory_client(cadc_client_mock):
     test_subject = Mock(autospec=True)
     test_uri = 'cadc:TEST/test_file.fits'

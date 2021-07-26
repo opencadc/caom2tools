@@ -76,7 +76,7 @@ from . import test_collections as tc
 
 
 @patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
-@patch('caom2utils.cadc_client_wrapper.StorageInventoryClient', autospec=True)
+@patch('caom2utils.cadc_client_wrapper.StorageInventoryClient')
 def test_cadc_uri(si_mock, ws_mock):
     def _get_mock(id_ignore, dest, fhead):
         dest.write(

@@ -1847,7 +1847,8 @@ class FitsParser(GenericParser):
         else:
             # assume file
             self.file = src
-            self._headers = _get_headers_from_fits(self.file)
+            self._headers = StorageClientWrapper.get_headers_from_fits(
+                self.file)
         if obs_blueprint:
             self._blueprint = obs_blueprint
         else:
@@ -3613,17 +3614,6 @@ def _set_by_type(header, keyword, value):
         header.set(keyword, value)
 
 
-def get_local_file_headers(fqn):
-    file_uri = urlparse(fqn)
-    try:
-        fits_header = open(file_uri.path).read()
-        headers = StorageClientWrapper.make_headers_from_string(
-            fits_header)
-    except UnicodeDecodeError:
-        headers = _get_headers_from_fits(file_uri.path)
-    return headers
-
-
 def get_external_headers(external_url):
     try:
         session = requests.Session()
@@ -3664,20 +3654,12 @@ def get_vos_headers(uri, subject=None):
 
         temp_filename = tempfile.NamedTemporaryFile()
         client.copy(uri, temp_filename.name, head=True)
-        return get_local_file_headers(f'file://{temp_filename.name}')
+        return StorageClientWrapper.get_local_file_headers(
+            f'file://{temp_filename.name}'
+        )
     else:
         # this should be a programming error by now
         raise NotImplementedError('Only vos type URIs supported')
-
-
-def _get_headers_from_fits(path):
-    """Create a list of fits.Header instances from a fits file.
-    :param path where the FITS files resides on disk."""
-    hdulist = fits.open(path, memmap=True, lazy_load_hdus=False)
-    hdulist.verify('fix')
-    hdulist.close()
-    headers = [h.header for h in hdulist]
-    return headers
 
 
 def _update_artifact_meta(uri, artifact, subject=None, connected=True,
@@ -3836,7 +3818,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 meta_uri = f'file://{local}'
                 logging.debug(
                     f'Using a FitsParser for vos local {local}')
-                headers = get_local_file_headers(local)
+                headers = StorageClientWrapper.get_local_file_headers(local)
                 parser = FitsParser(headers, blueprint, uri=uri)
             elif '.csv' in local:
                 logging.debug(
@@ -3851,8 +3833,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 logging.debug(
                     f'Using a FitsParser for local file {local}')
                 parser = FitsParser(
-                    get_local_file_headers(local), blueprint,
-                    uri=uri)
+                    StorageClientWrapper.get_local_file_headers(local),
+                    blueprint, uri=uri)
             elif (local.endswith('.fits') or local.endswith('.fits.gz') or
                     local.endswith('.fits.fz')):
                 logging.debug(f'Using a FitsParser for {local}')
@@ -3878,7 +3860,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             if uri.startswith('vos'):
                 headers = get_vos_headers(uri, subject)
             elif uri.startswith('file'):
-                headers = get_local_file_headers(uri)
+                headers = StorageClientWrapper.get_local_file_headers(uri)
             else:
                 headers = client.get_head(uri)
             logging.debug(f'Using a FitsParser for remote file {uri}')
