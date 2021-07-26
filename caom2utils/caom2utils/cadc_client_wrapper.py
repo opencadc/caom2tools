@@ -79,7 +79,14 @@ from cadcdata import FileInfo, CadcDataClient, StorageInventoryClient
 from cadcutils import exceptions
 
 
-__all__ = ['StorageClientWrapper']
+__all__ = [
+    'get_file_type',
+    'get_local_file_headers',
+    'get_local_file_info',
+    'get_local_headers_from_fits',
+    'make_headers_from_string',
+    'StorageClientWrapper',
+]
 
 
 class StorageClientWrapper:
@@ -147,7 +154,7 @@ class StorageClientWrapper:
             fits_header = b.getvalue().decode('ascii')
             b.close()
             self._add_metric('get_header', uri, start, len(fits_header))
-            return StorageClientWrapper.make_headers_from_string(fits_header)
+            return make_headers_from_string(fits_header)
         except Exception as e:
             self._add_fail_metric('get_header', uri)
             self._logger.debug(traceback.format_exc())
@@ -182,7 +189,7 @@ class StorageClientWrapper:
         archive, f_name = StorageClientWrapper._decompose(uri)
         fqn = path.join(working_directory, f_name)
         try:
-            local_meta = StorageClientWrapper.get_local_file_info(fqn)
+            local_meta = get_local_file_info(fqn)
             if self._use_si:
                 replace = True
                 cadc_meta = self.info(uri)
@@ -237,37 +244,6 @@ class StorageClientWrapper:
         self._add_metric('remove', uri, start, value=None)
 
     @staticmethod
-    def _clean_headers(fits_header):
-        """
-        Hopefully not Gemini specific.
-        Remove invalid cards and add missing END cards after extensions.
-        :param fits_header: fits_header a string of keyword/value pairs
-        """
-        new_header = []
-        first_header_encountered = False
-        for line in fits_header.split('\n'):
-            if len(line.strip()) == 0:
-                pass
-            elif line.startswith('--- PHU ---'):
-                first_header_encountered = True
-            elif line.startswith('--- HDU 0'):
-                if first_header_encountered:
-                    new_header.append('END\n')
-                else:
-                    first_header_encountered = True
-            elif line.startswith('--- HDU'):
-                new_header.append('END\n')
-            elif line.strip() == 'END':
-                new_header.append('END\n')
-            elif '=' not in line and not (line.startswith('COMMENT') or
-                                          line.startswith('HISTORY')):
-                pass
-            else:
-                new_header.append(f'{line}\n')
-        new_header.append('END\n')
-        return ''.join(new_header)
-
-    @staticmethod
     def _current():
         """Encapsulate returning UTC now in microsecond resolution."""
         return datetime.now(tz=timezone.utc).timestamp()
@@ -277,76 +253,104 @@ class StorageClientWrapper:
         temp = urlparse(uri)
         return path.dirname(temp.path), path.basename(temp.path)
 
-    @staticmethod
-    def get_headers_from_fits(fqn):
-        """Create a list of fits.Header instances from a fits file.
-        :param fqn where the FITS files resides on disk."""
-        hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=False)
-        hdulist.verify('fix')
-        hdulist.close()
-        headers = [h.header for h in hdulist]
-        return headers
 
-    @staticmethod
-    def get_local_file_headers(fqn):
-        file_uri = urlparse(fqn)
-        try:
-            fits_header = open(file_uri.path).read()
-            headers = StorageClientWrapper.make_headers_from_string(
-                fits_header)
-        except UnicodeDecodeError:
-            headers = StorageClientWrapper.get_headers_from_fits(
-                file_uri.path
-            )
-        return headers
-
-    @staticmethod
-    def get_local_file_info(fqn):
-        """
-        Gets contentType, contentLength and contentChecksum of an artifact
-        on disk.
-        :param fqn: Fully-qualified name of the file on disk.
-        :return: FileInfo
-        """
-        s = stat(fqn)
-        meta = FileInfo(
-            id=path.basename(fqn),
-            size=s.st_size,
-            md5sum=md5(open(fqn, 'rb').read()).hexdigest(),
-            file_type=StorageClientWrapper.get_file_type(fqn),
-        )
-        return meta
-
-    @staticmethod
-    def get_file_type(fqn):
-        """Basic header extension to content_type lookup."""
-        if (fqn.endswith('.header') or fqn.endswith('.txt') or
-                fqn.endswith('.cat')):
-            return 'text/plain'
-        elif fqn.endswith('.gif'):
-            return 'image/gif'
-        elif fqn.endswith('.png'):
-            return 'image/png'
-        elif fqn.endswith('.jpg'):
-            return 'image/jpeg'
-        elif fqn.endswith('.tar.gz'):
-            return 'application/x-tar'
-        elif fqn.endswith('.jpg'):
-            return 'image/jpeg'
-        elif fqn.endswith('.csv'):
-            return 'text/csv'
-        elif fqn.endswith('.hdf5') or fqn.endswith('.h5'):
-            return 'application/x-hdf5'
+def _clean_headers(fits_header):
+    """
+    Hopefully not Gemini specific.
+    Remove invalid cards and add missing END cards after extensions.
+    :param fits_header: fits_header a string of keyword/value pairs
+    """
+    new_header = []
+    first_header_encountered = False
+    for line in fits_header.split('\n'):
+        if len(line.strip()) == 0:
+            pass
+        elif line.startswith('--- PHU ---'):
+            first_header_encountered = True
+        elif line.startswith('--- HDU 0'):
+            if first_header_encountered:
+                new_header.append('END\n')
+            else:
+                first_header_encountered = True
+        elif line.startswith('--- HDU'):
+            new_header.append('END\n')
+        elif line.strip() == 'END':
+            new_header.append('END\n')
+        elif '=' not in line and not (line.startswith('COMMENT') or
+                                      line.startswith('HISTORY')):
+            pass
         else:
-            return 'application/fits'
+            new_header.append(f'{line}\n')
+    new_header.append('END\n')
+    return ''.join(new_header)
 
-    @staticmethod
-    def make_headers_from_string(fits_header):
-        """Create a list of fits.Header instances from a string.
-        ":param fits_header a string of keyword/value pairs"""
-        fits_header = StorageClientWrapper._clean_headers(fits_header)
-        delim = 'END\n'
-        extensions = \
-            [e + delim for e in fits_header.split(delim) if e.strip()]
-        headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
-        return headers
+
+def get_local_headers_from_fits(fqn):
+    """Create a list of fits.Header instances from a fits file.
+    :param fqn where the FITS files resides on disk."""
+    hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=False)
+    hdulist.verify('fix')
+    hdulist.close()
+    headers = [h.header for h in hdulist]
+    return headers
+
+
+def get_local_file_headers(fqn):
+    file_uri = urlparse(fqn)
+    try:
+        fits_header = open(file_uri.path).read()
+        headers = make_headers_from_string(fits_header)
+    except UnicodeDecodeError:
+        headers = get_local_headers_from_fits(file_uri.path)
+    return headers
+
+
+def get_local_file_info(fqn):
+    """
+    Gets contentType, contentLength and contentChecksum of an artifact
+    on disk.
+    :param fqn: Fully-qualified name of the file on disk.
+    :return: FileInfo
+    """
+    s = stat(fqn)
+    meta = FileInfo(
+        id=path.basename(fqn),
+        size=s.st_size,
+        md5sum=md5(open(fqn, 'rb').read()).hexdigest(),
+        file_type=get_file_type(fqn),
+    )
+    return meta
+
+
+def get_file_type(fqn):
+    """Basic header extension to content_type lookup."""
+    if (fqn.endswith('.header') or fqn.endswith('.txt') or
+            fqn.endswith('.cat')):
+        return 'text/plain'
+    elif fqn.endswith('.gif'):
+        return 'image/gif'
+    elif fqn.endswith('.png'):
+        return 'image/png'
+    elif fqn.endswith('.jpg'):
+        return 'image/jpeg'
+    elif fqn.endswith('.tar.gz'):
+        return 'application/x-tar'
+    elif fqn.endswith('.jpg'):
+        return 'image/jpeg'
+    elif fqn.endswith('.csv'):
+        return 'text/csv'
+    elif fqn.endswith('.hdf5') or fqn.endswith('.h5'):
+        return 'application/x-hdf5'
+    else:
+        return 'application/fits'
+
+
+def make_headers_from_string(fits_header):
+    """Create a list of fits.Header instances from a string.
+    ":param fits_header a string of keyword/value pairs"""
+    fits_header = _clean_headers(fits_header)
+    delim = 'END\n'
+    extensions = \
+        [e + delim for e in fits_header.split(delim) if e.strip()]
+    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
+    return headers

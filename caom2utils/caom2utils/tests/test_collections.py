@@ -171,8 +171,7 @@ def test_differences(directory):
 
         swc_si_mock.return_value.cadcinfo.side_effect = info_mock
         swc_si_mock.cadcget.return_value = []
-        cadc_client_wrapper.StorageClientWrapper.get_local_file_info.\
-            side_effect = info_mock
+        cadc_client_wrapper.get_local_file_info.side_effect = info_mock
         gvh_mock.side_effect = _get_vos_headers
         gvm_mock.side_effect = _vos_client_meta
         cap_mock.return_value = 'https://localhost'

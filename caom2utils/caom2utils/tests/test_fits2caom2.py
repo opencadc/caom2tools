@@ -1206,10 +1206,10 @@ def test_visit_generic_parser():
 def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
-    get_orig = caom2utils.StorageClientWrapper.get_local_file_headers
+    get_orig = caom2utils.cadc_client_wrapper.get_local_file_headers
 
     try:
-        caom2utils.StorageClientWrapper.get_local_file_headers = Mock(
+        caom2utils.cadc_client_wrapper.get_local_file_headers = Mock(
             side_effect=_get_local_headers)
         test_headers = caom2utils.get_vos_headers(test_uri, subject=None)
         assert test_headers is not None, 'expect result'
@@ -1217,7 +1217,7 @@ def test_get_vos_headers(vos_mock):
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
         assert vos_mock.called, 'mock not called'
     finally:
-        caom2utils.StorageClientWrapper.get_local_file_headers = get_orig
+        caom2utils.cadc_client_wrapper.get_local_file_headers = get_orig
 
 
 @patch('caom2utils.fits2caom2.Client')
