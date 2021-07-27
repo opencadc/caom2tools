@@ -125,6 +125,7 @@ class StorageClientWrapper:
             )
 
     def get(self, working_directory, uri):
+        self._logger.debug(f'Being get for {uri} in {working_directory}')
         start = StorageClientWrapper._current()
         try:
             archive, f_name = self._decompose(uri)
@@ -135,13 +136,15 @@ class StorageClientWrapper:
                 self._cadc_client.get_file(archive, f_name, destination=fqn)
         except Exception as e:
             self._add_fail_metric('get', uri)
-            logging.debug(traceback.format_exc())
+            self._logger.debug(traceback.format_exc())
             raise exceptions.UnexpectedException(
                 f'Did not retrieve {uri} because {e}'
             )
         self._add_metric('get', uri, start, stat(fqn).st_size)
+        self._logger.debug('End get')
 
     def get_head(self, uri):
+        self._logger.debug(f'Begin get_head for {uri}')
         start = StorageClientWrapper._current()
         try:
             b = BytesIO()
@@ -153,8 +156,10 @@ class StorageClientWrapper:
                 self._cadc_client.get_file(archive, f_name, b, fhead=True)
             fits_header = b.getvalue().decode('ascii')
             b.close()
-            self._add_metric('get_header', uri, start, len(fits_header))
-            return make_headers_from_string(fits_header)
+            self._add_metric('get_head', uri, start, len(fits_header))
+            temp = make_headers_from_string(fits_header)
+            self._logger.debug('End get_head')
+            return temp
         except Exception as e:
             self._add_fail_metric('get_header', uri)
             self._logger.debug(traceback.format_exc())
@@ -164,6 +169,7 @@ class StorageClientWrapper:
             )
 
     def info(self, uri):
+        self._logger.debug(f'Begin info for {uri}')
         try:
             if self._use_si:
                 result = self._cadc_client.cadcinfo(uri)
@@ -181,9 +187,11 @@ class StorageClientWrapper:
         except exceptions.NotFoundException:
             self._logger.info(f'cadcinfo:: {uri} not found')
             result = None
+        self._logger.debug('End info')
         return result
 
     def put(self, working_directory, uri, stream='default'):
+        self._logger.debug(f'Begin put for {uri} in {working_directory}')
         start = self._current()
         cwd = getcwd()
         archive, f_name = StorageClientWrapper._decompose(uri)
@@ -216,7 +224,7 @@ class StorageClientWrapper:
                 )
         except Exception as e:
             self._add_fail_metric('put', uri)
-            self._logger.error(traceback.format_exc())
+            self._logger.debug(traceback.format_exc())
             self._logger.error(e)
             raise exceptions.UnexpectedException(
                 f'Failed to store data with {e}'
@@ -224,8 +232,10 @@ class StorageClientWrapper:
         finally:
             chdir(cwd)
         self._add_metric('put', uri, start, local_meta.size)
+        self._logger.debug('End put')
 
     def remove(self, uri):
+        self._logger.debug(f'Begin remove for {uri}')
         start = StorageClientWrapper._current()
         if self._use_si:
             try:
@@ -242,6 +252,7 @@ class StorageClientWrapper:
                 'No remove functionality for CadcDataClient'
             )
         self._add_metric('remove', uri, start, value=None)
+        self._logger.debug('End remove')
 
     @staticmethod
     def _current():
