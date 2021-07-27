@@ -188,12 +188,12 @@ class StorageClientWrapper:
         cwd = getcwd()
         archive, f_name = StorageClientWrapper._decompose(uri)
         fqn = path.join(working_directory, f_name)
+        chdir(working_directory)
         try:
             local_meta = get_local_file_info(fqn)
             if self._use_si:
                 replace = True
                 cadc_meta = self.info(uri)
-                chdir(working_directory)
                 if cadc_meta is None:
                     replace = False
                 self._cadc_client.cadcput(
@@ -208,7 +208,7 @@ class StorageClientWrapper:
                 archive, f_name = self._decompose(uri)
                 self._cadc_client.put_file(
                     archive,
-                    uri,
+                    f_name,
                     archive_stream=stream,
                     mime_type=local_meta.file_type,
                     mime_encoding='',

@@ -259,7 +259,7 @@ def _check_put_result(client_mock):
     try:
         client_mock.assert_called_with(
             'TEST',
-            'ad:TEST/test_file.fits',
+            'test_file.fits',
             archive_stream='default',
             mime_type='application/fits',
             mime_encoding='',
