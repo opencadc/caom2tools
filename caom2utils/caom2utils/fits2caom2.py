@@ -3673,10 +3673,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
     :return:
     """
     file_url = urlparse(uri)
-    if (file_url.scheme in ['ad', 'cadc'] or
-            (file_url.scheme == 'gemini' and '.jpg' in file_url.path)):
-        metadata = client.info(uri)
-    elif file_url.scheme == 'gemini' and '.jpg' not in file_url.path:
+    if file_url.scheme == 'gemini' and '.jpg' not in file_url.path:
         # will get file metadata from Gemini JSON summary for fits,
         # because the metadata is available long before the data
         # will be stored at CADC
@@ -3699,10 +3696,11 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
         else:
             metadata = cadc_client_wrapper.get_local_file_info(file_url.path)
     else:
-        # TODO add hook to support other service providers
-        raise NotImplementedError(
-            'Only ad, cadc, gemini and vos type URIs supported for {}'.format(
-                uri))
+        metadata = client.info(uri)
+        if metadata is None:
+            logging.info('Could not find {} at CADC. No Artifact '
+                'metadata.'.format(artifact.uri))
+            return
 
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.

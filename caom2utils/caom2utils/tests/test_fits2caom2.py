@@ -1366,10 +1366,6 @@ def test_update_artifact_meta_errors():
     test_artifact = Artifact(uri=test_uri,
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA)
-    with pytest.raises(NotImplementedError):
-        test_cirada = 'cirada://abc'
-        _update_artifact_meta(test_cirada, test_artifact)
-
     client_mock = Mock(autospec=True)
     client_mock.info.return_value = \
         FileInfo(id=test_uri, file_type='application/octet', size=42,
