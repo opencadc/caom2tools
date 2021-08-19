@@ -67,7 +67,7 @@
 #
 
 from cadcdata import FileInfo
-from caom2utils import legacy, fits2caom2, cadc_client_wrapper
+from caom2utils import legacy, fits2caom2, data_util
 from caom2 import ObservationReader, ObservationWriter
 from caom2.diff import get_differences
 
@@ -136,7 +136,7 @@ def test_differences(directory):
         cardinality = f'{product_id} {temp}'
         # return  # TODO shorter testing cycle
 
-    with patch('caom2utils.cadc_client_wrapper.StorageInventoryClient') as \
+    with patch('caom2utils.data_util.StorageInventoryClient') as \
             swc_si_mock,\
             patch('cadcutils.net.ws.WsCapabilities.get_access_url',
                   autospec=True) as cap_mock,\
@@ -158,7 +158,7 @@ def test_differences(directory):
             if uri.startswith('vos'):
                 fname = data_files_parameter.split()[1].strip()
                 fits_header = open(fname).read()
-                return cadc_client_wrapper.StorageClientWrapper.\
+                return data_util.StorageClientWrapper.\
                     make_headers_from_string(fits_header)
             else:
                 return None
@@ -171,7 +171,7 @@ def test_differences(directory):
 
         swc_si_mock.return_value.cadcinfo.side_effect = info_mock
         swc_si_mock.cadcget.return_value = []
-        cadc_client_wrapper.get_local_file_info.side_effect = info_mock
+        data_util.get_local_file_info.side_effect = info_mock
         gvh_mock.side_effect = _get_vos_headers
         gvm_mock.side_effect = _vos_client_meta
         cap_mock.return_value = 'https://localhost'

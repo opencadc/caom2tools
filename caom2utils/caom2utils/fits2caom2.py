@@ -89,7 +89,7 @@ from caom2 import SimpleObservation, DerivedObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
 from caom2 import CoordRange2D, TypedSet, CustomWCS, Observable
 from caom2 import CompositeObservation, EnergyTransition
-from caom2utils import cadc_client_wrapper
+from caom2utils import data_util
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -1847,7 +1847,7 @@ class FitsParser(GenericParser):
         else:
             # assume file
             self.file = src
-            self._headers = cadc_client_wrapper.get_local_file_headers(
+            self._headers = data_util.get_local_file_headers(
                 self.file)
         if obs_blueprint:
             self._blueprint = obs_blueprint
@@ -3625,7 +3625,7 @@ def get_external_headers(external_url):
         session.mount('https://', adapter)
         r = session.get(external_url, timeout=20)
         if r.status_code == requests.codes.ok:
-            headers = cadc_client_wrapper.make_headers_from_string(r.text)
+            headers = data_util.make_headers_from_string(r.text)
         else:
             headers = None
             logging.warning('Error {} when retrieving {} headers.'.format(
@@ -3654,7 +3654,7 @@ def get_vos_headers(uri, subject=None):
 
         temp_filename = tempfile.NamedTemporaryFile()
         client.copy(uri, temp_filename.name, head=True)
-        return cadc_client_wrapper.get_local_file_headers(
+        return data_util.get_local_file_headers(
             f'file://{temp_filename.name}'
         )
     else:
@@ -3694,7 +3694,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
                         'metadata.'.format(artifact.uri))
                     return
         else:
-            metadata = cadc_client_wrapper.get_local_file_info(file_url.path)
+            metadata = data_util.get_local_file_info(file_url.path)
     else:
         metadata = client.info(uri)
         if metadata is None:
@@ -3738,7 +3738,7 @@ def _get_vos_meta(subject, uri):
     node = client.get_node(uri, limit=None, force=False)
     return FileInfo(id=uri, size=node.props['length'],
                     md5sum=node.props['MD5'],
-                    file_type=cadc_client_wrapper.get_file_type(uri))
+                    file_type=data_util.get_file_type(uri))
 
 
 def _lookup_blueprint(blueprints, uri):
@@ -3816,7 +3816,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 meta_uri = f'file://{local}'
                 logging.debug(
                     f'Using a FitsParser for vos local {local}')
-                headers = cadc_client_wrapper.get_local_file_headers(local)
+                headers = data_util.get_local_file_headers(local)
                 parser = FitsParser(headers, blueprint, uri=uri)
             elif '.csv' in local:
                 logging.debug(
@@ -3828,7 +3828,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             meta_uri = f'file://{local}'
             visit_local = local
             if ('.header' in local or
-                cadc_client_wrapper.get_file_type(local) ==
+                data_util.get_file_type(local) ==
                     'application/fits'):
                 logging.debug(
                     f'Using a FitsParser for local file {local}')
@@ -3854,7 +3854,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             if uri.startswith('vos'):
                 headers = get_vos_headers(uri, subject)
             elif uri.startswith('file'):
-                headers = cadc_client_wrapper.get_local_file_headers(uri)
+                headers = data_util.get_local_file_headers(uri)
             else:
                 headers = client.get_head(uri)
             logging.debug(f'Using a FitsParser for remote file {uri}')
@@ -4163,12 +4163,12 @@ def proc(args, obs_blueprints):
     subject = net.Subject.from_cmd_line_args(args)
     if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
         # if the resource_id is the default value, using CadcDataClient
-        client = cadc_client_wrapper.StorageClientWrapper(
+        client = data_util.StorageClientWrapper(
             subject, using_storage_inventory=False)
     else:
         # using the new Storage Inventory system, since it's the one that
         # depends on a resource_id
-        client = cadc_client_wrapper.StorageClientWrapper(
+        client = data_util.StorageClientWrapper(
             subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
@@ -4277,12 +4277,12 @@ def gen_proc(args, blueprints, **kwargs):
     subject = net.Subject.from_cmd_line_args(args)
     if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
         # if the resource_id is the default value, using CadcDataClient
-        client = cadc_client_wrapper.StorageClientWrapper(
+        client = data_util.StorageClientWrapper(
             subject, using_storage_inventory=False)
     else:
         # using the new Storage Inventory system, since it's the one that
         # depends on a resource_id
-        client = cadc_client_wrapper.StorageClientWrapper(
+        client = data_util.StorageClientWrapper(
             subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:

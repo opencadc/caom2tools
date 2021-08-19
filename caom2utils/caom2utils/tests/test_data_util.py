@@ -71,7 +71,7 @@ from pathlib import Path
 from astropy.io import fits
 from cadcdata import FileInfo
 from cadcutils import exceptions
-from caom2utils import cadc_client_wrapper as ccw
+from caom2utils import data_util
 
 import pytest
 from unittest.mock import Mock, patch
@@ -87,7 +87,7 @@ DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
 END"""
 
 
-@patch('caom2utils.cadc_client_wrapper.CadcDataClient', autospec=True)
+@patch('caom2utils.data_util.CadcDataClient', autospec=True)
 def test_cadc_data_client(cadc_client_mock):
     test_subject = Mock(autospec=True)
     test_uri = 'ad:TEST/test_file.fits'
@@ -114,7 +114,7 @@ def test_cadc_data_client(cadc_client_mock):
     cadc_client_mock.return_value.get_file.side_effect = get_mock
     cadc_client_mock.return_value.put_file = Mock(autospec=True)
 
-    test_wrapper = ccw.StorageClientWrapper(
+    test_wrapper = data_util.StorageClientWrapper(
         subject=test_subject,
         using_storage_inventory=False,
     )
@@ -158,7 +158,7 @@ def test_cadc_data_client(cadc_client_mock):
     assert test_result is None, 'expected when not found'
 
 
-@patch('caom2utils.cadc_client_wrapper.StorageInventoryClient')
+@patch('caom2utils.data_util.StorageInventoryClient')
 def test_storage_inventory_client(cadc_client_mock):
     test_subject = Mock(autospec=True)
     test_uri = 'cadc:TEST/test_file.fits'
@@ -183,7 +183,7 @@ def test_storage_inventory_client(cadc_client_mock):
     cadc_client_mock.return_value.cadcput = Mock(autospec=True)
     cadc_client_mock.return_value.cadcremove = Mock(autospec=True)
 
-    test_wrapper = ccw.StorageClientWrapper(
+    test_wrapper = data_util.StorageClientWrapper(
         subject=test_subject,
         using_storage_inventory=True,
     )

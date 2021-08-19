@@ -101,6 +101,21 @@ class StorageClientWrapper:
         resource_id='ivo://cadc.nrc.ca/uvic/minoc',
         metrics=None,
     ):
+        """
+        :param subject: net.Subject instance for authentication and
+            authorization
+        :param using_storage_inventory: if True will use
+            StorageInventoryClient for file operations at CADC. If False will
+            use CadcDataClient.
+        :param resource_id: str identifies the StorageInventoryClient
+            endpoint. If using_storage_inventory is set to False, it's
+            un-necessary.
+        :param metrics: caom2pipe.manaage_composable.Metrics instance. If set,
+            will track execution times, by action, from the beginning of
+            the method invocation to the end of the method invocation,
+            success or failure. Defaults to None, because fits2caom2 is
+            a stand-alone application.
+        """
         if using_storage_inventory:
             self._cadc_client = StorageInventoryClient(
                 subject=subject, resource_id=resource_id
@@ -112,11 +127,15 @@ class StorageClientWrapper:
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def _add_fail_metric(self, action, name):
+        """Single location for the check for a self._metrics member in the
+        failure case."""
         if self._metrics is not None:
             client_name = 'si' if self._use_si else 'data'
             self._metrics.observe_failure(action, client_name, name)
 
     def _add_metric(self, action, name, start, value):
+        """Single location for the check for a self._metrics member in the
+        success case."""
         if self._metrics is not None:
             client_name = 'si' if self._use_si else 'data'
             end = StorageClientWrapper._current()
@@ -125,6 +144,13 @@ class StorageClientWrapper:
             )
 
     def get(self, working_directory, uri):
+        """
+        Retrieve data.
+        :param working_directory: str where the file will be retrieved to.
+            Assumes the same machine as this function is being called from.
+        :param uri: str this is an Artifact URI, representing the file to
+            be retrieved.
+        """
         self._logger.debug(f'Being get for {uri} in {working_directory}')
         start = StorageClientWrapper._current()
         try:
@@ -144,6 +170,12 @@ class StorageClientWrapper:
         self._logger.debug('End get')
 
     def get_head(self, uri):
+        """
+        Retrieve FITS file header data.
+        :param uri: str that is an Artifact URI, representing the file for
+            which to retrieve headers
+        :return: list of fits.Header instances
+        """
         self._logger.debug(f'Begin get_head for {uri}')
         start = StorageClientWrapper._current()
         try:
@@ -169,6 +201,12 @@ class StorageClientWrapper:
             )
 
     def info(self, uri):
+        """
+        Retrieve the descriptive metdata associated with a file.
+        :param uri: str that is an Artifact URI, representing the file for
+            which to retrieve metadata
+        :return: cadcdata.FileInfo instance
+        """
         self._logger.debug(f'Begin info for {uri}')
         try:
             if self._use_si:
@@ -191,6 +229,16 @@ class StorageClientWrapper:
         return result
 
     def put(self, working_directory, uri, stream='default'):
+        """
+        Store a file at CADC.
+        :param working_directory: str fully-qualified name of where to find
+            the file on the local machine
+        :param uri: str that is an Artifact URI, representing the file to
+            be stored at CADC.
+        :param stream: str representing the namespace used by the
+            CadcDataClient. Not required if using the StorageInventoryClient.
+            'default' is default name for a lately-created ad archive.
+        """
         self._logger.debug(f'Begin put for {uri} in {working_directory}')
         start = self._current()
         cwd = getcwd()
@@ -235,6 +283,11 @@ class StorageClientWrapper:
         self._logger.debug('End put')
 
     def remove(self, uri):
+        """
+        Delete a file from CADC storage.
+        :param uri: str that is an Artifact URI, representing the file to
+            be removed from CADC.
+        """
         self._logger.debug(f'Begin remove for {uri}')
         start = StorageClientWrapper._current()
         if self._use_si:
@@ -298,7 +351,9 @@ def _clean_headers(fits_header):
 
 def get_local_headers_from_fits(fqn):
     """Create a list of fits.Header instances from a fits file.
-    :param fqn where the FITS files resides on disk."""
+    :param fqn str  fully-qualified name of the FITS file on disk
+    :return list of fits.Header instances
+    """
     hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=False)
     hdulist.verify('fix')
     hdulist.close()
@@ -307,6 +362,12 @@ def get_local_headers_from_fits(fqn):
 
 
 def get_local_file_headers(fqn):
+    """
+    Wrap two different attempts for header retrieval into a single
+    function.
+    :param fqn: str fully-qualified name of the FITS file on disk
+    :return: list of fits.Header instances
+    """
     file_uri = urlparse(fqn)
     try:
         fits_header = open(file_uri.path).read()
@@ -318,8 +379,7 @@ def get_local_file_headers(fqn):
 
 def get_local_file_info(fqn):
     """
-    Gets contentType, contentLength and contentChecksum of an artifact
-    on disk.
+    Gets descriptive metadata for a file on disk.
     :param fqn: Fully-qualified name of the file on disk.
     :return: FileInfo
     """

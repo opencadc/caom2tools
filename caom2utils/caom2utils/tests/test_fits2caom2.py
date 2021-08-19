@@ -903,7 +903,7 @@ def test_file_scheme_uris():
 
     fname = f'file://{sample_file_4axes}'
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
-         patch('caom2utils.cadc_client_wrapper.StorageInventoryClient',
+         patch('caom2utils.data_util.StorageInventoryClient',
                autospec=True), \
          patch('cadcutils.net.ws.WsCapabilities.get_access_url',
                autospec=True) as cap_mock:
@@ -965,7 +965,7 @@ def test_generic_parser():
 
     fname = f'file://{text_file}'
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
-            patch('caom2utils.cadc_client_wrapper.StorageInventoryClient',
+            patch('caom2utils.data_util.StorageInventoryClient',
                   autospec=True), \
             patch('cadcutils.net.ws.WsCapabilities.get_access_url',
                   autospec=True) as cap_mock:
@@ -1206,10 +1206,10 @@ def test_visit_generic_parser():
 def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
-    get_orig = caom2utils.cadc_client_wrapper.get_local_file_headers
+    get_orig = caom2utils.data_util.get_local_file_headers
 
     try:
-        caom2utils.cadc_client_wrapper.get_local_file_headers = Mock(
+        caom2utils.data_util.get_local_file_headers = Mock(
             side_effect=_get_local_headers)
         test_headers = caom2utils.get_vos_headers(test_uri, subject=None)
         assert test_headers is not None, 'expect result'
@@ -1217,7 +1217,7 @@ def test_get_vos_headers(vos_mock):
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
         assert vos_mock.called, 'mock not called'
     finally:
-        caom2utils.cadc_client_wrapper.get_local_file_headers = get_orig
+        caom2utils.data_util.get_local_file_headers = get_orig
 
 
 @patch('caom2utils.fits2caom2.Client')
@@ -1396,7 +1396,7 @@ def test_update_artifact_meta_errors():
     assert test_artifact.content_checksum is None, 'checksum'
 
 
-@patch('caom2utils.cadc_client_wrapper.StorageInventoryClient', autospec=True)
+@patch('caom2utils.data_util.StorageInventoryClient', autospec=True)
 @patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
 @patch('sys.stdout', new_callable=BytesIO)
 @patch('caom2utils.fits2caom2._augment')
