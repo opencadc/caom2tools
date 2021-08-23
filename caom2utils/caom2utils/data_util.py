@@ -270,6 +270,7 @@ class StorageClientWrapper:
                     mime_encoding='',
                     md5_check=True,
                 )
+            self._logger.info(f'Stored {fqn} at CADC.')
         except Exception as e:
             self._add_fail_metric('put', uri)
             self._logger.debug(traceback.format_exc())

@@ -3672,6 +3672,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
     :param client: connection to CADC storage
     :return:
     """
+    logging.debug(f'Begin _update_artifact_meta for {uri}')
     file_url = urlparse(uri)
     if file_url.scheme == 'gemini' and '.jpg' not in file_url.path:
         # will get file metadata from Gemini JSON summary for fits,
