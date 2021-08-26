@@ -133,7 +133,8 @@ class CAOM2RepoClient(object):
         self.agent = agent
 
         self._repo_client = net.BaseWsClient(resource_id, subject,
-                                             agent, retry=True, host=self.host)
+                                             agent, retry=True, host=self.host,
+                                             idempotent_post=True)
         try:
             self._repo_client.caps.get_access_url(
                 CURRENT_CAOM2REPO_OBS_CAPABILITY_ID)
