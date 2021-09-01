@@ -3700,7 +3700,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
         metadata = client.info(uri)
         if metadata is None:
             logging.info('Could not find {} at CADC. No Artifact '
-                'metadata.'.format(artifact.uri))
+                         'metadata.'.format(artifact.uri))
             return
 
     logging.debug('old artifact metadata - '
