@@ -910,6 +910,7 @@ def test_file_scheme_uris():
         cap_mock.return_value = 'https://localhost'
         sys.argv = ['fits2caom2', '--observation', 'test_collection_id',
                     'test_observation_id', '--productID', 'test_product_id',
+                    '--no_validate',
                     '--config', java_config_file, '--override', test_override,
                     fname]
         main_app()

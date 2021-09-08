@@ -314,7 +314,7 @@ def _validate_axes(chunk):
         axis_list = ["" for x in range(chunk.naxis + 1)]
         attr_dict = vars(chunk)
         for key in attr_dict.keys():
-            if key[0] != '_' and 'axis' in key:
+            if '_axis' in key:
                 value = attr_dict.get(key)
                 if value is not None and value <= chunk.naxis:
                     # Ignore axes greater than naxis: situation is allowed
@@ -328,17 +328,19 @@ def _validate_axes(chunk):
 
         # Validate the number and quality of the axis definitions
         # Count from 1, as 0 will never be filled
-        if axis_list[0] is not None:
+        if axis_list[0] != "":
             error_msg += "\tInvalid axis definition (0): {}.".\
                 format(axis_list[0])
 
+        x = 0
         for i in range(1, chunk.naxis + 1):
-            if axis_list[i] is None:
-                error_msg = f"\tMissing axis number: {i}"
-    else:
-        error_msg += "\tnaxis is None."
+            if axis_list[i] != "":
+                x += 1
 
-    if not error_msg.strip():
+        if x != chunk.naxis:
+            error_msg = f"\tAxis numbers {x} different than {chunk.naxis}"
+
+    if error_msg.strip():
         # Report all errors found during validation, throw an error and go
         raise InvalidWCSError(
             f"Invalid Axes: {error_msg}")

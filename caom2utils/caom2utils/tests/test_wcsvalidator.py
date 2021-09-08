@@ -217,34 +217,70 @@ class ValidateWCSTests(unittest.TestCase):
         artifact = ArtifactTestUtil.get_test_artifact(auri, product_type)
         validate_wcs(artifact)
         c = artifact.parts['test_part'].chunks[0]
+        c.position_axis_1 = 1
+        c.position_axis_2 = 2
+        c.energy_axis = 3
+        c.time_axis = 4
+        c.custom_axis = 5
+
+        c.naxis = 6
+        with pytest.raises(InvalidWCSError):
+            validate_wcs(c)
 
         # Not probably reasonable Chunks, but should still be valid
         # Different combinations of this will be represented in
         # different data sets
         c.position = None
+        c.position_axis_1 = None
+        c.position_axis_2 = None
+        c.energy_axis = 1
+        c.time_axis = 2
+        c.custom_axis = 3
+        c.naxis = 3
         validate_wcs(artifact)
 
         c.position = SpatialTestUtil.good_wcs()
         c.energy = None
+        c.position_axis_1 = 1
+        c.position_axis_2 = 2
+        c.energy_axis = None
+        c.time_axis = 3
+        c.custom_axis = 4
+        c.naxis = 4
         validate_wcs(artifact)
 
         c.energy = EnergyTestUtil.good_wcs()
         c.time = None
+        c.energy_axis = 3
+        c.time_axis = None
         validate_wcs(artifact)
 
         c.time = TimeTestUtil.good_wcs()
+        c.time_axis = 5
+        c.naxis = 5
         c.polarization = None
         validate_wcs(artifact)
 
         c.energy = None
+        c.energy_axis = None
+        c.naxis = 2
         validate_wcs(artifact)
 
         c.time = None
+        c.time_axis = None
         validate_wcs(artifact)
 
         # Assert: all WCS should be null at this step
         c.position = None
+        c.position_axis_1 = None
+        c.position_axis_2 = None
+        c.naxis = None
         validate_wcs(artifact)
+
+    def test_failure(self):
+        test_object = type('', (), {})()
+        with pytest.raises(InvalidWCSError):
+            validate_wcs(test_object)
 
 
 # Supporting Classes for generating test data

@@ -158,8 +158,7 @@ def test_differences(directory):
             if uri.startswith('vos'):
                 fname = data_files_parameter.split()[1].strip()
                 fits_header = open(fname).read()
-                return data_util.StorageClientWrapper.\
-                    make_headers_from_string(fits_header)
+                return data_util.make_headers_from_string(fits_header)
             else:
                 return None
 
@@ -177,7 +176,7 @@ def test_differences(directory):
         cap_mock.return_value = 'https://localhost'
 
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('{} -o {} --observation {} {} {} {} '
+        sys.argv = ('{} -o {} --no_validate --observation {} {} {} {} '
                     '--resource-id ivo://cadc.nrc.ca/test'.format(
                         application, temp.name,
                         expected.collection, expected.observation_id,

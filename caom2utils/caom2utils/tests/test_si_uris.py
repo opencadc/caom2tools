@@ -103,7 +103,7 @@ END"""
     if os.path.exists(out_fqn):
         os.unlink(out_fqn)
 
-    sys.argv = ('caom2gen --debug -o {} '
+    sys.argv = ('caom2gen --debug -o {} --no_validate '
                 '--resource-id ivo://cadc.nrc.ca/test '
                 '--observation TEST_COLLECTION TEST_OBS_ID '
                 '--lineage test_product_id/cadc:TEST/test_file.fits '

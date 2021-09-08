@@ -416,8 +416,6 @@ class CustomAxisUtil:
             if product_type is not None:
                 c.bounds = CustomAxisUtil.compute_bounds(
                     artifacts, product_type, axis_ctype)
-                c.dimension = CustomAxisUtil.compute_dimension_from_wcs(
-                    c.bounds, artifacts, product_type, axis_ctype)
                 if c.dimension is None:
                     c.dimension = CustomAxisUtil.compute_dimension_from_wcs(
                         c.bounds, artifacts, product_type, axis_ctype)
