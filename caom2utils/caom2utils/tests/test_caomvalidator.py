@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,27 +66,23 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 import os
 
 from caom2utils import validate
-from caom2utils.caomvalidator import _validate_keyword
+from caom2utils.caomvalidator import _validate_keyword, _check_param
 from caom2 import ObservationReader
 from caom2 import SimpleObservation, DerivedObservation, Proposal
 from caom2 import Algorithm, Telescope, Instrument, Target
 from caom2 import Plane, Provenance
 
 import pytest
-single_test = False
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA = 'data'
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_assert_validate_keyword():
     _validate_keyword('test', 'foo')
     _validate_keyword('test', 'foo=42')
@@ -103,7 +98,6 @@ def test_assert_validate_keyword():
     assert exception_raised
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_validate_observation():
     obs = SimpleObservation('test_collection', 'test_obs_id',
                             Algorithm('test_name'))
@@ -127,7 +121,6 @@ def test_validate_observation():
         validate(obs)
 
 
-@pytest.mark.skipif(single_test, reason='Single test mode')
 def test_compatibility():
     # tests a previously generated observation and validates the
     # entities, and the entities with children
@@ -135,7 +128,7 @@ def test_compatibility():
     source_file_path = os.path.join(THIS_DIR, TEST_DATA,
                                     'SampleComposite-CAOM-2.3.xml')
     reader = ObservationReader(True)
-    with open(source_file_path, 'r'):
+    with open(source_file_path):
         obs = reader.read(source_file_path)
 
     # shallow validates first
@@ -152,3 +145,12 @@ def test_compatibility():
 
     # deep validate
     validate(obs, True)
+
+
+def test_failures():
+    test_object = type('', (), {})()
+    with pytest.raises(AssertionError):
+        validate(test_object)
+
+    with pytest.raises(ValueError):
+        _check_param(test_object, SimpleObservation)

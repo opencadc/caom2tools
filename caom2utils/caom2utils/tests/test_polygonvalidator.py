@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,8 +66,6 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 import pytest
 
@@ -356,3 +353,12 @@ def test_multipoly_self_intersect():
         validate_multipolygon(
             shape.MultiPolygon(points_with_self_intersecting_segments))
     assert('self intersecting' in str(ex.value))
+
+
+def test_failures():
+    # nothing happens
+    validate_multipolygon(None)
+
+    test_object = type('', (), {})()
+    with pytest.raises(ValueError):
+        validate_multipolygon(test_object)

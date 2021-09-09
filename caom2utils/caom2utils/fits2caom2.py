@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,11 +66,7 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import argparse
-from builtins import str
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 
@@ -79,7 +74,7 @@ import math
 from astropy.wcs import Wcsprm
 from astropy.io import fits
 from astropy.time import Time
-from cadcutils import version, exceptions
+from cadcutils import version
 from caom2.caom_util import int_32
 from caom2 import Artifact, Part, Chunk, Plane, Observation, CoordError
 from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
@@ -94,6 +89,7 @@ from caom2 import SimpleObservation, DerivedObservation, ChecksumURI
 from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
 from caom2 import CoordRange2D, TypedSet, CustomWCS, Observable
 from caom2 import CompositeObservation, EnergyTransition
+from caom2utils import data_util
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
 import importlib
@@ -104,23 +100,17 @@ import requests
 import sys
 import tempfile
 import traceback
-from abc import ABCMeta
-from six import add_metaclass
-from hashlib import md5
-from os import stat
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from cadcutils import net, util
-from cadcdata import CadcDataClient
+from cadcdata import FileInfo
 from vos import Client
-from io import BytesIO
-import six
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 APP_NAME = 'caom2gen'
 
 __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
-           'ObsBlueprint', 'get_cadc_headers', 'get_arg_parser', 'proc',
+           'ObsBlueprint', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
            'GenericParser', 'augment', 'get_vos_headers',
            'get_external_headers']
@@ -183,7 +173,7 @@ class HDULoggingFilter(logging.Filter):
     """Add the HDU number to logging messages as a default."""
 
     def __init__(self):
-        super(HDULoggingFilter, self).__init__()
+        super().__init__()
         self._extension = -1
 
     def filter(self, record):
@@ -194,7 +184,7 @@ class HDULoggingFilter(logging.Filter):
         self._extension = value
 
 
-class classproperty(object):
+class classproperty:
     """
     Class property used for CAOM2_ELEMENTS in ObsBleprint
     """
@@ -228,7 +218,7 @@ class DispatchingFormatter:
         return formatter.format(record)
 
 
-class ObsBlueprint(object):
+class ObsBlueprint:
     """
     Class that represents the blueprint of a CAOM2 Observation that can be
     used to build an observation.
@@ -605,30 +595,26 @@ class ObsBlueprint(object):
 
         if override:
             self.set('Chunk.custom.axis.axis.ctype',
-                     (['CTYPE{}'.format(axis)], None))
+                     ([f'CTYPE{axis}'], None))
             self.set('Chunk.custom.axis.axis.cunit',
-                     (['CUNIT{}'.format(axis)], None))
+                     ([f'CUNIT{axis}'], None))
             self.set('Chunk.custom.axis.function.naxis',
-                     (['NAXIS{}'.format(axis)], None))
+                     ([f'NAXIS{axis}'], None))
             self.set('Chunk.custom.axis.function.delta',
-                     (['CDELT{}'.format(axis)], None))
+                     ([f'CDELT{axis}'], None))
             self.set('Chunk.custom.axis.function.refCoord.pix',
-                     (['CRPIX{}'.format(axis)], None))
+                     ([f'CRPIX{axis}'], None))
             self.set('Chunk.custom.axis.function.refCoord.val',
-                     (['CRVAL{}'.format(axis)], None))
+                     ([f'CRVAL{axis}'], None))
 
-        self._wcs_std['Chunk.custom.axis.axis.ctype'] = \
-            'CTYPE{}'.format(axis)
-        self._wcs_std['Chunk.custom.axis.axis.cunit'] = \
-            'CUNIT{}'.format(axis)
-        self._wcs_std['Chunk.custom.axis.function.naxis'] = \
-            'NAXIS{}'.format(axis)
-        self._wcs_std['Chunk.custom.axis.function.delta'] = \
-            'CDELT{}'.format(axis)
+        self._wcs_std['Chunk.custom.axis.axis.ctype'] = f'CTYPE{axis}'
+        self._wcs_std['Chunk.custom.axis.axis.cunit'] = f'CUNIT{axis}'
+        self._wcs_std['Chunk.custom.axis.function.naxis'] = f'NAXIS{axis}'
+        self._wcs_std['Chunk.custom.axis.function.delta'] = f'CDELT{axis}'
         self._wcs_std['Chunk.custom.axis.function.refCoord.pix'] = \
-            'CRPIX{}'.format(axis)
+            f'CRPIX{axis}'
         self._wcs_std['Chunk.custom.axis.function.refCoord.val'] = \
-            'CRVAL{}'.format(axis)
+            f'CRVAL{axis}'
 
         self._custom_axis_configed = True
 
@@ -649,83 +635,83 @@ class ObsBlueprint(object):
             self.set('Chunk.position.coordsys', (['RADESYS'], None))
             self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
             self.set('Chunk.position.axis.axis1.ctype',
-                     (['CTYPE{}'.format(axes[0])], None))
+                     ([f'CTYPE{axes[0]}'], None))
             self.set('Chunk.position.axis.axis1.cunit',
-                     (['CUNIT{}'.format(axes[0])], None))
+                     ([f'CUNIT{axes[0]}'], None))
             self.set('Chunk.position.axis.axis2.ctype',
-                     (['CTYPE{}'.format(axes[1])], None))
+                     ([f'CTYPE{axes[1]}'], None))
             self.set('Chunk.position.axis.axis2.cunit',
-                     (['CUNIT{}'.format(axes[1])], None))
+                     ([f'CUNIT{axes[1]}'], None))
             self.set('Chunk.position.axis.error1.syser',
-                     (['CSYER{}'.format(axes[0])], None))
+                     ([f'CSYER{axes[0]}'], None))
             self.set('Chunk.position.axis.error1.rnder',
-                     (['CRDER{}'.format(axes[0])], None))
+                     ([f'CRDER{axes[0]}'], None))
             self.set('Chunk.position.axis.error2.syser',
-                     (['CSYER{}'.format(axes[1])], None))
+                     ([f'CSYER{axes[1]}'], None))
             self.set('Chunk.position.axis.error2.rnder',
-                     (['CRDER{}'.format(axes[1])], None))
+                     ([f'CRDER{axes[1]}'], None))
             self.set('Chunk.position.axis.function.cd11',
-                     (['CD{}_{}'.format(axes[0], axes[0])], None))
+                     ([f'CD{axes[0]}_{axes[0]}'], None))
             self.set('Chunk.position.axis.function.cd12',
-                     (['CD{}_{}'.format(axes[0], axes[1])], None))
+                     ([f'CD{axes[0]}_{axes[1]}'], None))
             self.set('Chunk.position.axis.function.cd21',
-                     (['CD{}_{}'.format(axes[1], axes[0])], None))
+                     ([f'CD{axes[1]}_{axes[0]}'], None))
             self.set('Chunk.position.axis.function.cd22',
-                     (['CD{}_{}'.format(axes[1], axes[1])], None))
+                     ([f'CD{axes[1]}_{axes[1]}'], None))
             self.set('Chunk.position.axis.function.dimension.naxis1',
-                     (['ZNAXIS{}'.format(axes[0]),
-                       'NAXIS{}'.format(axes[0])], None))
+                     ([f'ZNAXIS{axes[0]}',
+                       f'NAXIS{axes[0]}'], None))
             self.set('Chunk.position.axis.function.dimension.naxis2',
-                     (['ZNAXIS{}'.format(axes[1]),
-                       'NAXIS{}'.format(axes[1])], None))
+                     ([f'ZNAXIS{axes[1]}',
+                       f'NAXIS{axes[1]}'], None))
             self.set('Chunk.position.axis.function.refCoord.coord1.pix',
-                     (['CRPIX{}'.format(axes[0])], None))
+                     ([f'CRPIX{axes[0]}'], None))
             self.set('Chunk.position.axis.function.refCoord.coord1.val',
-                     (['CRVAL{}'.format(axes[0])], None))
+                     ([f'CRVAL{axes[0]}'], None))
             self.set('Chunk.position.axis.function.refCoord.coord2.pix',
-                     (['CRPIX{}'.format(axes[1])], None))
+                     ([f'CRPIX{axes[1]}'], None))
             self.set('Chunk.position.axis.function.refCoord.coord2.val',
-                     (['CRVAL{}'.format(axes[1])], None))
+                     ([f'CRVAL{axes[1]}'], None))
 
         self._wcs_std['Chunk.position.coordsys'] = 'RADESYS'
         self._wcs_std['Chunk.position.equinox'] = 'EQUINOX'
 
         self._wcs_std['Chunk.position.axis.axis1.ctype'] = \
-            'CTYPE{}'.format(axes[0])
+            f'CTYPE{axes[0]}'
         self._wcs_std['Chunk.position.axis.axis1.cunit'] = \
-            'CUNIT{}'.format(axes[0])
+            f'CUNIT{axes[0]}'
         self._wcs_std['Chunk.position.axis.axis2.ctype'] = \
-            'CTYPE{}'.format(axes[1])
+            f'CTYPE{axes[1]}'
         self._wcs_std['Chunk.position.axis.axis2.cunit'] = \
-            'CUNIT{}'.format(axes[1])
+            f'CUNIT{axes[1]}'
         self._wcs_std['Chunk.position.axis.error1.syser'] = \
-            'CSYER{}'.format(axes[0])
+            f'CSYER{axes[0]}'
         self._wcs_std['Chunk.position.axis.error1.rnder'] = \
-            'CRDER{}'.format(axes[0])
+            f'CRDER{axes[0]}'
         self._wcs_std['Chunk.position.axis.error2.syser'] = \
-            'CSYER{}'.format(axes[1])
+            f'CSYER{axes[1]}'
         self._wcs_std['Chunk.position.axis.error2.rnder'] = \
-            'CRDER{}'.format(axes[1])
+            f'CRDER{axes[1]}'
         self._wcs_std['Chunk.position.axis.function.cd11'] = \
-            'CD{}_{}'.format(axes[0], axes[0])
+            f'CD{axes[0]}_{axes[0]}'
         self._wcs_std['Chunk.position.axis.function.cd12'] = \
-            'CD{}_{}'.format(axes[0], axes[1])
+            f'CD{axes[0]}_{axes[1]}'
         self._wcs_std['Chunk.position.axis.function.cd21'] = \
-            'CD{}_{}'.format(axes[1], axes[0])
+            f'CD{axes[1]}_{axes[0]}'
         self._wcs_std['Chunk.position.axis.function.cd22'] = \
-            'CD{}_{}'.format(axes[1], axes[1])
+            f'CD{axes[1]}_{axes[1]}'
         self._wcs_std['Chunk.position.axis.function.dimension.naxis1'] = \
-            'NAXIS{}'.format(axes[0])
+            f'NAXIS{axes[0]}'
         self._wcs_std['Chunk.position.axis.function.dimension.naxis2'] = \
-            'NAXIS{}'.format(axes[1])
+            f'NAXIS{axes[1]}'
         self._wcs_std['Chunk.position.axis.function.refCoord.coord1.pix'] \
-            = 'CRPIX{}'.format(axes[0])
+            = f'CRPIX{axes[0]}'
         self._wcs_std['Chunk.position.axis.function.refCoord.coord1.val'] \
-            = 'CRVAL{}'.format(axes[0])
+            = f'CRVAL{axes[0]}'
         self._wcs_std['Chunk.position.axis.function.refCoord.coord2.pix'] \
-            = 'CRPIX{}'.format(axes[1])
+            = f'CRPIX{axes[1]}'
         self._wcs_std['Chunk.position.axis.function.refCoord.coord2.val'] \
-            = 'CRVAL{}'.format(axes[1])
+            = f'CRVAL{axes[1]}'
 
         self._pos_axes_configed = True
 
@@ -757,21 +743,21 @@ class ObsBlueprint(object):
             self.set('Chunk.energy.resolvingPower', ([], None))
 
             self.set('Chunk.energy.axis.axis.ctype',
-                     (['CTYPE{}'.format(axis)], None))
+                     ([f'CTYPE{axis}'], None))
             self.set('Chunk.energy.axis.axis.cunit',
-                     (['CUNIT{}'.format(axis)], None))
+                     ([f'CUNIT{axis}'], None))
             self.set('Chunk.energy.axis.error.syser',
-                     (['CSYER{}'.format(axis)], None))
+                     ([f'CSYER{axis}'], None))
             self.set('Chunk.energy.axis.error.rnder',
-                     (['CRDER{}'.format(axis)], None))
+                     ([f'CRDER{axis}'], None))
             self.set('Chunk.energy.axis.function.naxis',
-                     (['NAXIS{}'.format(axis)], None))
+                     ([f'NAXIS{axis}'], None))
             self.set('Chunk.energy.axis.function.delta',
-                     (['CDELT{}'.format(axis)], None))
+                     ([f'CDELT{axis}'], None))
             self.set('Chunk.energy.axis.function.refCoord.pix',
-                     (['CRPIX{}'.format(axis)], None))
+                     ([f'CRPIX{axis}'], None))
             self.set('Chunk.energy.axis.function.refCoord.val',
-                     (['CRVAL{}'.format(axis)], None))
+                     ([f'CRVAL{axis}'], None))
 
         self._wcs_std['Chunk.energy.specsys'] = 'SPECSYS'
         self._wcs_std['Chunk.energy.ssysobs'] = 'SSYSOBS'
@@ -783,21 +769,21 @@ class ObsBlueprint(object):
         self._wcs_std['Chunk.energy.velang'] = 'VELANG'
 
         self._wcs_std['Chunk.energy.axis.axis.ctype'] = \
-            'CTYPE{}'.format(axis)
+            f'CTYPE{axis}'
         self._wcs_std['Chunk.energy.axis.axis.cunit'] = \
-            'CUNIT{}'.format(axis)
+            f'CUNIT{axis}'
         self._wcs_std['Chunk.energy.axis.error.syser'] = \
-            'CSYER{}'.format(axis)
+            f'CSYER{axis}'
         self._wcs_std['Chunk.energy.axis.error.rnder'] = \
-            'CRDER{}'.format(axis)
+            f'CRDER{axis}'
         self._wcs_std['Chunk.energy.axis.function.naxis'] = \
-            'NAXIS{}'.format(axis)
+            f'NAXIS{axis}'
         self._wcs_std['Chunk.energy.axis.function.delta'] = \
-            'CDELT{}'.format(axis)
+            f'CDELT{axis}'
         self._wcs_std['Chunk.energy.axis.function.refCoord.pix'] = \
-            'CRPIX{}'.format(axis)
+            f'CRPIX{axis}'
         self._wcs_std['Chunk.energy.axis.function.refCoord.val'] = \
-            'CRVAL{}'.format(axis)
+            f'CRVAL{axis}'
 
         self._energy_axis_configed = True
 
@@ -817,30 +803,30 @@ class ObsBlueprint(object):
 
         if override:
             self.set('Chunk.polarization.axis.axis.ctype',
-                     (['CTYPE{}'.format(axis)], None))
+                     ([f'CTYPE{axis}'], None))
             self.set('Chunk.polarization.axis.axis.cunit',
-                     (['CUNIT{}'.format(axis)], None))
+                     ([f'CUNIT{axis}'], None))
             self.set('Chunk.polarization.axis.function.naxis',
-                     (['NAXIS{}'.format(axis)], None))
+                     ([f'NAXIS{axis}'], None))
             self.set('Chunk.polarization.axis.function.delta',
-                     (['CDELT{}'.format(axis)], None))
+                     ([f'CDELT{axis}'], None))
             self.set('Chunk.polarization.axis.function.refCoord.pix',
-                     (['CRPIX{}'.format(axis)], None))
+                     ([f'CRPIX{axis}'], None))
             self.set('Chunk.polarization.axis.function.refCoord.val',
-                     (['CRVAL{}'.format(axis)], None))
+                     ([f'CRVAL{axis}'], None))
 
         self._wcs_std['Chunk.polarization.axis.axis.ctype'] = \
-            'CTYPE{}'.format(axis)
+            f'CTYPE{axis}'
         self._wcs_std['Chunk.polarization.axis.axis.cunit'] = \
-            'CUNIT{}'.format(axis)
+            f'CUNIT{axis}'
         self._wcs_std['Chunk.polarization.axis.function.naxis'] = \
-            'NAXIS{}'.format(axis)
+            f'NAXIS{axis}'
         self._wcs_std['Chunk.polarization.axis.function.delta'] = \
-            'CDELT{}'.format(axis)
+            f'CDELT{axis}'
         self._wcs_std['Chunk.polarization.axis.function.refCoord.pix'] = \
-            'CRPIX{}'.format(axis)
+            f'CRPIX{axis}'
         self._wcs_std['Chunk.polarization.axis.function.refCoord.val'] = \
-            'CRVAL{}'.format(axis)
+            f'CRVAL{axis}'
 
         self._polarization_axis_configed = True
 
@@ -862,18 +848,18 @@ class ObsBlueprint(object):
 
         if override:
             self.set('Chunk.observable.axis.axis.ctype',
-                     (['CTYPE{}'.format(axis)], None))
+                     ([f'CTYPE{axis}'], None))
             self.set('Chunk.observable.axis.axis.cunit',
-                     (['CUNIT{}'.format(axis)], None))
+                     ([f'CUNIT{axis}'], None))
             self.set('Chunk.observable.axis.function.refCoord.pix',
-                     (['CRPIX{}'.format(axis)], None))
+                     ([f'CRPIX{axis}'], None))
 
         self._wcs_std['Chunk.observable.axis.axis.ctype'] = \
-            'CTYPE{}'.format(axis)
+            f'CTYPE{axis}'
         self._wcs_std['Chunk.observable.axis.axis.cunit'] = \
-            'CUNIT{}'.format(axis)
+            f'CUNIT{axis}'
         self._wcs_std['Chunk.observable.axis.function.refCoord.pix'] = \
-            'CRPIX{}'.format(axis)
+            f'CRPIX{axis}'
 
         self._obs_axis_configed = True
 
@@ -898,21 +884,21 @@ class ObsBlueprint(object):
             self.set('Chunk.time.mjdref', (['MJDREF'], None))
             self.set('Chunk.time.resolution', (['TIMEDEL'], None))
             self.set('Chunk.time.axis.axis.ctype',
-                     (['CTYPE{}'.format(axis)], None))
+                     ([f'CTYPE{axis}'], None))
             self.set('Chunk.time.axis.axis.cunit',
-                     (['CUNIT{}'.format(axis)], None))
+                     ([f'CUNIT{axis}'], None))
             self.set('Chunk.time.axis.error.syser',
-                     (['CSYER{}'.format(axis)], None))
+                     ([f'CSYER{axis}'], None))
             self.set('Chunk.time.axis.error.rnder',
-                     (['CRDER{}'.format(axis)], None))
+                     ([f'CRDER{axis}'], None))
             self.set('Chunk.time.axis.function.naxis',
-                     (['NAXIS{}'.format(axis)], None))
+                     ([f'NAXIS{axis}'], None))
             self.set('Chunk.time.axis.function.delta',
-                     (['CDELT{}'.format(axis)], None))
+                     ([f'CDELT{axis}'], None))
             self.set('Chunk.time.axis.function.refCoord.pix',
-                     (['CRPIX{}'.format(axis)], None))
+                     ([f'CRPIX{axis}'], None))
             self.set('Chunk.time.axis.function.refCoord.val',
-                     (['CRVAL{}'.format(axis)], None))
+                     ([f'CRVAL{axis}'], None))
 
         self._wcs_std['Chunk.time.exposure'] = 'EXPTIME'
         self._wcs_std['Chunk.time.resolution'] = 'TIMEDEL'
@@ -921,21 +907,21 @@ class ObsBlueprint(object):
         self._wcs_std['Chunk.time.mjdref'] = 'MJDREF'
 
         self._wcs_std['Chunk.time.axis.axis.ctype'] = \
-            'CTYPE{}'.format(axis)
+            f'CTYPE{axis}'
         self._wcs_std['Chunk.time.axis.axis.cunit'] = \
-            'CUNIT{}'.format(axis)
+            f'CUNIT{axis}'
         self._wcs_std['Chunk.time.axis.error.syser'] = \
-            'CSYER{}'.format(axis)
+            f'CSYER{axis}'
         self._wcs_std['Chunk.time.axis.error.rnder'] = \
-            'CRDER{}'.format(axis)
+            f'CRDER{axis}'
         self._wcs_std['Chunk.time.axis.function.naxis'] = \
-            'NAXIS{}'.format(axis)
+            f'NAXIS{axis}'
         self._wcs_std['Chunk.time.axis.function.delta'] = \
-            'CDELT{}'.format(axis)
+            f'CDELT{axis}'
         self._wcs_std['Chunk.time.axis.function.refCoord.pix'] = \
-            'CRPIX{}'.format(axis)
+            f'CRPIX{axis}'
         self._wcs_std['Chunk.time.axis.function.refCoord.val'] = \
-            'CRVAL{}'.format(axis)
+            f'CRVAL{axis}'
 
         self._time_axis_configed = True
 
@@ -1061,7 +1047,7 @@ class ObsBlueprint(object):
             axis_info['custom'] = (counter, True)
         else:
             raise ValueError(
-                'Unrecognized axis type: {}'.format(lookup))
+                f'Unrecognized axis type: {lookup}')
 
     def _get_configured_index(self, axis_info, lookup):
         """Find the next available index value among those that are not set.
@@ -1184,7 +1170,7 @@ class ObsBlueprint(object):
     def check_extension(extension):
         if extension is not None and extension < 0:
             raise ValueError(
-                'Extension count failure. {} should be >= 0'.format(extension))
+                f'Extension count failure. {extension} should be >= 0')
 
     def __str__(self):
         plan = self._serialize(self._plan)
@@ -1192,7 +1178,7 @@ class ObsBlueprint(object):
         extensions = ''
         if self._extensions:
             for key in sorted(self._extensions):
-                extensions = extensions + '\nextension {}:\n'.format(key) +\
+                extensions = extensions + f'\nextension {key}:\n' +\
                     self._serialize(self._extensions[key])
         return plan + extensions
 
@@ -1241,7 +1227,7 @@ class ObsBlueprint(object):
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 raise AttributeError(
-                    'No extension {} in the blueprint'.format(extension))
+                    f'No extension {extension} in the blueprint')
             else:
                 if caom2_element in self._extensions[extension]:
                     if (isinstance(self._extensions[extension][caom2_element],
@@ -1493,7 +1479,6 @@ class ObsBlueprint(object):
         self._update = value
 
 
-@add_metaclass(ABCMeta)
 class GenericParser:
     """
     Extract CAOM2 metadata from files with no WCS information.
@@ -1530,7 +1515,7 @@ class GenericParser:
                 artifact_uri))
         if observation is None or not isinstance(observation, Observation):
             raise ValueError(
-                'Observation type mis-match for {}.'.format(observation))
+                f'Observation type mis-match for {observation}.')
 
         observation.meta_release = self._get_datetime(self._get_from_list(
             'Observation.metaRelease', index=0,
@@ -1570,7 +1555,7 @@ class GenericParser:
             'Begin generic CAOM2 plane augmentation for {}.'.format(
                 artifact_uri))
         if plane is None or not isinstance(plane, Plane):
-            raise ValueError('Plane type mis-match for {}'.format(plane))
+            raise ValueError(f'Plane type mis-match for {plane}')
 
         plane.meta_release = self._get_datetime(self._get_from_list(
             'Plane.metaRelease', index=0, current=plane.meta_release))
@@ -1611,7 +1596,7 @@ class GenericParser:
                 self.logging_name))
         if artifact is None or not isinstance(artifact, Artifact):
             raise ValueError(
-                'Artifact type mis-match for {}'.format(artifact))
+                f'Artifact type mis-match for {artifact}')
 
         artifact.product_type = self._to_product_type(self._get_from_list(
             'Artifact.productType', index=0, current=artifact.product_type))
@@ -1647,7 +1632,7 @@ class GenericParser:
                     lookup))
             if current:
                 self.logger.debug(
-                    '{}: using current value of {!r}.'.format(lookup, current))
+                    f'{lookup}: using current value of {current!r}.')
                 value = current
             return value
         if (keywords and not ObsBlueprint.is_fits(keywords)
@@ -1667,12 +1652,12 @@ class GenericParser:
             if isinstance(value, bool) or current is not None:
                 value = current
 
-        self.logger.debug('{}: value is {}'.format(lookup, value))
+        self.logger.debug(f'{lookup}: value is {value}')
         return value
 
     def add_error(self, key, message):
-        self._errors.append(('{} {} {}'.format(
-            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), key, message)))
+        self._errors.append('{} {} {}'.format(
+            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), key, message))
 
     def _to_data_product_type(self, value):
         return self._to_enum_type(value, DataProductType)
@@ -1858,7 +1843,8 @@ class FitsParser(GenericParser):
         else:
             # assume file
             self.file = src
-            self._headers = _get_headers_from_fits(self.file)
+            self._headers = data_util.get_local_file_headers(
+                self.file)
         if obs_blueprint:
             self._blueprint = obs_blueprint
         else:
@@ -1892,7 +1878,7 @@ class FitsParser(GenericParser):
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        super(FitsParser, self).augment_artifact(artifact)
+        super().augment_artifact(artifact)
 
         self.logger.debug(
             'Begin artifact augmentation for {} with {} HDUs.'.format(
@@ -1911,10 +1897,10 @@ class FitsParser(GenericParser):
                 if ii not in artifact.parts.keys():
                     # TODO use extension name?
                     artifact.parts.add(Part(ii))
-                    self.logger.debug('Part created for HDU {}.'.format(ii))
+                    self.logger.debug(f'Part created for HDU {ii}.')
             else:
                 artifact.parts.add(Part(ii))
-                self.logger.debug('Create empty part for HDU {}'.format(ii))
+                self.logger.debug(f'Create empty part for HDU {ii}')
                 continue
 
             part = artifact.parts[ii]
@@ -1982,7 +1968,7 @@ class FitsParser(GenericParser):
             self._try_range_with_blueprint(chunk, i)
 
         self.logger.debug(
-            'End artifact augmentation for {}.'.format(artifact.uri))
+            f'End artifact augmentation for {artifact.uri}.')
 
     def _try_range_with_blueprint(self, chunk, index):
         """Use the blueprint to set elements and attributes that
@@ -1992,7 +1978,7 @@ class FitsParser(GenericParser):
 
         for i in ['energy', 'time', 'polarization']:
             axis_configed = getattr(self.blueprint,
-                                    '_{}_axis_configed'.format(i))
+                                    f'_{i}_axis_configed')
             if axis_configed:
                 wcs = getattr(chunk, i)
                 if wcs is not None and wcs.axis is not None:
@@ -2001,18 +1987,18 @@ class FitsParser(GenericParser):
         self._try_position_range(chunk, index)
 
     def _try_range(self, wcs, index, lookup):
-        self.logger.debug('Try to set the range for {}'.format(lookup))
+        self.logger.debug(f'Try to set the range for {lookup}')
         aug_range_start = self._two_param_constructor(
-            'Chunk.{}.axis.range.start.pix'.format(lookup),
-            'Chunk.{}.axis.range.start.val'.format(lookup),
+            f'Chunk.{lookup}.axis.range.start.pix',
+            f'Chunk.{lookup}.axis.range.start.val',
             index, _to_float, RefCoord)
         aug_range_end = self._two_param_constructor(
-            'Chunk.{}.axis.range.end.pix'.format(lookup),
-            'Chunk.{}.axis.range.end.val'.format(lookup),
+            f'Chunk.{lookup}.axis.range.end.pix',
+            f'Chunk.{lookup}.axis.range.end.val',
             index, _to_float, RefCoord)
         if aug_range_start and aug_range_end:
             wcs.axis.range = CoordRange1D(aug_range_start, aug_range_end)
-            self.logger.debug('Completed setting range for {}'.format(lookup))
+            self.logger.debug(f'Completed setting range for {lookup}')
 
     def _try_position_range(self, chunk, index):
         self.logger.debug('Try to set the range for position from blueprint')
@@ -2090,7 +2076,7 @@ class FitsParser(GenericParser):
         if aug_x_ref_coord is not None and aug_y_ref_coord is not None:
             aug_ref_coord = Coord2D(aug_x_ref_coord, aug_y_ref_coord)
             self.logger.debug(
-                'Creating position Coord2D for {}'.format(self.uri))
+                f'Creating position Coord2D for {self.uri}')
 
         aug_function = None
         if (aug_dimension is not None and aug_ref_coord is not None and
@@ -2100,7 +2086,7 @@ class FitsParser(GenericParser):
                                            aug_cd11, aug_cd12, aug_cd21,
                                            aug_cd22)
             self.logger.debug(
-                'Creating position CoordFunction2D for {}'.format(self.uri))
+                f'Creating position CoordFunction2D for {self.uri}')
 
         aug_axis = None
         if (aug_x_axis is not None and aug_y_axis is not None and
@@ -2108,7 +2094,7 @@ class FitsParser(GenericParser):
             aug_axis = CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error,
                                    aug_y_error, None, None, aug_function)
             self.logger.debug(
-                'Creating position CoordAxis2D for {}'.format(self.uri))
+                f'Creating position CoordAxis2D for {self.uri}')
 
         if aug_axis is not None:
             if chunk.position:
@@ -2290,12 +2276,12 @@ class FitsParser(GenericParser):
         :return an instance of CoordAxis1D
         """
         self.logger.debug(
-            'Begin {} naxis construction from blueprint.'.format(label))
+            f'Begin {label} naxis construction from blueprint.')
 
         aug_axis_ctype = self._get_from_list(
-            'Chunk.{}.axis.axis.ctype'.format(label), index)
+            f'Chunk.{label}.axis.axis.ctype', index)
         aug_axis_cunit = self._get_from_list(
-            'Chunk.{}.axis.axis.cunit'.format(label), index)
+            f'Chunk.{label}.axis.axis.cunit', index)
         aug_axis = None
         if aug_axis_ctype is not None:
             aug_axis = Axis(aug_axis_ctype, aug_axis_cunit)
@@ -2304,18 +2290,18 @@ class FitsParser(GenericParser):
                 format(self.uri))
 
         aug_error = self._two_param_constructor(
-            'Chunk.{}.axis.error.syser'.format(label),
-            'Chunk.{}.axis.error.rnder'.format(label),
+            f'Chunk.{label}.axis.error.syser',
+            f'Chunk.{label}.axis.error.rnder',
             index, _to_float, CoordError)
         aug_ref_coord = self._two_param_constructor(
-            'Chunk.{}.axis.function.refCoord.pix'.format(label),
-            'Chunk.{}.axis.function.refCoord.val'.format(label),
+            f'Chunk.{label}.axis.function.refCoord.pix',
+            f'Chunk.{label}.axis.function.refCoord.val',
             index, _to_float, RefCoord)
         aug_delta = _to_float(
-            self._get_from_list('Chunk.{}.axis.function.delta'.format(label),
+            self._get_from_list(f'Chunk.{label}.axis.function.delta',
                                 index))
         aug_length = _to_int(
-            self._get_from_list('Chunk.{}.axis.function.naxis'.format(label),
+            self._get_from_list(f'Chunk.{label}.axis.function.naxis',
                                 index))
 
         aug_function = None
@@ -2335,7 +2321,7 @@ class FitsParser(GenericParser):
                 'Creating {} CoordAxis1D for {} from blueprint'.
                 format(label, self.uri))
         self.logger.debug(
-            'End {} naxis construction from blueprint.'.format(label))
+            f'End {label} naxis construction from blueprint.')
         return aug_naxis
 
     def augment_observation(self, observation, artifact_uri, product_id=None):
@@ -2345,8 +2331,7 @@ class FitsParser(GenericParser):
         :param artifact_uri: the key for finding the artifact to augment
         :param product_id: the key for finding for the plane to augment
         """
-        super(FitsParser, self).augment_observation(observation, artifact_uri,
-                                                    product_id)
+        super().augment_observation(observation, artifact_uri, product_id)
         self.logger.debug(
             'Begin observation augmentation for URI {}.'.format(
                 artifact_uri))
@@ -2386,7 +2371,7 @@ class FitsParser(GenericParser):
         observation.environment = self._get_environment(
             observation.environment)
         self.logger.debug(
-            'End observation augmentation for {}.'.format(artifact_uri))
+            f'End observation augmentation for {artifact_uri}.')
 
     def augment_plane(self, plane, artifact_uri):
         """
@@ -2394,9 +2379,9 @@ class FitsParser(GenericParser):
         :param plane: existing CAOM2 plane to be augmented.
         :param artifact_uri:
         """
-        super(FitsParser, self).augment_plane(plane, artifact_uri)
+        super().augment_plane(plane, artifact_uri)
         self.logger.debug(
-            'Begin plane augmentation for {}.'.format(artifact_uri))
+            f'Begin plane augmentation for {artifact_uri}.')
 
         plane.meta_release = self._get_datetime(self._get_from_list(
             'Plane.metaRelease', index=0, current=plane.meta_release))
@@ -2416,7 +2401,7 @@ class FitsParser(GenericParser):
         plane.quality = self._get_quality(current=plane.quality)
 
         self.logger.debug(
-            'End plane augmentation for {}.'.format(artifact_uri))
+            f'End plane augmentation for {artifact_uri}.')
 
     def apply_blueprint_to_fits(self):
 
@@ -2509,10 +2494,10 @@ class FitsParser(GenericParser):
                     break
             if cd_present:
                 for i in range(1, 6):
-                    if 'CDELT{}'.format(i) in header and \
+                    if f'CDELT{i}' in header and \
                             'CD{0}_{0}'.format(i) not in header:
                         header['CD{0}_{0}'.format(i)] = \
-                            header['CDELT{}'.format(i)]
+                            header[f'CDELT{i}']
 
         # TODO When a projection is specified, wcslib expects corresponding
         # DP arguments with NAXES attributes. Normally, omitting the attribute
@@ -2524,17 +2509,17 @@ class FitsParser(GenericParser):
         for header in self.headers:
             sip = False
             for i in range(1, 6):
-                if (('CTYPE{}'.format(i) in header) and
-                        isinstance(header['CTYPE{}'.format(i)], str) and
-                        ('-SIP' in header['CTYPE{}'.format(i)])):
+                if ((f'CTYPE{i}' in header) and
+                        isinstance(header[f'CTYPE{i}'], str) and
+                        ('-SIP' in header[f'CTYPE{i}'])):
                     sip = True
                     break
             if sip:
                 for i in range(1, 6):
-                    if ('CTYPE{}'.format(i) in header) and \
-                            ('-SIP' not in header['CTYPE{}'.format(i)]) and \
-                            ('DP{}'.format(i) not in header):
-                        header['DP{}'.format(i)] = 'NAXES: 1'
+                    if (f'CTYPE{i}' in header) and \
+                            ('-SIP' not in header[f'CTYPE{i}']) and \
+                            (f'DP{i}' not in header):
+                        header[f'DP{i}'] = 'NAXES: 1'
 
         return
 
@@ -2550,8 +2535,8 @@ class FitsParser(GenericParser):
                 (self.blueprint._get('DerivedObservation.members') or
                  self.blueprint._get('CompositeObservation.members'))):
             raise TypeError(
-                ('Cannot apply blueprint for DerivedObservation to a '
-                 'simple observation'))
+                'Cannot apply blueprint for DerivedObservation to a '
+                'simple observation')
         elif isinstance(obs, DerivedObservation):
             lookup = self.blueprint._get('DerivedObservation.members',
                                          extension=1)
@@ -2672,7 +2657,7 @@ class FitsParser(GenericParser):
         if prop_id:
             proposal = Proposal(str(prop_id), pi, project, title)
             FitsParser._add_keywords(keywords, current, proposal)
-        self.logger.debug('End Proposal augmentation {}.'.format(prop_id))
+        self.logger.debug(f'End Proposal augmentation {prop_id}.')
         return proposal
 
     def _get_target(self, current):
@@ -2837,7 +2822,7 @@ class FitsParser(GenericParser):
                     lookup))
             if current:
                 self.logger.debug(
-                    '{}: using current value of {!r}.'.format(lookup, current))
+                    f'{lookup}: using current value of {current!r}.')
                 value = current
             return value
 
@@ -2887,7 +2872,7 @@ class FitsParser(GenericParser):
         elif current:
             value = current
 
-        self.logger.debug('{}: value is {}'.format(lookup, value))
+        self.logger.debug(f'{lookup}: value is {value}')
         return value
 
     def _get_from_table(self, lookup, extension):
@@ -2923,9 +2908,9 @@ class FitsParser(GenericParser):
                                 fits_data[extension].header['XTENSION']))
                     for ii in keywords[1]:
                         for jj in fits_data[extension].data[keywords[2]][ii]:
-                            value = '{} {}'.format(jj, value)
+                            value = f'{jj} {value}'
 
-        self.logger.debug('{}: value is {}'.format(lookup, value))
+        self.logger.debug(f'{lookup}: value is {value}')
         return value
 
     def _get_set_from_list(self, lookup, index):
@@ -2953,7 +2938,7 @@ class FitsParser(GenericParser):
                                                                     value))
         elif keywords:
             value = keywords
-            self.logger.debug('{}: assigned value {}.'.format(lookup, value))
+            self.logger.debug(f'{lookup}: assigned value {value}.')
 
         return value
 
@@ -3109,7 +3094,7 @@ class FitsParser(GenericParser):
 
         data_axes = 0
         for i in range(1, naxis + 1):
-            axis = 'NAXIS{}'.format(i)
+            axis = f'NAXIS{i}'
             if axis in header:
                 data_axis = _to_int(header[axis])
                 if not data_axes:
@@ -3152,7 +3137,7 @@ class FitsParser(GenericParser):
             to_set.keywords.remove('none')
 
 
-class WcsParser(object):
+class WcsParser:
     """
     Parser to augment chunks with positional, temporal, energy and polarization
     information based on the WCS keywords in an extension of a FITS header.
@@ -3199,7 +3184,7 @@ class WcsParser(object):
         """
         self.logger.debug('Begin Custom WCS augmentation.')
         if chunk is None or not isinstance(chunk, Chunk):
-            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
+            raise ValueError(f'Chunk type mis-match for {chunk}.')
 
         custom_axis_index = self._get_axis_index(CUSTOM_CTYPES)
         if custom_axis_index is None:
@@ -3232,7 +3217,7 @@ class WcsParser(object):
         """
         self.logger.debug('Begin Energy WCS augmentation.')
         if chunk is None or not isinstance(chunk, Chunk):
-            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
+            raise ValueError(f'Chunk type mis-match for {chunk}.')
 
         # get the energy axis
         energy_axis_index = self._get_axis_index(ENERGY_CTYPES)
@@ -3281,7 +3266,7 @@ class WcsParser(object):
         """
         self.logger.debug('Begin Spatial WCS augmentation.')
         if chunk is None or not isinstance(chunk, Chunk):
-            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
+            raise ValueError(f'Chunk type mis-match for {chunk}.')
 
         position_axes_indices = self._get_position_axis()
         if not position_axes_indices:
@@ -3320,7 +3305,7 @@ class WcsParser(object):
         """
         self.logger.debug('Begin TemporalWCS augmentation.')
         if chunk is None or not isinstance(chunk, Chunk):
-            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
+            raise ValueError(f'Chunk type mis-match for {chunk}.')
 
         time_axis_index = self._get_axis_index(TIME_KEYWORDS)
 
@@ -3364,7 +3349,7 @@ class WcsParser(object):
         """
         self.logger.debug('Begin Polarization WCS augmentation.')
         if chunk is None or not isinstance(chunk, Chunk):
-            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
+            raise ValueError(f'Chunk type mis-match for {chunk}.')
 
         polarization_axis_index = self._get_axis_index(POLARIZATION_CTYPES)
         if polarization_axis_index is None:
@@ -3399,7 +3384,7 @@ class WcsParser(object):
         """
         self.logger.debug('Begin Observable WCS augmentation.')
         if chunk is None or not isinstance(chunk, Chunk):
-            raise ValueError('Chunk type mis-match for {}.'.format(chunk))
+            raise ValueError(f'Chunk type mis-match for {chunk}.')
 
         observable_axis_index = self._get_axis_index(OBSERVABLE_CTYPES)
         if observable_axis_index is None:
@@ -3407,9 +3392,9 @@ class WcsParser(object):
             return
 
         chunk.observable_axis = observable_axis_index + 1
-        ctype = self.header.get('CTYPE{}'.format(chunk.observable_axis))
-        cunit = self.header.get('CUNIT{}'.format(chunk.observable_axis))
-        pix_bin = self.header.get('CRPIX{}'.format(chunk.observable_axis))
+        ctype = self.header.get(f'CTYPE{chunk.observable_axis}')
+        cunit = self.header.get(f'CUNIT{chunk.observable_axis}')
+        pix_bin = self.header.get(f'CRPIX{chunk.observable_axis}')
         if ctype is not None and cunit is not None and pix_bin is not None:
             chunk.observable = ObservableAxis(
                 Slice(self._get_axis(0, ctype, cunit), pix_bin))
@@ -3493,7 +3478,7 @@ class WcsParser(object):
                 cd22 = self.wcs.cdelt[y_index]
         except AttributeError:
             self.logger.debug(
-                'Error searching for CD* values {}'.format(sys.exc_info()[1]))
+                f'Error searching for CD* values {sys.exc_info()[1]}')
             cd11 = None
             cd12 = None
             cd21 = None
@@ -3545,12 +3530,12 @@ class WcsParser(object):
         # try ZNAXIS first in order to get the size of the original
         # image in case it was FITS compressed
         result = _to_int(self._sanitize(
-            self.header.get('ZNAXIS{}'.format(for_axis))))
+            self.header.get(f'ZNAXIS{for_axis}')))
         if result is None:
             result = _to_int(self._sanitize(
-                self.header.get('NAXIS{}'.format(for_axis))))
+                self.header.get(f'NAXIS{for_axis}')))
         if result is None:
-            msg = 'Could not find axis length for axis {}'.format(for_axis)
+            msg = f'Could not find axis length for axis {for_axis}'
             raise ValueError(msg)
         return result
 
@@ -3625,46 +3610,6 @@ def _set_by_type(header, keyword, value):
         header.set(keyword, value)
 
 
-def get_cadc_headers(uri, subject=None):
-    """
-    Creates the FITS headers object from a either a local file or it
-    fetches the FITS headers of a CADC file. The function takes advantage
-    of the fhead feature of the CADC storage service and retrieves just the
-    headers and no data, minimizing the transfer time.
-    :param uri: CADC ('ad:') or local file ('file:') URI
-    :param subject: user credentials. Anonymous if subject is None
-    :return: List of headers corresponding to each extension. Each header is
-    of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
-    """
-    file_url = urlparse(uri)
-    # TODO if file_url.scheme == 'cadc', need to get vos headers
-    if (file_url.scheme == 'ad' or
-            file_url.scheme == 'gemini'):
-        # create possible types of subjects
-        if not subject:
-            subject = net.Subject()
-        client = CadcDataClient(subject)
-        # do a fhead on the file
-        archive, file_id = file_url.path.split('/')
-        b = BytesIO()
-        b.name = uri
-        client.get_file(archive, file_id, b, fhead=True)
-        fits_header = b.getvalue().decode('ascii')
-        b.close()
-        headers = _make_headers_from_string(fits_header)
-    elif file_url.scheme == 'file':
-        try:
-            fits_header = open(file_url.path).read()
-            headers = _make_headers_from_string(fits_header)
-        except UnicodeDecodeError:
-            headers = _get_headers_from_fits(file_url.path)
-    else:
-        # TODO add hook to support other service providers
-        raise NotImplementedError('Only ad type URIs supported for '
-                                  '{}'.format(uri))
-    return headers
-
-
 def get_external_headers(external_url):
     try:
         session = requests.Session()
@@ -3676,7 +3621,7 @@ def get_external_headers(external_url):
         session.mount('https://', adapter)
         r = session.get(external_url, timeout=20)
         if r.status_code == requests.codes.ok:
-            headers = _make_headers_from_string(r.text)
+            headers = data_util.make_headers_from_string(r.text)
         else:
             headers = None
             logging.warning('Error {} when retrieving {} headers.'.format(
@@ -3684,7 +3629,7 @@ def get_external_headers(external_url):
         r.close()
         return headers
     except Exception as e:
-        logging.error('Connection failed to {}.\n{}'.format(external_url, e))
+        logging.error(f'Connection failed to {external_url}.\n{e}')
         raise RuntimeError(e)
 
 
@@ -3693,6 +3638,7 @@ def get_vos_headers(uri, subject=None):
     Creates the FITS headers object from a vospace file.
     :param uri: vos URI
     :param subject: user credentials. Anonymous if subject is None
+    :param cadc_client: StorageClientWrapper instance
     :return: List of headers corresponding to each extension. Each header is
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
@@ -3704,106 +3650,54 @@ def get_vos_headers(uri, subject=None):
 
         temp_filename = tempfile.NamedTemporaryFile()
         client.copy(uri, temp_filename.name, head=True)
-        return get_cadc_headers('file://{}'.format(temp_filename.name),
-                                subject=None)
+        return data_util.get_local_file_headers(
+            f'file://{temp_filename.name}'
+        )
     else:
         # this should be a programming error by now
         raise NotImplementedError('Only vos type URIs supported')
 
 
-def _make_headers_from_string(fits_header):
-    """Create a list of fits.Header instances from a string.
-    ":param fits_header a string of keyword/value pairs"""
-    fits_header = _clean_headers(fits_header)
-    delim = 'END\n'
-    extensions = \
-        [e + delim for e in fits_header.split(delim) if e.strip()]
-    headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
-    return headers
-
-
-def _clean_headers(fits_header):
-    """
-    Hopefully not Gemini specific.
-    Remove invalid cards and add missing END cards after extensions.
-    :param fits_header: fits_header a string of keyword/value pairs
-    """
-    new_header = []
-    first_header_encountered = False
-    for line in fits_header.split('\n'):
-        if len(line.strip()) == 0:
-            pass
-        elif line.startswith('--- PHU ---'):
-            first_header_encountered = True
-        elif line.startswith('--- HDU 0'):
-            if first_header_encountered:
-                new_header.append('END\n')
-            else:
-                first_header_encountered = True
-        elif line.startswith('--- HDU'):
-            new_header.append('END\n')
-        elif line.strip() == 'END':
-            new_header.append('END\n')
-        elif '=' not in line and not (line.startswith('COMMENT') or
-                                      line.startswith('HISTORY')):
-            pass
-        else:
-            new_header.append('{}\n'.format(line))
-    new_header.append('END\n')
-    return ''.join(new_header)
-
-
-def _get_headers_from_fits(path):
-    """Create a list of fits.Header instances from a fits file.
-    :param path where the FITS files resides on disk."""
-    hdulist = fits.open(path, memmap=True, lazy_load_hdus=False)
-    hdulist.verify('fix')
-    hdulist.close()
-    headers = [h.header for h in hdulist]
-    return headers
-
-
-def _update_artifact_meta(uri, artifact, subject=None, connected=True):
+def _update_artifact_meta(uri, artifact, subject=None, connected=True,
+                          client=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
     :param subject: User credentials
     :param connected: True if there's a network connection
+    :param client: connection to CADC storage
     :return:
     """
+    logging.debug(f'Begin _update_artifact_meta for {uri}')
     file_url = urlparse(uri)
-    # TODO - if file_url.scheme == 'cadc', need to use vos to get
-    # artifact metadata
-    if file_url.scheme == 'ad':
-        metadata = _get_cadc_meta(subject, file_url.path)
-    elif file_url.scheme == 'gemini':
-        if '.jpg' in file_url.path:
-            # will always get file metadata from CADC for previews
-            metadata = _get_cadc_meta(subject, file_url.path)
-        else:
-            # will get file metadata from Gemini JSON summary for fits,
-            # because the metadata is available long before the data
-            # will be stored at CADC
-            return
-    elif file_url.scheme in ['cadc', 'vos']:
+    if file_url.scheme == 'gemini' and '.jpg' not in file_url.path:
+        # will get file metadata from Gemini JSON summary for fits,
+        # because the metadata is available long before the data
+        # will be stored at CADC
+        return
+    elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
         if (file_url.path.endswith('.header') and subject is not None and
                 connected):
-            # if header is on disk, get the content_* from ad
-            try:
-                metadata = _get_cadc_meta(subject, urlparse(artifact.uri).path)
-            except exceptions.NotFoundException:
-                logging.info(
-                    'Could not find {} at CADC. No Artifact metadata.'.format(
-                        urlparse(artifact.uri).path))
-                return
+            if artifact.uri.startswith('vos'):
+                metadata = _get_vos_meta(subject, artifact.uri)
+            else:
+                # if header is on disk, get the content_* from CADC
+                metadata = client.info(artifact.uri)
+                if metadata is None:
+                    logging.info(
+                        'Could not find {} at CADC. No Artifact '
+                        'metadata.'.format(artifact.uri))
+                    return
         else:
-            metadata = _get_file_meta(file_url.path)
+            metadata = data_util.get_local_file_info(file_url.path)
     else:
-        # TODO add hook to support other service providers
-        raise NotImplementedError(
-            'Only ad, gemini and vos type URIs supported for {}'.format(uri))
+        metadata = client.info(uri)
+        if metadata is None:
+            logging.info('Could not find {} at CADC. No Artifact '
+                         'metadata.'.format(artifact.uri))
+            return
 
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
@@ -3811,47 +3705,20 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True):
                          artifact.content_checksum,
                          artifact.content_length,
                          artifact.content_type))
-    md5sum = metadata.get('md5sum')
-    if md5sum is not None:
-        if md5sum.startswith('md5:'):
-            checksum = ChecksumURI('{}'.format(md5sum))
+    if metadata.md5sum is not None:
+        if metadata.md5sum.startswith('md5:'):
+            checksum = ChecksumURI(metadata.md5sum)
         else:
-            checksum = ChecksumURI('md5:{}'.format(md5sum))
+            checksum = ChecksumURI(f'md5:{metadata.md5sum}')
         artifact.content_checksum = checksum
-    artifact.content_length = _to_int(metadata.get('size'))
-    artifact.content_type = _to_str(metadata.get('type'))
+    artifact.content_length = _to_int(metadata.size)
+    artifact.content_type = _to_str(metadata.file_type)
     logging.debug('updated artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
                          artifact.content_checksum,
                          artifact.content_length,
                          artifact.content_type))
-
-
-def _get_cadc_meta(subject, path):
-    """
-    Gets contentType, contentLength and contentChecksum of a CADC artifact
-    :param subject: user credentials
-    :param path:
-    :return:
-    """
-    client = CadcDataClient(subject)
-    archive, file_id = path.split('/')[-2:]
-    return client.get_file_info(archive, file_id)
-
-
-def _get_file_meta(path):
-    """
-    Gets contentType, contentLength and contentChecksum of an artifact on disk.
-    :param path:
-    :return:
-    """
-    meta = {}
-    s = stat(path)
-    meta['size'] = s.st_size
-    meta['md5sum'] = md5(open(path, 'rb').read()).hexdigest()
-    meta['type'] = _get_type(path)
-    return meta
 
 
 def _get_vos_meta(subject, uri):
@@ -3866,32 +3733,9 @@ def _get_vos_meta(subject, uri):
     else:
         client = Client()
     node = client.get_node(uri, limit=None, force=False)
-    return {'size': node.props['length'],
-            'md5sum': node.props['MD5'],
-            'type': _get_type(uri)}
-
-
-def _get_type(path):
-    """Basic header extension to content_type lookup."""
-    if (path.endswith('.header') or path.endswith('.txt') or
-            path.endswith('.cat')):
-        return 'text/plain'
-    elif path.endswith('.gif'):
-        return 'image/gif'
-    elif path.endswith('.png'):
-        return 'image/png'
-    elif path.endswith('.jpg'):
-        return 'image/jpeg'
-    elif path.endswith('.tar.gz'):
-        return 'application/x-tar'
-    elif path.endswith('.jpg'):
-        return 'image/jpeg'
-    elif path.endswith('.csv'):
-        return 'text/csv'
-    elif path.endswith('.hdf5') or path.endswith('.h5'):
-        return 'application/x-hdf5'
-    else:
-        return 'application/fits'
+    return FileInfo(id=uri, size=node.props['length'],
+                    md5sum=node.props['MD5'],
+                    file_type=data_util.get_file_type(uri))
 
 
 def _lookup_blueprint(blueprints, uri):
@@ -3903,7 +3747,8 @@ def _lookup_blueprint(blueprints, uri):
     :return: the blueprint to apply to Observation creation.
     """
     if len(blueprints) == 1:
-        return six.next(six.itervalues(blueprints))
+        key, value = blueprints.popitem()
+        return value
     else:
         return blueprints[uri]
 
@@ -3921,7 +3766,7 @@ def _extract_ids(cardinality):
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
              validate_wcs=True, plugin=None, local=None,
              external_url=None, connected=True, use_generic_parser=False,
-             **kwargs):
+             client=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -3939,10 +3784,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     :param local: the input is the name of a file on disk
     :param external_url: if header information should be retrieved
         externally, this is where to find it
+    :param client: StorageClientWrapper
     :return: an updated Observation
     """
     if dumpconfig:
-        print('Blueprint for {}: {}'.format(uri, blueprint))
+        print(f'Blueprint for {uri}: {blueprint}')
 
     if product_id not in obs.planes.keys():
         obs.planes.add(Plane(product_id=str(product_id)))
@@ -3959,37 +3805,34 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     visit_local = None
     if use_generic_parser:
         logging.debug(
-            'Using a GenericParser as requested for {}'.format(uri))
+            f'Using a GenericParser as requested for {uri}')
         parser = GenericParser(blueprint, uri=uri)
     elif local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
-                meta_uri = 'file://{}'.format(local)
+                meta_uri = f'file://{local}'
                 logging.debug(
-                    'Using a FitsParser for vos local {}'.format(local))
-                parser = FitsParser(
-                    get_cadc_headers(meta_uri), blueprint, uri=uri)
+                    f'Using a FitsParser for vos local {local}')
+                headers = data_util.get_local_file_headers(local)
+                parser = FitsParser(headers, blueprint, uri=uri)
             elif '.csv' in local:
                 logging.debug(
-                    'Using a GenericParser for vos local {}'.format(local))
+                    f'Using a GenericParser for vos local {local}')
                 parser = GenericParser(blueprint, uri=uri)
             else:
-                raise ValueError('Unexpected file type {}'.format(local))
+                raise ValueError(f'Unexpected file type {local}')
         else:
-            meta_uri = 'file://{}'.format(local)
+            meta_uri = f'file://{local}'
             visit_local = local
-            if '.header' in local and '.fits' in local:
+            if ('.header' in local or
+                data_util.get_file_type(local) ==
+                    'application/fits'):
                 logging.debug(
-                    'Using a FitsParser for local file {}'.format(local))
-                parser = FitsParser(get_cadc_headers(meta_uri),
-                                    blueprint, uri=uri)
-            elif (local.endswith('.fits') or local.endswith('.fits.gz') or
-                    local.endswith('.fits.fz')):
-                logging.debug('Using a FitsParser for {}'.format(local))
+                    f'Using a FitsParser for local file {local}')
                 parser = FitsParser(local, blueprint, uri=uri)
             else:
                 # explicitly ignore headers for txt and image files
-                logging.debug('Using a GenericParser for {}'.format(local))
+                logging.debug(f'Using a GenericParser for {local}')
                 parser = GenericParser(blueprint, uri=uri)
     elif external_url:
         headers = get_external_headers(external_url)
@@ -4001,29 +3844,29 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             parser = GenericParser(blueprint, uri=uri)
         else:
             logging.debug(
-                'Using a FitsParser for remote headers {}'.format(uri))
+                f'Using a FitsParser for remote headers {uri}')
             parser = FitsParser(headers, blueprint, uri=uri)
     else:
-        if (uri.endswith('.fits') or uri.endswith('.fits.gz') or
-                uri.endswith('.fits.fz')):
+        if '.fits' in uri:
             if uri.startswith('vos'):
                 headers = get_vos_headers(uri, subject)
+            elif uri.startswith('file'):
+                headers = data_util.get_local_file_headers(uri)
             else:
-                headers = get_cadc_headers(uri, subject)
-            logging.debug('Using a FitsParser for remote file {}'.format(uri))
+                headers = client.get_head(uri)
+            logging.debug(f'Using a FitsParser for remote file {uri}')
             parser = FitsParser(headers, blueprint, uri=uri)
         else:
             # explicitly ignore headers for txt and image files
             logging.debug(
-                'Using a GenericParser for remote file {}'.format(uri))
+                f'Using a GenericParser for remote file {uri}')
             parser = GenericParser(blueprint, uri=uri)
 
     if parser is None:
         result = None
     else:
         _update_artifact_meta(
-            meta_uri, plane.artifacts[uri], subject, connected)
-
+            meta_uri, plane.artifacts[uri], subject, connected, client)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
 
@@ -4044,7 +3887,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             logging.debug(
                 '{} errors encountered while processing {!r}.'.format(
                     len(parser._errors), uri))
-            logging.debug('{}'.format(parser._errors))
+            logging.debug(f'{parser._errors}')
 
     return result
 
@@ -4065,7 +3908,7 @@ def _load_module(module):
     try:
         return importlib.import_module(mname)
     except ImportError as e:
-        logging.debug('Looking for {!r} in {!r}'.format(mname, pname))
+        logging.debug(f'Looking for {mname!r} in {pname!r}')
         raise e
 
 
@@ -4081,7 +3924,7 @@ def caom2gen():
 
     if len(sys.argv) < 2:
         parser.print_usage(file=sys.stderr)
-        sys.stderr.write('{}: error: too few arguments\n'.format(APP_NAME))
+        sys.stderr.write(f'{APP_NAME}: error: too few arguments\n')
         sys.exit(-1)
 
     args = parser.parse_args()
@@ -4103,8 +3946,8 @@ def caom2gen():
         # there needs to be the same number of blueprints as plane/artifact
         # identifiers
         if len(args.lineage) != len(args.blueprint):
-            logging.debug('Lineage: {}'.format(args.lineage))
-            logging.debug('Blueprints: {}'.format(args.blueprint))
+            logging.debug(f'Lineage: {args.lineage}')
+            logging.debug(f'Blueprints: {args.blueprint}')
             sys.stderr.write(
                 '{}: error: different number of blueprints '
                 '{}  and files {}.'.format(APP_NAME, len(args.blueprint),
@@ -4128,7 +3971,7 @@ def caom2gen():
         logging.error(tb)
         sys.exit(-1)
 
-    logging.debug('Done {} processing.'.format(APP_NAME))
+    logging.debug(f'Done {APP_NAME} processing.')
 
 
 def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
@@ -4160,7 +4003,7 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
                 obs = DerivedObservation(
                     collection=collection,
                     observation_id=obs_id,
-                    algorithm=Algorithm(str('composite')))
+                    algorithm=Algorithm('composite'))
                 break
             elif bp._get('CompositeObservation.members') is not None:
                 logging.debug(
@@ -4168,15 +4011,15 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
                         obs_id))
                 obs = CompositeObservation(
                     collection=collection, observation_id=obs_id,
-                    algorithm=Algorithm(str('composite')))
+                    algorithm=Algorithm('composite'))
                 break
     if not obs:
         # build a simple observation
         logging.debug(
-            'Build a SimpleObservation with obs_id {}'.format(obs_id))
+            f'Build a SimpleObservation with obs_id {obs_id}')
         obs = SimpleObservation(collection=collection,
                                 observation_id=obs_id,
-                                algorithm=Algorithm(str('exposure')))
+                                algorithm=Algorithm('exposure'))
     return obs
 
 
@@ -4315,6 +4158,15 @@ def proc(args, obs_blueprints):
             raise RuntimeError(msg)
 
     subject = net.Subject.from_cmd_line_args(args)
+    if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
+        # if the resource_id is the default value, using CadcDataClient
+        client = data_util.StorageClientWrapper(
+            subject, using_storage_inventory=False)
+    else:
+        # using the new Storage Inventory system, since it's the one that
+        # depends on a resource_id
+        client = data_util.StorageClientWrapper(
+            subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
@@ -4338,7 +4190,7 @@ def proc(args, obs_blueprints):
 
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, plugin=None,
-                       local=file_name)
+                       local=file_name, client=client)
 
     _write_observation(obs, args)
 
@@ -4420,6 +4272,15 @@ def gen_proc(args, blueprints, **kwargs):
                        args.observation[1])
 
     subject = net.Subject.from_cmd_line_args(args)
+    if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
+        # if the resource_id is the default value, using CadcDataClient
+        client = data_util.StorageClientWrapper(
+            subject, using_storage_inventory=False)
+    else:
+        # using the new Storage Inventory system, since it's the one that
+        # depends on a resource_id
+        client = data_util.StorageClientWrapper(
+            subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
@@ -4448,7 +4309,8 @@ def gen_proc(args, blueprints, **kwargs):
 
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
-                       external_url, connected, use_generic_parser, **kwargs)
+                       external_url, connected, use_generic_parser, client,
+                       **kwargs)
 
         if obs is None:
             logging.warning('No observation. Stop processing.')
@@ -4459,7 +4321,7 @@ def gen_proc(args, blueprints, **kwargs):
             log_id = args.lineage
         else:
             log_id = args.observation
-        logging.warning('No Observation generated for {}'.format(log_id))
+        logging.warning(f'No Observation generated for {log_id}')
         result = -1
     else:
         _write_observation(obs, args)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -72,8 +71,6 @@ validate performs a validation on a CAOM2 element. By default deep=True
 triggering a validation of all the sub-elements in the CAOM2 tree.
 """
 
-
-from __future__ import (absolute_import, print_function, unicode_literals)
 
 import logging
 
@@ -217,10 +214,10 @@ def _validate_keyword(name, keywords):
     for keyword in keywords:
         if keyword is not None and keyword.find('|') != -1:
             raise AssertionError(
-                'invalid {}: may not contain pipe (|)'.format(name))
+                f'invalid {name}: may not contain pipe (|)')
 
 
 def _check_param(param, param_type):
     if param is None or not isinstance(param, param_type):
         raise ValueError(
-            '{} must be a valid {}.'.format(param, param_type.__name__))
+            f'{param} must be a valid {param_type.__name__}.')

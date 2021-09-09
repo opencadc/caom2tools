@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -67,12 +66,11 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
-from cadcutils import exceptions, net
+from cadcutils import net
+from cadcdata import FileInfo
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser
@@ -91,7 +89,7 @@ import caom2utils
 import vos
 from lxml import etree
 
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from six import StringIO, BytesIO
 
 import importlib
@@ -156,6 +154,15 @@ def test_augment_energy():
                            ObservationReader()._get_spectral_wcs, 'energy')
     result = get_differences(ex, energy)
     assert result is None, repr(energy)
+
+
+def test_augment_custom_failure():
+    bp = ObsBlueprint(custom_axis=1)
+    test_fitsparser = FitsParser(sample_file_4axes, bp)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes),
+                        ProductType.SCIENCE, ReleaseType.DATA)
+    with pytest.raises(TypeError):
+        test_fitsparser.augment_artifact(artifact)
 
 
 def test_augment_artifact_energy_from_blueprint():
@@ -408,6 +415,31 @@ def test_get_wcs_values():
     assert w.wcs.has_cd() is False
 
 
+def test_wcs_parser_augment_failures():
+    test_parser = WcsParser(get_test_header(sample_file_4axes)[0].header,
+                            sample_file_4axes, 0)
+    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                 Algorithm('exposure'))
+
+    with pytest.raises(ValueError):
+        test_parser.augment_custom(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_energy(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_position(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_temporal(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_polarization(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_observable(test_obs)
+
+
 def get_test_header(test_file):
     test_input = os.path.join(TESTDATA_DIR, test_file)
     hdulist = fits.open(test_input)
@@ -437,22 +469,22 @@ def test_help():
     """ Tests the helper displays for commands in main"""
 
     # expected helper messages
-    with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt'), 'r') \
+    with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt')) \
             as myfile:
         bad_product_id = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt'), 'r') \
+    with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt')) \
             as myfile:
         missing_product_id = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt'), 'r') \
+    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt')) \
             as myfile:
         too_few_arguments_usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
+    with open(os.path.join(TESTDATA_DIR, 'help.txt')) as myfile:
         usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'), 'r')\
+    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt'))\
             as myfile:
         myfile.read()
     with open(os.path.join(TESTDATA_DIR,
-                           'missing_positional_argument_help.txt'), 'r') \
+                           'missing_positional_argument_help.txt')) \
             as myfile:
         myfile.read()
 
@@ -485,7 +517,8 @@ def test_help():
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         sys.argv = ["fits2caom2", "--observation", "test_collection_id",
                     "test_observation_id",
-                    "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
+                    "ad:CGPS/CGPS_MA1_HI_line_image.fits",
+                    "--resource-id", "ivo://cadc.nrc.ca/uvic/minoc"]
         with pytest.raises(MyExitError):
             main_app()
         result = stderr_mock.getvalue()
@@ -614,6 +647,23 @@ def test_augment_observation():
     actual = _get_obs(result)
     diff_result = get_differences(expected, actual, 'Observation')
     assert diff_result is None
+
+
+def test_augment_value_errors():
+    ob = ObsBlueprint(position_axes=(1, 2))
+    ob.set('Plane.productID', None)
+    test_parser = GenericParser(obs_blueprint=ob)
+    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                 Algorithm('exposure'))
+    with pytest.raises(ValueError):
+        test_parser.augment_observation(
+            test_obs, 'cadc:TEST/abc.fits.gz', product_id=None)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_plane(test_obs, 'cadc:TEST/abc.fits.gz')
+
+    with pytest.raises(ValueError):
+        test_parser.augment_artifact(test_obs)
 
 
 def test_get_from_list():
@@ -902,10 +952,16 @@ EXPECTED_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8'?>
 def test_file_scheme_uris():
     """ Tests that local files as URIs will be accepted and processed."""
 
-    fname = 'file://{}'.format(sample_file_4axes)
-    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+    fname = f'file://{sample_file_4axes}'
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
+         patch('caom2utils.data_util.StorageInventoryClient',
+               autospec=True), \
+         patch('cadcutils.net.ws.WsCapabilities.get_access_url',
+               autospec=True) as cap_mock:
+        cap_mock.return_value = 'https://localhost'
         sys.argv = ['fits2caom2', '--observation', 'test_collection_id',
                     'test_observation_id', '--productID', 'test_product_id',
+                    '--no_validate',
                     '--config', java_config_file, '--override', test_override,
                     fname]
         main_app()
@@ -959,8 +1015,13 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
 def test_generic_parser():
     """ Tests that GenericParser will be created."""
 
-    fname = 'file://{}'.format(text_file)
-    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock:
+    fname = f'file://{text_file}'
+    with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
+            patch('caom2utils.data_util.StorageInventoryClient',
+                  autospec=True), \
+            patch('cadcutils.net.ws.WsCapabilities.get_access_url',
+                  autospec=True) as cap_mock:
+        cap_mock.return_value = 'https://localhost'
         sys.argv = ['fits2caom2', '--local', fname,
                     '--observation', 'test_collection_id',
                     'test_observation_id', '--productID', 'test_product_id',
@@ -1190,25 +1251,25 @@ def test_visit_generic_parser():
     except ImportError:
         pass  # expect this exception
     except BaseException as e:
-        assert False, 'should not get here {}'.format(e)
+        assert False, f'should not get here {e}'
 
 
 @patch('caom2utils.fits2caom2.Client')
 def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
-    get_orig = caom2utils.fits2caom2.get_cadc_headers
+    get_orig = caom2utils.data_util.get_local_file_headers
 
     try:
-        caom2utils.fits2caom2.get_cadc_headers = Mock(
-            side_effect=_get_headers)
+        caom2utils.data_util.get_local_file_headers = Mock(
+            side_effect=_get_local_headers)
         test_headers = caom2utils.get_vos_headers(test_uri, subject=None)
         assert test_headers is not None, 'expect result'
         assert len(test_headers) == 1, 'wrong size of result'
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
         assert vos_mock.called, 'mock not called'
     finally:
-        caom2utils.fits2caom2.get_cadc_headers = get_orig
+        caom2utils.data_util.get_local_file_headers = get_orig
 
 
 @patch('caom2utils.fits2caom2.Client')
@@ -1268,7 +1329,7 @@ def test_get_external_headers_fails(get_external_mock):
     get_external_mock.return_value = None
     test_collection = 'TEST_COLLECTION'
     test_obs_id = 'TEST_OBS_ID'
-    test_uri = 'gemini:{}/abc.fits'.format(test_collection)
+    test_uri = f'gemini:{test_collection}/abc.fits'
     test_product_id = 'TEST_PRODUCT_ID'
     test_blueprint = caom2utils.fits2caom2.ObsBlueprint()
     test_observation = SimpleObservation(collection=test_collection,
@@ -1330,7 +1391,8 @@ def test_apply_blueprint():
 def test_apply_blueprint_execute_external():
     test_module = importlib.import_module(__name__)
     test_generic_blueprint = ObsBlueprint(module=test_module)
-    test_generic_blueprint.set('Observation.type', '_get_test_obs_type(parameters)')
+    test_generic_blueprint.set(
+        'Observation.type', '_get_test_obs_type(parameters)')
 
     # generic parser
     test_generic_parser = GenericParser(test_generic_blueprint)
@@ -1341,7 +1403,8 @@ def test_apply_blueprint_execute_external():
 
     # fits parser
     test_fits_blueprint = ObsBlueprint(module=test_module)
-    test_fits_blueprint.set('Observation.type', '_get_test_obs_type(parameters)')
+    test_fits_blueprint.set(
+        'Observation.type', '_get_test_obs_type(parameters)')
     test_fits_parser = FitsParser(src=sample_file_4axes,
                                   obs_blueprint=test_fits_blueprint)
     assert test_fits_parser is not None, \
@@ -1355,53 +1418,50 @@ def test_update_artifact_meta_errors():
     test_artifact = Artifact(uri=test_uri,
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA)
-    with pytest.raises(NotImplementedError):
-        test_cirada = 'cirada://abc'
-        _update_artifact_meta(test_cirada, test_artifact)
+    client_mock = Mock(autospec=True)
+    client_mock.info.return_value = \
+        FileInfo(id=test_uri, file_type='application/octet', size=42,
+                 md5sum='md5:42')
+    test_uri = 'gemini://test.fits'
+    _update_artifact_meta(test_uri, test_artifact, client=client_mock)
+    assert test_artifact.content_checksum is None, 'checksum'
+    assert test_artifact.content_length is None, 'length'
+    assert test_artifact.content_type is None, 'type'
 
-    with patch('caom2utils.fits2caom2._get_cadc_meta') as get_meta_mock:
-        get_meta_mock.return_value = {'type': 'application/octet',
-                                      'size': 42,
-                                      'md5sum': 'md5:42'}
-        test_uri = 'gemini://test.fits'
-        _update_artifact_meta(test_uri, test_artifact)
-        assert test_artifact.content_checksum is None, 'checksum'
-        assert test_artifact.content_length is None, 'length'
-        assert test_artifact.content_type is None, 'type'
+    test_uri = 'gemini:GEMINI/abc.jpg'
+    _update_artifact_meta(test_uri, test_artifact, client=client_mock)
+    assert test_artifact.content_checksum == ChecksumURI(uri='md5:42'), \
+        'checksum'
+    assert test_artifact.content_length == 42, 'length'
+    assert test_artifact.content_type == 'application/octet', 'type'
 
-        test_uri = 'gemini:GEMINI/abc.jpg'
-        _update_artifact_meta(test_uri, test_artifact)
-        assert test_artifact.content_checksum == ChecksumURI(uri='md5:42'), \
-            'checksum'
-        assert test_artifact.content_length == 42, 'length'
-        assert test_artifact.content_type == 'application/octet', 'type'
-
-    with patch('caom2utils.fits2caom2._get_cadc_meta') as get_meta_mock:
-        def _mock(ig, nore):
-            logging.error('here?')
-            raise exceptions.NotFoundException()
-        get_meta_mock.side_effect = _mock
-        test_uri = 'file:///test.fits.header'
-        test_artifact = Artifact(uri=test_uri,
-                                 product_type=ProductType.SCIENCE,
-                                 release_type=ReleaseType.DATA)
-        _update_artifact_meta(test_uri, test_artifact, net.Subject())
-        assert test_artifact.content_type is None, 'type'
-        assert test_artifact.content_length is None, 'length'
-        assert test_artifact.content_checksum is None, 'checksum'
+    # TODO - does this increase coverage?
+    test_uri = 'file:///test.fits.header'
+    test_artifact = Artifact(uri=test_uri,
+                             product_type=ProductType.SCIENCE,
+                             release_type=ReleaseType.DATA)
+    client_mock.info.return_value = None
+    _update_artifact_meta(test_uri, test_artifact, net.Subject(),
+                          client=client_mock)
+    assert test_artifact.content_type is None, 'type'
+    assert test_artifact.content_length is None, 'length'
+    assert test_artifact.content_checksum is None, 'checksum'
 
 
+@patch('caom2utils.data_util.StorageInventoryClient', autospec=True)
+@patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
 @patch('sys.stdout', new_callable=BytesIO)
 @patch('caom2utils.fits2caom2._augment')
-def test_gen_proc_failure(augment_mock, stdout_mock):
+def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     """ Tests that gen_proc can return -1."""
 
     augment_mock.return_value = None  # return a broken Observation instance
-    fname = 'file://{}'.format(text_file)
+    fname = f'file://{text_file}'
     sys.argv = ['fits2caom2', '--local', fname,
                 '--observation', 'test_collection_id',
                 'test_observation_id', '--lineage',
-                'test_product_id/ad:TEST/{}'.format(fname)]
+                f'test_product_id/ad:TEST/{fname}', '--resource-id',
+                'ivo://cadc.nrc.ca/test']
     test_args = get_gen_proc_arg_parser().parse_args()
     test_blueprints = {'test_collection_id': ObsBlueprint()}
     test_result = gen_proc(test_args, test_blueprints)
@@ -1411,6 +1471,10 @@ def test_gen_proc_failure(augment_mock, stdout_mock):
         actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
         result = get_differences(expected, actual, 'Observation')
         assert result is None
+
+
+def _get_local_headers(file_name):
+    return _get_headers(file_name, None)
 
 
 def _get_headers(file_name, subject):

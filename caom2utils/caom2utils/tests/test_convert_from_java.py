@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,11 +65,10 @@
 #
 # ***********************************************************************
 #
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from caom2utils import ObsBlueprint
-from caom2utils.legacy import ConvertFromJava, load_config
+from caom2utils.legacy import ConvertFromJava, load_config, apply_java_config
+from caom2utils.legacy import _JAVA_CAOM2_CONFIG
 
 import os
 import pytest
@@ -120,4 +118,11 @@ def test_class_apply_defaults(override_file):
             for r in result:
                 ob._get(r)
         except ValueError:
-            assert False, 'Could not find key {} in ObsBlueprint'.format(key)
+            assert False, f'Could not find key {key} in ObsBlueprint'
+
+
+def test_apply_java_config():
+    nonexistent_file = ''
+    result = apply_java_config(nonexistent_file, use_only_defaults=True)
+    assert result is not None, 'expect a result'
+    assert result == _JAVA_CAOM2_CONFIG, 'should return the default'

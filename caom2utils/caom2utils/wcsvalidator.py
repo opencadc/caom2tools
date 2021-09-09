@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,9 +65,6 @@
 #
 # ***********************************************************************
 #
-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
 from astropy.wcs import Wcsprm
 from caom2utils.wcs_util import TimeUtil, EnergyUtil, ORIGIN
@@ -305,7 +301,7 @@ def _validate_polarization_wcs(polarization_wcs):
             logger.debug('polarization_axis.function succeeded.')
         except Exception as e:
             raise InvalidWCSError(
-                "Invalid Polarization WCS: {}".format(str(e)))
+                f"Invalid Polarization WCS: {str(e)}")
 
 
 def _validate_axes(chunk):
@@ -318,7 +314,7 @@ def _validate_axes(chunk):
         axis_list = ["" for x in range(chunk.naxis + 1)]
         attr_dict = vars(chunk)
         for key in attr_dict.keys():
-            if key[0] != '_' and 'axis' in key:
+            if '_axis' in key:
                 value = attr_dict.get(key)
                 if value is not None and value <= chunk.naxis:
                     # Ignore axes greater than naxis: situation is allowed
@@ -332,20 +328,22 @@ def _validate_axes(chunk):
 
         # Validate the number and quality of the axis definitions
         # Count from 1, as 0 will never be filled
-        if axis_list[0] is not None:
+        if axis_list[0] != "":
             error_msg += "\tInvalid axis definition (0): {}.".\
                 format(axis_list[0])
 
+        x = 0
         for i in range(1, chunk.naxis + 1):
-            if axis_list[i] is None:
-                error_msg = "\tMissing axis number: {}".format(i)
-    else:
-        error_msg += "\tnaxis is None."
+            if axis_list[i] != "":
+                x += 1
 
-    if not error_msg.strip():
+        if x != chunk.naxis:
+            error_msg = f"\tAxis numbers {x} different than {chunk.naxis}"
+
+    if error_msg.strip():
         # Report all errors found during validation, throw an error and go
         raise InvalidWCSError(
-            "Invalid Axes: {}".format(error_msg))
+            f"Invalid Axes: {error_msg}")
 
 
 def _validate_custom_wcs(custom):
@@ -380,7 +378,7 @@ def _validate_custom_wcs(custom):
 
         if len(error_msg) > 0:
             raise InvalidWCSError(
-                "CUSTOM_WCS_VALIDATION_ERROR: {}".format(error_msg))
+                f"CUSTOM_WCS_VALIDATION_ERROR: {error_msg}")
 
 
 class WcsPolarizationState():

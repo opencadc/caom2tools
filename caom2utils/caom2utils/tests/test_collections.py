@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,10 +65,9 @@
 #
 # ***********************************************************************
 #
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
-from caom2utils import legacy, fits2caom2
+from cadcdata import FileInfo
+from caom2utils import legacy, fits2caom2, data_util
 from caom2 import ObservationReader, ObservationWriter
 from caom2.diff import get_differences
 
@@ -78,9 +76,8 @@ import logging
 import os
 import sys
 import tempfile
-from mock import patch, Mock
-from six.moves.urllib.parse import urlparse
-import six
+from unittest.mock import patch, Mock
+from urllib.parse import urlparse
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
@@ -104,8 +101,8 @@ def test_differences(directory):
     assert len(expected_fname) == 1
     expected = _read_observation(expected_fname[0])  # expected observation
     assert len(expected.planes) == 1
-    prod_id = [p.product_id for p in six.itervalues(expected.planes)][0]
-    product_id = '--productID {}'.format(prod_id)
+    prod_id = [p.product_id for p in expected.planes.values()][0]
+    product_id = f'--productID {prod_id}'
     collection_id = expected.collection
     data_files = _get_files(['header', 'png', 'gif', 'cat', 'fits'], directory)
     assert data_files
@@ -122,7 +119,7 @@ def test_differences(directory):
         module = _get_parameter('module', directory)
         cardinality = _get_cardinality(directory)
         if module is not None:
-            inputs = '{} {}'.format(blueprints, module)
+            inputs = f'{blueprints} {module}'
         else:
             inputs = blueprints
         application = '{} {} '.format('caom2gen', data_files_parameter)
@@ -132,38 +129,55 @@ def test_differences(directory):
         assert defaults
         overrides = _get_parameter('override', directory)
         assert overrides
-        inputs = '{} {} {}'.format(config, defaults, overrides)
+        inputs = f'{config} {defaults} {overrides}'
         application = '{} {}'.format('fits2caom2', data_files_parameter)
         app_cmd = legacy.main_app
         temp = ' '.join(file_meta[0])
-        cardinality = '{} {}'.format(product_id, temp)
+        cardinality = f'{product_id} {temp}'
         # return  # TODO shorter testing cycle
 
-    with patch('caom2utils.fits2caom2.CadcDataClient') as dc_mock,  \
+    with patch('caom2utils.data_util.StorageInventoryClient') as \
+            swc_si_mock,\
+            patch('cadcutils.net.ws.WsCapabilities.get_access_url',
+                  autospec=True) as cap_mock,\
             patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
             patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock:
-        def get_file_info(archive, file_id):
-            return file_meta[1][(archive, file_id)]
+        def info_mock(uri):
+            if uri.startswith('vos'):
+                archive = uri.split('/')[-2]
+            elif uri.startswith('/'):
+                archive = uri.split('/')[-3].upper()
+            else:
+                archive = uri.split(':')[1].split('/')[0]
+            file_id = uri.split('/')[-1]
+            temp = file_meta[1][(archive, file_id)]
+            logging.error(temp)
+            return temp
 
         def _get_vos_headers(uri, subject=None):
             if uri.startswith('vos'):
                 fname = data_files_parameter.split()[1].strip()
                 fits_header = open(fname).read()
-                return fits2caom2._make_headers_from_string(fits_header)
+                return data_util.make_headers_from_string(fits_header)
             else:
                 return None
 
         def _vos_client_meta(subject, uri):
-            return {'md5sum': '5b00b00d4b06aba986c3663d09aa581f',
-                    'size': 682560,
-                    'type': 'application/fits'}
+            return FileInfo(id=uri,
+                            md5sum='5b00b00d4b06aba986c3663d09aa581f',
+                            size=682560,
+                            file_type='application/fits')
 
-        dc_mock.return_value.get_file_info.side_effect = get_file_info
+        swc_si_mock.return_value.cadcinfo.side_effect = info_mock
+        swc_si_mock.cadcget.return_value = []
+        data_util.get_local_file_info.side_effect = info_mock
         gvh_mock.side_effect = _get_vos_headers
         gvm_mock.side_effect = _vos_client_meta
+        cap_mock.return_value = 'https://localhost'
 
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('{} -o {} --observation {} {} {} {} '.format(
+        sys.argv = ('{} -o {} --no_validate --observation {} {} {} {} '
+                    '--resource-id ivo://cadc.nrc.ca/test'.format(
                         application, temp.name,
                         expected.collection, expected.observation_id,
                         inputs, cardinality)).split()
@@ -225,7 +239,7 @@ def _get_subdirs(dir_name):
 def _get_parameter(extension, dir_name):
     fnames = _get_file(extension, dir_name)
     if fnames:
-        result = '--{} {}'.format(extension, fnames[0])
+        result = f'--{extension} {fnames[0]}'
         return result
     else:
         return None
@@ -234,9 +248,9 @@ def _get_parameter(extension, dir_name):
 def _get_multi_parameter(extension, dir_name):
     fnames = _get_file(extension, dir_name)
     if fnames:
-        result = '--{}'.format(extension)
+        result = f'--{extension}'
         for fname in fnames:
-            result = '{} {}'.format(result, fname)
+            result = f'{result} {fname}'
         return result
     else:
         return None
@@ -246,7 +260,7 @@ def _get_data_files_parameter(fnames):
     if fnames:
         result = '--local'
         for fname in fnames:
-            result = '{} {}'.format(result, fname)
+            result = f'{result} {fname}'
         return result
     else:
         return None
@@ -263,15 +277,15 @@ def _get_uris(collection, fnames, obs):
             f = os.path.basename(fname).replace('.header', '')
             for p in obs.planes.values():
                 for a in p.artifacts.values():
-                    if ('ad:{}/{}'.format(collection, f) in a.uri or
+                    if (f'ad:{collection}/{f}' in a.uri or
                             (a.uri.startswith('vos') and f in a.uri)):
                         uris.append(a.uri)
-                        meta = {}
-                        meta['type'] = a.content_type
-                        meta['size'] = a.content_length
-                        meta['md5sum'] = a.content_checksum.checksum
+                        meta = FileInfo(id=a.uri,
+                                        file_type=a.content_type,
+                                        size=a.content_length,
+                                        md5sum=a.content_checksum.checksum)
                         file_url = urlparse(a.uri)
-                        if file_url.scheme not in ['ad', 'vos']:
+                        if file_url.scheme not in ['ad', 'vos', 'cadc']:
                             # TODO add hook to support other service providers
                             raise NotImplementedError(
                                 'Only ad, vos type URIs supported')
@@ -283,7 +297,7 @@ def _get_uris(collection, fnames, obs):
 
 
 def _get_file(pattern, dir_name):
-    files = glob.glob('{}/*.{}'.format(dir_name, pattern))
+    files = glob.glob(f'{dir_name}/*.{pattern}')
     if files:
         files.sort(reverse=True)
         return files

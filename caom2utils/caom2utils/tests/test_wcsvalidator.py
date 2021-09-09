@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -66,10 +65,7 @@
 #
 # ***********************************************************************
 #
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 
-from six.moves import range
 from caom2utils import wcsvalidator, validate_wcs, InvalidWCSError
 from caom2 import artifact, observation, part, plane, caom_util, Axis, \
     chunk, CoordAxis1D, CoordBounds1D, CoordFunction1D, CoordRange1D, \
@@ -77,7 +73,6 @@ from caom2 import artifact, observation, part, plane, caom_util, Axis, \
 from caom2.caom_util import TypedList, TypedOrderedDict
 from ..wcsvalidator import WcsPolarizationState
 import pytest
-import six
 import unittest
 
 single_test = False
@@ -95,18 +90,17 @@ class TemporalWCSValidatorTests(unittest.TestCase):
 
     def test_bad_temporalwcs(self):
         bad_temporal_wcs = TimeTestUtil.bad_ctype_wcs()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'unexpected TIMESYS, CTYPE'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'unexpected TIMESYS, CTYPE'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
         bad_temporal_wcs = TimeTestUtil.bad_cunit_wcs()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'unexpected CUNIT'):
+        with self.assertRaisesRegex(InvalidWCSError, 'unexpected CUNIT'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
         bad_temporal_wcs = TimeTestUtil.bad_range_wcs()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'range.end not >= range.start'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'range.end not >= range.start'):
             wcsvalidator._validate_temporal_wcs(bad_temporal_wcs)
 
 
@@ -122,28 +116,28 @@ class CustomWCSValidatorTests(unittest.TestCase):
 
     def test_bad_customwcs(self):
         bad_custom_wcs = CustomTestUtil.bad_ctype_wcs()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
         bad_custom_wcs = CustomTestUtil.bad_cunit_wcs()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
         bad_custom_wcs = CustomTestUtil.bad_range_wcs()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
         bad_custom_wcs = CustomTestUtil.bad_bounds_wcs()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
         bad_custom_wcs = CustomTestUtil.bad_function_wcs()
-        with six.assertRaisesRegex(
-                self, InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
+        with self.assertRaisesRegex(
+                InvalidWCSError, 'CUSTOM_WCS_VALIDATION_ERROR:'):
             wcsvalidator._validate_custom_wcs(bad_custom_wcs)
 
 
@@ -223,34 +217,70 @@ class ValidateWCSTests(unittest.TestCase):
         artifact = ArtifactTestUtil.get_test_artifact(auri, product_type)
         validate_wcs(artifact)
         c = artifact.parts['test_part'].chunks[0]
+        c.position_axis_1 = 1
+        c.position_axis_2 = 2
+        c.energy_axis = 3
+        c.time_axis = 4
+        c.custom_axis = 5
+
+        c.naxis = 6
+        with pytest.raises(InvalidWCSError):
+            validate_wcs(c)
 
         # Not probably reasonable Chunks, but should still be valid
         # Different combinations of this will be represented in
         # different data sets
         c.position = None
+        c.position_axis_1 = None
+        c.position_axis_2 = None
+        c.energy_axis = 1
+        c.time_axis = 2
+        c.custom_axis = 3
+        c.naxis = 3
         validate_wcs(artifact)
 
         c.position = SpatialTestUtil.good_wcs()
         c.energy = None
+        c.position_axis_1 = 1
+        c.position_axis_2 = 2
+        c.energy_axis = None
+        c.time_axis = 3
+        c.custom_axis = 4
+        c.naxis = 4
         validate_wcs(artifact)
 
         c.energy = EnergyTestUtil.good_wcs()
         c.time = None
+        c.energy_axis = 3
+        c.time_axis = None
         validate_wcs(artifact)
 
         c.time = TimeTestUtil.good_wcs()
+        c.time_axis = 5
+        c.naxis = 5
         c.polarization = None
         validate_wcs(artifact)
 
         c.energy = None
+        c.energy_axis = None
+        c.naxis = 2
         validate_wcs(artifact)
 
         c.time = None
+        c.time_axis = None
         validate_wcs(artifact)
 
         # Assert: all WCS should be null at this step
         c.position = None
+        c.position_axis_1 = None
+        c.position_axis_2 = None
+        c.naxis = None
         validate_wcs(artifact)
+
+    def test_failure(self):
+        test_object = type('', (), {})()
+        with pytest.raises(InvalidWCSError):
+            validate_wcs(test_object)
 
 
 # Supporting Classes for generating test data

@@ -4,6 +4,7 @@
 TODO
 """
 
+from .data_util import *  # noqa
 from .fits2caom2 import *  # noqa
 from .legacy import *  # noqa
 from .wcs_util import * # noqa
