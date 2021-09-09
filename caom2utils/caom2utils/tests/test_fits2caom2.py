@@ -615,6 +615,17 @@ def test_augment_observation():
     assert diff_result is None
 
 
+def test_augment_observation_no_plane_id():
+    ob = ObsBlueprint(position_axes=(1, 2))
+    ob.set('Plane.productID', None)
+    test_parser = GenericParser(obs_blueprint=ob)
+    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                 Algorithm('exposure'))
+    with pytest.raises(ValueError):
+        test_parser.augment_observation(
+            test_obs, 'cadc:TEST/abc.fits.gz', product_id=None)
+
+
 def test_get_from_list():
     test_fitsparser = FitsParser(sample_file_4axes)
     test_fitsparser.blueprint = ObsBlueprint()

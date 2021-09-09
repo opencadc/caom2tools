@@ -196,6 +196,12 @@ def test_obs_blueprint():
     ob.delete('Chunk.energy.velang', extension=2)
     assert len(ob._extensions) == 0
 
+    # set defaults in extension
+    ob.set_default('Chunk.energy.axis.axis.ctype', 'NOCTYPE', extension=3)
+    extension3_str = str(ob)[str(ob).index('extension 3'):]
+    assert "Chunk.energy.axis.axis.ctype = NOCTYPE" in extension3_str
+    assert len(ob._extensions) == 1
+
     # testing error cases
     ob = ObsBlueprint()
     ob.configure_position_axes(axes=(1, 2))
