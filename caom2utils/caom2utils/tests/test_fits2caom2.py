@@ -156,6 +156,15 @@ def test_augment_energy():
     assert result is None, repr(energy)
 
 
+def test_augment_custom_failure():
+    bp = ObsBlueprint(custom_axis=1)
+    test_fitsparser = FitsParser(sample_file_4axes, bp)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes),
+                        ProductType.SCIENCE, ReleaseType.DATA)
+    with pytest.raises(TypeError):
+        test_fitsparser.augment_artifact(artifact)
+
+
 def test_augment_artifact_energy_from_blueprint():
     test_blueprint = ObsBlueprint(energy_axis=1)
     test_blueprint.set('Chunk.energyAxis', 1)
@@ -406,6 +415,31 @@ def test_get_wcs_values():
     assert w.wcs.has_cd() is False
 
 
+def test_wcs_parser_augment_failures():
+    test_parser = WcsParser(get_test_header(sample_file_4axes)[0].header,
+                            sample_file_4axes, 0)
+    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                 Algorithm('exposure'))
+
+    with pytest.raises(ValueError):
+        test_parser.augment_custom(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_energy(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_position(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_temporal(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_polarization(test_obs)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_observable(test_obs)
+
+
 def get_test_header(test_file):
     test_input = os.path.join(TESTDATA_DIR, test_file)
     hdulist = fits.open(test_input)
@@ -615,7 +649,7 @@ def test_augment_observation():
     assert diff_result is None
 
 
-def test_augment_observation_no_plane_id():
+def test_augment_value_errors():
     ob = ObsBlueprint(position_axes=(1, 2))
     ob.set('Plane.productID', None)
     test_parser = GenericParser(obs_blueprint=ob)
@@ -624,6 +658,12 @@ def test_augment_observation_no_plane_id():
     with pytest.raises(ValueError):
         test_parser.augment_observation(
             test_obs, 'cadc:TEST/abc.fits.gz', product_id=None)
+
+    with pytest.raises(ValueError):
+        test_parser.augment_plane(test_obs, 'cadc:TEST/abc.fits.gz')
+
+    with pytest.raises(ValueError):
+        test_parser.augment_artifact(test_obs)
 
 
 def test_get_from_list():
