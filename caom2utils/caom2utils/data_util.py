@@ -138,9 +138,13 @@ class StorageClientWrapper:
         success case."""
         if self._metrics is not None:
             client_name = 'si' if self._use_si else 'data'
-            end = StorageClientWrapper._current()
             self._metrics.observe(
-                start, end, value, action, client_name, name
+                start,
+                StorageClientWrapper._current(),
+                value,
+                action,
+                client_name,
+                name,
             )
 
     def get(self, working_directory, uri):
@@ -407,8 +411,6 @@ def get_file_type(fqn):
         return 'image/jpeg'
     elif fqn.endswith('.tar.gz'):
         return 'application/x-tar'
-    elif fqn.endswith('.jpg'):
-        return 'image/jpeg'
     elif fqn.endswith('.csv'):
         return 'text/csv'
     elif fqn.endswith('.hdf5') or fqn.endswith('.h5'):

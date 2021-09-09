@@ -607,14 +607,10 @@ class ObsBlueprint:
             self.set('Chunk.custom.axis.function.refCoord.val',
                      ([f'CRVAL{axis}'], None))
 
-        self._wcs_std['Chunk.custom.axis.axis.ctype'] = \
-            f'CTYPE{axis}'
-        self._wcs_std['Chunk.custom.axis.axis.cunit'] = \
-            f'CUNIT{axis}'
-        self._wcs_std['Chunk.custom.axis.function.naxis'] = \
-            f'NAXIS{axis}'
-        self._wcs_std['Chunk.custom.axis.function.delta'] = \
-            f'CDELT{axis}'
+        self._wcs_std['Chunk.custom.axis.axis.ctype'] = f'CTYPE{axis}'
+        self._wcs_std['Chunk.custom.axis.axis.cunit'] = f'CUNIT{axis}'
+        self._wcs_std['Chunk.custom.axis.function.naxis'] = f'NAXIS{axis}'
+        self._wcs_std['Chunk.custom.axis.function.delta'] = f'CDELT{axis}'
         self._wcs_std['Chunk.custom.axis.function.refCoord.pix'] = \
             f'CRPIX{axis}'
         self._wcs_std['Chunk.custom.axis.function.refCoord.val'] = \

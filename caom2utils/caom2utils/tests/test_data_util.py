@@ -74,7 +74,7 @@ from cadcutils import exceptions
 from caom2utils import data_util
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 from . import test_fits2caom2
 
 
@@ -85,6 +85,23 @@ NAXIS1  =                 2048 /
 NAXIS2  =                 2048 /
 DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
 END"""
+
+
+def test_get_file_type():
+    vals = {
+        'abc.cat': 'text/plain',
+        'abc.gif': 'image/gif',
+        'abc.png': 'image/png',
+        'abc.jpg': 'image/jpeg',
+        'abc.tar.gz': 'application/x-tar',
+        'abc.csv': 'text/csv',
+        'abc.hdf5': 'application/x-hdf5',
+        'abc.fits': 'application/fits',
+    }
+    for key, value in vals.items():
+        assert (
+            data_util.get_file_type(key) == value
+        ), f'wrong type {data_util.get_file_type(key)} for {key}'
 
 
 @patch('caom2utils.data_util.CadcDataClient', autospec=True)
@@ -234,6 +251,66 @@ def test_storage_inventory_client(cadc_client_mock):
     )
     test_result = test_wrapper.info(test_uri)
     assert test_result is None, 'expected when not found'
+
+
+@patch('caom2utils.data_util.StorageInventoryClient')
+def test_si_tracking(client_mock):
+    test_subject = Mock(autospec=True)
+    test_metrics = Mock(autospec=True)
+
+    def _get(working_directory, uri):
+        raise exceptions.UnexpectedException
+    client_mock.return_value.cadcget.side_effect = _get
+    client_mock.return_value.cadcremove.side_effect = Mock()
+
+    test_wrapper = data_util.StorageClientWrapper(
+        subject=test_subject,
+        using_storage_inventory=True,
+        metrics=test_metrics,
+    )
+    assert test_wrapper is not None, 'ctor failure'
+
+    # test metrics failure
+    with pytest.raises(exceptions.UnexpectedException):
+        test_wrapper.get('/tmp', 'cadc:TEST/abc.fits')
+    assert test_metrics.observe_failure.called, 'expect observe_failure call'
+    test_metrics.observe_failure.assert_called_with(
+        'get', 'si', 'cadc:TEST/abc.fits'
+    )
+
+    # test metrics success
+    test_wrapper.remove('cadc:TEST/abc.fits')
+    assert test_metrics.observe.called, 'expect observe call'
+    test_metrics.observe.assert_called_with(
+        ANY, ANY, None, 'remove', 'si', 'cadc:TEST/abc.fits'
+    )
+
+
+def test_clean_headers():
+    test_input = """ilename: S20141130S0001.fits.bz2
+
+AstroData Tags: {'CAL', 'RAW', 'AT_ZENITH', 'SOUTH', 'AZEL_TARGET', 'UNPREPARED', 'DARK', 'F2', 'NON_SIDEREAL', 'GEMINI'}
+
+
+--- PHU ---
+SIMPLE  =                    T / file does conform to FITS standard
+BITPIX  =                   16 / number of bits per data pixel
+NAXIS   =                    0 / number of data axes
+EXTEND  =                    T / FITS dataset may contain extensions
+COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy
+COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H
+
+--- HDU 0 ---
+XTENSION= 'IMAGE   '           / IMAGE extension
+BITPIX  =                   32 / number of bits per data pixel
+NAXIS   =                    3 / number of data axes
+NAXIS1  =                 2048 / length of data axis 1
+NAXIS2  =                 2048 / length of data axis 2
+NAXIS3  =                    1 / length of data axis 3
+    """
+    test_result = data_util.make_headers_from_string(test_input)
+    assert test_result is not None, 'expect a result'
+    assert len(test_result) == 2, 'expect two headers'
 
 
 def _check_get_result(test_fqn):
