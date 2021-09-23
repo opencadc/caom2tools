@@ -359,7 +359,7 @@ def get_local_headers_from_fits(fqn):
     :param fqn str  fully-qualified name of the FITS file on disk
     :return list of fits.Header instances
     """
-    hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=False)
+    hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=True)
     hdulist.verify('fix')
     hdulist.close()
     headers = [h.header for h in hdulist]
