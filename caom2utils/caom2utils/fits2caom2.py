@@ -3850,7 +3850,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             if uri.startswith('vos'):
                 headers = get_vos_headers(uri, subject)
             elif uri.startswith('file'):
-                headers = data_util.get_local_file_headers(uri)
+                headers = data_util.get_local_headers_from_fits(uri)
             else:
                 headers = client.get_head(uri)
             logging.debug(f'Using a FitsParser for remote file {uri}')
