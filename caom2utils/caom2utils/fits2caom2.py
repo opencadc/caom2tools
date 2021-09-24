@@ -1843,8 +1843,7 @@ class FitsParser(GenericParser):
         else:
             # assume file
             self.file = src
-            self._headers = data_util.get_local_file_headers(
-                self.file)
+            self._headers = data_util.get_local_headers_from_fits(self.file)
         if obs_blueprint:
             self._blueprint = obs_blueprint
         else:
