@@ -759,7 +759,10 @@ def main_app():
             client.delete_observation(collection=args.collection,
                                       observation_id=args.observationID)
     except Exception as e:
-        handle_error(exception=e, logging_level=level, exit_after=False)
+        exit_after = True
+        if args.cmd == 'visit' and args.threads:
+            exit_after = False
+        handle_error(exception=e, logging_level=level, exit_after=exit_after)
         errors = True
 
     if not errors:
