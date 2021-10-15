@@ -79,6 +79,7 @@ import os.path
 import signal
 import sys
 from datetime import datetime
+import traceback
 
 from cadcutils import net, util, exceptions
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
@@ -709,54 +710,92 @@ def main_app():
                '%(funcName)s %(message)s',
         level=level, stream=sys.stdout)
     logger = logging.getLogger('main_app')
-    client = CAOM2RepoClient(subject, level, args.resource_id, host=host)
-    if args.cmd == 'visit':
-        print("Visit")
-        logger.debug(
-            "Call visitor with plugin={}, start={}, end={}".
-            format(args.plugin.name, args.start, args.end))
-        logger.debug(
-            "collection={}, obs_file={}, threads={}".
-            format(args.collection, args.obs_file, args.threads))
-        try:
-            (visited, updated, skipped, failed) = \
-                client.visit(args.plugin.name, args.collection,
-                             start=args.start,
-                             end=args.end, obs_file=args.obs_file,
-                             nthreads=args.threads,
-                             halt_on_error=args.halt_on_error)
-        finally:
-            if args.obs_file is not None:
-                args.obs_file.close()
-        logger.info(
-            'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.
-            format(len(visited), len(updated), len(skipped), len(failed)))
+    errors = False
+    try:
+        client = CAOM2RepoClient(subject, level, args.resource_id, host=host)
+        if args.cmd == 'visit':
+            print("Visit")
+            logger.debug(
+                "Call visitor with plugin={}, start={}, end={}".
+                format(args.plugin.name, args.start, args.end))
+            logger.debug(
+                "collection={}, obs_file={}, threads={}".
+                format(args.collection, args.obs_file, args.threads))
+            try:
+                (visited, updated, skipped, failed) = \
+                    client.visit(args.plugin.name, args.collection,
+                                 start=args.start,
+                                 end=args.end, obs_file=args.obs_file,
+                                 nthreads=args.threads,
+                                 halt_on_error=args.halt_on_error)
+            finally:
+                if args.obs_file is not None:
+                    args.obs_file.close()
+            logger.info(
+                'Visitor stats: visited/updated/skipped/errors: {}/{}/{}/{}'.
+                format(len(visited), len(updated), len(skipped), len(failed)))
 
-    elif args.cmd == 'create':
-        logger.info("Create")
-        obs_reader = ObservationReader()
-        client.put_observation(obs_reader.read(args.observation))
-    elif args.cmd == 'read':
-        logger.info("Read")
-        observation = client.get_observation(args.collection,
-                                             args.observationID)
-        observation_writer = ObservationWriter(
-            False, False, 'caom2', client.namespace)
-        if args.output:
-            observation_writer.write(observation, args.output)
+        elif args.cmd == 'create':
+            logger.info("Create")
+            obs_reader = ObservationReader()
+            client.put_observation(obs_reader.read(args.observation))
+        elif args.cmd == 'read':
+            logger.info("Read")
+            observation = client.get_observation(args.collection,
+                                                 args.observationID)
+            observation_writer = ObservationWriter(
+                False, False, 'caom2', client.namespace)
+            if args.output:
+                observation_writer.write(observation, args.output)
+            else:
+                observation_writer.write(observation, sys.stdout)
+        elif args.cmd == 'update':
+            logger.info("Update")
+            obs_reader = ObservationReader()
+            # TODO not sure if need to read in string first
+            client.post_observation(obs_reader.read(args.observation))
         else:
-            observation_writer.write(observation, sys.stdout)
-    elif args.cmd == 'update':
-        logger.info("Update")
-        obs_reader = ObservationReader()
-        # TODO not sure if need to read in string first
-        client.post_observation(obs_reader.read(args.observation))
-    else:
-        logger.info("Delete")
-        client.delete_observation(collection=args.collection,
-                                  observation_id=args.observationID)
+            logger.info("Delete")
+            client.delete_observation(collection=args.collection,
+                                      observation_id=args.observationID)
+    except Exception as e:
+        handle_error(exception=e, logging_level=level, exit_after=False)
+        errors = True
 
-    logger.info("DONE")
+    if not errors:
+        logger.info("DONE")
+    else:
+        print("Errors encountered")
+        sys.exit(-1)
+
+
+def handle_error(exception, logging_level, exit_after=True):
+    """
+    Prints error message and exit (by default)
+    TODO - this needs to be reviewed and probably moved to cadcutils once
+    the user/password mechanism is standardized
+    :param msg: error message to print
+    :param exit_after: True if log error message and exit,
+    False if log error message and return
+    :return:
+    """
+
+    if isinstance(exception, exceptions.UnauthorizedException):
+        print('ERROR: Unauthorized (invalid user/password?)')
+    elif isinstance(exception, exceptions.NotFoundException):
+        print('ERROR: Not found: {}'.format(str(exception)))
+    elif isinstance(exception, exceptions.ForbiddenException):
+        print('ERROR: Unauthorized to perform operation')
+    elif isinstance(exception, exceptions.UnexpectedException):
+        print('ERROR: Unexpected server error: {}'.format(str(exception)))
+    else:
+        print('ERROR: {}'.format(exception))
+
+    if logging_level <= logging.DEBUG:
+        traceback.print_stack()
+
+    if exit_after:
+        sys.exit(-1)  # TODO use different error codes?
 
 
 if __name__ == '__main__':
