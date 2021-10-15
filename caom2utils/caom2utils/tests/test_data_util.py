@@ -72,6 +72,7 @@ from astropy.io import fits
 from cadcdata import FileInfo
 from cadcutils import exceptions
 from caom2utils import data_util
+from os.path import join
 
 import pytest
 from unittest.mock import ANY, Mock, patch
@@ -311,6 +312,12 @@ NAXIS3  =                    1 / length of data axis 3
     test_result = data_util.make_headers_from_string(test_input)
     assert test_result is not None, 'expect a result'
     assert len(test_result) == 2, 'expect two headers'
+
+
+def test_unicode_decode_error():
+    test_fqn = join(test_fits2caom2.TESTDATA_DIR, 'time_axes.fits')
+    result = data_util.get_local_file_headers(test_fqn)
+    assert result is not None, 'expect retry using a different method'
 
 
 def _check_get_result(test_fqn):
