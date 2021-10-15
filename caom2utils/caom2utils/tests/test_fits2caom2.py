@@ -65,7 +65,7 @@
 #
 # ***********************************************************************
 #
-
+import io
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
@@ -73,7 +73,7 @@ from cadcutils import net
 from cadcdata import FileInfo
 from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
-from caom2utils import get_gen_proc_arg_parser
+from caom2utils import get_gen_proc_arg_parser, augment
 from caom2utils.legacy import load_config
 from caom2utils.fits2caom2 import _visit, _load_plugin, _update_artifact_meta
 
@@ -82,6 +82,7 @@ from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
 from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
 from caom2 import Axis, CoordAxis1D, CoordAxis2D, ChecksumURI, DataProductType
+from caom2 import CalibrationLevel
 import logging
 
 import caom2utils
@@ -156,8 +157,8 @@ def test_augment_energy():
     assert result is None, repr(energy)
 
 
-def test_augment_custom_failure():
-    bp = ObsBlueprint(custom_axis=1)
+def test_augment_failure():
+    bp = ObsBlueprint()
     test_fitsparser = FitsParser(sample_file_4axes, bp)
     artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes),
                         ProductType.SCIENCE, ReleaseType.DATA)
@@ -1471,6 +1472,29 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
         actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
         result = get_differences(expected, actual, 'Observation')
         assert result is None
+
+
+@patch('sys.stdout', new_callable=io.StringIO)
+@patch('caom2utils.fits2caom2.Client')
+def test_parser_construction(vos_mock, stdout_mock):
+    vos_mock.get_node.side_effect = _get_node
+    test_uri = 'vos:goliaths/abc.fits.gz'
+    test_blueprint = ObsBlueprint()
+    test_blueprint.set('Observation.instrument.keywords', 'instrument keyword')
+    test_blueprint.set('Plane.dataProductType', DataProductType.IMAGE)
+    test_blueprint.set('Plane.calibrationLevel', CalibrationLevel.RAW_STANDARD)
+    test_blueprint.configure_custom_axis(1)
+    # test_blueprint.set('Chunk.custom.axis.axis.ctype', 'VELDISP')
+    # test_blueprint.set('Chunk.custom.axis.axis.cunit', 'm/s')
+    test_blueprints = {test_uri: test_blueprint}
+    kwargs = {}
+    augment(test_blueprints, no_validate=False, dump_config=False,
+            plugin=None, obs_obs_xml=None, in_obs_xml=None, collection='TEST',
+            observation='ABC', product_id='test_product_id', uri=test_uri,
+            netrc=False, file_name=None, verbose=False, debug=False,
+            quiet=False, **kwargs)
+    assert '<caom2:uri>vos:goliaths/abc.fits.gz</caom2:uri>' in \
+           stdout_mock.getvalue(), 'Artifact URI missing from Observation'
 
 
 def _get_local_headers(file_name):
