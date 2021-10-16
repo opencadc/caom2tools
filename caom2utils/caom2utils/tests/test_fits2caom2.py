@@ -1484,8 +1484,6 @@ def test_parser_construction(vos_mock, stdout_mock):
     test_blueprint.set('Plane.dataProductType', DataProductType.IMAGE)
     test_blueprint.set('Plane.calibrationLevel', CalibrationLevel.RAW_STANDARD)
     test_blueprint.configure_custom_axis(1)
-    # test_blueprint.set('Chunk.custom.axis.axis.ctype', 'VELDISP')
-    # test_blueprint.set('Chunk.custom.axis.axis.cunit', 'm/s')
     test_blueprints = {test_uri: test_blueprint}
     kwargs = {}
     augment(test_blueprints, no_validate=False, dump_config=False,
@@ -1495,6 +1493,19 @@ def test_parser_construction(vos_mock, stdout_mock):
             quiet=False, **kwargs)
     assert '<caom2:uri>vos:goliaths/abc.fits.gz</caom2:uri>' in \
            stdout_mock.getvalue(), 'Artifact URI missing from Observation'
+    test_out_fqn = os.path.join(TESTDATA_DIR, 'augment.xml')
+    assert not os.path.exists(test_out_fqn)
+    try:
+        augment(test_blueprints, no_validate=False, dump_config=False,
+                plugin=None, out_obs_xml=test_out_fqn, in_obs_xml=None,
+                collection='TEST', observation='ABC',
+                product_id='test_product_id', uri=test_uri, netrc=False,
+                file_name=None, verbose=False, debug=False, quiet=False,
+                **kwargs)
+        assert os.path.exists(test_out_fqn)
+    finally:
+        if os.path.exists(test_out_fqn):
+            os.unlink(test_out_fqn)
 
 
 def _get_local_headers(file_name):
