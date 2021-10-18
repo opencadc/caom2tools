@@ -141,7 +141,9 @@ def test_differences(directory):
             patch('cadcutils.net.ws.WsCapabilities.get_access_url',
                   autospec=True) as cap_mock,\
             patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
-            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock:
+            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock, \
+            patch('caom2utils.data_util.get_local_headers_from_fits') as \
+                header_mock:
         def info_mock(uri):
             if uri.startswith('vos'):
                 archive = uri.split('/')[-2]
@@ -168,12 +170,30 @@ def test_differences(directory):
                             size=682560,
                             file_type='application/fits')
 
+        def _header(fqn):
+            # during operation, want to use astropy on FITS files
+            # but during testing want to use headers and built-in Python file
+            # operations
+            from urllib.parse import urlparse
+            from astropy.io import fits
+            file_uri = urlparse(fqn)
+            try:
+                fits_header = open(file_uri.path).read()
+                headers = data_util.make_headers_from_string(fits_header)
+            except UnicodeDecodeError:
+                hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=True)
+                hdulist.verify('fix')
+                hdulist.close()
+                headers = [h.header for h in hdulist]
+            return headers
+
         swc_si_mock.return_value.cadcinfo.side_effect = info_mock
         swc_si_mock.cadcget.return_value = []
         data_util.get_local_file_info.side_effect = info_mock
         gvh_mock.side_effect = _get_vos_headers
         gvm_mock.side_effect = _vos_client_meta
         cap_mock.return_value = 'https://localhost'
+        header_mock.side_effect = _header
 
         temp = tempfile.NamedTemporaryFile()
         sys.argv = ('{} -o {} --no_validate --observation {} {} {} {} '

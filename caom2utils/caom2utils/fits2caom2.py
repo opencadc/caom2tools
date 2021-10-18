@@ -1468,6 +1468,8 @@ class ObsBlueprint:
             configed_axes += 1
         if self._obs_axis_configed:
             configed_axes += 1
+        if self._custom_axis_configed:
+            configed_axes += 1
         return configed_axes
 
     @property
@@ -1843,8 +1845,7 @@ class FitsParser(GenericParser):
         else:
             # assume file
             self.file = src
-            self._headers = data_util.get_local_file_headers(
-                self.file)
+            self._headers = data_util.get_local_headers_from_fits(self.file)
         if obs_blueprint:
             self._blueprint = obs_blueprint
         else:
@@ -3638,7 +3639,6 @@ def get_vos_headers(uri, subject=None):
     Creates the FITS headers object from a vospace file.
     :param uri: vos URI
     :param subject: user credentials. Anonymous if subject is None
-    :param cadc_client: StorageClientWrapper instance
     :return: List of headers corresponding to each extension. Each header is
     of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
     """
@@ -3851,7 +3851,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             if uri.startswith('vos'):
                 headers = get_vos_headers(uri, subject)
             elif uri.startswith('file'):
-                headers = data_util.get_local_file_headers(uri)
+                headers = data_util.get_local_headers_from_fits(uri)
             else:
                 headers = client.get_head(uri)
             logging.debug(f'Using a FitsParser for remote file {uri}')
@@ -4402,7 +4402,11 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
                        dump_config, validate_wcs, plugin, file_name, **kwargs)
 
     writer = ObservationWriter()
-    writer.write(obs, out_obs_xml)
+    if out_obs_xml:
+        writer.write(obs, out_obs_xml)
+    else:
+        sys.stdout.flush()
+        writer.write(obs, sys.stdout)
     logging.info('Done augment.')
 
 
