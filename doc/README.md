@@ -37,7 +37,7 @@ Once an Observation has been described and loaded, it is searchable from CADC's 
     machine www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca login canfarusername password canfarpassword
     machine ws-cadc.canfar.net login canfarusername password canfarpassword
     machine sc2.canfar.net login canfarusername password canfarpassword
-    machine ws.cadc-ccda.hia-iha.nrc-cnrc.gc.ca loging canfarusername password canfarpassword
+    machine ws.cadc-ccda.hia-iha.nrc-cnrc.gc.ca login canfarusername password canfarpassword
     ````
     
     To set the `./.netrc` file permissions:
