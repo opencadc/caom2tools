@@ -139,10 +139,6 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(
             plane.DataProductType.CATALOG.value,
             "http://www.opencadc.org/caom2/DataProductType#catalog")
-        # extend data product type
-        plane.DataProductType.extend('http://www.myorg/std', 'mytype')
-        self.assertEqual(plane.DataProductType.MYTYPE.value,
-                         'http://www.myorg/std#mytype')
 
         self.assertEqual(plane.EnergyBand['RADIO'].value, "Radio")
         self.assertEqual(plane.EnergyBand['MILLIMETER'].value, "Millimeter")
