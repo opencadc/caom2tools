@@ -80,6 +80,7 @@ from cadcutils import exceptions
 
 
 __all__ = [
+    'get_file_encoding',
     'get_file_type',
     'get_local_file_headers',
     'get_local_file_info',
@@ -251,6 +252,7 @@ class StorageClientWrapper:
         chdir(working_directory)
         try:
             local_meta = get_local_file_info(fqn)
+            encoding = get_file_encoding(fqn)
             if self._use_si:
                 replace = True
                 cadc_meta = self.info(uri)
@@ -261,17 +263,19 @@ class StorageClientWrapper:
                     src=fqn,
                     replace=replace,
                     file_type=local_meta.file_type,
-                    file_encoding='',
+                    file_encoding=encoding,
                     md5_checksum=local_meta.md5sum,
                 )
             else:
                 archive, f_name = self._decompose(uri)
+                # libmagic does a worse job with guessing file types
+                # than ad for .fits.gz => it will say 'binary'
                 self._cadc_client.put_file(
                     archive,
                     f_name,
                     archive_stream=stream,
                     mime_type=local_meta.file_type,
-                    mime_encoding='',
+                    mime_encoding=encoding,
                     md5_check=True,
                 )
             self._logger.info(f'Stored {fqn} at CADC.')
@@ -396,6 +400,16 @@ def get_local_file_info(fqn):
         file_type=get_file_type(fqn),
     )
     return meta
+
+
+def get_file_encoding(fqn):
+    """Basic header extension to content_encoding lookup."""
+    if fqn.endswith('.fits.fz'):
+        return 'x-fits'
+    elif fqn.endswith('.fits.gz'):
+        return 'gzip'
+    else:
+        return None
 
 
 def get_file_type(fqn):

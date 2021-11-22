@@ -320,6 +320,19 @@ def test_unicode_decode_error():
     assert result is not None, 'expect retry using a different method'
 
 
+def test_get_file_encoding():
+    test_subjects = {
+        'abc.fits': None,
+        'abc.fits.gz': 'gzip',
+        'abc.fits.fz': 'x-fits'
+    }
+    for test_subject in test_subjects.keys():
+        test_result = data_util.get_file_encoding(test_subject)
+        assert (
+            test_result == test_subjects.get(test_subject)
+        ), f'got wrong extension {test_result} for {test_subject}'
+
+
 def _check_get_result(test_fqn):
     assert test_fqn.exists(), 'expected file creation'
 
@@ -346,7 +359,7 @@ def _check_put_result(client_mock):
             'test_file.fits',
             archive_stream='default',
             mime_type='application/fits',
-            mime_encoding='',
+            mime_encoding=None,
             md5_check=True,
         ), 'wrong put args call'
     except AssertionError:
@@ -355,7 +368,7 @@ def _check_put_result(client_mock):
             src=f'{test_fits2caom2.TESTDATA_DIR}/test_file.fits',
             replace=True,
             file_type='application/fits',
-            file_encoding='',
+            file_encoding=None,
             md5_checksum='3c66ee2cb6e0c2cfb5cd6824d353dc11',
         )
 
