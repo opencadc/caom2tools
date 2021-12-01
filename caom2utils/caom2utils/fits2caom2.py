@@ -1772,7 +1772,7 @@ class GenericParser:
                                   '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
                                   '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S',
                                   '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d',
-                                  '%d/%m/%y', '%d/%m/%y %H:%M:%S']:
+                                  '%d/%m/%y', '%d/%m/%y %H:%M:%S', '%d-%m-%Y']:
                     try:
                         result = datetime.strptime(from_value, dt_format)
                     except ValueError:
@@ -4285,8 +4285,21 @@ def gen_proc(args, blueprints, **kwargs):
     if args.no_validate:
         validate_wcs = False
     connected = True
+    client = None
+    subject = None
     if args.not_connected:
         connected = False
+    else:
+        subject = net.Subject.from_cmd_line_args(args)
+        if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
+            # if the resource_id is the default value, using CadcDataClient
+            client = data_util.StorageClientWrapper(
+                subject, using_storage_inventory=False)
+        else:
+            # using the new Storage Inventory system, since it's the one that
+            # depends on a resource_id
+            client = data_util.StorageClientWrapper(
+                subject, resource_id=args.resource_id)
 
     for ii, cardinality in enumerate(args.lineage):
         product_id, uri = _extract_ids(cardinality)
