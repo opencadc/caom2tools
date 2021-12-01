@@ -4291,13 +4291,14 @@ def gen_proc(args, blueprints, **kwargs):
         connected = False
     else:
         subject = net.Subject.from_cmd_line_args(args)
-        if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
-            # if the resource_id is the default value, using CadcDataClient
+        if args.resource_id is None:
+            # if the resource_id is Undefined, using CadcDataClient
             client = data_util.StorageClientWrapper(
                 subject, using_storage_inventory=False)
         else:
-            # using the new Storage Inventory system, since it's the one that
-            # depends on a resource_id
+            # if the resource_id is defined, assume that the caller intends to
+            # use the Storage Inventory system, as it's the CADC storage
+            # client that depends on a resource_id
             client = data_util.StorageClientWrapper(
                 subject, resource_id=args.resource_id)
 
