@@ -113,7 +113,7 @@ __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
            'GenericParser', 'augment', 'get_vos_headers',
-           'get_external_headers']
+           'get_external_headers', 'update_artifact_meta_no_client']
 
 CUSTOM_CTYPES = [
     'RM',
@@ -480,7 +480,7 @@ class ObsBlueprint:
     def __init__(self, position_axes=None, energy_axis=None,
                  polarization_axis=None, time_axis=None,
                  obs_axis=None, custom_axis=None, module=None,
-                 update=True):
+                 update=True, instantiated_class=None):
         """
         Ctor
         :param position_axes: tuple of form (int, int) indicating the indexes
@@ -576,6 +576,7 @@ class ObsBlueprint:
             self._module = module
         else:
             self._module = None
+        self._module_instance = instantiated_class
         # if True, existing values are used instead of defaults
         self._update = update
 
@@ -1688,10 +1689,16 @@ class GenericParser:
         plan = self.blueprint._plan
 
         #  first apply the functions
-        if self.blueprint._module is not None:
+        if ( self.blueprint._module is not None or
+                self.blueprint._module_instance is not None
+        ):
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
-                    plan[key] = self._execute_external(value, key, 0)
+                    if self._blueprint._module_instance is None:
+                        plan[key] = self._execute_external(value, key, 0)
+                    else:
+                        plan[key] = self._execute_external_instance(
+                            value, key, 0)
 
         # apply defaults
         for key, value in plan.items():
@@ -1746,6 +1753,45 @@ class GenericParser:
             logging.error(msg)
             logging.debug('Input parameter was {}, value was {}'.format(
                 parameter, value))
+            self._errors.append(msg)
+            tb = traceback.format_exc()
+            logging.debug(tb)
+            logging.error(e)
+        return result
+
+    def _execute_external_instance(self, value, key, extension):
+        """Execute a function supplied by a user, assign a value to a
+        blueprint entry. The input parameters passed to the function are the
+        headers as read in by astropy, or the artifact uri.
+
+        :param value the name of the function to apply.
+        :param key:
+        :param extension: the current extension name or number.
+        """
+        result = ''
+        execute = None
+        try:
+            execute = getattr(
+                self.blueprint._module_instance, value.split('(')[0])
+        except Exception as e:
+            msg = 'Failed to find {}.{} for {}'.format(
+                self.blueprint._module_instance.__class__.__name__,
+                value.split('(')[0], key)
+            logging.error(msg)
+            self._errors.append(msg)
+            tb = traceback.format_exc()
+            logging.debug(tb)
+            logging.error(e)
+        try:
+            result = execute(extension)
+            logging.debug(
+                'Key {} calculated value of {} using {}'.format(
+                    key, result, value))
+        except Exception as e:
+            msg = 'Failed to execute {} for {} in {}'.format(
+                execute, key, self.uri)
+            logging.error(msg)
+            logging.debug('Input value was {}'.format(value))
             self._errors.append(msg)
             tb = traceback.format_exc()
             logging.debug(tb)
@@ -2412,15 +2458,26 @@ class FitsParser(GenericParser):
         plan = self.blueprint._plan
 
         # firstly, apply the functions
-        if self.blueprint._module is not None:
+        if ( self.blueprint._module is not None or
+            self.blueprint._module_instance is not None
+        ):
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
-                    plan[key] = self._execute_external(value, key, 0)
+                    if self._blueprint._module_instance is None:
+                        plan[key] = self._execute_external(value, key, 0)
+                    else:
+                        plan[key] = self._execute_external_instance(
+                            value, key, 0)
+                        # logging.error(f'plan[key] {plan[key]} value {value} key {key}')
             for extension in exts:
                 for key, value in exts[extension].items():
                     if ObsBlueprint.is_function(value):
-                        exts[extension][key] = self._execute_external(
-                            value, key, extension)
+                        if self._blueprint._module_instance is None:
+                            exts[extension][key] = self._execute_external(
+                                value, key, extension)
+                        else:
+                            exts[extension][key] = self._execute_external_instance(
+                                value, key, extension)
 
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
@@ -4271,16 +4328,6 @@ def gen_proc(args, blueprints, **kwargs):
         obs = _gen_obs(blueprints, None, args.observation[0],
                        args.observation[1])
 
-    subject = net.Subject.from_cmd_line_args(args)
-    if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
-        # if the resource_id is the default value, using CadcDataClient
-        client = data_util.StorageClientWrapper(
-            subject, using_storage_inventory=False)
-    else:
-        # using the new Storage Inventory system, since it's the one that
-        # depends on a resource_id
-        client = data_util.StorageClientWrapper(
-            subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
@@ -4340,6 +4387,35 @@ def gen_proc(args, blueprints, **kwargs):
     else:
         _write_observation(obs, args)
     return result
+
+
+def update_artifact_meta_no_client(artifact, file_info):
+    """
+    Updates contentType, contentLength and contentChecksum of an artifact
+    :param artifact:
+    :param file_info
+    :return:
+    """
+    logging.debug('old artifact metadata - '
+                  'uri({}), encoding({}), size({}), type({})'.
+                  format(artifact.uri,
+                         artifact.content_checksum,
+                         artifact.content_length,
+                         artifact.content_type))
+    if file_info.md5sum is not None:
+        if file_info.md5sum.startswith('md5:'):
+            checksum = ChecksumURI(file_info.md5sum)
+        else:
+            checksum = ChecksumURI(f'md5:{file_info.md5sum}')
+        artifact.content_checksum = checksum
+    artifact.content_length = _to_int(file_info.size)
+    artifact.content_type = _to_str(file_info.file_type)
+    logging.debug('updated artifact metadata - '
+                  'uri({}), encoding({}), size({}), type({})'.
+                  format(artifact.uri,
+                         artifact.content_checksum,
+                         artifact.content_length,
+                         artifact.content_type))
 
 
 def get_gen_proc_arg_parser():
