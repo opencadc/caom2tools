@@ -75,7 +75,8 @@ from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser, augment
 from caom2utils.legacy import load_config
-from caom2utils.fits2caom2 import _visit, _load_plugin, _update_artifact_meta
+from caom2utils.fits2caom2 import _visit, _load_plugin
+from caom2utils.fits2caom2 import _get_and_update_artifact_meta
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -1286,7 +1287,7 @@ def test_get_vos_meta(vos_mock):
                    'dao_c122_2016_012725.fits'
         test_artifact = Artifact(test_uri, ProductType.SCIENCE,
                                  ReleaseType.DATA)
-        _update_artifact_meta(test_uri, test_artifact, subject=None)
+        _get_and_update_artifact_meta(test_uri, test_artifact, subject=None)
         assert test_artifact is not None
         assert test_artifact.content_checksum.uri == \
             'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
@@ -1424,13 +1425,13 @@ def test_update_artifact_meta_errors():
         FileInfo(id=test_uri, file_type='application/octet', size=42,
                  md5sum='md5:42')
     test_uri = 'gemini://test.fits'
-    _update_artifact_meta(test_uri, test_artifact, client=client_mock)
+    _get_and_update_artifact_meta(test_uri, test_artifact, client=client_mock)
     assert test_artifact.content_checksum is None, 'checksum'
     assert test_artifact.content_length is None, 'length'
     assert test_artifact.content_type is None, 'type'
 
     test_uri = 'gemini:GEMINI/abc.jpg'
-    _update_artifact_meta(test_uri, test_artifact, client=client_mock)
+    _get_and_update_artifact_meta(test_uri, test_artifact, client=client_mock)
     assert test_artifact.content_checksum == ChecksumURI(uri='md5:42'), \
         'checksum'
     assert test_artifact.content_length == 42, 'length'
@@ -1442,8 +1443,8 @@ def test_update_artifact_meta_errors():
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA)
     client_mock.info.return_value = None
-    _update_artifact_meta(test_uri, test_artifact, net.Subject(),
-                          client=client_mock)
+    _get_and_update_artifact_meta(test_uri, test_artifact, net.Subject(),
+                                  client=client_mock)
     assert test_artifact.content_type is None, 'type'
     assert test_artifact.content_length is None, 'length'
     assert test_artifact.content_checksum is None, 'checksum'

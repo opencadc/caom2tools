@@ -113,7 +113,7 @@ __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
            'GenericParser', 'augment', 'get_vos_headers',
-           'get_external_headers', 'update_artifact_meta_no_client']
+           'get_external_headers', 'update_artifact_meta']
 
 CUSTOM_CTYPES = [
     'RM',
@@ -3715,8 +3715,8 @@ def get_vos_headers(uri, subject=None):
         raise NotImplementedError('Only vos type URIs supported')
 
 
-def _update_artifact_meta(uri, artifact, subject=None, connected=True,
-                          client=None):
+def _get_and_update_artifact_meta(uri, artifact, subject=None, connected=True,
+                                  client=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
@@ -3725,7 +3725,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
     :param client: connection to CADC storage
     :return:
     """
-    logging.debug(f'Begin _update_artifact_meta for {uri}')
+    logging.debug(f'Begin _get_and_update_artifact_meta for {uri}')
     file_url = urlparse(uri)
     if file_url.scheme == 'gemini' and '.jpg' not in file_url.path:
         # will get file metadata from Gemini JSON summary for fits,
@@ -3756,26 +3756,36 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
                          'metadata.'.format(artifact.uri))
             return
 
+    update_artifact_meta(artifact, metadata)
+
+
+def update_artifact_meta(artifact, file_info):
+    """
+    Updates contentType, contentLength and contentChecksum of an artifact
+    :param artifact:
+    :param file_info
+    :return:
+    """
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
-                  format(artifact.uri,
-                         artifact.content_checksum,
-                         artifact.content_length,
-                         artifact.content_type))
-    if metadata.md5sum is not None:
-        if metadata.md5sum.startswith('md5:'):
-            checksum = ChecksumURI(metadata.md5sum)
+        format(artifact.uri,
+        artifact.content_checksum,
+        artifact.content_length,
+        artifact.content_type))
+    if file_info.md5sum is not None:
+        if file_info.md5sum.startswith('md5:'):
+            checksum = ChecksumURI(file_info.md5sum)
         else:
-            checksum = ChecksumURI(f'md5:{metadata.md5sum}')
+            checksum = ChecksumURI(f'md5:{file_info.md5sum}')
         artifact.content_checksum = checksum
-    artifact.content_length = _to_int(metadata.size)
-    artifact.content_type = _to_str(metadata.file_type)
+    artifact.content_length = _to_int(file_info.size)
+    artifact.content_type = _to_str(file_info.file_type)
     logging.debug('updated artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
-                  format(artifact.uri,
-                         artifact.content_checksum,
-                         artifact.content_length,
-                         artifact.content_type))
+        format(artifact.uri,
+        artifact.content_checksum,
+        artifact.content_length,
+        artifact.content_type))
 
 
 def _get_vos_meta(subject, uri):
@@ -3922,7 +3932,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if parser is None:
         result = None
     else:
-        _update_artifact_meta(
+        _get_and_update_artifact_meta(
             meta_uri, plane.artifacts[uri], subject, connected, client)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
@@ -4387,35 +4397,6 @@ def gen_proc(args, blueprints, **kwargs):
     else:
         _write_observation(obs, args)
     return result
-
-
-def update_artifact_meta_no_client(artifact, file_info):
-    """
-    Updates contentType, contentLength and contentChecksum of an artifact
-    :param artifact:
-    :param file_info
-    :return:
-    """
-    logging.debug('old artifact metadata - '
-                  'uri({}), encoding({}), size({}), type({})'.
-                  format(artifact.uri,
-                         artifact.content_checksum,
-                         artifact.content_length,
-                         artifact.content_type))
-    if file_info.md5sum is not None:
-        if file_info.md5sum.startswith('md5:'):
-            checksum = ChecksumURI(file_info.md5sum)
-        else:
-            checksum = ChecksumURI(f'md5:{file_info.md5sum}')
-        artifact.content_checksum = checksum
-    artifact.content_length = _to_int(file_info.size)
-    artifact.content_type = _to_str(file_info.file_type)
-    logging.debug('updated artifact metadata - '
-                  'uri({}), encoding({}), size({}), type({})'.
-                  format(artifact.uri,
-                         artifact.content_checksum,
-                         artifact.content_length,
-                         artifact.content_type))
 
 
 def get_gen_proc_arg_parser():
