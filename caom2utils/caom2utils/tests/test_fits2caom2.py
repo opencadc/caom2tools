@@ -1415,6 +1415,9 @@ def test_blueprint_instantiated_class():
         def get_chunk_name(self, ext):
             return TestGets.temp[ext]
 
+        def get_time_exposure(self, ext):
+            return 30.0
+
     # the happy path
     test_instantiated = TestGets()
     hdr1 = fits.Header()
@@ -1434,6 +1437,7 @@ def test_blueprint_instantiated_class():
     test_blueprint.set('Plane.productID', 'get_product_id()')
     test_blueprint.set('Artifact.productType', 'get_art_product_type()')
     test_blueprint.set('Artifact.releaseType', 'data')
+    test_blueprint.set('Chunk.time.exposure', 'get_time_exposure()', 1)
     test_parser = FitsParser(src=[hdr1, hdr2], obs_blueprint=test_blueprint)
     test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
                                  Algorithm('exposure'))
@@ -1453,7 +1457,7 @@ def test_blueprint_instantiated_class():
     test_blueprint2.configure_time_axis(1)
     test_blueprint2.set('Plane.calibrationLevel', 'getCalibrationLevel()')
     test_blueprint2.set('Plane.dataProductType', 'broken_function()')
-    test_parser2 = FitsParser(src=[hdr1, hdr2], obs_blueprint=test_blueprint2)
+    test_parser2 = GenericParser(obs_blueprint=test_blueprint2)
     test_obs2 = SimpleObservation('collection', 'MA1_DRAO-ST',
                                   Algorithm('exposure'))
     with pytest.raises(ValueError):
