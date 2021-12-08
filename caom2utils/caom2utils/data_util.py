@@ -393,10 +393,15 @@ def get_local_file_info(fqn):
     :return: FileInfo
     """
     s = stat(fqn)
+    # copy and paste from cadcdata/storageinventory.py
+    hash_md5 = md5()
+    with open(fqn, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            hash_md5.update(chunk)
     meta = FileInfo(
         id=path.basename(fqn),
         size=s.st_size,
-        md5sum=md5(open(fqn, 'rb').read()).hexdigest(),
+        md5sum=hash_md5.hexdigest(),
         file_type=get_file_type(fqn),
     )
     return meta
