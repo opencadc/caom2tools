@@ -1390,6 +1390,63 @@ def test_apply_blueprint():
         test_parser._headers[0]['IMAGESWV'], 'should not be set'
 
 
+def test_blueprint_instantiated_class():
+    class TestGets:
+        temp = [0, 1, 2]
+        def __init__(self):
+            pass
+
+        def get_calibration_level(self, ext):
+            return ext
+
+        def get_product_id(self, ext):
+            return 'PRODUCT_ID'
+
+        def get_product_type(self, ext):
+            return 'cube'
+
+        def get_art_product_type(self, ext):
+            return 'science'
+
+        def get_chunk_name(self, ext):
+            return TestGets.temp[ext]
+
+    logging.getLogger().setLevel(logging.DEBUG)
+    test_instantiated = TestGets()
+    hdr1 = fits.Header()
+    hdr1['ORIGIN'] = '123'
+    hdr2 = fits.Header()
+    hdr2['NAXIS'] = 1
+    hdr2['NAXIS1'] = 2
+    hdr2['BITPIX'] = -32
+    hdr2['CTYPE1'] = 'TIME'
+    hdr2['CUNIT1'] = 'd'
+    hdr2['CRPIX1'] = '1'
+    hdr2['CRVAL1'] = 590000.00000
+    test_blueprint = ObsBlueprint(instantiated_class=test_instantiated)
+    test_blueprint.configure_time_axis(1)
+    assert test_blueprint._get('Plane.provenance.producer') == (['ORIGIN'],
+                                                                None)
+    test_blueprint.set('Plane.calibrationLevel', 'get_calibration_level()')
+    test_blueprint.set('Plane.dataProductType', 'get_product_type()')
+    test_blueprint.set('Plane.productID', 'get_product_id()')
+    test_blueprint.set('Artifact.productType', 'get_art_product_type()')
+    test_blueprint.set('Artifact.releaseType', 'data')
+    test_parser = FitsParser(src=[hdr1, hdr2], obs_blueprint=test_blueprint)
+    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                 Algorithm('exposure'))
+    test_parser.augment_observation(test_obs, 'cadc:TEST/test_file_name.fits')
+    assert 'PRODUCT_ID' in test_obs.planes.keys(), 'expect plane'
+    test_plane = test_obs.planes['PRODUCT_ID']
+    assert 'cadc:TEST/test_file_name.fits' in test_plane.artifacts.keys(), \
+        'expect artifact'
+    test_artifact = test_plane.artifacts.pop('cadc:TEST/test_file_name.fits')
+    test_part = test_artifact.parts.pop('1')
+    assert len(test_part.chunks) == 1, 'expect chunks'
+    test_chunk = test_part.chunks[0]
+    assert test_chunk.time is not None, 'expect chunk time'
+
+
 def test_apply_blueprint_execute_external():
     test_module = importlib.import_module(__name__)
     test_generic_blueprint = ObsBlueprint(module=test_module)
