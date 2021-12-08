@@ -1689,9 +1689,8 @@ class GenericParser:
         plan = self.blueprint._plan
 
         #  first apply the functions
-        if ( self.blueprint._module is not None or
-                self.blueprint._module_instance is not None
-        ):
+        if (self.blueprint._module is not None or
+                self.blueprint._module_instance is not None):
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
                     if self._blueprint._module_instance is None:
@@ -2458,9 +2457,8 @@ class FitsParser(GenericParser):
         plan = self.blueprint._plan
 
         # firstly, apply the functions
-        if ( self.blueprint._module is not None or
-            self.blueprint._module_instance is not None
-        ):
+        if (self.blueprint._module is not None or
+                self.blueprint._module_instance is not None):
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
                     if self._blueprint._module_instance is None:
@@ -2468,7 +2466,6 @@ class FitsParser(GenericParser):
                     else:
                         plan[key] = self._execute_external_instance(
                             value, key, 0)
-                        # logging.error(f'plan[key] {plan[key]} value {value} key {key}')
             for extension in exts:
                 for key, value in exts[extension].items():
                     if ObsBlueprint.is_function(value):
@@ -2476,8 +2473,9 @@ class FitsParser(GenericParser):
                             exts[extension][key] = self._execute_external(
                                 value, key, extension)
                         else:
-                            exts[extension][key] = self._execute_external_instance(
-                                value, key, extension)
+                            exts[extension][key] = \
+                                self._execute_external_instance(
+                                    value, key, extension)
 
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
@@ -3768,10 +3766,10 @@ def update_artifact_meta(artifact, file_info):
     """
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
-        format(artifact.uri,
-        artifact.content_checksum,
-        artifact.content_length,
-        artifact.content_type))
+                  format(artifact.uri,
+                         artifact.content_checksum,
+                         artifact.content_length,
+                         artifact.content_type))
     if file_info.md5sum is not None:
         if file_info.md5sum.startswith('md5:'):
             checksum = ChecksumURI(file_info.md5sum)
@@ -3782,10 +3780,10 @@ def update_artifact_meta(artifact, file_info):
     artifact.content_type = _to_str(file_info.file_type)
     logging.debug('updated artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
-        format(artifact.uri,
-        artifact.content_checksum,
-        artifact.content_length,
-        artifact.content_type))
+                  format(artifact.uri,
+                         artifact.content_checksum,
+                         artifact.content_length,
+                         artifact.content_type))
 
 
 def _get_vos_meta(subject, uri):

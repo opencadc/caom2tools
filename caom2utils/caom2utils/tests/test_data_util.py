@@ -290,7 +290,7 @@ def test_si_tracking(client_mock):
 def test_clean_headers():
     test_input = """ilename: S20141130S0001.fits.bz2
 
-AstroData Tags: {'CAL', 'RAW', 'AT_ZENITH', 'SOUTH', 'AZEL_TARGET', 'UNPREPARED', 'DARK', 'F2', 'NON_SIDEREAL', 'GEMINI'}
+AstroData Tags: {'CAL', 'RAW', 'AZEL_TARGET', 'DARK', 'F2', 'NON_SIDEREAL'}
 
 
 --- PHU ---
@@ -298,7 +298,7 @@ SIMPLE  =                    T / file does conform to FITS standard
 BITPIX  =                   16 / number of bits per data pixel
 NAXIS   =                    0 / number of data axes
 EXTEND  =                    T / FITS dataset may contain extensions
-COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy
+COMMENT   FITS (Flexible Image Transport System) format defined in 'Astronomy
 COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H
 
 --- HDU 0 ---

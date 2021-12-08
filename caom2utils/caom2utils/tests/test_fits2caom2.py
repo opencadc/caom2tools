@@ -1393,6 +1393,7 @@ def test_apply_blueprint():
 def test_blueprint_instantiated_class():
     class TestGets:
         temp = [0, 1, 2]
+
         def __init__(self):
             pass
 
