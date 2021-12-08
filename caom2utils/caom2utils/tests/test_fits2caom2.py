@@ -1396,6 +1396,9 @@ def test_blueprint_instantiated_class():
         def __init__(self):
             pass
 
+        def broken_function(self, ext):
+            raise UserWarning()
+
         def get_calibration_level(self, ext):
             return ext
 
@@ -1411,7 +1414,7 @@ def test_blueprint_instantiated_class():
         def get_chunk_name(self, ext):
             return TestGets.temp[ext]
 
-    logging.getLogger().setLevel(logging.DEBUG)
+    # the happy path
     test_instantiated = TestGets()
     hdr1 = fits.Header()
     hdr1['ORIGIN'] = '123'
@@ -1425,8 +1428,6 @@ def test_blueprint_instantiated_class():
     hdr2['CRVAL1'] = 590000.00000
     test_blueprint = ObsBlueprint(instantiated_class=test_instantiated)
     test_blueprint.configure_time_axis(1)
-    assert test_blueprint._get('Plane.provenance.producer') == (['ORIGIN'],
-                                                                None)
     test_blueprint.set('Plane.calibrationLevel', 'get_calibration_level()')
     test_blueprint.set('Plane.dataProductType', 'get_product_type()')
     test_blueprint.set('Plane.productID', 'get_product_id()')
@@ -1445,6 +1446,17 @@ def test_blueprint_instantiated_class():
     assert len(test_part.chunks) == 1, 'expect chunks'
     test_chunk = test_part.chunks[0]
     assert test_chunk.time is not None, 'expect chunk time'
+
+    # the fails path
+    test_blueprint2 = ObsBlueprint(instantiated_class=test_instantiated)
+    test_blueprint2.configure_time_axis(1)
+    test_blueprint2.set('Plane.calibrationLevel', 'getCalibrationLevel()')
+    test_blueprint2.set('Plane.dataProductType', 'broken_function()')
+    test_parser2 = FitsParser(src=[hdr1, hdr2], obs_blueprint=test_blueprint2)
+    test_obs2 = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                  Algorithm('exposure'))
+    with pytest.raises(ValueError):
+        test_parser2.augment_observation(test_obs2, 'cadc:TEST/abc.fits.gz')
 
 
 def test_apply_blueprint_execute_external():

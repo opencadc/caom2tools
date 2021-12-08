@@ -1769,7 +1769,6 @@ class GenericParser:
         :param extension: the current extension name or number.
         """
         result = ''
-        execute = None
         try:
             execute = getattr(
                 self.blueprint._module_instance, value.split('(')[0])
@@ -1782,6 +1781,7 @@ class GenericParser:
             tb = traceback.format_exc()
             logging.debug(tb)
             logging.error(e)
+            return result
         try:
             result = execute(extension)
             logging.debug(
