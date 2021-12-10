@@ -113,7 +113,7 @@ __all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
            'GenericParser', 'augment', 'get_vos_headers',
-           'get_external_headers']
+           'get_external_headers', 'update_artifact_meta']
 
 CUSTOM_CTYPES = [
     'RM',
@@ -480,7 +480,7 @@ class ObsBlueprint:
     def __init__(self, position_axes=None, energy_axis=None,
                  polarization_axis=None, time_axis=None,
                  obs_axis=None, custom_axis=None, module=None,
-                 update=True):
+                 update=True, instantiated_class=None):
         """
         Ctor
         :param position_axes: tuple of form (int, int) indicating the indexes
@@ -576,6 +576,7 @@ class ObsBlueprint:
             self._module = module
         else:
             self._module = None
+        self._module_instance = instantiated_class
         # if True, existing values are used instead of defaults
         self._update = update
 
@@ -1688,10 +1689,15 @@ class GenericParser:
         plan = self.blueprint._plan
 
         #  first apply the functions
-        if self.blueprint._module is not None:
+        if (self.blueprint._module is not None or
+                self.blueprint._module_instance is not None):
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
-                    plan[key] = self._execute_external(value, key, 0)
+                    if self._blueprint._module_instance is None:
+                        plan[key] = self._execute_external(value, key, 0)
+                    else:
+                        plan[key] = self._execute_external_instance(
+                            value, key, 0)
 
         # apply defaults
         for key, value in plan.items():
@@ -1752,6 +1758,45 @@ class GenericParser:
             logging.error(e)
         return result
 
+    def _execute_external_instance(self, value, key, extension):
+        """Execute a function supplied by a user, assign a value to a
+        blueprint entry. The input parameters passed to the function are the
+        headers as read in by astropy, or the artifact uri.
+
+        :param value the name of the function to apply.
+        :param key:
+        :param extension: the current extension name or number.
+        """
+        result = ''
+        try:
+            execute = getattr(
+                self.blueprint._module_instance, value.split('(')[0])
+        except Exception as e:
+            msg = 'Failed to find {}.{} for {}'.format(
+                self.blueprint._module_instance.__class__.__name__,
+                value.split('(')[0], key)
+            logging.error(msg)
+            self._errors.append(msg)
+            tb = traceback.format_exc()
+            logging.debug(tb)
+            logging.error(e)
+            return result
+        try:
+            result = execute(extension)
+            logging.debug(
+                'Key {} calculated value of {} using {}'.format(
+                    key, result, value))
+        except Exception as e:
+            msg = 'Failed to execute {} for {} in {}'.format(
+                execute, key, self.uri)
+            logging.error(msg)
+            logging.debug('Input value was {}'.format(value))
+            self._errors.append(msg)
+            tb = traceback.format_exc()
+            logging.debug(tb)
+            logging.error(e)
+        return result
+
     def _get_datetime(self, from_value):
         """
         Ensure datetime values are in MJD. Really. Just not yet.
@@ -1772,7 +1817,7 @@ class GenericParser:
                                   '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
                                   '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S',
                                   '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d',
-                                  '%d/%m/%y', '%d/%m/%y %H:%M:%S']:
+                                  '%d/%m/%y', '%d/%m/%y %H:%M:%S', '%d-%m-%Y']:
                     try:
                         result = datetime.strptime(from_value, dt_format)
                     except ValueError:
@@ -2412,15 +2457,25 @@ class FitsParser(GenericParser):
         plan = self.blueprint._plan
 
         # firstly, apply the functions
-        if self.blueprint._module is not None:
+        if (self.blueprint._module is not None or
+                self.blueprint._module_instance is not None):
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
-                    plan[key] = self._execute_external(value, key, 0)
+                    if self._blueprint._module_instance is None:
+                        plan[key] = self._execute_external(value, key, 0)
+                    else:
+                        plan[key] = self._execute_external_instance(
+                            value, key, 0)
             for extension in exts:
                 for key, value in exts[extension].items():
                     if ObsBlueprint.is_function(value):
-                        exts[extension][key] = self._execute_external(
-                            value, key, extension)
+                        if self._blueprint._module_instance is None:
+                            exts[extension][key] = self._execute_external(
+                                value, key, extension)
+                        else:
+                            exts[extension][key] = \
+                                self._execute_external_instance(
+                                    value, key, extension)
 
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
@@ -3658,8 +3713,8 @@ def get_vos_headers(uri, subject=None):
         raise NotImplementedError('Only vos type URIs supported')
 
 
-def _update_artifact_meta(uri, artifact, subject=None, connected=True,
-                          client=None):
+def _get_and_update_artifact_meta(uri, artifact, subject=None, connected=True,
+                                  client=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
@@ -3668,7 +3723,7 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
     :param client: connection to CADC storage
     :return:
     """
-    logging.debug(f'Begin _update_artifact_meta for {uri}')
+    logging.debug(f'Begin _get_and_update_artifact_meta for {uri}')
     file_url = urlparse(uri)
     if file_url.scheme == 'gemini' and '.jpg' not in file_url.path:
         # will get file metadata from Gemini JSON summary for fits,
@@ -3699,20 +3754,30 @@ def _update_artifact_meta(uri, artifact, subject=None, connected=True,
                          'metadata.'.format(artifact.uri))
             return
 
+    update_artifact_meta(artifact, metadata)
+
+
+def update_artifact_meta(artifact, file_info):
+    """
+    Updates contentType, contentLength and contentChecksum of an artifact
+    :param artifact:
+    :param file_info
+    :return:
+    """
     logging.debug('old artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
                          artifact.content_checksum,
                          artifact.content_length,
                          artifact.content_type))
-    if metadata.md5sum is not None:
-        if metadata.md5sum.startswith('md5:'):
-            checksum = ChecksumURI(metadata.md5sum)
+    if file_info.md5sum is not None:
+        if file_info.md5sum.startswith('md5:'):
+            checksum = ChecksumURI(file_info.md5sum)
         else:
-            checksum = ChecksumURI(f'md5:{metadata.md5sum}')
+            checksum = ChecksumURI(f'md5:{file_info.md5sum}')
         artifact.content_checksum = checksum
-    artifact.content_length = _to_int(metadata.size)
-    artifact.content_type = _to_str(metadata.file_type)
+    artifact.content_length = _to_int(file_info.size)
+    artifact.content_type = _to_str(file_info.file_type)
     logging.debug('updated artifact metadata - '
                   'uri({}), encoding({}), size({}), type({})'.
                   format(artifact.uri,
@@ -3865,7 +3930,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     if parser is None:
         result = None
     else:
-        _update_artifact_meta(
+        _get_and_update_artifact_meta(
             meta_uri, plane.artifacts[uri], subject, connected, client)
         parser.augment_observation(observation=obs, artifact_uri=uri,
                                    product_id=plane.product_id)
@@ -4271,22 +4336,26 @@ def gen_proc(args, blueprints, **kwargs):
         obs = _gen_obs(blueprints, None, args.observation[0],
                        args.observation[1])
 
-    subject = net.Subject.from_cmd_line_args(args)
-    if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
-        # if the resource_id is the default value, using CadcDataClient
-        client = data_util.StorageClientWrapper(
-            subject, using_storage_inventory=False)
-    else:
-        # using the new Storage Inventory system, since it's the one that
-        # depends on a resource_id
-        client = data_util.StorageClientWrapper(
-            subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
     connected = True
+    client = None
+    subject = None
     if args.not_connected:
         connected = False
+    else:
+        subject = net.Subject.from_cmd_line_args(args)
+        if args.resource_id is None:
+            # if the resource_id is Undefined, using CadcDataClient
+            client = data_util.StorageClientWrapper(
+                subject, using_storage_inventory=False)
+        else:
+            # if the resource_id is defined, assume that the caller intends to
+            # use the Storage Inventory system, as it's the CADC storage
+            # client that depends on a resource_id
+            client = data_util.StorageClientWrapper(
+                subject, resource_id=args.resource_id)
 
     for ii, cardinality in enumerate(args.lineage):
         product_id, uri = _extract_ids(cardinality)

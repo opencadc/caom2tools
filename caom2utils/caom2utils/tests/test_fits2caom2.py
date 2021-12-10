@@ -75,7 +75,8 @@ from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser, augment
 from caom2utils.legacy import load_config
-from caom2utils.fits2caom2 import _visit, _load_plugin, _update_artifact_meta
+from caom2utils.fits2caom2 import _visit, _load_plugin
+from caom2utils.fits2caom2 import _get_and_update_artifact_meta
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -1286,7 +1287,7 @@ def test_get_vos_meta(vos_mock):
                    'dao_c122_2016_012725.fits'
         test_artifact = Artifact(test_uri, ProductType.SCIENCE,
                                  ReleaseType.DATA)
-        _update_artifact_meta(test_uri, test_artifact, subject=None)
+        _get_and_update_artifact_meta(test_uri, test_artifact, subject=None)
         assert test_artifact is not None
         assert test_artifact.content_checksum.uri == \
             'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
@@ -1389,6 +1390,80 @@ def test_apply_blueprint():
         test_parser._headers[0]['IMAGESWV'], 'should not be set'
 
 
+def test_blueprint_instantiated_class():
+    class TestGets:
+        temp = [0, 1, 2]
+
+        def __init__(self):
+            pass
+
+        def broken_function(self, ext):
+            raise UserWarning()
+
+        def get_calibration_level(self, ext):
+            return ext
+
+        def get_product_id(self, ext):
+            return 'PRODUCT_ID'
+
+        def get_product_type(self, ext):
+            return 'cube'
+
+        def get_art_product_type(self, ext):
+            return 'science'
+
+        def get_chunk_name(self, ext):
+            return TestGets.temp[ext]
+
+        def get_time_exposure(self, ext):
+            return 30.0
+
+    # the happy path
+    test_instantiated = TestGets()
+    hdr1 = fits.Header()
+    hdr1['ORIGIN'] = '123'
+    hdr2 = fits.Header()
+    hdr2['NAXIS'] = 1
+    hdr2['NAXIS1'] = 2
+    hdr2['BITPIX'] = -32
+    hdr2['CTYPE1'] = 'TIME'
+    hdr2['CUNIT1'] = 'd'
+    hdr2['CRPIX1'] = '1'
+    hdr2['CRVAL1'] = 590000.00000
+    test_blueprint = ObsBlueprint(instantiated_class=test_instantiated)
+    test_blueprint.configure_time_axis(1)
+    test_blueprint.set('Plane.calibrationLevel', 'get_calibration_level()')
+    test_blueprint.set('Plane.dataProductType', 'get_product_type()')
+    test_blueprint.set('Plane.productID', 'get_product_id()')
+    test_blueprint.set('Artifact.productType', 'get_art_product_type()')
+    test_blueprint.set('Artifact.releaseType', 'data')
+    test_blueprint.set('Chunk.time.exposure', 'get_time_exposure()', 1)
+    test_parser = FitsParser(src=[hdr1, hdr2], obs_blueprint=test_blueprint)
+    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                 Algorithm('exposure'))
+    test_parser.augment_observation(test_obs, 'cadc:TEST/test_file_name.fits')
+    assert 'PRODUCT_ID' in test_obs.planes.keys(), 'expect plane'
+    test_plane = test_obs.planes['PRODUCT_ID']
+    assert 'cadc:TEST/test_file_name.fits' in test_plane.artifacts.keys(), \
+        'expect artifact'
+    test_artifact = test_plane.artifacts.pop('cadc:TEST/test_file_name.fits')
+    test_part = test_artifact.parts.pop('1')
+    assert len(test_part.chunks) == 1, 'expect chunks'
+    test_chunk = test_part.chunks[0]
+    assert test_chunk.time is not None, 'expect chunk time'
+
+    # the fails path
+    test_blueprint2 = ObsBlueprint(instantiated_class=test_instantiated)
+    test_blueprint2.configure_time_axis(1)
+    test_blueprint2.set('Plane.calibrationLevel', 'getCalibrationLevel()')
+    test_blueprint2.set('Plane.dataProductType', 'broken_function()')
+    test_parser2 = GenericParser(obs_blueprint=test_blueprint2)
+    test_obs2 = SimpleObservation('collection', 'MA1_DRAO-ST',
+                                  Algorithm('exposure'))
+    with pytest.raises(ValueError):
+        test_parser2.augment_observation(test_obs2, 'cadc:TEST/abc.fits.gz')
+
+
 def test_apply_blueprint_execute_external():
     test_module = importlib.import_module(__name__)
     test_generic_blueprint = ObsBlueprint(module=test_module)
@@ -1424,13 +1499,13 @@ def test_update_artifact_meta_errors():
         FileInfo(id=test_uri, file_type='application/octet', size=42,
                  md5sum='md5:42')
     test_uri = 'gemini://test.fits'
-    _update_artifact_meta(test_uri, test_artifact, client=client_mock)
+    _get_and_update_artifact_meta(test_uri, test_artifact, client=client_mock)
     assert test_artifact.content_checksum is None, 'checksum'
     assert test_artifact.content_length is None, 'length'
     assert test_artifact.content_type is None, 'type'
 
     test_uri = 'gemini:GEMINI/abc.jpg'
-    _update_artifact_meta(test_uri, test_artifact, client=client_mock)
+    _get_and_update_artifact_meta(test_uri, test_artifact, client=client_mock)
     assert test_artifact.content_checksum == ChecksumURI(uri='md5:42'), \
         'checksum'
     assert test_artifact.content_length == 42, 'length'
@@ -1442,8 +1517,8 @@ def test_update_artifact_meta_errors():
                              product_type=ProductType.SCIENCE,
                              release_type=ReleaseType.DATA)
     client_mock.info.return_value = None
-    _update_artifact_meta(test_uri, test_artifact, net.Subject(),
-                          client=client_mock)
+    _get_and_update_artifact_meta(test_uri, test_artifact, net.Subject(),
+                                  client=client_mock)
     assert test_artifact.content_type is None, 'type'
     assert test_artifact.content_length is None, 'length'
     assert test_artifact.content_checksum is None, 'checksum'

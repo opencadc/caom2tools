@@ -143,7 +143,7 @@ def test_differences(directory):
             patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
             patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock, \
             patch('caom2utils.data_util.get_local_headers_from_fits') as \
-                header_mock:
+            header_mock:
         def info_mock(uri):
             if uri.startswith('vos'):
                 archive = uri.split('/')[-2]
