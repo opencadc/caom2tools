@@ -69,7 +69,7 @@
 import logging
 import sys
 
-from . import fits2caom2
+from . import caom2blueprint
 import traceback
 
 APP_NAME = 'fits2caom2'
@@ -104,7 +104,7 @@ class ConvertFromJava:
                     self._inverse_user_supplied_config[v] = [k]
 
     def get_caom2_elements(self, lookup):
-        if lookup in fits2caom2.ObsBlueprint._CAOM2_ELEMENTS:
+        if lookup in caom2blueprint.ObsBlueprint._CAOM2_ELEMENTS:
             return [lookup]
         elif lookup in self._inverse_user_supplied_config.keys():
             return self._inverse_user_supplied_config[lookup]
@@ -370,17 +370,17 @@ def _update_axis_info(parser, defaults, overrides, config):
         for key, value in i.items():
             if (key.startswith('CTYPE')) and key[-1].isdigit():
                 value = value.split('-')[0]
-                if value in fits2caom2.ENERGY_CTYPES:
+                if value in caom2blueprint.ENERGY_CTYPES:
                     energy_axis = key[-1]
-                elif value in fits2caom2.POLARIZATION_CTYPES:
+                elif value in caom2blueprint.POLARIZATION_CTYPES:
                     polarization_axis = key[-1]
-                elif value in fits2caom2.TIME_KEYWORDS:
+                elif value in caom2blueprint.TIME_KEYWORDS:
                     time_axis = key[-1]
-                elif value in fits2caom2.POSITION_CTYPES[0]:
+                elif value in caom2blueprint.POSITION_CTYPES[0]:
                     ra_axis = key[-1]
-                elif value in fits2caom2.POSITION_CTYPES[1]:
+                elif value in caom2blueprint.POSITION_CTYPES[1]:
                     dec_axis = key[-1]
-                elif value in fits2caom2.OBSERVABLE_CTYPES:
+                elif value in caom2blueprint.OBSERVABLE_CTYPES:
                     obs_axis = key[-1]
                 else:
                     raise ValueError(f'Unrecognized CTYPE: {value}')
@@ -508,7 +508,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
 
 
 def main_app():
-    parser = fits2caom2.get_arg_parser()
+    parser = caom2blueprint.get_arg_parser()
 
     # add legacy fits2caom2 arguments
     parser.add_argument('--config', required=False,
@@ -545,7 +545,7 @@ def main_app():
 
     obs_blueprint = {}
     for i, uri in enumerate(args.fileURI):
-        obs_blueprint[uri] = fits2caom2.ObsBlueprint()
+        obs_blueprint[uri] = caom2blueprint.ObsBlueprint()
         if config:
             result = update_blueprint(obs_blueprint[uri], uri,
                                       config, defaults, overrides)
@@ -554,7 +554,7 @@ def main_app():
                     f'Errors parsing the config files: {result}')
 
     try:
-        fits2caom2.proc(args, obs_blueprint)
+        caom2blueprint.proc(args, obs_blueprint)
     except Exception as e:
         logging.error(e)
         tb = traceback.format_exc()

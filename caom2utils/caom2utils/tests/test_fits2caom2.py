@@ -75,8 +75,8 @@ from caom2utils import FitsParser, FitsWcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser, augment
 from caom2utils.legacy import load_config
-from caom2utils.fits2caom2 import _visit, _load_plugin
-from caom2utils.fits2caom2 import _get_and_update_artifact_meta
+from caom2utils.caom2blueprint import _visit, _load_plugin
+from caom2utils.caom2blueprint import _get_and_update_artifact_meta
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -1256,7 +1256,7 @@ def test_visit_generic_parser():
         assert False, f'should not get here {e}'
 
 
-@patch('caom2utils.fits2caom2.Client')
+@patch('caom2utils.caom2blueprint.Client')
 def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
@@ -1274,7 +1274,7 @@ def test_get_vos_headers(vos_mock):
         caom2utils.data_util.get_local_file_headers = get_orig
 
 
-@patch('caom2utils.fits2caom2.Client')
+@patch('caom2utils.caom2blueprint.Client')
 def test_get_vos_meta(vos_mock):
     get_orig = caom2utils.get_vos_headers
     try:
@@ -1318,7 +1318,7 @@ def test_get_external_headers():
     with patch('requests.Session.get') as session_get_mock:
         session_get_mock.return_value.status_code = 200
         session_get_mock.return_value.text = TEST_TEXT
-        test_headers = caom2utils.fits2caom2.get_external_headers(test_uri)
+        test_headers = caom2utils.caom2blueprint.get_external_headers(test_uri)
         assert test_headers is not None
         assert len(test_headers) == 2
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
@@ -1326,18 +1326,18 @@ def test_get_external_headers():
         assert session_get_mock.is_called_with(test_uri)
 
 
-@patch('caom2utils.fits2caom2.get_external_headers')
+@patch('caom2utils.caom2blueprint.get_external_headers')
 def test_get_external_headers_fails(get_external_mock):
     get_external_mock.return_value = None
     test_collection = 'TEST_COLLECTION'
     test_obs_id = 'TEST_OBS_ID'
     test_uri = f'gemini:{test_collection}/abc.fits'
     test_product_id = 'TEST_PRODUCT_ID'
-    test_blueprint = caom2utils.fits2caom2.ObsBlueprint()
+    test_blueprint = caom2utils.caom2blueprint.ObsBlueprint()
     test_observation = SimpleObservation(collection=test_collection,
                                          observation_id=test_obs_id,
                                          algorithm=Algorithm(name='exposure'))
-    test_result = caom2utils.fits2caom2._augment(
+    test_result = caom2utils.caom2blueprint._augment(
         obs=test_observation,
         product_id=test_product_id,
         uri=test_uri,
@@ -1527,7 +1527,7 @@ def test_update_artifact_meta_errors():
 @patch('caom2utils.data_util.StorageInventoryClient', autospec=True)
 @patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
 @patch('sys.stdout', new_callable=BytesIO)
-@patch('caom2utils.fits2caom2._augment')
+@patch('caom2utils.caom2blueprint._augment')
 def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     """ Tests that gen_proc can return -1."""
 
@@ -1550,7 +1550,7 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
 
 
 @patch('sys.stdout', new_callable=io.StringIO)
-@patch('caom2utils.fits2caom2.Client')
+@patch('caom2utils.caom2blueprint.Client')
 def test_parser_construction(vos_mock, stdout_mock):
     vos_mock.get_node.side_effect = _get_node
     test_uri = 'vos:goliaths/abc.fits.gz'

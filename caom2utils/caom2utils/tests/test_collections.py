@@ -67,7 +67,7 @@
 #
 
 from cadcdata import FileInfo
-from caom2utils import legacy, fits2caom2, data_util
+from caom2utils import legacy, caom2blueprint, data_util
 from caom2 import ObservationReader, ObservationWriter
 from caom2.diff import get_differences
 
@@ -123,14 +123,14 @@ def test_differences(directory):
         else:
             inputs = blueprints
         application = '{} {} '.format('caom2gen', data_files_parameter)
-        app_cmd = fits2caom2.caom2gen
+        app_cmd = caom2blueprint.caom2gen
     else:
         defaults = _get_parameter('default', directory)
         assert defaults
         overrides = _get_parameter('override', directory)
         assert overrides
         inputs = f'{config} {defaults} {overrides}'
-        application = '{} {}'.format('fits2caom2', data_files_parameter)
+        application = '{} {}'.format('caom2blueprint', data_files_parameter)
         app_cmd = legacy.main_app
         temp = ' '.join(file_meta[0])
         cardinality = f'{product_id} {temp}'
@@ -140,8 +140,8 @@ def test_differences(directory):
             swc_si_mock,\
             patch('cadcutils.net.ws.WsCapabilities.get_access_url',
                   autospec=True) as cap_mock,\
-            patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
-            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock, \
+            patch('caom2utils.caom2blueprint.get_vos_headers') as gvh_mock, \
+            patch('caom2utils.caom2blueprint._get_vos_meta') as gvm_mock, \
             patch('caom2utils.data_util.get_local_headers_from_fits') as \
             header_mock:
         def info_mock(uri):
