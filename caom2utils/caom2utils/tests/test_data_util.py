@@ -369,7 +369,7 @@ def _check_put_result(client_mock):
             replace=True,
             file_type='application/fits',
             file_encoding=None,
-            md5_checksum='3c66ee2cb6e0c2cfb5cd6824d353dc11',
+            md5_checksum='md5:3c66ee2cb6e0c2cfb5cd6824d353dc11',
         )
 
 

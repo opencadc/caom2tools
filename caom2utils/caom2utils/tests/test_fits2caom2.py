@@ -71,7 +71,7 @@ from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from cadcutils import net
 from cadcdata import FileInfo
-from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
+from caom2utils import FitsParser, FitsWcsParser, main_app, update_blueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser, augment
 from caom2utils.legacy import load_config
@@ -402,7 +402,7 @@ def test_augment_artifact_time_from_blueprint():
 
 def test_get_wcs_values():
     w = get_test_wcs(sample_file_4axes)
-    test_parser = WcsParser(get_test_header(sample_file_4axes)[0].header,
+    test_parser = FitsWcsParser(get_test_header(sample_file_4axes)[0].header,
                             sample_file_4axes, 0)
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
@@ -418,7 +418,7 @@ def test_get_wcs_values():
 
 
 def test_wcs_parser_augment_failures():
-    test_parser = WcsParser(get_test_header(sample_file_4axes)[0].header,
+    test_parser = FitsWcsParser(get_test_header(sample_file_4axes)[0].header,
                             sample_file_4axes, 0)
     test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
                                  Algorithm('exposure'))
