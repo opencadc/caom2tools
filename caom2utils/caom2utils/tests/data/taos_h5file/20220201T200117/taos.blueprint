@@ -1,0 +1,9 @@
+Observation.type = OBJECT
+Plane.dataProductType = image
+Plane.calibrationLevel = 2
+Chunk.position.axis.function.dimension.naxis1 = 1920
+Chunk.position.axis.function.dimension.naxis2 = 4608
+Chunk.position.axis.function.refCoord.coord1.pix = /header/wcs/crpix(0)
+Chunk.position.axis.function.refCoord.coord2.pix = /header/wcs/crpix(1)
+Chunk.position.axis.axis1.ctype = /header/wcs/ctype(0)
+Chunk.position.axis.axis2.ctype = /header/wcs/ctype(1)

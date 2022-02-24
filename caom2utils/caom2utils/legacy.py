@@ -545,7 +545,10 @@ def main_app():
 
     obs_blueprint = {}
     for i, uri in enumerate(args.fileURI):
-        obs_blueprint[uri] = caom2blueprint.ObsBlueprint()
+        if '.h5' in uri:
+            obs_blueprint[uri] = caom2blueprint.Hdf5ObsBlueprint()
+        else:
+            obs_blueprint[uri] = caom2blueprint.ObsBlueprint()
         if config:
             result = update_blueprint(obs_blueprint[uri], uri,
                                       config, defaults, overrides)

@@ -71,7 +71,7 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 
 import math
-from astropy.wcs import Wcsprm
+from astropy.wcs import Wcsprm, WCS
 from astropy.io import fits
 from astropy.time import Time
 from cadcutils import version
@@ -1445,12 +1445,17 @@ class ObsBlueprint:
     def is_table(value):
         """Hide the blueprint structure from clients - they shouldn't need
         to know that a value of type tuple requires special processing."""
-        return ObsBlueprint.is_fits(value) and value[0] == 'BINTABLE'
+        return ObsBlueprint.needs_lookup(value) and value[0] == 'BINTABLE'
 
     @staticmethod
     def is_function(value):
-        return (not ObsBlueprint.is_fits(value) and isinstance(value, str)
+        return (not ObsBlueprint.needs_lookup(value) and isinstance(value, str)
                 and isinstance(value, str) and '(' in value and ')' in value)
+
+    @staticmethod
+    def has_default_value(value):
+        """"""
+        return isinstance(value, tuple) and value[1]
 
     @staticmethod
     def has_no_value(value):
@@ -1458,6 +1463,12 @@ class ObsBlueprint:
         value."""
         return value is None or (
                 isinstance(value, str) and 'None' in value.strip())
+
+    @staticmethod
+    def needs_lookup(value):
+        """Hide the blueprint structure from clients - they shouldn't need
+        to know that a value of type tuple requires special processing."""
+        return isinstance(value, tuple)
 
     def get_configed_axes_count(self):
         """:return how many axes have been configured to read from WCS"""
@@ -1483,6 +1494,58 @@ class ObsBlueprint:
     @update.setter
     def update(self, value):
         self._update = value
+
+
+class Hdf5ObsBlueprint(ObsBlueprint):
+    def __init__(self, position_axes=None, energy_axis=None,
+                 polarization_axis=None, time_axis=None,
+                 obs_axis=None, custom_axis=None, module=None,
+                 update=True, instantiated_class=None):
+        super().__init__(
+            position_axes,
+            energy_axis,
+            polarization_axis,
+            time_axis,
+            obs_axis,
+            custom_axis,
+            module,
+            update,
+            instantiated_class,
+        )
+        tmp = {'Observation.metaRelease': ([], None),
+               'Observation.instrument.name': ([], None),
+               'Observation.type': ([], None),
+               'Observation.environment.ambientTemp': ([],
+                                                       None),
+               # set the default for SimpleObservation construction
+               'Observation.algorithm.name': ([], 'exposure'),
+               'Observation.instrument.keywords': ([], None),
+               'Observation.proposal.id': ([], None),
+               'Observation.target.name': ([], None),
+               'Observation.telescope.name': ([], None),
+               'Observation.telescope.geoLocationX': ([],
+                                                      None),
+               'Observation.telescope.geoLocationY': ([],
+                                                      None),
+               'Observation.telescope.geoLocationZ': ([],
+                                                      None),
+               'Observation.observationID': ([], None),
+               'Plane.calibrationLevel': ([], CalibrationLevel.RAW_STANDARD),
+               'Plane.dataProductType': ([], DataProductType.IMAGE),
+               'Plane.metaRelease': ([], None),
+               'Plane.dataRelease': ([], None),
+               'Plane.productID': ([], None),
+               'Plane.provenance.name': ([], None),
+               'Plane.provenance.project': ([], None),
+               'Plane.provenance.producer': ([], None),
+               'Plane.provenance.reference': ([], None),
+               'Plane.provenance.lastExecuted': ([], None),
+               'Artifact.releaseType': ([], ReleaseType.DATA),
+               'Chunk': 'include'
+        }
+        # using the tmp to make sure that the keywords are valid
+        for key in tmp:
+            self.set(key, tmp[key])
 
 
 class GenericParser:
@@ -1524,7 +1587,7 @@ class GenericParser:
 
         # apply defaults
         for key, value in plan.items():
-            if ObsBlueprint.is_fits(value) and value[1]:
+            if ObsBlueprint.needs_lookup(value) and value[1]:
                 # there is a default value set
                 if key in plan:
                     plan[key] = value[1]
@@ -1543,6 +1606,12 @@ class GenericParser:
             raise ValueError(
                 f'Observation type mis-match for {observation}.')
 
+        temp = self._get_from_list(
+            'Observation.metaRelease', index=0,
+            current=observation.meta_release
+        )
+        logging.error(f'{temp}!!!!!!!!!!!!!')
+        logging.error(f'{self._get_from_list}!!!!!!!!!!!!!')
         observation.meta_release = self._get_datetime(self._get_from_list(
             'Observation.metaRelease', index=0,
             current=observation.meta_release))
@@ -1607,12 +1676,12 @@ class GenericParser:
                                 self._to_release_type(self._get_from_list(
                                     'Artifact.releaseType', index=0)))
             plane.artifacts[artifact_uri] = artifact
-        self.augment_artifact(artifact)
+        self.augment_artifact(artifact, 0)
         self.logger.debug(
             'End generic CAOM2 plane augmentation for {}.'.format(
                 artifact_uri))
 
-    def augment_artifact(self, artifact):
+    def augment_artifact(self, artifact, index):
         """
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
@@ -1653,14 +1722,14 @@ class GenericParser:
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(
-                'Could not find {!r} in fits2caom2 configuration.'.format(
-                    lookup))
+                f'Could not find {lookup} in configuration.')
             if current:
                 self.logger.debug(
                     f'{lookup}: using current value of {current!r}.')
                 value = current
+            logging.error(f'other value {value}')
             return value
-        if (keywords and not ObsBlueprint.is_fits(keywords)
+        if (keywords and not ObsBlueprint.needs_lookup(keywords)
                 and not ObsBlueprint.is_function(keywords)):
             value = keywords
         elif self._blueprint.update:
@@ -1677,6 +1746,7 @@ class GenericParser:
             if isinstance(value, bool) or current is not None:
                 value = current
 
+        logging.error(f'value {value}')
         self.logger.debug(f'{lookup}: value is {value}')
         return value
 
@@ -1699,8 +1769,8 @@ class GenericParser:
     def _to_enum_type(self, value, to_enum_type):
         if value is None:
             raise ValueError(
-                'Must set a value of {} for {}.'.format(to_enum_type.__name__,
-                                                        self.logging_name))
+                f'Must set a value of {to_enum_type.__name__} for '
+                f'{self._uri}.')
         elif isinstance(value, to_enum_type):
             return value
         else:
@@ -1836,103 +1906,92 @@ class BlueprintParser(GenericParser):
 
     def __init__(self, obs_blueprint=None, uri=None):
         super().__init__(obs_blueprint, uri)
+        self._wcs_parser = WcsParser()
 
-    def augment_artifact(self, artifact):
+    def _get_chunk_naxis(self, chunk, index):
+        chunk.naxis = self._get_from_list(
+            'Chunk.naxis', index, self._wcs_parser.wcs.wcs.naxis)
+
+    def augment_artifact(self, artifact, index):
         """
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        super().augment_artifact(artifact)
+        super().augment_artifact(artifact, index)
 
-        self.logger.debug(
-            'Begin artifact augmentation for {} with {} HDUs.'.format(
-                artifact.uri, len(self.headers)))
+        self.logger.debug(f'Begin artifact augmentation for {artifact.uri}')
 
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError(
-                'No WCS Data. End artifact augmentation for {}.'.format(
-                    artifact.uri))
+                f'No WCS Data. End artifact augmentation for {artifact.uri}.')
 
-        for i, header in enumerate(self.headers):
-            ii = str(i)
+        if self.ignore_chunks(artifact, index):
+            return
 
-            if self.ignore_chunks(artifact, i, ii):
-                continue
-            # # there is one Part per extension, the name is the extension number
-            # if self._has_data_array(header) and self.blueprint.has_chunk(i):
-            #     if ii not in artifact.parts.keys():
-            #         # TODO use extension name?
-            #         artifact.parts.add(Part(ii))
-            #         self.logger.debug(f'Part created for HDU {ii}.')
-            # else:
-            #     artifact.parts.add(Part(ii))
-            #     self.logger.debug(f'Create empty part for HDU {ii}')
-            #     continue
+        part = artifact.parts[str(index)]
+        part.product_type = self._get_from_list('Part.productType', index)
+        part.meta_producer = self._get_from_list(
+            'Part.metaProducer', index=0, current=part.meta_producer)
 
-            part = artifact.parts[ii]
-            part.product_type = self._get_from_list('Part.productType', i)
-            part.meta_producer = self._get_from_list(
-                'Part.metaProducer', index=0, current=part.meta_producer)
+        # each Part has one Chunk, if it's not an empty part as determined
+        # just previously
+        if not part.chunks:
+            part.chunks.append(Chunk())
+        chunk = part.chunks[0]
+        chunk.meta_producer = self._get_from_list(
+            'Chunk.metaProducer', index=0, current=chunk.meta_producer)
 
-            # each Part has one Chunk, if it's not an empty part as determined
-            # just previously
-            if not part.chunks:
-                part.chunks.append(Chunk())
-            chunk = part.chunks[0]
-            chunk.meta_producer = self._get_from_list(
-                'Chunk.metaProducer', index=0, current=chunk.meta_producer)
-
-            wcs_parser = FitsWcsParser(header, self.file, ii)
-            # NOTE: astropy.wcs does not distinguished between WCS axes and
-            # data array axes. naxis in astropy.wcs represents in fact the
-            # number of WCS axes, whereas chunk.axis represents the naxis
-            # of the data array. Solution is to determine it directly from
-            # the header
-            if 'ZNAXIS' in header:
-                chunk.naxis = _to_int(header['ZNAXIS'])
-            elif 'NAXIS' in header:
-                chunk.naxis = _to_int(header['NAXIS'])
-            else:
-                chunk.naxis = self._get_from_list('Chunk.naxis', 0,
-                                                  wcs_parser.wcs.wcs.naxis)
-            if self.blueprint._pos_axes_configed:
-                wcs_parser.augment_position(chunk)
-                logging.error(chunk.position)
-                if chunk.position is None:
-                    self._try_position_with_blueprint(chunk, i)
-            if chunk.position:
-                chunk.position.resolution = self._get_from_list(
-                    'Chunk.position.resolution', index=i)
+        # NOTE: astropy.wcs does not distinguished between WCS axes and
+        # data array axes. naxis in astropy.wcs represents in fact the
+        # number of WCS axes, whereas chunk.axis represents the naxis
+        # of the data array. Solution is to determine it directly from
+        # the header
+        # if 'ZNAXIS' in header:
+        #     chunk.naxis = _to_int(header['ZNAXIS'])
+        # elif 'NAXIS' in header:
+        #     chunk.naxis = _to_int(header['NAXIS'])
+        # else:
+        #     chunk.naxis = self._get_from_list('Chunk.naxis', 0,
+        #                                       wcs_parser.wcs.wcs.naxis)
+        self._get_chunk_naxis(chunk, index)
+        if self.blueprint._pos_axes_configed:
+            self._wcs_parser.augment_position(chunk)
+            logging.error(chunk.position)
+            if chunk.position is None:
+                self._try_position_with_blueprint(chunk, index)
+        if chunk.position:
+            chunk.position.resolution = self._get_from_list(
+                'Chunk.position.resolution', index=index)
+        if self.blueprint._energy_axis_configed:
+            self._wcs_parser.augment_energy(chunk)
+        if chunk.energy:
+            chunk.energy.bandpass_name = self._get_from_list(
+                'Chunk.energy.bandpassName', index=index)
+            chunk.energy.transition = self._get_energy_transition(
+                chunk.energy.transition)
+            chunk.energy.resolving_power = _to_float(self._get_from_list(
+                'Chunk.energy.resolvingPower', index=index))
+        else:
             if self.blueprint._energy_axis_configed:
-                wcs_parser.augment_energy(chunk)
-            if chunk.energy:
-                chunk.energy.bandpass_name = self._get_from_list(
-                    'Chunk.energy.bandpassName', index=i)
-                chunk.energy.transition = self._get_energy_transition(
-                    chunk.energy.transition)
-                chunk.energy.resolving_power = _to_float(self._get_from_list(
-                    'Chunk.energy.resolvingPower', index=i))
-            else:
-                if self.blueprint._energy_axis_configed:
-                    self._try_energy_with_blueprint(chunk, i)
-            if self.blueprint._time_axis_configed:
-                wcs_parser.augment_temporal(chunk)
-                if chunk.time is None:
-                    self._try_time_with_blueprint(chunk, i)
-            if self.blueprint._polarization_axis_configed:
-                wcs_parser.augment_polarization(chunk)
-                if chunk.polarization is None:
-                    self._try_polarization_with_blueprint(chunk, i)
-            if self.blueprint._obs_axis_configed:
-                wcs_parser.augment_observable(chunk)
-                if chunk.observable is None and chunk.observable_axis is None:
-                    self._try_observable_with_blueprint(chunk, i)
-            if self.blueprint._custom_axis_configed:
-                wcs_parser.augment_custom(chunk)
+                self._try_energy_with_blueprint(chunk, index)
+        if self.blueprint._time_axis_configed:
+            self._wcs_parser.augment_temporal(chunk)
+            if chunk.time is None:
+                self._try_time_with_blueprint(chunk, index)
+        if self.blueprint._polarization_axis_configed:
+            self._wcs_parser.augment_polarization(chunk)
+            if chunk.polarization is None:
+                self._try_polarization_with_blueprint(chunk, index)
+        if self.blueprint._obs_axis_configed:
+            self._wcs_parser.augment_observable(chunk)
+            if chunk.observable is None and chunk.observable_axis is None:
+                self._try_observable_with_blueprint(chunk, index)
+        if self.blueprint._custom_axis_configed:
+            self._wcs_parser.augment_custom(chunk)
 
-            # try to set smaller bits of the chunk WCS elements from the
-            # blueprint
-            self._try_range_with_blueprint(chunk, i)
+        # try to set smaller bits of the chunk WCS elements from the
+        # blueprint
+        self._try_range_with_blueprint(chunk, index)
 
         self.logger.debug(
             f'End artifact augmentation for {artifact.uri}.')
@@ -2016,6 +2075,9 @@ class BlueprintParser(GenericParser):
         self.logger.debug(
             f'End plane augmentation for {artifact_uri}.')
 
+    def _content_lookup(self, key, extension=None):
+        raise NotImplementedError
+
     def _get_algorithm(self, obs):
         """
         Create an Algorithm instance populated with available FITS information.
@@ -2092,6 +2154,74 @@ class BlueprintParser(GenericParser):
             enviro.photometric = photometric
         self.logger.debug('End Environment augmentation.')
         return enviro
+
+    def _get_from_list(self, lookup, index, current=None):
+        value = None
+        try:
+            keys = self.blueprint._get(lookup)
+        except KeyError:
+            self.add_error(lookup, sys.exc_info()[1])
+            self.logger.debug(
+                f'Could not find {lookup!r} in fits2caom2 configuration.')
+            if current:
+                self.logger.debug(
+                    f'{lookup}: using current value of {current!r}.')
+                value = current
+            return value
+
+        # logging.error(f'here 1??? {isinstance(keys, tuple)} {type(keys)}')
+
+        if ObsBlueprint.needs_lookup(keys):
+            for ii in keys[0]:
+                try:
+                    value = self._content_lookup(ii, index)
+                    logging.error(value)
+                    if value:
+                        self.logger.debug(
+                            f'{lookup}: assigned value {value} based on '
+                            f'keyword {ii}.')
+                        break
+                except (KeyError, IndexError):
+                    if keys[0].index(ii) == len(keys[0]) - 1:
+                        self.add_error(lookup, sys.exc_info()[1])
+                    # assign a default value, if one exists
+                    if keys[1]:
+                        if current is None:
+                            value = keys[1]
+                            self.logger.debug(
+                                f'{lookup}: assigned default value {value}.')
+                        else:
+                            value = current
+            if value is None:
+                # checking current does not work in the general case,
+                # because current might legitimately be 'None'
+                if self._blueprint.update:
+                    if (
+                        current is not None
+                        or (current is None and isinstance(value, bool))
+                    ):
+                        value = current
+                        self.logger.debug(
+                            f'{lookup}: used current value {value}.')
+                else:
+                    # assign a default value, if one exists
+                    if keys[1]:
+                        if current is None:
+                            value = keys[1]
+                            self.logger.debug(
+                                f'{lookup}: assigned default value {value}.')
+                        else:
+                            value = current
+
+        elif (keys is not None) and (keys != ''):
+            value = keys
+            logging.error(f'here 2 {value}???')
+        elif current:
+            value = current
+            logging.error(f'here 3 {value}???')
+
+        self.logger.debug(f'{lookup}: value is {value}')
+        return value
 
     def _get_instrument(self, current):
         """
@@ -2388,6 +2518,36 @@ class BlueprintParser(GenericParser):
         reqts = Requirements(flag) if flag else None
         self.logger.debug('End Requirement augmentation.')
         return reqts
+
+    def _get_set_from_list(self, lookup, index):
+        value = None
+        keywords = None
+        try:
+            keywords = self.blueprint._get(lookup)
+        except KeyError:
+            self.add_error(lookup, sys.exc_info()[1])
+            self.logger.debug(
+                'Could not find \'{}\' in fits2caom2 configuration.'.format(
+                    lookup))
+
+        if isinstance(keywords, tuple):
+            for ii in keywords[0]:
+                try:
+                    # value = self.headers[index].get(ii)
+                    value = self._content_lookup(ii, index)
+                    break
+                except KeyError:
+                    self.add_error(lookup, sys.exc_info()[1])
+                    if keywords[1]:
+                        value = keywords[1]
+                        self.logger.debug(
+                            '{}: assigned default value {}.'.format(lookup,
+                                                                    value))
+        elif keywords:
+            value = keywords
+            self.logger.debug(f'{lookup}: assigned value {value}.')
+
+        return value
 
     def _get_target(self, current):
         """
@@ -2897,20 +3057,20 @@ class FitsParser(BlueprintParser):
         """
         return self._headers
 
-    def ignore_chunks(self, artifact, i, ii):
+    def ignore_chunks(self, artifact, index):
         # there is one Part per extension, the name is the extension number
         if (
-            FitsParser._has_data_array(self._headers[i])
-            and self.blueprint.has_chunk(i)
+            FitsParser._has_data_array(self._headers[index])
+            and self.blueprint.has_chunk(index)
         ):
-            if ii not in artifact.parts.keys():
+            if str(index) not in artifact.parts.keys():
                 # TODO use extension name?
-                artifact.parts.add(Part(ii))
-                self.logger.debug(f'Part created for HDU {ii}.')
+                artifact.parts.add(Part(str(index)))
+                self.logger.debug(f'Part created for HDU {index}.')
             result = False
         else:
-            artifact.parts.add(Part(ii))
-            self.logger.debug(f'Create empty part for HDU {ii}')
+            artifact.parts.add(Part(str(index)))
+            self.logger.debug(f'Create empty part for HDU {index}')
             result = True
         return result
 
@@ -2945,7 +3105,7 @@ class FitsParser(BlueprintParser):
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
             if key in wcs_std:
-                if ObsBlueprint.is_fits(value):
+                if ObsBlueprint.needs_lookup(value):
                     # alternative attributes provided for standard wcs attrib.
                     for header in self.headers:
                         for v in value[0]:
@@ -2961,7 +3121,7 @@ class FitsParser(BlueprintParser):
                     continue
                 else:
                     # value provided for standard wcs attribute
-                    if ObsBlueprint.is_fits(wcs_std[key]):
+                    if ObsBlueprint.needs_lookup(wcs_std[key]):
                         keywords = wcs_std[key][0]
                     elif ObsBlueprint.is_function(wcs_std[key]):
                         continue
@@ -2989,7 +3149,7 @@ class FitsParser(BlueprintParser):
                                                                extension))
         # apply defaults to all extensions
         for key, value in plan.items():
-            if ObsBlueprint.is_fits(value) and value[1]:
+            if ObsBlueprint.needs_lookup(value) and value[1]:
                 # there is a default value set
                 for index, header in enumerate(self.headers):
                     for keywords in value[0]:
@@ -3044,69 +3204,106 @@ class FitsParser(BlueprintParser):
 
         return
 
-    def _get_from_list(self, lookup, index, current=None):
-        value = None
-        try:
-            keywords = self.blueprint._get(lookup)
-        except KeyError:
-            self.add_error(lookup, sys.exc_info()[1])
-            self.logger.debug(
-                'Could not find {!r} in fits2caom2 configuration.'.format(
-                    lookup))
-            if current:
-                self.logger.debug(
-                    f'{lookup}: using current value of {current!r}.')
-                value = current
-            return value
+    def augment_artifact(self, artifact, index=0):
+        """
+        Augments a given CAOM2 artifact with available FITS information
+        :param artifact: existing CAOM2 artifact to be augmented
+        """
+        self.logger.debug(
+            'Begin artifact augmentation for {} with {} HDUs.'.format(
+                artifact.uri, len(self.headers)))
 
-        if isinstance(keywords, tuple):
-            for ii in keywords[0]:
-                try:
-                    value = self.headers[index].get(ii)
-                    if value:
-                        self.logger.debug(
-                            '{}: assigned value {} based on keyword {}.'.
-                            format(lookup, value, ii))
-                        break
-                except (KeyError, IndexError):
-                    if keywords[0].index(ii) == len(keywords[0]) - 1:
-                        self.add_error(lookup, sys.exc_info()[1])
-                    # assign a default value, if one exists
-                    if keywords[1]:
-                        if current is None:
-                            value = keywords[1]
-                            self.logger.debug(
-                                '{}: assigned default value {}.'.format(lookup,
-                                                                        value))
-                        else:
-                            value = current
-            if value is None:
-                # checking current does not work in the general case,
-                # because current might legitimately be 'None'
-                if self._blueprint.update:
-                    if (current is not None or
-                            (current is None and isinstance(value, bool))):
-                        value = current
-                        self.logger.debug('{}: used current value '
-                                          '{!r}.'.format(lookup, value))
-                else:
-                    # assign a default value, if one exists
-                    if keywords[1]:
-                        if current is None:
-                            value = keywords[1]
-                            self.logger.debug(
-                                '{}: assigned default value {}.'.format(lookup,
-                                                                        value))
-                        else:
-                            value = current
+        if self.blueprint.get_configed_axes_count() == 0:
+            raise TypeError(
+                'No WCS Data. End artifact augmentation for {}.'.format(
+                    artifact.uri))
 
-        elif (keywords is not None) and (keywords != ''):
-            value = keywords
-        elif current:
-            value = current
+        for i, header in enumerate(self.headers):
+            if self.ignore_chunks(artifact, i):
+                continue
+            self._wcs_parser = FitsWcsParser(header, self.file, str(i))
+            super().augment_artifact(artifact, i)
+            # part.product_type = self._get_from_list('Part.productType', i)
+            # part.meta_producer = self._get_from_list(
+            #     'Part.metaProducer', index=0, current=part.meta_producer)
+            #
+            # # each Part has one Chunk, if it's not an empty part as determined
+            # # just previously
+            # if not part.chunks:
+            #     part.chunks.append(Chunk())
+            # chunk = part.chunks[0]
+            # chunk.meta_producer = self._get_from_list(
+            #     'Chunk.metaProducer', index=0, current=chunk.meta_producer)
+            #
+            # NOTE: astropy.wcs does not distinguished between WCS axes and
+            # data array axes. naxis in astropy.wcs represents in fact the
+            # number of WCS axes, whereas chunk.axis represents the naxis
+            # of the data array. Solution is to determine it directly from
+            # the header
+            # if 'ZNAXIS' in header:
+            #     chunk.naxis = _to_int(header['ZNAXIS'])
+            # elif 'NAXIS' in header:
+            #     chunk.naxis = _to_int(header['NAXIS'])
+            # else:
+            #     chunk.naxis = self._get_from_list('Chunk.naxis', 0,
+            #                                       wcs_parser.wcs.wcs.naxis)
+            # if self.blueprint._pos_axes_configed:
+            #     wcs_parser.augment_position(chunk)
+            #     logging.error(chunk.position)
+            #     if chunk.position is None:
+            #         self._try_position_with_blueprint(chunk, i)
+            # if chunk.position:
+            #     chunk.position.resolution = self._get_from_list(
+            #         'Chunk.position.resolution', index=i)
+            # if self.blueprint._energy_axis_configed:
+            #     wcs_parser.augment_energy(chunk)
+            # if chunk.energy:
+            #     chunk.energy.bandpass_name = self._get_from_list(
+            #         'Chunk.energy.bandpassName', index=i)
+            #     chunk.energy.transition = self._get_energy_transition(
+            #         chunk.energy.transition)
+            #     chunk.energy.resolving_power = _to_float(self._get_from_list(
+            #         'Chunk.energy.resolvingPower', index=i))
+            # else:
+            #     if self.blueprint._energy_axis_configed:
+            #         self._try_energy_with_blueprint(chunk, i)
+            # if self.blueprint._time_axis_configed:
+            #     wcs_parser.augment_temporal(chunk)
+            #     if chunk.time is None:
+            #         self._try_time_with_blueprint(chunk, i)
+            # if self.blueprint._polarization_axis_configed:
+            #     wcs_parser.augment_polarization(chunk)
+            #     if chunk.polarization is None:
+            #         self._try_polarization_with_blueprint(chunk, i)
+            # if self.blueprint._obs_axis_configed:
+            #     wcs_parser.augment_observable(chunk)
+            #     if chunk.observable is None and chunk.observable_axis is None:
+            #         self._try_observable_with_blueprint(chunk, i)
+            # if self.blueprint._custom_axis_configed:
+            #     wcs_parser.augment_custom(chunk)
+            #
+            # # try to set smaller bits of the chunk WCS elements from the
+            # # blueprint
+            # self._try_range_with_blueprint(chunk, i)
 
-        self.logger.debug(f'{lookup}: value is {value}')
-        return value
+        self.logger.debug(
+            f'End artifact augmentation for {artifact.uri}.')
+
+    def _content_lookup(self, key, extension=None):
+        return self.headers[extension].get(key)
+
+    def _get_chunk_naxis(self, chunk, index=None):
+        # NOTE: astropy.wcs does not distinguished between WCS axes and
+        # data array axes. naxis in astropy.wcs represents in fact the
+        # number of WCS axes, whereas chunk.axis represents the naxis
+        # of the data array. Solution is to determine it directly from
+        # the header
+        if 'ZNAXIS' in self._headers[index]:
+            chunk.naxis = _to_int(self._headers[index]['ZNAXIS'])
+        elif 'NAXIS' in self._headers[index]:
+            chunk.naxis = _to_int(self._headers[index]['NAXIS'])
+        else:
+            super()._get_chunk_naxis(chunk)
 
     def _get_from_table(self, lookup, extension):
         """
@@ -3146,35 +3343,6 @@ class FitsParser(BlueprintParser):
         self.logger.debug(f'{lookup}: value is {value}')
         return value
 
-    def _get_set_from_list(self, lookup, index):
-        value = None
-        keywords = None
-        try:
-            keywords = self.blueprint._get(lookup)
-        except KeyError:
-            self.add_error(lookup, sys.exc_info()[1])
-            self.logger.debug(
-                'Could not find \'{}\' in fits2caom2 configuration.'.format(
-                    lookup))
-
-        if isinstance(keywords, tuple):
-            for ii in keywords[0]:
-                try:
-                    value = self.headers[index].get(ii)
-                    break
-                except KeyError:
-                    self.add_error(lookup, sys.exc_info()[1])
-                    if keywords[1]:
-                        value = keywords[1]
-                        self.logger.debug(
-                            '{}: assigned default value {}.'.format(lookup,
-                                                                    value))
-        elif keywords:
-            value = keywords
-            self.logger.debug(f'{lookup}: assigned value {value}.')
-
-        return value
-
     @staticmethod
     def _has_data_array(header):
         """
@@ -3210,22 +3378,81 @@ class FitsParser(BlueprintParser):
         return True
 
 
+class HDF5Parser(BlueprintParser):
+
+    def __init__(
+        self, obs_blueprint, uri, local_f_name, find_roots_here='/sitedata'
+    ):
+        super().__init__(obs_blueprint, uri)
+        import h5py
+        self._file = h5py.File(local_f_name, 'r')
+        self._wcs_parser = None
+        self._roots = []
+        self.apply_blueprint()
+        self._set_roots(find_roots_here, self._file)
+
+    def _set_roots(self, root_name, root):
+        bits = root_name.split('/')
+        if len(bits) == 2:
+            logging.error(root[root_name].keys())
+            for key in root[root_name].keys():
+                self._roots.append(root[root_name][key])
+        else:
+            x = f'/{"/".join(ii for ii in bits[2:])}'
+            self._set_roots(x, root)
+
+    def augment_artifact(self, artifact, index=0):
+        for root in self._roots:
+            self._wcs_parser = Hdf5WcsParser(root, self.blueprint)
+            super().augment_artifact(artifact, index)
+
+    def _content_lookup(self, key, extension=None):
+        bits = key.split('/')
+        if isinstance(extension, int):
+            extension = self._roots[extension]
+
+        logging.error(f'key {key} root.name {extension.name} bits {bits}')
+
+        if isinstance(key, list):
+            return None
+        if len(bits) == 2:
+            logging.error('path 1')
+            if '(' in bits[1]:
+                logging.error('path 2')
+                x = bits[1].split('(')
+                index = int(x[1].split(')')[0])
+                logging.error(f'x {x} index {index}')
+                return extension[x[0]][index]
+            else:
+                logging.error('path 3')
+                return extension[bits[1]]
+        else:
+            # the 2 is because there's always a leading slash, so the
+            # first bit is an empty string
+            temp = f'/{"/".join(ii for ii in bits[2:])}'
+            logging.error(f'path 4 {temp} {bits[2:]}')
+            return self._content_lookup(temp, extension[bits[1]])
+
+    def _get_chunk_naxis(self, chunk, index):
+        chunk.naxis = self._get_from_list('Chunk.naxis', index, chunk.naxis)
+
+    def ignore_chunks(self, artifact, index=0):
+        artifact.parts.add(Part(str(index)))
+        return False
+
+
 class WcsParser:
+    """
+    WCS axes methods.
+    """
+
     ENERGY_AXIS = 'energy'
     POLARIZATION_AXIS = 'polarization'
     TIME_AXIS = 'time'
 
     def __init__(self):
-        """
-
-        :param header: FITS extension header
-        :param file: name of FITS file
-        :param extension: which HDU
-        WCS axes methods of this class.
-        """
-
-        # add the HDU extension to logging messages from this class
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.wcs = None
 
     def augment_custom(self, chunk):
         """
@@ -3451,6 +3678,37 @@ class WcsParser:
                 Slice(self._get_axis(0, ctype, cunit), pix_bin))
         self.logger.debug('End Observable WCS augmentation.')
 
+    def _get_axis(self, index, over_ctype=None, over_cunit=None):
+        """ Assemble a generic axis """
+        aug_ctype = str(self.wcs.ctype[index]) if over_ctype is None \
+            else over_ctype
+        aug_cunit = str(self.wcs.cunit[index]) if over_cunit is None \
+            else over_cunit
+        if aug_cunit is not None and len(aug_cunit) == 0:
+            aug_cunit = None
+        aug_axis = Axis(aug_ctype, aug_cunit)
+        return aug_axis
+
+    def _get_axis_index(self, keywords):
+        """
+        Return the index of a specific axis type or None of it doesn't exist
+        :param keywords:
+        :return:
+        """
+        axis = None
+        for i, elem in enumerate(self.wcs.ctype):
+            elem = elem.split('-')[0]
+            logging.error(elem)
+            if elem in keywords:
+                axis = i
+                break
+            elif len(elem) == 0:
+                check = self.wcs.ctype[i]
+                if check in keywords:
+                    axis = i
+                    break
+        return axis
+
     def _get_cd(self, x_index, y_index):
         """ returns cd info"""
 
@@ -3492,6 +3750,21 @@ class WcsParser:
             self.logger.debug('End 2D dimension augmentation.')
         return aug_dimension
 
+    def _get_position_axis(self):
+        # there are two celestial axes, get the applicable indices from
+        # the axis_types
+        xindex = self._get_axis_index(POSITION_CTYPES[0])
+        yindex = self._get_axis_index(POSITION_CTYPES[1])
+
+        if (xindex is not None) and (yindex is not None):
+            return xindex + 1, yindex + 1
+        elif (xindex is None) and (yindex is None):
+            return None
+        else:
+            raise ValueError('Found only one position axis ra/dec: {}/{} in '
+                             '{}'.
+                             format(xindex, yindex, self.file))
+
     def _get_ref_coord(self, index):
         aug_crpix = _to_float(self._sanitize(self.wcs.crpix[index]))
         aug_crval = _to_float(self._sanitize(self.wcs.crval[index]))
@@ -3499,6 +3772,52 @@ class WcsParser:
         if aug_crpix is not None and aug_crval is not None:
             aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
+
+    def _get_spatial_axis(self, xindex, yindex):
+        """Assemble the bits to make the axis parameter needed for
+        SpatialWCS construction."""
+        logging.error(f'xindex {xindex} yindex {yindex}')
+        aug_dimension = self._get_dimension(xindex, yindex)
+
+        aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
+                                self._get_ref_coord(yindex))
+
+        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
+            self._get_cd(xindex, yindex)
+
+        if aug_dimension is not None and \
+            aug_ref_coord is not None and \
+            aug_cd11 is not None and \
+            aug_cd12 is not None and \
+            aug_cd21 is not None and \
+            aug_cd22 is not None:
+            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
+                                           aug_cd11, aug_cd12,
+                                           aug_cd21, aug_cd22)
+            self.logger.debug('End CoordFunction2D augmentation.')
+        else:
+            aug_function = None
+
+        aug_axis = CoordAxis2D(self._get_axis(xindex),
+                               self._get_axis(yindex),
+                               self._get_coord_error(xindex),
+                               self._get_coord_error(yindex),
+                               None, None, aug_function)
+        self.logger.debug('End CoordAxis2D augmentation.')
+        return aug_axis
+
+    def _sanitize(self, value):
+        """
+        Sanitizes values from FITS to caom2
+        :param value:
+        :return:
+        """
+        if isinstance(value, float) and math.isnan(value):
+            return None
+        elif not str(value):
+            return None  # empty string
+        else:
+            return value
 
 
 class FitsWcsParser(WcsParser):
@@ -3534,83 +3853,6 @@ class FitsWcsParser(WcsParser):
         self.file = file
         self.extension = extension
 
-    def _get_axis_index(self, keywords):
-        """
-        Return the index of a specific axis type or None of it doesn't exist
-        :param keywords:
-        :return:
-        """
-        axis = None
-        for i, elem in enumerate(self.wcs.ctype):
-            elem = elem.split('-')[0]
-            if elem in keywords:
-                axis = i
-                break
-            elif len(elem) == 0:
-                check = self.wcs.ctype[i]
-                if check in keywords:
-                    axis = i
-                    break
-        return axis
-
-    def _get_axis(self, index, over_ctype=None, over_cunit=None):
-        """ Assemble a generic axis """
-        aug_ctype = str(self.wcs.ctype[index]) if over_ctype is None \
-            else over_ctype
-        aug_cunit = str(self.wcs.cunit[index]) if over_cunit is None \
-            else over_cunit
-        if aug_cunit is not None and len(aug_cunit) == 0:
-            aug_cunit = None
-        aug_axis = Axis(aug_ctype, aug_cunit)
-        return aug_axis
-
-    def _get_spatial_axis(self, xindex, yindex):
-        """Assemble the bits to make the axis parameter needed for
-        SpatialWCS construction."""
-        aug_dimension = self._get_dimension(xindex, yindex)
-
-        aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
-                                self._get_ref_coord(yindex))
-
-        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
-            self._get_cd(xindex, yindex)
-
-        if aug_dimension is not None and \
-                aug_ref_coord is not None and \
-                aug_cd11 is not None and \
-                aug_cd12 is not None and \
-                aug_cd21 is not None and \
-                aug_cd22 is not None:
-            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
-                                           aug_cd11, aug_cd12,
-                                           aug_cd21, aug_cd22)
-            self.logger.debug('End CoordFunction2D augmentation.')
-        else:
-            aug_function = None
-
-        aug_axis = CoordAxis2D(self._get_axis(xindex),
-                               self._get_axis(yindex),
-                               self._get_coord_error(xindex),
-                               self._get_coord_error(yindex),
-                               None, None, aug_function)
-        self.logger.debug('End CoordAxis2D augmentation.')
-        return aug_axis
-
-    def _get_position_axis(self):
-        # there are two celestial axes, get the applicable indices from
-        # the axis_types
-        xindex = self._get_axis_index(POSITION_CTYPES[0])
-        yindex = self._get_axis_index(POSITION_CTYPES[1])
-
-        if (xindex is not None) and (yindex is not None):
-            return xindex + 1, yindex + 1
-        elif (xindex is None) and (yindex is None):
-            return None
-        else:
-            raise ValueError('Found only one position axis ra/dec: {}/{} in '
-                             '{}'.
-                             format(xindex, yindex, self.file))
-
     def _get_axis_length(self, for_axis):
         # try ZNAXIS first in order to get the size of the original
         # image in case it was FITS compressed
@@ -3624,18 +3866,211 @@ class FitsWcsParser(WcsParser):
             raise ValueError(msg)
         return result
 
-    def _sanitize(self, value):
+
+class Hdf5WcsParser(WcsParser):
+
+    def __init__(self, root, blueprint):
         """
-        Sanitizes values from FITS to caom2
-        :param value:
-        :return:
+        :param root: h5py.h5p.Dataset or h5py.h5p.Group
+        :param blueprint: ObsBlueprint
         """
-        if isinstance(value, float) and math.isnan(value):
-            return None
-        elif not str(value):
-            return None  # empty string
+        super().__init__()
+        self._wcs = None
+        self._axes = {
+            'ra': [0, False],
+            'dec': [0, False],
+            'time': [0, False],
+            'energy': [0, False],
+            'polarization': [0, False],
+            'obs': [0, False],
+            'custom': [0, False],
+        }
+        self._set_wcs(root, blueprint)
+
+    @property
+    def wcs(self):
+        return self._wcs.wcs
+
+    @wcs.setter
+    def wcs(self, value):
+        self._wcs = value
+
+    def _get_axis_index(self, keywords):
+        result = self._axes['custom'][0]
+        if 'RA' in keywords:
+            result = self._axes['ra'][0]
+        elif 'DEC' in keywords:
+            result = self._axes['dec'][0]
+        elif 'TIME' in keywords:
+            result = self._axes['time'][0]
+        elif 'FREQ' in keywords:
+            result = self._axes['energy'][0]
+        elif 'STOKES' in keywords:
+            result = self._axes['polarization'][0]
+        elif 'FLUX' in keywords:
+            result = self._axes['obs'][0]
+        return result
+
+    def _get_axis_length(self, for_axis):
+        logging.error(f'{for_axis} {self._wcs.array_shape}')
+        # this is fucking broken, just trying to figure out what the indicees
+        # should really be right now
+        # index = 1
+        # if for_axis == 2:
+        #     index = 0
+        # return self._wcs.array_shape[index]
+        return self._wcs.array_shape[for_axis-1]
+
+    def _set_wcs(self, root, blueprint):
+        count = 0
+        if blueprint._pos_axes_configed:
+            self._axes['ra'][1] = True
+            self._axes['ra'][0] = count
+            self._axes['dec'][1] = True
+            self._axes['dec'][0] = count + 1
+            count += 2
+        if blueprint._time_axis_configed:
+            self._axes['time'][1] = True
+            self._axes['time'][0] = count
+            count += 1
+        if blueprint._energy_axis_configed:
+            self._axes['energy'][1] = True
+            self._axes['energy'][0] = count
+            count += 1
+        if blueprint._polarization_axis_configed:
+            self._axes['polarization'][1] = True
+            self._axes['polarization'][0] = count
+            count += 1
+        if blueprint._obs_axis_configed:
+            self._axes['obs'][1] = True
+            self._axes['obs'][0] = count
+            count += 1
+        if blueprint._custom_axis_configed:
+            self._axes['custom'][1] = True
+            self._axes['custom'][0] = count
+            count += 1
+
+        self._wcs = WCS(naxis=count)
+        z = [
+            _to_str(self._xx_lookup(
+                blueprint._get('Chunk.position.axis.axis1.ctype'), root
+            )) if self._axes['ra'][1] else None,
+            _to_str(self._xx_lookup(
+                blueprint._get('Chunk.position.axis.axis2.ctype'), root
+            )) if self._axes['dec'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.time.axis.axis.ctype'), root
+            ) if self._axes['time'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.energy.axis.axis.ctype'), root
+            ) if self._axes['energy'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.polarization.axis.axis.ctype'), root
+            ) if self._axes['polarization'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.observable.axis.axis.ctype'), root
+            ) if self._axes['obs'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.custom.axis.axis.ctype'), root
+            ) if self._axes['custom'][1] else None,
+        ]
+
+        self._wcs.wcs.ctype = z[:count]
+        z = [
+            self._xx_lookup(
+                blueprint._get(
+                    'Chunk.position.axis.function.dimension.naxis1'), root
+            ) if self._axes['ra'][1] else 0,
+            self._xx_lookup(
+                blueprint._get(
+                    'Chunk.position.axis.function.dimension.naxis2'), root
+            ) if self._axes['dec'][1] else 0,
+            self._xx_lookup(
+                blueprint._get('Chunk.time.axis.function.naxis'), root
+            ) if self._axes['time'][1] else 0,
+            self._xx_lookup(
+                blueprint._get('Chunk.energy.axis.function.naxis'), root
+            ) if self._axes['energy'][1] else 0,
+            self._xx_lookup(
+                blueprint._get('Chunk.polarization.axis.function.naxis'), root
+            ) if self._axes['polarization'][1] else 0,
+            self._xx_lookup(
+                blueprint._get('Chunk.observable.dependent.bin'), root
+            ) if self._axes['obs'][1] else 0,
+            self._xx_lookup(
+                blueprint._get('Chunk.custom.axis.function.naxis'), root
+            ) if self._axes['custom'][1] else 0,
+        ]
+        self._wcs.array_shape = z[:count]
+
+        z = [
+            self._xx_lookup(
+                blueprint._get(
+                    'Chunk.position.axis.function.refCoord.coord1.pix'), root
+            ) if self._axes['ra'][1] else None,
+            self._xx_lookup(
+                blueprint._get(
+                    'Chunk.position.axis.function.refCoord.coord2.pix'), root
+            ) if self._axes['dec'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.time.axis.function.refCoord.pix'), root
+            ) if self._axes['time'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.energy.axis.function.refCoord.pix'), root
+            ) if self._axes['energy'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.polarization.axis.function.refCoord.pix'), root
+            ) if self._axes['polarization'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.observable.axis.function.refCoord.pix'), root
+            ) if self._axes['obs'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.custom.axis.function.refCoord.pix'), root
+            ) if self._axes['custom'][1] else None,
+        ]
+        self._wcs.wcs.crpix = z[:count]
+
+    def _xx_lookup(self, key, root):
+        logging.error(f'key {key} root name {root.name}')
+        if key is None:
+            raise NotImplementedError
+        if isinstance(key, tuple):
+            logging.error('path 10')
+            result = None
+            for ii in key[0]:
+                result = self._xx_lookup(ii, root)
+            if result is None and key[1] is not None:
+                # apply the default value
+                result = key[1]
+            return result
         else:
-            return value
+            if key.startswith('/'):
+                logging.error('path 15')
+                bits = key.split('/')
+                logging.error(f'key {key} root.name {root.name} bits {bits}')
+                if len(bits) == 2:
+                    logging.error('path 11')
+                    if '(' in bits[1]:
+                        logging.error('path 12')
+                        x = bits[1].split('(')
+                        index = int(x[1].split(')')[0])
+                        logging.error(f'x {x[0]} index {index}')
+                        y = root[x[0]][index]
+                        logging.error(y)
+                        return y
+                    else:
+                        logging.error('path 13')
+                        return str(root[bits[1]])
+                else:
+                    logging.error('path 14')
+                    # the 2 is because there's always a leading slash, so the
+                    # first bit is an empty string
+                    temp = f'/{"/".join(ii for ii in bits[2:])}'
+                    return self._xx_lookup(temp, root[bits[1]])
+            else:
+                # a value has been set
+                logging.error('path 17')
+                return key
 
 
 def _to_str(value):
@@ -3924,6 +4359,10 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 logging.debug(
                     f'Using a FitsParser for local file {local}')
                 parser = FitsParser(local, blueprint, uri=uri)
+            elif '.h5' in local:
+                logging.debug(
+                    f'Using an HDF5Parser for local file {local}')
+                parser = HDF5Parser(blueprint, uri, local)
             else:
                 # explicitly ignore headers for txt and image files
                 logging.debug(f'Using a GenericParser for {local}')
@@ -4031,7 +4470,10 @@ def caom2gen():
     blueprints = {}
     if len(args.blueprint) == 1:
         # one blueprint to rule them all
-        blueprint = ObsBlueprint(module=module)
+        if '.h5' in args.lineage:
+            blueprint = Hdf5ObsBlueprint(module=module)
+        else:
+            blueprint = ObsBlueprint(module=module)
         blueprint.load_from_file(args.blueprint[0])
         for i, cardinality in enumerate(args.lineage):
             product_id, uri = _extract_ids(cardinality)
@@ -4052,7 +4494,10 @@ def caom2gen():
             product_id, uri = _extract_ids(cardinality)
             logging.debug('Loading blueprint for {} from {}'.format(
                 uri, args.blueprint[i]))
-            blueprint = ObsBlueprint(module=module)
+            if '.h5' in uri:
+                blueprint = Hdf5ObsBlueprint(module=module)
+            else:
+                blueprint = ObsBlueprint(module=module)
             blueprint.load_from_file(args.blueprint[i])
             blueprints[uri] = blueprint
 

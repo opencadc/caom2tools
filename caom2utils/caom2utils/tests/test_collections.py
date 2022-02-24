@@ -104,7 +104,8 @@ def test_differences(directory):
     prod_id = [p.product_id for p in expected.planes.values()][0]
     product_id = f'--productID {prod_id}'
     collection_id = expected.collection
-    data_files = _get_files(['header', 'png', 'gif', 'cat', 'fits'], directory)
+    data_files = _get_files(
+        ['header', 'png', 'gif', 'cat', 'fits', 'h5'], directory)
     assert data_files
 
     file_meta = _get_uris(collection_id, data_files, expected)
@@ -230,6 +231,9 @@ def _get_cardinality(directory):
     elif 'apass/catalog' in directory:
         return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' \
                'Examples/DAO/dao_c122_2016_012725.fits'
+    elif 'taos_' in directory:
+        return '--lineage star04239531/' \
+               'cadc:TAOSII/taos2_20220201T201317Z_star04239531.h5'
     else:
         return ''
 
@@ -341,6 +345,7 @@ def _compare_observations(expected, actual, output_dir):
         msg = 'Differences found observation {} in {}\n{}'.\
             format(expected.observation_id,
                    output_dir, '\n'.join([r for r in result]))
+        _write_observation(actual)
         raise AssertionError(msg)
     else:
         logging.info('Observation {} in {} match'.format(
@@ -355,5 +360,5 @@ def _read_observation(fname):
 
 def _write_observation(obs):
     writer = ObservationWriter(True, False, 'caom2',
-                               'http://www.opencadc.org/caom2/xml/v2.3')
+                               'http://www.opencadc.org/caom2/xml/v2.4')
     writer.write(obs, './x.xml')
