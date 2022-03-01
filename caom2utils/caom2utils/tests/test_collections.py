@@ -342,9 +342,9 @@ def _compare_observations(expected, actual, output_dir):
 
     result = get_differences(expected, actual, 'Observation')
     if result:
-        msg = 'Differences found observation {} in {}\n{}'.\
-            format(expected.observation_id,
-                   output_dir, '\n'.join([r for r in result]))
+        tmp = '\n'.join([r for r in result])
+        msg = f'Differences found observation {expected.observation_id} in ' \
+              f'{output_dir}\n{tmp}'
         _write_observation(actual)
         raise AssertionError(msg)
     else:

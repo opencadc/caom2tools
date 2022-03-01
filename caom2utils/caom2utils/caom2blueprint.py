@@ -1450,7 +1450,8 @@ class ObsBlueprint:
     @staticmethod
     def is_function(value):
         return (not ObsBlueprint.needs_lookup(value) and isinstance(value, str)
-                and isinstance(value, str) and '(' in value and ')' in value)
+                and isinstance(value, str) and '()' in value)
+                # and isinstance(value, str) and '(' in value and ')' in value)
 
     @staticmethod
     def has_default_value(value):
@@ -1546,6 +1547,13 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         # using the tmp to make sure that the keywords are valid
         for key in tmp:
             self.set(key, tmp[key])
+
+        # rules so far:
+        # - lookup value starting with // means rooted at base of the hdf5 file
+        # - lookup value starting with / means rooted at the base of the
+        #   "find_roots_here" parameter for HDF5Parser
+        # - (integer) means return only the value with the index of "integer"
+        #   from a list
 
 
 class GenericParser:
@@ -1787,7 +1795,6 @@ class GenericParser:
         """
         # determine which of the possible values for parameter the user
         # is hoping for
-        parameter = None
         if 'uri' in value:
             parameter = self.uri
         elif 'header' in value and isinstance(self, FitsParser):
@@ -1796,8 +1803,9 @@ class GenericParser:
             parameter = {'uri': self.uri,
                          'header': self._headers[extension]}
         else:
-            parameter = {'uri': self.uri,
-                         'header': None}
+            # parameter = {'uri': self.uri,
+            #              'header': None}
+            parameter = {'base': self._file}
 
         result = ''
         execute = None
@@ -1941,22 +1949,10 @@ class BlueprintParser(GenericParser):
         chunk.meta_producer = self._get_from_list(
             'Chunk.metaProducer', index=0, current=chunk.meta_producer)
 
-        # NOTE: astropy.wcs does not distinguished between WCS axes and
-        # data array axes. naxis in astropy.wcs represents in fact the
-        # number of WCS axes, whereas chunk.axis represents the naxis
-        # of the data array. Solution is to determine it directly from
-        # the header
-        # if 'ZNAXIS' in header:
-        #     chunk.naxis = _to_int(header['ZNAXIS'])
-        # elif 'NAXIS' in header:
-        #     chunk.naxis = _to_int(header['NAXIS'])
-        # else:
-        #     chunk.naxis = self._get_from_list('Chunk.naxis', 0,
-        #                                       wcs_parser.wcs.wcs.naxis)
         self._get_chunk_naxis(chunk, index)
         if self.blueprint._pos_axes_configed:
             self._wcs_parser.augment_position(chunk)
-            logging.error(chunk.position)
+            # logging.error(chunk.position)
             if chunk.position is None:
                 self._try_position_with_blueprint(chunk, index)
         if chunk.position:
@@ -2215,10 +2211,10 @@ class BlueprintParser(GenericParser):
 
         elif (keys is not None) and (keys != ''):
             value = keys
-            logging.error(f'here 2 {value}???')
+            # logging.error(f'here 2 {value}???')
         elif current:
             value = current
-            logging.error(f'here 3 {value}???')
+            # logging.error(f'here 3 {value}???')
 
         self.logger.debug(f'{lookup}: value is {value}')
         return value
@@ -3383,9 +3379,10 @@ class HDF5Parser(BlueprintParser):
     def __init__(
         self, obs_blueprint, uri, local_f_name, find_roots_here='/sitedata'
     ):
-        super().__init__(obs_blueprint, uri)
         import h5py
         self._file = h5py.File(local_f_name, 'r')
+        logging.error(type(self._file))
+        super().__init__(obs_blueprint, uri)
         self._wcs_parser = None
         self._roots = []
         self.apply_blueprint()
@@ -3402,29 +3399,38 @@ class HDF5Parser(BlueprintParser):
             self._set_roots(x, root)
 
     def augment_artifact(self, artifact, index=0):
-        for root in self._roots:
-            self._wcs_parser = Hdf5WcsParser(root, self.blueprint)
-            super().augment_artifact(artifact, index)
+        for i, root in enumerate(self._roots):
+            logging.error(f'root {root.name}')
+            self._wcs_parser = Hdf5WcsParser(root, self.blueprint, self._file)
+            super().augment_artifact(artifact, i)
 
     def _content_lookup(self, key, extension=None):
         bits = key.split('/')
         if isinstance(extension, int):
             extension = self._roots[extension]
 
-        logging.error(f'key {key} root.name {extension.name} bits {bits}')
+        # logging.error(f'key {key} root.name {extension.name} bits {bits}')
 
         if isinstance(key, list):
             return None
         if len(bits) == 2:
-            logging.error('path 1')
+            # logging.error('path 1')
             if '(' in bits[1]:
-                logging.error('path 2')
+                # logging.error('path 2')
                 x = bits[1].split('(')
-                index = int(x[1].split(')')[0])
-                logging.error(f'x {x} index {index}')
-                return extension[x[0]][index]
+                if ',' in x[1]:
+                    logging.error('path 100')
+                    a = x[1].split(')')[0].split(',')
+                    if len(a) > 2:
+                        raise NotImplementedError
+                    y = extension[x[0]][int(a[0])][int(a[1])]
+                    return y
+                else:
+                    index = int(x[1].split(')')[0])
+                    # logging.error(f'x {x} index {index}')
+                    return extension[x[0]][index]
             else:
-                logging.error('path 3')
+                # logging.error('path 3')
                 return extension[bits[1]]
         else:
             # the 2 is because there's always a leading slash, so the
@@ -3776,7 +3782,7 @@ class WcsParser:
     def _get_spatial_axis(self, xindex, yindex):
         """Assemble the bits to make the axis parameter needed for
         SpatialWCS construction."""
-        logging.error(f'xindex {xindex} yindex {yindex}')
+        # logging.error(f'xindex {xindex} yindex {yindex}')
         aug_dimension = self._get_dimension(xindex, yindex)
 
         aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
@@ -3812,10 +3818,13 @@ class WcsParser:
         :param value:
         :return:
         """
+        import numpy
         if isinstance(value, float) and math.isnan(value):
             return None
         elif not str(value):
             return None  # empty string
+        elif isinstance(value, numpy.bytes_):
+            return value.decode('utf-8')
         else:
             return value
 
@@ -3869,7 +3878,7 @@ class FitsWcsParser(WcsParser):
 
 class Hdf5WcsParser(WcsParser):
 
-    def __init__(self, root, blueprint):
+    def __init__(self, root, blueprint, base):
         """
         :param root: h5py.h5p.Dataset or h5py.h5p.Group
         :param blueprint: ObsBlueprint
@@ -3882,9 +3891,10 @@ class Hdf5WcsParser(WcsParser):
             'time': [0, False],
             'energy': [0, False],
             'polarization': [0, False],
-            'obs': [0, False],
+            'observable': [0, False],
             'custom': [0, False],
         }
+        self._base = base
         self._set_wcs(root, blueprint)
 
     @property
@@ -3908,17 +3918,11 @@ class Hdf5WcsParser(WcsParser):
         elif 'STOKES' in keywords:
             result = self._axes['polarization'][0]
         elif 'FLUX' in keywords:
-            result = self._axes['obs'][0]
+            result = self._axes['observable'][0]
         return result
 
     def _get_axis_length(self, for_axis):
-        logging.error(f'{for_axis} {self._wcs.array_shape}')
-        # this is fucking broken, just trying to figure out what the indicees
-        # should really be right now
-        # index = 1
-        # if for_axis == 2:
-        #     index = 0
-        # return self._wcs.array_shape[index]
+        # logging.error(f'{for_axis} {self._wcs.array_shape}')
         return self._wcs.array_shape[for_axis-1]
 
     def _set_wcs(self, root, blueprint):
@@ -3942,8 +3946,8 @@ class Hdf5WcsParser(WcsParser):
             self._axes['polarization'][0] = count
             count += 1
         if blueprint._obs_axis_configed:
-            self._axes['obs'][1] = True
-            self._axes['obs'][0] = count
+            self._axes['observable'][1] = True
+            self._axes['observable'][0] = count
             count += 1
         if blueprint._custom_axis_configed:
             self._axes['custom'][1] = True
@@ -3952,10 +3956,10 @@ class Hdf5WcsParser(WcsParser):
 
         self._wcs = WCS(naxis=count)
         z = [
-            _to_str(self._xx_lookup(
+            self._sanitize(self._xx_lookup(
                 blueprint._get('Chunk.position.axis.axis1.ctype'), root
             )) if self._axes['ra'][1] else None,
-            _to_str(self._xx_lookup(
+            self._sanitize(self._xx_lookup(
                 blueprint._get('Chunk.position.axis.axis2.ctype'), root
             )) if self._axes['dec'][1] else None,
             self._xx_lookup(
@@ -3969,13 +3973,37 @@ class Hdf5WcsParser(WcsParser):
             ) if self._axes['polarization'][1] else None,
             self._xx_lookup(
                 blueprint._get('Chunk.observable.axis.axis.ctype'), root
-            ) if self._axes['obs'][1] else None,
+            ) if self._axes['observable'][1] else None,
             self._xx_lookup(
                 blueprint._get('Chunk.custom.axis.axis.ctype'), root
             ) if self._axes['custom'][1] else None,
         ]
-
         self._wcs.wcs.ctype = z[:count]
+        z = [
+            self._sanitize(self._xx_lookup(
+                blueprint._get('Chunk.position.axis.axis1.cunit'), root
+            )) if self._axes['ra'][1] else None,
+            self._sanitize(self._xx_lookup(
+                blueprint._get('Chunk.position.axis.axis2.cunit'), root
+            )) if self._axes['dec'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.time.axis.axis.cunit'), root
+            ) if self._axes['time'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.energy.axis.axis.cunit'), root
+            ) if self._axes['energy'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.polarization.axis.axis.cunit'), root
+            ) if self._axes['polarization'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.observable.axis.axis.cunit'), root
+            ) if self._axes['observable'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.custom.axis.axis.cunit'), root
+            ) if self._axes['custom'][1] else None,
+        ]
+        self._wcs.wcs.cunit = z[:count]
+
         z = [
             self._xx_lookup(
                 blueprint._get(
@@ -3996,7 +4024,7 @@ class Hdf5WcsParser(WcsParser):
             ) if self._axes['polarization'][1] else 0,
             self._xx_lookup(
                 blueprint._get('Chunk.observable.dependent.bin'), root
-            ) if self._axes['obs'][1] else 0,
+            ) if self._axes['observable'][1] else 0,
             self._xx_lookup(
                 blueprint._get('Chunk.custom.axis.function.naxis'), root
             ) if self._axes['custom'][1] else 0,
@@ -4023,19 +4051,93 @@ class Hdf5WcsParser(WcsParser):
             ) if self._axes['polarization'][1] else None,
             self._xx_lookup(
                 blueprint._get('Chunk.observable.axis.function.refCoord.pix'), root
-            ) if self._axes['obs'][1] else None,
+            ) if self._axes['observable'][1] else None,
             self._xx_lookup(
                 blueprint._get('Chunk.custom.axis.function.refCoord.pix'), root
             ) if self._axes['custom'][1] else None,
         ]
         self._wcs.wcs.crpix = z[:count]
 
+        z = [
+            self._xx_lookup(
+                blueprint._get(
+                    'Chunk.position.axis.function.refCoord.coord1.val'), root
+            ) if self._axes['ra'][1] else None,
+            self._xx_lookup(
+                blueprint._get(
+                    'Chunk.position.axis.function.refCoord.coord2.val'), root
+            ) if self._axes['dec'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.time.axis.function.refCoord.val'), root
+            ) if self._axes['time'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.energy.axis.function.refCoord.val'), root
+            ) if self._axes['energy'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.polarization.axis.function.refCoord.val'), root
+            ) if self._axes['polarization'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.observable.axis.function.refCoord.val'), root
+            ) if self._axes['observable'][1] else None,
+            self._xx_lookup(
+                blueprint._get('Chunk.custom.axis.function.refCoord.val'), root
+            ) if self._axes['custom'][1] else None,
+        ]
+        self._wcs.wcs.crval = z[:count]
+
+        # row first
+        z = [
+            [
+                self._xx_lookup(
+                    blueprint._get(
+                        'Chunk.position.axis.function.cd11'), root
+                ) if self._axes['ra'][1] else 0.0,
+                self._xx_lookup(
+                    blueprint._get(
+                        'Chunk.position.axis.function.cd12'), root
+                ) if self._axes['dec'][1] else 0.0,
+            ],
+            [
+                self._xx_lookup(
+                    blueprint._get(
+                        'Chunk.position.axis.function.cd21'), root
+                ) if self._axes['ra'][1] else 0.0,
+                self._xx_lookup(
+                    blueprint._get(
+                        'Chunk.position.axis.function.cd22'), root
+                ) if self._axes['dec'][1] else 0.0,
+            ],
+        ]
+        #     self._xx_lookup(
+        #         blueprint._get('Chunk.time.axis.function.cd33'), root
+        #     ) if self._axes['time'][1] else None,
+        #     self._xx_lookup(
+        #         blueprint._get('Chunk.energy.axis.function.cd44'), root
+        #     ) if self._axes['energy'][1] else None,
+        #     self._xx_lookup(
+        #         blueprint._get('Chunk.polarization.axis.function.cd55'), root
+        #     ) if self._axes['polarization'][1] else None,
+        #     self._xx_lookup(
+        #         blueprint._get('Chunk.observable.axis.function.cd66'), root
+        #     ) if self._axes['observable'][1] else None,
+        #     self._xx_lookup(
+        #         blueprint._get('Chunk.custom.axis.function.cd77'), root
+        #     ) if self._axes['custom'][1] else None,
+        # ]
+        self._wcs.wcs.cd = z[:count][:count]
+        self._wcs.wcs.equinox = self._xx_lookup(
+            blueprint._get('Chunk.position.equinox'), self._base
+        ) if self._axes['ra'][1] else None
+
     def _xx_lookup(self, key, root):
-        logging.error(f'key {key} root name {root.name}')
+        # logging.error(f'key {key} root name {root.name}')
         if key is None:
             raise NotImplementedError
+        if key.startswith('//'):
+            key = key.replace('//', '/')
+            root = self._base
         if isinstance(key, tuple):
-            logging.error('path 10')
+            # logging.error('path 10')
             result = None
             for ii in key[0]:
                 result = self._xx_lookup(ii, root)
@@ -4045,32 +4147,67 @@ class Hdf5WcsParser(WcsParser):
             return result
         else:
             if key.startswith('/'):
-                logging.error('path 15')
+                # logging.error('path 15')
                 bits = key.split('/')
-                logging.error(f'key {key} root.name {root.name} bits {bits}')
+                # logging.error(f'key {key} root.name {root.name} bits {bits}')
                 if len(bits) == 2:
-                    logging.error('path 11')
+                    # logging.error('path 11')
                     if '(' in bits[1]:
-                        logging.error('path 12')
+                        # logging.error('path 12')
                         x = bits[1].split('(')
-                        index = int(x[1].split(')')[0])
-                        logging.error(f'x {x[0]} index {index}')
-                        y = root[x[0]][index]
-                        logging.error(y)
-                        return y
+                        if ',' in x[1]:
+                            # logging.error('path 19')
+                            a = x[1].split(')')[0].split(',')
+                            if len(a) > 2:
+                                raise NotImplementedError
+                            y = root[x[0]][int(a[0])][int(a[1])]
+                            return y
+                        else:
+                            # logging.error(f'path 20 {x}')
+                            index = int(x[1].split(')')[0])
+                            # logging.error(f'x {x[0]} index {index}')
+                            y = root[x[0]][index]
+                            # logging.error(y)
+                            return y
                     else:
-                        logging.error('path 13')
-                        return str(root[bits[1]])
+                        # logging.error('path 13')
+                        return root[bits[1]]
                 else:
-                    logging.error('path 14')
                     # the 2 is because there's always a leading slash, so the
                     # first bit is an empty string
                     temp = f'/{"/".join(ii for ii in bits[2:])}'
+                    # logging.error(f'path 14 y{temp}y x{bits}x')
                     return self._xx_lookup(temp, root[bits[1]])
             else:
                 # a value has been set
-                logging.error('path 17')
+                # logging.error(f'path 17 {key}')
                 return key
+
+    def _get_z(self, blueprint, root, default):
+        z = [
+            self._xx_lookup(
+                blueprint._get('Chunk.position.axis.axis1.cunit'), root
+            ) if self._axes['ra'][1] else default,
+            self._xx_lookup(
+                blueprint._get('Chunk.position.axis.axis2.cunit'), root
+            ) if self._axes['dec'][1] else default,
+            self._xx_lookup(
+                blueprint._get('Chunk.time.axis.axis.cunit'), root
+            ) if self._axes['time'][1] else default,
+            self._xx_lookup(
+                blueprint._get('Chunk.energy.axis.axis.cunit'), root
+            ) if self._axes['energy'][1] else default,
+            self._xx_lookup(
+                blueprint._get('Chunk.polarization.axis.axis.cunit'), root
+            ) if self._axes['polarization'][1] else default,
+            self._xx_lookup(
+                blueprint._get('Chunk.observable.axis.axis.cunit'), root
+            ) if self._axes['observable'][1] else default,
+            self._xx_lookup(
+                blueprint._get('Chunk.custom.axis.axis.cunit'), root
+            ) if self._axes['custom'][1] else default,
+        ]
+        return z
 
 
 def _to_str(value):
@@ -4470,7 +4607,10 @@ def caom2gen():
     blueprints = {}
     if len(args.blueprint) == 1:
         # one blueprint to rule them all
-        if '.h5' in args.lineage:
+        # logging.error(f'one blueprint {args.lineage} {type(args.lineage)}')
+        temp = ' '.join(ii for ii in args.lineage)
+        if '.h5' in temp:
+            # logging.error('picking the correct one')
             blueprint = Hdf5ObsBlueprint(module=module)
         else:
             blueprint = ObsBlueprint(module=module)
@@ -4492,7 +4632,7 @@ def caom2gen():
 
         for i, cardinality in enumerate(args.lineage):
             product_id, uri = _extract_ids(cardinality)
-            logging.debug('Loading blueprint for {} from {}'.format(
+            logging.error('Loading blueprint for {} from {}'.format(
                 uri, args.blueprint[i]))
             if '.h5' in uri:
                 blueprint = Hdf5ObsBlueprint(module=module)
