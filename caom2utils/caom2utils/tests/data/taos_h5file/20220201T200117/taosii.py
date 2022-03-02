@@ -18,7 +18,7 @@ def _get_target_position(base):
     try:
         ra = b['header']['object']['obj_ra']
         dec = b['header']['object']['obj_dec']
-        logging.error(f'{ra} {dec}')
+        # logging.error(f'{ra} {dec}')
         result = SkyCoord(
             ra.decode('utf-8'),
             dec.decode('utf-8'),
@@ -32,3 +32,9 @@ def _get_target_position(base):
         logging.error(e)
         logging.error(traceback.format_exc())
         raise e
+
+
+def get_time_axis_range_end(base):
+    b = base.get('base')
+    x = b['header']['timeseries']['numepochs']
+    return x - 1

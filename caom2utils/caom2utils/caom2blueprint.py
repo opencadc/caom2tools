@@ -1554,6 +1554,9 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         #   "find_roots_here" parameter for HDF5Parser
         # - (integer) means return only the value with the index of "integer"
         #   from a list
+        # - (integer:integer) means return only the value with the index of
+        #   "integer" from a list, followed by "integer" from the list in the
+        #   list
 
 
 class GenericParser:
@@ -1618,8 +1621,6 @@ class GenericParser:
             'Observation.metaRelease', index=0,
             current=observation.meta_release
         )
-        logging.error(f'{temp}!!!!!!!!!!!!!')
-        logging.error(f'{self._get_from_list}!!!!!!!!!!!!!')
         observation.meta_release = self._get_datetime(self._get_from_list(
             'Observation.metaRelease', index=0,
             current=observation.meta_release))
@@ -2155,6 +2156,8 @@ class BlueprintParser(GenericParser):
         value = None
         try:
             keys = self.blueprint._get(lookup)
+            if 'equinox' in lookup:
+                logging.error(f'path 1007 {keys}')
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(
@@ -3381,12 +3384,13 @@ class HDF5Parser(BlueprintParser):
     ):
         import h5py
         self._file = h5py.File(local_f_name, 'r')
-        logging.error(type(self._file))
+        # logging.error(type(self._file))
         super().__init__(obs_blueprint, uri)
         self._wcs_parser = None
         self._roots = []
         self.apply_blueprint()
         self._set_roots(find_roots_here, self._file)
+        # logging.error(self._blueprint)
 
     def _set_roots(self, root_name, root):
         bits = root_name.split('/')
@@ -3400,12 +3404,11 @@ class HDF5Parser(BlueprintParser):
 
     def augment_artifact(self, artifact, index=0):
         for i, root in enumerate(self._roots):
-            logging.error(f'root {root.name}')
+            # logging.error(f'root {root.name}')
             self._wcs_parser = Hdf5WcsParser(root, self.blueprint, self._file)
             super().augment_artifact(artifact, i)
 
     def _content_lookup(self, key, extension=None):
-        bits = key.split('/')
         if isinstance(extension, int):
             extension = self._roots[extension]
 
@@ -3413,14 +3416,18 @@ class HDF5Parser(BlueprintParser):
 
         if isinstance(key, list):
             return None
+        if key.startswith('//'):
+            key = key.replace('//', '/')
+            extension = self._file
+        bits = key.split('/')
         if len(bits) == 2:
             # logging.error('path 1')
             if '(' in bits[1]:
                 # logging.error('path 2')
                 x = bits[1].split('(')
-                if ',' in x[1]:
-                    logging.error('path 100')
-                    a = x[1].split(')')[0].split(',')
+                if ':' in x[1]:
+                    # logging.error('path 100')
+                    a = x[1].split(')')[0].split(':')
                     if len(a) > 2:
                         raise NotImplementedError
                     y = extension[x[0]][int(a[0])][int(a[1])]
@@ -3436,7 +3443,7 @@ class HDF5Parser(BlueprintParser):
             # the 2 is because there's always a leading slash, so the
             # first bit is an empty string
             temp = f'/{"/".join(ii for ii in bits[2:])}'
-            logging.error(f'path 4 {temp} {bits[2:]}')
+            # logging.error(f'path 4 {temp} {bits[2:]}')
             return self._content_lookup(temp, extension[bits[1]])
 
     def _get_chunk_naxis(self, chunk, index):
@@ -4129,13 +4136,20 @@ class Hdf5WcsParser(WcsParser):
             blueprint._get('Chunk.position.equinox'), self._base
         ) if self._axes['ra'][1] else None
 
+        if blueprint._time_axis_configed:
+            self._wcs.wcs.mjdstart = self._xx_lookup(
+                blueprint._get('Chunk.time.axis.range.start.val')
+            )
+            self._wcs.wcs.mjdend = self._xx_lookup(
+                blueprint._get('Chunk.time.axis.range.end.val')
+            )
+
+        # logging.error(f'{self._wcs.wcs}')
+
     def _xx_lookup(self, key, root):
         # logging.error(f'key {key} root name {root.name}')
         if key is None:
             raise NotImplementedError
-        if key.startswith('//'):
-            key = key.replace('//', '/')
-            root = self._base
         if isinstance(key, tuple):
             # logging.error('path 10')
             result = None
@@ -4146,6 +4160,9 @@ class Hdf5WcsParser(WcsParser):
                 result = key[1]
             return result
         else:
+            if key.startswith('//'):
+                key = key.replace('//', '/')
+                root = self._base
             if key.startswith('/'):
                 # logging.error('path 15')
                 bits = key.split('/')
@@ -4155,9 +4172,9 @@ class Hdf5WcsParser(WcsParser):
                     if '(' in bits[1]:
                         # logging.error('path 12')
                         x = bits[1].split('(')
-                        if ',' in x[1]:
+                        if ':' in x[1]:
                             # logging.error('path 19')
-                            a = x[1].split(')')[0].split(',')
+                            a = x[1].split(')')[0].split(':')
                             if len(a) > 2:
                                 raise NotImplementedError
                             y = root[x[0]][int(a[0])][int(a[1])]
