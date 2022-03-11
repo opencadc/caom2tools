@@ -72,6 +72,8 @@ from astropy.wcs import WCS as awcs
 from cadcutils import net
 from cadcdata import FileInfo
 from caom2utils import FitsParser, FitsWcsParser, main_app, update_blueprint
+from caom2utils import HDF5Parser, Hdf5WcsParser, BlueprintParser
+from caom2utils import Hdf5ObsBlueprint
 from caom2utils import ObsBlueprint, GenericParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser, augment
 from caom2utils.legacy import load_config
@@ -156,6 +158,35 @@ def test_augment_energy():
                            ObservationReader()._get_spectral_wcs, 'energy')
     result = get_differences(ex, energy)
     assert result is None, repr(energy)
+
+
+def test_hdf5_wcs_parser_set_wcs():
+    test_position_bp = Hdf5ObsBlueprint(position_axes=(1, 2))
+    test_energy_bp = Hdf5ObsBlueprint(energy_axis=1)
+    test_time_bp = Hdf5ObsBlueprint(time_axis=1)
+    test_polarization_bp = Hdf5ObsBlueprint(polarization_axis=1)
+    test_observable_bp = Hdf5ObsBlueprint(obs_axis=1)
+    test_custom_bp = Hdf5ObsBlueprint(custom_axis=1)
+    test_f_name = 'taos2_20220201T201317Z_star04239531.h5'
+    test_uri = f'cadc:TEST/{test_f_name}'
+    test_fqn = f'{TESTDATA_DIR}/taos_h5file/20220201T200117/{test_f_name}'
+    test_artifact = Artifact(test_uri, ProductType.SCIENCE, ReleaseType.DATA)
+
+    for bp in [
+        test_position_bp,
+        test_energy_bp,
+        test_time_bp,
+        test_polarization_bp,
+        test_observable_bp,
+        test_custom_bp,
+    ]:
+        test_subject = HDF5Parser(bp, test_uri, test_fqn)
+        assert test_subject is not None, 'expect a result'
+        test_subject.augment_artifact(test_artifact)
+        if bp == test_position_bp:
+            assert test_subject._wcs_parser._wcs.naxis == 2, 'wrong pos axis'
+        else:
+            assert test_subject._wcs_parser._wcs.naxis == 1, 'wrong axis count'
 
 
 def test_augment_failure():
@@ -1470,11 +1501,11 @@ def test_apply_blueprint_execute_external():
     test_generic_blueprint.set(
         'Observation.type', '_get_test_obs_type(parameters)')
 
-    # generic parser
-    test_generic_parser = GenericParser(test_generic_blueprint)
-    assert test_generic_parser is not None, \
-        'expect generic construction to complete'
-    assert test_generic_parser._get_from_list('Observation.type', index=0) \
+    # generic parser - function execution should have occurred, the return
+    # value is dependent on the parameters to the call
+    test_gp = GenericParser(test_generic_blueprint)
+    assert test_gp is not None, 'expect generic construction to complete'
+    assert test_gp._get_from_list('Observation.type', index=0) \
            == 'generic_parser_value', 'wrong generic plan value'
 
     # fits parser

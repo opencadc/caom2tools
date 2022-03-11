@@ -2,6 +2,16 @@ from astropy import units
 from astropy.coordinates import SkyCoord
 
 
+def get_exposure(base):
+    b = base.get('base')
+    mjdrunstart = b['header']['timeseries']['mjdrunstart']
+    mjdrunend = b['header']['timeseries']['mjdrunend']
+    result = 0.0
+    if mjdrunstart is not None and mjdrunend is not None:
+        result = mjdrunend - mjdrunstart
+    return result
+
+
 def get_target_position_cval1(base):
     ra, dec_ignore = _get_target_position(base)
     return ra
