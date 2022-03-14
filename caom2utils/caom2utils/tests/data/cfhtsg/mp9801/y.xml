@@ -32,7 +32,6 @@
         <caom2:name>MEGAPIPE</caom2:name>
         <caom2:version>2.0</caom2:version>
         <caom2:producer>CADC</caom2:producer>
-        <caom2:runID>None</caom2:runID>
         <caom2:reference>http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/megapipe/</caom2:reference>
         <caom2:lastExecuted>2018-03-14T16:36:50.000</caom2:lastExecuted>
         <caom2:keywords>

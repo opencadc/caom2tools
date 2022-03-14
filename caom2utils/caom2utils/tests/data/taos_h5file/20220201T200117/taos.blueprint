@@ -36,7 +36,6 @@ Chunk.time.axis.range.start.pix = 0
 Chunk.time.axis.range.start.val = [//header/timeseries/mjdrunstart]
 Chunk.time.axis.range.end.pix = get_time_axis_range_end()
 Chunk.time.axis.range.end.val = [//header/timeseries/mjdrunend]
-Chunk.time.axis.function.naxis = [//header/timeseries/numepochs]
 Chunk.time.axis.error.rnder = None
 Chunk.time.axis.error.syser = None
 Chunk.time.exposure = get_exposure()

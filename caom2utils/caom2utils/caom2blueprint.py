@@ -1561,6 +1561,9 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         #   "integer" from a list, followed by "integer" from the list in the
         #   list
 
+        # there are no sensible/known HDF5 defaults, so just try to make sure
+        # the blueprint executes with a lot of None values
+
     def configure_custom_axis(self, axis, override=True):
         """
         Set the expected FITS custom keywords by index in the blueprint
@@ -1578,7 +1581,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         if override:
             self.set('Chunk.custom.axis.axis.ctype', ([], None))
             self.set('Chunk.custom.axis.axis.cunit', ([], None))
-            self.set('Chunk.custom.axis.function.naxis', ([], None))
+            self.set('Chunk.custom.axis.function.naxis', ([], 1))
             self.set('Chunk.custom.axis.function.delta', ([], None))
             self.set('Chunk.custom.axis.function.refCoord.pix', ([], None))
             self.set('Chunk.custom.axis.function.refCoord.val', ([], None))
@@ -1600,17 +1603,15 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :param axes: The index expected for the position axes.
         :return:
         """
-        logging.error('called??????')
         if self._pos_axes_configed:
             self.logger.error(
                 'Attempt to configure already-configured position axes.')
             return
 
         if override:
-            logging.error('yes, no maybe?')
             self.set('Chunk.position.coordsys', ([], None))
             self.set('Chunk.position.equinox', ([], None))
-            self.set('Chunk.position.axis.axis1.ctype', ([], ''))
+            self.set('Chunk.position.axis.axis1.ctype', ([], None))
             self.set('Chunk.position.axis.axis1.cunit', ([], None))
             self.set('Chunk.position.axis.axis2.ctype', ([], None))
             self.set('Chunk.position.axis.axis2.cunit', ([], None))
@@ -1687,7 +1688,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
             self.set('Chunk.energy.axis.axis.cunit', ([], None))
             self.set('Chunk.energy.axis.error.syser', ([], None))
             self.set('Chunk.energy.axis.error.rnder', ([], None))
-            self.set('Chunk.energy.axis.function.naxis', ([], None))
+            self.set('Chunk.energy.axis.function.naxis', ([], 1))
             self.set('Chunk.energy.axis.function.delta', ([], None))
             self.set('Chunk.energy.axis.function.refCoord.pix', ([], None))
             self.set('Chunk.energy.axis.function.refCoord.val', ([], None))
@@ -1729,7 +1730,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
             # STOKES is the only value allowed for PolarizationWCS ctype.
             self.set('Chunk.polarization.axis.axis.ctype', ([], 'STOKES'))
             self.set('Chunk.polarization.axis.axis.cunit', ([], None))
-            self.set('Chunk.polarization.axis.function.naxis', ([], None))
+            self.set('Chunk.polarization.axis.function.naxis', ([], 1))
             self.set('Chunk.polarization.axis.function.delta', ([], None))
             self.set('Chunk.polarization.axis.function.refCoord.pix',
                      ([], None))
@@ -1796,7 +1797,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
             self.set('Chunk.time.axis.axis.cunit', ([], None))
             self.set('Chunk.time.axis.error.syser', ([], None))
             self.set('Chunk.time.axis.error.rnder', ([], None))
-            self.set('Chunk.time.axis.function.naxis', ([], None))
+            self.set('Chunk.time.axis.function.naxis', ([], 1))
             self.set('Chunk.time.axis.function.delta', ([], None))
             self.set('Chunk.time.axis.function.refCoord.pix', ([], None))
             self.set('Chunk.time.axis.function.refCoord.val', ([], None))
@@ -2004,7 +2005,6 @@ class GenericParser:
                 self.logger.debug(
                     f'{lookup}: using current value of {current!r}.')
                 value = current
-            logging.error(f'other value {value}')
             return value
         if (keywords and not ObsBlueprint.needs_lookup(keywords)
                 and not ObsBlueprint.is_function(keywords)):
@@ -2023,7 +2023,6 @@ class GenericParser:
             if isinstance(value, bool) or current is not None:
                 value = current
 
-        logging.error(f'value {value}')
         self.logger.debug(f'{lookup}: value is {value}')
         return value
 
@@ -2223,7 +2222,6 @@ class BlueprintParser(GenericParser):
         self._get_chunk_naxis(chunk, index)
         if self.blueprint._pos_axes_configed:
             self._wcs_parser.augment_position(chunk)
-            # logging.error(chunk.position)
             if chunk.position is None:
                 self._try_position_with_blueprint(chunk, index)
         if chunk.position:
@@ -2426,8 +2424,6 @@ class BlueprintParser(GenericParser):
         value = None
         try:
             keys = self.blueprint._get(lookup)
-            # if 'equinox' in lookup:
-            #     logging.error(f'path 1007 {keys}')
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(
@@ -2438,13 +2434,10 @@ class BlueprintParser(GenericParser):
                 value = current
             return value
 
-        # logging.error(f'here 1??? {isinstance(keys, tuple)} {type(keys)}')
-
         if ObsBlueprint.needs_lookup(keys):
             for ii in keys[0]:
                 try:
                     value = self._content_lookup(ii, index)
-                    # logging.error(value)
                     if value:
                         self.logger.debug(
                             f'{lookup}: assigned value {value} based on '
@@ -2487,10 +2480,8 @@ class BlueprintParser(GenericParser):
                 value = None
             else:
                 value = keys
-            # logging.error(f'here 2 {value}???')
         elif current:
             value = current
-            # logging.error(f'here 3 {value}???')
 
         self.logger.debug(f'{lookup}: value is {value}')
         return value
@@ -3617,18 +3608,15 @@ class HDF5Parser(BlueprintParser):
     ):
         import h5py
         self._file = h5py.File(local_f_name, 'r')
-        # logging.error(type(self._file))
         super().__init__(obs_blueprint, uri)
         self._wcs_parser = None
         self._roots = []
         self.apply_blueprint()
         self._set_roots(find_roots_here, self._file)
-        # logging.error(self._blueprint)
 
     def _set_roots(self, root_name, root):
         bits = root_name.split('/')
         if len(bits) == 2:
-            # logging.error(root[root_name].keys())
             for key in root[root_name].keys():
                 self._roots.append(root[root_name][key])
         else:
@@ -3637,15 +3625,12 @@ class HDF5Parser(BlueprintParser):
 
     def augment_artifact(self, artifact, index=0):
         for i, root in enumerate(self._roots):
-            # logging.error(f'root {root.name}')
             self._wcs_parser = Hdf5WcsParser(root, self.blueprint, self._file)
             super().augment_artifact(artifact, i)
 
     def _content_lookup(self, key, extension=None):
         if isinstance(extension, int):
             extension = self._roots[extension]
-
-        # logging.error(f'key {key} root.name {extension.name} bits {bits}')
 
         if isinstance(key, list):
             # TODO - document why this is the case
@@ -3655,12 +3640,9 @@ class HDF5Parser(BlueprintParser):
             extension = self._file
         bits = key.split('/')
         if len(bits) == 2:
-            # logging.error('path 1')
             if '(' in bits[1]:
-                # logging.error('path 2')
                 x = bits[1].split('(')
                 if ':' in x[1]:
-                    # logging.error('path 100')
                     a = x[1].split(')')[0].split(':')
                     if len(a) > 2:
                         raise NotImplementedError
@@ -3668,16 +3650,13 @@ class HDF5Parser(BlueprintParser):
                     return y
                 else:
                     index = int(x[1].split(')')[0])
-                    # logging.error(f'x {x} index {index}')
                     return extension[x[0]][index]
             else:
-                # logging.error('path 3')
                 return extension[bits[1]]
         else:
             # the 2 is because there's always a leading slash, so the
             # first bit is an empty string
             temp = f'/{"/".join(ii for ii in bits[2:])}'
-            # logging.error(f'path 4 {temp} {bits[2:]}')
             return self._content_lookup(temp, extension[bits[1]])
 
     def _get_chunk_naxis(self, chunk, index):
@@ -3849,10 +3828,9 @@ class WcsParser:
             delta = self.wcs.cd[time_axis_index][time_axis_index]
         else:
             delta = self.wcs.cdelt[time_axis_index]
-        if aug_ref_coord is not None:
-            aug_function = CoordFunction1D(
-                self._get_axis_length(time_axis_index + 1),
-                delta, aug_ref_coord)
+        axis_length = self._get_axis_length(time_axis_index + 1)
+        if aug_ref_coord is not None and axis_length is not None:
+            aug_function = CoordFunction1D(axis_length, delta, aug_ref_coord)
             naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
             if not chunk.time:
                 chunk.time = TemporalWCS(naxis)
@@ -3860,12 +3838,6 @@ class WcsParser:
                 chunk.time.axis = naxis
 
             self._finish_chunk_time(chunk)
-            # chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
-            # chunk.time.resolution = _to_float(self.header.get('TIMEDEL'))
-            # chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
-            # chunk.time.trefpos = self.header.get('TREFPOS', None)
-            # chunk.time.mjdref = self.header.get('MJDREF',
-            #                                     self.header.get('MJDDATE'))
         self.logger.debug('End TemporalWCS augmentation.')
 
     def augment_polarization(self, chunk):
@@ -3895,7 +3867,6 @@ class WcsParser:
             self._get_axis_length(polarization_axis_index + 1),
             delta,
             self._get_ref_coord(polarization_axis_index))
-        logging.error(naxis)
         if not chunk.polarization:
             chunk.polarization = PolarizationWCS(naxis)
         else:
@@ -3946,7 +3917,6 @@ class WcsParser:
         axis = None
         for i, elem in enumerate(self.wcs.ctype):
             elem = elem.split('-')[0]
-            logging.error(elem)
             if elem in keywords:
                 axis = i
                 break
@@ -3956,6 +3926,9 @@ class WcsParser:
                     axis = i
                     break
         return axis
+
+    def _get_axis_length(self, index):
+        raise NotImplementedError
 
     def _get_cd(self, x_index, y_index):
         """ returns cd info"""
@@ -4024,7 +3997,6 @@ class WcsParser:
     def _get_spatial_axis(self, xindex, yindex):
         """Assemble the bits to make the axis parameter needed for
         SpatialWCS construction."""
-        # logging.error(f'xindex {xindex} yindex {yindex}')
         aug_dimension = self._get_dimension(xindex, yindex)
 
         aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
@@ -4060,7 +4032,6 @@ class WcsParser:
         :param value:
         :return:
         """
-        logging.error(type(value))
         if value is None:
             return None
         elif isinstance(value, float) and math.isnan(value):
@@ -4182,13 +4153,12 @@ class Hdf5WcsParser(WcsParser):
         return result
 
     def _get_axis_length(self, for_axis):
-        # logging.error(f'{for_axis} {self._wcs.array_shape}')
         if self._wcs.array_shape is None:
             # TODO I think this is wrong
             return 1
         else:
             if len(self._wcs.array_shape) == 1:
-                result = self._wcs.array_shape
+                result = self._wcs.array_shape[0]
             else:
                 result = self._wcs.array_shape[for_axis-1]
             return _to_int(result)
@@ -4197,6 +4167,14 @@ class Hdf5WcsParser(WcsParser):
         self._wcs = WCS(naxis=blueprint.get_configed_axes_count())
         array_shape = [0] * blueprint.get_configed_axes_count()
         count = 0
+
+        def assign_sanitize(assignee, index, key, sanitize=True):
+            x = self._attribute_lookup(blueprint._get(key), root)
+            if sanitize:
+                x = self._sanitize(x)
+            if x is not None:
+                assignee[index] = x
+
         if blueprint._pos_axes_configed:
             self._axes['ra'][1] = True
             self._axes['dec'][1] = True
@@ -4205,25 +4183,14 @@ class Hdf5WcsParser(WcsParser):
             temp = [0] * blueprint.get_configed_axes_count()
             cd = [temp.copy()
                   for ii in range(blueprint.get_configed_axes_count())]
-            logging.error(self._attribute_lookup(
-                blueprint._get('Chunk.position.axis.axis1.ctype'), root
-            ))
-            self._wcs.wcs.ctype[count] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.position.axis.axis1.ctype'), root
-            ))
-            self._wcs.wcs.ctype[count + 1] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.position.axis.axis2.ctype'), root
-            ))
-            self._wcs.wcs.cunit[count] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.position.axis.axis1.cunit'), root
-            ))
-            self._wcs.wcs.cunit[count + 1] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.position.axis.axis2.cunit'), root
-            ))
+            assign_sanitize(self._wcs.wcs.ctype, count,
+                            'Chunk.position.axis.axis1.ctype')
+            assign_sanitize(self._wcs.wcs.ctype, count + 1,
+                            'Chunk.position.axis.axis2.ctype')
+            assign_sanitize(self._wcs.wcs.cunit, count,
+                            'Chunk.position.axis.axis1.cunit')
+            assign_sanitize(self._wcs.wcs.cunit, count + 1,
+                            'Chunk.position.axis.axis2.cunit')
             array_shape[count] = self._attribute_lookup(
                 blueprint._get(
                     'Chunk.position.axis.function.dimension.naxis1'), root
@@ -4232,22 +4199,14 @@ class Hdf5WcsParser(WcsParser):
                 blueprint._get(
                     'Chunk.position.axis.function.dimension.naxis2'), root
             )
-            self._wcs.wcs.crpix[count] = self._attribute_lookup(
-                blueprint._get(
-                    'Chunk.position.axis.function.refCoord.coord1.pix'), root
-            )
-            self._wcs.wcs.crpix[count + 1] = self._attribute_lookup(
-                blueprint._get(
-                    'Chunk.position.axis.function.refCoord.coord2.pix'), root
-            )
-            self._wcs.wcs.crval[count] = self._attribute_lookup(
-                blueprint._get(
-                    'Chunk.position.axis.function.refCoord.coord1.val'), root
-            )
-            self._wcs.wcs.crval[count + 1] = self._attribute_lookup(
-                blueprint._get(
-                    'Chunk.position.axis.function.refCoord.coord2.val'), root
-            )
+            assign_sanitize(self._wcs.wcs.crpix, count,
+                            'Chunk.position.axis.function.refCoord.coord1.pix')
+            assign_sanitize(self._wcs.wcs.crpix, count + 1,
+                            'Chunk.position.axis.function.refCoord.coord2.pix')
+            assign_sanitize(self._wcs.wcs.crval, count,
+                            'Chunk.position.axis.function.refCoord.coord1.val')
+            assign_sanitize(self._wcs.wcs.crval, count + 1,
+                            'Chunk.position.axis.function.refCoord.coord2.val')
             cd[count][0] = self._attribute_lookup(
                 blueprint._get('Chunk.position.axis.function.cd11'), root
             )
@@ -4260,145 +4219,106 @@ class Hdf5WcsParser(WcsParser):
             cd[count + 1][1] = self._attribute_lookup(
                 blueprint._get('Chunk.position.axis.function.cd22'), root
             )
-            self._wcs.wcs.crder[count] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.position.axis.error1.rnder'), root
-                ))
-            self._wcs.wcs.crder[count + 1] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.position.axis.error2.rnder'), root
-                ))
-            self._wcs.wcs.csyer[count] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.position.axis.error1.syser'), root
-                ))
-            self._wcs.wcs.csyer[count + 1] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.position.axis.error2.syser'), root
-                ))
+            assign_sanitize(self._wcs.wcs.crder, count,
+                            'Chunk.position.axis.error1.rnder')
+            assign_sanitize(self._wcs.wcs.crder, count + 1,
+                            'Chunk.position.axis.error2.rnder')
+            assign_sanitize(self._wcs.wcs.csyer, count,
+                            'Chunk.position.axis.error1.syser')
+            assign_sanitize(self._wcs.wcs.csyer, count + 1,
+                            'Chunk.position.axis.error2.syser')
             self._finish_position(blueprint)
             self._wcs.wcs.cd = cd
             count += 2
         if blueprint._time_axis_configed:
             self._axes['time'][1] = True
             self._axes['time'][0] = count
-            self._wcs.wcs.ctype[count] = self._attribute_lookup(
-                    blueprint._get('Chunk.time.axis.axis.ctype'), root
-            )
-            self._wcs.wcs.cunit[count] = self._attribute_lookup(
-                blueprint._get('Chunk.time.axis.axis.cunit'), root
-            )
+            assign_sanitize(self._wcs.wcs.ctype, count,
+                            'Chunk.time.axis.axis.ctype', False)
+            assign_sanitize(self._wcs.wcs.cunit, count,
+                            'Chunk.time.axis.axis.cunit', False)
             array_shape[count] = self._attribute_lookup(
                 blueprint._get('Chunk.time.axis.function.naxis'), root
             )
-            self._wcs.wcs.crpix[count] = self._attribute_lookup(
-                blueprint._get('Chunk.time.axis.function.refCoord.pix'), root
-            )
-            self._wcs.wcs.crval[count] = self._attribute_lookup(
-                blueprint._get('Chunk.time.axis.function.refCoord.val'), root
-            )
-            self._wcs.wcs.crder[count] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.time.axis.error.rnder'), root
-            ))
-            self._wcs.wcs.csyer[count] = self._sanitize(
-                self._attribute_lookup(
-                  blueprint._get('Chunk.time.axis.error.syser'), root
-            ))
+            assign_sanitize(self._wcs.wcs.crpix, count,
+                            'Chunk.time.axis.function.refCoord.pix', False)
+            assign_sanitize(self._wcs.wcs.crval, count,
+                            'Chunk.time.axis.function.refCoord.val', False)
+            assign_sanitize(self._wcs.wcs.crder, count,
+                            'Chunk.time.axis.error.rnder')
+            assign_sanitize(self._wcs.wcs.csyer, count,
+                            'Chunk.time.axis.error.syser')
             self._finish_time(blueprint)
             count += 1
         if blueprint._energy_axis_configed:
             self._axes['energy'][1] = True
             self._axes['energy'][0] = count
-            x = self._attribute_lookup(
-                blueprint._get('Chunk.energy.axis.axis.ctype'), root
-            )
-            self._wcs.wcs.ctype[count] = x
-            self._wcs.wcs.cunit[count] = self._attribute_lookup(
-                blueprint._get('Chunk.energy.axis.axis.cunit'), root
-            )
+            assign_sanitize(self._wcs.wcs.ctype, count,
+                            'Chunk.energy.axis.axis.ctype', False)
+            assign_sanitize(self._wcs.wcs.cunit, count,
+                            'Chunk.energy.axis.axis.cunit', False)
             array_shape[count] = self._attribute_lookup(
                 blueprint._get('Chunk.energy.axis.function.naxis'), root
             )
-            self._wcs.wcs.crpix[count] = self._attribute_lookup(
-                blueprint._get('Chunk.energy.axis.function.refCoord.pix'), root
-            )
-            self._wcs.wcs.crval[count] = self._attribute_lookup(
-                blueprint._get('Chunk.energy.axis.function.refCoord.val'), root
-            )
-            self._wcs.wcs.crder[count] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.energy.axis.error.rnder'), root
-            ))
-            self._wcs.wcs.csyer[count] = self._sanitize(
-                self._attribute_lookup(
-                    blueprint._get('Chunk.energy.axis.error.syser'), root
-            ))
+            assign_sanitize(self._wcs.wcs.crpix, count,
+                            'Chunk.energy.axis.function.refCoord.pix', False)
+            assign_sanitize(self._wcs.wcs.crval, count,
+                            'Chunk.energy.axis.function.refCoord.val', False)
+            assign_sanitize(self._wcs.wcs.crder, count,
+                            'Chunk.energy.axis.error.rnder')
+            assign_sanitize(self._wcs.wcs.csyer, count,
+                            'Chunk.energy.axis.error.syser')
             self._finish_energy(blueprint)
             count += 1
         if blueprint._polarization_axis_configed:
             self._axes['polarization'][1] = True
             self._axes['polarization'][0] = count
-            self._wcs.wcs.ctype[count] = self._attribute_lookup(
-                blueprint._get('Chunk.polarization.axis.axis.ctype'), root
-            )
-            self._wcs.wcs.cunit[count] = self._attribute_lookup(
-                blueprint._get('Chunk.polarization.axis.axis.cunit'), root
-            )
+            assign_sanitize(self._wcs.wcs.ctype, count,
+                            'Chunk.polarization.axis.axis.ctype', False)
+            assign_sanitize(self._wcs.wcs.cunit, count,
+                            'Chunk.polarization.axis.axis.cunit', False)
             array_shape[count] = self._attribute_lookup(
                 blueprint._get('Chunk.polarization.axis.function.naxis'), root
             )
-            self._wcs.wcs.crpix[count] = self._attribute_lookup(
-                blueprint._get('Chunk.polarization.axis.function.refCoord.pix'),
-                root
-            )
-            self._wcs.wcs.crval[count] = self._attribute_lookup(
-                blueprint._get('Chunk.polarization.axis.function.refCoord.val'),
-                root
-            )
+            assign_sanitize(self._wcs.wcs.crpix, count,
+                            'Chunk.polarization.axis.function.refCoord.pix',
+                            False)
+            assign_sanitize(self._wcs.wcs.crval, count,
+                            'Chunk.polarization.axis.function.refCoord.val',
+                            False)
             count += 1
             # TODO - where's the delta?
         if blueprint._obs_axis_configed:
             self._axes['observable'][1] = True
             self._axes['observable'][0] = count
-            count += 1
-            self._wcs.wcs.ctype[count] = self._attribute_lookup(
-                blueprint._get('Chunk.observable.axis.axis.ctype'), root
-            )
-            self._wcs.wcs.cunit[count] = self._attribute_lookup(
-                blueprint._get('Chunk.observable.axis.axis.cunit'), root
-            )
+            assign_sanitize(self._wcs.wcs.ctype, count,
+                            'Chunk.observable.axis.axis.ctype', False)
+            assign_sanitize(self._wcs.wcs.cunit, count,
+                            'Chunk.observable.axis.axis.cunit', False)
             array_shape[count] = 1.0
-            self._wcs.wcs.crpix[count] = self._attribute_lookup(
-                blueprint._get('Chunk.observable.axis.function.refCoord.pix'),
-                root
-            )
+            assign_sanitize(self._wcs.wcs.crpix, count,
+                            'Chunk.observable.axis.function.refCoord.pix',
+                            False)
             self._wcs.wcs.crval[count] = 0.0
+            count += 1
         if blueprint._custom_axis_configed:
             self._axes['custom'][1] = True
             self._axes['custom'][0] = count
-            count += 1
-            self._wcs.wcs.ctype[count] = self._attribute_lookup(
-                blueprint._get('Chunk.custom.axis.axis.ctype'), root
-            )
-            self._wcs.wcs.cunit[count] = self._attribute_lookup(
-                blueprint._get('Chunk.custom.axis.axis.cunit'), root
-            )
+            assign_sanitize(self._wcs.wcs.ctype, count,
+                            'Chunk.custom.axis.axis.ctype', False)
+            assign_sanitize(self._wcs.wcs.cunit, count,
+                            'Chunk.custom.axis.axis.cunit', False)
             array_shape[count] = self._attribute_lookup(
                 blueprint._get('Chunk.custom.axis.function.naxis'), root
             )
             # TODO delta
-            self._wcs.wcs.crpix[count] = self._attribute_lookup(
-                blueprint._get('Chunk.custom.axis.function.refCoord.pix'), root
-            )
-            self._wcs.wcs.crval[count] = self._attribute_lookup(
-                blueprint._get('Chunk.custom.axis.function.refCoord.val'), root
-            )
+            assign_sanitize(self._wcs.wcs.crpix, count,
+                            'Chunk.custom.axis.function.refCoord.pix', False)
+            assign_sanitize(self._wcs.wcs.crval, count,
+                            'Chunk.custom.axis.function.refCoord.val', False)
+            count += 1
 
-        # logging.error(f'count is {count}')
         self._wcs.array_shape = array_shape
-        # logging.error(f'{self._wcs.array_shape}')
-        # logging.error(f'{self._wcs.wcs.radesys}')
 
     def _append_cd_value(self, cd, cd_value, count):
         prefix = []
@@ -4410,15 +4330,11 @@ class Hdf5WcsParser(WcsParser):
         cd.append(prefix + [cd_value] + suffix)
 
     def _attribute_lookup(self, key, root):
-        # logging.error(f'key {key} root name {root.name}')
         if key is None:
-            # raise NotImplementedError
-            # why might this be the wrong decision?, because it means the
-            # blueprint lookup returned None, which is a valid value
-            # assignment, isn't it?
+            # the blueprint lookup returned None, which is a valid value
+            # assignment
             return None
         if isinstance(key, tuple):
-            # logging.error('path 10')
             result = None
             for ii in key[0]:
                 result = self._attribute_lookup(ii, root)
@@ -4431,45 +4347,33 @@ class Hdf5WcsParser(WcsParser):
                 key = key.replace('//', '/')
                 root = self._base
             if key.startswith('/'):
-                # logging.error('path 15')
                 bits = key.split('/')
-                # logging.error(f'key {key} root.name {root.name} bits {bits}')
                 if len(bits) == 2:
-                    # logging.error('path 11')
                     if '(' in bits[1]:
-                        # logging.error('path 12')
                         x = bits[1].split('(')
                         if ':' in x[1]:
-                            # logging.error('path 19')
                             a = x[1].split(')')[0].split(':')
                             if len(a) > 2:
                                 raise NotImplementedError
                             y = root[x[0]][int(a[0])][int(a[1])]
                             return y
                         else:
-                            # logging.error(f'path 20 {x}')
                             index = int(x[1].split(')')[0])
-                            # logging.error(f'x {x[0]} index {index}')
                             y = root[x[0]][index]
-                            # logging.error(y)
                             return y
                     else:
-                        # logging.error('path 13')
                         return root[bits[1]]
                 else:
                     # the 2 is because there's always a leading slash, so the
                     # first bit is an empty string
                     temp = f'/{"/".join(ii for ii in bits[2:])}'
-                    # logging.error(f'path 14 y{temp}y x{bits}x')
                     return self._attribute_lookup(temp, root[bits[1]])
             else:
                 # a value has been set
-                # logging.error(f'path 17 {key}')
                 if key == 'None':
                     return None
                 return key
         else:
-            # logging.error('path 30')
             return key
 
     def _finish_chunk_observable(self, chunk):
@@ -4560,8 +4464,6 @@ class Hdf5WcsParser(WcsParser):
             blueprint._get('Chunk.time.mjdref'), self._base
         )
         if x:
-            logging.error(f'xx{x}xx')
-            logging.error(type(x))
             self._wcs.wcs.mjdref = x
 
 
@@ -4962,10 +4864,8 @@ def caom2gen():
     blueprints = {}
     if len(args.blueprint) == 1:
         # one blueprint to rule them all
-        # logging.error(f'one blueprint {args.lineage} {type(args.lineage)}')
         temp = ' '.join(ii for ii in args.lineage)
         if '.h5' in temp:
-            # logging.error('picking the correct one')
             blueprint = Hdf5ObsBlueprint(module=module)
         else:
             blueprint = ObsBlueprint(module=module)
@@ -4987,7 +4887,7 @@ def caom2gen():
 
         for i, cardinality in enumerate(args.lineage):
             product_id, uri = _extract_ids(cardinality)
-            logging.error('Loading blueprint for {} from {}'.format(
+            logging.debug('Loading blueprint for {} from {}'.format(
                 uri, args.blueprint[i]))
             if '.h5' in uri:
                 blueprint = Hdf5ObsBlueprint(module=module)
