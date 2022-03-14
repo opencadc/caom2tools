@@ -102,7 +102,7 @@ caom2gen
                 (-i IN_OBS_XML | --observation collection observationID) [--local LOCAL [LOCAL ...]]
                 [--external_url EXTERNAL_URL [EXTERNAL_URL ...]] [--module MODULE] [--plugin PLUGIN] 
                 [--lineage LINEAGE [LINEAGE ...]]
-                [--use_generic_parser USE_GENERIC_PARSER [USE_GENERIC_PARSER ...]] --blueprint BLUEPRINT [BLUEPRINT ...]
+                [--use_blueprint_parser USE_BLUEPRINT_PARSER [USE_BLUEPRINT_PARSER ...]] --blueprint BLUEPRINT [BLUEPRINT ...]
 
     Augments an observation with information in one or more fits files.
 
@@ -163,10 +163,11 @@ caom2gen
        -q, --quiet                            run quietly
        --resource-id RESOURCE_ID              resource identifier (default 
                                               ivo://cadc.nrc.ca/fits2caom2)
-       --use_generic_parser USE_GENERIC_PARSER [USE_GENERIC_PARSER ...]
+       --use_blueprint_parser USE_BLUEPRINT_PARSER [USE_BLUEPRINT_PARSER ...]
                                               productID/artifactURI. List of lineage 
                                               entries that will be processed with a 
-                                              GenericParser. Good for non-fits files.
+                                              BlueprintParser. Good for files with no
+                                              metadata in the content.
        -u, --user USER                        name of user to authenticate. Note: 
                                               application prompts for the corresponding 
                                               password!

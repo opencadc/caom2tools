@@ -113,10 +113,10 @@ from requests.packages.urllib3.util.retry import Retry
 
 APP_NAME = 'caom2gen'
 
-__all__ = ['BlueprintParser', 'FitsParser', 'FitsWcsParser',
+__all__ = ['ContentParser', 'FitsParser', 'FitsWcsParser',
            'DispatchingFormatter', 'ObsBlueprint', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
-           'GenericParser', 'augment', 'get_vos_headers',
+           'BlueprintParser', 'augment', 'get_vos_headers',
            'get_external_headers', 'HDF5Parser', 'Hdf5ObsBlueprint',
            'Hdf5WcsParser', 'update_artifact_meta']
 
@@ -250,7 +250,7 @@ class ObsBlueprint:
     ob.set('Observation.algorithm.name', 'exposure')
     ob.set_fits_attribute('Chunk.energy.axis.axis.ctype', ['MYCTYPE'],
                           extension=1)
-    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
+    ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
                           extension=1)
     ob.set('Chunk.energy.velang', 33, extension=1)
     ob.set_default('Chunk.position.coordsys', 'RA-DEC', extension=1)
@@ -1216,13 +1216,13 @@ class ObsBlueprint:
         else:
             self._plan[caom2_element] = value
 
-    def add_fits_attribute(self, caom2_element, fits_attribute, extension=0):
+    def add_attribute(self, caom2_element, attribute, extension=0):
         """
-        Adds a FITS attribute in the list of other FITS attributes associated
+        Adds an attribute in the list of other attributes associated
         with an caom2 element.
         :param caom2_element: name CAOM2 element (as in
         ObsBlueprint.CAOM2_ELEMEMTS)
-        :param fits_attribute: name of FITS attribute the element is mapped to
+        :param attribute: name of attribute the element is mapped to
         :param extension: extension number (used only for Chunk elements)
         :raises AttributeError if the caom2 element has already an associated
         value or KeyError if the caom2 element does not exists.
@@ -1238,29 +1238,27 @@ class ObsBlueprint:
                 if caom2_element in self._extensions[extension]:
                     if (isinstance(self._extensions[extension][caom2_element],
                                    tuple)):
-                        if (fits_attribute not in
+                        if (attribute not in
                                 self._extensions[extension][caom2_element][0]):
                             self._extensions[extension][caom2_element][0].\
-                                insert(0, fits_attribute)
+                                insert(0, attribute)
                     else:
                         raise AttributeError(
-                            ('No FITS attributes in extension {} associated '
-                             'with keyword {}').format(extension,
-                                                       caom2_element))
+                            (f'No attributes in extension {extension} associated '
+                             'with keyword {caom2_element}'))
                 else:
                     self._extensions[extension][caom2_element] = \
-                        ([fits_attribute], None)
+                        ([attribute], None)
         else:
             if caom2_element in self._plan:
                 if isinstance(self._plan[caom2_element], tuple):
-                    if fits_attribute not in self._plan[caom2_element][0]:
-                        self._plan[caom2_element][0].insert(0, fits_attribute)
+                    if attribute not in self._plan[caom2_element][0]:
+                        self._plan[caom2_element][0].insert(0, attribute)
                 else:
-                    raise AttributeError(
-                        'No FITS attributes associated with keyword {}'.
-                        format(caom2_element))
+                    raise AttributeError(f'No attributes associated with '
+                                         f'keyword {caom2_element}')
             else:
-                self._plan[caom2_element] = ([fits_attribute], None)
+                self._plan[caom2_element] = ([attribute], None)
 
     def add_table_attribute(self, caom2_element, ttype_attribute, extension=0,
                             index=0):
@@ -1318,13 +1316,13 @@ class ObsBlueprint:
 
     def set_default(self, caom2_element, default, extension=0):
         """
-        Sets the default value of a caom2 element that is associated with FITS
+        Sets the default value of a caom2 element that is associated with
         attributes. If the element does not exist or does not have a list of
-        associated FITS attributes, default is set as the associated value
+        associated attributes, default is set as the associated value
         of the element.
 
-        If set_fits_attribute is called for the same caom2_element after this,
-        the default value will be reset to None.
+        If set is called for the same caom2_element after this, the default
+        value will be reset to None.
 
         :param caom2_element: name CAOM2 element (as in
         ObsBlueprint.CAOM2_ELEMEMTS)
@@ -1405,7 +1403,7 @@ class ObsBlueprint:
         :param caom2_element: name CAOM2 element (as in
         ObsBlueprint.CAOM2_ELEMEMTS)
         :param extension: extension number
-        :return: Tuple of the form (list_of_associated_fits_attributes,
+        :return: Tuple of the form (list_of_associated_attributes,
         default_value) OR the actual value associated with the CAOM2 element
         """
         ObsBlueprint.check_caom2_element(caom2_element)
@@ -1415,7 +1413,7 @@ class ObsBlueprint:
                     (caom2_element in self._extensions[extension]):
                 return self._extensions[extension][caom2_element]
 
-        # look in the generic plan
+        # look in the minimal plan
         if caom2_element not in self._plan:
             return None
         else:
@@ -1566,7 +1564,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_custom_axis(self, axis, override=True):
         """
-        Set the expected FITS custom keywords by index in the blueprint
+        Set the expected custom keywords by index in the blueprint
         and the wcs_std lookup.
 
         :param axis: The index expected for the custom axis.
@@ -1597,7 +1595,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_position_axes(self, axes, override=True):
         """
-        Set the expected FITS spatial keywords by indices in the blueprint and
+        Set the expected spatial keywords by indices in the blueprint and
         the wcs_std lookup.
 
         :param axes: The index expected for the position axes.
@@ -1714,7 +1712,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_polarization_axis(self, axis, override=True):
         """
-        Set the expected FITS polarization keywords by index in the blueprint
+        Set the expected polarization keywords by index in the blueprint
         and the wcs_std lookup.
 
         :param axis: The index expected for the polarization axis.
@@ -1748,7 +1746,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_observable_axis(self, axis, override=True):
         """
-        Set the expected FITS observable keywords by index in the blueprint
+        Set the expected observable keywords by index in the blueprint
         and the wcs_std lookup.
         Note: observable axis is not a standard WCS and it's not used by
         astropy.wcs so, arguably, it can be removed. It is here for now for
@@ -1775,7 +1773,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_time_axis(self, axis, override=True):
         """
-        Set the expected FITS time keywords by index in the blueprint and
+        Set the expected time keywords by index in the blueprint and
         the wcs_std lookup.
 
         :param axis: The index expected for the time axis.
@@ -1828,7 +1826,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         self._time_axis_configed = True
 
 
-class GenericParser:
+class BlueprintParser:
     """
     Extract CAOM2 metadata from files with no WCS information.
     """
@@ -1880,8 +1878,7 @@ class GenericParser:
         :param product_id: the key for finding for the plane to augment
         """
         self.logger.debug(
-            'Begin generic CAOM2 observation augmentation for URI {}.'.format(
-                artifact_uri))
+            f'Begin CAOM2 observation augmentation for URI {artifact_uri}.')
         if observation is None or not isinstance(observation, Observation):
             raise ValueError(
                 f'Observation type mis-match for {observation}.')
@@ -1915,8 +1912,7 @@ class GenericParser:
             observation.planes[product_id] = plane
         self.augment_plane(plane, artifact_uri)
         self.logger.debug(
-            'End generic CAOM2 observation augmentation for {}.'.format(
-                artifact_uri))
+            f'End CAOM2 observation augmentation for {artifact_uri}.')
 
     def augment_plane(self, plane, artifact_uri):
         """
@@ -1925,8 +1921,7 @@ class GenericParser:
         :param artifact_uri:
         """
         self.logger.debug(
-            'Begin generic CAOM2 plane augmentation for {}.'.format(
-                artifact_uri))
+            f'Begin CAOM2 plane augmentation for {artifact_uri}.')
         if plane is None or not isinstance(plane, Plane):
             raise ValueError(f'Plane type mis-match for {plane}')
 
@@ -1956,16 +1951,14 @@ class GenericParser:
             plane.artifacts[artifact_uri] = artifact
         self.augment_artifact(artifact, 0)
         self.logger.debug(
-            'End generic CAOM2 plane augmentation for {}.'.format(
-                artifact_uri))
+            f'End CAOM2 plane augmentation for {artifact_uri}.')
 
     def augment_artifact(self, artifact, index):
         """
-        Augments a given CAOM2 artifact with available FITS information
+        Augments a given CAOM2 artifact with available information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        self.logger.debug('Begin generic CAOM2 artifact augmentation for '
-                          '{}.'.format(self.uri))
+        self.logger.debug(f'Begin CAOM2 artifact augmentation for {self.uri}.')
         if artifact is None or not isinstance(artifact, Artifact):
             raise ValueError(
                 f'Artifact type mis-match for {artifact}')
@@ -1989,9 +1982,7 @@ class GenericParser:
             current=artifact.content_read_groups)
         artifact.meta_producer = self._get_from_list(
             'Artifact.metaProducer', index=0, current=artifact.meta_producer)
-        self.logger.debug(
-            'End generic CAOM2 artifact augmentation for {}.'.format(
-                self.uri))
+        self.logger.debug(f'End CAOM2 artifact augmentation for {self.uri}.')
 
     def _get_from_list(self, lookup, index, current=None):
         value = None
@@ -2180,7 +2171,7 @@ class GenericParser:
             return None
 
 
-class BlueprintParser(GenericParser):
+class ContentParser(BlueprintParser):
 
     def __init__(self, obs_blueprint=None, uri=None):
         super().__init__(obs_blueprint, uri)
@@ -2192,16 +2183,18 @@ class BlueprintParser(GenericParser):
 
     def augment_artifact(self, artifact, index):
         """
-        Augments a given CAOM2 artifact with available FITS information
+        Augments a given CAOM2 artifact with available content information
         :param artifact: existing CAOM2 artifact to be augmented
         """
         super().augment_artifact(artifact, index)
 
-        self.logger.debug(f'Begin artifact augmentation for {artifact.uri}')
+        self.logger.debug(
+            f'Begin content artifact augmentation for {artifact.uri}')
 
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError(
-                f'No WCS Data. End artifact augmentation for {artifact.uri}.')
+                f'No WCS Data. End content artifact augmentation for '
+                f'{artifact.uri}.')
 
         if self.ignore_chunks(artifact, index):
             return
@@ -2259,19 +2252,18 @@ class BlueprintParser(GenericParser):
         self._try_range_with_blueprint(chunk, index)
 
         self.logger.debug(
-            f'End artifact augmentation for {artifact.uri}.')
+            f'End content artifact augmentation for {artifact.uri}.')
 
     def augment_observation(self, observation, artifact_uri, product_id=None):
         """
-        Augments a given observation with available FITS information.
+        Augments a given observation with available content information.
         :param observation: existing CAOM2 observation to be augmented.
         :param artifact_uri: the key for finding the artifact to augment
         :param product_id: the key for finding for the plane to augment
         """
         super().augment_observation(observation, artifact_uri, product_id)
         self.logger.debug(
-            'Begin observation augmentation for URI {}.'.format(
-                artifact_uri))
+            f'Begin content observation augmentation for URI {artifact_uri}.')
         members = self._get_members(observation)
         if members:
             if isinstance(members, TypedSet):
@@ -2308,17 +2300,17 @@ class BlueprintParser(GenericParser):
         observation.environment = self._get_environment(
             observation.environment)
         self.logger.debug(
-            f'End observation augmentation for {artifact_uri}.')
+            f'End content observation augmentation for {artifact_uri}.')
 
     def augment_plane(self, plane, artifact_uri):
         """
-        Augments a given plane with available FITS information.
+        Augments a given plane with available content information.
         :param plane: existing CAOM2 plane to be augmented.
         :param artifact_uri:
         """
         super().augment_plane(plane, artifact_uri)
         self.logger.debug(
-            f'Begin plane augmentation for {artifact_uri}.')
+            f'Begin content plane augmentation for {artifact_uri}.')
 
         plane.meta_release = self._get_datetime(self._get_from_list(
             'Plane.metaRelease', index=0, current=plane.meta_release))
@@ -2338,14 +2330,15 @@ class BlueprintParser(GenericParser):
         plane.quality = self._get_quality(current=plane.quality)
 
         self.logger.debug(
-            f'End plane augmentation for {artifact_uri}.')
+            f'End content plane augmentation for {artifact_uri}.')
 
     def _content_lookup(self, key, extension=None):
         raise NotImplementedError
 
     def _get_algorithm(self, obs):
         """
-        Create an Algorithm instance populated with available FITS information.
+        Create an Algorithm instance populated with available content
+        information.
         :return: Algorithm
         """
         self.logger.debug('Begin Algorithm augmentation.')
@@ -2358,7 +2351,7 @@ class BlueprintParser(GenericParser):
 
     def _get_energy_transition(self, current):
         """
-        Create an EnergyTransition instance populated with available FITS
+        Create an EnergyTransition instance populated with available content
         information.
         :return: EnergyTransition
         """
@@ -2377,7 +2370,7 @@ class BlueprintParser(GenericParser):
 
     def _get_environment(self, current):
         """
-        Create an Environment instance populated with available FITS
+        Create an Environment instance populated with available content
         information.
         :current Environment instance, if one already exists in the
             Observation
@@ -2427,7 +2420,7 @@ class BlueprintParser(GenericParser):
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(
-                f'Could not find {lookup!r} in fits2caom2 configuration.')
+                f'Could not find {lookup!r} in caom2blueprint configuration.')
             if current:
                 self.logger.debug(
                     f'{lookup}: using current value of {current!r}.')
@@ -2488,7 +2481,7 @@ class BlueprintParser(GenericParser):
 
     def _get_instrument(self, current):
         """
-        Create an Instrument instance populated with available FITS
+        Create an Instrument instance populated with available content
         information.
         :return: Instrument
         """
@@ -2501,7 +2494,7 @@ class BlueprintParser(GenericParser):
         instr = None
         if name:
             instr = Instrument(str(name))
-            FitsParser._add_keywords(keywords, current, instr)
+            ContentParser._add_keywords(keywords, current, instr)
         self.logger.debug('End Instrument augmentation.')
         return instr
 
@@ -2566,7 +2559,7 @@ class BlueprintParser(GenericParser):
 
     def _get_metrics(self, current):
         """
-        Create a Metrics instance populated with available FITS information.
+        Create a Metrics instance populated with available content information.
         :return: Metrics
         """
         self.logger.debug('Begin Metrics augmentation.')
@@ -2669,7 +2662,7 @@ class BlueprintParser(GenericParser):
 
     def _get_observable(self, current):
         """
-        Create a Observable instance populated with available FITS information.
+        Create a Observable instance populated with available content information.
         :return: Observable
         """
         self.logger.debug('Begin Observable augmentation.')
@@ -2682,7 +2675,7 @@ class BlueprintParser(GenericParser):
 
     def _get_proposal(self, current):
         """
-        Create a Proposal instance populated with available FITS information.
+        Create a Proposal instance populated with available content information.
         :return: Proposal
         """
         self.logger.debug('Begin Proposal augmentation.')
@@ -2703,13 +2696,13 @@ class BlueprintParser(GenericParser):
         proposal = current
         if prop_id:
             proposal = Proposal(str(prop_id), pi, project, title)
-            FitsParser._add_keywords(keywords, current, proposal)
+            ContentParser._add_keywords(keywords, current, proposal)
         self.logger.debug(f'End Proposal augmentation {prop_id}.')
         return proposal
 
     def _get_provenance(self, current):
         """
-        Create a Provenance instance populated with available FITS information.
+        Create a Provenance instance populated with available Content information.
         :return: Provenance
         """
         self.logger.debug('Begin Provenance augmentation.')
@@ -2747,7 +2740,7 @@ class BlueprintParser(GenericParser):
         if name:
             prov = Provenance(name, p_version, project, producer, run_id,
                               reference, last_executed)
-            FitsParser._add_keywords(keywords, current, prov)
+            ContentParser._add_keywords(keywords, current, prov)
             if inputs:
                 if isinstance(inputs, TypedSet):
                     for i in inputs:
@@ -2764,7 +2757,7 @@ class BlueprintParser(GenericParser):
 
     def _get_quality(self, current):
         """
-        Create a Quality instance populated with available FITS information.
+        Create a Quality instance populated with available content information.
         :return: Quality
         """
         self.logger.debug('Begin Quality augmentation.')
@@ -2777,7 +2770,7 @@ class BlueprintParser(GenericParser):
 
     def _get_requirements(self, current):
         """
-        Create a Requirements instance populated with available FITS
+        Create a Requirements instance populated with available content
         information.
         :return: Requirements
         """
@@ -2797,8 +2790,7 @@ class BlueprintParser(GenericParser):
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(
-                'Could not find \'{}\' in fits2caom2 configuration.'.format(
-                    lookup))
+                f'Could not find \'{lookup}\' in caom2blueprint configuration.')
 
         if isinstance(keywords, tuple):
             for ii in keywords[0]:
@@ -2821,7 +2813,7 @@ class BlueprintParser(GenericParser):
 
     def _get_target(self, current):
         """
-        Create a Target instance populated with available FITS information.
+        Create a Target instance populated with available content information.
         :return: Target
         """
         self.logger.debug('Begin Target augmentation.')
@@ -2850,13 +2842,13 @@ class BlueprintParser(GenericParser):
         if name:
             target = Target(str(name), target_type, standard, redshift,
                             moving=moving, target_id=target_id)
-            FitsParser._add_keywords(keywords, current, target)
+            ContentParser._add_keywords(keywords, current, target)
         self.logger.debug('End Target augmentation.')
         return target
 
     def _get_target_position(self, current):
         """
-        Create a Target Position instance populated with available FITS
+        Create a Target Position instance populated with available content
         information.
         :return: Target Position
         """
@@ -2883,7 +2875,7 @@ class BlueprintParser(GenericParser):
 
     def _get_telescope(self, current):
         """
-        Create a Telescope instance populated with available FITS information.
+        Create a Telescope instance populated with available content information.
         :return: Telescope
         """
         self.logger.debug('Begin Telescope augmentation.')
@@ -2907,7 +2899,7 @@ class BlueprintParser(GenericParser):
         aug_tel = None
         if name:
             aug_tel = Telescope(str(name), geo_x, geo_y, geo_z)
-            FitsParser._add_keywords(keywords, current, aug_tel)
+            ContentParser._add_keywords(keywords, current, aug_tel)
         self.logger.debug('End Telescope augmentation.')
         return aug_tel
 
@@ -3168,8 +3160,8 @@ class BlueprintParser(GenericParser):
 
     def _try_range_with_blueprint(self, chunk, index):
         """Use the blueprint to set elements and attributes that
-        are not in the scope of astropy and fits, and therefore are not
-        covered by the FitsWcsParser class. Per PD 19/04/18, bounds and
+        are not in the scope of astropy and files content, and therefore are
+        not covered by the *WcsParser classes. Per PD 19/04/18, bounds and
         range are not covered by WCS keywords."""
 
         for i in ['energy', 'time', 'polarization']:
@@ -3265,7 +3257,7 @@ class BlueprintParser(GenericParser):
             to_set.keywords.remove('none')
 
 
-class FitsParser(BlueprintParser):
+class FitsParser(ContentParser):
     """
     Parses a FITS file and extracts the CAOM2 related information which can
     be used to augment an existing CAOM2 observation, plane or artifact. The
@@ -3467,7 +3459,7 @@ class FitsParser(BlueprintParser):
 
         # TODO When a projection is specified, wcslib expects corresponding
         # DP arguments with NAXES attributes. Normally, omitting the attribute
-        # signals no distortion which is the assumption in fits2caom2 for
+        # signals no distortion which is the assumption in caom2blueprint for
         # energy and polarization axes. Following is a workaround for
         # SIP projections.
         # For more details see:
@@ -3601,7 +3593,7 @@ class FitsParser(BlueprintParser):
         return True
 
 
-class HDF5Parser(BlueprintParser):
+class HDF5Parser(ContentParser):
 
     def __init__(
         self, obs_blueprint, uri, local_f_name, find_roots_here='/sitedata'
@@ -3749,9 +3741,7 @@ class WcsParser:
             chunk.energy.specsys = specsys
 
         chunk.energy.ssysobs = _to_str(self._sanitize(self.wcs.ssysobs))
-        # TODO not sure why, but wcs returns 0.0 when the FITS keywords
-        # for the following two keywords are actually not present in
-        # the header
+        # wcs returns 0.0 by default
         if self._sanitize(self.wcs.restfrq) != 0:
             chunk.energy.restfrq = self._sanitize(self.wcs.restfrq)
         if self._sanitize(self.wcs.restwav) != 0:
@@ -3795,14 +3785,6 @@ class WcsParser:
     def augment_temporal(self, chunk):
         """
         Augments a chunk with temporal WCS information
-
-        The expected caom2 - FITS keywords mapping is:
-
-            time.exposure = EXPTIME
-            time.resolution = TIMEDEL
-            time.timesys = TIMESYS default UTC
-            time.trefpos = TREFPOS
-            time.mjdref = MJDREF | MJDDATE
 
         :param chunk:
         :return:
@@ -4028,7 +4010,7 @@ class WcsParser:
 
     def _sanitize(self, value):
         """
-        Sanitizes values from FITS to caom2
+        Sanitizes values from content to caom2
         :param value:
         :return:
         """
@@ -4086,6 +4068,15 @@ class FitsWcsParser(WcsParser):
                 Slice(self._get_axis(0, ctype, cunit), pix_bin))
 
     def _finish_chunk_time(self, chunk):
+        """
+        The expected caom2 - FITS keywords mapping is:
+
+        time.exposure = EXPTIME
+        time.resolution = TIMEDEL
+        time.timesys = TIMESYS default UTC
+        time.trefpos = TREFPOS
+        time.mjdref = MJDREF | MJDDATE
+        """
         chunk.time.exposure = _to_float(self.header.get('EXPTIME'))
         chunk.time.resolution = _to_float(self.header.get('TIMEDEL'))
         chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
@@ -4688,7 +4679,7 @@ def _extract_ids(cardinality):
 
 def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
              validate_wcs=True, plugin=None, local=None,
-             external_url=None, connected=True, use_generic_parser=False,
+             external_url=None, connected=True, use_blueprint_parser=False,
              client=None, **kwargs):
     """
     Find or construct a plane and an artifact to go with the observation
@@ -4726,10 +4717,10 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
 
     meta_uri = uri
     visit_local = None
-    if use_generic_parser:
+    if use_blueprint_parser:
         logging.debug(
-            f'Using a GenericParser as requested for {uri}')
-        parser = GenericParser(blueprint, uri=uri)
+            f'Using a BlueprintParser as requested for {uri}')
+        parser = BlueprintParser(blueprint, uri=uri)
     elif local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
@@ -4740,8 +4731,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 parser = FitsParser(headers, blueprint, uri=uri)
             elif '.csv' in local:
                 logging.debug(
-                    f'Using a GenericParser for vos local {local}')
-                parser = GenericParser(blueprint, uri=uri)
+                    f'Using a BlueprintParser for vos local {local}')
+                parser = BlueprintParser(blueprint, uri=uri)
             else:
                 raise ValueError(f'Unexpected file type {local}')
         else:
@@ -4759,16 +4750,16 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                 parser = HDF5Parser(blueprint, uri, local)
             else:
                 # explicitly ignore headers for txt and image files
-                logging.debug(f'Using a GenericParser for {local}')
-                parser = GenericParser(blueprint, uri=uri)
+                logging.debug(f'Using a BlueprintParser for {local}')
+                parser = BlueprintParser(blueprint, uri=uri)
     elif external_url:
         headers = get_external_headers(external_url)
         if headers is None:
             logging.debug(
-                'Using a GenericParser for un-retrievable remote headers '
+                'Using a BlueprintParser for un-retrievable remote headers '
                 '{}'.format(uri)
             )
-            parser = GenericParser(blueprint, uri=uri)
+            parser = BlueprintParser(blueprint, uri=uri)
         else:
             logging.debug(
                 f'Using a FitsParser for remote headers {uri}')
@@ -4786,8 +4777,8 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
         else:
             # explicitly ignore headers for txt and image files
             logging.debug(
-                f'Using a GenericParser for remote file {uri}')
-            parser = GenericParser(blueprint, uri=uri)
+                f'Using a BlueprintParser for remote file {uri}')
+            parser = BlueprintParser(blueprint, uri=uri)
 
     if parser is None:
         result = None
@@ -5241,13 +5232,13 @@ def gen_proc(args, blueprints, **kwargs):
         if args.external_url:
             external_url = args.external_url[ii]
 
-        use_generic_parser = False
-        if args.use_generic_parser:
-            use_generic_parser = uri in args.use_generic_parser
+        use_blueprint_parser = False
+        if args.use_blueprint_parser:
+            use_blueprint_parser = uri in args.use_blueprint_parser
 
         obs = _augment(obs, product_id, uri, blueprint, subject,
                        args.dumpconfig, validate_wcs, args.plugin, file_name,
-                       external_url, connected, use_generic_parser, client,
+                       external_url, connected, use_blueprint_parser, client,
                        **kwargs)
 
         if obs is None:
@@ -5303,10 +5294,11 @@ def get_gen_proc_arg_parser():
                         help=('productID/artifactURI. List of plane/artifact '
                               'identifiers that will be'
                               'created for the identified observation.'))
-    parser.add_argument('--use_generic_parser', nargs='+',
+    parser.add_argument('--use_blueprint_parser', nargs='+',
                         help=('productID/artifactURI. List of lineage entries '
-                              'that will be processed with a GenericParser. '
-                              'Good for non-fits files.'))
+                              'that will be processed with a BlueprintParser. '
+                              'Good for files with no metadata in the '
+                              'content.'))
     return parser
 
 

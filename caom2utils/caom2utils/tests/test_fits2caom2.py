@@ -72,9 +72,9 @@ from astropy.wcs import WCS as awcs
 from cadcutils import net
 from cadcdata import FileInfo
 from caom2utils import FitsParser, FitsWcsParser, main_app, update_blueprint
-from caom2utils import HDF5Parser, Hdf5WcsParser, BlueprintParser
+from caom2utils import HDF5Parser, Hdf5WcsParser, ContentParser
 from caom2utils import Hdf5ObsBlueprint
-from caom2utils import ObsBlueprint, GenericParser, gen_proc
+from caom2utils import ObsBlueprint, BlueprintParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser, augment
 from caom2utils.legacy import load_config
 from caom2utils.caom2blueprint import _visit, _load_plugin
@@ -685,7 +685,7 @@ def test_augment_observation():
 def test_augment_value_errors():
     ob = ObsBlueprint(position_axes=(1, 2))
     ob.set('Plane.productID', None)
-    test_parser = GenericParser(obs_blueprint=ob)
+    test_parser = BlueprintParser(obs_blueprint=ob)
     test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
                                  Algorithm('exposure'))
     with pytest.raises(ValueError):
@@ -1046,7 +1046,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
 
 
 def test_generic_parser():
-    """ Tests that GenericParser will be created."""
+    """ Tests that BlueprintParser will be created."""
 
     fname = f'file://{text_file}'
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
@@ -1274,7 +1274,7 @@ def test_visit_generic_parser():
     try:
         sys.argv = ['fits2caom2', '--local', 'fname', '--observation',
                     'test_collection_id', 'test_observation_id']
-        test_parser = GenericParser()
+        test_parser = BlueprintParser()
         test_plugin = __name__
         kwargs = {}
         test_obs = SimpleObservation(collection='test_collection',
@@ -1336,7 +1336,7 @@ def test_generic_parser1():
     test_blueprint = ObsBlueprint()
     test_blueprint.set(test_key, '2013-10-10')
     logging.error(test_blueprint)
-    test_parser = GenericParser()
+    test_parser = BlueprintParser()
     assert test_parser._blueprint._plan[test_key] == \
         (['RELEASE', 'REL_DATE'], None), 'default value changed'
     test_parser.blueprint = test_blueprint
@@ -1398,7 +1398,7 @@ def test_apply_blueprint():
     test_blueprint.set_default('Plane.provenance.producer', 'abc')
     assert test_blueprint._get('Plane.provenance.producer') == (['ORIGIN'],
                                                                 'abc')
-    test_blueprint.add_fits_attribute('Plane.provenance.producer', 'IMAGESWV')
+    test_blueprint.add_attribute('Plane.provenance.producer', 'IMAGESWV')
     assert test_blueprint._get('Plane.provenance.producer') == (['IMAGESWV',
                                                                  'ORIGIN'],
                                                                 'abc')
@@ -1488,7 +1488,7 @@ def test_blueprint_instantiated_class():
     test_blueprint2.configure_time_axis(1)
     test_blueprint2.set('Plane.calibrationLevel', 'getCalibrationLevel()')
     test_blueprint2.set('Plane.dataProductType', 'broken_function()')
-    test_parser2 = GenericParser(obs_blueprint=test_blueprint2)
+    test_parser2 = BlueprintParser(obs_blueprint=test_blueprint2)
     test_obs2 = SimpleObservation('collection', 'MA1_DRAO-ST',
                                   Algorithm('exposure'))
     with pytest.raises(ValueError):
@@ -1503,7 +1503,7 @@ def test_apply_blueprint_execute_external():
 
     # generic parser - function execution should have occurred, the return
     # value is dependent on the parameters to the call
-    test_gp = GenericParser(test_generic_blueprint)
+    test_gp = BlueprintParser(test_generic_blueprint)
     assert test_gp is not None, 'expect generic construction to complete'
     assert test_gp._get_from_list('Observation.type', index=0) \
            == 'generic_parser_value', 'wrong generic plan value'

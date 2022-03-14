@@ -115,7 +115,7 @@ def test_obs_blueprint():
 
     # set default
     ob.clear('Observation.instrument.keywords')
-    ob.add_fits_attribute('Observation.instrument.keywords', 'INSTMODE')
+    ob.add_attribute('Observation.instrument.keywords', 'INSTMODE')
     assert "Observation.instrument.keywords = ['INSTMODE'], default = None" \
            in str(ob)
     ob.set_default('Observation.instrument.keywords', 'TEST')
@@ -125,8 +125,8 @@ def test_obs_blueprint():
            in str(ob)
 
     # set fits attribute
-    ob.add_fits_attribute('Observation.proposal.id', 'PROP')
-    ob.add_fits_attribute('Observation.proposal.id', 'PROP2')
+    ob.add_attribute('Observation.proposal.id', 'PROP')
+    ob.add_attribute('Observation.proposal.id', 'PROP2')
     ob.set_default('Observation.proposal.id', 'NOPROP')
     assert ob._plan['Observation.proposal.id'][0] == ['PROP2', 'PROP', 'RUNID']
     assert ob._plan['Observation.proposal.id'][1] == 'NOPROP'
@@ -143,9 +143,9 @@ def test_obs_blueprint():
     assert 'Chunk.energy.velang = 33' in extension1_str
 
     # set fits attribute in extension
-    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE',
+    ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE',
                           extension=1)
-    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
+    ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
                           extension=1)
     ob.set_default('Chunk.energy.axis.axis.ctype', 'NOCTYPE', extension=1)
     extension1_str = str(ob)[str(ob).index('extension 1'):]
@@ -213,7 +213,7 @@ def test_obs_blueprint():
     with pytest.raises(KeyError):
         ob.set('Nonexistent', 33)
     with pytest.raises(KeyError):
-        ob.add_fits_attribute('Nonexistent', 33)
+        ob.add_attribute('Nonexistent', 33)
     with pytest.raises(KeyError):
         ob.set_default('Nonexistent', 33)
     with pytest.raises(KeyError):
@@ -227,7 +227,7 @@ def test_obs_blueprint():
     with pytest.raises(KeyError):
         ob.set('Chunk.Nonexistent', 33, extension=1)
     with pytest.raises(KeyError):
-        ob.add_fits_attribute('Chunk.Nonexistent', 33, extension=1)
+        ob.add_attribute('Chunk.Nonexistent', 33, extension=1)
     with pytest.raises(KeyError):
         ob.set_default('Chunk.Nonexistent', 33, extension=1)
     with pytest.raises(KeyError):
@@ -243,7 +243,7 @@ def test_obs_blueprint():
     with pytest.raises(ValueError):
         ob.set_default('Observation.observationID', 33, extension=1)
     with pytest.raises(ValueError):
-        ob.add_fits_attribute('Observation.observationID', 'AA', extension=1)
+        ob.add_attribute('Observation.observationID', 'AA', extension=1)
     with pytest.raises(ValueError):
         ob.delete('Observation.observationID', extension=1)
     with pytest.raises(ValueError):
@@ -257,11 +257,11 @@ def test_obs_blueprint():
     assert 'Chunk.energy.transition' not in ob._plan
     ob.set('Chunk.energy.transition', 'Name')
     with pytest.raises(AttributeError):
-        ob.add_fits_attribute('Chunk.energy.transition', 'BP')
+        ob.add_attribute('Chunk.energy.transition', 'BP')
 
     # call set_fits_attribute with argument other than list
     with pytest.raises(AttributeError):
-        ob.add_fits_attribute('Chunk.energy.transition', 33)
+        ob.add_attribute('Chunk.energy.transition', 33)
 
     # delete element from a non-existent extension
     with pytest.raises(ValueError):
@@ -270,14 +270,14 @@ def test_obs_blueprint():
     # adding the same thing twice does nothing - the test values are defaults
     result = ob._get('Observation.metaRelease')
     initial_result_length = (len(result[0]))
-    ob.add_fits_attribute('Observation.metaRelease', 'DATE-OBS')
+    ob.add_attribute('Observation.metaRelease', 'DATE-OBS')
     result = ob._get('Observation.metaRelease')
     add_result_length = (len(result[0]))
     assert initial_result_length == add_result_length
     # in an extension
     result = ob._get('Chunk.energy.specsys', extension=1)
     initial_result_length = (len(result[0]))
-    ob.add_fits_attribute('Chunk.energy.specsys', 'SPECSYS')
+    ob.add_attribute('Chunk.energy.specsys', 'SPECSYS')
     result = ob._get('Chunk.energy.specsys', extension=1)
     add_result_length = (len(result[0]))
     assert initial_result_length == add_result_length, result
@@ -293,8 +293,8 @@ def test_load_from_file_configure():
     assert not ob._obs_axis_configed, 'obs config'
     assert not ob._polarization_axis_configed, 'pol config'
     assert not ob._time_axis_configed, 'time config'
-    ob.add_fits_attribute('Chunk.position.axis.axis1.ctype', 'CTYPE1')
-    ob.add_fits_attribute('Chunk.position.axis.axis2.ctype', 'CTYPE2')
+    ob.add_attribute('Chunk.position.axis.axis1.ctype', 'CTYPE1')
+    ob.add_attribute('Chunk.position.axis.axis2.ctype', 'CTYPE2')
     ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
     ob._guess_axis_info_from_plan()
     assert ob._pos_axes_configed, 'Failure to call configure_position_axes'
@@ -303,8 +303,8 @@ def test_load_from_file_configure():
         ob._wcs_std['Chunk.energy.axis.axis.ctype']
 
     ob = ObsBlueprint()
-    ob.add_fits_attribute('Chunk.position.axis.axis1.ctype', 'CTYPE3')
-    ob.add_fits_attribute('Chunk.position.axis.axis2.ctype', 'CTYPE4')
+    ob.add_attribute('Chunk.position.axis.axis1.ctype', 'CTYPE3')
+    ob.add_attribute('Chunk.position.axis.axis2.ctype', 'CTYPE4')
     ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
     ob._guess_axis_info_from_plan()
     assert ob._pos_axes_configed, 'Failure to call configure_position_axes'
@@ -358,13 +358,13 @@ def test_load_from_file_configure():
 
     # for the truly creative instrument scientist
     ob = ObsBlueprint()
-    ob.add_fits_attribute('Chunk.polarization.axis.axis.ctype', 'CTYPE1')
-    ob.add_fits_attribute('Chunk.custom.axis.axis.ctype', 'CTYPE2')
-    ob.add_fits_attribute('Chunk.position.axis.axis1.ctype', 'CTYPE3')
-    ob.add_fits_attribute('Chunk.position.axis.axis2.ctype', 'CTYPE4')
-    ob.add_fits_attribute('Chunk.time.axis.axis.ctype', 'CTYPE5')
-    ob.add_fits_attribute('Chunk.energy.axis.axis.ctype', 'CTYPE6')
-    ob.add_fits_attribute('Chunk.observable.axis.axis.ctype', 'CTYPE7')
+    ob.add_attribute('Chunk.polarization.axis.axis.ctype', 'CTYPE1')
+    ob.add_attribute('Chunk.custom.axis.axis.ctype', 'CTYPE2')
+    ob.add_attribute('Chunk.position.axis.axis1.ctype', 'CTYPE3')
+    ob.add_attribute('Chunk.position.axis.axis2.ctype', 'CTYPE4')
+    ob.add_attribute('Chunk.time.axis.axis.ctype', 'CTYPE5')
+    ob.add_attribute('Chunk.energy.axis.axis.ctype', 'CTYPE6')
+    ob.add_attribute('Chunk.observable.axis.axis.ctype', 'CTYPE7')
     ob._guess_axis_info_from_plan()
     assert ob._wcs_std['Chunk.polarization.axis.axis.ctype'] == 'CTYPE1', \
         ob._wcs_std['Chunk.polarization.axis.axis.ctype']
@@ -383,7 +383,7 @@ def test_load_from_file_configure():
 
     with pytest.raises(ValueError):
         ob = ObsBlueprint()
-        ob.add_fits_attribute('Chunk.polarization.axis.axis.ctype', 'CTYPE1')
+        ob.add_attribute('Chunk.polarization.axis.axis.ctype', 'CTYPE1')
         ob._guess_axis_info_from_plan()
 
 
