@@ -516,7 +516,8 @@ def test_help():
         assert bad_product_id in result, result
 
     # missing productID when blueprint doesn't have one either
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock, \
+       patch('caom2utils.data_util.StorageClientWrapper'):
         sys.argv = ["fits2caom2", "--observation", "test_collection_id",
                     "test_observation_id",
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits",
