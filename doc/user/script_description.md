@@ -10,8 +10,8 @@ mapping of a Telescope Data Model (TDM) to the CAOM2 data model. This describes 
 `augment` creates the Observation record using information contained in a FITS file. The python module `caom2blueprint`, from the python package `caom2utils`,
 examines the FITS or HDF5 file and uses a blueprint, embodied in an instance of the ObsBlueprint class, to define default values, override values, and mappings to augment the file 
 metadata content. The augmented keywords and values are then 
-checked for consistency with `astropy`'s [WCS package](https://docs.astr. 
-The validated metadata is then used to fill in corresponding CAOM2 entities and attributes.
+used to construct an `astropy.wcs.WCS` instance. See the [astropy docs](https://docs.astropy.org/en/stable/wcs/index.html). 
+This has the benefit of resulting in an internally consistent WCS, which is then used to fill in corresponding CAOM2 entities and attributes.
 
 There are two alternate ways to provide input file metadata to the caom2gen application:
 * have the file located on disk, and use the --local parameter

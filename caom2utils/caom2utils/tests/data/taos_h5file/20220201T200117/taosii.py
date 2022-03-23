@@ -23,25 +23,16 @@ def get_target_position_cval2(base):
 
 
 def _get_target_position(base):
-    import logging
     b = base.get('base')
-    try:
-        ra = b['header']['object']['obj_ra']
-        dec = b['header']['object']['obj_dec']
-        # logging.error(f'{ra} {dec}')
-        result = SkyCoord(
-            ra.decode('utf-8'),
-            dec.decode('utf-8'),
-            frame='icrs',
-            unit=(units.hourangle, units.deg),
-        )
-        return result.ra.degree, result.dec.degree
-    except Exception as e:
-        import logging
-        import traceback
-        logging.error(e)
-        logging.error(traceback.format_exc())
-        raise e
+    ra = b['header']['object']['obj_ra']
+    dec = b['header']['object']['obj_dec']
+    result = SkyCoord(
+        ra.decode('utf-8'),
+        dec.decode('utf-8'),
+        frame='icrs',
+        unit=(units.hourangle, units.deg),
+    )
+    return result.ra.degree, result.dec.degree
 
 
 def get_time_axis_range_end(base):

@@ -79,20 +79,19 @@ from cadcutils import version
 from caom2.caom_util import int_32
 from caom2 import (
     Artifact, Part, Chunk, Plane, Observation, CoordError,
-    RefCoord, CoordRange1D, CoordRange2D, Coord2D,
+    SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord,
+    SpatialWCS, Dimension2D, Coord2D, CoordFunction2D,
+    CoordAxis2D, CoordRange1D, PolarizationWCS, TemporalWCS,
+    ObservationReader, ObservationWriter, Algorithm,
+    ReleaseType, ProductType, ObservationIntentType,
+    DataProductType, Telescope, Environment,
+    Instrument, Proposal, Target, Provenance, Metrics,
+    CalibrationLevel, Requirements, DataQuality, PlaneURI,
+    SimpleObservation, DerivedObservation, ChecksumURI,
+    ObservationURI, ObservableAxis, Slice, Point, TargetPosition,
+    CoordRange2D, TypedSet, CustomWCS, Observable,
+    CompositeObservation, EnergyTransition
 )
-from caom2 import SpectralWCS, CoordAxis1D, Axis, CoordFunction1D, RefCoord
-from caom2 import SpatialWCS, Dimension2D, Coord2D, CoordFunction2D
-from caom2 import CoordAxis2D, CoordRange1D, PolarizationWCS, TemporalWCS
-from caom2 import ObservationReader, ObservationWriter, Algorithm
-from caom2 import ReleaseType, ProductType, ObservationIntentType
-from caom2 import DataProductType, Telescope, Environment
-from caom2 import Instrument, Proposal, Target, Provenance, Metrics
-from caom2 import CalibrationLevel, Requirements, DataQuality, PlaneURI
-from caom2 import SimpleObservation, DerivedObservation, ChecksumURI
-from caom2 import ObservationURI, ObservableAxis, Slice, Point, TargetPosition
-from caom2 import CoordRange2D, TypedSet, CustomWCS, Observable
-from caom2 import CompositeObservation, EnergyTransition
 from caom2utils import data_util
 from caom2utils.caomvalidator import validate
 from caom2utils.wcsvalidator import InvalidWCSError
@@ -113,8 +112,8 @@ from requests.packages.urllib3.util.retry import Retry
 
 APP_NAME = 'caom2gen'
 
-__all__ = ['Caom2Exception', 'FitsParser', 'WcsParser', 'DispatchingFormatter',
-           'ObsBlueprint', 'get_arg_parser', 'proc',
+__all__ = ['Caom2Exception', 'ContentParser',  'FitsParser', 'FitsWcsParser',
+           'DispatchingFormatter', 'ObsBlueprint', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
            'BlueprintParser', 'augment', 'get_vos_headers',
            'get_external_headers', 'HDF5Parser', 'Hdf5ObsBlueprint',
@@ -1455,8 +1454,14 @@ class ObsBlueprint:
 
     @staticmethod
     def is_function(value):
+        """
+        Check if a blueprint value has Python 'function' syntax. Exclude
+        strings with syntax that enable addressing HDF5 arrays.
+
+        :return: True if the value is the name of a function to be executed,
+            False, otherwise
+        """
         return (not ObsBlueprint.needs_lookup(value) and isinstance(value, str)
-                # and isinstance(value, str) and '()' in value)
                 and isinstance(value, str) and '(' in value and ')' in value
                 and '/' not in value)
 
@@ -1963,6 +1968,7 @@ class BlueprintParser:
         """
         Augments a given CAOM2 artifact with available information
         :param artifact: existing CAOM2 artifact to be augmented
+        :param index: int Part name, used in specializing classes
         """
         self.logger.debug(f'Begin CAOM2 artifact augmentation for {self.uri}.')
         if artifact is None or not isinstance(artifact, Artifact):
@@ -2198,6 +2204,7 @@ class ContentParser(BlueprintParser):
         """
         Augments a given CAOM2 artifact with available content information
         :param artifact: existing CAOM2 artifact to be augmented
+        :param index: int Part name
         """
         super().augment_artifact(artifact, index)
 
@@ -3607,10 +3614,34 @@ class FitsParser(ContentParser):
 
 
 class HDF5Parser(ContentParser):
+    """
+    Parses an HDF5 file and extracts the CAOM2 related information which
+    can be used to augment an existing CAOM2 observation, plane, or artifact.
+
+    If there is per-Chunk metadata in the file, the constructor parameter
+    'find_roots_here' is the location where the N Chunk metadata starts.
+
+    The WCS-related keywords of the HDF5 files are used to create instances of
+    astropy.wcs.WCS so that verify might be called.
+
+    There is no CADC support for the equivalent of the FITS --fhead parameter
+    for HDF5 files, which is why the name of the file on a local disk is
+    always required.
+
+    """
 
     def __init__(
         self, obs_blueprint, uri, local_f_name, find_roots_here='/sitedata'
     ):
+        """
+
+        :param obs_blueprint: Hdf5ObsBlueprint instance
+        :param uri: which artifact augmentation is basedd on
+        :param local_f_name: str file name on disk
+        :param find_roots_here: str location where Chunk metadata starts
+        """
+        # h5py is an extra in this package since most collections do not
+        # require it
         import h5py
         self._file = h5py.File(local_f_name, 'r')
         super().__init__(obs_blueprint, uri)
