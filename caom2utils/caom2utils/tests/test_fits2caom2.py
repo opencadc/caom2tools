@@ -1615,25 +1615,6 @@ def test_parser_construction(vos_mock, stdout_mock):
             os.unlink(test_out_fqn)
 
 
-def test_content_lookup_hdf5():
-    from caom2utils import caom2blueprint
-    test_key = 'Chunk.position.axis.axis1.ctype'
-    test_path = '/header/wcs/ctype(0)'
-    test_blueprint = ObsBlueprint(position_axes=(1, 2))
-    test_blueprint.set(test_key, test_path)
-    test_f_name = 'taos2_20220201T201317Z_star04239531.h5'
-    test_uri = f'cadc:TAOSII/{test_f_name}'
-    test_local_fqn = f'{TESTDATA_DIR}/taos_h5file/20220201T200117/{test_f_name}'
-    test_subject = caom2blueprint.HDF5Parser(
-        test_blueprint, test_uri, test_local_fqn, '/sitedata'
-    )
-    assert len(test_subject._roots) == 3, 'wrong number of roots'
-    test_result = test_subject._content_lookup(
-        test_path, test_subject._roots[0]
-    )
-    assert test_result == b'RA---TAN-SIP'
-
-
 def _get_local_headers(file_name):
     return _get_headers(file_name, None)
 
