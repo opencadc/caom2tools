@@ -296,7 +296,7 @@ def test_load_from_file_configure():
     ob.add_attribute('Chunk.position.axis.axis1.ctype', 'CTYPE1')
     ob.add_attribute('Chunk.position.axis.axis2.ctype', 'CTYPE2')
     ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._pos_axes_configed, 'Failure to call configure_position_axes'
     assert ob._energy_axis_configed, 'Failure to call configure_energy_axis'
     assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
@@ -306,7 +306,7 @@ def test_load_from_file_configure():
     ob.add_attribute('Chunk.position.axis.axis1.ctype', 'CTYPE3')
     ob.add_attribute('Chunk.position.axis.axis2.ctype', 'CTYPE4')
     ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._pos_axes_configed, 'Failure to call configure_position_axes'
     assert ob._energy_axis_configed, 'Failure to call configure_energy_axis'
     assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE1', \
@@ -314,41 +314,41 @@ def test_load_from_file_configure():
 
     ob = ObsBlueprint()
     ob.set('Chunk.energy.axis.axis.ctype', 'WAVE')
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._wcs_std['Chunk.energy.axis.axis.ctype'] == 'CTYPE3', \
         ob._wcs_std['Chunk.energy.axis.axis.ctype']
 
     ob = ObsBlueprint()
     ob.set('Chunk.polarization.axis.axis.ctype', 'STOKES')
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._wcs_std['Chunk.polarization.axis.axis.ctype'] == 'CTYPE5', \
         ob._wcs_std['Chunk.polarization.axis.axis.ctype']
     assert ob._polarization_axis_configed, 'pol config'
 
     ob = ObsBlueprint()
     ob.set('Chunk.observable.axis.axis.ctype', 'COUNT')
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._wcs_std['Chunk.observable.axis.axis.ctype'] == 'CTYPE6', \
         ob._wcs_std['Chunk.observable.axis.axis.ctype']
     assert ob._obs_axis_configed, 'obs config'
 
     ob = ObsBlueprint()
     ob.set('Chunk.custom.axis.axis.ctype', 'FARDEP')
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._wcs_std['Chunk.custom.axis.axis.ctype'] == 'CTYPE7', \
         ob._wcs_std['Chunk.custom.axis.axis.ctype']
     assert ob._custom_axis_configed, 'custom config'
 
     ob = ObsBlueprint()
     ob.set('Chunk.time.axis.axis.ctype', 'TIME')
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._wcs_std['Chunk.time.axis.axis.ctype'] == 'CTYPE4', \
         ob._wcs_std['Chunk.time.axis.axis.ctype']
     assert ob._time_axis_configed, 'time config'
 
     # should get the position axes by default
     ob = ObsBlueprint()
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._pos_axes_configed, 'pos config'
     assert not ob._energy_axis_configed, 'energy config'
     assert not ob._custom_axis_configed, 'custom config'
@@ -365,7 +365,7 @@ def test_load_from_file_configure():
     ob.add_attribute('Chunk.time.axis.axis.ctype', 'CTYPE5')
     ob.add_attribute('Chunk.energy.axis.axis.ctype', 'CTYPE6')
     ob.add_attribute('Chunk.observable.axis.axis.ctype', 'CTYPE7')
-    ob._guess_axis_info_from_plan()
+    ob._guess_axis_info()
     assert ob._wcs_std['Chunk.polarization.axis.axis.ctype'] == 'CTYPE1', \
         ob._wcs_std['Chunk.polarization.axis.axis.ctype']
     assert ob._wcs_std['Chunk.custom.axis.axis.ctype'] == 'CTYPE2', \
@@ -384,7 +384,7 @@ def test_load_from_file_configure():
     with pytest.raises(ValueError):
         ob = ObsBlueprint()
         ob.add_attribute('Chunk.polarization.axis.axis.ctype', 'CTYPE1')
-        ob._guess_axis_info_from_plan()
+        ob._guess_axis_info()
 
 
 def test_has_chunk():

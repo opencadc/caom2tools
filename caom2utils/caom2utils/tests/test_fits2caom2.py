@@ -72,7 +72,7 @@ from astropy.wcs import WCS as awcs
 from cadcutils import net
 from cadcdata import FileInfo
 from caom2utils import FitsParser, FitsWcsParser, main_app, update_blueprint
-from caom2utils import HDF5Parser, Hdf5WcsParser, ContentParser
+from caom2utils import Hdf5Parser, Hdf5WcsParser, ContentParser
 from caom2utils import Hdf5ObsBlueprint
 from caom2utils import ObsBlueprint, BlueprintParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser, augment
@@ -172,6 +172,14 @@ def test_hdf5_wcs_parser_set_wcs():
     test_fqn = f'{TESTDATA_DIR}/taos_h5file/20220201T200117/{test_f_name}'
     test_artifact = Artifact(test_uri, ProductType.SCIENCE, ReleaseType.DATA)
 
+    # check the error messages
+    test_position_bp.configure_position_axes((4, 5))
+    test_energy_bp.configure_energy_axis(2)
+    test_time_bp.configure_time_axis(2)
+    test_polarization_bp.configure_polarization_axis(2)
+    test_observable_bp.configure_observable_axis(2)
+    test_custom_bp.configure_custom_axis(2)
+
     for bp in [
         test_position_bp,
         test_energy_bp,
@@ -180,7 +188,7 @@ def test_hdf5_wcs_parser_set_wcs():
         test_observable_bp,
         test_custom_bp,
     ]:
-        test_subject = HDF5Parser(bp, test_uri, test_fqn)
+        test_subject = Hdf5Parser(bp, test_uri, test_fqn)
         assert test_subject is not None, 'expect a result'
         test_subject.augment_artifact(test_artifact)
         if bp == test_position_bp:
