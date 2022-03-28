@@ -9,6 +9,14 @@ on:
     types: [created]
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Install hdf5 library
+        run: sudo apt-get install -y libhdf5-dev
+    
   egginfo:
     runs-on: ubuntu-latest
     steps:
