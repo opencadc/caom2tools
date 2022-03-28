@@ -167,7 +167,7 @@ def test_hdf5_wcs_parser_set_wcs():
     test_polarization_bp = Hdf5ObsBlueprint(polarization_axis=1)
     test_observable_bp = Hdf5ObsBlueprint(obs_axis=1)
     test_custom_bp = Hdf5ObsBlueprint(custom_axis=1)
-    test_f_name = 'taos2_20220201T201317Z_star04239531.h5'
+    test_f_name = 'taos2_test.h5'
     test_uri = f'cadc:TEST/{test_f_name}'
     test_fqn = f'{TESTDATA_DIR}/taos_h5file/20220201T200117/{test_f_name}'
     test_artifact = Artifact(test_uri, ProductType.SCIENCE, ReleaseType.DATA)
