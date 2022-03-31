@@ -420,7 +420,7 @@ def get_file_encoding(fqn):
 def get_file_type(fqn):
     """Basic header extension to content_type lookup."""
     if (fqn.endswith('.header') or fqn.endswith('.txt') or
-            fqn.endswith('.cat')):
+            fqn.endswith('.cat') or fqn.endswith('.dat')):
         return 'text/plain'
     elif fqn.endswith('.gif'):
         return 'image/gif'
