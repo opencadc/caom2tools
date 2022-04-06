@@ -261,7 +261,7 @@ class StorageClientWrapper:
                 self._logger.debug(
                     f'uri {uri} src {fqn} replace {replace} file_type '
                     f'{local_meta.file_type} encoding {encoding} md5_checksum '
-                    f'{local_meta.checksum}'
+                    f'{local_meta.md5sum}'
                 )
                 self._cadc_client.cadcput(
                     uri,
