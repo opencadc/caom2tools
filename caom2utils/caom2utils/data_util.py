@@ -259,6 +259,11 @@ class StorageClientWrapper:
                 cadc_meta = self.info(uri)
                 if cadc_meta is None:
                     replace = False
+                self._logger.debug(
+                    f'uri {uri} src {fqn} replace {replace} file_type '
+                    f'{local_meta.file_type} encoding {encoding} md5_checksum '
+                    f'{local_meta.md5sum}'
+                )
                 self._cadc_client.cadcput(
                     uri,
                     src=fqn,
@@ -271,6 +276,11 @@ class StorageClientWrapper:
                 archive, f_name = self._decompose(uri)
                 # libmagic does a worse job with guessing file types
                 # than ad for .fits.gz => it will say 'binary'
+                self._logger.debug(
+                    f'archive {archive} f_name {f_name} archive_stream '
+                    f'{stream} mime_type {local_meta.file_type} '
+                    f'mime_encoding {encoding} md5_check True '
+                )
                 self._cadc_client.put_file(
                     archive,
                     f_name,
