@@ -1460,8 +1460,9 @@ class ObsBlueprint:
     @staticmethod
     def is_function(value):
         """
-        Check if a blueprint value has Python 'function' syntax. Exclude
-        strings with syntax that enable addressing HDF5 arrays.
+        Check if a blueprint value has Python 'function' syntax. The
+        "'/' not in value" clause excludes strings with syntax that enables
+        addressing HDF5 arrays.
 
         :return: True if the value is the name of a function to be executed,
             False, otherwise
@@ -2138,6 +2139,11 @@ class BlueprintParser:
         :param value the name of the function to apply.
         :param key:
         :param extension: the current extension name or number.
+        :raise Caom2Exception exception raised when there is a recognizable
+            error in the information being used to create a CAOM2 record. A
+            correct and consistent CAOM2 record cannot be created from the
+            input metadata. The client should treat the Observation instance
+            under construction as invalid.
         """
         result = ''
         try:
