@@ -109,7 +109,7 @@ from requests.packages.urllib3.util.retry import Retry
 
 APP_NAME = 'caom2gen'
 
-__all__ = ['FitsParser', 'WcsParser', 'DispatchingFormatter',
+__all__ = ['Caom2Exception' ,'FitsParser', 'WcsParser', 'DispatchingFormatter',
            'ObsBlueprint', 'get_arg_parser', 'proc',
            'POLARIZATION_CTYPES', 'gen_proc', 'get_gen_proc_arg_parser',
            'GenericParser', 'augment', 'get_vos_headers',
@@ -167,6 +167,12 @@ POLARIZATION_CTYPES = ['STOKES']
 OBSERVABLE_CTYPES = [
     'observable',
     'FLUX']
+
+
+class Caom2Exception(Exception):
+    """Exception raised when an attempt to create or update a CAOM2 record
+    fails for some reason."""
+    pass
 
 
 class HDULoggingFilter(logging.Filter):
@@ -1786,6 +1792,13 @@ class GenericParser:
             logging.debug(
                 'Key {} calculated value of {} using {}'.format(
                     key, result, value))
+        except ValueError as e2:
+            # DB 23-03-22
+            # Anything that you can do to make the CAOM2 record creation fail
+            # in this case of bad WCS metadata would be useful. Use
+            # ValueError because that happens to be what astropy is throwing
+            # for a SkyCoord construction failure.
+            raise Caom2Exception(e2)
         except Exception as e:
             msg = 'Failed to execute {} for {} in {}'.format(
                 execute, key, self.uri)
