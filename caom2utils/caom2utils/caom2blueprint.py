@@ -2071,7 +2071,7 @@ class BlueprintParser:
         if value is None:
             raise ValueError(
                 f'Must set a value of {to_enum_type.__name__} for '
-                f'{self._uri}.')
+                f'{self.uri}.')
         elif isinstance(value, to_enum_type):
             return value
         else:
