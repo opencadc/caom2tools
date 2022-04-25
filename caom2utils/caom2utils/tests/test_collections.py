@@ -67,7 +67,7 @@
 #
 
 from cadcdata import FileInfo
-from caom2utils import legacy, fits2caom2, data_util
+from caom2utils import legacy, caom2blueprint, data_util
 from caom2 import ObservationReader, ObservationWriter
 from caom2.diff import get_differences
 
@@ -104,7 +104,8 @@ def test_differences(directory):
     prod_id = [p.product_id for p in expected.planes.values()][0]
     product_id = f'--productID {prod_id}'
     collection_id = expected.collection
-    data_files = _get_files(['header', 'png', 'gif', 'cat', 'fits'], directory)
+    data_files = _get_files(
+        ['header', 'png', 'gif', 'cat', 'fits', 'h5'], directory)
     assert data_files
 
     file_meta = _get_uris(collection_id, data_files, expected)
@@ -123,14 +124,14 @@ def test_differences(directory):
         else:
             inputs = blueprints
         application = '{} {} '.format('caom2gen', data_files_parameter)
-        app_cmd = fits2caom2.caom2gen
+        app_cmd = caom2blueprint.caom2gen
     else:
         defaults = _get_parameter('default', directory)
         assert defaults
         overrides = _get_parameter('override', directory)
         assert overrides
         inputs = f'{config} {defaults} {overrides}'
-        application = '{} {}'.format('fits2caom2', data_files_parameter)
+        application = '{} {}'.format('caom2blueprint', data_files_parameter)
         app_cmd = legacy.main_app
         temp = ' '.join(file_meta[0])
         cardinality = f'{product_id} {temp}'
@@ -140,8 +141,8 @@ def test_differences(directory):
             swc_si_mock,\
             patch('cadcutils.net.ws.WsCapabilities.get_access_url',
                   autospec=True) as cap_mock,\
-            patch('caom2utils.fits2caom2.get_vos_headers') as gvh_mock, \
-            patch('caom2utils.fits2caom2._get_vos_meta') as gvm_mock, \
+            patch('caom2utils.caom2blueprint.get_vos_headers') as gvh_mock, \
+            patch('caom2utils.caom2blueprint._get_vos_meta') as gvm_mock, \
             patch('caom2utils.data_util.get_local_headers_from_fits') as \
             header_mock:
         def info_mock(uri):
@@ -230,6 +231,9 @@ def _get_cardinality(directory):
     elif 'apass/catalog' in directory:
         return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' \
                'Examples/DAO/dao_c122_2016_012725.fits'
+    elif 'taos_' in directory:
+        return '--lineage star04239531/' \
+               'cadc:TAOSII/taos2_20220201T201317Z_star04239531.h5'
     else:
         return ''
 
@@ -338,9 +342,10 @@ def _compare_observations(expected, actual, output_dir):
 
     result = get_differences(expected, actual, 'Observation')
     if result:
-        msg = 'Differences found observation {} in {}\n{}'.\
-            format(expected.observation_id,
-                   output_dir, '\n'.join([r for r in result]))
+        tmp = '\n'.join([r for r in result])
+        msg = f'Differences found observation {expected.observation_id} in ' \
+              f'{output_dir}\n{tmp}'
+        _write_observation(actual)
         raise AssertionError(msg)
     else:
         logging.info('Observation {} in {} match'.format(
@@ -355,5 +360,5 @@ def _read_observation(fname):
 
 def _write_observation(obs):
     writer = ObservationWriter(True, False, 'caom2',
-                               'http://www.opencadc.org/caom2/xml/v2.3')
+                               'http://www.opencadc.org/caom2/xml/v2.4')
     writer.write(obs, './x.xml')
