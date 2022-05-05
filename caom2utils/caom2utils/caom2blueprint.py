@@ -2009,7 +2009,10 @@ class BlueprintParser:
             return value
         if (keywords and not ObsBlueprint.needs_lookup(keywords)
                 and not ObsBlueprint.is_function(keywords)):
-            value = keywords
+            if isinstance(keywords, numpy.bytes_):
+                value = keywords.decode('utf-8')
+            else:
+                value = keywords
         elif self._blueprint.update:
             # The first clause: boolean attributes are used to represent
             # three different values: True, False, and unknown. For boolean
