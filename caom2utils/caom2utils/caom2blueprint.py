@@ -1835,6 +1835,19 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
         self._time_axis_configed = True
 
+    def set(self, caom2_element, value, extension=0):
+        """
+        Sets the value associated with an element in the CAOM2 model. Value
+        cannot be a tuple.
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param value: new value of the CAOM2 element
+        :param extension: extension number (used only for Chunk elements)
+        """
+        if isinstance(value, numpy.bytes_):
+            value = value.decode('utf-8')
+        super().set(caom2_element, value, extension)
+
     def _guess_axis_info(self):
         self._guess_axis_info_from_plan()
 
@@ -2009,9 +2022,6 @@ class BlueprintParser:
             return value
         if (keywords and not ObsBlueprint.needs_lookup(keywords)
                 and not ObsBlueprint.is_function(keywords)):
-            if isinstance(keywords, numpy.bytes_):
-                value = keywords.decode('utf-8')
-            else:
                 value = keywords
         elif self._blueprint.update:
             # The first clause: boolean attributes are used to represent
@@ -3669,18 +3679,15 @@ class Hdf5Parser(ContentParser):
     """
 
     def __init__(
-        self, obs_blueprint, uri, local_f_name, find_roots_here='sitedata'
+        self, obs_blueprint, uri, h5_file, find_roots_here='sitedata'
     ):
         """
         :param obs_blueprint: Hdf5ObsBlueprint instance
         :param uri: which artifact augmentation is based on
-        :param local_f_name: str file name on disk
+        :param h5_file: h5py file handle
         :param find_roots_here: str location where Chunk metadata starts
         """
-        # h5py is an extra in this package since most collections do not
-        # require it
-        import h5py
-        self._file = h5py.File(local_f_name)
+        self._file = h5_file
         # where N Chunk metadata starts
         self._find_roots_here = find_roots_here
         # the length of the array is the number of Parts in an HDF5 file,
@@ -4240,8 +4247,6 @@ class WcsParser:
             return None
         elif not str(value):
             return None  # empty string
-        elif isinstance(value, numpy.bytes_):
-            return value.decode('utf-8')
         else:
             return value
 
@@ -4907,7 +4912,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             elif '.h5' in local:
                 logging.debug(
                     f'Using an Hdf5Parser for local file {local}')
-                parser = Hdf5Parser(blueprint, uri, local)
+                # h5py is an extra in this package since most collections do
+                # not require it
+                import h5py
+                temp = h5py.File(local)
+                parser = Hdf5Parser(blueprint, uri, temp)
             else:
                 # explicitly ignore headers for txt and image files
                 logging.debug(f'Using a BlueprintParser for {local}')

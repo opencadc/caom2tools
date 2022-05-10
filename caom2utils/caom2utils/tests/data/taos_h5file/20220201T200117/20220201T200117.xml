@@ -66,9 +66,9 @@
                             <caom2:val>0.36083190511928515</caom2:val>
                           </caom2:coord2>
                         </caom2:refCoord>
-                        <caom2:cd11>-3.056099929280465e-06</caom2:cd11>
-                        <caom2:cd12>5.26221921634137e-09</caom2:cd12>
-                        <caom2:cd21>-8.906590162255861e-09</caom2:cd21>
+                        <caom2:cd11>-3.055789796926023e-06</caom2:cd11>
+                        <caom2:cd12>5.17684229864217e-09</caom2:cd12>
+                        <caom2:cd21>-8.84247710317511e-09</caom2:cd21>
                         <caom2:cd22>-3.0546760780702482e-06</caom2:cd22>
                       </caom2:function>
                     </caom2:axis>
@@ -128,10 +128,10 @@
                             <caom2:val>0.3608318611649132</caom2:val>
                           </caom2:coord2>
                         </caom2:refCoord>
-                        <caom2:cd11>-3.056099929280465e-06</caom2:cd11>
-                        <caom2:cd12>5.26221921634137e-09</caom2:cd12>
-                        <caom2:cd21>-8.906590162255861e-09</caom2:cd21>
-                        <caom2:cd22>-3.0546760780702482e-06</caom2:cd22>
+                        <caom2:cd11>-3.056038798826708e-06</caom2:cd11>
+                        <caom2:cd12>5.311589798573419e-09</caom2:cd12>
+                        <caom2:cd21>-8.530093204777965e-09</caom2:cd21>
+                        <caom2:cd22>-3.054771726598754e-06</caom2:cd22>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:equinox>2000.0</caom2:equinox>
