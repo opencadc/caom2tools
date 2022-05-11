@@ -3448,6 +3448,8 @@ class FitsParser(ContentParser):
 
         for i, header in enumerate(self.headers):
             if self.ignore_chunks(artifact, i):
+                # artifact-level attributes still require updating
+                BlueprintParser.augment_artifact(self, artifact, 0)
                 continue
             self._wcs_parser = FitsWcsParser(header, self.file, str(i))
             super().augment_artifact(artifact, i)
