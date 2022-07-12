@@ -71,12 +71,14 @@ from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from cadcutils import net
 from cadcdata import FileInfo
-from caom2utils import FitsParser, WcsParser, main_app, update_blueprint
-from caom2utils import ObsBlueprint, GenericParser, gen_proc
+from caom2utils import FitsParser, FitsWcsParser, main_app, update_blueprint
+from caom2utils import Hdf5Parser, Hdf5WcsParser, ContentParser
+from caom2utils import Hdf5ObsBlueprint
+from caom2utils import ObsBlueprint, BlueprintParser, gen_proc
 from caom2utils import get_gen_proc_arg_parser, augment
 from caom2utils.legacy import load_config
-from caom2utils.fits2caom2 import _visit, _load_plugin
-from caom2utils.fits2caom2 import _get_and_update_artifact_meta
+from caom2utils.caom2blueprint import _visit, _load_plugin
+from caom2utils.caom2blueprint import _get_and_update_artifact_meta
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm
 from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
@@ -156,6 +158,43 @@ def test_augment_energy():
                            ObservationReader()._get_spectral_wcs, 'energy')
     result = get_differences(ex, energy)
     assert result is None, repr(energy)
+
+
+def test_hdf5_wcs_parser_set_wcs():
+    test_position_bp = Hdf5ObsBlueprint(position_axes=(1, 2))
+    test_energy_bp = Hdf5ObsBlueprint(energy_axis=1)
+    test_time_bp = Hdf5ObsBlueprint(time_axis=1)
+    test_polarization_bp = Hdf5ObsBlueprint(polarization_axis=1)
+    test_observable_bp = Hdf5ObsBlueprint(obs_axis=1)
+    test_custom_bp = Hdf5ObsBlueprint(custom_axis=1)
+    test_f_name = 'taos2_test.h5'
+    test_uri = f'cadc:TEST/{test_f_name}'
+    test_fqn = f'{TESTDATA_DIR}/taos_h5file/20220201T200117/{test_f_name}'
+    test_artifact = Artifact(test_uri, ProductType.SCIENCE, ReleaseType.DATA)
+
+    # check the error messages
+    test_position_bp.configure_position_axes((4, 5))
+    test_energy_bp.configure_energy_axis(2)
+    test_time_bp.configure_time_axis(2)
+    test_polarization_bp.configure_polarization_axis(2)
+    test_observable_bp.configure_observable_axis(2)
+    test_custom_bp.configure_custom_axis(2)
+
+    for bp in [
+        test_position_bp,
+        test_energy_bp,
+        test_time_bp,
+        test_polarization_bp,
+        test_observable_bp,
+        test_custom_bp,
+    ]:
+        test_subject = Hdf5Parser(bp, test_uri, test_fqn)
+        assert test_subject is not None, 'expect a result'
+        test_subject.augment_artifact(test_artifact)
+        if bp == test_position_bp:
+            assert test_subject._wcs_parser._wcs.naxis == 2, 'wrong pos axis'
+        else:
+            assert test_subject._wcs_parser._wcs.naxis == 1, 'wrong axis count'
 
 
 def test_augment_failure():
@@ -402,7 +441,7 @@ def test_augment_artifact_time_from_blueprint():
 
 def test_get_wcs_values():
     w = get_test_wcs(sample_file_4axes)
-    test_parser = WcsParser(get_test_header(sample_file_4axes)[0].header,
+    test_parser = FitsWcsParser(get_test_header(sample_file_4axes)[0].header,
                             sample_file_4axes, 0)
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
@@ -418,7 +457,7 @@ def test_get_wcs_values():
 
 
 def test_wcs_parser_augment_failures():
-    test_parser = WcsParser(get_test_header(sample_file_4axes)[0].header,
+    test_parser = FitsWcsParser(get_test_header(sample_file_4axes)[0].header,
                             sample_file_4axes, 0)
     test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
                                  Algorithm('exposure'))
@@ -518,7 +557,8 @@ def test_help():
         assert bad_product_id in result, result
 
     # missing productID when blueprint doesn't have one either
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock, \
+       patch('caom2utils.data_util.StorageClientWrapper'):
         sys.argv = ["fits2caom2", "--observation", "test_collection_id",
                     "test_observation_id",
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits",
@@ -656,7 +696,7 @@ def test_augment_observation():
 def test_augment_value_errors():
     ob = ObsBlueprint(position_axes=(1, 2))
     ob.set('Plane.productID', None)
-    test_parser = GenericParser(obs_blueprint=ob)
+    test_parser = BlueprintParser(obs_blueprint=ob)
     test_obs = SimpleObservation('collection', 'MA1_DRAO-ST',
                                  Algorithm('exposure'))
     with pytest.raises(ValueError):
@@ -667,7 +707,7 @@ def test_augment_value_errors():
         test_parser.augment_plane(test_obs, 'cadc:TEST/abc.fits.gz')
 
     with pytest.raises(ValueError):
-        test_parser.augment_artifact(test_obs)
+        test_parser.augment_artifact(test_obs, 0)
 
 
 def test_get_from_list():
@@ -1017,7 +1057,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = """<?xml version='1.0' encoding='UTF-8
 
 
 def test_generic_parser():
-    """ Tests that GenericParser will be created."""
+    """ Tests that BlueprintParser will be created."""
 
     fname = f'file://{text_file}'
     with patch('sys.stdout', new_callable=BytesIO) as stdout_mock, \
@@ -1245,7 +1285,7 @@ def test_visit_generic_parser():
     try:
         sys.argv = ['fits2caom2', '--local', 'fname', '--observation',
                     'test_collection_id', 'test_observation_id']
-        test_parser = GenericParser()
+        test_parser = BlueprintParser()
         test_plugin = __name__
         kwargs = {}
         test_obs = SimpleObservation(collection='test_collection',
@@ -1258,7 +1298,7 @@ def test_visit_generic_parser():
         assert False, f'should not get here {e}'
 
 
-@patch('caom2utils.fits2caom2.Client')
+@patch('caom2utils.caom2blueprint.Client')
 def test_get_vos_headers(vos_mock):
     test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' \
                'dao_c122_2016_012725.fits'
@@ -1276,7 +1316,7 @@ def test_get_vos_headers(vos_mock):
         caom2utils.data_util.get_local_file_headers = get_orig
 
 
-@patch('caom2utils.fits2caom2.Client')
+@patch('caom2utils.caom2blueprint.Client')
 def test_get_vos_meta(vos_mock):
     get_orig = caom2utils.get_vos_headers
     try:
@@ -1307,7 +1347,7 @@ def test_generic_parser1():
     test_blueprint = ObsBlueprint()
     test_blueprint.set(test_key, '2013-10-10')
     logging.error(test_blueprint)
-    test_parser = GenericParser()
+    test_parser = BlueprintParser()
     assert test_parser._blueprint._plan[test_key] == \
         (['RELEASE', 'REL_DATE'], None), 'default value changed'
     test_parser.blueprint = test_blueprint
@@ -1320,7 +1360,7 @@ def test_get_external_headers():
     with patch('requests.Session.get') as session_get_mock:
         session_get_mock.return_value.status_code = 200
         session_get_mock.return_value.text = TEST_TEXT
-        test_headers = caom2utils.fits2caom2.get_external_headers(test_uri)
+        test_headers = caom2utils.caom2blueprint.get_external_headers(test_uri)
         assert test_headers is not None
         assert len(test_headers) == 2
         assert test_headers[0]['SIMPLE'] is True, 'SIMPLE header not found'
@@ -1328,18 +1368,18 @@ def test_get_external_headers():
         assert session_get_mock.is_called_with(test_uri)
 
 
-@patch('caom2utils.fits2caom2.get_external_headers')
+@patch('caom2utils.caom2blueprint.get_external_headers')
 def test_get_external_headers_fails(get_external_mock):
     get_external_mock.return_value = None
     test_collection = 'TEST_COLLECTION'
     test_obs_id = 'TEST_OBS_ID'
     test_uri = f'gemini:{test_collection}/abc.fits'
     test_product_id = 'TEST_PRODUCT_ID'
-    test_blueprint = caom2utils.fits2caom2.ObsBlueprint()
+    test_blueprint = caom2utils.caom2blueprint.ObsBlueprint()
     test_observation = SimpleObservation(collection=test_collection,
                                          observation_id=test_obs_id,
                                          algorithm=Algorithm(name='exposure'))
-    test_result = caom2utils.fits2caom2._augment(
+    test_result = caom2utils.caom2blueprint._augment(
         obs=test_observation,
         product_id=test_product_id,
         uri=test_uri,
@@ -1369,7 +1409,7 @@ def test_apply_blueprint():
     test_blueprint.set_default('Plane.provenance.producer', 'abc')
     assert test_blueprint._get('Plane.provenance.producer') == (['ORIGIN'],
                                                                 'abc')
-    test_blueprint.add_fits_attribute('Plane.provenance.producer', 'IMAGESWV')
+    test_blueprint.add_attribute('Plane.provenance.producer', 'IMAGESWV')
     assert test_blueprint._get('Plane.provenance.producer') == (['IMAGESWV',
                                                                  'ORIGIN'],
                                                                 'abc')
@@ -1459,7 +1499,7 @@ def test_blueprint_instantiated_class():
     test_blueprint2.configure_time_axis(1)
     test_blueprint2.set('Plane.calibrationLevel', 'getCalibrationLevel()')
     test_blueprint2.set('Plane.dataProductType', 'broken_function()')
-    test_parser2 = GenericParser(obs_blueprint=test_blueprint2)
+    test_parser2 = BlueprintParser(obs_blueprint=test_blueprint2)
     test_obs2 = SimpleObservation('collection', 'MA1_DRAO-ST',
                                   Algorithm('exposure'))
     with pytest.raises(ValueError):
@@ -1472,11 +1512,11 @@ def test_apply_blueprint_execute_external():
     test_generic_blueprint.set(
         'Observation.type', '_get_test_obs_type(parameters)')
 
-    # generic parser
-    test_generic_parser = GenericParser(test_generic_blueprint)
-    assert test_generic_parser is not None, \
-        'expect generic construction to complete'
-    assert test_generic_parser._get_from_list('Observation.type', index=0) \
+    # generic parser - function execution should have occurred, the return
+    # value is dependent on the parameters to the call
+    test_gp = BlueprintParser(test_generic_blueprint)
+    assert test_gp is not None, 'expect generic construction to complete'
+    assert test_gp._get_from_list('Observation.type', index=0) \
            == 'generic_parser_value', 'wrong generic plan value'
 
     # fits parser
@@ -1529,7 +1569,7 @@ def test_update_artifact_meta_errors():
 @patch('caom2utils.data_util.StorageInventoryClient', autospec=True)
 @patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
 @patch('sys.stdout', new_callable=BytesIO)
-@patch('caom2utils.fits2caom2._augment')
+@patch('caom2utils.caom2blueprint._augment')
 def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     """ Tests that gen_proc can return -1."""
 
@@ -1552,7 +1592,7 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
 
 
 @patch('sys.stdout', new_callable=io.StringIO)
-@patch('caom2utils.fits2caom2.Client')
+@patch('caom2utils.caom2blueprint.Client')
 def test_parser_construction(vos_mock, stdout_mock):
     vos_mock.get_node.side_effect = _get_node
     test_uri = 'vos:goliaths/abc.fits.gz'

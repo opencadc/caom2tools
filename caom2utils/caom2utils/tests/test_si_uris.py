@@ -70,7 +70,7 @@ import os
 import sys
 from cadcdata import FileInfo
 from caom2 import obs_reader_writer
-from caom2utils import fits2caom2
+from caom2utils import caom2blueprint
 from unittest.mock import patch
 from . import test_collections as tc
 
@@ -108,7 +108,7 @@ END"""
                 '--observation TEST_COLLECTION TEST_OBS_ID '
                 '--lineage test_product_id/cadc:TEST/test_file.fits '
                 '--blueprint {}'.format(out_fqn, bp_fqn)).split()
-    fits2caom2.caom2gen()
+    caom2blueprint.caom2gen()
 
     assert os.path.exists(out_fqn), 'expect output file'
     obs_reader = obs_reader_writer.ObservationReader()
