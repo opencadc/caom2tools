@@ -3708,7 +3708,7 @@ class Hdf5Parser(ContentParser):
         # h5py is an extra in this package since most collections do not
         # require it
         import h5py
-        individual, multi = self._extract_path_names_from_blueprint()
+        individual, multi, attributes = self._extract_path_names_from_blueprint()
 
         def _extract_from_item(name, object):
             """
@@ -3775,8 +3775,22 @@ class Hdf5Parser(ContentParser):
                             for jj in individual.get(temp):
                                 self._blueprint.set(jj, object[d_name], 0)
 
-        self._file.visititems(_extract_from_item)
+        if len(attributes) == 0:
+            self._file.visititems(_extract_from_item)
+        else:
+            self._extract_from_attrs(attributes)
         self.logger.debug('Done apply_blueprint_from_file')
+
+    def _extract_from_attrs(self, attributes):
+        # I don't currently see any way to have more than one Part, if relying on
+        # attrs for metadata
+        part_index = 0
+        # v == list of blueprint keys
+        for k, v in attributes.items():
+            if k in self._file.attrs:
+                value = self._file.attrs[k]
+                for entry in v:
+                    self._blueprint.set(entry, value, part_index)
 
     def _extract_path_names_from_blueprint(self):
         """
@@ -3789,14 +3803,17 @@ class Hdf5Parser(ContentParser):
         """
         individual = defaultdict(list)
         multi = defaultdict(list)
+        attributes = defaultdict(list)
         for key, value in self._blueprint._plan.items():
             if ObsBlueprint.needs_lookup(value):
                 for ii in value[0]:
                     if ii.startswith('//'):
                         individual[ii].append(key)
-                    else:
+                    elif ii.startswith('/'):
                         multi[ii].append(key)
-        return individual, multi
+                    else:
+                        attributes[ii].append(key)
+        return individual, multi, attributes
 
     def apply_blueprint(self):
         self.logger.debug('Begin apply_blueprint')
@@ -3886,144 +3903,6 @@ class Hdf5Parser(ContentParser):
     def ignore_chunks(self, artifact, index=0):
         artifact.parts.add(Part(str(index)))
         return False
-
-
-class Hdf5Parser2(Hdf5Parser):
-
-    def __init__(
-        self, obs_blueprint, uri, h5_file
-    ):
-        """
-        :param obs_blueprint: Hdf5ObsBlueprint instance
-        :param uri: which artifact augmentation is based on
-        :param h5_file: h5py file handle
-        :param find_roots_here: str location where Chunk metadata starts
-        """
-        self._file = h5_file
-        # # the length of the array is the number of Parts in an HDF5 file,
-        # # and the values are HDF5 lookup path names.
-        # self._extension_names = []
-        # assume no extensions for now
-        super().__init__(obs_blueprint, uri, h5_file, find_roots_here=None)
-        # used to set the astropy wcs info, resulting in a validated wcs
-        # that can be used to construct a valid CAOM2 record
-        self._wcs_parser = None
-
-    def apply_blueprint_from_file(self):
-        """
-        Retrieve metadata from file, cache in the blueprint.
-        """
-        self.logger.debug('Begin apply_blueprint_from_file')
-        # h5py is an extra in this package since most collections do not
-        # require it
-        import h5py
-        individual, multi, attributes = self._extract_path_names_from_blueprint()
-
-        def _extract_from_item(name, object):
-            """
-            Function signature dictated by h5py visititems implementation.
-            Executed for each dataset/group in an HDF5 file.
-
-            :param name: fully-qualified HDF5 path name
-            :param object: what the HDF5 path name points to
-            """
-            if name == self._find_roots_here:
-                for ii, path_name in enumerate(object.keys()):
-                    # store the names and locations of the Part/Chunk metadata
-                    temp = f'{name}/{path_name}'
-                    self.logger.debug(f'Adding extension {temp}')
-                    self._extension_names.append(temp)
-                    self._blueprint._extensions[ii] = {}
-
-            # If it's the Part/Chunk metadata, capture it to extensions.
-            # Syntax of the keys described in Hdf5ObsBlueprint class.
-            for part_index, part_name in enumerate(self._extension_names):
-                if (
-                    name.startswith(part_name)
-                    and isinstance(object, h5py.Dataset)
-                    and object.dtype.names is not None
-                ):
-                    for d_name in object.dtype.names:
-                        temp_path = f'{name.replace(part_name, "")}/{d_name}'
-                        for path_name in multi.keys():
-                            if path_name == temp_path:
-                                for jj in multi.get(path_name):
-                                    self._blueprint.set(
-                                        jj, object[d_name], part_index
-                                    )
-                            elif (path_name.startswith(temp_path)
-                                  and '(' in path_name):
-                                z = path_name.split('(')
-                                if ':' in z[1]:
-                                    a = z[1].split(')')[0].split(':')
-                                    if len(a) > 2:
-                                        raise NotImplementedError
-                                    for jj in multi.get(path_name):
-                                        self._blueprint.set(
-                                            jj,
-                                            object[d_name][int(a[0])][
-                                                int(a[1])],
-                                            part_index,
-                                        )
-                                else:
-                                    index = int(z[1].split(')')[0])
-                                    for jj in multi.get(path_name):
-                                        self._blueprint.set(
-                                            jj,
-                                            object[d_name][index],
-                                            part_index,
-                                        )
-
-            # if it's Observation/Plane/Artifact metadata, capture it to
-            # the base blueprint
-            if isinstance(object, h5py.Dataset):
-                if object.dtype.names is not None:
-                    for d_name in object.dtype.names:
-                        temp = f'//{name}/{d_name}'
-                        if temp in individual.keys():
-                            for jj in individual.get(temp):
-                                self._blueprint.set(jj, object[d_name], 0)
-
-        if len(attributes) == 0:
-            self._file.visititems(_extract_from_item)
-        else:
-            self._extract_from_attrs(attributes)
-        self.logger.debug('Done apply_blueprint_from_file')
-
-    def _extract_from_attrs(self, attributes):
-        # logging.error(self._blueprint)
-        # I don't currently see any way to have more than one Part
-        part_index = 0
-        # v == list of blueprint keys
-        for k, v in attributes.items():
-            # logging.error(f'k {k} v {v}')
-            if k in self._file.attrs:
-                value = self._file.attrs[k]
-                for entry in v:
-                    self._blueprint.set(entry, value, part_index)
-
-    def _extract_path_names_from_blueprint(self):
-        """
-        :return: individual - a dictionary of lists, keys are unique path
-            names for finding metadata once per file. Values are
-            _CAOM2_ELEMENT strings.
-            multiple - a dictionary of lists, keys are unique path names for
-            finding metadata N times per file. Values are _CAOM2_ELEMENT
-            strings.
-        """
-        individual = defaultdict(list)
-        multi = defaultdict(list)
-        attributes = defaultdict(list)
-        for key, value in self._blueprint._plan.items():
-            if ObsBlueprint.needs_lookup(value):
-                for ii in value[0]:
-                    if ii.startswith('//'):
-                        individual[ii].append(key)
-                    elif ii.startswith('/'):
-                        multi[ii].append(key)
-                    else:
-                        attributes[ii].append(key)
-        return individual, multi, attributes
 
 
 class WcsParser:
