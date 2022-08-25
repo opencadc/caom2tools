@@ -3775,10 +3775,14 @@ class Hdf5Parser(ContentParser):
                             for jj in individual.get(temp):
                                 self._blueprint.set(jj, object[d_name], 0)
 
-        if len(attributes) == 0:
-            self._file.visititems(_extract_from_item)
-        else:
+        if len(individual) == 0 and len(multi) == 0:
+            # CFHT SITELLE
+            self.logger.debug(f'attrs for {self.uri}')
             self._extract_from_attrs(attributes)
+        else:
+            # TAOSII
+            self.logger.debug(f'visititems for {self.uri}')
+            self._file.visititems(_extract_from_item)
         self.logger.debug('Done apply_blueprint_from_file')
 
     def _extract_from_attrs(self, attributes):
