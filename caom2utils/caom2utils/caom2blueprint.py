@@ -4587,7 +4587,8 @@ class Hdf5WcsParser(WcsParser):
         if not math.isnan(self._wcs.wcs.xposure):
             chunk.time.exposure = self._wcs.wcs.xposure
         chunk.time.timesys = self._wcs.wcs.timesys
-        chunk.time.trefpos = self._wcs.wcs.trefpos
+        if self._wcs.wcs.trefpos is not None and self._wcs.wcs.trefpos != '':
+            chunk.time.trefpos = self._wcs.wcs.trefpos
         # convert from the numpy array length 2 of self._wcs.wcs.mjdref
         # to a single value
         # TODO chunk.time.mjdref = self._wcs.to_header().get('MJDREF')
