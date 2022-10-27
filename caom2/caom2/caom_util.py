@@ -204,7 +204,7 @@ def value_check(value, min_value, max_value, variable, override=None):
     return True
 
 
-class TypedList(collections_abc.MutableSequence):
+class TypedList(collections.abc.MutableSequence):
     """
     Class that implements a typed list in Python. Supported types
     are specified when instance is created. Example:

@@ -210,7 +210,7 @@ class StorageClientWrapper:
         Retrieve the descriptive metdata associated with a file.
         :param uri: str that is an Artifact URI, representing the file for
             which to retrieve metadata
-        :return: cadcdata.FileInfo instance
+        :return: cadcdata.FileInfo instance, no scheme for md5sum
         """
         self._logger.debug(f'Begin info for {uri}')
         try:
@@ -218,6 +218,7 @@ class StorageClientWrapper:
                 result = self._cadc_client.cadcinfo(uri)
                 # make the result look like the other possible ways to
                 # obtain metadata
+                result.md5sum = result.md5sum.replace('md5:', '')
             else:
                 archive, f_name = StorageClientWrapper._decompose(uri)
                 temp = self._cadc_client.get_file_info(archive, f_name)
@@ -225,7 +226,7 @@ class StorageClientWrapper:
                     id=uri,
                     size=temp.get('size'),
                     file_type=temp.get('type'),
-                    md5sum=temp.get('md5sum')
+                    md5sum=temp.get('md5sum').replace('md5:', '')
                 )
         except exceptions.NotFoundException:
             self._logger.info(f'cadcinfo:: {uri} not found')
@@ -258,6 +259,11 @@ class StorageClientWrapper:
                 cadc_meta = self.info(uri)
                 if cadc_meta is None:
                     replace = False
+                self._logger.debug(
+                    f'uri {uri} src {fqn} replace {replace} file_type '
+                    f'{local_meta.file_type} encoding {encoding} md5_checksum '
+                    f'{local_meta.md5sum}'
+                )
                 self._cadc_client.cadcput(
                     uri,
                     src=fqn,
@@ -270,6 +276,11 @@ class StorageClientWrapper:
                 archive, f_name = self._decompose(uri)
                 # libmagic does a worse job with guessing file types
                 # than ad for .fits.gz => it will say 'binary'
+                self._logger.debug(
+                    f'archive {archive} f_name {f_name} archive_stream '
+                    f'{stream} mime_type {local_meta.file_type} '
+                    f'mime_encoding {encoding} md5_check True '
+                )
                 self._cadc_client.put_file(
                     archive,
                     f_name,
@@ -390,7 +401,7 @@ def get_local_file_info(fqn):
     """
     Gets descriptive metadata for a file on disk.
     :param fqn: Fully-qualified name of the file on disk.
-    :return: FileInfo
+    :return: FileInfo, no scheme on the md5sum value.
     """
     s = stat(fqn)
     # copy and paste from cadcdata/storageinventory.py

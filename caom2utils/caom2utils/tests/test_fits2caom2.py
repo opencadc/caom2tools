@@ -542,7 +542,9 @@ def test_help():
         sys.argv = ["fits2caom2", "-h"]
         with pytest.raises(MyExitError):
             main_app()
-        assert (usage == stdout_mock.getvalue())
+        expected = stdout_mock.getvalue().replace(
+            'options:', 'optional arguments:').strip('\n')
+        assert usage.strip('\n') == expected
 
     # missing productID when plane count is wrong
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
