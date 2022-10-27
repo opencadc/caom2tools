@@ -71,7 +71,6 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 
 import math
-import numpy
 from astropy.wcs import Wcsprm, WCS
 from astropy.io import fits
 from astropy.time import Time
@@ -1844,7 +1843,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :param value: new value of the CAOM2 element
         :param extension: extension number (used only for Chunk elements)
         """
-        if isinstance(value, numpy.bytes_):
+        if hasattr(value, 'decode'):
             value = value.decode('utf-8')
         super().set(caom2_element, value, extension)
 
@@ -2022,7 +2021,7 @@ class BlueprintParser:
             return value
         if (keywords and not ObsBlueprint.needs_lookup(keywords)
                 and not ObsBlueprint.is_function(keywords)):
-                value = keywords
+            value = keywords
         elif self._blueprint.update:
             # The first clause: boolean attributes are used to represent
             # three different values: True, False, and unknown. For boolean
@@ -3775,10 +3774,10 @@ class Hdf5Parser(ContentParser):
                             for jj in individual.get(temp):
                                 self._blueprint.set(jj, object[d_name], 0)
 
-        if len(attributes) == 0:
-            self._file.visititems(_extract_from_item)
-        else:
+        if len(individual) == 0 and len(multi) == 0:
             self._extract_from_attrs(attributes)
+        else:
+            self._file.visititems(_extract_from_item)
         self.logger.debug('Done apply_blueprint_from_file')
 
     def _extract_from_attrs(self, attributes):
@@ -3794,12 +3793,12 @@ class Hdf5Parser(ContentParser):
 
     def _extract_path_names_from_blueprint(self):
         """
-        :return: individual - a dictionary of lists, keys are unique path
-            names for finding metadata once per file. Values are
-            _CAOM2_ELEMENT strings.
-            multiple - a dictionary of lists, keys are unique path names for
-            finding metadata N times per file. Values are _CAOM2_ELEMENT
-            strings.
+        :return: individual - a dictionary of lists, keys are unique path names for finding metadata once per file.
+            Values are _CAOM2_ELEMENT strings.
+            multiple - a dictionary of lists, keys are unique path names for finding metadata N times per file. Values
+            are _CAOM2_ELEMENT strings.
+            attributes - a dictionary of lists, keys reference expected content from the h5py.File().attrs data
+            structure and its keys.
         """
         individual = defaultdict(list)
         multi = defaultdict(list)

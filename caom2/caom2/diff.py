@@ -82,7 +82,6 @@ from caom2.caom_util import TypedSet, TypedOrderedDict, TypedList
 from caom2 import Chunk
 from . import caom_util
 
-import logging
 
 __all__ = ['get_differences']
 
