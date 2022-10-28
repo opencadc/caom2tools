@@ -1,5 +1,5 @@
-from caom2pipe import astro_composable as ac
-
+from astropy.time import Time
+from datetime import datetime
 
 def _get_datetime(base):
     b = base.get('base').attrs
@@ -8,7 +8,9 @@ def _get_datetime(base):
     t = b.get('OBS_TIME')
     if d is not None and t is not None:
         dt = f'{d} {t}'
-        result = ac.get_datetime(dt).value
+        result = Time(datetime.strptime(dt, '%Y-%m-%d %H:%M:%S.%f'))
+        result.format = 'mjd'
+        result = result.value
     return result
 
 
