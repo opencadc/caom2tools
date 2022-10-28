@@ -197,7 +197,7 @@ def test_differences(directory):
         header_mock.side_effect = _header
 
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('{} -o {} --no_validate --observation {} {} {} {} '
+        sys.argv = ('{} --debug -o {} --no_validate --observation {} {} {} {} '
                     '--resource-id ivo://cadc.nrc.ca/test'.format(
                         application, temp.name,
                         expected.collection, expected.observation_id,
@@ -232,8 +232,10 @@ def _get_cardinality(directory):
         return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' \
                'Examples/DAO/dao_c122_2016_012725.fits'
     elif 'taos_' in directory:
-        return '--lineage star04239531/' \
-               'cadc:TAOSII/taos2_20220201T201317Z_star04239531.h5'
+        if 'def' in directory:
+            return '--lineage def/cadc:def/def.h5'
+        else:
+            return '--lineage star04239531/cadc:TAOSII/taos2_20220201T201317Z_star04239531.h5'
     else:
         return ''
 
