@@ -197,7 +197,7 @@ def test_differences(directory):
         header_mock.side_effect = _header
 
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('{} --debug -o {} --no_validate --observation {} {} {} {} '
+        sys.argv = ('{} -o {} --no_validate --observation {} {} {} {} '
                     '--resource-id ivo://cadc.nrc.ca/test'.format(
                         application, temp.name,
                         expected.collection, expected.observation_id,
