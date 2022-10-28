@@ -1,6 +1,7 @@
 from astropy.time import Time
 from datetime import datetime
 
+
 def _get_datetime(base):
     b = base.get('base').attrs
     result = None
@@ -28,7 +29,12 @@ def _get_energy_resolving_power(base):
     wl = None
     if filter_max is not None and filter_min is not None:
         wl = (filter_min + filter_max) / 2
-    if step is not None and zpd_index is not None and naxis_3 is not None and wl is not None:
+    if (
+        step is not None
+        and zpd_index is not None
+        and naxis_3 is not None
+        and wl is not None
+    ):
         result = 1 / wl * 2 * (step * (naxis_3 - zpd_index)) / 1.2067
     return result
 
@@ -36,7 +42,8 @@ def _get_energy_resolving_power(base):
 def _get_exposure(base):
     b = base.get('base').attrs
     # Laurie Rousseau-Nepton - 11-08-22
-    # Int. Time could be the total (multiplied by the cube spectral dimension f.attrs.get(‘NAXIS3’)
+    # Int. Time could be the total (multiplied by the cube spectral dimension
+    # f.attrs.get(‘NAXIS3’)
     result = None
     exposure = b.get('exposure_time')
     naxis_3 = b.get('step_nb')
