@@ -119,11 +119,11 @@
       <caom2:time>
         <caom2:bounds>
           <caom2:lower>58979.5015625</caom2:lower>
-          <caom2:upper>58979.5017365</caom2:upper>
+          <caom2:upper>58979.50173611111</caom2:upper>
           <caom2:samples>
             <caom2:sample>
               <caom2:lower>58979.5015625</caom2:lower>
-              <caom2:upper>58979.5017365</caom2:upper>
+              <caom2:upper>58979.50173611111</caom2:upper>
             </caom2:sample>
           </caom2:samples>
         </caom2:bounds>

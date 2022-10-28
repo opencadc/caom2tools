@@ -19,7 +19,7 @@
   </caom2:target>
   <caom2:telescope>
     <caom2:name>DAO 1.2-m</caom2:name>
-    <caom2:geoLocationX>-2331226.78834</caom2:geoLocationX>
+    <caom2:geoLocationX>-2331226.7883358444</caom2:geoLocationX>
     <caom2:geoLocationY>-3532798.9829</caom2:geoLocationY>
     <caom2:geoLocationZ>4755607.32183</caom2:geoLocationZ>
   </caom2:telescope>

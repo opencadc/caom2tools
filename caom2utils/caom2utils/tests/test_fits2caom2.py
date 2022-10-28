@@ -188,7 +188,10 @@ def test_hdf5_wcs_parser_set_wcs():
         test_observable_bp,
         test_custom_bp,
     ]:
-        test_subject = Hdf5Parser(bp, test_uri, test_fqn)
+        # limit the cases where h5py needs to be installed
+        import h5py
+        temp = h5py.File(test_fqn)
+        test_subject = Hdf5Parser(bp, test_uri, temp)
         assert test_subject is not None, 'expect a result'
         test_subject.augment_artifact(test_artifact)
         if bp == test_position_bp:
