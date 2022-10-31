@@ -226,7 +226,8 @@ class StorageClientWrapper:
                     id=uri,
                     size=temp.get('size'),
                     file_type=temp.get('type'),
-                    md5sum=temp.get('md5sum').replace('md5:', '')
+                    md5sum=temp.get('md5sum').replace('md5:', ''),
+                    encoding=temp.get('encoding'),
                 )
         except exceptions.NotFoundException:
             self._logger.info(f'cadcinfo:: {uri} not found')

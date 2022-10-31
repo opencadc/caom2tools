@@ -413,7 +413,7 @@ def _not_equal(rhs, lhs):
         else:
             # if only using python 3.5+, use math.isclose, instead of this
             # description of math.isclose from the python documentation
-            result = abs(rhs-lhs) <= max(1e-10 * max(abs(rhs), abs(lhs)), 1e-9)
+            result = abs(rhs-lhs) <= max(1e-12 * max(abs(rhs), abs(lhs)), 1e-11)
     else:
         result = rhs == lhs
     return not result

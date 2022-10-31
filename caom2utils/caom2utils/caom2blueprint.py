@@ -71,7 +71,6 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 
 import math
-import numpy
 from astropy.wcs import Wcsprm, WCS
 from astropy.io import fits
 from astropy.time import Time
@@ -1835,6 +1834,19 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
         self._time_axis_configed = True
 
+    def set(self, caom2_element, value, extension=0):
+        """
+        Sets the value associated with an element in the CAOM2 model. Value
+        cannot be a tuple.
+        :param caom2_element: name CAOM2 element (as in
+        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param value: new value of the CAOM2 element
+        :param extension: extension number (used only for Chunk elements)
+        """
+        if hasattr(value, 'decode'):
+            value = value.decode('utf-8')
+        super().set(caom2_element, value, extension)
+
     def _guess_axis_info(self):
         self._guess_axis_info_from_plan()
 
@@ -2071,7 +2083,7 @@ class BlueprintParser:
         if value is None:
             raise ValueError(
                 f'Must set a value of {to_enum_type.__name__} for '
-                f'{self._uri}.')
+                f'{self.uri}.')
         elif isinstance(value, to_enum_type):
             return value
         else:
@@ -3668,18 +3680,15 @@ class Hdf5Parser(ContentParser):
     """
 
     def __init__(
-        self, obs_blueprint, uri, local_f_name, find_roots_here='sitedata'
+        self, obs_blueprint, uri, h5_file, find_roots_here='sitedata'
     ):
         """
         :param obs_blueprint: Hdf5ObsBlueprint instance
         :param uri: which artifact augmentation is based on
-        :param local_f_name: str file name on disk
+        :param h5_file: h5py file handle
         :param find_roots_here: str location where Chunk metadata starts
         """
-        # h5py is an extra in this package since most collections do not
-        # require it
-        import h5py
-        self._file = h5py.File(local_f_name)
+        self._file = h5_file
         # where N Chunk metadata starts
         self._find_roots_here = find_roots_here
         # the length of the array is the number of Parts in an HDF5 file,
@@ -3698,7 +3707,7 @@ class Hdf5Parser(ContentParser):
         # h5py is an extra in this package since most collections do not
         # require it
         import h5py
-        individual, multi = self._extract_path_names_from_blueprint()
+        individual, multi, attributes = self._extract_path_names_from_blueprint()
 
         def _extract_from_item(name, object):
             """
@@ -3765,28 +3774,45 @@ class Hdf5Parser(ContentParser):
                             for jj in individual.get(temp):
                                 self._blueprint.set(jj, object[d_name], 0)
 
-        self._file.visititems(_extract_from_item)
+        if len(individual) == 0 and len(multi) == 0:
+            self._extract_from_attrs(attributes)
+        else:
+            self._file.visititems(_extract_from_item)
         self.logger.debug('Done apply_blueprint_from_file')
+
+    def _extract_from_attrs(self, attributes):
+        # I don't currently see any way to have more than one Part, if relying on
+        # attrs for metadata
+        part_index = 0
+        # v == list of blueprint keys
+        for k, v in attributes.items():
+            if k in self._file.attrs:
+                value = self._file.attrs[k]
+                for entry in v:
+                    self._blueprint.set(entry, value, part_index)
 
     def _extract_path_names_from_blueprint(self):
         """
-        :return: individual - a dictionary of lists, keys are unique path
-            names for finding metadata once per file. Values are
-            _CAOM2_ELEMENT strings.
-            multiple - a dictionary of lists, keys are unique path names for
-            finding metadata N times per file. Values are _CAOM2_ELEMENT
-            strings.
+        :return: individual - a dictionary of lists, keys are unique path names for finding metadata once per file.
+            Values are _CAOM2_ELEMENT strings.
+            multiple - a dictionary of lists, keys are unique path names for finding metadata N times per file. Values
+            are _CAOM2_ELEMENT strings.
+            attributes - a dictionary of lists, keys reference expected content from the h5py.File().attrs data
+            structure and its keys.
         """
         individual = defaultdict(list)
         multi = defaultdict(list)
+        attributes = defaultdict(list)
         for key, value in self._blueprint._plan.items():
             if ObsBlueprint.needs_lookup(value):
                 for ii in value[0]:
                     if ii.startswith('//'):
                         individual[ii].append(key)
-                    else:
+                    elif ii.startswith('/'):
                         multi[ii].append(key)
-        return individual, multi
+                    else:
+                        attributes[ii].append(key)
+        return individual, multi, attributes
 
     def apply_blueprint(self):
         self.logger.debug('Begin apply_blueprint')
@@ -4239,8 +4265,6 @@ class WcsParser:
             return None
         elif not str(value):
             return None  # empty string
-        elif isinstance(value, numpy.bytes_):
-            return value.decode('utf-8')
         else:
             return value
 
@@ -4562,7 +4586,8 @@ class Hdf5WcsParser(WcsParser):
         if not math.isnan(self._wcs.wcs.xposure):
             chunk.time.exposure = self._wcs.wcs.xposure
         chunk.time.timesys = self._wcs.wcs.timesys
-        chunk.time.trefpos = self._wcs.wcs.trefpos
+        if self._wcs.wcs.trefpos is not None and self._wcs.wcs.trefpos != '':
+            chunk.time.trefpos = self._wcs.wcs.trefpos
         # convert from the numpy array length 2 of self._wcs.wcs.mjdref
         # to a single value
         # TODO chunk.time.mjdref = self._wcs.to_header().get('MJDREF')
@@ -4906,7 +4931,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             elif '.h5' in local:
                 logging.debug(
                     f'Using an Hdf5Parser for local file {local}')
-                parser = Hdf5Parser(blueprint, uri, local)
+                # h5py is an extra in this package since most collections do
+                # not require it
+                import h5py
+                temp = h5py.File(local)
+                parser = Hdf5Parser(blueprint, uri, temp)
             else:
                 # explicitly ignore headers for txt and image files
                 logging.debug(f'Using a BlueprintParser for {local}')
