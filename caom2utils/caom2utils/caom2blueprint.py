@@ -5271,15 +5271,7 @@ def proc(args, obs_blueprints):
             raise RuntimeError(msg)
 
     subject = net.Subject.from_cmd_line_args(args)
-    if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
-        # if the resource_id is the default value, using CadcDataClient
-        client = data_util.StorageClientWrapper(
-            subject, using_storage_inventory=False)
-    else:
-        # using the new Storage Inventory system, since it's the one that
-        # depends on a resource_id
-        client = data_util.StorageClientWrapper(
-            subject, resource_id=args.resource_id)
+    client = data_util.StorageClientWrapper(subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False

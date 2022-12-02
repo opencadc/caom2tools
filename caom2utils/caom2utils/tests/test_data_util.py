@@ -105,77 +105,6 @@ def test_get_file_type():
         ), f'wrong type {data_util.get_file_type(key)} for {key}'
 
 
-@patch('caom2utils.data_util.CadcDataClient', autospec=True)
-def test_cadc_data_client(cadc_client_mock):
-    test_subject = Mock(autospec=True)
-    test_uri = 'ad:TEST/test_file.fits'
-    test_working_directory = Path(test_fits2caom2.TESTDATA_DIR)
-    test_fqn = test_working_directory / 'test_file.fits'
-    if test_fqn.exists():
-        test_fqn.unlink()
-
-    def info_mock(ignore1, ignore2):
-        return {
-            'type': 'application/fits',
-            'md5sum': 'abc',
-            'size': 42,
-        }
-
-    def get_mock(ignore1, ignore2, destination, **kwargs):
-        fhead = kwargs.get('fhead')
-        if fhead:
-            destination.write(TEST_HEADERS)
-        else:
-            test_fqn.write_text('CadcDataClient')
-
-    cadc_client_mock.return_value.get_file_info.side_effect = info_mock
-    cadc_client_mock.return_value.get_file.side_effect = get_mock
-    cadc_client_mock.return_value.put_file = Mock(autospec=True)
-
-    test_wrapper = data_util.StorageClientWrapper(
-        subject=test_subject,
-        using_storage_inventory=False,
-    )
-    assert test_wrapper is not None, 'ctor failure'
-
-    # info
-    test_result = test_wrapper.info(test_uri)
-    _check_info_result(test_result)
-
-    # get_head
-    test_result = test_wrapper.get_head(test_uri)
-    _check_header_result(test_result)
-
-    # get
-    test_wrapper.get(test_working_directory, test_uri)
-    _check_get_result(test_fqn)
-
-    # put
-    test_wrapper.put(test_working_directory, test_uri)
-    _check_put_result(cadc_client_mock.return_value.put_file)
-
-    # delete
-    with pytest.raises(NotImplementedError):
-        test_wrapper.remove(test_uri)
-
-    cadc_client_mock.return_value.get_file_info.side_effect = (
-        exceptions.UnexpectedException('get_file_info')
-    )
-    cadc_client_mock.return_value.get_file.side_effect = (
-        exceptions.UnexpectedException('get_file')
-    )
-    cadc_client_mock.return_value.put_file.side_effect = (
-        exceptions.UnexpectedException('put_file')
-    )
-    _fail_mock(test_wrapper, test_uri, test_working_directory)
-
-    cadc_client_mock.return_value.get_file_info.side_effect = (
-        exceptions.NotFoundException('cadcinfo')
-    )
-    test_result = test_wrapper.info(test_uri)
-    assert test_result is None, 'expected when not found'
-
-
 @patch('caom2utils.data_util.StorageInventoryClient')
 def test_storage_inventory_client(cadc_client_mock):
     test_subject = Mock(autospec=True)
@@ -201,10 +130,7 @@ def test_storage_inventory_client(cadc_client_mock):
     cadc_client_mock.return_value.cadcput = Mock(autospec=True)
     cadc_client_mock.return_value.cadcremove = Mock(autospec=True)
 
-    test_wrapper = data_util.StorageClientWrapper(
-        subject=test_subject,
-        using_storage_inventory=True,
-    )
+    test_wrapper = data_util.StorageClientWrapper(subject=test_subject)
     assert test_wrapper is not None, 'ctor failure'
 
     # info
@@ -264,11 +190,7 @@ def test_si_tracking(client_mock):
     client_mock.return_value.cadcget.side_effect = _get
     client_mock.return_value.cadcremove.side_effect = Mock()
 
-    test_wrapper = data_util.StorageClientWrapper(
-        subject=test_subject,
-        using_storage_inventory=True,
-        metrics=test_metrics,
-    )
+    test_wrapper = data_util.StorageClientWrapper(subject=test_subject, metrics=test_metrics)
     assert test_wrapper is not None, 'ctor failure'
 
     # test metrics failure
