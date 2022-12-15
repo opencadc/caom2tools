@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2022.                            (c) 2022.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,13 +69,9 @@
 
 """ Defines Caom2TestInstances class """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import collections
 from datetime import datetime
 import uuid
-import six
 from builtins import int
 
 from caom2 import artifact
@@ -361,7 +357,7 @@ class Caom2TestInstances(object):
                     _plane.data_read_groups.add('ivo://cadc.nrc.ca/groups?C')
 
             if self.depth > 2:
-                for k, v in six.iteritems(self.get_artifacts()):
+                for k, v in self.get_artifacts().items():
                     _plane.artifacts[k] = v
             planes[prod_id] = _plane
         return planes
@@ -522,7 +518,7 @@ class Caom2TestInstances(object):
                 _artifact.acc_meta_checksum = common.ChecksumURI(
                     "md5:844ce247db0844ad9f721430c80e7a21")
         if self.depth > 3:
-            for k, v in six.iteritems(self.get_parts()):
+            for k, v in self.get_parts().items():
                 _artifact.parts[k] = v
         artifacts["ad:foo/bar1"] = _artifact
         if self.caom_version >= 24:
