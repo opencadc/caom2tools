@@ -73,7 +73,6 @@
 import os
 import uuid
 from builtins import str, int
-import six
 from urllib.parse import urlparse
 
 from lxml import etree
@@ -2036,7 +2035,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("planes", parent)
-        for _plane in six.itervalues(planes):
+        for _plane in planes.values():
             plane_element = self._get_caom_element("plane", element)
             self._add_entity_attributes(_plane, plane_element)
             self._add_element("productID", _plane.product_id, plane_element)
@@ -2294,7 +2293,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("artifacts", parent)
-        for _artifact in six.itervalues(artifacts):
+        for _artifact in artifacts.values():
             artifact_element = self._get_caom_element("artifact", element)
             self._add_entity_attributes(_artifact, artifact_element)
             self._add_element("uri", _artifact.uri, artifact_element)
@@ -2332,7 +2331,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("parts", parent)
-        for _part in six.itervalues(parts):
+        for _part in parts.values():
             part_element = self._get_caom_element("part", element)
             self._add_entity_attributes(_part, part_element)
             self._add_element("name", _part.name, part_element)
