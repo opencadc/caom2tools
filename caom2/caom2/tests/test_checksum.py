@@ -69,9 +69,6 @@
 
 """ Defines TestPlane class """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import hashlib
 import os
 import sys
@@ -86,7 +83,7 @@ from caom2.caom_util import str2ivoa
 from caom2.checksum import update_checksum, int_32, checksum_diff
 import tempfile
 from mock import patch
-from six import StringIO
+from io import StringIO
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_DATA = 'data'
