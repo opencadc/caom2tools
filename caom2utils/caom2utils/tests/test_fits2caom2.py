@@ -550,7 +550,7 @@ def test_help():
         assert usage.strip('\n') == expected
 
     # missing productID when plane count is wrong
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+    with patch('sys.stdout', new_callable=StringIO) as stderr_mock:
         bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
         sys.argv = ["fits2caom2", "--in", bad_product_file,
                     "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
