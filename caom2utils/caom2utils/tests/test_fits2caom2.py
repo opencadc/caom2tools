@@ -551,25 +551,31 @@ def test_help():
 
     # missing productID when plane count is wrong
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
-        bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
-        sys.argv = ["fits2caom2", "--in", bad_product_file,
-                    "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
-        with pytest.raises(MyExitError):
-            main_app()
-        result = stderr_mock.getvalue()
-        assert bad_product_id in result, result
+        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+            bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
+            sys.argv = ["fits2caom2", "--in", bad_product_file,
+                        "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
+            with pytest.raises(MyExitError):
+                main_app()
+            # inconsistencies between Python 3.7 and later versions.
+            # this should be on stderr_mmock only
+            result = stderr_mock.getvalue() + stdout_mock.getvalue()
+            assert bad_product_id in result, result
 
     # missing productID when blueprint doesn't have one either
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock, \
-       patch('caom2utils.data_util.StorageClientWrapper'):
-        sys.argv = ["fits2caom2", "--observation", "test_collection_id",
-                    "test_observation_id",
-                    "ad:CGPS/CGPS_MA1_HI_line_image.fits",
-                    "--resource-id", "ivo://cadc.nrc.ca/uvic/minoc"]
-        with pytest.raises(MyExitError):
-            main_app()
-        result = stderr_mock.getvalue()
-        assert missing_product_id.strip() in result, result
+    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+        with patch('sys.stderr', new_callable=StringIO) as stderr_mock, \
+           patch('caom2utils.data_util.StorageClientWrapper'):
+            sys.argv = ["fits2caom2", "--observation", "test_collection_id",
+                        "test_observation_id",
+                        "ad:CGPS/CGPS_MA1_HI_line_image.fits",
+                        "--resource-id", "ivo://cadc.nrc.ca/uvic/minoc"]
+            with pytest.raises(MyExitError):
+                main_app()
+            # inconsistencies between Python 3.7 and later versions.
+            # this should be on stderr_mmock only
+            result = stderr_mock.getvalue() + stdout_mock.getvalue()
+            assert missing_product_id.strip() in result, result
 
     # missing required --observation
     """
