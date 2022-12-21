@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2022.                            (c) 2022.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,14 +68,11 @@
 
 """ Defines TestObservationReaderWriter class """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import os
 import unittest
 
 from lxml import etree
-from six import BytesIO
+from io import BytesIO
 import tempfile
 
 from . import caom_test_instances
@@ -1196,10 +1192,6 @@ class TestSchemaValidator(unittest.TestCase):
             xml = xml.replace(b'science', intent_type)
         reader = obs_reader_writer.ObservationReader(True)
         reader.read(BytesIO(xml))
-
-    def runTest(self):
-        # method required to make tests run on Python 2.7
-        pass
 
     def test_schema_validator(self):
         """

@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2021.                            (c) 2021.
+#  (c) 2022.                            (c) 2022.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,9 +66,6 @@
 #
 # ***********************************************************************
 #
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import argparse
 import imp
 import logging
@@ -85,8 +82,7 @@ from cadcutils import net, util, exceptions
 from caom2.obs_reader_writer import ObservationReader, ObservationWriter
 from caom2 import obs_reader_writer
 from caom2.version import version as caom2_version
-from six import BytesIO
-from six.moves import xrange
+from io import BytesIO
 
 # from . import version as caom2repo_version
 from caom2repo import version
@@ -660,7 +656,7 @@ def main_app():
         help='file containing observations to be visited',
         type=argparse.FileType('r'))
     visit_parser.add_argument(
-        '--threads', type=int, choices=xrange(2, 10),
+        '--threads', type=int, choices=range(2, 10),
         help='number of working threads used by the visitor when getting ' +
              'observations, range is 2 to 10')
     visit_parser.add_argument(

@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2022.                            (c) 2022.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,7 +65,6 @@
 #
 # ***********************************************************************
 #
-import io
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
@@ -94,7 +93,7 @@ import vos
 from lxml import etree
 
 from unittest.mock import Mock, patch
-from six import StringIO, BytesIO
+from io import StringIO, BytesIO
 
 import importlib
 import os
@@ -551,25 +550,31 @@ def test_help():
 
     # missing productID when plane count is wrong
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
-        bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
-        sys.argv = ["fits2caom2", "--in", bad_product_file,
-                    "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
-        with pytest.raises(MyExitError):
-            main_app()
-        result = stderr_mock.getvalue()
-        assert bad_product_id in result, result
+        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+            bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
+            sys.argv = ["fits2caom2", "--in", bad_product_file,
+                        "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
+            with pytest.raises(MyExitError):
+                main_app()
+            # inconsistencies between Python 3.7 and later versions.
+            # this should be on stderr_mmock only
+            result = stderr_mock.getvalue() + stdout_mock.getvalue()
+            assert bad_product_id in result, result
 
     # missing productID when blueprint doesn't have one either
-    with patch('sys.stderr', new_callable=StringIO) as stderr_mock, \
-       patch('caom2utils.data_util.StorageClientWrapper'):
-        sys.argv = ["fits2caom2", "--observation", "test_collection_id",
-                    "test_observation_id",
-                    "ad:CGPS/CGPS_MA1_HI_line_image.fits",
-                    "--resource-id", "ivo://cadc.nrc.ca/uvic/minoc"]
-        with pytest.raises(MyExitError):
-            main_app()
-        result = stderr_mock.getvalue()
-        assert missing_product_id.strip() in result, result
+    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+        with patch('sys.stderr', new_callable=StringIO) as stderr_mock, \
+           patch('caom2utils.data_util.StorageClientWrapper'):
+            sys.argv = ["fits2caom2", "--observation", "test_collection_id",
+                        "test_observation_id",
+                        "ad:CGPS/CGPS_MA1_HI_line_image.fits",
+                        "--resource-id", "ivo://cadc.nrc.ca/uvic/minoc"]
+            with pytest.raises(MyExitError):
+                main_app()
+            # inconsistencies between Python 3.7 and later versions.
+            # this should be on stderr_mmock only
+            result = stderr_mock.getvalue() + stdout_mock.getvalue()
+            assert missing_product_id.strip() in result, result
 
     # missing required --observation
     """
@@ -1571,7 +1576,7 @@ def test_update_artifact_meta_errors():
 
 @patch('caom2utils.data_util.StorageInventoryClient', autospec=True)
 @patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
-@patch('sys.stdout', new_callable=BytesIO)
+@patch('sys.stdout', new_callable=StringIO)
 @patch('caom2utils.caom2blueprint._augment')
 def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     """ Tests that gen_proc can return -1."""
@@ -1587,14 +1592,9 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     test_blueprints = {'test_collection_id': ObsBlueprint()}
     test_result = gen_proc(test_args, test_blueprints)
     assert test_result == -1, 'expect failure'
-    if stdout_mock.getvalue():
-        expected = _get_obs(EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML)
-        actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
-        result = get_differences(expected, actual, 'Observation')
-        assert result is None
 
 
-@patch('sys.stdout', new_callable=io.StringIO)
+@patch('sys.stdout', new_callable=StringIO)
 @patch('caom2utils.caom2blueprint.Client')
 def test_parser_construction(vos_mock, stdout_mock):
     vos_mock.get_node.side_effect = _get_node

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -76,16 +75,11 @@ the first point of use could be implemented.  This helps the data
 engineer get the correct meta data more quickly.
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import sys
 import collections
 from datetime import datetime
 
-import six
-from six.moves import collections_abc
-from six.moves.urllib.parse import urlsplit
+from urllib.parse import urlsplit
 from builtins import int, str as newstr
 
 
@@ -267,7 +261,7 @@ class TypedList(collections.abc.MutableSequence):
         return self._oktypes
 
 
-class TypedSet(collections_abc.MutableSet):
+class TypedSet(collections.abc.MutableSet):
     """
     Class that implements a typed set in Python. Supported types
     are specified when instance is created. Example:
@@ -402,12 +396,12 @@ class TypedOrderedDict(collections.OrderedDict):
 
     def __str__(self):
         return "\n".join(["{} => {}".format(k, v)
-                          for k, v in six.iteritems(self)])
+                          for k, v in self.items()])
 
     def __repr__(self):
         return "TypedOrderedDict((%r))," % self._oktypes + (
             "(".join(
-                ["(%r,%r)" % (k, v) for k, v in six.iteritems(self)]) + ")")
+                ["(%r,%r)" % (k, v) for k, v in self.items()]) + ")")
 
     def check(self, key, value):
         """

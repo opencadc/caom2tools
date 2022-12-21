@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2022.                            (c) 2022.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,12 +68,8 @@
 
 """definition of the  caom2.Observation object."""
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 from datetime import datetime
 
-import six
 from builtins import str
 import warnings
 from deprecated import deprecated
@@ -86,7 +81,7 @@ from .common import AbstractCaomEntity, CaomObject, ObservationURI, \
 from .common import _CAOM_VOCAB_NS
 from .plane import Plane
 from .shape import Point
-from six.moves.urllib.parse import urlsplit
+from urllib.parse import urlsplit
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
@@ -103,8 +98,6 @@ class ObservationIntentType(OrderedEnum):
     CALIBRATION: "calibration"
     SCIENCE: "science"
     """
-    # __order__ required for Python2.7
-    __order__ = "SCIENCE CALIBRATION"
     SCIENCE = "science"
     CALIBRATION = "calibration"
 
@@ -506,7 +499,7 @@ class Algorithm(CaomObject):
                simple observation, otherwise name of algorithm that selected
                composite members or just 'composite' works too.
         """
-        caom_util.type_check(name, six.text_type, 'name', override=False)
+        caom_util.type_check(name, str, 'name', override=False)
         self._name = str(name)
 
     def _key(self):

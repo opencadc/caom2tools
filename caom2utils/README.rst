@@ -13,8 +13,6 @@ Validates a CAOM2 element (Observation, Plane, Artifact, Part or Chunk) with res
 
 .. code:: python
 
-    from __future__ import (absolute_import, division, print_function,
-                    unicode_literals)
     import sys
     from caom2 import SimpleObservation
     import caom2utils

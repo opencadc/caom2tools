@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2022.                            (c) 2022.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,13 +68,10 @@
 
 """defines the caom2.Plane class"""
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 from datetime import datetime
 
 from builtins import str, int
-from six.moves.urllib.parse import SplitResult, urlsplit
+from urllib.parse import SplitResult, urlsplit
 from deprecated import deprecated
 
 from caom2.caom_util import int_32
@@ -87,6 +83,7 @@ from .common import AbstractCaomEntity, CaomObject, ObservationURI,\
     VocabularyTerm, OrderedEnum
 from .common import _CAOM_VOCAB_NS, _OBSCORE_VOCAB_NS
 import warnings
+from enum import Enum
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum, extend_enum
@@ -153,8 +150,6 @@ class EnergyBand(OrderedEnum):
     XRAY: "X-ray"
     GAMMARAY: "Gamma-ray"
     """
-    # __order__ required for Python2.7
-    __order__ = "RADIO MILLIMETER INFRARED OPTICAL UV EUV XRAY GAMMARAY"
     RADIO = "Radio"
     MILLIMETER = "Millimeter"
     INFRARED = "Infrared"
@@ -186,9 +181,6 @@ class PolarizationState(OrderedEnum):
     XY: "XY"
     YX: "YX"
     """
-    # __order__ required for Python2.7
-    __order__ = "I Q U V RR LL RL LR XX YY XY YX POLI FPOLI POLA EPOLI " \
-                "CPOLI NPOLI"
     I = "I"  # noqa
     Q = "Q"
     U = "U"
