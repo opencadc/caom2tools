@@ -65,7 +65,6 @@
 #
 # ***********************************************************************
 #
-import io
 
 from astropy.io import fits
 from astropy.wcs import WCS as awcs
@@ -1595,7 +1594,7 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     assert test_result == -1, 'expect failure'
 
 
-@patch('sys.stdout', new_callable=io.StringIO)
+@patch('sys.stdout', new_callable=StringIO)
 @patch('caom2utils.caom2blueprint.Client')
 def test_parser_construction(vos_mock, stdout_mock):
     vos_mock.get_node.side_effect = _get_node
