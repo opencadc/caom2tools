@@ -130,11 +130,7 @@ def test_obs_blueprint():
     ob.set_default('Observation.proposal.id', 'NOPROP')
     assert ob._plan['Observation.proposal.id'][0] == ['PROP2', 'PROP', 'RUNID']
     assert ob._plan['Observation.proposal.id'][1] == 'NOPROP'
-    if sys.version.startswith('2.7.'):
-        assert ("Observation.proposal.id = ['PROP2', 'PROP', u'RUNID'], "
-                "default = NOPROP") in str(ob)
-    else:
-        assert ("Observation.proposal.id = ['PROP2', 'PROP', 'RUNID'], "
+    assert ("Observation.proposal.id = ['PROP2', 'PROP', 'RUNID'], "
                 "default = NOPROP") in str(ob)
 
     # set in extension

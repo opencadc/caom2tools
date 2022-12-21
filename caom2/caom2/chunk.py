@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -96,9 +95,6 @@ class ProductType(OrderedEnum):
     FLAT: "flat"
     WAVECAL: "wavecal"
     """
-    # __order__ required for Python2.7
-    __order__ = "SCIENCE CALIBRATION PREVIEW INFO NOISE WEIGHT AUXILIARY " \
-                "THUMBNAIL BIAS DARK FLAT WAVECAL"
     SCIENCE = "science"
     CALIBRATION = "calibration"
     PREVIEW = "preview"

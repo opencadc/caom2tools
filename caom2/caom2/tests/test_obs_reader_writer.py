@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -1193,10 +1192,6 @@ class TestSchemaValidator(unittest.TestCase):
             xml = xml.replace(b'science', intent_type)
         reader = obs_reader_writer.ObservationReader(True)
         reader.read(BytesIO(xml))
-
-    def runTest(self):
-        # method required to make tests run on Python 2.7
-        pass
 
     def test_schema_validator(self):
         """

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -106,7 +105,7 @@ class OrderedEnum(Enum):
     """
     Enums are in the order of their definition.
 
-    This is here just for Python2.7 and to work with aenum.
+    TODO: not sure this is required in Python 3
     enum.Enum is supposed to support this.
     """
 

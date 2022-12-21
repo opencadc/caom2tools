@@ -2676,8 +2676,6 @@ class ObservationWriter(object):
             element.text = value
         else:
             if isinstance(value, float):
-                # in Python 2.7 str(float) might alter precision of float
-                # therefore call repr instead
                 element.text = repr(value)
             else:
                 element.text = str(value)
