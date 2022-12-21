@@ -1577,7 +1577,7 @@ def test_update_artifact_meta_errors():
 
 @patch('caom2utils.data_util.StorageInventoryClient', autospec=True)
 @patch('cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True)
-@patch('sys.stdout', new_callable=BytesIO)
+@patch('sys.stdout', new_callable=StringIO)
 @patch('caom2utils.caom2blueprint._augment')
 def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     """ Tests that gen_proc can return -1."""
@@ -1593,11 +1593,6 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
     test_blueprints = {'test_collection_id': ObsBlueprint()}
     test_result = gen_proc(test_args, test_blueprints)
     assert test_result == -1, 'expect failure'
-    if stdout_mock.getvalue():
-        expected = _get_obs(EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML)
-        actual = _get_obs(stdout_mock.getvalue().decode('ascii'))
-        result = get_differences(expected, actual, 'Observation')
-        assert result is None
 
 
 @patch('sys.stdout', new_callable=io.StringIO)
