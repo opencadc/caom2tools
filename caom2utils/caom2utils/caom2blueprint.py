@@ -2277,8 +2277,8 @@ class ContentParser(BlueprintParser):
             if chunk.position is None:
                 self._try_position_with_blueprint(chunk, index)
         if chunk.position:
-            chunk.position.resolution = self._get_from_list(
-                'Chunk.position.resolution', index=index)
+            chunk.position.resolution = _to_float(self._get_from_list(
+                'Chunk.position.resolution', index=index))
         if self.blueprint._energy_axis_configed:
             self._wcs_parser.augment_energy(chunk)
         if chunk.energy:
