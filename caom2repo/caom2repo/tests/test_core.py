@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2023.                            (c) 2023.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -80,7 +80,7 @@ from cadcutils.net import auth
 from caom2.obs_reader_writer import ObservationWriter
 from caom2 import obs_reader_writer, ChecksumURI
 from caom2.observation import SimpleObservation
-from mock import Mock, patch, MagicMock, ANY, call
+from unittest.mock import Mock, patch, MagicMock, ANY, call
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
 from io import BytesIO, StringIO
 
