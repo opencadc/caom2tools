@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2023.                            (c) 2023.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -81,7 +81,7 @@ from caom2 import update_meta_checksum
 from caom2.caom_util import str2ivoa
 from caom2.checksum import update_checksum, int_32, checksum_diff
 import tempfile
-from mock import patch
+from unittest.mock import patch
 from io import StringIO
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
