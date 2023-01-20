@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2021.                            (c) 2021.
+#  (c) 2023.                            (c) 2023.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,9 +67,6 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import copy
 import logging
 import os
@@ -83,9 +80,9 @@ from cadcutils.net import auth
 from caom2.obs_reader_writer import ObservationWriter
 from caom2 import obs_reader_writer, ChecksumURI
 from caom2.observation import SimpleObservation
-from mock import Mock, patch, MagicMock, ANY, call
+from unittest.mock import Mock, patch, MagicMock, ANY, call
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
-from six import BytesIO, StringIO
+from io import BytesIO, StringIO
 
 from caom2repo import core
 from caom2repo.core import CAOM2RepoClient
@@ -958,47 +955,55 @@ class TestCAOM2Repo(unittest.TestCase):
             sys.argv = ["caom2-repo", "--help"]
             with self.assertRaises(MyExitError):
                 core.main_app()
-            self.assertEqual(usage, stdout_mock.getvalue())
+            # Python 3.10 difference in titles
+            actual = stdout_mock.getvalue().replace(
+                'options:', 'optional arguments:').strip('\n')
+            assert usage.strip('\n') == actual
 
         # create --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-repo", "create", "--help"]
             with self.assertRaises(MyExitError):
                 core.main_app()
-            self.assertEqual(create_usage, stdout_mock.getvalue())
-        # print(stdout_mock.getvalue())
+            actual = stdout_mock.getvalue().replace(
+                'options:', 'optional arguments:').strip('\n')
+            assert create_usage.strip('\n') == actual
 
         # read --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-repo", "read", "--help"]
             with self.assertRaises(MyExitError):
                 core.main_app()
-            self.assertEqual(read_usage, stdout_mock.getvalue())
-        # print(stdout_mock.getvalue())
+            actual = stdout_mock.getvalue().replace(
+                'options:', 'optional arguments:').strip('\n')
+            assert read_usage.strip('\n') == actual
 
         # update --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-repo", "update", "--help"]
             with self.assertRaises(MyExitError):
                 core.main_app()
-            self.assertEqual(update_usage, stdout_mock.getvalue())
-        # print(stdout_mock.getvalue())
+            actual = stdout_mock.getvalue().replace(
+                'options:', 'optional arguments:').strip('\n')
+            assert update_usage.strip('\n') == actual
 
         # delete --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-repo", "delete", "--help"]
             with self.assertRaises(MyExitError):
                 core.main_app()
-            self.assertEqual(delete_usage, stdout_mock.getvalue())
-        # print(stdout_mock.getvalue())
+            actual = stdout_mock.getvalue().replace(
+                'options:', 'optional arguments:').strip('\n')
+            assert delete_usage.strip('\n') == actual
 
         # visit --help
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             sys.argv = ["caom2-repo", "visit", "--help"]
             with self.assertRaises(MyExitError):
                 core.main_app()
-            self.assertEqual(visit_usage, stdout_mock.getvalue())
-        # print(stdout_mock.getvalue())
+            actual = stdout_mock.getvalue().replace(
+                'options:', 'optional arguments:').strip('\n')
+            assert visit_usage.strip('\n') == actual
 
         # visit too few number of threads
         with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -1011,7 +1016,6 @@ class TestCAOM2Repo(unittest.TestCase):
                 core.main_app()
             self.assertTrue('error: argument --threads: invalid choice' in
                             stderr_mock.getvalue())
-        # print(stderr_mock.getvalue())
 
         # visit too many number of threads
         with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
@@ -1024,4 +1028,3 @@ class TestCAOM2Repo(unittest.TestCase):
                 core.main_app()
             self.assertTrue('error: argument --threads: invalid choice' in
                             stderr_mock.getvalue())
-        # print(stderr_mock.getvalue())

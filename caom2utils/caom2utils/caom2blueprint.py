@@ -71,7 +71,6 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 
 import math
-import numpy
 from astropy.wcs import Wcsprm, WCS
 from astropy.io import fits
 from astropy.time import Time
@@ -1844,7 +1843,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :param value: new value of the CAOM2 element
         :param extension: extension number (used only for Chunk elements)
         """
-        if isinstance(value, numpy.bytes_):
+        if hasattr(value, 'decode'):
             value = value.decode('utf-8')
         super().set(caom2_element, value, extension)
 
@@ -2022,7 +2021,7 @@ class BlueprintParser:
             return value
         if (keywords and not ObsBlueprint.needs_lookup(keywords)
                 and not ObsBlueprint.is_function(keywords)):
-                value = keywords
+            value = keywords
         elif self._blueprint.update:
             # The first clause: boolean attributes are used to represent
             # three different values: True, False, and unknown. For boolean
@@ -2278,8 +2277,8 @@ class ContentParser(BlueprintParser):
             if chunk.position is None:
                 self._try_position_with_blueprint(chunk, index)
         if chunk.position:
-            chunk.position.resolution = self._get_from_list(
-                'Chunk.position.resolution', index=index)
+            chunk.position.resolution = _to_float(self._get_from_list(
+                'Chunk.position.resolution', index=index))
         if self.blueprint._energy_axis_configed:
             self._wcs_parser.augment_energy(chunk)
         if chunk.energy:
@@ -3798,12 +3797,12 @@ class Hdf5Parser(ContentParser):
 
     def _extract_path_names_from_blueprint(self):
         """
-        :return: individual - a dictionary of lists, keys are unique path
-            names for finding metadata once per file. Values are
-            _CAOM2_ELEMENT strings.
-            multiple - a dictionary of lists, keys are unique path names for
-            finding metadata N times per file. Values are _CAOM2_ELEMENT
-            strings.
+        :return: individual - a dictionary of lists, keys are unique path names for finding metadata once per file.
+            Values are _CAOM2_ELEMENT strings.
+            multiple - a dictionary of lists, keys are unique path names for finding metadata N times per file. Values
+            are _CAOM2_ELEMENT strings.
+            attributes - a dictionary of lists, keys reference expected content from the h5py.File().attrs data
+            structure and its keys.
         """
         individual = defaultdict(list)
         multi = defaultdict(list)
@@ -4591,7 +4590,8 @@ class Hdf5WcsParser(WcsParser):
         if not math.isnan(self._wcs.wcs.xposure):
             chunk.time.exposure = self._wcs.wcs.xposure
         chunk.time.timesys = self._wcs.wcs.timesys
-        chunk.time.trefpos = self._wcs.wcs.trefpos
+        if self._wcs.wcs.trefpos is not None and self._wcs.wcs.trefpos != '':
+            chunk.time.trefpos = self._wcs.wcs.trefpos
         # convert from the numpy array length 2 of self._wcs.wcs.mjdref
         # to a single value
         # TODO chunk.time.mjdref = self._wcs.to_header().get('MJDREF')
@@ -5275,15 +5275,7 @@ def proc(args, obs_blueprints):
             raise RuntimeError(msg)
 
     subject = net.Subject.from_cmd_line_args(args)
-    if args.resource_id == 'ivo://cadc.nrc.ca/fits2caom2':
-        # if the resource_id is the default value, using CadcDataClient
-        client = data_util.StorageClientWrapper(
-            subject, using_storage_inventory=False)
-    else:
-        # using the new Storage Inventory system, since it's the one that
-        # depends on a resource_id
-        client = data_util.StorageClientWrapper(
-            subject, resource_id=args.resource_id)
+    client = data_util.StorageClientWrapper(subject, resource_id=args.resource_id)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False

@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2022.                            (c) 2022.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,17 +66,13 @@
 # ***********************************************************************
 #
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import inspect
 import uuid
 from datetime import datetime
 
 from builtins import int, str
-from six.moves.urllib.parse import SplitResult, urlparse, urlsplit
+from urllib.parse import SplitResult, urlparse, urlsplit
 import logging
-import six
 
 from . import caom_util
 import warnings
@@ -110,7 +105,7 @@ class OrderedEnum(Enum):
     """
     Enums are in the order of their definition.
 
-    This is here just for Python2.7 and to work with aenum.
+    TODO: not sure this is required in Python 3
     enum.Enum is supposed to support this.
     """
 
@@ -148,10 +143,7 @@ class CaomObject(object):
         pass
 
     def __str__(self):
-        if six.PY3:
-            args = inspect.getfullargspec(self.__init__).args[1:]
-        else:
-            args = inspect.getargspec(self.__init__).args[1:]
+        args = inspect.getfullargspec(self.__init__).args[1:]
         class_name = self.__class__.__name__
         return "\n".join(["{}.{} : {}".
                          format(class_name, arg, getattr(self, arg, None))
@@ -164,10 +156,7 @@ class CaomObject(object):
             return False
 
     def __repr__(self):
-        if six.PY3:
-            args = inspect.getfullargspec(self.__init__).args[1:]
-        else:
-            args = inspect.getargspec(self.__init__).args[1:]
+        args = inspect.getfullargspec(self.__init__).args[1:]
         class_name = ""
         if self.__class__.__module__ != '__main__':
             class_name += self.__class__.__module__ + "."

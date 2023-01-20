@@ -1,6 +1,0 @@
--e ../caom2
--e . 
-pytest>=6.2
-pytest-cov>=2.12
-flake8>=3.9
-mock>=4.0

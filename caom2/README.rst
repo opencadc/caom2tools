@@ -19,9 +19,6 @@ To create a minimal Simple Observation
 
 .. code:: python
 
-        # make it compatible with Python 2 and 3
-        from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
         import sys
         from caom2 import SimpleObservation, TypedOrderedDict, Plane, Artifact,\
                           Part, Chunk, ObservationWriter, ProductType,\

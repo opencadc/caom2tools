@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2018.                            (c) 2018.
+#  (c) 2022.                            (c) 2022.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -72,9 +71,6 @@ A difference method for CAOM2 entities.
 
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import math
 
 from caom2.common import CaomObject
@@ -82,7 +78,6 @@ from caom2.caom_util import TypedSet, TypedOrderedDict, TypedList
 from caom2 import Chunk
 from . import caom_util
 
-import logging
 
 __all__ = ['get_differences']
 
