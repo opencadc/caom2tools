@@ -2019,7 +2019,7 @@ class BlueprintParser:
                     f'{lookup}: using current value of {current!r}.')
                 value = current
             return value
-        if (keywords and not ObsBlueprint.needs_lookup(keywords)
+        if (keywords is not None and not ObsBlueprint.needs_lookup(keywords)
                 and not ObsBlueprint.is_function(keywords)):
             value = keywords
         elif self._blueprint.update:
