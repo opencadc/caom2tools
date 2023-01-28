@@ -2019,7 +2019,7 @@ class BlueprintParser:
                     f'{lookup}: using current value of {current!r}.')
                 value = current
             return value
-        if (keywords and not ObsBlueprint.needs_lookup(keywords)
+        if (keywords is not None and not ObsBlueprint.needs_lookup(keywords)
                 and not ObsBlueprint.is_function(keywords)):
             value = keywords
         elif self._blueprint.update:
@@ -3108,7 +3108,7 @@ class ContentParser(BlueprintParser):
 
     def _try_range_return(self, index, lookup):
         self.logger.debug(f'Try to set the range for {lookup}')
-        range = None
+        result = None
         aug_range_start = self._two_param_constructor(
             f'Chunk.{lookup}.axis.range.start.pix',
             f'Chunk.{lookup}.axis.range.start.val',
@@ -3118,9 +3118,9 @@ class ContentParser(BlueprintParser):
             f'Chunk.{lookup}.axis.range.end.val',
             index, _to_float, RefCoord)
         if aug_range_start and aug_range_end:
-            range = CoordRange1D(aug_range_start, aug_range_end)
-        self.logger.debug(f'Completed setting range for {lookup}')
-        return range
+            result = CoordRange1D(aug_range_start, aug_range_end)
+            self.logger.debug(f'Completed setting range with return for {lookup}')
+        return result
 
     def _try_range_with_blueprint(self, chunk, index):
         """Use the blueprint to set elements and attributes that
