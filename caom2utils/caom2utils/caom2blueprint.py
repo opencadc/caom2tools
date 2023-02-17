@@ -71,7 +71,7 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 
 import math
-from astropy.wcs import Wcsprm, WCS
+from astropy.wcs import utils, Wcsprm, WCS
 from astropy.io import fits
 from astropy.time import Time
 from cadcutils import version
@@ -2278,7 +2278,7 @@ class ContentParser(BlueprintParser):
                 self._try_position_with_blueprint(chunk, index)
         if chunk.position:
             chunk.position.resolution = _to_float(self._get_from_list(
-                'Chunk.position.resolution', index=index))
+                'Chunk.position.resolution', index=index, current=chunk.position.resolution))
         if self.blueprint._energy_axis_configed:
             self._wcs_parser.augment_energy(chunk)
         if chunk.energy:
@@ -4029,6 +4029,10 @@ class WcsParser:
         temp = self._sanitize(self.wcs.equinox)
         if (temp is not None and 1800.0 <= temp <= 2500) or temp is None:
             chunk.position.equinox = temp
+
+        logging.error(self.wcs.cunit)
+        self._finish_chunk_position(chunk)
+        logging.error(self.wcs)
         self.logger.debug('End Spatial WCS augmentation.')
 
     def augment_temporal(self, chunk):
@@ -4124,6 +4128,14 @@ class WcsParser:
         chunk.observable_axis = observable_axis_index + 1
         self._finish_chunk_observable(chunk)
         self.logger.debug('End Observable WCS augmentation.')
+
+    def _finish_chunk_position(self, chunk):
+        if chunk.position.resolution is None:
+            # JJK 30-01-23
+            # In a spatial data chunk the resolution is 2 times the pixel size.  We can get the pixel size from the wcs
+            logging.error(self.wcs.cunit)
+            chunk.position.resolution = utils.proj_plane_pixel_scales(self.wcs)[0]
+            logging.error(self.wcs.cunit)
 
     def _finish_chunk_time(self, chunk):
         raise NotImplementedError
@@ -4426,39 +4438,33 @@ class Hdf5WcsParser(WcsParser):
     def _set_wcs(self):
         self._wcs = WCS(naxis=self._blueprint.get_configed_axes_count())
         array_shape = [0] * self._blueprint.get_configed_axes_count()
+        crder = [0] * self._blueprint.get_configed_axes_count()
+        crpix = [0] * self._blueprint.get_configed_axes_count()
+        crval = [0] * self._blueprint.get_configed_axes_count()
+        csyer = [0] * self._blueprint.get_configed_axes_count()
+        ctype = [0] * self._blueprint.get_configed_axes_count()
+        cunit = [0] * self._blueprint.get_configed_axes_count()
+        temp = [0] * self._blueprint.get_configed_axes_count()
+        cd = [temp.copy() for _ in range(self._blueprint.get_configed_axes_count())]
         count = 0
         if self._blueprint._pos_axes_configed:
             self._axes['ra'][1] = True
             self._axes['dec'][1] = True
             self._axes['ra'][0] = count
             self._axes['dec'][0] = count + 1
-            temp = [0] * self._blueprint.get_configed_axes_count()
-            cd = [temp.copy()
-                  for ii in range(self._blueprint.get_configed_axes_count())]
-            self.assign_sanitize(self._wcs.wcs.ctype, count,
-                                 'Chunk.position.axis.axis1.ctype')
-            self.assign_sanitize(self._wcs.wcs.ctype, count + 1,
-                                 'Chunk.position.axis.axis2.ctype')
-            self.assign_sanitize(self._wcs.wcs.cunit, count,
-                                 'Chunk.position.axis.axis1.cunit')
-            self.assign_sanitize(self._wcs.wcs.cunit, count + 1,
-                                 'Chunk.position.axis.axis2.cunit')
-            array_shape[count] = self._blueprint._get(
-                'Chunk.position.axis.function.dimension.naxis1')
-            array_shape[count + 1] = self._blueprint._get(
-                'Chunk.position.axis.function.dimension.naxis2')
-            self.assign_sanitize(
-                self._wcs.wcs.crpix, count,
-                'Chunk.position.axis.function.refCoord.coord1.pix')
-            self.assign_sanitize(
-                self._wcs.wcs.crpix, count + 1,
-                'Chunk.position.axis.function.refCoord.coord2.pix')
-            self.assign_sanitize(
-                self._wcs.wcs.crval, count,
-                'Chunk.position.axis.function.refCoord.coord1.val')
-            self.assign_sanitize(
-                self._wcs.wcs.crval, count + 1,
-                'Chunk.position.axis.function.refCoord.coord2.val')
+            # temp = [0] * self._blueprint.get_configed_axes_count()
+            # cd = [temp.copy()
+            #       for _ in range(self._blueprint.get_configed_axes_count())]
+            self.assign_sanitize(ctype, count, 'Chunk.position.axis.axis1.ctype')
+            self.assign_sanitize(ctype, count + 1, 'Chunk.position.axis.axis2.ctype')
+            self.assign_sanitize(cunit, count, 'Chunk.position.axis.axis1.cunit')
+            self.assign_sanitize(cunit, count + 1, 'Chunk.position.axis.axis2.cunit')
+            array_shape[count] = self._blueprint._get('Chunk.position.axis.function.dimension.naxis1')
+            array_shape[count + 1] = self._blueprint._get('Chunk.position.axis.function.dimension.naxis2')
+            self.assign_sanitize(crpix, count, 'Chunk.position.axis.function.refCoord.coord1.pix')
+            self.assign_sanitize(crpix, count + 1, 'Chunk.position.axis.function.refCoord.coord2.pix')
+            self.assign_sanitize(crval, count, 'Chunk.position.axis.function.refCoord.coord1.val')
+            self.assign_sanitize(crval, count + 1, 'Chunk.position.axis.function.refCoord.coord2.val')
             x = self._blueprint._get('Chunk.position.axis.function.cd11',
                                      self._extension)
             if x is not None and not ObsBlueprint.needs_lookup(x):
@@ -4475,108 +4481,90 @@ class Hdf5WcsParser(WcsParser):
                                      self._extension)
             if x is not None and not ObsBlueprint.needs_lookup(x):
                 cd[count + 1][1] = x
-            self.assign_sanitize(self._wcs.wcs.crder, count,
-                                 'Chunk.position.axis.error1.rnder')
-            self.assign_sanitize(self._wcs.wcs.crder, count + 1,
-                                 'Chunk.position.axis.error2.rnder')
-            self.assign_sanitize(self._wcs.wcs.csyer, count,
-                                 'Chunk.position.axis.error1.syser')
-            self.assign_sanitize(self._wcs.wcs.csyer, count + 1,
-                                 'Chunk.position.axis.error2.syser')
-            self._finish_position()
-            self._wcs.wcs.cd = cd
+            self.assign_sanitize(crder, count, 'Chunk.position.axis.error1.rnder')
+            self.assign_sanitize(crder, count + 1, 'Chunk.position.axis.error2.rnder')
+            self.assign_sanitize(csyer, count, 'Chunk.position.axis.error1.syser')
+            self.assign_sanitize(csyer, count + 1, 'Chunk.position.axis.error2.syser')
             count += 2
         if self._blueprint._time_axis_configed:
             self._axes['time'][1] = True
             self._axes['time'][0] = count
-            self.assign_sanitize(self._wcs.wcs.ctype, count,
-                                 'Chunk.time.axis.axis.ctype', False)
-            self.assign_sanitize(self._wcs.wcs.cunit, count,
-                                 'Chunk.time.axis.axis.cunit', False)
+            self.assign_sanitize(ctype, count, 'Chunk.time.axis.axis.ctype', False)
+            self.assign_sanitize(cunit, count, 'Chunk.time.axis.axis.cunit', False)
             array_shape[count] = self._blueprint._get(
                 'Chunk.time.axis.function.naxis', self._extension)
-            self.assign_sanitize(
-                self._wcs.wcs.crpix, count,
-                'Chunk.time.axis.function.refCoord.pix', False)
-            self.assign_sanitize(
-                self._wcs.wcs.crval, count,
-                'Chunk.time.axis.function.refCoord.val', False)
-            self.assign_sanitize(self._wcs.wcs.crder, count,
-                                 'Chunk.time.axis.error.rnder')
-            self.assign_sanitize(self._wcs.wcs.csyer, count,
-                                 'Chunk.time.axis.error.syser')
-            self._finish_time()
+            self.assign_sanitize(crpix, count, 'Chunk.time.axis.function.refCoord.pix', False)
+            self.assign_sanitize(crval, count, 'Chunk.time.axis.function.refCoord.val', False)
+            self.assign_sanitize(crder, count, 'Chunk.time.axis.error.rnder')
+            self.assign_sanitize(csyer, count, 'Chunk.time.axis.error.syser')
+            cd[count][count] = 1.0
             count += 1
         if self._blueprint._energy_axis_configed:
             self._axes['energy'][1] = True
             self._axes['energy'][0] = count
-            self.assign_sanitize(self._wcs.wcs.ctype, count,
-                                 'Chunk.energy.axis.axis.ctype', False)
-            self.assign_sanitize(self._wcs.wcs.cunit, count,
-                                 'Chunk.energy.axis.axis.cunit', False)
+            self.assign_sanitize(ctype, count, 'Chunk.energy.axis.axis.ctype', False)
+            self.assign_sanitize(cunit, count, 'Chunk.energy.axis.axis.cunit', False)
             array_shape[count] = self._blueprint._get(
                 'Chunk.energy.axis.function.naxis', self._extension)
-            self.assign_sanitize(
-                self._wcs.wcs.crpix, count,
-                'Chunk.energy.axis.function.refCoord.pix', False)
-            self.assign_sanitize(
-                self._wcs.wcs.crval, count,
-                'Chunk.energy.axis.function.refCoord.val', False)
-            self.assign_sanitize(
-                self._wcs.wcs.crder, count, 'Chunk.energy.axis.error.rnder')
-            self.assign_sanitize(
-                self._wcs.wcs.csyer, count, 'Chunk.energy.axis.error.syser')
-            self._finish_energy()
+            self.assign_sanitize(crpix, count, 'Chunk.energy.axis.function.refCoord.pix', False)
+            self.assign_sanitize(crval, count, 'Chunk.energy.axis.function.refCoord.val', False)
+            self.assign_sanitize(crder, count, 'Chunk.energy.axis.error.rnder')
+            self.assign_sanitize(csyer, count, 'Chunk.energy.axis.error.syser')
+            cd[count][count] = 1.0
             count += 1
         if self._blueprint._polarization_axis_configed:
             self._axes['polarization'][1] = True
             self._axes['polarization'][0] = count
-            self.assign_sanitize(self._wcs.wcs.ctype, count,
-                                 'Chunk.polarization.axis.axis.ctype', False)
-            self.assign_sanitize(self._wcs.wcs.cunit, count,
-                                 'Chunk.polarization.axis.axis.cunit', False)
+            self.assign_sanitize(ctype, count, 'Chunk.polarization.axis.axis.ctype', False)
+            self.assign_sanitize(cunit, count, 'Chunk.polarization.axis.axis.cunit', False)
             array_shape[count] = self._blueprint._get(
                 'Chunk.polarization.axis.function.naxis', self._extension)
-            self.assign_sanitize(
-                self._wcs.wcs.crpix, count,
-                'Chunk.polarization.axis.function.refCoord.pix', False)
-            self.assign_sanitize(
-                self._wcs.wcs.crval, count,
-                'Chunk.polarization.axis.function.refCoord.val', False)
+            self.assign_sanitize(crpix, count, 'Chunk.polarization.axis.function.refCoord.pix', False)
+            self.assign_sanitize(crval, count, 'Chunk.polarization.axis.function.refCoord.val', False)
+            cd[count][count] = 1.0
             count += 1
             # TODO - where's the delta?
         if self._blueprint._obs_axis_configed:
             self._axes['observable'][1] = True
             self._axes['observable'][0] = count
-            self.assign_sanitize(self._wcs.wcs.ctype, count,
-                                 'Chunk.observable.axis.axis.ctype', False)
-            self.assign_sanitize(self._wcs.wcs.cunit, count,
-                                 'Chunk.observable.axis.axis.cunit', False)
+            self.assign_sanitize(ctype, count, 'Chunk.observable.axis.axis.ctype', False)
+            self.assign_sanitize(cunit, count, 'Chunk.observable.axis.axis.cunit', False)
             array_shape[count] = 1.0
-            self.assign_sanitize(self._wcs.wcs.crpix, count,
-                                 'Chunk.observable.axis.function.refCoord.pix',
-                                 False)
-            self._wcs.wcs.crval[count] = 0.0
+            self.assign_sanitize(crpix, count, 'Chunk.observable.axis.function.refCoord.pix', False)
+            crval[count] = 0.0
+            cd[count][count] = 1.0
             count += 1
         if self._blueprint._custom_axis_configed:
             self._axes['custom'][1] = True
             self._axes['custom'][0] = count
-            self.assign_sanitize(self._wcs.wcs.ctype, count,
-                                 'Chunk.custom.axis.axis.ctype', False)
-            self.assign_sanitize(self._wcs.wcs.cunit, count,
-                                 'Chunk.custom.axis.axis.cunit', False)
+            self.assign_sanitize(ctype, count, 'Chunk.custom.axis.axis.ctype', False)
+            self.assign_sanitize(cunit, count, 'Chunk.custom.axis.axis.cunit', False)
             array_shape[count] = self._blueprint._get(
                 'Chunk.custom.axis.function.naxis', self._extension)
             # TODO delta
-            self.assign_sanitize(self._wcs.wcs.crpix, count,
-                                 'Chunk.custom.axis.function.refCoord.pix',
-                                 False)
-            self.assign_sanitize(self._wcs.wcs.crval, count,
-                                 'Chunk.custom.axis.function.refCoord.val',
-                                 False)
+            self.assign_sanitize(crpix, count, 'Chunk.custom.axis.function.refCoord.pix', False)
+            self.assign_sanitize(crval, count, 'Chunk.custom.axis.function.refCoord.val', False)
+            cd[count][count] = 1.0
             count += 1
 
-        self._wcs.array_shape = array_shape
+        if not all(val == 0 for val in array_shape):
+            self._wcs.array_shape = array_shape
+        if not all(val == 0 for val in cunit):
+            self._wcs.wcs.cunit = cunit
+        if not all(val == 0 for val in ctype):
+            self._wcs.wcs.ctype = ctype
+        if not all(val == 0 for val in crpix):
+            self._wcs.wcs.crpix = crpix
+        if not all(val == 0 for val in crval):
+            self._wcs.wcs.crval = crval
+        if not all(val == 0 for val in crder):
+            self._wcs.wcs.crder = crder
+        if not all(val == 0 for val in csyer):
+            self._wcs.wcs.csyer = csyer
+        self._wcs.wcs.cd = cd
+        self._finish_position()
+        self._finish_time()
+        self._finish_energy()
 
     def _finish_chunk_observable(self, chunk):
         ctype = self._wcs.wcs.ctype[chunk.observable_axis-1]
@@ -4585,6 +4573,11 @@ class Hdf5WcsParser(WcsParser):
         if ctype is not None and cunit is not None and pix_bin is not None:
             chunk.observable = ObservableAxis(
                 Slice(self._get_axis(0, ctype, cunit), pix_bin))
+
+    def _finish_chunk_position(self, chunk):
+        if chunk.position.resolution is None:
+            temp = utils.proj_plane_pixel_scales(self._wcs)
+            chunk.position.resolution = temp[0]
 
     def _finish_chunk_time(self, chunk):
         if not math.isnan(self._wcs.wcs.xposure):
@@ -4597,53 +4590,55 @@ class Hdf5WcsParser(WcsParser):
         # TODO chunk.time.mjdref = self._wcs.to_header().get('MJDREF')
 
     def _finish_energy(self):
-        x = self._blueprint._get('Chunk.energy.specsys', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.specsys = x
-        x = self._blueprint._get('Chunk.energy.ssysobs', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.ssysobs = x
-        x = self._blueprint._get('Chunk.energy.restfrq', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.restfrq = _to_float(x)
-        x = self._blueprint._get('Chunk.energy.restwav', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.restwav = x
-        x = self._blueprint._get('Chunk.energy.velosys', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.velosys = x
-        x = self._blueprint._get('Chunk.energy.zsource', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.zsource = x
-        x = self._blueprint._get('Chunk.energy.ssyssrc', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.ssyssrc = x
-        x = self._blueprint._get('Chunk.energy.velang', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.velangl = x
-        return
+        if self._blueprint._energy_axis_configed:
+            x = self._blueprint._get('Chunk.energy.specsys', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.specsys = x
+            x = self._blueprint._get('Chunk.energy.ssysobs', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.ssysobs = x
+            x = self._blueprint._get('Chunk.energy.restfrq', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.restfrq = _to_float(x)
+            x = self._blueprint._get('Chunk.energy.restwav', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.restwav = x
+            x = self._blueprint._get('Chunk.energy.velosys', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.velosys = x
+            x = self._blueprint._get('Chunk.energy.zsource', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.zsource = x
+            x = self._blueprint._get('Chunk.energy.ssyssrc', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.ssyssrc = x
+            x = self._blueprint._get('Chunk.energy.velang', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.velangl = x
 
     def _finish_position(self):
-        x = self._blueprint._get('Chunk.position.coordsys', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.radesys = x
-        x = self._blueprint._get('Chunk.position.equinox', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.equinox = _to_float(x)
+        if self._blueprint._pos_axes_configed:
+            x = self._blueprint._get('Chunk.position.coordsys', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.radesys = x
+            x = self._blueprint._get('Chunk.position.equinox', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.equinox = _to_float(x)
 
     def _finish_time(self):
-        x = self._blueprint._get('Chunk.time.exposure', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.xposure = x
-        x = self._blueprint._get('Chunk.time.timesys', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.timesys = x
-        x = self._blueprint._get('Chunk.time.trefpos', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.trefpos = x
-        x = self._blueprint._get('Chunk.time.mjdref', self._extension)
-        if x and not ObsBlueprint.needs_lookup(x):
-            self._wcs.wcs.mjdref = x
+        if self._blueprint._time_axis_configed:
+            x = self._blueprint._get('Chunk.time.exposure', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.xposure = x
+            x = self._blueprint._get('Chunk.time.timesys', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.timesys = x
+            x = self._blueprint._get('Chunk.time.trefpos', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.trefpos = x
+            x = self._blueprint._get('Chunk.time.mjdref', self._extension)
+            if x and not ObsBlueprint.needs_lookup(x):
+                self._wcs.wcs.mjdref = x
 
 
 def _to_str(value):
