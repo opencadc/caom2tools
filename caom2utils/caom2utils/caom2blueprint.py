@@ -4030,9 +4030,9 @@ class WcsParser:
         if (temp is not None and 1800.0 <= temp <= 2500) or temp is None:
             chunk.position.equinox = temp
 
-        logging.error(self.wcs.cunit)
+#         logging.error(self.wcs.cunit)
         self._finish_chunk_position(chunk)
-        logging.error(self.wcs)
+#         logging.error(self.wcs)
         self.logger.debug('End Spatial WCS augmentation.')
 
     def augment_temporal(self, chunk):
@@ -4550,12 +4550,16 @@ class Hdf5WcsParser(WcsParser):
         if not all(val == 0 for val in array_shape):
             self._wcs.array_shape = array_shape
         if not all(val == 0 for val in cunit):
+            logging.error(cunit)
             self._wcs.wcs.cunit = cunit
         if not all(val == 0 for val in ctype):
+            logging.error(ctype)
             self._wcs.wcs.ctype = ctype
         if not all(val == 0 for val in crpix):
+            logging.error(crpix)
             self._wcs.wcs.crpix = crpix
         if not all(val == 0 for val in crval):
+            logging.error(crval)
             self._wcs.wcs.crval = crval
         if not all(val == 0 for val in crder):
             self._wcs.wcs.crder = crder
@@ -4582,12 +4586,13 @@ class Hdf5WcsParser(WcsParser):
     def _finish_chunk_time(self, chunk):
         if not math.isnan(self._wcs.wcs.xposure):
             chunk.time.exposure = self._wcs.wcs.xposure
-        chunk.time.timesys = self._wcs.wcs.timesys
+        if self._wcs.wcs.timesys is not None and self._wcs.wcs.timesys != '':
+            chunk.time.timesys = self._wcs.wcs.timesys
         if self._wcs.wcs.trefpos is not None and self._wcs.wcs.trefpos != '':
             chunk.time.trefpos = self._wcs.wcs.trefpos
-        # convert from the numpy array length 2 of self._wcs.wcs.mjdref
-        # to a single value
-        # TODO chunk.time.mjdref = self._wcs.to_header().get('MJDREF')
+        if self._wcs.wcs.mjdref is not None and self._wcs.wcs.mjdref[0] != '':
+            # the astropy value is an array of length 2, use the first value
+            chunk.time.mjdref = self._wcs.wcs.mjdref[0]
 
     def _finish_energy(self):
         if self._blueprint._energy_axis_configed:
@@ -4638,7 +4643,8 @@ class Hdf5WcsParser(WcsParser):
                 self._wcs.wcs.trefpos = x
             x = self._blueprint._get('Chunk.time.mjdref', self._extension)
             if x and not ObsBlueprint.needs_lookup(x):
-                self._wcs.wcs.mjdref = x
+                logging.error(f'{x} {self._wcs.wcs.mjdref}')
+                self._wcs.wcs.mjdref = [x, x]
 
 
 def _to_str(value):
