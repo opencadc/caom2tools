@@ -2321,7 +2321,7 @@ class ContentParser(BlueprintParser):
         :param product_id: the key for finding for the plane to augment
         """
         super().augment_observation(observation, artifact_uri, product_id)
-        self.logger.debug(
+        self.logger.error(
             f'Begin content observation augmentation for URI {artifact_uri}.')
         members = self._get_members(observation)
         if members:
@@ -2843,10 +2843,11 @@ class ContentParser(BlueprintParser):
         information.
         :return: Telescope
         """
-        self.logger.debug('Begin Telescope augmentation.')
+        self.logger.error('Begin Telescope augmentation.')
         name = self._get_from_list(
             'Observation.telescope.name', index=0,
             current=None if current is None else current.name)
+        logging.error(self._get_from_list('Observation.telescope.geoLocationX', index=0))
         geo_x = _to_float(
             self._get_from_list(
                 'Observation.telescope.geoLocationX', index=0,
@@ -3708,6 +3709,8 @@ class Hdf5Parser(ContentParser):
         # require it
         import h5py
         individual, multi, attributes = self._extract_path_names_from_blueprint()
+        filtered_individual = filter(lambda a: '(' in a, individual.keys())
+        # logging.error(('\n'.join(ii for ii in individual.keys())))
 
         def _extract_from_item(name, object):
             """
@@ -3770,9 +3773,20 @@ class Hdf5Parser(ContentParser):
                 if object.dtype.names is not None:
                     for d_name in object.dtype.names:
                         temp = f'//{name}/{d_name}'
+                        # logging.error(temp)
                         if temp in individual.keys():
                             for jj in individual.get(temp):
                                 self._blueprint.set(jj, object[d_name], 0)
+                        else:
+                            logging.error(f'{temp} {len(filtered_individual)}')
+                            for ind_path in filtered_individual:
+                                logging.error(f'ind_path {ind_path} temp {temp}')
+                                if ind_path.startswith(temp):
+                                    z = ind_path.split('(')
+                                    index = int(z[1].split(')')[0])
+                                    for jj in individual.get(ind_path):
+                                        logging.error(object[d_name][index])
+                                        self._blueprint.set(jj, object[d_name][index], 0)
 
         if len(individual) == 0 and len(multi) == 0:
             # CFHT SITELLE
@@ -4550,16 +4564,16 @@ class Hdf5WcsParser(WcsParser):
         if not all(val == 0 for val in array_shape):
             self._wcs.array_shape = array_shape
         if not all(val == 0 for val in cunit):
-            logging.error(cunit)
+            # logging.error(cunit)
             self._wcs.wcs.cunit = cunit
         if not all(val == 0 for val in ctype):
-            logging.error(ctype)
+            # logging.error(ctype)
             self._wcs.wcs.ctype = ctype
         if not all(val == 0 for val in crpix):
-            logging.error(crpix)
+            # logging.error(crpix)
             self._wcs.wcs.crpix = crpix
         if not all(val == 0 for val in crval):
-            logging.error(crval)
+            # logging.error(crval)
             self._wcs.wcs.crval = crval
         if not all(val == 0 for val in crder):
             self._wcs.wcs.crder = crder
@@ -4643,7 +4657,7 @@ class Hdf5WcsParser(WcsParser):
                 self._wcs.wcs.trefpos = x
             x = self._blueprint._get('Chunk.time.mjdref', self._extension)
             if x and not ObsBlueprint.needs_lookup(x):
-                logging.error(f'{x} {self._wcs.wcs.mjdref}')
+#                 logging.error(f'{x} {self._wcs.wcs.mjdref}')
                 self._wcs.wcs.mjdref = [x, x]
 
 
