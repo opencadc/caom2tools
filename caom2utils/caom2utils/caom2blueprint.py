@@ -3709,7 +3709,7 @@ class Hdf5Parser(ContentParser):
         # require it
         import h5py
         individual, multi, attributes = self._extract_path_names_from_blueprint()
-        filtered_individual = filter(lambda a: '(' in a, individual.keys())
+        filtered_individual = [ii for ii in individual.keys() if '(' in ii]
         # logging.error(('\n'.join(ii for ii in individual.keys())))
 
         def _extract_from_item(name, object):
@@ -3773,19 +3773,15 @@ class Hdf5Parser(ContentParser):
                 if object.dtype.names is not None:
                     for d_name in object.dtype.names:
                         temp = f'//{name}/{d_name}'
-                        # logging.error(temp)
                         if temp in individual.keys():
                             for jj in individual.get(temp):
                                 self._blueprint.set(jj, object[d_name], 0)
                         else:
-                            logging.error(f'{temp} {len(filtered_individual)}')
                             for ind_path in filtered_individual:
-                                logging.error(f'ind_path {ind_path} temp {temp}')
                                 if ind_path.startswith(temp):
                                     z = ind_path.split('(')
                                     index = int(z[1].split(')')[0])
                                     for jj in individual.get(ind_path):
-                                        logging.error(object[d_name][index])
                                         self._blueprint.set(jj, object[d_name][index], 0)
 
         if len(individual) == 0 and len(multi) == 0:
