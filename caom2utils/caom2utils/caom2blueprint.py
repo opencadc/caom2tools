@@ -3786,7 +3786,7 @@ class Hdf5Parser(ContentParser):
         part_index = 0
         # v == list of blueprint keys
         for k, v in attributes.items():
-            if k in self._file.attrs:
+            if k in self._file.attrs.keys():
                 value = self._file.attrs[k]
                 for entry in v:
                     self._blueprint.set(entry, value, part_index)
