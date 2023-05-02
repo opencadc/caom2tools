@@ -2121,26 +2121,24 @@ class BlueprintParser:
         except Exception as e:
             msg = 'Failed to find {}.{} for {}'.format(
                 self.blueprint._module.__name__, value.split('(')[0], key)
-            logging.error(msg)
+            self.logger.error(msg)
             self._errors.append(msg)
             tb = traceback.format_exc()
-            logging.debug(tb)
-            logging.error(e)
+            self.logger.debug(tb)
+            self.logger.error(e)
         try:
             result = execute(parameter)
-            logging.debug(
-                f'Key {key} calculated value of {result} using {value} type '
-                f'{type(result)}')
+            self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
         except Exception as e:
             msg = 'Failed to execute {} for {} in {}'.format(
                 execute.__name__, key, self.uri)
-            logging.error(msg)
-            logging.debug('Input parameter was {}, value was {}'.format(
+            self.logger.error(msg)
+            self.logger.debug('Input parameter was {}, value was {}'.format(
                 parameter, value))
             self._errors.append(msg)
             tb = traceback.format_exc()
-            logging.debug(tb)
-            logging.error(e)
+            self.logger.debug(tb)
+            self.logger.error(e)
         return result
 
     def _execute_external_instance(self, value, key, extension):
@@ -2165,17 +2163,15 @@ class BlueprintParser:
             msg = 'Failed to find {}.{} for {}'.format(
                 self.blueprint._module_instance.__class__.__name__,
                 value.split('(')[0], key)
-            logging.error(msg)
+            self.logger.error(msg)
             self._errors.append(msg)
             tb = traceback.format_exc()
-            logging.debug(tb)
-            logging.error(e)
+            self.logger.debug(tb)
+            self.logger.error(e)
             return result
         try:
             result = execute(extension)
-            logging.debug(
-                'Key {} calculated value of {} using {}'.format(
-                    key, result, value))
+            self.logger.debug('Key {} calculated value of {} using {}'.format(key, result, value))
         except ValueError as e2:
             # DB 23-03-22
             # Anything that you can do to make the CAOM2 record creation fail
@@ -2186,12 +2182,12 @@ class BlueprintParser:
         except Exception as e:
             msg = 'Failed to execute {} for {} in {}'.format(
                 execute, key, self.uri)
-            logging.error(msg)
-            logging.debug('Input value was {}'.format(value))
+            self.logger.error(msg)
+            self.logger.debug('Input value was {}'.format(value))
             self._errors.append(msg)
             tb = traceback.format_exc()
-            logging.debug(tb)
-            logging.error(e)
+            self.logger.debug(tb)
+            self.logger.error(e)
         return result
 
     def _get_datetime(self, from_value):
@@ -3899,7 +3895,6 @@ class Hdf5Parser(ContentParser):
                 plan[key] = value[1]
                 self.logger.debug(f'{key}: set value to default of {value[1]}')
 
-        self._file.close()
         self.logger.debug('Done apply_blueprint')
         return
 
