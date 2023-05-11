@@ -483,6 +483,73 @@ def test_wcs_parser_augment_failures():
         test_parser.augment_observable(test_obs)
 
 
+def test_fits_wcs_parser_augment_function_failures():
+    # Test that axes that are incompletely defined do not result in partially defined WCS functions. This is useful
+    # when using the blueprint to set Range's.
+
+    test_header = fits.Header()
+    test_header['CTYPE1'] = 'RM'  # custom
+    test_header['CTYPE2'] = 'WAVE'  # energy
+    test_header['CTYPE3'] = 'RA---TAN'  # spatial 1
+    test_header['CTYPE4'] = 'DEC--TAN'  # spatial 2
+    test_header['CTYPE5'] = 'TIME'  # time
+    test_header['CTYPE6'] = 'STOKES'  # pol
+    test_parser = FitsWcsParser(test_header, sample_file_4axes, 0)
+    test_chunk = Chunk()
+
+    test_parser.augment_custom(test_chunk)
+    assert test_chunk.custom is None, 'custom'
+
+    test_parser.augment_energy(test_chunk)
+    assert test_chunk.energy is None, 'energy'
+
+    test_parser.augment_position(test_chunk)
+    assert test_chunk.position is None, 'position'
+
+    test_parser.augment_temporal(test_chunk)
+    assert test_chunk.time is None, 'time'
+
+    test_parser.augment_polarization(test_chunk)
+    assert test_chunk.polarization is None, 'polarization'
+
+
+def test_hdf5_wcs_parser_augment_function_failures():
+    # Test that axes that are incompletely defined do not result in partially defined WCS functions. This is useful
+    # when using the blueprint to set Range's.
+
+    test_blueprint = Hdf5ObsBlueprint(
+        position_axes=(1, 2),
+        energy_axis=3,
+        polarization_axis=4,
+        time_axis=5,
+        custom_axis=6,
+    )
+    test_blueprint.set('Chunk.custom.axis.axis.ctype', 'RM')
+    test_blueprint.set('Chunk.energy.axis.axis.ctype', 'WAVE')
+    test_blueprint.set('Chunk.position.axis.axis1.ctype', 'RA---TAN')
+    test_blueprint.set('Chunk.position.axis.axis2.ctype', 'DEC--TAN')
+    test_blueprint.set('Chunk.time.axis.axis.ctype', 'TIME')
+    test_blueprint.set('Chunk.polarization.axis.axis.ctype', 'STOKES')
+
+    test_parser = Hdf5WcsParser(test_blueprint, 0)
+    test_chunk = Chunk()
+
+    test_parser.augment_custom(test_chunk)
+    assert test_chunk.custom is None, 'custom'
+
+    test_parser.augment_energy(test_chunk)
+    assert test_chunk.energy is None, 'energy'
+
+    test_parser.augment_position(test_chunk)
+    assert test_chunk.position is None, 'position'
+
+    test_parser.augment_temporal(test_chunk)
+    assert test_chunk.time is None, 'time'
+
+    test_parser.augment_polarization(test_chunk)
+    assert test_chunk.polarization is None, 'polarization'
+
+
 def get_test_header(test_file):
     test_input = os.path.join(TESTDATA_DIR, test_file)
     hdulist = fits.open(test_input)
