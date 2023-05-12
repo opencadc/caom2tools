@@ -2397,7 +2397,13 @@ class ContentParser(BlueprintParser):
         # TODO DEFAULT VALUE
         name = self._get_from_list('Observation.algorithm.name', index=0,
                                    current=obs.algorithm.name)
-        result = Algorithm(str(name)) if name else None
+        if name is not None and name == 'exposure' and isinstance(obs, DerivedObservation):
+            # stop the raising of a ValueError when adding a Plane representing a SimpleObservation to a
+            # DerivedObservation under construction. It results in attempting to change Algorithm.name value to
+            # 'exposure' otherwise.
+            result = obs.algorithm
+        else:
+            result = Algorithm(str(name)) if name else None
         self.logger.debug('End Algorithm augmentation.')
         return result
 
@@ -2978,9 +2984,9 @@ class ContentParser(BlueprintParser):
         self.logger.debug('End augmentation with blueprint for polarization.')
 
     def _try_position_range(self, chunk, index):
-        self.logger.debug('Try to set the range for position from blueprint')
+        self.logger.debug('Try to set the range for position from blueprint, since there is no function')
         if (self.blueprint._pos_axes_configed and chunk.position is not None
-                and chunk.position.axis is not None):
+                and chunk.position.axis is not None and chunk.position.axis.function is None):
             aug_range_c1_start = self._two_param_constructor(
                 'Chunk.position.axis.range.start.coord1.pix',
                 'Chunk.position.axis.range.start.coord1.val',
@@ -3130,7 +3136,8 @@ class ContentParser(BlueprintParser):
             if axis_configed:
                 wcs = getattr(chunk, i)
                 if wcs is not None and wcs.axis is not None:
-                    if wcs.axis.range is None:
+                    # only try to set the Range information if the Function doesn't exist
+                    if wcs.axis.range is None and wcs.axis.function is None:
                         self._try_range(wcs, index, i)
         self._try_position_range(chunk, index)
 
@@ -3926,6 +3933,11 @@ class WcsParser:
         if custom_axis_index is None:
             self.logger.debug('No WCS Custom info')
             return
+        try:
+            custom_axis_length = self._get_axis_length(custom_axis_index + 1)
+        except ValueError as e:
+            self.logger.debug('No WCS Custom axis.function')
+            return
 
         chunk.custom_axis = custom_axis_index + 1
 
@@ -3935,10 +3947,7 @@ class WcsParser:
                 custom_axis_index]
         else:
             delta = self.wcs.cdelt[custom_axis_index]
-        naxis.function = CoordFunction1D(
-            self._get_axis_length(custom_axis_index + 1),
-            delta,
-            self._get_ref_coord(custom_axis_index))
+        naxis.function = CoordFunction1D(custom_axis_length, delta, self._get_ref_coord(custom_axis_index))
         if not chunk.custom:
             chunk.custom = CustomWCS(naxis)
         else:
@@ -3961,6 +3970,11 @@ class WcsParser:
         if energy_axis_index is None:
             self.logger.debug('No WCS Energy info.')
             return
+        try:
+            energy_axis_length = self._get_axis_length(energy_axis_index + 1)
+        except ValueError as e:
+            self.logger.debug('No WCS Energy axis.function')
+            return
 
         chunk.energy_axis = energy_axis_index + 1
         naxis = CoordAxis1D(self._get_axis(energy_axis_index))
@@ -3969,9 +3983,7 @@ class WcsParser:
             delta = self.wcs.cd[energy_axis_index][energy_axis_index]
         else:
             delta = self.wcs.cdelt[energy_axis_index]
-        naxis.function = CoordFunction1D(
-            self._get_axis_length(energy_axis_index + 1), delta,
-            self._get_ref_coord(energy_axis_index))
+        naxis.function = CoordFunction1D(energy_axis_length, delta, self._get_ref_coord(energy_axis_index))
 
         specsys = _to_str(self.wcs.specsys)
         if not chunk.energy:
@@ -4011,6 +4023,11 @@ class WcsParser:
         chunk.position_axis_2 = position_axes_indices[1]
         axis = self._get_spatial_axis(chunk.position_axis_1 - 1,
                                       chunk.position_axis_2 - 1)
+
+        if axis is None:
+            self.logger.debug('No WCS Position axis.function')
+            return
+
         if chunk.position:
             chunk.position.axis = axis
         else:
@@ -4050,7 +4067,13 @@ class WcsParser:
             delta = self.wcs.cd[time_axis_index][time_axis_index]
         else:
             delta = self.wcs.cdelt[time_axis_index]
-        axis_length = self._get_axis_length(time_axis_index + 1)
+
+        try:
+            axis_length = self._get_axis_length(time_axis_index + 1)
+        except ValueError as e:
+            self.logger.debug('No WCS Temporal axis.function')
+            return
+
         if aug_ref_coord is not None and axis_length is not None:
             aug_function = CoordFunction1D(axis_length, delta, aug_ref_coord)
             naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
@@ -4085,10 +4108,14 @@ class WcsParser:
                 polarization_axis_index]
         else:
             delta = self.wcs.cdelt[polarization_axis_index]
-        naxis.function = CoordFunction1D(
-            self._get_axis_length(polarization_axis_index + 1),
-            delta,
-            self._get_ref_coord(polarization_axis_index))
+
+        try:
+            axis_length = self._get_axis_length(polarization_axis_index + 1)
+        except ValueError as e:
+            self.logger.debug('No WCS Polarization axis.function')
+            return
+
+        naxis.function = CoordFunction1D(axis_length, delta, self._get_ref_coord(polarization_axis_index))
         if not chunk.polarization:
             chunk.polarization = PolarizationWCS(naxis)
         else:
@@ -4186,8 +4213,14 @@ class WcsParser:
 
     def _get_dimension(self, xindex, yindex):
         aug_dimension = None
-        aug_dim1 = _to_int(self._get_axis_length(xindex + 1))
-        aug_dim2 = _to_int(self._get_axis_length(yindex + 1))
+        try:
+            xindex_axis_length = self._get_axis_length(xindex + 1)
+            yindex_axis_length = self._get_axis_length(yindex + 1)
+        except ValueError as e:
+            self.logger.debug('No WCS Energy axis.function')
+            return None
+        aug_dim1 = _to_int(xindex_axis_length)
+        aug_dim2 = _to_int(yindex_axis_length)
         if aug_dim1 and aug_dim2:
             aug_dimension = Dimension2D(aug_dim1, aug_dim2)
             self.logger.debug('End 2D dimension augmentation.')
@@ -4220,6 +4253,8 @@ class WcsParser:
         """Assemble the bits to make the axis parameter needed for
         SpatialWCS construction."""
         aug_dimension = self._get_dimension(xindex, yindex)
+        if aug_dimension is None:
+            return None
 
         aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
                                 self._get_ref_coord(yindex))
@@ -4395,6 +4430,9 @@ class Hdf5WcsParser(WcsParser):
                 result = self._wcs.array_shape[0]
             else:
                 result = self._wcs.array_shape[for_axis-1]
+            if isinstance(result, tuple):
+                # the blueprint is incompletely configured
+                raise ValueError(f'Could not find axis length for axis {for_axis}')
             return _to_int(result)
 
     def assign_sanitize(self, assignee, index, key, sanitize=True):
