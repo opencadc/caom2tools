@@ -2801,9 +2801,9 @@ class ContentParser(BlueprintParser):
             self._get_from_list(
                 'Observation.target.moving', index=0,
                 current=None if current is None else current.moving))
-        target_id = self._get_from_list(
+        target_id = _to_str(self._get_from_list(
             'Observation.target.targetID', index=0,
-            current=None if current is None else current.target_id)
+            current=None if current is None else current.target_id))
         target = None
         if name:
             target = Target(str(name), target_type, standard, redshift,
@@ -4052,9 +4052,7 @@ class WcsParser:
         if (temp is not None and 1800.0 <= temp <= 2500) or temp is None:
             chunk.position.equinox = temp
 
-#         logging.error(self.wcs.cunit)
         self._finish_chunk_position(chunk)
-#         logging.error(self.wcs)
         self.logger.debug('End Spatial WCS augmentation.')
 
     def augment_temporal(self, chunk):
@@ -4165,9 +4163,7 @@ class WcsParser:
         if chunk.position.resolution is None:
             # JJK 30-01-23
             # In a spatial data chunk the resolution is 2 times the pixel size.  We can get the pixel size from the wcs
-            logging.error(self.wcs.cunit)
             chunk.position.resolution = utils.proj_plane_pixel_scales(self.wcs)[0]
-            logging.error(self.wcs.cunit)
 
     def _finish_chunk_time(self, chunk):
         raise NotImplementedError
