@@ -354,9 +354,8 @@ def get_file_encoding(fqn):
 
 def get_file_type(fqn):
     """Basic header extension to content_type lookup."""
-    if (fqn.endswith('.header') or fqn.endswith('.txt') or
-            fqn.endswith('.cat') or fqn.endswith('.dat')):
-        return 'text/plain'
+    if (fqn.endswith('.fits') or fqn.endswith('.fits.fz') ):
+        return 'application/fits'
     elif fqn.endswith('.gif'):
         return 'image/gif'
     elif fqn.endswith('.png'):
@@ -370,7 +369,7 @@ def get_file_type(fqn):
     elif fqn.endswith('.hdf5') or fqn.endswith('.h5'):
         return 'application/x-hdf5'
     else:
-        return 'application/fits'
+        return 'text/plain'
 
 
 def make_headers_from_string(fits_header):
