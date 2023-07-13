@@ -354,19 +354,20 @@ def get_file_encoding(fqn):
 
 def get_file_type(fqn):
     """Basic header extension to content_type lookup."""
-    if (fqn.endswith('.fits') or fqn.endswith('.fits.fz') ):
+    lower_fqn = fqn.lower()
+    if (lower_fqn.endswith('.fits') or lower_fqn.endswith('.fits.fz')):
         return 'application/fits'
-    elif fqn.endswith('.gif'):
+    elif lower_fqn.endswith('.gif'):
         return 'image/gif'
-    elif fqn.endswith('.png'):
+    elif lower_fqn.endswith('.png'):
         return 'image/png'
-    elif fqn.endswith('.jpg'):
+    elif lower_fqn.endswith('.jpg'):
         return 'image/jpeg'
-    elif fqn.endswith('.tar.gz'):
+    elif lower_fqn.endswith('.tar.gz'):
         return 'application/x-tar'
-    elif fqn.endswith('.csv'):
+    elif lower_fqn.endswith('.csv'):
         return 'text/csv'
-    elif fqn.endswith('.hdf5') or fqn.endswith('.h5'):
+    elif lower_fqn.endswith('.hdf5') or fqn.endswith('.h5'):
         return 'application/x-hdf5'
     else:
         return 'text/plain'
