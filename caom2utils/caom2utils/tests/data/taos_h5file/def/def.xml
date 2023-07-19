@@ -65,19 +65,20 @@
                       </caom2:function>
                     </caom2:axis>
                     <caom2:equinox>2000.0</caom2:equinox>
+                    <caom2:resolution>8.77726214391969e-05</caom2:resolution>
                   </caom2:position>
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
                         <caom2:ctype>WAVE</caom2:ctype>
-                        <caom2:cunit>nm</caom2:cunit>
+                        <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:function>
                         <caom2:naxis>1</caom2:naxis>
-                        <caom2:delta>0.0</caom2:delta>
+                        <caom2:delta>1.3300000000000002e-08</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>0.5</caom2:pix>
-                          <caom2:val>18.649999999999977</caom2:val>
+                          <caom2:val>1.864999999999998e-08</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
@@ -93,7 +94,7 @@
                       </caom2:axis>
                       <caom2:function>
                         <caom2:naxis>1</caom2:naxis>
-                        <caom2:delta>0.0</caom2:delta>
+                        <caom2:delta>13.3</caom2:delta>
                         <caom2:refCoord>
                           <caom2:pix>0.5</caom2:pix>
                           <caom2:val>59694.3770853125</caom2:val>
