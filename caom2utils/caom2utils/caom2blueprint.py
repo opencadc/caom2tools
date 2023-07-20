@@ -3935,7 +3935,7 @@ class WcsParser:
             return
         try:
             custom_axis_length = self._get_axis_length(custom_axis_index + 1)
-        except ValueError as e:
+        except ValueError:
             self.logger.debug('No WCS Custom axis.function')
             return
 
@@ -3972,7 +3972,7 @@ class WcsParser:
             return
         try:
             energy_axis_length = self._get_axis_length(energy_axis_index + 1)
-        except ValueError as e:
+        except ValueError:
             self.logger.debug('No WCS Energy axis.function')
             return
 
@@ -4070,7 +4070,7 @@ class WcsParser:
 
         try:
             axis_length = self._get_axis_length(time_axis_index + 1)
-        except ValueError as e:
+        except ValueError:
             self.logger.debug('No WCS Temporal axis.function')
             return
 
@@ -4111,7 +4111,7 @@ class WcsParser:
 
         try:
             axis_length = self._get_axis_length(polarization_axis_index + 1)
-        except ValueError as e:
+        except ValueError:
             self.logger.debug('No WCS Polarization axis.function')
             return
 
@@ -4216,7 +4216,7 @@ class WcsParser:
         try:
             xindex_axis_length = self._get_axis_length(xindex + 1)
             yindex_axis_length = self._get_axis_length(yindex + 1)
-        except ValueError as e:
+        except ValueError:
             self.logger.debug('No WCS Energy axis.function')
             return None
         aug_dim1 = _to_int(xindex_axis_length)
