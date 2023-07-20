@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Install hdf5 library
-        run: sudo apt-get install -y libhdf5-dev
     
   egginfo:
     needs: build
@@ -57,8 +55,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install tox
-      # pytest-runner required to support deprecated Python3.5
-      run: python -m pip install --upgrade tox pytest-runner
+      run: python -m pip install --upgrade tox
     - name: Test ${{ matrix.package }}
       run: |
         # add py and remove the "." from python-version in order to get the tox_target
