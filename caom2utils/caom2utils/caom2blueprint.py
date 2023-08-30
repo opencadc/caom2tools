@@ -2317,7 +2317,7 @@ class ContentParser(BlueprintParser):
         :param product_id: the key for finding for the plane to augment
         """
         super().augment_observation(observation, artifact_uri, product_id)
-        self.logger.error(
+        self.logger.debug(
             f'Begin content observation augmentation for URI {artifact_uri}.')
         members = self._get_members(observation)
         if members:
@@ -2845,7 +2845,7 @@ class ContentParser(BlueprintParser):
         information.
         :return: Telescope
         """
-        self.logger.error('Begin Telescope augmentation.')
+        self.logger.debug('Begin Telescope augmentation.')
         name = self._get_from_list(
             'Observation.telescope.name', index=0,
             current=None if current is None else current.name)
@@ -3712,7 +3712,6 @@ class Hdf5Parser(ContentParser):
         import h5py
         individual, multi, attributes = self._extract_path_names_from_blueprint()
         filtered_individual = [ii for ii in individual.keys() if '(' in ii]
-        # logging.error(('\n'.join(ii for ii in individual.keys())))
 
         def _extract_from_item(name, object):
             """
