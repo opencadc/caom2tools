@@ -4235,7 +4235,7 @@ class WcsParser:
         except ValueError:
             self.logger.debug('No WCS Energy axis.function')
             return None
-        
+
         if xindex_axis_length > 0 and yindex_axis_length > 0:
             aug_dim1 = _to_int(xindex_axis_length)
             aug_dim2 = _to_int(yindex_axis_length)
