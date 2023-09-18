@@ -3951,7 +3951,7 @@ class WcsParser:
             self.logger.debug('No WCS Custom axis.function')
             return
 
-        if custom_axis_length > 0:
+        if custom_axis_length:
             chunk.custom_axis = custom_axis_index + 1
             naxis = CoordAxis1D(self._get_axis(custom_axis_index))
             if self.wcs.has_cd():
@@ -3987,7 +3987,7 @@ class WcsParser:
             self.logger.debug('No WCS Energy axis.function')
             return
 
-        if energy_axis_length > 0:
+        if energy_axis_length:
             chunk.energy_axis = energy_axis_index + 1
             naxis = CoordAxis1D(self._get_axis(energy_axis_index))
             naxis.error = self._get_coord_error(energy_axis_index)
@@ -4080,7 +4080,7 @@ class WcsParser:
             self.logger.debug('No WCS Temporal axis.function')
             return
 
-        if axis_length > 0:
+        if axis_length:
             aug_naxis = self._get_axis(time_axis_index)
             aug_error = self._get_coord_error(time_axis_index)
             aug_ref_coord = self._get_ref_coord(time_axis_index)
@@ -4088,7 +4088,7 @@ class WcsParser:
                 delta = self.wcs.cd[time_axis_index][time_axis_index]
             else:
                 delta = self.wcs.cdelt[time_axis_index]
-            if aug_ref_coord is not None and axis_length is not None:
+            if aug_ref_coord is not None:
                 aug_function = CoordFunction1D(axis_length, delta, aug_ref_coord)
                 naxis = CoordAxis1D(aug_naxis, aug_error, None, None, aug_function)
                 if not chunk.time:
@@ -4120,7 +4120,7 @@ class WcsParser:
             self.logger.debug('No WCS Polarization axis.function')
             return
 
-        if axis_length > 0:
+        if axis_length:
             chunk.polarization_axis = polarization_axis_index + 1
 
             naxis = CoordAxis1D(self._get_axis(polarization_axis_index))
