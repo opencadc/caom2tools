@@ -3958,7 +3958,9 @@ class WcsParser:
                 delta = self.wcs.cd[custom_axis_index][custom_axis_index]
             else:
                 delta = self.wcs.cdelt[custom_axis_index]
-            naxis.function = CoordFunction1D(custom_axis_length, delta, self._get_ref_coord(custom_axis_index))
+            ref_coord = self._get_ref_coord(custom_axis_index)
+            if delta and ref_coord:
+                naxis.function = CoordFunction1D(custom_axis_length, delta, ref_coord)
             if not chunk.custom:
                 chunk.custom = CustomWCS(naxis)
             else:
@@ -3995,7 +3997,9 @@ class WcsParser:
                 delta = self.wcs.cd[energy_axis_index][energy_axis_index]
             else:
                 delta = self.wcs.cdelt[energy_axis_index]
-            naxis.function = CoordFunction1D(energy_axis_length, delta, self._get_ref_coord(energy_axis_index))
+            ref_coord = self._get_ref_coord(energy_axis_index)
+            if delta and ref_coord:
+                naxis.function = CoordFunction1D(energy_axis_length, delta, ref_coord)
 
             specsys = _to_str(self.wcs.specsys)
             if not chunk.energy:
@@ -4128,7 +4132,9 @@ class WcsParser:
                 delta = self.wcs.cd[polarization_axis_index][polarization_axis_index]
             else:
                 delta = self.wcs.cdelt[polarization_axis_index]
-            naxis.function = CoordFunction1D(axis_length, delta, self._get_ref_coord(polarization_axis_index))
+            ref_coord = self._get_ref_coord(polarization_axis_index)
+            if delta and ref_coord:
+                naxis.function = CoordFunction1D(axis_length, delta, ref_coord)
             if not chunk.polarization:
                 chunk.polarization = PolarizationWCS(naxis)
             else:
@@ -4263,7 +4269,7 @@ class WcsParser:
         aug_crpix = _to_float(self._sanitize(self.wcs.crpix[index]))
         aug_crval = _to_float(self._sanitize(self.wcs.crval[index]))
         aug_ref_coord = None
-        if aug_crpix is not None and aug_crval is not None:
+        if aug_crpix and aug_crval:
             aug_ref_coord = RefCoord(aug_crpix, aug_crval)
         return aug_ref_coord
 
@@ -4274,8 +4280,11 @@ class WcsParser:
         if aug_dimension is None:
             return None
 
-        aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
-                                self._get_ref_coord(yindex))
+        x_ref_coord = self._get_ref_coord(xindex)
+        y_ref_coord = self._get_ref_coord(yindex)
+        aug_ref_coord = None
+        if x_ref_coord and y_ref_coord:
+            aug_ref_coord = Coord2D(x_ref_coord, y_ref_coord)
 
         aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
             self._get_cd(xindex, yindex)
