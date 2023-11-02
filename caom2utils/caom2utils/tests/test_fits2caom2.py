@@ -1545,7 +1545,7 @@ def test_blueprint_instantiated_class():
     hdr2['BITPIX'] = -32
     hdr2['CTYPE1'] = 'TIME'
     hdr2['CUNIT1'] = 'd'
-    hdr2['CRPIX1'] = '1'
+    hdr2['CRPIX1'] = 1.0
     hdr2['CRVAL1'] = 590000.00000
     test_blueprint = ObsBlueprint(instantiated_class=test_instantiated)
     test_blueprint.configure_time_axis(1)
