@@ -100,6 +100,7 @@ class ObservationIntentType(OrderedEnum):
     """
     SCIENCE = "science"
     CALIBRATION = "calibration"
+    OUTREACH = "outreach"
 
 
 class Status(Enum):
