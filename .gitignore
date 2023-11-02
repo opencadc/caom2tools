@@ -4,6 +4,8 @@
 *.o
 *.so
 __pycache__
+.pytest_cache
+.eggs
 
 # Ignore .c files by default to avoid including generated code. If you want to
 # add a non-generated .c extension, use `git add -f filename.c`.
@@ -16,6 +18,7 @@ htmlcov
 .coverage
 MANIFEST
 .ipynb_checkpoints
+version.py
 
 # Sphinx
 docs/api
@@ -51,6 +54,8 @@ distribute-*.tar.gz
 .project
 .pydevproject
 .settings
+.vscode
+.conda
 
 # Mac OSX
 .DS_Store
