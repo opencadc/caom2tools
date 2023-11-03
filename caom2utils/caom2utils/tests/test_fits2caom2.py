@@ -156,7 +156,7 @@ def test_augment_energy():
     ex = _get_from_str_xml(EXPECTED_ENERGY_XML,
                            ObservationReader()._get_spectral_wcs, 'energy')
     result = get_differences(ex, energy)
-    assert result is None, repr(energy)
+    assert result is None, result
 
 
 def test_hdf5_wcs_parser_set_wcs():
