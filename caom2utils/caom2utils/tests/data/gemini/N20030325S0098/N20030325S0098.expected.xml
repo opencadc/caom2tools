@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="00000000-0000-0000-ba67-45838163c4f7" caom2:lastModified="2017-06-27T07:20:00.364" caom2:maxLastModified="2019-11-07T22:17:09.441" caom2:metaChecksum="md5:b8c3b3482b51d589d90fde5aaebcde99" caom2:accMetaChecksum="md5:917a4f15cc6900f6cdd5e06c6d1810eb">
+  <caom2:collection>GEMINI</caom2:collection>
+  <caom2:observationID>GN-2003A-Q-51-2-004</caom2:observationID>
+  <caom2:metaRelease>2003-03-25T06:01:59.700</caom2:metaRelease>
+  <caom2:algorithm>
+    <caom2:name>exposure</caom2:name>
+  </caom2:algorithm>
+  <caom2:type>OBJECT</caom2:type>
+  <caom2:intent>science</caom2:intent>
+  <caom2:target>
+    <caom2:name>B2 0902+34--NE</caom2:name>
+  </caom2:target>
+  <caom2:telescope>
+    <caom2:name>Gemini-North</caom2:name>
+    <caom2:geoLocationX>-5464284.386715498</caom2:geoLocationX>
+    <caom2:geoLocationY>-2493782.3091076654</caom2:geoLocationY>
+    <caom2:geoLocationZ>2150786.380689657</caom2:geoLocationZ>
+  </caom2:telescope>
+  <caom2:instrument>
+    <caom2:name>NIRI</caom2:name>
+  </caom2:instrument>
+  <caom2:planes>
+    <caom2:plane caom2:id="00000000-0000-0000-863a-3c514689e458" caom2:lastModified="2017-06-27T07:20:00.364" caom2:maxLastModified="2019-11-07T22:17:09.441" caom2:metaChecksum="md5:026b3a477a096490f262f70adebf5b0c" caom2:accMetaChecksum="md5:d1719119ef586a67f9e7e4560cec252c">
+      <caom2:productID>GN-2003A-Q-51-2-004</caom2:productID>
+      <caom2:metaRelease>2003-03-25T06:01:59.700</caom2:metaRelease>
+      <caom2:dataRelease>2004-09-25T00:00:00.000</caom2:dataRelease>
+      <caom2:dataProductType>image</caom2:dataProductType>
+      <caom2:calibrationLevel>1</caom2:calibrationLevel>
+      <caom2:provenance>
+        <caom2:name>Gemini Observatory Data</caom2:name>
+        <caom2:project>Gemini Archive</caom2:project>
+        <caom2:producer>NOAO-IRAF FITS Image Kernel July 1999</caom2:producer>
+        <caom2:reference>http://archive.gemini.edu/searchform/GN-2003A-Q-51-2-004</caom2:reference>
+      </caom2:provenance>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="00000000-0000-0000-9e81-de8e50840f76" caom2:lastModified="2019-07-21T06:38:28.781" caom2:maxLastModified="2019-07-21T06:38:28.781" caom2:metaChecksum="md5:ad4615b8eec80af02af2524e4ef7f65e" caom2:accMetaChecksum="md5:345fe824d92a21d897a4aed61fcd25e8">
+          <caom2:uri>ad:GEMINI/N20030325S0098.fits</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/fits</caom2:contentType>
+          <caom2:contentLength>4210560</caom2:contentLength>
+          <caom2:contentChecksum>md5:e385beb60c74bccf297813c26e35fa9b</caom2:contentChecksum>
+          <caom2:parts>
+            <caom2:part caom2:id="6b710f51-d818-44f8-8a65-08b73ac42d0a" caom2:lastModified="2019-07-21T06:38:28.781" caom2:maxLastModified="2019-07-21T06:38:28.781" caom2:metaChecksum="md5:6a53a581acbcf0a3bc270697240435ec" caom2:accMetaChecksum="md5:feef81761d08cc27fda947ec3e8d5fa7">
+              <caom2:name>0</caom2:name>
+              <caom2:chunks/>
+            </caom2:part>
+            <caom2:part caom2:id="00000000-0000-0000-a227-c2e589743ad2" caom2:lastModified="2017-06-27T07:20:00.364" caom2:maxLastModified="2017-06-27T07:20:00.364" caom2:metaChecksum="md5:f5e485551b66185f939a091278ac4f89" caom2:accMetaChecksum="md5:d699ff273a56a510fbb78a77c6669707">
+              <caom2:name>1</caom2:name>
+              <caom2:chunks>
+                <caom2:chunk caom2:id="00000000-0000-0000-b2d5-76fdc8755f7b" caom2:lastModified="2017-06-27T07:20:00.364" caom2:maxLastModified="2017-06-27T07:20:00.364" caom2:metaChecksum="md5:6625e6e869102f570d9217da1034db70" caom2:accMetaChecksum="md5:898f485c428ab1a3eba745c04710bbdd">
+                  <caom2:naxis>2</caom2:naxis>
+                  <caom2:positionAxis1>1</caom2:positionAxis1>
+                  <caom2:positionAxis2>2</caom2:positionAxis2>
+                  <caom2:timeAxis>4</caom2:timeAxis>
+                  <caom2:position>
+                    <caom2:axis>
+                      <caom2:axis1>
+                        <caom2:ctype>RA---TAN</caom2:ctype>
+                        <caom2:cunit>deg</caom2:cunit>
+                      </caom2:axis1>
+                      <caom2:axis2>
+                        <caom2:ctype>DEC--TAN</caom2:ctype>
+                        <caom2:cunit>deg</caom2:cunit>
+                      </caom2:axis2>
+                      <caom2:function>
+                        <caom2:dimension>
+                          <caom2:naxis1>1024</caom2:naxis1>
+                          <caom2:naxis2>1024</caom2:naxis2>
+                        </caom2:dimension>
+                        <caom2:refCoord>
+                          <caom2:coord1>
+                            <caom2:pix>545.1860865851</caom2:pix>
+                            <caom2:val>136.37590805622</caom2:val>
+                          </caom2:coord1>
+                          <caom2:coord2>
+                            <caom2:pix>489.04922960385</caom2:pix>
+                            <caom2:val>34.130334909061</caom2:val>
+                          </caom2:coord2>
+                        </caom2:refCoord>
+                        <caom2:cd11>-3.2524270027565e-55</caom2:cd11>
+                        <caom2:cd12>1.2869585606175e-07</caom2:cd12>
+                        <caom2:cd21>-8.9987106577858e-09</caom2:cd21>
+                        <caom2:cd22>3.2335265472292e-05</caom2:cd22>
+                      </caom2:function>
+                    </caom2:axis>
+                    <caom2:coordsys>FK5</caom2:coordsys>
+                    <caom2:equinox>2000.0</caom2:equinox>
+                  </caom2:position>
+                  <caom2:time>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>TIME</caom2:ctype>
+                        <caom2:cunit>d</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1e-07</caom2:syser>
+                        <caom2:rnder>1e-07</caom2:rnder>
+                      </caom2:error>
+                      <caom2:function>
+                        <caom2:naxis>1</caom2:naxis>
+                        <caom2:delta>0.000520868055555555</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>52723.25138541667</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                    <caom2:timesys>UTC</caom2:timesys>
+                    <caom2:exposure>45.003</caom2:exposure>
+                    <caom2:resolution>45.003</caom2:resolution>
+                  </caom2:time>
+                </caom2:chunk>
+              </caom2:chunks>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+</caom2:Observation>

@@ -251,6 +251,8 @@ def _get_cardinality(directory):
             return '--lineage star04239531/cadc:TAOSII/taos2_20220201T201317Z_star04239531.h5'
     elif 'brite' in directory:
         return '--lineage HD36486_65-Ori-VIII-2021_BAb_1_5_A/ad:BRITE-Constellation/HD36486.orig'
+    elif 'gemini' in directory:
+        return '--lineage GN-2003A-Q-51-2-004/ad:GEMINI/N20030325S0098.fits'
     else:
         return ''
 

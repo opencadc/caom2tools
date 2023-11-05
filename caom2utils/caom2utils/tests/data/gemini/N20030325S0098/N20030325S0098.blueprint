@@ -1,0 +1,63 @@
+Observation.observationID = ['OBSID'], default = None
+Observation.type = OBJECT
+Observation.intent = science
+Observation.metaRelease = 2003-03-25T06:01:59.700
+Observation.metaProducer = gemini2caom2/0.0.0
+Observation.algorithm.name = exposure
+Observation.instrument.name = NIRI
+Observation.instrument.keywords = ['INSTMODE'], default = None
+Observation.telescope.name = ['TELESCOP'], default = None
+Observation.telescope.geoLocationX = -5464284.386715498
+Observation.telescope.geoLocationY = -2493782.309107667
+Observation.telescope.geoLocationZ = 2150786.380689657
+Observation.environment.ambientTemp = ['TEMPERAT'], default = None
+Plane.productID = N20030325S0098
+Plane.metaRelease = 2003-03-25T06:01:59.700
+Plane.dataRelease = 2004-09-25T00:00:00.000
+Plane.dataProductType = image
+Plane.calibrationLevel = 1
+Plane.metaProducer = gemini2caom2/0.0.0
+Plane.provenance.name = Gemini Observatory Data
+Plane.provenance.project = Gemini Archive
+Plane.provenance.producer = ['ORIGIN'], default = Gemini Observatory
+Plane.provenance.reference = http://archive.gemini.edu/searchform/GN-2003A-Q-51-2-004
+Plane.provenance.lastExecuted = ['DATE-FTS'], default = None
+Artifact.productType = science
+Artifact.releaseType = data
+Artifact.uri = gemini:GEMINI/N20030325S0098.fits
+Artifact.metaProducer = gemini2caom2/0.0.0
+Chunk = include
+Chunk.metaProducer = gemini2caom2/0.0.0
+Chunk.position.coordsys = ['RADESYS'], default = None
+Chunk.position.equinox = ['EPOCH'], default = 2000.0
+Chunk.position.axis.axis1.ctype = ['CTYPE1'], default = None
+Chunk.position.axis.axis1.cunit = ['CUNIT1'], default = None
+Chunk.position.axis.axis2.ctype = ['CTYPE2'], default = None
+Chunk.position.axis.axis2.cunit = ['CUNIT2'], default = None
+Chunk.position.axis.error1.syser = ['CSYER1'], default = None
+Chunk.position.axis.error1.rnder = ['CRDER1'], default = None
+Chunk.position.axis.error2.syser = ['CSYER2'], default = None
+Chunk.position.axis.error2.rnder = ['CRDER2'], default = None
+Chunk.position.axis.function.cd11 = ['CD1_1'], default = None
+Chunk.position.axis.function.cd12 = ['CD1_2'], default = None
+Chunk.position.axis.function.cd21 = ['CD2_1'], default = None
+Chunk.position.axis.function.cd22 = ['CD2_2'], default = None
+Chunk.position.axis.function.dimension.naxis1 = ['NAXIS1'], default = None
+Chunk.position.axis.function.dimension.naxis2 = ['NAXIS2'], default = None
+Chunk.position.axis.function.refCoord.coord1.pix = ['CRPIX1'], default = None
+Chunk.position.axis.function.refCoord.coord1.val = ['CRVAL1'], default = None
+Chunk.position.axis.function.refCoord.coord2.pix = ['CRPIX2'], default = None
+Chunk.position.axis.function.refCoord.coord2.val = ['CRVAL2'], default = None
+Chunk.time.exposure = get_exposure(uri)
+Chunk.time.resolution = get_exposure(uri)
+Chunk.time.timesys = ['TIMESYS'], default = None
+Chunk.time.trefpos = ['TREFPOS'], default = None
+Chunk.time.mjdref = ['MJDREF'], default = None
+Chunk.time.axis.axis.ctype = TIME
+Chunk.time.axis.axis.cunit = d
+Chunk.time.axis.error.syser = 1e-07
+Chunk.time.axis.error.rnder = 1e-07
+Chunk.time.axis.function.naxis = 1
+Chunk.time.axis.function.delta = get_time_delta()
+Chunk.time.axis.function.refCoord.pix = 0.5
+Chunk.time.axis.function.refCoord.val = 52723.25138541667

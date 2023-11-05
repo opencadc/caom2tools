@@ -2275,8 +2275,7 @@ class ContentParser(BlueprintParser):
         # 3 - Always try to fill the range metadata from the blueprint.
         if self.blueprint._pos_axes_configed:
             self._wcs_parser.augment_position(chunk)
-            if chunk.position is None or chunk.position.axis is None or chunk.position.axis.function is None:
-                self._try_position_with_blueprint(chunk, index)
+            self._try_position_with_blueprint(chunk, index)
 
         if self.blueprint._energy_axis_configed:
             self._wcs_parser.augment_energy(chunk)
@@ -2609,6 +2608,7 @@ class ContentParser(BlueprintParser):
 
         aug_naxis = None
         aug_range = self._try_range(index, label)
+        aug_naxis_index = None
         if aug_axis is not None:
             if aug_range is None:
                 if wcs is None or wcs.axis is None or wcs.axis.function is None:
@@ -2622,14 +2622,16 @@ class ContentParser(BlueprintParser):
                     if aug_length is not None and aug_delta is not None and aug_ref_coord is not None:
                         aug_function = CoordFunction1D(aug_length, aug_delta, aug_ref_coord)
                     aug_naxis = CoordAxis1D(aug_axis, aug_error, None, None, aug_function)
+                    if aug_function is not None:
+                        # if the WCS is described with a Function, cutouts can be supported, so specify an axis
+                        aug_naxis_index = _to_int(self._get_from_list(f'Chunk.{label}Axis', index))
                     self.logger.debug(f'Creating function {label} CoordAxis1D for {self.uri} from blueprint')
             else:
                 aug_naxis = CoordAxis1D(axis=aug_axis, error=aug_error, range=aug_range)
-                aug_naxis.function = None
                 self.logger.debug(f'Creating range {label} CoordAxis1D for {self.uri} from blueprint')
 
         self.logger.debug(f'End {label} axis construction from blueprint.')
-        return aug_naxis
+        return aug_naxis, aug_naxis_index
 
     def _get_observable(self, current):
         """
@@ -2875,13 +2877,14 @@ class ContentParser(BlueprintParser):
         :param index: The index in the blueprint for looking up plan information.
         """
         self.logger.debug('Begin augmentation with blueprint for custom.')
-        aug_naxis = self._get_axis_wcs('custom', chunk.custom, index)
+        aug_naxis, aug_naxis_index = self._get_axis_wcs('custom', chunk.custom, index)
         if aug_naxis is None:
             self.logger.debug('No blueprint custom information.')
         else:
             # always create a new CustomWCS instance because there's no setter for 'axis' parameter
             chunk.custom = CustomWCS(aug_naxis)
-            chunk.custom_axis = _to_int(self._get_from_list('Chunk.customAxis', index))
+            chunk.custom_axis = aug_naxis_index
+            self.logger.debug(f'Updating CustomWCS for {self.uri}.')
         self.logger.debug('End augmentation with blueprint for custom.')
 
     def _try_energy_with_blueprint(self, chunk, index):
@@ -2895,29 +2898,32 @@ class ContentParser(BlueprintParser):
             information.
         """
         self.logger.debug('Begin augmentation with blueprint for energy.')
-        aug_axis = self._get_axis_wcs('energy', chunk.energy, index)
+        aug_axis, aug_naxis_index = self._get_axis_wcs('energy', chunk.energy, index)
         specsys = _to_str(self._get_from_list('Chunk.energy.specsys', index))
         if aug_axis is None:
             self.logger.debug('No blueprint energy information.')
         else:
-            if not chunk.energy:
-                chunk.energy = SpectralWCS(aug_axis, specsys)
-            else:
+            if chunk.energy:
                 chunk.energy.axis = aug_axis
                 chunk.energy.specsys = specsys
-            chunk.energy_axis = _to_int(self._get_from_list('Chunk.energyAxis', index))
+            else:
+                chunk.energy = SpectralWCS(aug_axis, specsys)
+                self.logger.debug(f'Creating SpectralWCS for {self.uri} from blueprint')
+            chunk.energy_axis = aug_naxis_index
 
         if chunk.energy:
-            chunk.energy.ssysobs = self._get_from_list('Chunk.energy.ssysobs', index)
-            chunk.energy.restfrq = self._get_from_list('Chunk.energy.restfrq', index)
-            chunk.energy.restwav = self._get_from_list('Chunk.energy.restwav', index)
-            chunk.energy.velosys = self._get_from_list('Chunk.energy.velosys', index)
-            chunk.energy.zsource = self._get_from_list('Chunk.energy.zsource', index)
-            chunk.energy.ssyssrc = self._get_from_list('Chunk.energy.ssyssrc', index)
-            chunk.energy.velang = self._get_from_list('Chunk.energy.velang', index)
-            chunk.energy.bandpass_name = self._get_from_list( 'Chunk.energy.bandpassName', index)
+            chunk.energy.ssysobs = self._get_from_list('Chunk.energy.ssysobs', index, chunk.energy.ssysobs)
+            chunk.energy.restfrq = self._get_from_list('Chunk.energy.restfrq', index, chunk.energy.restfrq)
+            chunk.energy.restwav = self._get_from_list('Chunk.energy.restwav', index, chunk.energy.restwav)
+            chunk.energy.velosys = self._get_from_list('Chunk.energy.velosys', index, chunk.energy.velosys)
+            chunk.energy.zsource = self._get_from_list('Chunk.energy.zsource', index, chunk.energy.zsource)
+            chunk.energy.ssyssrc = self._get_from_list('Chunk.energy.ssyssrc', index, chunk.energy.ssyssrc)
+            chunk.energy.velang = self._get_from_list('Chunk.energy.velang', index, chunk.energy.velang)
+            chunk.energy.bandpass_name = self._get_from_list(
+                'Chunk.energy.bandpassName', index, chunk.energy.bandpass_name)
             chunk.energy.transition = self._get_energy_transition(chunk.energy.transition)
-            chunk.energy.resolving_power = _to_float(self._get_from_list('Chunk.energy.resolvingPower', index))
+            chunk.energy.resolving_power = _to_float(
+                self._get_from_list('Chunk.energy.resolvingPower', index, chunk.energy.resolving_power))
         self.logger.debug('End augmentation with blueprint for energy.')
 
     def _try_observable_with_blueprint(self, chunk, index):
@@ -2956,14 +2962,14 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin augmentation with blueprint for '
                           'polarization.')
-        aug_axis = self._get_axis_wcs('polarization', chunk.polarization, index)
+        aug_axis, aug_naxis_index = self._get_axis_wcs('polarization', chunk.polarization, index)
         if aug_axis is not None:
             if chunk.polarization:
                 chunk.polarization.axis = aug_axis
             else:
                 chunk.polarization = PolarizationWCS(aug_axis)
-            chunk.polarization_axis = _to_int(self._get_from_list('Chunk.polarizationAxis', index))
-            self.logger.debug(f'Creating PolarizationWCS for {self.uri} from blueprint')
+                self.logger.debug(f'Creating PolarizationWCS for {self.uri} from blueprint')
+            chunk.polarization_axis = aug_naxis_index
 
         self.logger.debug('End augmentation with blueprint for polarization.')
 
@@ -3005,8 +3011,10 @@ class ContentParser(BlueprintParser):
             information.
         """
         self.logger.debug('Begin augmentation with blueprint for position.')
+        aug_axis = None
         if (chunk.position is not None and chunk.position.axis is not None and chunk.position.axis.axis1 is not None
             and chunk.position.axis.axis2 is not None):
+            # preserve the values obtained from file data
             aug_x_axis = chunk.position.axis.axis1
             aug_y_axis = chunk.position.axis.axis2
             aug_x_error = chunk.position.axis.error1
@@ -3057,7 +3065,6 @@ class ContentParser(BlueprintParser):
                                                        aug_cd22)
                     self.logger.debug(f'Creating position CoordFunction2D for {self.uri}')
 
-                aug_axis = None
                 if (aug_x_axis is not None and aug_y_axis is not None and
                         aug_function is not None):
                     aug_axis = CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error,
@@ -3074,14 +3081,14 @@ class ContentParser(BlueprintParser):
                 chunk.position.axis = aug_axis
             else:
                 chunk.position = SpatialWCS(aug_axis)
+                self.logger.debug(f'Creating SpatialWCS for {self.uri} from blueprint')
 
         if chunk.position:
-            chunk.position.coordsys = self._get_from_list(
-                'Chunk.position.coordsys', index)
+            chunk.position.coordsys = self._get_from_list('Chunk.position.coordsys', index, chunk.position.coordsys)
             chunk.position.equinox = _to_float(self._get_from_list(
-                'Chunk.position.equinox', index))
+                'Chunk.position.equinox', index, chunk.position.equinox))
             chunk.position.resolution = self._get_from_list(
-                'Chunk.position.resolution', index)
+                'Chunk.position.resolution', index, chunk.position.resolution)
         self.logger.debug('End augmentation with blueprint for position.')
 
     def _try_range(self, index, lookup):
@@ -3112,26 +3119,22 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin augmentation with blueprint for temporal.')
 
-        aug_axis = self._get_axis_wcs('time', chunk.time, index)
+        aug_axis, aug_axis_index = self._get_axis_wcs('time', chunk.time, index)
         if aug_axis is not None:
             if chunk.time:
                 chunk.time.axis = aug_axis
             else:
                 chunk.time = TemporalWCS(aug_axis)
-                self.logger.debug('Creating TemporalWCS for {} from blueprint'.
-                                  format(self.uri))
-            chunk.time_axis = _to_int(self._get_from_list('Chunk.timeAxis', index))
+                self.logger.debug(f'Creating TemporalWCS for {self.uri} from blueprint')
+            chunk.time_axis = aug_axis_index
 
         if chunk.time:
-            chunk.time.exposure = _to_float(
-                self._get_from_list('Chunk.time.exposure', index))
+            chunk.time.exposure = _to_float( self._get_from_list('Chunk.time.exposure', index, chunk.time.exposure))
             chunk.time.resolution = _to_float(
-                self._get_from_list('Chunk.time.resolution', index))
-            chunk.time.timesys = _to_str(
-                self._get_from_list('Chunk.time.timesys', index))
-            chunk.time.trefpos = self._get_from_list('Chunk.time.trefpos',
-                                                     index)
-            chunk.time.mjdref = self._get_from_list('Chunk.time.mjdref', index)
+                self._get_from_list('Chunk.time.resolution', index, chunk.time.resolution))
+            chunk.time.timesys = _to_str(self._get_from_list('Chunk.time.timesys', index, chunk.time.timesys))
+            chunk.time.trefpos = self._get_from_list('Chunk.time.trefpos', index, chunk.time.trefpos)
+            chunk.time.mjdref = self._get_from_list('Chunk.time.mjdref', index, chunk.time.mjdref)
 
         self.logger.debug('End augmentation with blueprint for temporal.')
 
