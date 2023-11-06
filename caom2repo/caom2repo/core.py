@@ -67,7 +67,8 @@
 # ***********************************************************************
 #
 import argparse
-import imp
+import importlib.util
+import importlib.machinery
 import logging
 import multiprocessing
 from multiprocessing import Pool
@@ -440,9 +441,14 @@ class CAOM2RepoClient(object):
         mod_name, file_ext = os.path.splitext(os.path.split(filepath)[-1])
 
         if file_ext.lower() == '.pyc':
-            py_mod = imp.load_compiled(mod_name, filepath)
+            loader = importlib.machinery.SourcelessFileLoader(mod_name, filepath)
         else:
-            py_mod = imp.load_source(mod_name, filepath)
+            loader = importlib.machinery.SourceFileLoader(mod_name, filepath)
+        spec = importlib.util.spec_from_file_location(mod_name, filepath, loader=loader)
+        py_mod = importlib.util.module_from_spec(spec)
+        # cache the module
+        sys.modules[py_mod.__name__] = py_mod
+        spec.loader.exec_module(py_mod)
 
         if hasattr(py_mod, expected_class):
             self.plugin = getattr(py_mod, expected_class)()
