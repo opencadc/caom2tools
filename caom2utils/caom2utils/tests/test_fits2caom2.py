@@ -1169,6 +1169,7 @@ def test_visit():
     _visit(test_class_plugin_module, test_fitsparser, test_obs,
            visit_local=None, **kwargs)
 
+
 EXPECTED_CUSTOM_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4">
   <caom2:custom>
     <caom2:axis>
