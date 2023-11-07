@@ -3013,7 +3013,7 @@ class ContentParser(BlueprintParser):
         self.logger.debug('Begin augmentation with blueprint for position.')
         aug_axis = None
         if (chunk.position is not None and chunk.position.axis is not None and chunk.position.axis.axis1 is not None
-            and chunk.position.axis.axis2 is not None):
+                and chunk.position.axis.axis2 is not None):
             # preserve the values obtained from file data
             aug_x_axis = chunk.position.axis.axis1
             aug_y_axis = chunk.position.axis.axis2
@@ -3062,13 +3062,13 @@ class ContentParser(BlueprintParser):
                     aug_cd11 is not None and aug_cd12 is not None and
                         aug_cd21 is not None and aug_cd22 is not None):
                     aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21,
-                                                       aug_cd22)
+                                                   aug_cd22)
                     self.logger.debug(f'Creating position CoordFunction2D for {self.uri}')
 
                 if (aug_x_axis is not None and aug_y_axis is not None and
                         aug_function is not None):
                     aug_axis = CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error,
-                                        aug_y_error, None, None, aug_function)
+                                           aug_y_error, None, None, aug_function)
                     self.logger.debug(f'Creating position CoordAxis2D for {self.uri}')
 
                     chunk.position_axis_1 = _to_int(self._get_from_list('Chunk.positionAxis1', index))
@@ -3129,7 +3129,7 @@ class ContentParser(BlueprintParser):
             chunk.time_axis = aug_axis_index
 
         if chunk.time:
-            chunk.time.exposure = _to_float( self._get_from_list('Chunk.time.exposure', index, chunk.time.exposure))
+            chunk.time.exposure = _to_float(self._get_from_list('Chunk.time.exposure', index, chunk.time.exposure))
             chunk.time.resolution = _to_float(
                 self._get_from_list('Chunk.time.resolution', index, chunk.time.resolution))
             chunk.time.timesys = _to_str(self._get_from_list('Chunk.time.timesys', index, chunk.time.timesys))
@@ -4583,7 +4583,8 @@ class Hdf5WcsParser(WcsParser):
         if chunk.position.resolution is None:
             try:
                 # JJK 30-01-23
-                # In a spatial data chunk the resolution is 2 times the pixel size.  We can get the pixel size from the wcs
+                # In a spatial data chunk the resolution is 2 times the pixel size.  We can get the pixel size from
+                # the wcs
                 temp = utils.proj_plane_pixel_scales(self._wcs)
                 chunk.position.resolution = temp[0]
             except SingularMatrixError as e:
@@ -4650,7 +4651,6 @@ class Hdf5WcsParser(WcsParser):
                 self._wcs.wcs.trefpos = x
             x = self._blueprint._get('Chunk.time.mjdref', self._extension)
             if x and not ObsBlueprint.needs_lookup(x):
-#                 logging.error(f'{x} {self._wcs.wcs.mjdref}')
                 self._wcs.wcs.mjdref = [x, x]
 
 
