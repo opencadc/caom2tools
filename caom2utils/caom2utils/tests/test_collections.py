@@ -178,7 +178,6 @@ def test_differences(directory):
                 # during operation, want to use astropy on FITS files
                 # but during testing want to use headers and built-in Python file
                 # operations
-                from urllib.parse import urlparse
                 file_uri = urlparse(fqn)
                 try:
                     fits_header = open(file_uri.path).read()
