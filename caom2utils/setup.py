@@ -4,7 +4,6 @@
 import glob
 import os
 import sys
-import imp
 from setuptools.command.test import test as TestCommand
 from setuptools import find_packages
 
@@ -12,7 +11,6 @@ from setuptools import setup
 
 import distutils.cmd
 import distutils.log
-import subprocess
 
 # read the README.rst file and return as string.
 def readme():
@@ -42,7 +40,7 @@ VERSION = metadata.get('version', 'none')
 
 # generate the version file
 with open(os.path.join(PACKAGENAME, 'version.py'), 'w') as f:
-    f.write('version = \'{}\'\n'.format(VERSION))	
+    f.write('version = \'{}\'\n'.format(VERSION))
 
 # Treat everything in scripts except README.rst as a script to be installed
 scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
@@ -72,13 +70,13 @@ class PyTest(TestCommand):
         import pytest
         err_no = pytest.main(self.pytest_args)
         sys.exit(err_no)
-        
+
 class IntTestCommand(distutils.cmd.Command):
   """A custom command to run integration tests."""
 
   description = 'Integration tests'
   user_options = []
-  
+
   def initialize_options(self):
     """Set default values for options."""
     # Each user option must be listed here with their default value.
