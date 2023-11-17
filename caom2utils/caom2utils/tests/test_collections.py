@@ -66,6 +66,8 @@
 # ***********************************************************************
 #
 
+from astropy.io import fits
+
 from cadcdata import FileInfo
 from caom2utils import legacy, caom2blueprint, data_util
 from caom2 import ObservationReader, ObservationWriter
@@ -105,7 +107,7 @@ def test_differences(directory):
     product_id = f'--productID {prod_id}'
     collection_id = expected.collection
     data_files = _get_files(
-        ['header', 'png', 'gif', 'cat', 'fits', 'h5'], directory)
+        ['header', 'png', 'gif', 'cat', 'fits', 'h5', 'orig'], directory)
     assert data_files
 
     file_meta = _get_uris(collection_id, data_files, expected)
@@ -172,20 +174,30 @@ def test_differences(directory):
                             file_type='application/fits')
 
         def _header(fqn):
-            # during operation, want to use astropy on FITS files
-            # but during testing want to use headers and built-in Python file
-            # operations
-            from urllib.parse import urlparse
-            from astropy.io import fits
-            file_uri = urlparse(fqn)
-            try:
-                fits_header = open(file_uri.path).read()
-                headers = data_util.make_headers_from_string(fits_header)
-            except UnicodeDecodeError:
-                hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=True)
-                hdulist.verify('fix')
-                hdulist.close()
-                headers = [h.header for h in hdulist]
+            if '.fits' in fqn:
+                # during operation, want to use astropy on FITS files
+                # but during testing want to use headers and built-in Python file
+                # operations
+                file_uri = urlparse(fqn)
+                try:
+                    fits_header = open(file_uri.path).read()
+                    headers = data_util.make_headers_from_string(fits_header)
+                except UnicodeDecodeError:
+                    hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=True)
+                    hdulist.verify('fix')
+                    hdulist.close()
+                    headers = [h.header for h in hdulist]
+            else:
+                # the BRITE record tests blueprint range declarations over-riding function declarations. Do the minimal
+                # header construction to get that portion of the test to run.
+                header = fits.Header()
+                header['BITPIX'] = 8
+                header['NAXIS'] = 4
+                header['NAXIS1'] = 1
+                header['NAXIS2'] = 1
+                header['NAXIS3'] = 1
+                header['NAXIS4'] = 1
+                headers = [header]
             return headers
 
         swc_si_mock.return_value.cadcinfo.side_effect = info_mock
@@ -236,6 +248,10 @@ def _get_cardinality(directory):
             return '--lineage def/cadc:def/def.h5'
         else:
             return '--lineage star04239531/cadc:TAOSII/taos2_20220201T201317Z_star04239531.h5'
+    elif 'brite' in directory:
+        return '--lineage HD36486_65-Ori-VIII-2021_BAb_1_5_A/ad:BRITE-Constellation/HD36486.orig'
+    elif 'gemini' in directory:
+        return '--lineage GN-2003A-Q-51-2-004/ad:GEMINI/N20030325S0098.fits'
     else:
         return ''
 

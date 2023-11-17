@@ -79,11 +79,9 @@ from caom2utils.legacy import load_config
 from caom2utils.caom2blueprint import _visit, _load_plugin
 from caom2utils.caom2blueprint import _get_and_update_artifact_meta
 
-from caom2 import ObservationWriter, SimpleObservation, Algorithm
-from caom2 import Artifact, ProductType, ReleaseType, ObservationIntentType
-from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk
-from caom2 import SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS
-from caom2 import Axis, CoordAxis1D, CoordAxis2D, ChecksumURI, DataProductType
+from caom2 import ObservationWriter, SimpleObservation, Algorithm, Artifact, ProductType, ReleaseType, DataProductType
+from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk, ObservationIntentType, ChecksumURI
+from caom2 import CustomWCS, SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS, Axis, CoordAxis1D, CoordAxis2D
 from caom2 import CalibrationLevel
 import logging
 
@@ -156,7 +154,7 @@ def test_augment_energy():
     ex = _get_from_str_xml(EXPECTED_ENERGY_XML,
                            ObservationReader()._get_spectral_wcs, 'energy')
     result = get_differences(ex, energy)
-    assert result is None, repr(energy)
+    assert result is None, result
 
 
 def test_hdf5_wcs_parser_set_wcs():
@@ -226,7 +224,7 @@ def test_augment_artifact_energy_from_blueprint():
                            ObservationReader()._get_spectral_wcs,
                            'energy')
     result = get_differences(ex, test_chunk.energy)
-    assert result is None
+    assert result is None, result
 
 
 EXPECTED_POLARIZATION_XML = \
@@ -1172,6 +1170,28 @@ def test_visit():
            visit_local=None, **kwargs)
 
 
+EXPECTED_CUSTOM_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4">
+  <caom2:custom>
+    <caom2:axis>
+      <caom2:axis>
+        <caom2:ctype>RM</caom2:ctype>
+        <caom2:cunit>m / s ** 2</caom2:cunit>
+      </caom2:axis>
+      <caom2:range>
+        <caom2:start>
+          <caom2:pix>145.0</caom2:pix>
+          <caom2:val>-60000.0</caom2:val>
+        </caom2:start>
+        <caom2:end>
+          <caom2:pix>-824.46002</caom2:pix>
+          <caom2:val>1</caom2:val>
+        </caom2:end>
+      </caom2:range>
+    </caom2:axis>
+  </caom2:custom>
+</caom2:import>
+'''
+
 EXPECTED_ENERGY_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:energy>
     <caom2:axis>
@@ -1190,7 +1210,8 @@ EXPECTED_ENERGY_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.open
         </caom2:end>
       </caom2:range>
     </caom2:axis>
-    <caom2:specsys>TOPOCENT</caom2:specsys>
+    <caom2:specsys>LSRK</caom2:specsys>
+    <caom2:restfrq>1420406000.0</caom2:restfrq>
   </caom2:energy>
 </caom2:import>
 '''
@@ -1278,9 +1299,12 @@ EXPECTED_POS_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencad
 
 
 def test_augment_artifact_bounds_range_from_blueprint():
-    test_blueprint = ObsBlueprint(energy_axis=1, time_axis=2,
-                                  polarization_axis=3,
-                                  position_axes=(4, 5))
+    test_blueprint = ObsBlueprint(
+        energy_axis=1, time_axis=2, polarization_axis=3, position_axes=(4, 5), custom_axis=6)
+    test_blueprint.set('Chunk.custom.axis.range.start.pix', '145.0')
+    test_blueprint.set('Chunk.custom.axis.range.start.val', '-60000.0')
+    test_blueprint.set('Chunk.custom.axis.range.end.pix', '-824.46002')
+    test_blueprint.set('Chunk.custom.axis.range.end.val', '1')
     test_blueprint.set('Chunk.energy.axis.range.start.pix', '145.0')
     test_blueprint.set('Chunk.energy.axis.range.start.val', '-60000.0')
     test_blueprint.set('Chunk.energy.axis.range.end.pix', '-824.46002')
@@ -1308,12 +1332,18 @@ def test_augment_artifact_bounds_range_from_blueprint():
     test_fitsparser = FitsParser(sample_file_4axes, test_blueprint,
                                  uri='ad:TEST/test_blueprint')
     test_chunk = Chunk()
+    test_chunk.custom = CustomWCS(CoordAxis1D(Axis('RM', 'm / s ** 2')))
     test_chunk.energy = SpectralWCS(CoordAxis1D(Axis('WAVE', 'm')), 'TOPOCENT')
     test_chunk.time = TemporalWCS(CoordAxis1D(Axis('TIME', 'd')))
     test_chunk.polarization = PolarizationWCS(CoordAxis1D(Axis('STOKES')))
     test_chunk.position = SpatialWCS(CoordAxis2D(Axis('RA', 'deg'),
                                                  Axis('DEC', 'deg')))
-    test_fitsparser._try_range_with_blueprint(test_chunk, 0)
+    test_fitsparser._try_position_with_blueprint(test_chunk, 0)
+    test_fitsparser._try_energy_with_blueprint(test_chunk, 0)
+    test_fitsparser._try_time_with_blueprint(test_chunk, 0)
+    test_fitsparser._try_polarization_with_blueprint(test_chunk, 0)
+    test_fitsparser._try_observable_with_blueprint(test_chunk, 0)
+    test_fitsparser._try_custom_with_blueprint(test_chunk, 0)
 
     assert test_chunk.energy.axis.range is not None, \
         'chunk.energy.axis.range should be declared'
@@ -1323,13 +1353,14 @@ def test_augment_artifact_bounds_range_from_blueprint():
         'chunk.polarization.axis.range should be declared'
     assert test_chunk.position.axis.range is not None, \
         'chunk.position.axis.range should be declared'
+    assert test_chunk.custom.axis.range is not None, 'chunk.custom.axis.range should be declared'
     ex = _get_from_str_xml(EXPECTED_ENERGY_RANGE_BOUNDS_XML,
                            ObservationReader()._get_spectral_wcs,
                            'energy')
     assert ex is not None, \
         'energy string from expected output should be declared'
     result = get_differences(ex, test_chunk.energy)
-    assert result is None
+    assert result is None, f'energy\n{result}'
 
     ex = _get_from_str_xml(EXPECTED_TIME_RANGE_BOUNDS_XML,
                            ObservationReader()._get_temporal_wcs,
@@ -1337,7 +1368,7 @@ def test_augment_artifact_bounds_range_from_blueprint():
     assert ex is not None, \
         'time string from expected output should be declared'
     result = get_differences(ex, test_chunk.time)
-    assert result is None
+    assert result is None, f'time\n{result}'
 
     ex = _get_from_str_xml(EXPECTED_POL_RANGE_BOUNDS_XML,
                            ObservationReader()._get_polarization_wcs,
@@ -1345,7 +1376,7 @@ def test_augment_artifact_bounds_range_from_blueprint():
     assert ex is not None, \
         'polarization string from expected output should be declared'
     result = get_differences(ex, test_chunk.polarization)
-    assert result is None
+    assert result is None, f'polarization\n{result}'
 
     ex = _get_from_str_xml(EXPECTED_POS_RANGE_BOUNDS_XML,
                            ObservationReader()._get_spatial_wcs,
@@ -1353,7 +1384,14 @@ def test_augment_artifact_bounds_range_from_blueprint():
     assert ex is not None, \
         'position string from expected output should be declared'
     result = get_differences(ex, test_chunk.position)
-    assert result is None
+    assert result is None, f'position\n{result}'
+
+    ex = _get_from_str_xml(EXPECTED_CUSTOM_RANGE_BOUNDS_XML,
+                           ObservationReader()._get_custom_wcs,
+                           'custom')
+    assert ex is not None, 'custom string from expected output should be declared'
+    result = get_differences(ex, test_chunk.custom)
+    assert result is None, f'custom\n{result}'
 
 
 def test_visit_generic_parser():
@@ -1545,7 +1583,7 @@ def test_blueprint_instantiated_class():
     hdr2['BITPIX'] = -32
     hdr2['CTYPE1'] = 'TIME'
     hdr2['CUNIT1'] = 'd'
-    hdr2['CRPIX1'] = '1'
+    hdr2['CRPIX1'] = 1.0
     hdr2['CRVAL1'] = 590000.00000
     test_blueprint = ObsBlueprint(instantiated_class=test_instantiated)
     test_blueprint.configure_time_axis(1)

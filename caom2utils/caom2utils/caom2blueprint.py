@@ -2268,43 +2268,34 @@ class ContentParser(BlueprintParser):
             'Chunk.metaProducer', index=0, current=chunk.meta_producer)
 
         self._get_chunk_naxis(chunk, index)
+
+        # order by which the blueprint is used to set WCS information:
+        # 1 - try to construct the information for an axis from WCS information
+        # 2 - if the WCS information is insufficient, try to construct the information from the blueprint
+        # 3 - Always try to fill the range metadata from the blueprint.
         if self.blueprint._pos_axes_configed:
             self._wcs_parser.augment_position(chunk)
-            if chunk.position is None:
-                self._try_position_with_blueprint(chunk, index)
-        if chunk.position:
-            chunk.position.resolution = _to_float(self._get_from_list(
-                'Chunk.position.resolution', index=index, current=chunk.position.resolution))
+            self._try_position_with_blueprint(chunk, index)
+
         if self.blueprint._energy_axis_configed:
             self._wcs_parser.augment_energy(chunk)
-        if chunk.energy:
-            chunk.energy.bandpass_name = self._get_from_list(
-                'Chunk.energy.bandpassName', index=index)
-            chunk.energy.transition = self._get_energy_transition(
-                chunk.energy.transition)
-            chunk.energy.resolving_power = _to_float(self._get_from_list(
-                'Chunk.energy.resolvingPower', index=index))
-        else:
-            if self.blueprint._energy_axis_configed:
-                self._try_energy_with_blueprint(chunk, index)
+            self._try_energy_with_blueprint(chunk, index)
+
         if self.blueprint._time_axis_configed:
             self._wcs_parser.augment_temporal(chunk)
-            if chunk.time is None:
-                self._try_time_with_blueprint(chunk, index)
+            self._try_time_with_blueprint(chunk, index)
+
         if self.blueprint._polarization_axis_configed:
             self._wcs_parser.augment_polarization(chunk)
-            if chunk.polarization is None:
-                self._try_polarization_with_blueprint(chunk, index)
+            self._try_polarization_with_blueprint(chunk, index)
+
         if self.blueprint._obs_axis_configed:
             self._wcs_parser.augment_observable(chunk)
-            if chunk.observable is None and chunk.observable_axis is None:
-                self._try_observable_with_blueprint(chunk, index)
+            self._try_observable_with_blueprint(chunk, index)
+
         if self.blueprint._custom_axis_configed:
             self._wcs_parser.augment_custom(chunk)
-
-        # try to set smaller bits of the chunk WCS elements from the
-        # blueprint
-        self._try_range_with_blueprint(chunk, index)
+            self._try_custom_with_blueprint(chunk, index)
 
         self.logger.debug(
             f'End content artifact augmentation for {artifact.uri}.')
@@ -2587,70 +2578,60 @@ class ContentParser(BlueprintParser):
         self.logger.debug('End Metrics augmentation.')
         return metrics
 
-    def _get_naxis(self, label, index):
+    def _get_axis_wcs(self, label, wcs, index):
         """Helper function to construct a CoordAxis1D instance, with all
         it's members, from the blueprint.
 
-        :param label: axis name - must be one of 'energy', 'time', or
-        'polarization', as it's used for the blueprint lookup.
+        :param label: axis name - must be one of 'custom', 'energy', 'time', or 'polarization', as it's used for the
+            blueprint lookup.
         :param index: which blueprint index to find a value in
         :return an instance of CoordAxis1D
         """
-        self.logger.debug(
-            f'Begin {label} naxis construction from blueprint.')
+        self.logger.debug(f'Begin {label} axis construction from blueprint.')
 
-        aug_axis_ctype = self._get_from_list(
-            f'Chunk.{label}.axis.axis.ctype', index)
-        aug_axis_cunit = self._get_from_list(
-            f'Chunk.{label}.axis.axis.cunit', index)
         aug_axis = None
-        if aug_axis_ctype is not None:
-            aug_axis = Axis(aug_axis_ctype, aug_axis_cunit)
-            self.logger.debug(
-                f'Creating {label} Axis for {self.uri} from blueprint')
+        aug_error = None
+        if wcs is not None and wcs.axis is not None and wcs.axis.axis is not None:
+            aug_axis = wcs.axis.axis
+            aug_error = wcs.axis.error
+        else:
+            aug_axis_ctype = self._get_from_list(f'Chunk.{label}.axis.axis.ctype', index)
+            aug_axis_cunit = self._get_from_list(f'Chunk.{label}.axis.axis.cunit', index)
+            if aug_axis_ctype is not None:
+                aug_axis = Axis(aug_axis_ctype, aug_axis_cunit)
+                self.logger.debug(f'Creating {label} Axis for {self.uri} from blueprint')
 
-        aug_error = self._two_param_constructor(
-            f'Chunk.{label}.axis.error.syser',
-            f'Chunk.{label}.axis.error.rnder',
-            index, _to_float, CoordError)
-        aug_ref_coord = self._two_param_constructor(
-            f'Chunk.{label}.axis.function.refCoord.pix',
-            f'Chunk.{label}.axis.function.refCoord.val',
-            index, _to_float, RefCoord)
-        aug_delta = _to_float(
-            self._get_from_list(f'Chunk.{label}.axis.function.delta',
-                                index))
-        aug_length = _to_int(
-            self._get_from_list(f'Chunk.{label}.axis.function.naxis',
-                                index))
-
-        aug_function = None
-        if (aug_length is not None and aug_delta is not None and
-                aug_ref_coord is not None):
-            aug_function = \
-                CoordFunction1D(aug_length, aug_delta, aug_ref_coord)
-            self.logger.debug(
-                f'Creating {label} function for {self.uri} from blueprint')
+            aug_error = self._two_param_constructor(
+                f'Chunk.{label}.axis.error.syser',
+                f'Chunk.{label}.axis.error.rnder',
+                index, _to_float, CoordError)
 
         aug_naxis = None
-        if aug_function is None:
-            aug_range = self._try_range_return(index, label)
-            if aug_axis is not None and aug_range is not None:
-                aug_naxis = CoordAxis1D(
-                    axis=aug_axis, error=aug_error, range=aug_range)
-                self.logger.debug(
-                    f'Creating range {label} CoordAxis1D for {self.uri} from '
-                    f'blueprint')
-        else:
-            if aug_axis is not None and aug_function is not None:
-                aug_naxis = CoordAxis1D(aug_axis, aug_error, None, None,
-                                        aug_function)
-                self.logger.debug(
-                    f'Creating function {label} CoordAxis1D for {self.uri} '
-                    f'from blueprint')
-        self.logger.debug(
-            f'End {label} naxis construction from blueprint.')
-        return aug_naxis
+        aug_range = self._try_range(index, label)
+        aug_naxis_index = None
+        if aug_axis is not None:
+            if aug_range is None:
+                if wcs is None or wcs.axis is None or wcs.axis.function is None:
+                    aug_ref_coord = self._two_param_constructor(
+                        f'Chunk.{label}.axis.function.refCoord.pix',
+                        f'Chunk.{label}.axis.function.refCoord.val',
+                        index, _to_float, RefCoord)
+                    aug_delta = _to_float(self._get_from_list(f'Chunk.{label}.axis.function.delta', index))
+                    aug_length = _to_int(self._get_from_list(f'Chunk.{label}.axis.function.naxis', index))
+                    aug_function = None
+                    if aug_length is not None and aug_delta is not None and aug_ref_coord is not None:
+                        aug_function = CoordFunction1D(aug_length, aug_delta, aug_ref_coord)
+                    aug_naxis = CoordAxis1D(aug_axis, aug_error, None, None, aug_function)
+                    if aug_function is not None:
+                        # if the WCS is described with a Function, cutouts can be supported, so specify an axis
+                        aug_naxis_index = _to_int(self._get_from_list(f'Chunk.{label}Axis', index))
+                    self.logger.debug(f'Creating function {label} CoordAxis1D for {self.uri} from blueprint')
+            else:
+                aug_naxis = CoordAxis1D(axis=aug_axis, error=aug_error, range=aug_range)
+                self.logger.debug(f'Creating range {label} CoordAxis1D for {self.uri} from blueprint')
+
+        self.logger.debug(f'End {label} axis construction from blueprint.')
+        return aug_naxis, aug_naxis_index
 
     def _get_observable(self, current):
         """
@@ -2887,6 +2868,25 @@ class ContentParser(BlueprintParser):
             result = True
         return result
 
+    def _try_custom_with_blueprint(self, chunk, index):
+        """
+        A mechanism to augment the Custom WCS completely from the blueprint. Do nothing if the WCS information cannot
+        be correctly created.
+
+        :param chunk: The chunk to modify with the addition of custom information.
+        :param index: The index in the blueprint for looking up plan information.
+        """
+        self.logger.debug('Begin augmentation with blueprint for custom.')
+        aug_naxis, aug_naxis_index = self._get_axis_wcs('custom', chunk.custom, index)
+        if aug_naxis is None:
+            self.logger.debug('No blueprint custom information.')
+        else:
+            # always create a new CustomWCS instance because there's no setter for 'axis' parameter
+            chunk.custom = CustomWCS(aug_naxis)
+            chunk.custom_axis = aug_naxis_index
+            self.logger.debug(f'Updating CustomWCS for {self.uri}.')
+        self.logger.debug('End augmentation with blueprint for custom.')
+
     def _try_energy_with_blueprint(self, chunk, index):
         """
         A mechanism to augment the Energy WCS completely from the blueprint.
@@ -2898,39 +2898,32 @@ class ContentParser(BlueprintParser):
             information.
         """
         self.logger.debug('Begin augmentation with blueprint for energy.')
-        aug_naxis = self._get_naxis('energy', index)
-
+        aug_axis, aug_naxis_index = self._get_axis_wcs('energy', chunk.energy, index)
         specsys = _to_str(self._get_from_list('Chunk.energy.specsys', index))
-        if aug_naxis is None:
+        if aug_axis is None:
             self.logger.debug('No blueprint energy information.')
         else:
-            if not chunk.energy:
-                chunk.energy = SpectralWCS(aug_naxis, specsys)
-            else:
-                chunk.energy.naxis = aug_naxis
+            if chunk.energy:
+                chunk.energy.axis = aug_axis
                 chunk.energy.specsys = specsys
+            else:
+                chunk.energy = SpectralWCS(aug_axis, specsys)
+                self.logger.debug(f'Creating SpectralWCS for {self.uri} from blueprint')
+            chunk.energy_axis = aug_naxis_index
 
-            if chunk.energy is not None:
-                chunk.energy.ssysobs = self._get_from_list(
-                    'Chunk.energy.ssysobs', index)
-                chunk.energy.restfrq = self._get_from_list(
-                    'Chunk.energy.restfrq', index)
-                chunk.energy.restwav = self._get_from_list(
-                    'Chunk.energy.restwav', index)
-                chunk.energy.velosys = self._get_from_list(
-                    'Chunk.energy.velosys', index)
-                chunk.energy.zsource = self._get_from_list(
-                    'Chunk.energy.zsource', index)
-                chunk.energy.ssyssrc = self._get_from_list(
-                    'Chunk.energy.ssyssrc', index)
-                chunk.energy.velang = self._get_from_list(
-                    'Chunk.energy.velang', index)
-                chunk.energy.bandpass_name = self._get_from_list(
-                    'Chunk.energy.bandpassName', index)
-                chunk.energy.transition = self._get_from_list(
-                    'Chunk.energy.transition', index)
-                chunk.energy.resolving_power = _to_float(self._get_from_list(
-                    'Chunk.energy.resolvingPower', index))
+        if chunk.energy:
+            chunk.energy.ssysobs = self._get_from_list('Chunk.energy.ssysobs', index, chunk.energy.ssysobs)
+            chunk.energy.restfrq = self._get_from_list('Chunk.energy.restfrq', index, chunk.energy.restfrq)
+            chunk.energy.restwav = self._get_from_list('Chunk.energy.restwav', index, chunk.energy.restwav)
+            chunk.energy.velosys = self._get_from_list('Chunk.energy.velosys', index, chunk.energy.velosys)
+            chunk.energy.zsource = self._get_from_list('Chunk.energy.zsource', index, chunk.energy.zsource)
+            chunk.energy.ssyssrc = self._get_from_list('Chunk.energy.ssyssrc', index, chunk.energy.ssyssrc)
+            chunk.energy.velang = self._get_from_list('Chunk.energy.velang', index, chunk.energy.velang)
+            chunk.energy.bandpass_name = self._get_from_list(
+                'Chunk.energy.bandpassName', index, chunk.energy.bandpass_name)
+            chunk.energy.transition = self._get_energy_transition(chunk.energy.transition)
+            chunk.energy.resolving_power = _to_float(
+                self._get_from_list('Chunk.energy.resolvingPower', index, chunk.energy.resolving_power))
         self.logger.debug('End augmentation with blueprint for energy.')
 
     def _try_observable_with_blueprint(self, chunk, index):
@@ -2946,8 +2939,6 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin augmentation with blueprint for '
                           'observable.')
-        chunk.observable_axis = _to_int(
-            self._get_from_list('Chunk.observableAxis', index))
         aug_axis = self._two_param_constructor(
             'Chunk.observable.dependent.axis.ctype',
             'Chunk.observable.dependent.axis.cunit', index, _to_str, Axis)
@@ -2955,6 +2946,7 @@ class ContentParser(BlueprintParser):
             self._get_from_list('Chunk.observable.dependent.bin', index))
         if aug_axis is not None and aug_bin is not None:
             chunk.observable = ObservableAxis(Slice(aug_axis, aug_bin))
+            chunk.observable_axis = _to_int(self._get_from_list('Chunk.observableAxis', index))
         self.logger.debug('End augmentation with blueprint for polarization.')
 
     def _try_polarization_with_blueprint(self, chunk, index):
@@ -2970,45 +2962,43 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin augmentation with blueprint for '
                           'polarization.')
-        chunk.polarization_axis = _to_int(
-            self._get_from_list('Chunk.polarizationAxis', index))
-        aug_naxis = self._get_naxis('polarization', index)
-        if aug_naxis is not None:
+        aug_axis, aug_naxis_index = self._get_axis_wcs('polarization', chunk.polarization, index)
+        if aug_axis is not None:
             if chunk.polarization:
-                chunk.polarization.naxis = aug_naxis
+                chunk.polarization.axis = aug_axis
             else:
-                chunk.polarization = PolarizationWCS(aug_naxis)
-                self.logger.debug(
-                    f'Creating PolarizationWCS for {self.uri} from blueprint')
+                chunk.polarization = PolarizationWCS(aug_axis)
+                self.logger.debug(f'Creating PolarizationWCS for {self.uri} from blueprint')
+            chunk.polarization_axis = aug_naxis_index
 
         self.logger.debug('End augmentation with blueprint for polarization.')
 
-    def _try_position_range(self, chunk, index):
+    def _try_position_range(self, index):
         self.logger.debug('Try to set the range for position from blueprint, since there is no function')
-        if (self.blueprint._pos_axes_configed and chunk.position is not None
-                and chunk.position.axis is not None and chunk.position.axis.function is None):
-            aug_range_c1_start = self._two_param_constructor(
-                'Chunk.position.axis.range.start.coord1.pix',
-                'Chunk.position.axis.range.start.coord1.val',
-                index, _to_float, RefCoord)
-            aug_range_c1_end = self._two_param_constructor(
-                'Chunk.position.axis.range.end.coord1.pix',
-                'Chunk.position.axis.range.end.coord1.val',
-                index, _to_float, RefCoord)
-            aug_range_c2_start = self._two_param_constructor(
-                'Chunk.position.axis.range.start.coord2.pix',
-                'Chunk.position.axis.range.start.coord2.val',
-                index, _to_float, RefCoord)
-            aug_range_c2_end = self._two_param_constructor(
-                'Chunk.position.axis.range.end.coord2.pix',
-                'Chunk.position.axis.range.end.coord2.val',
-                index, _to_float, RefCoord)
-            if (aug_range_c1_start and aug_range_c1_end and aug_range_c2_start
-                    and aug_range_c2_end):
-                chunk.position.axis.range = CoordRange2D(
-                    Coord2D(aug_range_c1_start, aug_range_c1_end),
-                    Coord2D(aug_range_c2_start, aug_range_c2_end))
-                self.logger.debug('Completed setting range for position')
+        aug_range = None
+        aug_range_c1_start = self._two_param_constructor(
+            'Chunk.position.axis.range.start.coord1.pix',
+            'Chunk.position.axis.range.start.coord1.val',
+            index, _to_float, RefCoord)
+        aug_range_c1_end = self._two_param_constructor(
+            'Chunk.position.axis.range.end.coord1.pix',
+            'Chunk.position.axis.range.end.coord1.val',
+            index, _to_float, RefCoord)
+        aug_range_c2_start = self._two_param_constructor(
+            'Chunk.position.axis.range.start.coord2.pix',
+            'Chunk.position.axis.range.start.coord2.val',
+            index, _to_float, RefCoord)
+        aug_range_c2_end = self._two_param_constructor(
+            'Chunk.position.axis.range.end.coord2.pix',
+            'Chunk.position.axis.range.end.coord2.val',
+            index, _to_float, RefCoord)
+        if (aug_range_c1_start and aug_range_c1_end and aug_range_c2_start
+                and aug_range_c2_end):
+            aug_range = CoordRange2D(
+                Coord2D(aug_range_c1_start, aug_range_c1_end),
+                Coord2D(aug_range_c2_start, aug_range_c2_end))
+            self.logger.debug('Completed setting range for position')
+        return aug_range
 
     def _try_position_with_blueprint(self, chunk, index):
         """
@@ -3021,94 +3011,87 @@ class ContentParser(BlueprintParser):
             information.
         """
         self.logger.debug('Begin augmentation with blueprint for position.')
-
-        aug_x_axis = self._two_param_constructor(
-            'Chunk.position.axis.axis1.ctype',
-            'Chunk.position.axis.axis1.cunit', index, _to_str, Axis)
-        aug_y_axis = self._two_param_constructor(
-            'Chunk.position.axis.axis2.ctype',
-            'Chunk.position.axis.axis2.cunit', index, _to_str, Axis)
-        aug_x_error = self._two_param_constructor(
-            'Chunk.position.axis.error1.syser',
-            'Chunk.position.axis.error1.rnder', index, _to_float, CoordError)
-        aug_y_error = self._two_param_constructor(
-            'Chunk.position.axis.error2.syser',
-            'Chunk.position.axis.error2.rnder', index, _to_float, CoordError)
-        aug_dimension = self._two_param_constructor(
-            'Chunk.position.axis.function.dimension.naxis1',
-            'Chunk.position.axis.function.dimension.naxis2',
-            index, _to_int, Dimension2D)
-        aug_x_ref_coord = self._two_param_constructor(
-            'Chunk.position.axis.function.refCoord.coord1.pix',
-            'Chunk.position.axis.function.refCoord.coord1.val',
-            index, _to_float, RefCoord)
-        aug_y_ref_coord = self._two_param_constructor(
-            'Chunk.position.axis.function.refCoord.coord2.pix',
-            'Chunk.position.axis.function.refCoord.coord2.val',
-            index, _to_float, RefCoord)
-        aug_cd11 = _to_float(self._get_from_list(
-            'Chunk.position.axis.function.cd11', index))
-        aug_cd12 = _to_float(self._get_from_list(
-            'Chunk.position.axis.function.cd12', index))
-        aug_cd21 = _to_float(self._get_from_list(
-            'Chunk.position.axis.function.cd21', index))
-        aug_cd22 = _to_float(self._get_from_list(
-            'Chunk.position.axis.function.cd22', index))
-
-        aug_ref_coord = None
-        if aug_x_ref_coord is not None and aug_y_ref_coord is not None:
-            aug_ref_coord = Coord2D(aug_x_ref_coord, aug_y_ref_coord)
-            self.logger.debug(
-                f'Creating position Coord2D for {self.uri}')
-
-        aug_function = None
-        if (aug_dimension is not None and aug_ref_coord is not None and
-            aug_cd11 is not None and aug_cd12 is not None and
-                aug_cd21 is not None and aug_cd22 is not None):
-            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
-                                           aug_cd11, aug_cd12, aug_cd21,
-                                           aug_cd22)
-            self.logger.debug(
-                f'Creating position CoordFunction2D for {self.uri}')
-
         aug_axis = None
-        if (aug_x_axis is not None and aug_y_axis is not None and
-                aug_function is not None):
-            aug_axis = CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error,
-                                   aug_y_error, None, None, aug_function)
-            self.logger.debug(
-                f'Creating position CoordAxis2D for {self.uri}')
+        if (chunk.position is not None and chunk.position.axis is not None and chunk.position.axis.axis1 is not None
+                and chunk.position.axis.axis2 is not None):
+            # preserve the values obtained from file data
+            aug_x_axis = chunk.position.axis.axis1
+            aug_y_axis = chunk.position.axis.axis2
+            aug_x_error = chunk.position.axis.error1
+            aug_y_error = chunk.position.axis.error2
+        else:
+            aug_x_axis = self._two_param_constructor(
+                'Chunk.position.axis.axis1.ctype',
+                'Chunk.position.axis.axis1.cunit', index, _to_str, Axis)
+            aug_y_axis = self._two_param_constructor(
+                'Chunk.position.axis.axis2.ctype',
+                'Chunk.position.axis.axis2.cunit', index, _to_str, Axis)
+            aug_x_error = self._two_param_constructor(
+                'Chunk.position.axis.error1.syser',
+                'Chunk.position.axis.error1.rnder', index, _to_float, CoordError)
+            aug_y_error = self._two_param_constructor(
+                'Chunk.position.axis.error2.syser',
+                'Chunk.position.axis.error2.rnder', index, _to_float, CoordError)
+        aug_range = self._try_position_range(index)
+        if aug_range is None:
+            if chunk.position is None or chunk.position.axis is None or chunk.position.axis.function is None:
+                aug_dimension = self._two_param_constructor(
+                    'Chunk.position.axis.function.dimension.naxis1',
+                    'Chunk.position.axis.function.dimension.naxis2',
+                    index, _to_int, Dimension2D)
+                aug_x_ref_coord = self._two_param_constructor(
+                    'Chunk.position.axis.function.refCoord.coord1.pix',
+                    'Chunk.position.axis.function.refCoord.coord1.val',
+                    index, _to_float, RefCoord)
+                aug_y_ref_coord = self._two_param_constructor(
+                    'Chunk.position.axis.function.refCoord.coord2.pix',
+                    'Chunk.position.axis.function.refCoord.coord2.val',
+                    index, _to_float, RefCoord)
+                aug_cd11 = _to_float(self._get_from_list('Chunk.position.axis.function.cd11', index))
+                aug_cd12 = _to_float(self._get_from_list('Chunk.position.axis.function.cd12', index))
+                aug_cd21 = _to_float(self._get_from_list('Chunk.position.axis.function.cd21', index))
+                aug_cd22 = _to_float(self._get_from_list('Chunk.position.axis.function.cd22', index))
+
+                aug_ref_coord = None
+                if aug_x_ref_coord is not None and aug_y_ref_coord is not None:
+                    aug_ref_coord = Coord2D(aug_x_ref_coord, aug_y_ref_coord)
+                    self.logger.debug(f'Creating position Coord2D for {self.uri}')
+
+                aug_function = None
+                if (aug_dimension is not None and aug_ref_coord is not None and
+                    aug_cd11 is not None and aug_cd12 is not None and
+                        aug_cd21 is not None and aug_cd22 is not None):
+                    aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21,
+                                                   aug_cd22)
+                    self.logger.debug(f'Creating position CoordFunction2D for {self.uri}')
+
+                if (aug_x_axis is not None and aug_y_axis is not None and
+                        aug_function is not None):
+                    aug_axis = CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error,
+                                           aug_y_error, None, None, aug_function)
+                    self.logger.debug(f'Creating position CoordAxis2D for {self.uri}')
+
+                    chunk.position_axis_1 = _to_int(self._get_from_list('Chunk.positionAxis1', index))
+                    chunk.position_axis_2 = _to_int(self._get_from_list('Chunk.positionAxis2', index))
+        else:
+            aug_axis = CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error, aug_y_error, range=aug_range)
 
         if aug_axis is not None:
             if chunk.position:
                 chunk.position.axis = aug_axis
             else:
                 chunk.position = SpatialWCS(aug_axis)
+                self.logger.debug(f'Creating SpatialWCS for {self.uri} from blueprint')
 
         if chunk.position:
-            chunk.position.coordsys = self._get_from_list(
-                'Chunk.position.coordsys', index)
+            chunk.position.coordsys = self._get_from_list('Chunk.position.coordsys', index, chunk.position.coordsys)
             chunk.position.equinox = _to_float(self._get_from_list(
-                'Chunk.position.equinox', index))
+                'Chunk.position.equinox', index, chunk.position.equinox))
             chunk.position.resolution = self._get_from_list(
-                'Chunk.position.resolution', index)
+                'Chunk.position.resolution', index, chunk.position.resolution)
         self.logger.debug('End augmentation with blueprint for position.')
 
-    def _try_range(self, wcs, index, lookup):
-        self.logger.debug(f'Try to set the range for {lookup}')
-        aug_range_start = self._two_param_constructor(
-            f'Chunk.{lookup}.axis.range.start.pix',
-            f'Chunk.{lookup}.axis.range.start.val',
-            index, _to_float, RefCoord)
-        aug_range_end = self._two_param_constructor(
-            f'Chunk.{lookup}.axis.range.end.pix',
-            f'Chunk.{lookup}.axis.range.end.val',
-            index, _to_float, RefCoord)
-        if aug_range_start and aug_range_end:
-            wcs.axis.range = CoordRange1D(aug_range_start, aug_range_end)
-            self.logger.debug(f'Completed setting range for {lookup}')
-
-    def _try_range_return(self, index, lookup):
+    def _try_range(self, index, lookup):
         self.logger.debug(f'Try to set the range for {lookup}')
         result = None
         aug_range_start = self._two_param_constructor(
@@ -3124,23 +3107,6 @@ class ContentParser(BlueprintParser):
             self.logger.debug(f'Completed setting range with return for {lookup}')
         return result
 
-    def _try_range_with_blueprint(self, chunk, index):
-        """Use the blueprint to set elements and attributes that
-        are not in the scope of astropy and files content, and therefore are
-        not covered by the *WcsParser classes. Per PD 19/04/18, bounds and
-        range are not covered by WCS keywords."""
-
-        for i in ['energy', 'time', 'polarization']:
-            axis_configed = getattr(self.blueprint,
-                                    f'_{i}_axis_configed')
-            if axis_configed:
-                wcs = getattr(chunk, i)
-                if wcs is not None and wcs.axis is not None:
-                    # only try to set the Range information if the Function doesn't exist
-                    if wcs.axis.range is None and wcs.axis.function is None:
-                        self._try_range(wcs, index, i)
-        self._try_position_range(chunk, index)
-
     def _try_time_with_blueprint(self, chunk, index):
         """
         A mechanism to augment the Time WCS completely from the blueprint.
@@ -3153,25 +3119,22 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin augmentation with blueprint for temporal.')
 
-        chunk.time_axis = _to_int(self._get_from_list('Chunk.timeAxis', index))
-        aug_naxis = self._get_naxis('time', index)
-        if aug_naxis is not None:
+        aug_axis, aug_axis_index = self._get_axis_wcs('time', chunk.time, index)
+        if aug_axis is not None:
             if chunk.time:
-                chunk.time.naxis = aug_naxis
+                chunk.time.axis = aug_axis
             else:
-                chunk.time = TemporalWCS(aug_naxis)
-                self.logger.debug('Creating TemporalWCS for {} from blueprint'.
-                                  format(self.uri))
-        if chunk.time is not None:
-            chunk.time.exposure = _to_float(
-                self._get_from_list('Chunk.time.exposure', index))
+                chunk.time = TemporalWCS(aug_axis)
+                self.logger.debug(f'Creating TemporalWCS for {self.uri} from blueprint')
+            chunk.time_axis = aug_axis_index
+
+        if chunk.time:
+            chunk.time.exposure = _to_float(self._get_from_list('Chunk.time.exposure', index, chunk.time.exposure))
             chunk.time.resolution = _to_float(
-                self._get_from_list('Chunk.time.resolution', index))
-            chunk.time.timesys = _to_str(
-                self._get_from_list('Chunk.time.timesys', index))
-            chunk.time.trefpos = self._get_from_list('Chunk.time.trefpos',
-                                                     index)
-            chunk.time.mjdref = self._get_from_list('Chunk.time.mjdref', index)
+                self._get_from_list('Chunk.time.resolution', index, chunk.time.resolution))
+            chunk.time.timesys = _to_str(self._get_from_list('Chunk.time.timesys', index, chunk.time.timesys))
+            chunk.time.trefpos = self._get_from_list('Chunk.time.trefpos', index, chunk.time.trefpos)
+            chunk.time.mjdref = self._get_from_list('Chunk.time.mjdref', index, chunk.time.mjdref)
 
         self.logger.debug('End augmentation with blueprint for temporal.')
 
@@ -3958,7 +3921,9 @@ class WcsParser:
                 delta = self.wcs.cd[custom_axis_index][custom_axis_index]
             else:
                 delta = self.wcs.cdelt[custom_axis_index]
-            naxis.function = CoordFunction1D(custom_axis_length, delta, self._get_ref_coord(custom_axis_index))
+            ref_coord = self._get_ref_coord(custom_axis_index)
+            if delta and ref_coord:
+                naxis.function = CoordFunction1D(custom_axis_length, delta, ref_coord)
             if not chunk.custom:
                 chunk.custom = CustomWCS(naxis)
             else:
@@ -3995,7 +3960,9 @@ class WcsParser:
                 delta = self.wcs.cd[energy_axis_index][energy_axis_index]
             else:
                 delta = self.wcs.cdelt[energy_axis_index]
-            naxis.function = CoordFunction1D(energy_axis_length, delta, self._get_ref_coord(energy_axis_index))
+            ref_coord = self._get_ref_coord(energy_axis_index)
+            if delta and ref_coord:
+                naxis.function = CoordFunction1D(energy_axis_length, delta, ref_coord)
 
             specsys = _to_str(self.wcs.specsys)
             if not chunk.energy:
@@ -4128,7 +4095,9 @@ class WcsParser:
                 delta = self.wcs.cd[polarization_axis_index][polarization_axis_index]
             else:
                 delta = self.wcs.cdelt[polarization_axis_index]
-            naxis.function = CoordFunction1D(axis_length, delta, self._get_ref_coord(polarization_axis_index))
+            ref_coord = self._get_ref_coord(polarization_axis_index)
+            if delta and ref_coord:
+                naxis.function = CoordFunction1D(axis_length, delta, ref_coord)
             if not chunk.polarization:
                 chunk.polarization = PolarizationWCS(naxis)
             else:
@@ -4274,8 +4243,11 @@ class WcsParser:
         if aug_dimension is None:
             return None
 
-        aug_ref_coord = Coord2D(self._get_ref_coord(xindex),
-                                self._get_ref_coord(yindex))
+        x_ref_coord = self._get_ref_coord(xindex)
+        y_ref_coord = self._get_ref_coord(yindex)
+        aug_ref_coord = None
+        if x_ref_coord and y_ref_coord:
+            aug_ref_coord = Coord2D(x_ref_coord, y_ref_coord)
 
         aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
             self._get_cd(xindex, yindex)
@@ -4611,7 +4583,8 @@ class Hdf5WcsParser(WcsParser):
         if chunk.position.resolution is None:
             try:
                 # JJK 30-01-23
-                # In a spatial data chunk the resolution is 2 times the pixel size.  We can get the pixel size from the wcs
+                # In a spatial data chunk the resolution is 2 times the pixel size.  We can get the pixel size from
+                # the wcs
                 temp = utils.proj_plane_pixel_scales(self._wcs)
                 chunk.position.resolution = temp[0]
             except SingularMatrixError as e:
@@ -4678,7 +4651,6 @@ class Hdf5WcsParser(WcsParser):
                 self._wcs.wcs.trefpos = x
             x = self._blueprint._get('Chunk.time.mjdref', self._extension)
             if x and not ObsBlueprint.needs_lookup(x):
-#                 logging.error(f'{x} {self._wcs.wcs.mjdref}')
                 self._wcs.wcs.mjdref = [x, x]
 
 

@@ -29,7 +29,6 @@ Chunk.position.axis.error2.syser = None
 Chunk.position.axis.error2.rnder = None
 Chunk.position.coordsys = None
 
-Chunk.timeAxis = 3
 Chunk.time.axis.axis.ctype = TIME
 Chunk.time.axis.axis.cunit = s
 Chunk.time.axis.range.start.pix = 0
