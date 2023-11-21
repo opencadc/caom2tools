@@ -5189,7 +5189,7 @@ def _get_common_arg_parser():
     fits2caom2 and caom2gen
     :return: args parser
     """
-    resource_id = "ivo://cadc.nrc.ca/fits2caom2"
+    resource_id = "ivo://cadc.nrc.ca/global/raven"
     parser = util.get_base_parser(subparsers=False,
                                   version=version.version,
                                   default_resource_id=resource_id)

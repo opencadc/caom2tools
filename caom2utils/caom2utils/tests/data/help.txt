@@ -40,7 +40,7 @@ optional arguments:
   -q, --quiet           run quietly
   --resource-id RESOURCE_ID
                         resource identifier (default
-                        ivo://cadc.nrc.ca/fits2caom2)
+                        ivo://cadc.nrc.ca/global/raven)
   -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages
