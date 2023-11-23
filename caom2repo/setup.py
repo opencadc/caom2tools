@@ -89,12 +89,6 @@ class IntTestCommand(distutils.cmd.Command):
     import pytest
     testfile = os.getcwd() + '/tests/test-integration.py'
     pytest.main(['-s', '--capture=no','-x', testfile])
-    #inttests = imp.load_source("tests", testfile)
-    #inttestattr = getattr(inttests, "TestCaom2Integration")()
-    #self.announce(
-    #    'Running inttests: {}'.format(testfile),
-    #    level=distutils.log.INFO)
-    #inttestattr.runTest()
 
 # Note that requires and provides should not be included in the call to
 # ``setup``, since these are now deprecated. See this link for more details:
