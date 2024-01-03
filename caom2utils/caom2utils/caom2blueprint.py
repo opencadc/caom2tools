@@ -3175,7 +3175,7 @@ class ContentParser(BlueprintParser):
             if isinstance(keywords, set):
                 to_set.keywords.update(keywords)
             else:
-                for k in keywords.split():
+                for k in keywords.split(','):
                     to_set.keywords.add(k)
         else:
             if current is not None:
