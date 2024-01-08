@@ -46,7 +46,7 @@
       </caom2:provenance>
       <caom2:artifacts>
         <caom2:artifact caom2:id="00000000-0000-0000-3b81-0161dda4d956">
-          <caom2:uri>ad:DAO/dao_c122_2016_007777.fits.gz</caom2:uri>
+          <caom2:uri>cadc:DAO/dao_c122_2016_007777.fits.gz</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>application/fits</caom2:contentType>
@@ -151,7 +151,7 @@
           </caom2:parts>
         </caom2:artifact>
         <caom2:artifact caom2:id="00000000-0000-0000-3b81-0161dda4e324">
-          <caom2:uri>ad:DAO/dao_c122_2016_007777_1024.png</caom2:uri>
+          <caom2:uri>cadc:DAO/dao_c122_2016_007777_1024.png</caom2:uri>
           <caom2:productType>preview</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>image/png</caom2:contentType>
@@ -160,7 +160,7 @@
           <caom2:parts/>
         </caom2:artifact>
         <caom2:artifact caom2:id="00000000-0000-0000-3b81-0161dda4de46">
-          <caom2:uri>ad:DAO/dao_c122_2016_007777_256.png</caom2:uri>
+          <caom2:uri>cadc:DAO/dao_c122_2016_007777_256.png</caom2:uri>
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>image/png</caom2:contentType>

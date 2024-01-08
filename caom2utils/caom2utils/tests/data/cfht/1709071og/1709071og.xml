@@ -47,7 +47,7 @@
       </caom2:provenance>
       <caom2:artifacts>
         <caom2:artifact caom2:id="00000000-0000-0000-8e5d-12bd38af149b">
-          <caom2:uri>ad:CFHT/1709071g.fits.gz</caom2:uri>
+          <caom2:uri>cadc:CFHT/1709071g.fits.gz</caom2:uri>
           <caom2:productType>auxiliary</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>application/fits</caom2:contentType>
@@ -571,7 +571,7 @@
           </caom2:parts>
         </caom2:artifact>
         <caom2:artifact caom2:id="00000000-0000-0000-ad79-a057e1fd5bdb">
-          <caom2:uri>ad:CFHT/1709071o.fits.fz</caom2:uri>
+          <caom2:uri>cadc:CFHT/1709071o.fits.fz</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>application/fits</caom2:contentType>
