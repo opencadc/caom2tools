@@ -1,0 +1,32 @@
+visit
+# HDU 0 in P124+62:
+SIMPLE  =                    T / conforms to FITS standard                      
+BITPIX  =                  -64 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 9264                                                  
+NAXIS2  =                 9264                                                  
+WCSAXES =                    2                                                  
+CTYPE1  = 'RA---SIN'                                                            
+CTYPE2  = 'DEC--SIN'                                                            
+CUNIT1  = 'deg     '                                                            
+CUNIT2  = 'deg     '                                                            
+CRPIX1  =                 4632                                                  
+CRPIX2  =                 4632                                                  
+CRVAL1  =              124.678                                                  
+CRVAL2  =              61.9895                                                  
+CDELT1  = -0.00041666666666666                                                  
+CDELT2  = 0.000416666666666666                                                  
+RADESYS = 'ICRS    '                                                            
+EQUINOX =               2000.0                                                  
+LONPOLE =                180.0                                                  
+LATPOLE =              61.9895                                                  
+BMAJ    = 0.001666666666666667                                                  
+BMIN    = 0.001666666666666667                                                  
+BPA     =                   90                                                  
+TELESCOP= 'LOFAR   '                                                            
+RESTFRQ =          143650000.0                                                  
+OBSERVER= 'LoTSS   '                                                            
+BUNIT   = 'JY/BEAM '                                                            
+BTYPE   = 'Intensity'                                                           
+OBJECT  = 'P124+62 '                                                            
+ORIGIN  = 'ddf-pipeline v2.2-201-g2e77149'                                      

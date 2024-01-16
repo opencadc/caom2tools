@@ -31,7 +31,7 @@ CRVAL2                      = 1
 CRPIX2                      = 1
 CTYPE2                      = FLUX
 CUNIT2                      = COUNTS
-CDELT2                      = 
+CDELT2                      =
 
 telescope.name              = DAO 1.2-m
 telescope.geoLocationX      = -2331226.7883358444
@@ -56,13 +56,13 @@ artifact.releaseType        = data
 proposal.pi                 = Koubsky
 proposal.id                 = DAO122_2016C1
 
-provenance.lastExecuted     = 
+provenance.lastExecuted     =
 provenance.project          = DAO Science Archive
 provenance.producer         = NRC Herzberg
 provenance.reference        = http://www.cadc.hia.nrc.gc.ca/dao/
-provenance.version          = 
+provenance.version          =
 provenance.name             = DAO unprocessed data
-provenance.inputs           = 
+provenance.inputs           =
 
 environment.photometric     = false
 target.moving               = false
@@ -75,12 +75,12 @@ CRPIX5                      = 0.500000
 CRVAL5                      = 57600.5146644
 CDELT5                      = 0.000058
 
-?ad:DAO/dao_c122_2016_007939.fits.gz
+?cadc:DAO/dao_c122_2016_007939.fits.gz
 artifact.productType        = calibration
 
-?ad:DAO/dao_c122_2016_007939_256.png
+?cadc:DAO/dao_c122_2016_007939_256.png
 artifact.productType        = thumbnail
 
-?ad:DAO/dao_c122_2016_007939_1024.png
+?cadc:DAO/dao_c122_2016_007939_1024.png
 artifact.productType        = preview
 

@@ -43,7 +43,7 @@
       <caom2:calibrationLevel>1</caom2:calibrationLevel>
       <caom2:artifacts>
         <caom2:artifact caom2:id="00000000-0000-0000-99e1-933b16e6bd9f">
-          <caom2:uri>ad:CFHT/2216860b.fits.gz</caom2:uri>
+          <caom2:uri>cadc:CFHT/2216860b.fits.gz</caom2:uri>
           <caom2:productType>calibration</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>application/fits</caom2:contentType>

@@ -75,12 +75,12 @@ CRPIX5                      = 0.500000
 CRVAL5                      = 57598.4482755
 CDELT5                      = 0.041667
 
-?ad:DAO/dao_c122_2016_007777.fits.gz
+?cadc:DAO/dao_c122_2016_007777.fits.gz
 artifact.productType        = science
 
-?ad:DAO/dao_c122_2016_007777_256.png
+?cadc:DAO/dao_c122_2016_007777_256.png
 artifact.productType        = thumbnail
 
-?ad:DAO/dao_c122_2016_007777_1024.png
+?cadc:DAO/dao_c122_2016_007777_1024.png
 artifact.productType        = preview
 

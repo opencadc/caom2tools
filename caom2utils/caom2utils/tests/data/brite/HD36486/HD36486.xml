@@ -35,7 +35,7 @@
       </caom2:provenance>
       <caom2:artifacts>
         <caom2:artifact caom2:id="ee92448e-a95c-4207-b271-6121c3ebc7bf" caom2:metaProducer="brite2caom2/0.1.0">
-          <caom2:uri>ad:BRITE-Constellation/HD36486.orig</caom2:uri>
+          <caom2:uri>cadc:BRITE-Constellation/HD36486.orig</caom2:uri>
           <caom2:productType>science</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>

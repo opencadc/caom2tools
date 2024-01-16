@@ -156,7 +156,6 @@ def test_differences(directory):
                 archive = uri.split(':')[1].split('/')[0]
             file_id = uri.split('/')[-1]
             temp = file_meta[1][(archive, file_id)]
-            logging.error(temp)
             return temp
 
         def _get_vos_headers(uri, subject=None):
@@ -227,18 +226,18 @@ def _get_cardinality(directory):
     # alignment of product id / artifact URI works
     if '/cfhtsg/' in directory:
         return '--lineage ' \
-               'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+               'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/' \
                'MegaPipe.080.156.Z.MP9801.weight.fits ' \
-               'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+               'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/' \
                'MegaPipe.080.156.Z.MP9801.fits ' \
-               'MegaPipe.080.156.Z.MP9801/ad:CFHTSG/' \
+               'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/' \
                'MegaPipe.080.156.Z.MP9801.fits.gif'
     elif '/omm/' in directory:
         if 'SCIRED' in directory:
-            return '--lineage Cdemo_ext2_SCIRED/ad:OMM/' \
+            return '--lineage Cdemo_ext2_SCIRED/cadc:OMM/' \
                    'Cdemo_ext2_SCIRED.fits.gz'
         else:
-            return '--lineage C190531_0432_SCI/ad:OMM/' \
+            return '--lineage C190531_0432_SCI/cadc:OMM/' \
                    'C190531_0432_SCI.fits.gz'
     elif 'apass/catalog' in directory:
         return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' \
@@ -249,9 +248,11 @@ def _get_cardinality(directory):
         else:
             return '--lineage star04239531/cadc:TAOSII/taos2_20220201T201317Z_star04239531.h5'
     elif 'brite' in directory:
-        return '--lineage HD36486_65-Ori-VIII-2021_BAb_1_5_A/ad:BRITE-Constellation/HD36486.orig'
+        return '--lineage HD36486_65-Ori-VIII-2021_BAb_1_5_A/cadc:BRITE-Constellation/HD36486.orig'
     elif 'gemini' in directory:
-        return '--lineage GN-2003A-Q-51-2-004/ad:GEMINI/N20030325S0098.fits'
+        return '--lineage GN-2003A-Q-51-2-004/cadc:GEMINI/N20030325S0098.fits'
+    elif 'lotss' in directory:
+        return '--lineage P124+62_mosaic/astron:LOTSS/P124+62/mosaic.fits'
     else:
         return ''
 
@@ -319,19 +320,17 @@ def _get_uris(collection, fnames, obs):
             f = os.path.basename(fname).replace('.header', '')
             for p in obs.planes.values():
                 for a in p.artifacts.values():
-                    if (f'ad:{collection}/{f}' in a.uri or
-                            (a.uri.startswith('vos') and f in a.uri)):
+                    if (f'cadc:{collection}/{f}' in a.uri or
+                            (a.uri.startswith('vos') and f in a.uri) or
+                            (a.uri == 'astron:LOTSS/P124+62/mosaic.fits')):
                         uris.append(a.uri)
                         meta = FileInfo(id=a.uri,
                                         file_type=a.content_type,
                                         size=a.content_length,
                                         md5sum=a.content_checksum.checksum)
                         file_url = urlparse(a.uri)
-                        if file_url.scheme not in ['ad', 'vos', 'cadc']:
-                            # TODO add hook to support other service providers
-                            raise NotImplementedError(
-                                'Only ad, vos type URIs supported')
-                        archive, file_id = file_url.path.split('/')[-2:]
+                        file_id = file_url.path.split('/')[-1]
+                        archive = file_url.path.split('/')[0]
                         file_meta[(archive, file_id)] = meta
         return uris, file_meta
     else:
