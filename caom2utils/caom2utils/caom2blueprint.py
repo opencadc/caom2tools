@@ -199,6 +199,7 @@ OBSERVABLE_CTYPES = [
 
 GLOBAL_STORAGE_RESOURCE_ID = "ivo://cadc.nrc.ca/global/raven"
 
+
 class Caom2Exception(Exception):
     """Exception raised when an attempt to create or update a CAOM2 record
     fails for some reason."""
@@ -2260,7 +2261,6 @@ class ContentParser(BlueprintParser):
     def _get_chunk_naxis(self, chunk, index):
         chunk.naxis = self._get_from_list(
             'Chunk.naxis', index, self.blueprint.get_configed_axes_count())
-            # 'Chunk.naxis', index, self._wcs_parser.wcs.wcs.naxis)
 
     def augment_artifact(self, artifact, index):
         """
