@@ -197,6 +197,7 @@ OBSERVABLE_CTYPES = [
     'observable',
     'FLUX']
 
+GLOBAL_STORAGE_RESOURCE_ID = "ivo://cadc.nrc.ca/global/raven"
 
 class Caom2Exception(Exception):
     """Exception raised when an attempt to create or update a CAOM2 record
@@ -2277,51 +2278,47 @@ class ContentParser(BlueprintParser):
                 f'No WCS Data. End content artifact augmentation for '
                 f'{artifact.uri}.')
 
-        if self.ignore_chunks(artifact, index):
-            return
+        if self.add_parts(artifact, index):
+            part = artifact.parts[str(index)]
+            part.product_type = self._get_from_list('Part.productType', index)
+            part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
 
-        part = artifact.parts[str(index)]
-        part.product_type = self._get_from_list('Part.productType', index)
-        part.meta_producer = self._get_from_list(
-            'Part.metaProducer', index=0, current=part.meta_producer)
+            # each Part has one Chunk, if it's not an empty part as determined
+            # just previously
+            if not part.chunks:
+                part.chunks.append(Chunk())
+            chunk = part.chunks[0]
+            chunk.meta_producer = self._get_from_list('Chunk.metaProducer', index=0, current=chunk.meta_producer)
 
-        # each Part has one Chunk, if it's not an empty part as determined
-        # just previously
-        if not part.chunks:
-            part.chunks.append(Chunk())
-        chunk = part.chunks[0]
-        chunk.meta_producer = self._get_from_list(
-            'Chunk.metaProducer', index=0, current=chunk.meta_producer)
+            self._get_chunk_naxis(chunk, index)
 
-        self._get_chunk_naxis(chunk, index)
+            # order by which the blueprint is used to set WCS information:
+            # 1 - try to construct the information for an axis from WCS information
+            # 2 - if the WCS information is insufficient, try to construct the information from the blueprint
+            # 3 - Always try to fill the range metadata from the blueprint.
+            if self.blueprint._pos_axes_configed:
+                self._wcs_parser.augment_position(chunk)
+                self._try_position_with_blueprint(chunk, index)
 
-        # order by which the blueprint is used to set WCS information:
-        # 1 - try to construct the information for an axis from WCS information
-        # 2 - if the WCS information is insufficient, try to construct the information from the blueprint
-        # 3 - Always try to fill the range metadata from the blueprint.
-        if self.blueprint._pos_axes_configed:
-            self._wcs_parser.augment_position(chunk)
-            self._try_position_with_blueprint(chunk, index)
+            if self.blueprint._energy_axis_configed:
+                self._wcs_parser.augment_energy(chunk)
+                self._try_energy_with_blueprint(chunk, index)
 
-        if self.blueprint._energy_axis_configed:
-            self._wcs_parser.augment_energy(chunk)
-            self._try_energy_with_blueprint(chunk, index)
+            if self.blueprint._time_axis_configed:
+                self._wcs_parser.augment_temporal(chunk)
+                self._try_time_with_blueprint(chunk, index)
 
-        if self.blueprint._time_axis_configed:
-            self._wcs_parser.augment_temporal(chunk)
-            self._try_time_with_blueprint(chunk, index)
+            if self.blueprint._polarization_axis_configed:
+                self._wcs_parser.augment_polarization(chunk)
+                self._try_polarization_with_blueprint(chunk, index)
 
-        if self.blueprint._polarization_axis_configed:
-            self._wcs_parser.augment_polarization(chunk)
-            self._try_polarization_with_blueprint(chunk, index)
+            if self.blueprint._obs_axis_configed:
+                self._wcs_parser.augment_observable(chunk)
+                self._try_observable_with_blueprint(chunk, index)
 
-        if self.blueprint._obs_axis_configed:
-            self._wcs_parser.augment_observable(chunk)
-            self._try_observable_with_blueprint(chunk, index)
-
-        if self.blueprint._custom_axis_configed:
-            self._wcs_parser.augment_custom(chunk)
-            self._try_custom_with_blueprint(chunk, index)
+            if self.blueprint._custom_axis_configed:
+                self._wcs_parser.augment_custom(chunk)
+                self._try_custom_with_blueprint(chunk, index)
 
         self.logger.debug(
             f'End content artifact augmentation for {artifact.uri}.')
@@ -3188,11 +3185,11 @@ class ContentParser(BlueprintParser):
         return new_object
 
     # TODO - is this the right implementation?
-    def ignore_chunks(self, artifact, index=0):
-        result = True
+    def add_parts(self, artifact, index=0):
+        result = False
         if self.blueprint.has_chunk(index):
             artifact.parts.add(Part(str(index)))
-            result = False
+            result = True
         return result
 
     @staticmethod
@@ -3298,7 +3295,7 @@ class FitsParser(ContentParser):
         """
         return self._headers
 
-    def ignore_chunks(self, artifact, index):
+    def add_parts(self, artifact, index):
         # there is one Part per extension, the name is the extension number
         if (
             FitsParser._has_data_array(self._headers[index])
@@ -3308,11 +3305,11 @@ class FitsParser(ContentParser):
                 # TODO use extension name?
                 artifact.parts.add(Part(str(index)))
                 self.logger.debug(f'Part created for HDU {index}.')
-            result = False
+            result = True
         else:
             artifact.parts.add(Part(str(index)))
             self.logger.debug(f'Create empty part for HDU {index}')
-            result = True
+            result = False
         return result
 
     def apply_blueprint(self):
@@ -3459,7 +3456,7 @@ class FitsParser(ContentParser):
                     artifact.uri))
 
         for i, header in enumerate(self.headers):
-            if self.ignore_chunks(artifact, i):
+            if not self.add_parts(artifact, i):
                 # artifact-level attributes still require updating
                 BlueprintParser.augment_artifact(self, artifact, 0)
                 continue
@@ -3910,9 +3907,9 @@ class Hdf5Parser(ContentParser):
     def _get_chunk_naxis(self, chunk, index):
         chunk.naxis = self._get_from_list('Chunk.naxis', index, chunk.naxis)
 
-    def ignore_chunks(self, artifact, index=0):
+    def add_parts(self, artifact, index=0):
         artifact.parts.add(Part(str(index)))
-        return False
+        return True
 
 
 class WcsParser:
@@ -3955,11 +3952,14 @@ class WcsParser:
         Do not want to blindly assign None to astropy.wcs attributes, so
         use this method for conditional assignment.
 
-        The current implementation is that ff there is a legitimate need to
+        The current implementation is that if there is a legitimate need to
         assign None to a value, either use 'set' in the Hdf5ObsBlueprint, and
         specifically assign None, or execute a function to set it to None
         conditionally. There will be no support for a Default value of None
         with HDF5 files.
+
+        By the time this method is called, if the value still passes the "ObsBlueprint.needs_lookup"
+        check, the value should be ignored for fulfilling the WCS needs of the record under construction.
         """
         x = self._blueprint._get(key, self._extension)
         if sanitize:
@@ -3968,17 +3968,11 @@ class WcsParser:
             assignee[index] = x
 
     def _set_wcs(self):
-        self._wcs = WCS(naxis=self._blueprint.get_configed_axes_count())
+        num_axes = self._blueprint.get_configed_axes_count()
+        self._wcs = WCS(naxis=num_axes)
         self.wcs = self._wcs.wcs
-        array_shape = [0] * self._blueprint.get_configed_axes_count()
-        crder = [0] * self._blueprint.get_configed_axes_count()
-        crpix = [0] * self._blueprint.get_configed_axes_count()
-        crval = [0] * self._blueprint.get_configed_axes_count()
-        csyer = [0] * self._blueprint.get_configed_axes_count()
-        ctype = [0] * self._blueprint.get_configed_axes_count()
-        cunit = [0] * self._blueprint.get_configed_axes_count()
-        temp = [0] * self._blueprint.get_configed_axes_count()
-        cd = [temp.copy() for _ in range(self._blueprint.get_configed_axes_count())]
+        array_shape, crder, crpix, crval, csyer, ctype, cunit, temp = [[0] * num_axes for _ in range(8)]
+        cd = [temp.copy() for _ in range(num_axes)]
         count = 0
         if self._blueprint._pos_axes_configed:
             self._axes['ra'][1] = True
@@ -5229,10 +5223,9 @@ def _get_common_arg_parser():
     fits2caom2 and caom2gen
     :return: args parser
     """
-    resource_id = "ivo://cadc.nrc.ca/global/raven"
     parser = util.get_base_parser(subparsers=False,
                                   version=version.version,
-                                  default_resource_id=resource_id)
+                                  default_resource_id=GLOBAL_STORAGE_RESOURCE_ID)
 
     parser.description = (
         'Augments an observation with information in one or more fits files.')
