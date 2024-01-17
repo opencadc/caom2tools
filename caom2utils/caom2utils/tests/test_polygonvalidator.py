@@ -88,11 +88,11 @@ def test_open_polygon():
     # should detect that the polygons is not clockwise
     with pytest.raises(AssertionError) as ex:
         validate_polygon(shape.Polygon(counter_clockwise_points))
-    assert('clockwise winding direction' in str(ex.value))
+    assert 'clockwise winding direction' in str(ex.value)
     # should detect that polygon is requires a minimum of 4 points
     with pytest.raises(AssertionError) as ex:
         validate_polygon(shape.Polygon(too_few_points))
-    assert('invalid polygon: 2 points' in str(ex.value))
+    assert 'invalid polygon: 2 points' in str(ex.value)
 
     # polygon default constructor
     validate_polygon(shape.Polygon())
@@ -115,8 +115,7 @@ def test_open_polygon():
     v10 = shape.Vertex(46.757813, 56.145550, shape.SegmentType.LINE)
     v11 = shape.Vertex(26.015625, 55.354135, shape.SegmentType.LINE)
     v12 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-    closed_vertices = [
-        v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
+    closed_vertices = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
 
     # should detect that multipolygon is closed
     validate_multipolygon(shape.MultiPolygon(closed_vertices))
@@ -134,7 +133,7 @@ def test_polygon_self_intersection():
     with pytest.raises(AssertionError) as ex:
         poly = shape.Polygon(points_with_self_intersecting_segments)
         validate_polygon(poly)
-    assert('self intersecting' in str(ex.value))
+    assert 'self intersecting' in str(ex.value)
 
     # should detect self segment intersection of the polygon near the
     # South Pole, with the Pole outside the polygon
@@ -147,7 +146,7 @@ def test_polygon_self_intersection():
     with pytest.raises(AssertionError) as ex:
         poly = shape.Polygon(points_with_self_intersecting_segments)
         validate_polygon(poly)
-    assert('self intersecting' in str(ex.value))
+    assert 'self intersecting' in str(ex.value)
 
     # should detect self segment intersection of the polygon near the
     # South Pole, with the Pole inside the polygon
@@ -160,7 +159,7 @@ def test_polygon_self_intersection():
     with pytest.raises(AssertionError) as ex:
         poly = shape.Polygon(points_with_self_intersecting_segments)
         validate_polygon(poly)
-    assert('self intersecting' in str(ex.value))
+    assert 'self intersecting' in str(ex.value)
 
     # should detect self segment intersection of the polygon which
     # intersects with meridian = 0
@@ -173,7 +172,7 @@ def test_polygon_self_intersection():
     with pytest.raises(AssertionError) as ex:
         poly = shape.Polygon(points_with_self_intersecting_segments)
         validate_polygon(poly)
-    assert('self intersecting' in str(ex.value))
+    assert 'self intersecting' in str(ex.value)
 
 
 def test_open_multipolygon():
@@ -195,12 +194,10 @@ def test_open_multipolygon():
     too_few_vertices = [v0, v1, v6]
     two_moves_vertices = [v0, v1, v7, v2, v3, v4, v5, v6]
     no_move_vertices = [v1, v2, v3, v4, v5, v6]
-    two_closes_vertices = [
-        v0, v1, v2, v3, v4, v5, v7, v8, v9, v10, v11, v12]
+    two_closes_vertices = [v0, v1, v2, v3, v4, v5, v7, v8, v9, v10, v11, v12]
     no_close_vertices = [v0, v1, v2, v3, v4, v5]
     min_closed_vertices = [v0, v1, v2, v6]
-    closed_vertices = [
-        v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
+    closed_vertices = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
     rv0 = shape.Vertex(26.015625, 55.354135, shape.SegmentType.MOVE)
     rv1 = shape.Vertex(46.757813, 56.145550, shape.SegmentType.LINE)
     rv2 = shape.Vertex(55.898438, 62.734601, shape.SegmentType.LINE)
@@ -214,40 +211,35 @@ def test_open_multipolygon():
     rv10 = shape.Vertex(-108.984375, 70.480896, shape.SegmentType.LINE)
     rv11 = shape.Vertex(-126.210938, 67.991108, shape.SegmentType.LINE)
     rv12 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-    counter_clockwise_vertices = [
-        rv0, rv1, rv2, rv3, rv4, rv5, rv6, rv7, rv8, rv9, rv10, rv11, rv12]
+    counter_clockwise_vertices = [rv0, rv1, rv2, rv3, rv4, rv5, rv6, rv7, rv8, rv9, rv10, rv11, rv12]
     # should detect that the polygons is not clockwise
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(counter_clockwise_vertices))
-    assert('clockwise winding direction' in str(ex.value))
+    assert 'clockwise winding direction' in str(ex.value)
     # should detect that there are not enough number of vertices to
     # produce a multipolygon
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(no_vertices))
-    assert('invalid polygon: 0 vertices' in str(ex.value))
+    assert 'invalid polygon: 0 vertices' in str(ex.value)
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(too_few_vertices))
-    assert('invalid polygon: 3 vertices' in str(ex.value))
+    assert 'invalid polygon: 3 vertices' in str(ex.value)
     # no close between two 'MOVE'
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(two_moves_vertices))
-    assert(
-        'invalid polygon: MOVE vertex when loop open' in str(ex.value))
+    assert 'invalid polygon: MOVE vertex when loop open' in str(ex.value)
     # no 'MOVE' before a 'CLOSE'
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(no_move_vertices))
-    assert(
-        'invalid polygon: first vertex is not a MOVE' in str(ex.value))
+    assert 'invalid polygon: first vertex is not a MOVE' in str(ex.value)
     # no 'MOVE' between two 'CLOSE'
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(two_closes_vertices))
-    assert(
-        'invalid polygon: MOVE vertex when loop open' in str(ex.value))
+    assert 'invalid polygon: MOVE vertex when loop open' in str(ex.value)
     # no 'CLOSE' after a 'MOVE'
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(no_close_vertices))
-    assert(
-        'invalid polygon: last vertex is not a CLOSE' in str(ex.value))
+    assert 'invalid polygon: last vertex is not a CLOSE' in str(ex.value)
     # multipolygon default constructor -> too few vertices
     with pytest.raises(AssertionError):
         validate_multipolygon(shape.MultiPolygon(None))
@@ -259,45 +251,45 @@ def test_open_multipolygon():
     p = shape.MultiPolygon(vertices=closed_vertices)
     validate_multipolygon(p)
     actual_vertices = p.vertices
-    assert(actual_vertices[0].cval1 == closed_vertices[0].cval1)
-    assert(actual_vertices[0].cval2 == closed_vertices[0].cval2)
-    assert(actual_vertices[0].type == shape.SegmentType.MOVE)
-    assert(actual_vertices[1].cval1 == closed_vertices[1].cval1)
-    assert(actual_vertices[1].cval2 == closed_vertices[1].cval2)
-    assert(actual_vertices[1].type == shape.SegmentType.LINE)
-    assert(actual_vertices[2].cval1 == closed_vertices[2].cval1)
-    assert(actual_vertices[2].cval2 == closed_vertices[2].cval2)
-    assert(actual_vertices[2].type == shape.SegmentType.LINE)
-    assert(actual_vertices[3].cval1 == closed_vertices[3].cval1)
-    assert(actual_vertices[3].cval2 == closed_vertices[3].cval2)
-    assert(actual_vertices[3].type == shape.SegmentType.LINE)
-    assert(actual_vertices[4].cval1 == closed_vertices[4].cval1)
-    assert(actual_vertices[4].cval2 == closed_vertices[4].cval2)
-    assert(actual_vertices[4].type == shape.SegmentType.LINE)
-    assert(actual_vertices[5].cval1 == closed_vertices[5].cval1)
-    assert(actual_vertices[5].cval2 == closed_vertices[5].cval2)
-    assert(actual_vertices[5].type == shape.SegmentType.LINE)
-    assert(actual_vertices[6].cval1 == closed_vertices[6].cval1)
-    assert(actual_vertices[6].cval2 == closed_vertices[6].cval2)
-    assert(actual_vertices[6].type == shape.SegmentType.CLOSE)
-    assert(actual_vertices[7].cval1 == closed_vertices[7].cval1)
-    assert(actual_vertices[7].cval2 == closed_vertices[7].cval2)
-    assert(actual_vertices[7].type == shape.SegmentType.MOVE)
-    assert(actual_vertices[8].cval1 == closed_vertices[8].cval1)
-    assert(actual_vertices[8].cval2 == closed_vertices[8].cval2)
-    assert(actual_vertices[8].type == shape.SegmentType.LINE)
-    assert(actual_vertices[9].cval1 == closed_vertices[9].cval1)
-    assert(actual_vertices[9].cval2 == closed_vertices[9].cval2)
-    assert(actual_vertices[9].type == shape.SegmentType.LINE)
-    assert(actual_vertices[10].cval1 == closed_vertices[10].cval1)
-    assert(actual_vertices[10].cval2 == closed_vertices[10].cval2)
-    assert(actual_vertices[10].type == shape.SegmentType.LINE)
-    assert(actual_vertices[11].cval1 == closed_vertices[11].cval1)
-    assert(actual_vertices[11].cval2 == closed_vertices[11].cval2)
-    assert(actual_vertices[11].type == shape.SegmentType.LINE)
-    assert(actual_vertices[12].cval1 == closed_vertices[12].cval1)
-    assert(actual_vertices[12].cval2 == closed_vertices[12].cval2)
-    assert(actual_vertices[12].type == shape.SegmentType.CLOSE)
+    assert actual_vertices[0].cval1 == closed_vertices[0].cval1
+    assert actual_vertices[0].cval2 == closed_vertices[0].cval2
+    assert actual_vertices[0].type == shape.SegmentType.MOVE
+    assert actual_vertices[1].cval1 == closed_vertices[1].cval1
+    assert actual_vertices[1].cval2 == closed_vertices[1].cval2
+    assert actual_vertices[1].type == shape.SegmentType.LINE
+    assert actual_vertices[2].cval1 == closed_vertices[2].cval1
+    assert actual_vertices[2].cval2 == closed_vertices[2].cval2
+    assert actual_vertices[2].type == shape.SegmentType.LINE
+    assert actual_vertices[3].cval1 == closed_vertices[3].cval1
+    assert actual_vertices[3].cval2 == closed_vertices[3].cval2
+    assert actual_vertices[3].type == shape.SegmentType.LINE
+    assert actual_vertices[4].cval1 == closed_vertices[4].cval1
+    assert actual_vertices[4].cval2 == closed_vertices[4].cval2
+    assert actual_vertices[4].type == shape.SegmentType.LINE
+    assert actual_vertices[5].cval1 == closed_vertices[5].cval1
+    assert actual_vertices[5].cval2 == closed_vertices[5].cval2
+    assert actual_vertices[5].type == shape.SegmentType.LINE
+    assert actual_vertices[6].cval1 == closed_vertices[6].cval1
+    assert actual_vertices[6].cval2 == closed_vertices[6].cval2
+    assert actual_vertices[6].type == shape.SegmentType.CLOSE
+    assert actual_vertices[7].cval1 == closed_vertices[7].cval1
+    assert actual_vertices[7].cval2 == closed_vertices[7].cval2
+    assert actual_vertices[7].type == shape.SegmentType.MOVE
+    assert actual_vertices[8].cval1 == closed_vertices[8].cval1
+    assert actual_vertices[8].cval2 == closed_vertices[8].cval2
+    assert actual_vertices[8].type == shape.SegmentType.LINE
+    assert actual_vertices[9].cval1 == closed_vertices[9].cval1
+    assert actual_vertices[9].cval2 == closed_vertices[9].cval2
+    assert actual_vertices[9].type == shape.SegmentType.LINE
+    assert actual_vertices[10].cval1 == closed_vertices[10].cval1
+    assert actual_vertices[10].cval2 == closed_vertices[10].cval2
+    assert actual_vertices[10].type == shape.SegmentType.LINE
+    assert actual_vertices[11].cval1 == closed_vertices[11].cval1
+    assert actual_vertices[11].cval2 == closed_vertices[11].cval2
+    assert actual_vertices[11].type == shape.SegmentType.LINE
+    assert actual_vertices[12].cval1 == closed_vertices[12].cval1
+    assert actual_vertices[12].cval2 == closed_vertices[12].cval2
+    assert actual_vertices[12].type == shape.SegmentType.CLOSE
 
 
 def test_multipoly_self_intersect():
@@ -310,37 +302,30 @@ def test_multipoly_self_intersect():
     v5 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
     points_with_self_intersecting_segments = [v1, v2, v3, v4, v5]
     with pytest.raises(AssertionError) as ex:
-        validate_multipolygon(
-            shape.MultiPolygon(points_with_self_intersecting_segments))
-    assert('self intersecting' in str(ex.value))
+        validate_multipolygon(shape.MultiPolygon(points_with_self_intersecting_segments))
+    assert 'self intersecting' in str(ex.value)
     # should detect self segment intersection of the multipolygon near
     # the South Pole, with the Pole outside the multipolygon
     v1 = shape.Vertex(0.6128286003, -89.8967940441, shape.SegmentType.MOVE)
-    v2 = shape.Vertex(
-        210.6391743183, -89.9073892376, shape.SegmentType.LINE)
-    v3 = shape.Vertex(
-        90.6405151921, -89.8972874698, shape.SegmentType.LINE)
+    v2 = shape.Vertex(210.6391743183, -89.9073892376, shape.SegmentType.LINE)
+    v3 = shape.Vertex(90.6405151921, -89.8972874698, shape.SegmentType.LINE)
     v4 = shape.Vertex(270.6114701911, -89.90689353, shape.SegmentType.LINE)
     v5 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
     points_with_self_intersecting_segments = [v1, v2, v3, v4, v5]
     with pytest.raises(AssertionError) as ex:
-        validate_multipolygon(
-            shape.MultiPolygon(points_with_self_intersecting_segments))
-    assert('self intersecting' in str(ex.value))
+        validate_multipolygon(shape.MultiPolygon(points_with_self_intersecting_segments))
+    assert 'self intersecting' in str(ex.value)
     # should detect self segment intersection of the multipolygon near the
     # South Pole, with the Pole inside the multipolygon
     v1 = shape.Vertex(0.6128286003, -89.8967940441, shape.SegmentType.MOVE)
-    v2 = shape.Vertex(
-        130.6391743183, -89.9073892376, shape.SegmentType.LINE)
-    v3 = shape.Vertex(
-        90.6405151921, -89.8972874698, shape.SegmentType.LINE)
+    v2 = shape.Vertex(130.6391743183, -89.9073892376, shape.SegmentType.LINE)
+    v3 = shape.Vertex(90.6405151921, -89.8972874698, shape.SegmentType.LINE)
     v4 = shape.Vertex(270.6114701911, -89.90689353, shape.SegmentType.LINE)
     v5 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
     points_with_self_intersecting_segments = [v1, v2, v3, v4, v5]
     with pytest.raises(AssertionError) as ex:
-        validate_multipolygon(
-            shape.MultiPolygon(points_with_self_intersecting_segments))
-    assert('self intersecting' in str(ex.value))
+        validate_multipolygon(shape.MultiPolygon(points_with_self_intersecting_segments))
+    assert 'self intersecting' in str(ex.value)
     # should detect self segment intersection of the multipolygon which
     # intersects with meridian = 0
     v1 = shape.Vertex(-7.910156, 13.293411, shape.SegmentType.MOVE)
@@ -350,9 +335,8 @@ def test_multipoly_self_intersect():
     v5 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
     points_with_self_intersecting_segments = [v1, v2, v3, v4, v5]
     with pytest.raises(AssertionError) as ex:
-        validate_multipolygon(
-            shape.MultiPolygon(points_with_self_intersecting_segments))
-    assert('self intersecting' in str(ex.value))
+        validate_multipolygon(shape.MultiPolygon(points_with_self_intersecting_segments))
+    assert 'self intersecting' in str(ex.value)
 
 
 def test_failures():

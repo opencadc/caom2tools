@@ -172,8 +172,7 @@ def get_external_headers(external_url):
     try:
         session = requests.Session()
         retries = 10
-        retry = Retry(total=retries, read=retries, connect=retries,
-                      backoff_factor=0.5)
+        retry = Retry(total=retries, read=retries, connect=retries, backoff_factor=0.5)
         adapter = HTTPAdapter(max_retries=retry)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
@@ -182,8 +181,7 @@ def get_external_headers(external_url):
             headers = data_util.make_headers_from_string(r.text)
         else:
             headers = None
-            logging.warning('Error {} when retrieving {} headers.'.format(
-                r.status_code, external_url))
+            logging.warning('Error {} when retrieving {} headers.'.format(r.status_code, external_url))
         r.close()
         return headers
     except Exception as e:
@@ -207,16 +205,13 @@ def get_vos_headers(uri, subject=None):
 
         temp_filename = tempfile.NamedTemporaryFile()
         client.copy(uri, temp_filename.name, head=True)
-        return data_util.get_local_file_headers(
-            f'file://{temp_filename.name}'
-        )
+        return data_util.get_local_file_headers(f'file://{temp_filename.name}')
     else:
         # this should be a programming error by now
         raise NotImplementedError('Only vos type URIs supported')
 
 
-def _get_and_update_artifact_meta(uri, artifact, subject=None, connected=True,
-                                  client=None):
+def _get_and_update_artifact_meta(uri, artifact, subject=None, connected=True, client=None):
     """
     Updates contentType, contentLength and contentChecksum of an artifact
     :param artifact:
@@ -235,25 +230,21 @@ def _get_and_update_artifact_meta(uri, artifact, subject=None, connected=True,
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
     elif file_url.scheme == 'file':
-        if (file_url.path.endswith('.header') and subject is not None and
-                connected):
+        if file_url.path.endswith('.header') and subject is not None and connected:
             if artifact.uri.startswith('vos'):
                 metadata = _get_vos_meta(subject, artifact.uri)
             else:
                 # if header is on disk, get the content_* from CADC
                 metadata = client.info(artifact.uri)
                 if metadata is None:
-                    logging.info(
-                        'Could not find {} at CADC. No Artifact '
-                        'metadata.'.format(artifact.uri))
+                    logging.info('Could not find {} at CADC. No Artifact ' 'metadata.'.format(artifact.uri))
                     return
         else:
             metadata = data_util.get_local_file_info(file_url.path)
     else:
         metadata = client.info(uri)
         if metadata is None:
-            logging.info('Could not find {} at CADC. No Artifact '
-                         'metadata.'.format(artifact.uri))
+            logging.info('Could not find {} at CADC. No Artifact ' 'metadata.'.format(artifact.uri))
             return
 
     update_artifact_meta(artifact, metadata)
@@ -266,12 +257,12 @@ def update_artifact_meta(artifact, file_info):
     :param file_info
     :return:
     """
-    logging.debug('old artifact metadata - '
-                  'uri({}), encoding({}), size({}), type({})'.
-                  format(artifact.uri,
-                         artifact.content_checksum,
-                         artifact.content_length,
-                         artifact.content_type))
+    logging.debug(
+        'old artifact metadata - '
+        'uri({}), encoding({}), size({}), type({})'.format(
+            artifact.uri, artifact.content_checksum, artifact.content_length, artifact.content_type
+        )
+    )
     if file_info.md5sum is not None:
         if file_info.md5sum.startswith('md5:'):
             checksum = ChecksumURI(file_info.md5sum)
@@ -280,12 +271,12 @@ def update_artifact_meta(artifact, file_info):
         artifact.content_checksum = checksum
     artifact.content_length = _to_int(file_info.size)
     artifact.content_type = _to_str(file_info.file_type)
-    logging.debug('updated artifact metadata - '
-                  'uri({}), encoding({}), size({}), type({})'.
-                  format(artifact.uri,
-                         artifact.content_checksum,
-                         artifact.content_length,
-                         artifact.content_type))
+    logging.debug(
+        'updated artifact metadata - '
+        'uri({}), encoding({}), size({}), type({})'.format(
+            artifact.uri, artifact.content_checksum, artifact.content_length, artifact.content_type
+        )
+    )
 
 
 def _get_vos_meta(subject, uri):
@@ -300,9 +291,9 @@ def _get_vos_meta(subject, uri):
     else:
         client = Client()
     node = client.get_node(uri, limit=None, force=False)
-    return FileInfo(id=uri, size=node.props['length'],
-                    md5sum=node.props['MD5'],
-                    file_type=data_util.get_file_type(uri))
+    return FileInfo(
+        id=uri, size=node.props['length'], md5sum=node.props['MD5'], file_type=data_util.get_file_type(uri)
+    )
 
 
 def _lookup_blueprint(blueprints, uri):
@@ -330,10 +321,22 @@ def _extract_ids(cardinality):
     return cardinality.split('/', 1)
 
 
-def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
-             validate_wcs=True, plugin=None, local=None,
-             external_url=None, connected=True, use_blueprint_parser=False,
-             client=None, **kwargs):
+def _augment(
+    obs,
+    product_id,
+    uri,
+    blueprint,
+    subject,
+    dumpconfig=False,
+    validate_wcs=True,
+    plugin=None,
+    local=None,
+    external_url=None,
+    connected=True,
+    use_blueprint_parser=False,
+    client=None,
+    **kwargs,
+):
     """
     Find or construct a plane and an artifact to go with the observation
     under augmentation.
@@ -363,37 +366,29 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     plane = obs.planes[product_id]
 
     if uri not in plane.artifacts.keys():
-        plane.artifacts.add(
-            Artifact(uri=str(uri),
-                     product_type=ProductType.SCIENCE,
-                     release_type=ReleaseType.DATA))
+        plane.artifacts.add(Artifact(uri=str(uri), product_type=ProductType.SCIENCE, release_type=ReleaseType.DATA))
 
     meta_uri = uri
     visit_local = None
     if use_blueprint_parser:
-        logging.debug(
-            f'Using a BlueprintParser as requested for {uri}')
+        logging.debug(f'Using a BlueprintParser as requested for {uri}')
         parser = BlueprintParser(blueprint, uri=uri)
     elif local:
         if uri.startswith('vos'):
             if '.fits' in local or '.fits.gz' in local:
                 meta_uri = f'file://{local}'
-                logging.debug(
-                    f'Using a FitsParser for vos local {local}')
+                logging.debug(f'Using a FitsParser for vos local {local}')
                 headers = data_util.get_local_file_headers(local)
                 parser = FitsParser(headers, blueprint, uri=uri)
             elif '.csv' in local:
-                logging.debug(
-                    f'Using a BlueprintParser for vos local {local}')
+                logging.debug(f'Using a BlueprintParser for vos local {local}')
                 parser = BlueprintParser(blueprint, uri=uri)
             else:
                 raise ValueError(f'Unexpected file type {local}')
         else:
             meta_uri = f'file://{local}'
             visit_local = local
-            if ('.header' in local or
-                data_util.get_file_type(local) ==
-                    'application/fits'):
+            if '.header' in local or data_util.get_file_type(local) == 'application/fits':
                 if uri.startswith('cadc'):
                     logging.debug(f'Using a FitsParser for local file {local}')
                     parser = FitsParser(local, blueprint, uri=uri)
@@ -401,11 +396,11 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                     logging.debug(f'Using a ContentParser for local file {local}')
                     parser = ContentParser(blueprint, uri)
             elif '.h5' in local:
-                logging.debug(
-                    f'Using an Hdf5Parser for local file {local}')
+                logging.debug(f'Using an Hdf5Parser for local file {local}')
                 # h5py is an extra in this package since most collections do
                 # not require it
                 import h5py
+
                 temp = h5py.File(local)
                 parser = Hdf5Parser(blueprint, uri, temp)
             else:
@@ -415,14 +410,10 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
     elif external_url:
         headers = get_external_headers(external_url)
         if headers is None:
-            logging.debug(
-                'Using a BlueprintParser for un-retrievable remote headers '
-                '{}'.format(uri)
-            )
+            logging.debug('Using a BlueprintParser for un-retrievable remote headers ' '{}'.format(uri))
             parser = BlueprintParser(blueprint, uri=uri)
         else:
-            logging.debug(
-                f'Using a FitsParser for remote headers {uri}')
+            logging.debug(f'Using a FitsParser for remote headers {uri}')
             parser = FitsParser(headers, blueprint, uri=uri)
     else:
         if '.fits' in uri:
@@ -436,20 +427,16 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
             parser = FitsParser(headers, blueprint, uri=uri)
         else:
             # explicitly ignore headers for txt and image files
-            logging.debug(
-                f'Using a BlueprintParser for remote file {uri}')
+            logging.debug(f'Using a BlueprintParser for remote file {uri}')
             parser = BlueprintParser(blueprint, uri=uri)
 
     if parser is None:
         result = None
     else:
-        _get_and_update_artifact_meta(
-            meta_uri, plane.artifacts[uri], subject, connected, client)
-        parser.augment_observation(observation=obs, artifact_uri=uri,
-                                   product_id=plane.product_id)
+        _get_and_update_artifact_meta(meta_uri, plane.artifacts[uri], subject, connected, client)
+        parser.augment_observation(observation=obs, artifact_uri=uri, product_id=plane.product_id)
 
-        result = _visit(plugin, parser, obs, visit_local, product_id, uri,
-                        subject, **kwargs)
+        result = _visit(plugin, parser, obs, visit_local, product_id, uri, subject, **kwargs)
 
         if result is not None:
             if validate_wcs:
@@ -462,9 +449,7 @@ def _augment(obs, product_id, uri, blueprint, subject, dumpconfig=False,
                     raise e
 
         if len(parser._errors) > 0:
-            logging.debug(
-                '{} errors encountered while processing {!r}.'.format(
-                    len(parser._errors), uri))
+            logging.debug('{} errors encountered while processing {!r}.'.format(len(parser._errors), uri))
             logging.debug(f'{parser._errors}')
 
     return result
@@ -492,13 +477,19 @@ def _load_module(module):
 
 def caom2gen():
     parser = get_gen_proc_arg_parser()
-    parser.add_argument('--blueprint', nargs='+', required=True,
-                        help=('list of files with blueprints for CAOM2 '
-                              'construction, in serialized format. If the '
-                              'list is of length 1, the same blueprint will '
-                              'be applied to all lineage entries. Otherwise, '
-                              'there must be a blueprint file per lineage '
-                              'entry.'))
+    parser.add_argument(
+        '--blueprint',
+        nargs='+',
+        required=True,
+        help=(
+            'list of files with blueprints for CAOM2 '
+            'construction, in serialized format. If the '
+            'list is of length 1, the same blueprint will '
+            'be applied to all lineage entries. Otherwise, '
+            'there must be a blueprint file per lineage '
+            'entry.'
+        ),
+    )
 
     if len(sys.argv) < 2:
         parser.print_usage(file=sys.stderr)
@@ -532,14 +523,13 @@ def caom2gen():
             logging.debug(f'Blueprints: {args.blueprint}')
             sys.stderr.write(
                 '{}: error: different number of blueprints '
-                '{}  and files {}.'.format(APP_NAME, len(args.blueprint),
-                                           len(args.lineage)))
+                '{}  and files {}.'.format(APP_NAME, len(args.blueprint), len(args.lineage))
+            )
             sys.exit(-1)
 
         for i, cardinality in enumerate(args.lineage):
             product_id, uri = _extract_ids(cardinality)
-            logging.debug('Loading blueprint for {} from {}'.format(
-                uri, args.blueprint[i]))
+            logging.debug('Loading blueprint for {} from {}'.format(uri, args.blueprint[i]))
             if '.h5' in uri:
                 blueprint = Hdf5ObsBlueprint(module=module)
             else:
@@ -586,25 +576,19 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
             if bp._get('DerivedObservation.members') is not None:
                 logging.debug('Build a DerivedObservation')
                 obs = DerivedObservation(
-                    collection=collection,
-                    observation_id=obs_id,
-                    algorithm=Algorithm('composite'))
+                    collection=collection, observation_id=obs_id, algorithm=Algorithm('composite')
+                )
                 break
             elif bp._get('CompositeObservation.members') is not None:
-                logging.debug(
-                    'Build a CompositeObservation with obs_id {}'.format(
-                        obs_id))
+                logging.debug('Build a CompositeObservation with obs_id {}'.format(obs_id))
                 obs = CompositeObservation(
-                    collection=collection, observation_id=obs_id,
-                    algorithm=Algorithm('composite'))
+                    collection=collection, observation_id=obs_id, algorithm=Algorithm('composite')
+                )
                 break
     if not obs:
         # build a simple observation
-        logging.debug(
-            f'Build a SimpleObservation with obs_id {obs_id}')
-        obs = SimpleObservation(collection=collection,
-                                observation_id=obs_id,
-                                algorithm=Algorithm('exposure'))
+        logging.debug(f'Build a SimpleObservation with obs_id {obs_id}')
+        obs = SimpleObservation(collection=collection, observation_id=obs_id, algorithm=Algorithm('exposure'))
     return obs
 
 
@@ -617,17 +601,19 @@ def _set_logging(verbose, debug, quiet):
                 logger.removeHandler(handler)
 
     handler = logging.StreamHandler()
-    handler.setFormatter(DispatchingFormatter({
-        'caom2utils.fits2caom2.FitsWcsParser': logging.Formatter(
-            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:'
-            '%(lineno)d:%(message)s'),
-        'astropy': logging.Formatter(
-            '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:'
-            '%(lineno)d:%(message)s')
-    },
-        logging.Formatter('%(asctime)s:%(levelname)s:%(name)-12s:'
-                          '%(lineno)d:%(message)s')
-    ))
+    handler.setFormatter(
+        DispatchingFormatter(
+            {
+                'caom2utils.fits2caom2.FitsWcsParser': logging.Formatter(
+                    '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:' '%(lineno)d:%(message)s'
+                ),
+                'astropy': logging.Formatter(
+                    '%(asctime)s:%(levelname)s:%(name)-12s:HDU:%(hdu)-2s:' '%(lineno)d:%(message)s'
+                ),
+            },
+            logging.Formatter('%(asctime)s:%(levelname)s:%(name)-12s:' '%(lineno)d:%(message)s'),
+        )
+    )
     logger.addHandler(handler)
     if verbose:
         logger.setLevel(logging.INFO)
@@ -649,40 +635,48 @@ def _get_common_arg_parser():
     fits2caom2 and caom2gen
     :return: args parser
     """
-    parser = util.get_base_parser(subparsers=False,
-                                  version=version.version,
-                                  default_resource_id=GLOBAL_STORAGE_RESOURCE_ID)
+    parser = util.get_base_parser(
+        subparsers=False, version=version.version, default_resource_id=GLOBAL_STORAGE_RESOURCE_ID
+    )
 
-    parser.description = (
-        'Augments an observation with information in one or more fits files.')
+    parser.description = 'Augments an observation with information in one or more fits files.'
 
-    parser.add_argument('--dumpconfig', action='store_true',
-                        help=('output the utype to keyword mapping to '
-                              'the console'))
+    parser.add_argument(
+        '--dumpconfig', action='store_true', help=('output the utype to keyword mapping to ' 'the console')
+    )
 
-    parser.add_argument('--not_connected', action='store_true',
-                        help=('if set, there is no internet connection, so '
-                              'skip service invocations.'))
+    parser.add_argument(
+        '--not_connected',
+        action='store_true',
+        help=('if set, there is no internet connection, so ' 'skip service invocations.'),
+    )
 
-    parser.add_argument('--no_validate', action='store_true',
-                        help=('by default, the application will validate the '
-                              'WCS information for an observation. '
-                              'Specifying this flag skips that step.'))
+    parser.add_argument(
+        '--no_validate',
+        action='store_true',
+        help=(
+            'by default, the application will validate the '
+            'WCS information for an observation. '
+            'Specifying this flag skips that step.'
+        ),
+    )
 
-    parser.add_argument('-o', '--out', dest='out_obs_xml',
-                        help='output of augmented observation in XML',
-                        required=False)
+    parser.add_argument(
+        '-o', '--out', dest='out_obs_xml', help='output of augmented observation in XML', required=False
+    )
 
     in_group = parser.add_mutually_exclusive_group(required=True)
-    in_group.add_argument('-i', '--in', dest='in_obs_xml',
-                          type=argparse.FileType('r'),
-                          help='input of observation to be augmented in XML')
-    in_group.add_argument('--observation', nargs=2,
-                          help='observation in a collection',
-                          metavar=('collection', 'observationID'))
-    parser.add_argument('--local', nargs='+',
-                        help=('list of files in local filesystem (same order '
-                              'as uri)'))
+    in_group.add_argument(
+        '-i',
+        '--in',
+        dest='in_obs_xml',
+        type=argparse.FileType('r'),
+        help='input of observation to be augmented in XML',
+    )
+    in_group.add_argument(
+        '--observation', nargs=2, help='observation in a collection', metavar=('collection', 'observationID')
+    )
+    parser.add_argument('--local', nargs='+', help=('list of files in local filesystem (same order ' 'as uri)'))
     return parser
 
 
@@ -693,9 +687,7 @@ def get_arg_parser():
     :return: args parser
     """
     parser = _get_common_arg_parser()
-    parser.add_argument('--productID',
-                        help='product ID of the plane in the observation',
-                        required=False)
+    parser.add_argument('--productID', help='product ID of the plane in the observation', required=False)
     parser.add_argument('fileURI', help='URI of a fits file', nargs='+')
     return parser
 
@@ -723,22 +715,23 @@ def proc(args, obs_blueprints):
     _set_logging(args.verbose, args.debug, args.quiet)
 
     if args.local and (len(args.local) != len(args.fileURI)):
-        msg = ('number of local arguments not the same with file '
-               'URIs ({} vs {})').format(len(args.local), args.fileURI)
+        msg = ('number of local arguments not the same with file ' 'URIs ({} vs {})').format(
+            len(args.local), args.fileURI
+        )
         raise RuntimeError(msg)
 
     if args.in_obs_xml:
         obs = _gen_obs(obs_blueprints, args.in_obs_xml)
     else:
-        obs = _gen_obs(obs_blueprints, None, args.observation[0],
-                       args.observation[1])
+        obs = _gen_obs(obs_blueprints, None, args.observation[0], args.observation[1])
 
     if args.in_obs_xml and len(obs.planes) != 1:
         if not args.productID:
             msg = '{}{}{}'.format(
                 'A productID parameter is required if ',
                 'there are zero or more than one planes ',
-                'in the input observation.')
+                'in the input observation.',
+            )
             raise RuntimeError(msg)
 
     subject = net.Subject.from_cmd_line_args(args)
@@ -756,17 +749,26 @@ def proc(args, obs_blueprints):
                 product_id = args.productID
             else:
                 msg = '{}{}'.format(
-                    'A productID parameter is required if one is not ',
-                    'identified in the blueprint.')
+                    'A productID parameter is required if one is not ', 'identified in the blueprint.'
+                )
                 raise RuntimeError(msg)
 
         file_name = None
         if args.local:
             file_name = args.local[i]
 
-        obs = _augment(obs, product_id, uri, blueprint, subject,
-                       args.dumpconfig, validate_wcs, plugin=None,
-                       local=file_name, client=client)
+        obs = _augment(
+            obs,
+            product_id,
+            uri,
+            blueprint,
+            subject,
+            args.dumpconfig,
+            validate_wcs,
+            plugin=None,
+            local=file_name,
+            client=client,
+        )
 
     _write_observation(obs, args)
 
@@ -780,24 +782,25 @@ def _load_plugin(plugin_name):
         plgin = getattr(plgin, 'ObservationUpdater')()
 
     if not hasattr(plgin, 'update'):
-        msg = 'The plugin {} is not correct.  It must provide one ' \
-                      'of:\n' \
-                      '1 - a function named update, or\n' \
-                      '2 - a class ObservationUpdater with a function named ' \
-                      'update.\n In either case, the update signature needs ' \
-                      'to be (Observation, **kwargs).'.format(plugin_name)
+        msg = (
+            'The plugin {} is not correct.  It must provide one '
+            'of:\n'
+            '1 - a function named update, or\n'
+            '2 - a class ObservationUpdater with a function named '
+            'update.\n In either case, the update signature needs '
+            'to be (Observation, **kwargs).'.format(plugin_name)
+        )
         raise ImportError(msg)
     return plgin
 
 
-def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
-           subject=None, **kwargs):
+def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None, subject=None, **kwargs):
     result = obs
     if plugin_name is not None and len(plugin_name) > 0:
         # TODO make a check that's necessary under both calling conditions here
         logging.debug(
-            'Begin plugin execution {!r} update method on '
-            'observation {!r}'.format(plugin_name, obs.observation_id))
+            'Begin plugin execution {!r} update method on ' 'observation {!r}'.format(plugin_name, obs.observation_id)
+        )
         plgin = _load_plugin(plugin_name)
         if isinstance(parser, FitsParser):
             kwargs['headers'] = parser.headers
@@ -814,8 +817,8 @@ def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None,
             if result is not None:
                 logging.debug(
                     'Finished executing plugin {!r} update '
-                    'method on observation {!r}'.format(
-                        plugin_name, obs.observation_id))
+                    'method on observation {!r}'.format(plugin_name, obs.observation_id)
+                )
         except Exception as e:
             logging.error(e)
             tb = traceback.format_exc()
@@ -844,8 +847,7 @@ def gen_proc(args, blueprints, **kwargs):
     if args.in_obs_xml:
         obs = _gen_obs(blueprints, args.in_obs_xml)
     else:
-        obs = _gen_obs(blueprints, None, args.observation[0],
-                       args.observation[1])
+        obs = _gen_obs(blueprints, None, args.observation[0], args.observation[1])
 
     validate_wcs = True
     if args.no_validate:
@@ -859,21 +861,17 @@ def gen_proc(args, blueprints, **kwargs):
         subject = net.Subject.from_cmd_line_args(args)
         if args.resource_id is None:
             # if the resource_id is Undefined, using CadcDataClient
-            client = data_util.StorageClientWrapper(
-                subject, using_storage_inventory=False)
+            client = data_util.StorageClientWrapper(subject, using_storage_inventory=False)
         else:
             # if the resource_id is defined, assume that the caller intends to
             # use the Storage Inventory system, as it's the CADC storage
             # client that depends on a resource_id
-            client = data_util.StorageClientWrapper(
-                subject, resource_id=args.resource_id)
+            client = data_util.StorageClientWrapper(subject, resource_id=args.resource_id)
 
     for ii, cardinality in enumerate(args.lineage):
         product_id, uri = _extract_ids(cardinality)
         blueprint = _lookup_blueprint(blueprints, uri)
-        logging.debug(
-            'Begin augmentation for product_id {}, uri {}'.format(product_id,
-                                                                  uri))
+        logging.debug('Begin augmentation for product_id {}, uri {}'.format(product_id, uri))
 
         file_name = None
         if args.local:
@@ -887,10 +885,22 @@ def gen_proc(args, blueprints, **kwargs):
         if args.use_blueprint_parser:
             use_blueprint_parser = uri in args.use_blueprint_parser
 
-        obs = _augment(obs, product_id, uri, blueprint, subject,
-                       args.dumpconfig, validate_wcs, args.plugin, file_name,
-                       external_url, connected, use_blueprint_parser, client,
-                       **kwargs)
+        obs = _augment(
+            obs,
+            product_id,
+            uri,
+            blueprint,
+            subject,
+            args.dumpconfig,
+            validate_wcs,
+            args.plugin,
+            file_name,
+            external_url,
+            connected,
+            use_blueprint_parser,
+            client,
+            **kwargs,
+        )
 
         if obs is None:
             logging.warning('No observation. Stop processing.')
@@ -915,52 +925,89 @@ def get_gen_proc_arg_parser():
     :return: args parser
     """
     parser = _get_common_arg_parser()
-    parser.add_argument('--external_url',  nargs='+',
-                        help=('service endpoint(s) that '
-                              'return(s) a string that can be '
-                              'made into FITS headers. Cardinality should'
-                              'be consistent with lineage.'))
-    parser.add_argument('--module', help=('if the blueprint contains function '
-                                          'calls, call '
-                                          'importlib.import_module '
-                                          'for the named module. Provide a '
-                                          'fully qualified name. Parameter '
-                                          'choices are the artifact URI (uri) '
-                                          'or a list of astropy Header '
-                                          'instances (header). This will '
-                                          'allow the update of a single '
-                                          'blueprint entry with a single '
-                                          'call.'))
-    parser.add_argument('--plugin', help=('if this parameter is specified, '
-                                          'call importlib.import_module '
-                                          'for the named module. Then '
-                                          'execute the method "update", '
-                                          'with the signature '
-                                          '(Observation, **kwargs). '
-                                          'This will allow '
-                                          'for the update of multiple '
-                                          'observation data members with one '
-                                          'call.'))
-    parser.add_argument('--lineage', nargs='+',
-                        help=('productID/artifactURI. List of plane/artifact '
-                              'identifiers that will be'
-                              'created for the identified observation.'))
-    parser.add_argument('--use_blueprint_parser', nargs='+',
-                        help=('productID/artifactURI. List of lineage entries '
-                              'that will be processed with a BlueprintParser. '
-                              'Good for files with no metadata in the '
-                              'content.'))
+    parser.add_argument(
+        '--external_url',
+        nargs='+',
+        help=(
+            'service endpoint(s) that '
+            'return(s) a string that can be '
+            'made into FITS headers. Cardinality should'
+            'be consistent with lineage.'
+        ),
+    )
+    parser.add_argument(
+        '--module',
+        help=(
+            'if the blueprint contains function '
+            'calls, call '
+            'importlib.import_module '
+            'for the named module. Provide a '
+            'fully qualified name. Parameter '
+            'choices are the artifact URI (uri) '
+            'or a list of astropy Header '
+            'instances (header). This will '
+            'allow the update of a single '
+            'blueprint entry with a single '
+            'call.'
+        ),
+    )
+    parser.add_argument(
+        '--plugin',
+        help=(
+            'if this parameter is specified, '
+            'call importlib.import_module '
+            'for the named module. Then '
+            'execute the method "update", '
+            'with the signature '
+            '(Observation, **kwargs). '
+            'This will allow '
+            'for the update of multiple '
+            'observation data members with one '
+            'call.'
+        ),
+    )
+    parser.add_argument(
+        '--lineage',
+        nargs='+',
+        help=(
+            'productID/artifactURI. List of plane/artifact '
+            'identifiers that will be'
+            'created for the identified observation.'
+        ),
+    )
+    parser.add_argument(
+        '--use_blueprint_parser',
+        nargs='+',
+        help=(
+            'productID/artifactURI. List of lineage entries '
+            'that will be processed with a BlueprintParser. '
+            'Good for files with no metadata in the '
+            'content.'
+        ),
+    )
     return parser
 
 
-def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
-            out_obs_xml=None, in_obs_xml=None, collection=None,
-            observation=None, product_id=None, uri=None, netrc=False,
-            file_name=None, verbose=False, debug=False, quiet=False, **kwargs):
+def augment(
+    blueprints,
+    no_validate=False,
+    dump_config=False,
+    plugin=None,
+    out_obs_xml=None,
+    in_obs_xml=None,
+    collection=None,
+    observation=None,
+    product_id=None,
+    uri=None,
+    netrc=False,
+    file_name=None,
+    verbose=False,
+    debug=False,
+    quiet=False,
+    **kwargs,
+):
     _set_logging(verbose, debug, quiet)
-    logging.debug(
-        'Begin augmentation for product_id {}, uri {}'.format(product_id,
-                                                              uri))
+    logging.debug('Begin augmentation for product_id {}, uri {}'.format(product_id, uri))
 
     # The 'visit_args' are a dictionary within the 'params' dictionary.
     # They are set by the collection-specific implementation, as they are
@@ -979,8 +1026,9 @@ def augment(blueprints, no_validate=False, dump_config=False, plugin=None,
         validate_wcs = not no_validate
 
     for ii in blueprints:
-        obs = _augment(obs, product_id, uri, blueprints[ii], subject,
-                       dump_config, validate_wcs, plugin, file_name, **kwargs)
+        obs = _augment(
+            obs, product_id, uri, blueprints[ii], subject, dump_config, validate_wcs, plugin, file_name, **kwargs
+        )
 
     writer = ObservationWriter()
     if out_obs_xml:

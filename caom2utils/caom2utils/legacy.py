@@ -113,9 +113,7 @@ class ConvertFromJava:
         elif lookup in self._inverse_plan.keys():
             return self._inverse_plan[lookup]
         else:
-            raise ValueError(
-                '{} caom2 element not found in the plan (spelling?).'.
-                format(lookup))
+            raise ValueError('{} caom2 element not found in the plan (spelling?).'.format(lookup))
 
 
 # Mimic the default java fits2caom2.config file content, to support the
@@ -128,36 +126,29 @@ class ConvertFromJava:
 # going forward.
 _JAVA_CAOM2_CONFIG = {
     'DerivedObservation.members': 'members',
-
     'Observation.type': 'OBSTYPE',
     'Observation.intent': 'obs.intent',
     'Observation.sequenceNumber': 'obs.sequenceNumber',
     'Observation.metaRelease': 'obs.metaRelease',
-
     'Observation.algorithm.name': 'algorithm.name',
-
     'Observation.instrument.name': 'instrument.name',
     'Observation.instrument.keywords': 'instrument.keywords',
-
     'Observation.proposal.id': 'proposal.id',
     'Observation.proposal.pi': 'proposal.pi',
     'Observation.proposal.project': 'proposal.project',
     'Observation.proposal.title': 'proposal.title',
     'Observation.proposal.keywords': 'proposal.keywords',
-
     'Observation.target.name': 'target.name',
     'Observation.target.type': 'target.type',
     'Observation.target.standard': 'target.standard',
     'Observation.target.redshift': 'target.redshift',
     'Observation.target.keywords': 'target.keywords',
     'Observation.target.moving': 'target.moving',
-
     'Observation.telescope.name': 'telescope.name',
     'Observation.telescope.geoLocationX': 'telescope.geoLocationX',
     'Observation.telescope.geoLocationY': 'telescope.geoLocationY',
     'Observation.telescope.geoLocationZ': 'telescope.geoLocationZ',
     'Observation.telescope.keywords': 'telescope.keywords',
-
     'Observation.environment.seeing': 'environment.seeing',
     'Observation.environment.humidity': 'environment.humidity',
     'Observation.environment.elevation': 'environment.elevation',
@@ -165,12 +156,10 @@ _JAVA_CAOM2_CONFIG = {
     'Observation.environment.wavelengthTau': 'environment.wavelengthTau',
     'Observation.environment.ambientTemp': 'environment.ambientTemp',
     'Observation.environment.photometric': 'environment.photometric',
-
     'Plane.metaRelease': 'plane.metaRelease',
     'Plane.dataRelease': 'plane.dataRelease',
     'Plane.dataProductType': 'plane.dataProductType',
     'Plane.calibrationLevel': 'plane.calibrationLevel',
-
     'Plane.provenance.name': 'provenance.name',
     'Plane.provenance.version': 'provenance.version',
     'Plane.provenance.project': 'provenance.project',
@@ -180,19 +169,15 @@ _JAVA_CAOM2_CONFIG = {
     'Plane.provenance.lastExecuted': 'provenance.lastExecuted',
     'Plane.provenance.keywords': 'provenance.keywords',
     'Plane.provenance.inputs': 'provenance.inputs',
-
     'Plane.metrics.sourceNumberDensity': 'metrics.sourceNumberDensity',
     'Plane.metrics.background': 'metrics.background',
     'Plane.metrics.backgroundStddev': 'metrics.backgroundStddev',
     'Plane.metrics.fluxDensityLimit': 'metrics.fluxDensityLimit',
     'Plane.metrics.magLimit': 'metrics.magLimit',
-
     'Artifact.productType': 'artifact.productType',
     'Artifact.releaseType': 'artifact.releaseType',
-
     'Part.name': 'part.name',
     'Part.productType': 'part.productType',
-
     'Chunk.naxis': 'ZNAXIS,NAXIS',
     'Chunk.observableAxis': 'chunk.observableAxis',
     'Chunk.positionAxis1': 'getPositionAxis()',
@@ -200,14 +185,12 @@ _JAVA_CAOM2_CONFIG = {
     'Chunk.energyAxis': 'getEnergyAxis()',
     'Chunk.timeAxis': 'getTimeAxis()',
     'Chunk.polarizationAxis': 'getPolarizationAxis()',
-
     'Chunk.observable.dependent.bin': 'observable.dependent.bin',
     'Chunk.observable.dependent.axis.ctype': 'observable.dependent.ctype',
     'Chunk.observable.dependent.axis.cunit': 'observable.dependent.cunit',
     'Chunk.observable.independent.bin': 'observable.independent.bin',
     'Chunk.observable.independent.axis.ctype': 'observable.independent.ctype',
     'Chunk.observable.independent.axis.cunit': 'observable.independent.cunit',
-
     'Chunk.position.coordsys': 'RADECSYS,RADESYS',
     'Chunk.position.equinox': 'EQUINOX,EPOCH',
     'Chunk.position.resolution': 'position.resolution',
@@ -223,31 +206,20 @@ _JAVA_CAOM2_CONFIG = {
     'Chunk.position.axis.function.cd12': 'CD{positionAxis1}_{positionAxis2}',
     'Chunk.position.axis.function.cd21': 'CD{positionAxis2}_{positionAxis1}',
     'Chunk.position.axis.function.cd22': 'CD{positionAxis2}_{positionAxis2}',
-    'Chunk.position.axis.function.dimension.naxis1':
-        'ZNAXIS{positionAxis1},NAXIS{positionAxis1}',
-    'Chunk.position.axis.function.dimension.naxis2':
-        'ZNAXIS{positionAxis2},NAXIS{positionAxis2}',
+    'Chunk.position.axis.function.dimension.naxis1': 'ZNAXIS{positionAxis1},NAXIS{positionAxis1}',
+    'Chunk.position.axis.function.dimension.naxis2': 'ZNAXIS{positionAxis2},NAXIS{positionAxis2}',
     'Chunk.position.axis.function.refCoord.coord1.pix': 'CRPIX{positionAxis1}',
     'Chunk.position.axis.function.refCoord.coord1.val': 'CRVAL{positionAxis1}',
     'Chunk.position.axis.function.refCoord.coord2.pix': 'CRPIX{positionAxis2}',
     'Chunk.position.axis.function.refCoord.coord2.val': 'CRVAL{positionAxis2}',
-    'Chunk.position.axis.range.start.coord1.pix':
-        'position.range.start.coord1.pix',
-    'Chunk.position.axis.range.start.coord1.val':
-        'position.range.start.coord1.val',
-    'Chunk.position.axis.range.start.coord2.pix':
-        'position.range.start.coord2.pix',
-    'Chunk.position.axis.range.start.coord2.val':
-        'position.range.start.coord2.val',
-    'Chunk.position.axis.range.end.coord1.pix':
-        'position.range.end.coord1.pix',
-    'Chunk.position.axis.range.end.coord1.val':
-        'position.range.end.coord1.val',
-    'Chunk.position.axis.range.end.coord2.pix':
-        'position.range.end.coord2.pix',
-    'Chunk.position.axis.range.end.coord2.val':
-        'position.range.end.coord2.val',
-
+    'Chunk.position.axis.range.start.coord1.pix': 'position.range.start.coord1.pix',
+    'Chunk.position.axis.range.start.coord1.val': 'position.range.start.coord1.val',
+    'Chunk.position.axis.range.start.coord2.pix': 'position.range.start.coord2.pix',
+    'Chunk.position.axis.range.start.coord2.val': 'position.range.start.coord2.val',
+    'Chunk.position.axis.range.end.coord1.pix': 'position.range.end.coord1.pix',
+    'Chunk.position.axis.range.end.coord1.val': 'position.range.end.coord1.val',
+    'Chunk.position.axis.range.end.coord2.pix': 'position.range.end.coord2.pix',
+    'Chunk.position.axis.range.end.coord2.val': 'position.range.end.coord2.val',
     'Chunk.energy.specsys': 'SPECSYS',
     'Chunk.energy.ssysobs': 'SSYSOBS',
     'Chunk.energy.restfrq': 'RESTFRQ',
@@ -273,7 +245,6 @@ _JAVA_CAOM2_CONFIG = {
     'Chunk.energy.axis.range.start.val': 'energy.range.start.val',
     'Chunk.energy.axis.range.end.pix': 'energy.range.end.pix',
     'Chunk.energy.axis.range.end.val': 'energy.range.end.val',
-
     'Chunk.polarization.axis.axis.ctype': 'CTYPE{polarizationAxis}',
     'Chunk.polarization.axis.axis.cunit': 'CUNIT{polarizationAxis}',
     'Chunk.polarization.axis.bounds.samples': 'polarization.samples',
@@ -287,7 +258,6 @@ _JAVA_CAOM2_CONFIG = {
     'Chunk.polarization.axis.range.start.val': 'polarization.range.start.val',
     'Chunk.polarization.axis.range.end.pix': 'polarization.range.end.pix',
     'Chunk.polarization.axis.range.end.val': 'polarization.range.end.val',
-
     'Chunk.time.exposure': 'time.exposure',
     'Chunk.time.resolution': 'time.resolution',
 }
@@ -340,11 +310,8 @@ def load_config(file_name):
                         d['artifacts'] = {}
                 else:
                     artifact = line.split('?')[1].split('#[')[0].strip()
-                    extension = \
-                        int(line.split('#[')[1].split(']')[0].strip())
-                    logging.debug(
-                        'Adding overrides for artifact {} in extension {}'.
-                        format(artifact, extension))
+                    extension = int(line.split('#[')[1].split(']')[0].strip())
+                    logging.debug('Adding overrides for artifact {} in extension {}'.format(artifact, extension))
                 if artifact not in d['artifacts'].keys():
                     d['artifacts'][artifact] = {}
                 if extension not in d['artifacts'][artifact].keys():
@@ -388,40 +355,37 @@ def _update_axis_info(parser, defaults, overrides, config):
                     raise ValueError(f'Unrecognized CTYPE: {value}')
 
     ignore = '{ignore}'
-    if ('Chunk.position' not in config) or \
-            (config['Chunk.position'] != ignore):
+    if ('Chunk.position' not in config) or (config['Chunk.position'] != ignore):
         if ra_axis and dec_axis:
             parser.configure_position_axes((ra_axis, dec_axis))
         elif ra_axis or dec_axis:
-            raise ValueError('Only one positional axis found (ra/dec): {}/{}'.
-                             format(ra_axis, dec_axis))
+            raise ValueError('Only one positional axis found (ra/dec): {}/{}'.format(ra_axis, dec_axis))
         else:
             # assume that positional axis are 1 and 2 by default
-            if time_axis in ['1', '2'] or energy_axis in ['1', '2'] or \
-               polarization_axis in ['1', '2'] or obs_axis in ['1', '2']:
+            if (
+                time_axis in ['1', '2']
+                or energy_axis in ['1', '2']
+                or polarization_axis in ['1', '2']
+                or obs_axis in ['1', '2']
+            ):
                 raise ValueError('Cannot determine the positional axis')
             else:
                 parser.configure_position_axes(('1', '2'))
 
-    if time_axis and (('Chunk.time' not in config) or
-       (config['Chunk.time'] != ignore)):
+    if time_axis and (('Chunk.time' not in config) or (config['Chunk.time'] != ignore)):
         parser.configure_time_axis(time_axis)
 
-    if energy_axis and (('Chunk.energy' not in config) or
-       (config['Chunk.energy'] != ignore)):
+    if energy_axis and (('Chunk.energy' not in config) or (config['Chunk.energy'] != ignore)):
         parser.configure_energy_axis(energy_axis)
 
-    if polarization_axis and (('Chunk.polarization' not in config) or
-       (config['Chunk.polarization'] != ignore)):
+    if polarization_axis and (('Chunk.polarization' not in config) or (config['Chunk.polarization'] != ignore)):
         parser.configure_polarization_axis(polarization_axis)
 
-    if obs_axis and (('Chunk.observable' not in config) or
-       (config['Chunk.observable'] != ignore)):
+    if obs_axis and (('Chunk.observable' not in config) or (config['Chunk.observable'] != ignore)):
         parser.configure_observable_axis(obs_axis)
 
 
-def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
-                     defaults=None, overrides=None):
+def update_blueprint(obs_blueprint, artifact_uri=None, config=None, defaults=None, overrides=None):
     """
     Update an observation blueprint according to defaults and/or overrides as
     configured by the user.
@@ -441,8 +405,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
     convert = ConvertFromJava(obs_blueprint, config)
     errors = []
     if config:
-        logging.debug(
-            f'Setting user-supplied configuration for {artifact_uri}.')
+        logging.debug(f'Setting user-supplied configuration for {artifact_uri}.')
         for key, value in config.items():
             try:
                 if value.isupper() and value.find('.') == -1:
@@ -452,8 +415,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                         obs_blueprint.add_attribute(caom2_key, value)
             except ValueError:
                 errors.append(f'{key}: {sys.exc_info()[1]}')
-        logging.debug(
-            f'User-supplied configuration applied for {artifact_uri}.')
+        logging.debug(f'User-supplied configuration applied for {artifact_uri}.')
 
     if defaults:
         logging.debug(f'Setting defaults for {artifact_uri}')
@@ -461,9 +423,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
             try:
                 for caom2_key in convert.get_caom2_elements(key):
                     obs_blueprint.set_default(caom2_key, value)
-                    logging.debug(
-                        '{} setting default value to {}'.format(
-                            caom2_key, value))
+                    logging.debug('{} setting default value to {}'.format(caom2_key, value))
             except ValueError:
                 errors.append(f'{key}: {sys.exc_info()[1]}')
         logging.debug(f'Defaults set for {artifact_uri}.')
@@ -475,26 +435,22 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None,
                 logging.debug(f'01/11/18 Chris said ignore {key!r}.')
                 continue
             if key == 'artifacts' and artifact_uri in overrides['artifacts']:
-                logging.debug('Found extension overrides for URI {}.'.format(
-                    artifact_uri))
+                logging.debug('Found extension overrides for URI {}.'.format(artifact_uri))
                 for extension in overrides['artifacts'][artifact_uri].keys():
-                    for ext_key, ext_value in \
-                      overrides['artifacts'][artifact_uri][extension].items():
+                    for ext_key, ext_value in overrides['artifacts'][artifact_uri][extension].items():
                         if ext_key == 'BITPIX':
-                            logging.debug(
-                                f'01/11/18 Chris said ignore {key!r}.')
+                            logging.debug(f'01/11/18 Chris said ignore {key!r}.')
                             continue
                         try:
-                            for caom2_key in \
-                                    convert.get_caom2_elements(ext_key):
-                                obs_blueprint.set(caom2_key, ext_value,
-                                                  extension)
-                                logging.debug(('{} set override value to {} '
-                                               'in extension {}.').format(
-                                    caom2_key, ext_value, extension))
+                            for caom2_key in convert.get_caom2_elements(ext_key):
+                                obs_blueprint.set(caom2_key, ext_value, extension)
+                                logging.debug(
+                                    ('{} set override value to {} ' 'in extension {}.').format(
+                                        caom2_key, ext_value, extension
+                                    )
+                                )
                         except ValueError:
-                            errors.append('{}: ext {} {}'.format(
-                                key, extension, sys.exc_info()[1]))
+                            errors.append('{}: ext {} {}'.format(key, extension, sys.exc_info()[1]))
             else:
                 try:
                     for caom2_key in convert.get_caom2_elements(key):
@@ -513,14 +469,14 @@ def main_app():
     parser = caom2blueprint.get_arg_parser()
 
     # add legacy fits2caom2 arguments
-    parser.add_argument('--config', required=False,
-                        help=('optional CAOM2 utype to keyword config file to '
-                              'merge with the internal configuration'))
+    parser.add_argument(
+        '--config',
+        required=False,
+        help=('optional CAOM2 utype to keyword config file to ' 'merge with the internal configuration'),
+    )
 
-    parser.add_argument('--default',
-                        help='file with default values for keywords')
-    parser.add_argument('--override',
-                        help='file with override values for keywords')
+    parser.add_argument('--default', help='file with default values for keywords')
+    parser.add_argument('--override', help='file with override values for keywords')
 
     if len(sys.argv) < 2:
         # correct error message when running python3
@@ -552,11 +508,9 @@ def main_app():
         else:
             obs_blueprint[uri] = blueprints.ObsBlueprint()
         if config:
-            result = update_blueprint(obs_blueprint[uri], uri,
-                                      config, defaults, overrides)
+            result = update_blueprint(obs_blueprint[uri], uri, config, defaults, overrides)
             if result:
-                logging.debug(
-                    f'Errors parsing the config files: {result}')
+                logging.debug(f'Errors parsing the config files: {result}')
 
     try:
         caom2blueprint.proc(args, obs_blueprint)

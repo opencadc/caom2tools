@@ -72,67 +72,39 @@ import sys
 
 from astropy.wcs import SingularMatrixError, utils, Wcsprm, WCS
 from caom2 import (
-    Axis, Chunk, Coord2D, CoordAxis1D, CoordAxis2D, CoordError, CoordFunction1D, CoordFunction2D, CustomWCS,
+    Axis,
+    Chunk,
+    Coord2D,
+    CoordAxis1D,
+    CoordAxis2D,
+    CoordError,
+    CoordFunction1D,
+    CoordFunction2D,
+    CustomWCS,
     Dimension2D,
-    ObservableAxis, PolarizationWCS, RefCoord, Slice,
-    SpatialWCS, SpectralWCS,
-    TemporalWCS
+    ObservableAxis,
+    PolarizationWCS,
+    RefCoord,
+    Slice,
+    SpatialWCS,
+    SpectralWCS,
+    TemporalWCS,
 )
 from caom2utils.blueprints import ObsBlueprint, _to_float, _to_int, _to_str
 
 
-CUSTOM_CTYPES = [
-    'RM',
-    'FDEP'
-]
+CUSTOM_CTYPES = ['RM', 'FDEP']
 
-POSITION_CTYPES = [
-    ['RA',
-     'GLON',
-     'ELON',
-     'HLON',
-     'SLON'],
-    ['DEC',
-     'GLAT',
-     'ELAT',
-     'HLAT',
-     'SLAT']
-]
+POSITION_CTYPES = [['RA', 'GLON', 'ELON', 'HLON', 'SLON'], ['DEC', 'GLAT', 'ELAT', 'HLAT', 'SLAT']]
 
-ENERGY_CTYPES = [
-    'FREQ',
-    'ENER',
-    'WAVN',
-    'VRAD',
-    'WAVE',
-    'VOPT',
-    'ZOPT',
-    'AWAV',
-    'VELO',
-    'BETA']
+ENERGY_CTYPES = ['FREQ', 'ENER', 'WAVN', 'VRAD', 'WAVE', 'VOPT', 'ZOPT', 'AWAV', 'VELO', 'BETA']
 
 # From http://hea-www.cfa.harvard.edu/~arots/TimeWCS/
-TIME_KEYWORDS = [
-    'TIME',
-    'TAI',
-    'TT',
-    'TDT',
-    'ET',
-    'IAT',
-    'UT1',
-    'UTC',
-    'GMT',
-    'GPS',
-    'TCG',
-    'TCB',
-    'TDB',
-    'LOCAL']
+TIME_KEYWORDS = ['TIME', 'TAI', 'TT', 'TDT', 'ET', 'IAT', 'UT1', 'UTC', 'GMT', 'GPS', 'TCG', 'TCB', 'TDB', 'LOCAL']
 
 POLARIZATION_CTYPES = ['STOKES']
 
-OBSERVABLE_CTYPES = [
-    'observable',
-    'FLUX']
+OBSERVABLE_CTYPES = ['observable', 'FLUX']
 
 
 class HDULoggingFilter(logging.Filter):
@@ -227,20 +199,16 @@ class WcsParser:
             self.assign_sanitize(crpix, count + 1, 'Chunk.position.axis.function.refCoord.coord2.pix')
             self.assign_sanitize(crval, count, 'Chunk.position.axis.function.refCoord.coord1.val')
             self.assign_sanitize(crval, count + 1, 'Chunk.position.axis.function.refCoord.coord2.val')
-            x = self._blueprint._get('Chunk.position.axis.function.cd11',
-                                     self._extension)
+            x = self._blueprint._get('Chunk.position.axis.function.cd11', self._extension)
             if x is not None and not ObsBlueprint.needs_lookup(x):
                 cd[count][0] = x
-            x = self._blueprint._get('Chunk.position.axis.function.cd12',
-                                     self._extension)
+            x = self._blueprint._get('Chunk.position.axis.function.cd12', self._extension)
             if x is not None and not ObsBlueprint.needs_lookup(x):
                 cd[count][1] = x
-            x = self._blueprint._get('Chunk.position.axis.function.cd21',
-                                     self._extension)
+            x = self._blueprint._get('Chunk.position.axis.function.cd21', self._extension)
             if x is not None and not ObsBlueprint.needs_lookup(x):
                 cd[count + 1][0] = x
-            x = self._blueprint._get('Chunk.position.axis.function.cd22',
-                                     self._extension)
+            x = self._blueprint._get('Chunk.position.axis.function.cd22', self._extension)
             if x is not None and not ObsBlueprint.needs_lookup(x):
                 cd[count + 1][1] = x
             self.assign_sanitize(crder, count, 'Chunk.position.axis.error1.rnder')
@@ -428,8 +396,7 @@ class WcsParser:
 
         chunk.position_axis_1 = position_axes_indices[0]
         chunk.position_axis_2 = position_axes_indices[1]
-        axis = self._get_spatial_axis(chunk.position_axis_1 - 1,
-                                      chunk.position_axis_2 - 1)
+        axis = self._get_spatial_axis(chunk.position_axis_1 - 1, chunk.position_axis_2 - 1)
 
         if axis is None:
             self.logger.debug('No WCS Position axis.function')
@@ -555,12 +522,11 @@ class WcsParser:
 
     def _finish_chunk_observable(self, chunk):
         self.logger.debug('Begin _finish_chunk_observable')
-        ctype = self._wcs.wcs.ctype[chunk.observable_axis-1]
-        cunit = self._wcs.wcs.ctype[chunk.observable_axis-1]
-        pix_bin = _to_int(self._wcs.wcs.crpix[chunk.observable_axis-1])
+        ctype = self._wcs.wcs.ctype[chunk.observable_axis - 1]
+        cunit = self._wcs.wcs.ctype[chunk.observable_axis - 1]
+        pix_bin = _to_int(self._wcs.wcs.crpix[chunk.observable_axis - 1])
         if ctype is not None and cunit is not None and pix_bin is not None:
-            chunk.observable = ObservableAxis(
-                Slice(self._get_axis(0, ctype, cunit), pix_bin))
+            chunk.observable = ObservableAxis(Slice(self._get_axis(0, ctype, cunit), pix_bin))
         self.logger.debug('End _finish_chunk_observable')
 
     def _finish_chunk_position(self, chunk):
@@ -648,11 +614,9 @@ class WcsParser:
         self.logger.debug('End _finish_time')
 
     def _get_axis(self, index, over_ctype=None, over_cunit=None):
-        """ Assemble a generic axis """
-        aug_ctype = str(self.wcs.ctype[index]) if over_ctype is None \
-            else over_ctype
-        aug_cunit = str(self.wcs.cunit[index]) if over_cunit is None \
-            else over_cunit
+        """Assemble a generic axis"""
+        aug_ctype = str(self.wcs.ctype[index]) if over_ctype is None else over_ctype
+        aug_cunit = str(self.wcs.cunit[index]) if over_cunit is None else over_cunit
         if aug_cunit is not None and len(aug_cunit) == 0:
             aug_cunit = None
         aug_axis = Axis(aug_ctype, aug_cunit)
@@ -684,14 +648,14 @@ class WcsParser:
             if len(self._wcs.array_shape) == 1:
                 result = self._wcs.array_shape[0]
             else:
-                result = self._wcs.array_shape[for_axis-1]
+                result = self._wcs.array_shape[for_axis - 1]
             if isinstance(result, tuple):
                 # the blueprint is incompletely configured
                 raise ValueError(f'Could not find axis length for axis {for_axis}')
             return _to_int(result)
 
     def _get_cd(self, x_index, y_index):
-        """ returns cd info"""
+        """returns cd info"""
 
         try:
             if self.wcs.has_cd():
@@ -705,8 +669,7 @@ class WcsParser:
                 cd21 = self.wcs.crota[y_index]
                 cd22 = self.wcs.cdelt[y_index]
         except AttributeError:
-            self.logger.debug(
-                f'Error searching for CD* values {sys.exc_info()[1]}')
+            self.logger.debug(f'Error searching for CD* values {sys.exc_info()[1]}')
             cd11 = None
             cd12 = None
             cd21 = None
@@ -750,9 +713,7 @@ class WcsParser:
         elif (xindex is None) and (yindex is None):
             return None
         else:
-            raise ValueError('Found only one position axis ra/dec: {}/{} in '
-                             '{}'.
-                             format(xindex, yindex, self.file))
+            raise ValueError('Found only one position axis ra/dec: {}/{} in ' '{}'.format(xindex, yindex, self.file))
 
     def _get_ref_coord(self, index):
         aug_crpix = _to_float(self._sanitize(self.wcs.crpix[index]))
@@ -775,27 +736,30 @@ class WcsParser:
         if x_ref_coord and y_ref_coord:
             aug_ref_coord = Coord2D(x_ref_coord, y_ref_coord)
 
-        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = \
-            self._get_cd(xindex, yindex)
+        aug_cd11, aug_cd12, aug_cd21, aug_cd22 = self._get_cd(xindex, yindex)
 
-        if aug_dimension is not None and \
-            aug_ref_coord is not None and \
-            aug_cd11 is not None and \
-            aug_cd12 is not None and \
-            aug_cd21 is not None and \
-                aug_cd22 is not None:
-            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord,
-                                           aug_cd11, aug_cd12,
-                                           aug_cd21, aug_cd22)
+        if (
+            aug_dimension is not None
+            and aug_ref_coord is not None
+            and aug_cd11 is not None
+            and aug_cd12 is not None
+            and aug_cd21 is not None
+            and aug_cd22 is not None
+        ):
+            aug_function = CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21, aug_cd22)
             self.logger.debug('End CoordFunction2D augmentation.')
         else:
             aug_function = None
 
-        aug_axis = CoordAxis2D(self._get_axis(xindex),
-                               self._get_axis(yindex),
-                               self._get_coord_error(xindex),
-                               self._get_coord_error(yindex),
-                               None, None, aug_function)
+        aug_axis = CoordAxis2D(
+            self._get_axis(xindex),
+            self._get_axis(yindex),
+            self._get_coord_error(xindex),
+            self._get_coord_error(yindex),
+            None,
+            None,
+            aug_function,
+        )
         self.logger.debug('End CoordAxis2D augmentation.')
         return aug_axis
 
@@ -854,8 +818,7 @@ class FitsWcsParser(WcsParser):
         cunit = self.header.get(f'CUNIT{chunk.observable_axis}')
         pix_bin = self.header.get(f'CRPIX{chunk.observable_axis}')
         if ctype is not None and cunit is not None and pix_bin is not None:
-            chunk.observable = ObservableAxis(
-                Slice(self._get_axis(0, ctype, cunit), pix_bin))
+            chunk.observable = ObservableAxis(Slice(self._get_axis(0, ctype, cunit), pix_bin))
         self.logger.debug('End _finish_chunk_observable')
 
     def _finish_chunk_position(self, chunk):
@@ -876,18 +839,15 @@ class FitsWcsParser(WcsParser):
         chunk.time.resolution = _to_float(self.header.get('TIMEDEL'))
         chunk.time.timesys = str(self.header.get('TIMESYS', 'UTC'))
         chunk.time.trefpos = self.header.get('TREFPOS', None)
-        chunk.time.mjdref = self.header.get('MJDREF',
-                                            self.header.get('MJDDATE'))
+        chunk.time.mjdref = self.header.get('MJDREF', self.header.get('MJDDATE'))
         self.logger.debug('End _finish_chunk_time')
 
     def _get_axis_length(self, for_axis):
         # try ZNAXIS first in order to get the size of the original
         # image in case it was FITS compressed
-        result = _to_int(self._sanitize(
-            self.header.get(f'ZNAXIS{for_axis}')))
+        result = _to_int(self._sanitize(self.header.get(f'ZNAXIS{for_axis}')))
         if result is None:
-            result = _to_int(self._sanitize(
-                self.header.get(f'NAXIS{for_axis}')))
+            result = _to_int(self._sanitize(self.header.get(f'NAXIS{for_axis}')))
         if result is None:
             msg = f'Could not find axis length for axis {for_axis}'
             raise ValueError(msg)

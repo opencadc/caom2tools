@@ -86,6 +86,7 @@ from caom2utils.wcs_parsers import FitsWcsParser, Hdf5WcsParser, WcsParser
 class Caom2Exception(Exception):
     """Exception raised when an attempt to create or update a CAOM2 record
     fails for some reason."""
+
     pass
 
 
@@ -93,6 +94,7 @@ class BlueprintParser:
     """
     Extract CAOM2 metadata from files with no WCS information.
     """
+
     def __init__(self, obs_blueprint=None, uri=None):
         if obs_blueprint:
             self._blueprint = obs_blueprint
@@ -116,15 +118,13 @@ class BlueprintParser:
         plan = self.blueprint._plan
 
         #  first apply the functions
-        if (self.blueprint._module is not None or
-                self.blueprint._module_instance is not None):
+        if self.blueprint._module is not None or self.blueprint._module_instance is not None:
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
                     if self._blueprint._module_instance is None:
                         plan[key] = self._execute_external(value, key, 0)
                     else:
-                        plan[key] = self._execute_external_instance(
-                            value, key, 0)
+                        plan[key] = self._execute_external_instance(value, key, 0)
 
         # apply defaults
         for key, value in plan.items():
@@ -140,21 +140,19 @@ class BlueprintParser:
         :param artifact_uri: the key for finding the artifact to augment
         :param product_id: the key for finding for the plane to augment
         """
-        self.logger.debug(
-            f'Begin CAOM2 observation augmentation for URI {artifact_uri}.')
+        self.logger.debug(f'Begin CAOM2 observation augmentation for URI {artifact_uri}.')
         if observation is None or not isinstance(observation, caom2.Observation):
-            raise ValueError(
-                f'Observation type mis-match for {observation}.')
+            raise ValueError(f'Observation type mis-match for {observation}.')
 
-        observation.meta_release = self._get_datetime(self._get_from_list(
-            'Observation.metaRelease', index=0,
-            current=observation.meta_release))
+        observation.meta_release = self._get_datetime(
+            self._get_from_list('Observation.metaRelease', index=0, current=observation.meta_release)
+        )
         observation.meta_read_groups = self._get_from_list(
-            'Observation.metaReadGroups', index=0,
-            current=observation.meta_read_groups)
+            'Observation.metaReadGroups', index=0, current=observation.meta_read_groups
+        )
         observation.meta_producer = self._get_from_list(
-            'Observation.metaProducer', index=0,
-            current=observation.meta_producer)
+            'Observation.metaProducer', index=0, current=observation.meta_producer
+        )
 
         plane = None
         if not product_id:
@@ -170,8 +168,7 @@ class BlueprintParser:
             plane = caom2.Plane(product_id=product_id)
             observation.planes[product_id] = plane
         self.augment_plane(plane, artifact_uri)
-        self.logger.debug(
-            f'End CAOM2 observation augmentation for {artifact_uri}.')
+        self.logger.debug(f'End CAOM2 observation augmentation for {artifact_uri}.')
 
     def augment_plane(self, plane, artifact_uri):
         """
@@ -179,23 +176,23 @@ class BlueprintParser:
         :param plane: existing CAOM2 plane to be augmented.
         :param artifact_uri:
         """
-        self.logger.debug(
-            f'Begin CAOM2 plane augmentation for {artifact_uri}.')
+        self.logger.debug(f'Begin CAOM2 plane augmentation for {artifact_uri}.')
         if plane is None or not isinstance(plane, caom2.Plane):
             raise ValueError(f'Plane type mis-match for {plane}')
 
-        plane.meta_release = self._get_datetime(self._get_from_list(
-            'Plane.metaRelease', index=0, current=plane.meta_release))
-        plane.data_release = self._get_datetime(self._get_from_list(
-            'Plane.dataRelease', index=0, current=plane.data_release))
+        plane.meta_release = self._get_datetime(
+            self._get_from_list('Plane.metaRelease', index=0, current=plane.meta_release)
+        )
+        plane.data_release = self._get_datetime(
+            self._get_from_list('Plane.dataRelease', index=0, current=plane.data_release)
+        )
         plane.data_product_type = self._to_data_product_type(
-            self._get_from_list('Plane.dataProductType', index=0,
-                                current=plane.data_product_type))
-        plane.calibration_level = self._to_calibration_level(_to_int_32(
-            self._get_from_list('Plane.calibrationLevel', index=0,
-                                current=plane.calibration_level)))
-        plane.meta_producer = self._get_from_list(
-            'Plane.metaProducer', index=0, current=plane.meta_producer)
+            self._get_from_list('Plane.dataProductType', index=0, current=plane.data_product_type)
+        )
+        plane.calibration_level = self._to_calibration_level(
+            _to_int_32(self._get_from_list('Plane.calibrationLevel', index=0, current=plane.calibration_level))
+        )
+        plane.meta_producer = self._get_from_list('Plane.metaProducer', index=0, current=plane.meta_producer)
 
         artifact = None
         for ii in plane.artifacts:
@@ -203,14 +200,14 @@ class BlueprintParser:
             if artifact.uri == artifact_uri:
                 break
         if artifact is None or artifact.uri != artifact_uri:
-            artifact = caom2.Artifact(artifact_uri, self._to_product_type(
-                self._get_from_list('Artifact.productType', index=0)),
-                                self._to_release_type(self._get_from_list(
-                                    'Artifact.releaseType', index=0)))
+            artifact = caom2.Artifact(
+                artifact_uri,
+                self._to_product_type(self._get_from_list('Artifact.productType', index=0)),
+                self._to_release_type(self._get_from_list('Artifact.releaseType', index=0)),
+            )
             plane.artifacts[artifact_uri] = artifact
         self.augment_artifact(artifact, 0)
-        self.logger.debug(
-            f'End CAOM2 plane augmentation for {artifact_uri}.')
+        self.logger.debug(f'End CAOM2 plane augmentation for {artifact_uri}.')
 
     def augment_artifact(self, artifact, index):
         """
@@ -220,28 +217,28 @@ class BlueprintParser:
         """
         self.logger.debug(f'Begin CAOM2 artifact augmentation for {self.uri}.')
         if artifact is None or not isinstance(artifact, caom2.Artifact):
-            raise ValueError(
-                f'Artifact type mis-match for {artifact}')
+            raise ValueError(f'Artifact type mis-match for {artifact}')
 
-        artifact.product_type = self._to_product_type(self._get_from_list(
-            'Artifact.productType', index=0, current=artifact.product_type))
-        artifact.release_type = self._to_release_type(self._get_from_list(
-            'Artifact.releaseType', index=0, current=artifact.release_type))
-        artifact.content_type = self._get_from_list(
-            'Artifact.contentType', index=0, current=artifact.content_type)
+        artifact.product_type = self._to_product_type(
+            self._get_from_list('Artifact.productType', index=0, current=artifact.product_type)
+        )
+        artifact.release_type = self._to_release_type(
+            self._get_from_list('Artifact.releaseType', index=0, current=artifact.release_type)
+        )
+        artifact.content_type = self._get_from_list('Artifact.contentType', index=0, current=artifact.content_type)
         artifact.content_length = self._get_from_list(
-            'Artifact.contentLength', index=0, current=artifact.content_length)
-        artifact.content_checksum = _to_checksum_uri(self._get_from_list(
-            'Artifact.contentChecksum', index=0,
-            current=artifact.content_checksum))
+            'Artifact.contentLength', index=0, current=artifact.content_length
+        )
+        artifact.content_checksum = _to_checksum_uri(
+            self._get_from_list('Artifact.contentChecksum', index=0, current=artifact.content_checksum)
+        )
         artifact.content_release = self._get_from_list(
-            'Artifact.contentRelease', index=0,
-            current=artifact.content_release)
+            'Artifact.contentRelease', index=0, current=artifact.content_release
+        )
         artifact.content_read_groups = self._get_from_list(
-            'Artifact.contentReadGroups', index=0,
-            current=artifact.content_read_groups)
-        artifact.meta_producer = self._get_from_list(
-            'Artifact.metaProducer', index=0, current=artifact.meta_producer)
+            'Artifact.contentReadGroups', index=0, current=artifact.content_read_groups
+        )
+        artifact.meta_producer = self._get_from_list('Artifact.metaProducer', index=0, current=artifact.meta_producer)
         self.logger.debug(f'End CAOM2 artifact augmentation for {self.uri}.')
 
     def _get_from_list(self, lookup, index, current=None):
@@ -250,15 +247,16 @@ class BlueprintParser:
             keywords = self.blueprint._get(lookup)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
-            self.logger.debug(
-                f'Could not find {lookup} in configuration.')
+            self.logger.debug(f'Could not find {lookup} in configuration.')
             if current:
-                self.logger.debug(
-                    f'{lookup}: using current value of {current!r}.')
+                self.logger.debug(f'{lookup}: using current value of {current!r}.')
                 value = current
             return value
-        if (keywords is not None and not ObsBlueprint.needs_lookup(keywords)
-                and not ObsBlueprint.is_function(keywords)):
+        if (
+            keywords is not None
+            and not ObsBlueprint.needs_lookup(keywords)
+            and not ObsBlueprint.is_function(keywords)
+        ):
             value = keywords
         elif self._blueprint.update:
             # The first clause: boolean attributes are used to represent
@@ -284,8 +282,7 @@ class BlueprintParser:
             keywords = self.blueprint._get(lookup)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
-            self.logger.debug(f'Could not find \'{lookup}\' in caom2blueprint '
-                              f'configuration.')
+            self.logger.debug(f'Could not find \'{lookup}\' in caom2blueprint ' f'configuration.')
 
         # if there's something useful as a value in the keywords,
         # extract it
@@ -294,16 +291,14 @@ class BlueprintParser:
                 # if there's a default value use it
                 if keywords[1]:
                     value = keywords[1]
-                    self.logger.debug(
-                        f'{lookup}: assigned default value {value}.')
+                    self.logger.debug(f'{lookup}: assigned default value {value}.')
             elif not ObsBlueprint.is_function(keywords):
                 value = keywords
                 self.logger.debug(f'{lookup}: assigned value {value}.')
         return value
 
     def add_error(self, key, message):
-        self._errors.append('{} {} {}'.format(
-            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), key, message))
+        self._errors.append('{} {} {}'.format(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), key, message))
 
     def _to_data_product_type(self, value):
         return self._to_enum_type(value, caom2.DataProductType)
@@ -319,9 +314,7 @@ class BlueprintParser:
 
     def _to_enum_type(self, value, to_enum_type):
         if value is None:
-            raise ValueError(
-                f'Must set a value of {to_enum_type.__name__} for '
-                f'{self.uri}.')
+            raise ValueError(f'Must set a value of {to_enum_type.__name__} for ' f'{self.uri}.')
         elif isinstance(value, to_enum_type):
             return value
         else:
@@ -343,22 +336,19 @@ class BlueprintParser:
         elif 'header' in value and isinstance(self, FitsParser):
             parameter = self._headers[extension]
         elif isinstance(self, FitsParser):
-            parameter = {'uri': self.uri,
-                         'header': self._headers[extension]}
+            parameter = {'uri': self.uri, 'header': self._headers[extension]}
         else:
             if hasattr(self, '_file'):
                 parameter = {'base': self._file}
             else:
-                parameter = {'uri': self.uri,
-                             'header': None}
+                parameter = {'uri': self.uri, 'header': None}
 
         result = ''
         execute = None
         try:
             execute = getattr(self.blueprint._module, value.split('(')[0])
         except Exception as e:
-            msg = 'Failed to find {}.{} for {}'.format(
-                self.blueprint._module.__name__, value.split('(')[0], key)
+            msg = 'Failed to find {}.{} for {}'.format(self.blueprint._module.__name__, value.split('(')[0], key)
             self.logger.error(msg)
             self._errors.append(msg)
             tb = traceback.format_exc()
@@ -368,11 +358,9 @@ class BlueprintParser:
             result = execute(parameter)
             self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
         except Exception as e:
-            msg = 'Failed to execute {} for {} in {}'.format(
-                execute.__name__, key, self.uri)
+            msg = 'Failed to execute {} for {} in {}'.format(execute.__name__, key, self.uri)
             self.logger.error(msg)
-            self.logger.debug('Input parameter was {}, value was {}'.format(
-                parameter, value))
+            self.logger.debug('Input parameter was {}, value was {}'.format(parameter, value))
             self._errors.append(msg)
             tb = traceback.format_exc()
             self.logger.debug(tb)
@@ -395,12 +383,11 @@ class BlueprintParser:
         """
         result = ''
         try:
-            execute = getattr(
-                self.blueprint._module_instance, value.split('(')[0])
+            execute = getattr(self.blueprint._module_instance, value.split('(')[0])
         except Exception as e:
             msg = 'Failed to find {}.{} for {}'.format(
-                self.blueprint._module_instance.__class__.__name__,
-                value.split('(')[0], key)
+                self.blueprint._module_instance.__class__.__name__, value.split('(')[0], key
+            )
             self.logger.error(msg)
             self._errors.append(msg)
             tb = traceback.format_exc()
@@ -418,8 +405,7 @@ class BlueprintParser:
             # for a SkyCoord construction failure.
             raise Caom2Exception(e2)
         except Exception as e:
-            msg = 'Failed to execute {} for {} in {}'.format(
-                execute, key, self.uri)
+            msg = 'Failed to execute {} for {} in {}'.format(execute, key, self.uri)
             self.logger.error(msg)
             self.logger.debug('Input value was {}'.format(value))
             self._errors.append(msg)
@@ -444,19 +430,26 @@ class BlueprintParser:
                 # CFHT 2003/03/29,01:34:54
                 # CFHT 2003/03/29
                 # DDO 12/02/95
-                for dt_format in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f',
-                                  '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d',
-                                  '%Y/%m/%d %H:%M:%S', '%Y-%m-%d %H:%M:%S',
-                                  '%Y/%m/%d,%H:%M:%S', '%Y/%m/%d',
-                                  '%d/%m/%y', '%d/%m/%y %H:%M:%S', '%d-%m-%Y']:
+                for dt_format in [
+                    '%Y-%m-%dT%H:%M:%S',
+                    '%Y-%m-%dT%H:%M:%S.%f',
+                    '%Y-%m-%d %H:%M:%S.%f',
+                    '%Y-%m-%d',
+                    '%Y/%m/%d %H:%M:%S',
+                    '%Y-%m-%d %H:%M:%S',
+                    '%Y/%m/%d,%H:%M:%S',
+                    '%Y/%m/%d',
+                    '%d/%m/%y',
+                    '%d/%m/%y %H:%M:%S',
+                    '%d-%m-%Y',
+                ]:
                     try:
                         result = datetime.strptime(from_value, dt_format)
                     except ValueError:
                         pass
 
                 if result is None:
-                    self.logger.error('Cannot parse datetime {}'.format(
-                            from_value))
+                    self.logger.error('Cannot parse datetime {}'.format(from_value))
                     self.add_error('get_datetime', sys.exc_info()[1])
                 return result
         else:
@@ -464,14 +457,12 @@ class BlueprintParser:
 
 
 class ContentParser(BlueprintParser):
-
     def __init__(self, obs_blueprint=None, uri=None):
         super().__init__(obs_blueprint, uri)
         self._wcs_parser = WcsParser(obs_blueprint, extension=0)
 
     def _get_chunk_naxis(self, chunk, index):
-        chunk.naxis = self._get_from_list(
-            'Chunk.naxis', index, self.blueprint.get_configed_axes_count())
+        chunk.naxis = self._get_from_list('Chunk.naxis', index, self.blueprint.get_configed_axes_count())
 
     def augment_artifact(self, artifact, index):
         """
@@ -481,13 +472,10 @@ class ContentParser(BlueprintParser):
         """
         super().augment_artifact(artifact, index)
 
-        self.logger.debug(
-            f'Begin content artifact augmentation for {artifact.uri}')
+        self.logger.debug(f'Begin content artifact augmentation for {artifact.uri}')
 
         if self.blueprint.get_configed_axes_count() == 0:
-            raise TypeError(
-                f'No WCS Data. End content artifact augmentation for '
-                f'{artifact.uri}.')
+            raise TypeError(f'No WCS Data. End content artifact augmentation for ' f'{artifact.uri}.')
 
         if self.add_parts(artifact, index):
             part = artifact.parts[str(index)]
@@ -531,8 +519,7 @@ class ContentParser(BlueprintParser):
                 self._wcs_parser.augment_custom(chunk)
                 self._try_custom_with_blueprint(chunk, index)
 
-        self.logger.debug(
-            f'End content artifact augmentation for {artifact.uri}.')
+        self.logger.debug(f'End content artifact augmentation for {artifact.uri}.')
 
     def augment_observation(self, observation, artifact_uri, product_id=None):
         """
@@ -542,8 +529,7 @@ class ContentParser(BlueprintParser):
         :param product_id: the key for finding for the plane to augment
         """
         super().augment_observation(observation, artifact_uri, product_id)
-        self.logger.debug(
-            f'Begin content observation augmentation for URI {artifact_uri}.')
+        self.logger.debug(f'Begin content observation augmentation for URI {artifact_uri}.')
         members = self._get_members(observation)
         if members:
             if isinstance(members, caom2.TypedSet):
@@ -554,33 +540,28 @@ class ContentParser(BlueprintParser):
                     observation.members.add(caom2.ObservationURI(m))
         observation.algorithm = self._get_algorithm(observation)
 
-        observation.sequence_number = _to_int(self._get_from_list(
-            'Observation.sequenceNumber', index=0))
+        observation.sequence_number = _to_int(self._get_from_list('Observation.sequenceNumber', index=0))
         observation.intent = self._get_from_list(
-            'Observation.intent', 0, (caom2.ObservationIntentType.SCIENCE if
-                                      observation.intent is None else
-                                      observation.intent))
-        observation.type = self._get_from_list('Observation.type', 0,
-                                               current=observation.type)
+            'Observation.intent',
+            0,
+            (caom2.ObservationIntentType.SCIENCE if observation.intent is None else observation.intent),
+        )
+        observation.type = self._get_from_list('Observation.type', 0, current=observation.type)
         observation.meta_release = self._get_datetime(
-            self._get_from_list('Observation.metaRelease', 0,
-                                current=observation.meta_release))
-        observation.meta_read_groups = self._get_from_list(
-            'Observation.metaReadGroups', 0)
+            self._get_from_list('Observation.metaRelease', 0, current=observation.meta_release)
+        )
+        observation.meta_read_groups = self._get_from_list('Observation.metaReadGroups', 0)
         observation.meta_producer = self._get_from_list(
-            'Observation.metaProducer', 0, current=observation.meta_producer)
-        observation.requirements = self._get_requirements(
-            observation.requirements)
+            'Observation.metaProducer', 0, current=observation.meta_producer
+        )
+        observation.requirements = self._get_requirements(observation.requirements)
         observation.instrument = self._get_instrument(observation.instrument)
         observation.proposal = self._get_proposal(observation.proposal)
         observation.target = self._get_target(observation.target)
-        observation.target_position = self._get_target_position(
-            observation.target_position)
+        observation.target_position = self._get_target_position(observation.target_position)
         observation.telescope = self._get_telescope(observation.telescope)
-        observation.environment = self._get_environment(
-            observation.environment)
-        self.logger.debug(
-            f'End content observation augmentation for {artifact_uri}.')
+        observation.environment = self._get_environment(observation.environment)
+        self.logger.debug(f'End content observation augmentation for {artifact_uri}.')
 
     def augment_plane(self, plane, artifact_uri):
         """
@@ -589,28 +570,25 @@ class ContentParser(BlueprintParser):
         :param artifact_uri:
         """
         super().augment_plane(plane, artifact_uri)
-        self.logger.debug(
-            f'Begin content plane augmentation for {artifact_uri}.')
+        self.logger.debug(f'Begin content plane augmentation for {artifact_uri}.')
 
-        plane.meta_release = self._get_datetime(self._get_from_list(
-            'Plane.metaRelease', index=0, current=plane.meta_release))
-        plane.data_release = self._get_datetime(self._get_from_list(
-            'Plane.dataRelease', index=0))
+        plane.meta_release = self._get_datetime(
+            self._get_from_list('Plane.metaRelease', index=0, current=plane.meta_release)
+        )
+        plane.data_release = self._get_datetime(self._get_from_list('Plane.dataRelease', index=0))
         plane.data_product_type = self._to_data_product_type(
-            self._get_from_list('Plane.dataProductType', index=0,
-                                current=plane.data_product_type))
-        plane.calibration_level = self._to_calibration_level(_to_int_32(
-            self._get_from_list('Plane.calibrationLevel', index=0,
-                                current=plane.calibration_level)))
-        plane.meta_producer = self._get_from_list(
-            'Plane.metaProducer', index=0, current=plane.meta_producer)
+            self._get_from_list('Plane.dataProductType', index=0, current=plane.data_product_type)
+        )
+        plane.calibration_level = self._to_calibration_level(
+            _to_int_32(self._get_from_list('Plane.calibrationLevel', index=0, current=plane.calibration_level))
+        )
+        plane.meta_producer = self._get_from_list('Plane.metaProducer', index=0, current=plane.meta_producer)
         plane.observable = self._get_observable(current=plane.observable)
         plane.provenance = self._get_provenance(plane.provenance)
         plane.metrics = self._get_metrics(current=plane.metrics)
         plane.quality = self._get_quality(current=plane.quality)
 
-        self.logger.debug(
-            f'End content plane augmentation for {artifact_uri}.')
+        self.logger.debug(f'End content plane augmentation for {artifact_uri}.')
 
     def _get_algorithm(self, obs):
         """
@@ -620,8 +598,7 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Algorithm augmentation.')
         # TODO DEFAULT VALUE
-        name = self._get_from_list('Observation.algorithm.name', index=0,
-                                   current=obs.algorithm.name)
+        name = self._get_from_list('Observation.algorithm.name', index=0, current=obs.algorithm.name)
         if name is not None and name == 'exposure' and isinstance(obs, caom2.DerivedObservation):
             # stop the raising of a ValueError when adding a Plane representing a SimpleObservation to a
             # DerivedObservation under construction. It results in attempting to change Algorithm.name value to
@@ -640,11 +617,11 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin EnergyTransition augmentation.')
         species = self._get_from_list(
-            'Chunk.energy.transition.species', index=0,
-            current=None if current is None else current.species)
+            'Chunk.energy.transition.species', index=0, current=None if current is None else current.species
+        )
         transition = self._get_from_list(
-            'Chunk.energy.transition.transition', index=0,
-            current=None if current is None else current.transition)
+            'Chunk.energy.transition.transition', index=0, current=None if current is None else current.transition
+        )
         result = None
         if species is not None and transition is not None:
             result = caom2.EnergyTransition(species, transition)
@@ -661,28 +638,38 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Environment augmentation.')
         seeing = self._get_from_list(
-            'Observation.environment.seeing', index=0,
-            current=None if current is None else current.seeing)
+            'Observation.environment.seeing', index=0, current=None if current is None else current.seeing
+        )
         humidity = _to_float(
             self._get_from_list(
-                'Observation.environment.humidity', index=0,
-                current=None if current is None else current.humidity))
+                'Observation.environment.humidity', index=0, current=None if current is None else current.humidity
+            )
+        )
         elevation = self._get_from_list(
-            'Observation.environment.elevation', index=0,
-            current=None if current is None else current.elevation)
+            'Observation.environment.elevation', index=0, current=None if current is None else current.elevation
+        )
         tau = self._get_from_list(
-            'Observation.environment.tau', index=0,
-            current=None if current is None else current.tau)
+            'Observation.environment.tau', index=0, current=None if current is None else current.tau
+        )
         wavelength_tau = self._get_from_list(
-            'Observation.environment.wavelengthTau', index=0,
-            current=None if current is None else current.wavelength_tau)
+            'Observation.environment.wavelengthTau',
+            index=0,
+            current=None if current is None else current.wavelength_tau,
+        )
         ambient = _to_float(
             self._get_from_list(
-                'Observation.environment.ambientTemp', index=0,
-                current=None if current is None else current.ambient_temp))
-        photometric = self._cast_as_bool(self._get_from_list(
-            'Observation.environment.photometric', index=0,
-            current=None if current is None else current.photometric))
+                'Observation.environment.ambientTemp',
+                index=0,
+                current=None if current is None else current.ambient_temp,
+            )
+        )
+        photometric = self._cast_as_bool(
+            self._get_from_list(
+                'Observation.environment.photometric',
+                index=0,
+                current=None if current is None else current.photometric,
+            )
+        )
         enviro = None
         if seeing or humidity or elevation or tau or wavelength_tau or ambient:
             enviro = caom2.Environment()
@@ -704,10 +691,9 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Instrument augmentation.')
         name = self._get_from_list(
-            'Observation.instrument.name', index=0,
-            current=None if current is None else current.name)
-        keywords = self._get_set_from_list(
-            'Observation.instrument.keywords', index=0)
+            'Observation.instrument.name', index=0, current=None if current is None else current.name
+        )
+        keywords = self._get_set_from_list('Observation.instrument.keywords', index=0)
         instr = None
         if name:
             instr = caom2.Instrument(str(name))
@@ -723,54 +709,48 @@ class ContentParser(BlueprintParser):
         """
         members = None
         self.logger.debug('Begin Members augmentation.')
-        if (isinstance(obs, caom2.SimpleObservation) and
-            (self.blueprint._get('DerivedObservation.members') or
-             self.blueprint._get('CompositeObservation.members'))):
-            raise TypeError(
-                'Cannot apply blueprint for DerivedObservation to a '
-                'simple observation')
+        if isinstance(obs, caom2.SimpleObservation) and (
+            self.blueprint._get('DerivedObservation.members') or self.blueprint._get('CompositeObservation.members')
+        ):
+            raise TypeError('Cannot apply blueprint for DerivedObservation to a ' 'simple observation')
         elif isinstance(obs, caom2.DerivedObservation):
-            lookup = self.blueprint._get('DerivedObservation.members',
-                                         extension=1)
+            lookup = self.blueprint._get('DerivedObservation.members', extension=1)
             if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
-                member_list = self._get_from_table(
-                    'DerivedObservation.members', 1)
+                member_list = self._get_from_table('DerivedObservation.members', 1)
                 # ensure the members are good little ObservationURIs
                 if member_list.startswith('caom:'):
                     members = member_list
                 else:
-                    members = ' '.join(['caom:{}/{}'.format(
-                        obs.collection, i) if not i.startswith('caom') else i
-                                        for i in member_list.split()])
+                    members = ' '.join(
+                        [
+                            'caom:{}/{}'.format(obs.collection, i) if not i.startswith('caom') else i
+                            for i in member_list.split()
+                        ]
+                    )
             else:
                 if obs.members is None:
-                    members = self._get_from_list(
-                        'DerivedObservation.members', index=0)
+                    members = self._get_from_list('DerivedObservation.members', index=0)
                 else:
-                    members = self._get_from_list(
-                        'DerivedObservation.members', index=0,
-                        current=obs.members)
+                    members = self._get_from_list('DerivedObservation.members', index=0, current=obs.members)
         elif isinstance(obs, caom2.CompositeObservation):
-            lookup = self.blueprint._get('CompositeObservation.members',
-                                         extension=1)
+            lookup = self.blueprint._get('CompositeObservation.members', extension=1)
             if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
-                member_list = self._get_from_table(
-                    'CompositeObservation.members', 1)
+                member_list = self._get_from_table('CompositeObservation.members', 1)
                 # ensure the members are good little ObservationURIs
                 if member_list.startswith('caom:'):
                     members = member_list
                 else:
-                    members = ' '.join(['caom:{}/{}'.format(
-                        obs.collection, i) if not i.startswith('caom') else i
-                                        for i in member_list.split()])
+                    members = ' '.join(
+                        [
+                            'caom:{}/{}'.format(obs.collection, i) if not i.startswith('caom') else i
+                            for i in member_list.split()
+                        ]
+                    )
             else:
                 if obs.members is None:
-                    members = self._get_from_list(
-                        'CompositeObservation.members', index=0)
+                    members = self._get_from_list('CompositeObservation.members', index=0)
                 else:
-                    members = self._get_from_list(
-                        'CompositeObservation.members', index=0,
-                        current=obs.members)
+                    members = self._get_from_list('CompositeObservation.members', index=0, current=obs.members)
         self.logger.debug('End Members augmentation.')
         return members
 
@@ -781,27 +761,28 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Metrics augmentation.')
         source_number_density = self._get_from_list(
-            'Plane.metrics.sourceNumberDensity', index=0,
-            current=None if current is None else current.source_number_density)
+            'Plane.metrics.sourceNumberDensity',
+            index=0,
+            current=None if current is None else current.source_number_density,
+        )
         background = self._get_from_list(
-            'Plane.metrics.background', index=0,
-            current=None if current is None else current.background)
+            'Plane.metrics.background', index=0, current=None if current is None else current.background
+        )
         background_stddev = self._get_from_list(
-            'Plane.metrics.backgroundStddev', index=0,
-            current=None if current is None else current.background_std_dev)
+            'Plane.metrics.backgroundStddev', index=0, current=None if current is None else current.background_std_dev
+        )
         flux_density_limit = self._get_from_list(
-            'Plane.metrics.fluxDensityLimit', index=0,
-            current=None if current is None else current.flux_density_limit)
+            'Plane.metrics.fluxDensityLimit', index=0, current=None if current is None else current.flux_density_limit
+        )
         mag_limit = self._get_from_list(
-            'Plane.metrics.magLimit', index=0,
-            current=None if current is None else current.mag_limit)
+            'Plane.metrics.magLimit', index=0, current=None if current is None else current.mag_limit
+        )
         sample_snr = self._get_from_list(
-            'Plane.metrics.sampleSNR', index=0,
-            current=None if current is None else current.sample_snr)
+            'Plane.metrics.sampleSNR', index=0, current=None if current is None else current.sample_snr
+        )
 
         metrics = None
-        if (source_number_density or background or background_stddev or
-                flux_density_limit or mag_limit or sample_snr):
+        if source_number_density or background or background_stddev or flux_density_limit or mag_limit or sample_snr:
             metrics = caom2.Metrics()
             metrics.source_number_density = source_number_density
             metrics.background = background
@@ -838,7 +819,10 @@ class ContentParser(BlueprintParser):
             aug_error = self._two_param_constructor(
                 f'Chunk.{label}.axis.error.syser',
                 f'Chunk.{label}.axis.error.rnder',
-                index, _to_float, caom2.CoordError)
+                index,
+                _to_float,
+                caom2.CoordError,
+            )
 
         aug_naxis = None
         aug_range = self._try_range(index, label)
@@ -849,7 +833,10 @@ class ContentParser(BlueprintParser):
                     aug_ref_coord = self._two_param_constructor(
                         f'Chunk.{label}.axis.function.refCoord.pix',
                         f'Chunk.{label}.axis.function.refCoord.val',
-                        index, _to_float, caom2.RefCoord)
+                        index,
+                        _to_float,
+                        caom2.RefCoord,
+                    )
                     aug_delta = _to_float(self._get_from_list(f'Chunk.{label}.axis.function.delta', index))
                     aug_length = _to_int(self._get_from_list(f'Chunk.{label}.axis.function.naxis', index))
                     aug_function = None
@@ -874,9 +861,7 @@ class ContentParser(BlueprintParser):
         :return: Observable
         """
         self.logger.debug('Begin Observable augmentation.')
-        ucd = self._get_from_list(
-            'Plane.observable.ucd', index=0,
-            current=None if current is None else current.ucd)
+        ucd = self._get_from_list('Plane.observable.ucd', index=0, current=None if current is None else current.ucd)
         observable = caom2.Observable(ucd) if ucd else None
         self.logger.debug('End Observable augmentation.')
         return observable
@@ -889,19 +874,18 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Proposal augmentation.')
         prop_id = self._get_from_list(
-            'Observation.proposal.id', index=0,
-            current=None if current is None else current.id)
+            'Observation.proposal.id', index=0, current=None if current is None else current.id
+        )
         pi = self._get_from_list(
-            'Observation.proposal.pi', index=0,
-            current=None if current is None else current.pi_name)
+            'Observation.proposal.pi', index=0, current=None if current is None else current.pi_name
+        )
         project = self._get_from_list(
-            'Observation.proposal.project', index=0,
-            current=None if current is None else current.project)
+            'Observation.proposal.project', index=0, current=None if current is None else current.project
+        )
         title = self._get_from_list(
-            'Observation.proposal.title', index=0,
-            current=None if current is None else current.title)
-        keywords = self._get_set_from_list(
-            'Observation.proposal.keywords', index=0)
+            'Observation.proposal.title', index=0, current=None if current is None else current.title
+        )
+        keywords = self._get_set_from_list('Observation.proposal.keywords', index=0)
         proposal = current
         if prop_id:
             proposal = caom2.Proposal(str(prop_id), pi, project, title)
@@ -917,39 +901,43 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Provenance augmentation.')
         name = _to_str(
+            self._get_from_list('Plane.provenance.name', index=0, current=None if current is None else current.name)
+        )
+        p_version = _to_str(
             self._get_from_list(
-                'Plane.provenance.name', index=0,
-                current=None if current is None else current.name))
-        p_version = _to_str(self._get_from_list(
-            'Plane.provenance.version', index=0,
-            current=None if current is None else current.version))
+                'Plane.provenance.version', index=0, current=None if current is None else current.version
+            )
+        )
         project = _to_str(
             self._get_from_list(
-                'Plane.provenance.project', index=0,
-                current=None if current is None else current.project))
+                'Plane.provenance.project', index=0, current=None if current is None else current.project
+            )
+        )
         producer = _to_str(
             self._get_from_list(
-                'Plane.provenance.producer', index=0,
-                current=None if current is None else current.producer))
+                'Plane.provenance.producer', index=0, current=None if current is None else current.producer
+            )
+        )
         run_id = _to_str(
             self._get_from_list(
-                'Plane.provenance.runID', index=0,
-                current=None if current is None else current.run_id))
+                'Plane.provenance.runID', index=0, current=None if current is None else current.run_id
+            )
+        )
         reference = _to_str(
             self._get_from_list(
-                'Plane.provenance.reference', index=0,
-                current=None if current is None else current.reference))
+                'Plane.provenance.reference', index=0, current=None if current is None else current.reference
+            )
+        )
         last_executed = self._get_datetime(
             self._get_from_list(
-                'Plane.provenance.lastExecuted', index=0,
-                current=None if current is None else current.last_executed))
-        keywords = self._get_set_from_list(
-            'Plane.provenance.keywords', index=0)
+                'Plane.provenance.lastExecuted', index=0, current=None if current is None else current.last_executed
+            )
+        )
+        keywords = self._get_set_from_list('Plane.provenance.keywords', index=0)
         inputs = self._get_set_from_list('Plane.provenance.inputs', index=0)
         prov = None
         if name:
-            prov = caom2.Provenance(name, p_version, project, producer, run_id,
-                              reference, last_executed)
+            prov = caom2.Provenance(name, p_version, project, producer, run_id, reference, last_executed)
             ContentParser._add_keywords(keywords, current, prov)
             if inputs:
                 if isinstance(inputs, caom2.TypedSet):
@@ -971,9 +959,7 @@ class ContentParser(BlueprintParser):
         :return: Quality
         """
         self.logger.debug('Begin Quality augmentation.')
-        flag = self._get_from_list(
-            'Plane.dataQuality', index=0,
-            current=None if current is None else current.flag)
+        flag = self._get_from_list('Plane.dataQuality', index=0, current=None if current is None else current.flag)
         quality = caom2.DataQuality(flag) if flag else None
         self.logger.debug('End Quality augmentation.')
         return quality
@@ -986,8 +972,8 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Requirement augmentation.')
         flag = self._get_from_list(
-            'Observation.requirements.flag', index=0,
-            current=None if current is None else current.flag)
+            'Observation.requirements.flag', index=0, current=None if current is None else current.flag
+        )
         reqts = caom2.Requirements(flag) if flag else None
         self.logger.debug('End Requirement augmentation.')
         return reqts
@@ -999,30 +985,33 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Target augmentation.')
         name = self._get_from_list(
-            'Observation.target.name', index=0,
-            current=None if current is None else current.name)
+            'Observation.target.name', index=0, current=None if current is None else current.name
+        )
         target_type = self._get_from_list(
-            'Observation.target.type', index=0,
-            current=None if current is None else current.target_type)
-        standard = self._cast_as_bool(self._get_from_list(
-            'Observation.target.standard', index=0,
-            current=None if current is None else current.standard))
+            'Observation.target.type', index=0, current=None if current is None else current.target_type
+        )
+        standard = self._cast_as_bool(
+            self._get_from_list(
+                'Observation.target.standard', index=0, current=None if current is None else current.standard
+            )
+        )
         redshift = self._get_from_list(
-            'Observation.target.redshift', index=0,
-            current=None if current is None else current.redshift)
-        keywords = self._get_set_from_list(
-            'Observation.target.keywords', index=0)
+            'Observation.target.redshift', index=0, current=None if current is None else current.redshift
+        )
+        keywords = self._get_set_from_list('Observation.target.keywords', index=0)
         moving = self._cast_as_bool(
             self._get_from_list(
-                'Observation.target.moving', index=0,
-                current=None if current is None else current.moving))
-        target_id = _to_str(self._get_from_list(
-            'Observation.target.targetID', index=0,
-            current=None if current is None else current.target_id))
+                'Observation.target.moving', index=0, current=None if current is None else current.moving
+            )
+        )
+        target_id = _to_str(
+            self._get_from_list(
+                'Observation.target.targetID', index=0, current=None if current is None else current.target_id
+            )
+        )
         target = None
         if name:
-            target = caom2.Target(str(name), target_type, standard, redshift,
-                            moving=moving, target_id=target_id)
+            target = caom2.Target(str(name), target_type, standard, redshift, moving=moving, target_id=target_id)
             ContentParser._add_keywords(keywords, current, target)
         self.logger.debug('End Target augmentation.')
         return target
@@ -1035,17 +1024,21 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
         x = self._get_from_list(
-            'Observation.target_position.point.cval1', index=0,
-            current=None if current is None else current.coordinates.cval1)
+            'Observation.target_position.point.cval1',
+            index=0,
+            current=None if current is None else current.coordinates.cval1,
+        )
         y = self._get_from_list(
-            'Observation.target_position.point.cval2', index=0,
-            current=None if current is None else current.coordinates.cval2)
+            'Observation.target_position.point.cval2',
+            index=0,
+            current=None if current is None else current.coordinates.cval2,
+        )
         coordsys = self._get_from_list(
-            'Observation.target_position.coordsys', index=0,
-            current=None if current is None else current.coordsys)
+            'Observation.target_position.coordsys', index=0, current=None if current is None else current.coordsys
+        )
         equinox = self._get_from_list(
-            'Observation.target_position.equinox', index=0,
-            current=None if current is None else current.equinox)
+            'Observation.target_position.equinox', index=0, current=None if current is None else current.equinox
+        )
         aug_target_position = None
         if x and y:
             aug_point = caom2.Point(x, y)
@@ -1062,22 +1055,30 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin Telescope augmentation.')
         name = self._get_from_list(
-            'Observation.telescope.name', index=0,
-            current=None if current is None else current.name)
+            'Observation.telescope.name', index=0, current=None if current is None else current.name
+        )
         geo_x = _to_float(
             self._get_from_list(
-                'Observation.telescope.geoLocationX', index=0,
-                current=None if current is None else current.geo_location_x))
+                'Observation.telescope.geoLocationX',
+                index=0,
+                current=None if current is None else current.geo_location_x,
+            )
+        )
         geo_y = _to_float(
             self._get_from_list(
-                'Observation.telescope.geoLocationY', index=0,
-                current=None if current is None else current.geo_location_y))
+                'Observation.telescope.geoLocationY',
+                index=0,
+                current=None if current is None else current.geo_location_y,
+            )
+        )
         geo_z = _to_float(
             self._get_from_list(
-                'Observation.telescope.geoLocationZ', index=0,
-                current=None if current is None else current.geo_location_z))
-        keywords = self._get_set_from_list(
-            'Observation.telescope.keywords', index=0)
+                'Observation.telescope.geoLocationZ',
+                index=0,
+                current=None if current is None else current.geo_location_z,
+            )
+        )
+        keywords = self._get_set_from_list('Observation.telescope.keywords', index=0)
         aug_tel = None
         if name:
             aug_tel = caom2.Telescope(str(name), geo_x, geo_y, geo_z)
@@ -1154,10 +1155,12 @@ class ContentParser(BlueprintParser):
             chunk.energy.ssyssrc = self._get_from_list('Chunk.energy.ssyssrc', index, chunk.energy.ssyssrc)
             chunk.energy.velang = self._get_from_list('Chunk.energy.velang', index, chunk.energy.velang)
             chunk.energy.bandpass_name = self._get_from_list(
-                'Chunk.energy.bandpassName', index, chunk.energy.bandpass_name)
+                'Chunk.energy.bandpassName', index, chunk.energy.bandpass_name
+            )
             chunk.energy.transition = self._get_energy_transition(chunk.energy.transition)
             chunk.energy.resolving_power = _to_float(
-                self._get_from_list('Chunk.energy.resolvingPower', index, chunk.energy.resolving_power))
+                self._get_from_list('Chunk.energy.resolvingPower', index, chunk.energy.resolving_power)
+            )
         self.logger.debug('End augmentation with blueprint for energy.')
 
     def _try_observable_with_blueprint(self, chunk, index):
@@ -1171,13 +1174,15 @@ class ContentParser(BlueprintParser):
         :param index: The index in the blueprint for looking up plan
             information.
         """
-        self.logger.debug('Begin augmentation with blueprint for '
-                          'observable.')
+        self.logger.debug('Begin augmentation with blueprint for ' 'observable.')
         aug_axis = self._two_param_constructor(
             'Chunk.observable.dependent.axis.ctype',
-            'Chunk.observable.dependent.axis.cunit', index, _to_str, caom2.Axis)
-        aug_bin = _to_int(
-            self._get_from_list('Chunk.observable.dependent.bin', index))
+            'Chunk.observable.dependent.axis.cunit',
+            index,
+            _to_str,
+            caom2.Axis,
+        )
+        aug_bin = _to_int(self._get_from_list('Chunk.observable.dependent.bin', index))
         if aug_axis is not None and aug_bin is not None:
             chunk.observable = caom2.ObservableAxis(caom2.Slice(aug_axis, aug_bin))
             chunk.observable_axis = _to_int(self._get_from_list('Chunk.observableAxis', index))
@@ -1194,8 +1199,7 @@ class ContentParser(BlueprintParser):
         :param index: The index in the blueprint for looking up plan
             information.
         """
-        self.logger.debug('Begin augmentation with blueprint for '
-                          'polarization.')
+        self.logger.debug('Begin augmentation with blueprint for ' 'polarization.')
         aug_axis, aug_naxis_index = self._get_axis_wcs('polarization', chunk.polarization, index)
         if aug_axis is not None:
             if chunk.polarization:
@@ -1213,24 +1217,36 @@ class ContentParser(BlueprintParser):
         aug_range_c1_start = self._two_param_constructor(
             'Chunk.position.axis.range.start.coord1.pix',
             'Chunk.position.axis.range.start.coord1.val',
-            index, _to_float, caom2.RefCoord)
+            index,
+            _to_float,
+            caom2.RefCoord,
+        )
         aug_range_c1_end = self._two_param_constructor(
             'Chunk.position.axis.range.end.coord1.pix',
             'Chunk.position.axis.range.end.coord1.val',
-            index, _to_float, caom2.RefCoord)
+            index,
+            _to_float,
+            caom2.RefCoord,
+        )
         aug_range_c2_start = self._two_param_constructor(
             'Chunk.position.axis.range.start.coord2.pix',
             'Chunk.position.axis.range.start.coord2.val',
-            index, _to_float, caom2.RefCoord)
+            index,
+            _to_float,
+            caom2.RefCoord,
+        )
         aug_range_c2_end = self._two_param_constructor(
             'Chunk.position.axis.range.end.coord2.pix',
             'Chunk.position.axis.range.end.coord2.val',
-            index, _to_float, caom2.RefCoord)
-        if (aug_range_c1_start and aug_range_c1_end and aug_range_c2_start
-                and aug_range_c2_end):
+            index,
+            _to_float,
+            caom2.RefCoord,
+        )
+        if aug_range_c1_start and aug_range_c1_end and aug_range_c2_start and aug_range_c2_end:
             aug_range = caom2.CoordRange2D(
                 caom2.Coord2D(aug_range_c1_start, aug_range_c1_end),
-                caom2.Coord2D(aug_range_c2_start, aug_range_c2_end))
+                caom2.Coord2D(aug_range_c2_start, aug_range_c2_end),
+            )
             self.logger.debug('Completed setting range for position')
         return aug_range
 
@@ -1246,8 +1262,12 @@ class ContentParser(BlueprintParser):
         """
         self.logger.debug('Begin augmentation with blueprint for position.')
         aug_axis = None
-        if (chunk.position is not None and chunk.position.axis is not None and chunk.position.axis.axis1 is not None
-                and chunk.position.axis.axis2 is not None):
+        if (
+            chunk.position is not None
+            and chunk.position.axis is not None
+            and chunk.position.axis.axis1 is not None
+            and chunk.position.axis.axis2 is not None
+        ):
             # preserve the values obtained from file data
             aug_x_axis = chunk.position.axis.axis1
             aug_y_axis = chunk.position.axis.axis2
@@ -1255,32 +1275,49 @@ class ContentParser(BlueprintParser):
             aug_y_error = chunk.position.axis.error2
         else:
             aug_x_axis = self._two_param_constructor(
-                'Chunk.position.axis.axis1.ctype',
-                'Chunk.position.axis.axis1.cunit', index, _to_str, caom2.Axis)
+                'Chunk.position.axis.axis1.ctype', 'Chunk.position.axis.axis1.cunit', index, _to_str, caom2.Axis
+            )
             aug_y_axis = self._two_param_constructor(
-                'Chunk.position.axis.axis2.ctype',
-                'Chunk.position.axis.axis2.cunit', index, _to_str, caom2.Axis)
+                'Chunk.position.axis.axis2.ctype', 'Chunk.position.axis.axis2.cunit', index, _to_str, caom2.Axis
+            )
             aug_x_error = self._two_param_constructor(
                 'Chunk.position.axis.error1.syser',
-                'Chunk.position.axis.error1.rnder', index, _to_float, caom2.CoordError)
+                'Chunk.position.axis.error1.rnder',
+                index,
+                _to_float,
+                caom2.CoordError,
+            )
             aug_y_error = self._two_param_constructor(
                 'Chunk.position.axis.error2.syser',
-                'Chunk.position.axis.error2.rnder', index, _to_float, caom2.CoordError)
+                'Chunk.position.axis.error2.rnder',
+                index,
+                _to_float,
+                caom2.CoordError,
+            )
         aug_range = self._try_position_range(index)
         if aug_range is None:
             if chunk.position is None or chunk.position.axis is None or chunk.position.axis.function is None:
                 aug_dimension = self._two_param_constructor(
                     'Chunk.position.axis.function.dimension.naxis1',
                     'Chunk.position.axis.function.dimension.naxis2',
-                    index, _to_int, caom2.Dimension2D)
+                    index,
+                    _to_int,
+                    caom2.Dimension2D,
+                )
                 aug_x_ref_coord = self._two_param_constructor(
                     'Chunk.position.axis.function.refCoord.coord1.pix',
                     'Chunk.position.axis.function.refCoord.coord1.val',
-                    index, _to_float, caom2.RefCoord)
+                    index,
+                    _to_float,
+                    caom2.RefCoord,
+                )
                 aug_y_ref_coord = self._two_param_constructor(
                     'Chunk.position.axis.function.refCoord.coord2.pix',
                     'Chunk.position.axis.function.refCoord.coord2.val',
-                    index, _to_float, caom2.RefCoord)
+                    index,
+                    _to_float,
+                    caom2.RefCoord,
+                )
                 aug_cd11 = _to_float(self._get_from_list('Chunk.position.axis.function.cd11', index))
                 aug_cd12 = _to_float(self._get_from_list('Chunk.position.axis.function.cd12', index))
                 aug_cd21 = _to_float(self._get_from_list('Chunk.position.axis.function.cd21', index))
@@ -1292,17 +1329,23 @@ class ContentParser(BlueprintParser):
                     self.logger.debug(f'Creating position Coord2D for {self.uri}')
 
                 aug_function = None
-                if (aug_dimension is not None and aug_ref_coord is not None and
-                    aug_cd11 is not None and aug_cd12 is not None and
-                        aug_cd21 is not None and aug_cd22 is not None):
-                    aug_function = caom2.CoordFunction2D(aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21,
-                                                   aug_cd22)
+                if (
+                    aug_dimension is not None
+                    and aug_ref_coord is not None
+                    and aug_cd11 is not None
+                    and aug_cd12 is not None
+                    and aug_cd21 is not None
+                    and aug_cd22 is not None
+                ):
+                    aug_function = caom2.CoordFunction2D(
+                        aug_dimension, aug_ref_coord, aug_cd11, aug_cd12, aug_cd21, aug_cd22
+                    )
                     self.logger.debug(f'Creating position CoordFunction2D for {self.uri}')
 
-                if (aug_x_axis is not None and aug_y_axis is not None and
-                        aug_function is not None):
-                    aug_axis = caom2.CoordAxis2D(aug_x_axis, aug_y_axis, aug_x_error,
-                                           aug_y_error, None, None, aug_function)
+                if aug_x_axis is not None and aug_y_axis is not None and aug_function is not None:
+                    aug_axis = caom2.CoordAxis2D(
+                        aug_x_axis, aug_y_axis, aug_x_error, aug_y_error, None, None, aug_function
+                    )
                     self.logger.debug(f'Creating position CoordAxis2D for {self.uri}')
 
                     chunk.position_axis_1 = _to_int(self._get_from_list('Chunk.positionAxis1', index))
@@ -1319,10 +1362,12 @@ class ContentParser(BlueprintParser):
 
         if chunk.position:
             chunk.position.coordsys = self._get_from_list('Chunk.position.coordsys', index, chunk.position.coordsys)
-            chunk.position.equinox = _to_float(self._get_from_list(
-                'Chunk.position.equinox', index, chunk.position.equinox))
+            chunk.position.equinox = _to_float(
+                self._get_from_list('Chunk.position.equinox', index, chunk.position.equinox)
+            )
             chunk.position.resolution = self._get_from_list(
-                'Chunk.position.resolution', index, chunk.position.resolution)
+                'Chunk.position.resolution', index, chunk.position.resolution
+            )
         self.logger.debug('End augmentation with blueprint for position.')
 
     def _try_range(self, index, lookup):
@@ -1331,11 +1376,17 @@ class ContentParser(BlueprintParser):
         aug_range_start = self._two_param_constructor(
             f'Chunk.{lookup}.axis.range.start.pix',
             f'Chunk.{lookup}.axis.range.start.val',
-            index, _to_float, caom2.RefCoord)
+            index,
+            _to_float,
+            caom2.RefCoord,
+        )
         aug_range_end = self._two_param_constructor(
             f'Chunk.{lookup}.axis.range.end.pix',
             f'Chunk.{lookup}.axis.range.end.val',
-            index, _to_float, caom2.RefCoord)
+            index,
+            _to_float,
+            caom2.RefCoord,
+        )
         if aug_range_start and aug_range_end:
             result = caom2.CoordRange1D(aug_range_start, aug_range_end)
             self.logger.debug(f'Completed setting range with return for {lookup}')
@@ -1365,7 +1416,8 @@ class ContentParser(BlueprintParser):
         if chunk.time:
             chunk.time.exposure = _to_float(self._get_from_list('Chunk.time.exposure', index, chunk.time.exposure))
             chunk.time.resolution = _to_float(
-                self._get_from_list('Chunk.time.resolution', index, chunk.time.resolution))
+                self._get_from_list('Chunk.time.resolution', index, chunk.time.resolution)
+            )
             chunk.time.timesys = _to_str(self._get_from_list('Chunk.time.timesys', index, chunk.time.timesys))
             chunk.time.trefpos = self._get_from_list('Chunk.time.trefpos', index, chunk.time.trefpos)
             chunk.time.mjdref = self._get_from_list('Chunk.time.mjdref', index, chunk.time.mjdref)
@@ -1508,10 +1560,7 @@ class FitsParser(ContentParser):
 
     def add_parts(self, artifact, index):
         # there is one Part per extension, the name is the extension number
-        if (
-            FitsParser._has_data_array(self._headers[index])
-            and self.blueprint.has_chunk(index)
-        ):
+        if FitsParser._has_data_array(self._headers[index]) and self.blueprint.has_chunk(index):
             if str(index) not in artifact.parts.keys():
                 # TODO use extension name?
                 artifact.parts.add(caom2.Part(str(index)))
@@ -1524,32 +1573,26 @@ class FitsParser(ContentParser):
         return result
 
     def apply_blueprint(self):
-
         # pointers that are short to type
         exts = self.blueprint._extensions
         wcs_std = self.blueprint._wcs_std
         plan = self.blueprint._plan
 
         # firstly, apply the functions
-        if (self.blueprint._module is not None or
-                self.blueprint._module_instance is not None):
+        if self.blueprint._module is not None or self.blueprint._module_instance is not None:
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
                     if self._blueprint._module_instance is None:
                         plan[key] = self._execute_external(value, key, 0)
                     else:
-                        plan[key] = self._execute_external_instance(
-                            value, key, 0)
+                        plan[key] = self._execute_external_instance(value, key, 0)
             for extension in exts:
                 for key, value in exts[extension].items():
                     if ObsBlueprint.is_function(value):
                         if self._blueprint._module_instance is None:
-                            exts[extension][key] = self._execute_external(
-                                value, key, extension)
+                            exts[extension][key] = self._execute_external(value, key, extension)
                         else:
-                            exts[extension][key] = \
-                                self._execute_external_instance(
-                                    value, key, extension)
+                            exts[extension][key] = self._execute_external_instance(value, key, extension)
 
         # apply overrides from blueprint to all extensions
         for key, value in plan.items():
@@ -1558,12 +1601,10 @@ class FitsParser(ContentParser):
                     # alternative attributes provided for standard wcs attrib.
                     for header in self.headers:
                         for v in value[0]:
-                            if v in header and \
-                                    v not in wcs_std[key].split(','):
+                            if v in header and v not in wcs_std[key].split(','):
                                 keywords = wcs_std[key].split(',')
                                 for keyword in keywords:
-                                    _set_by_type(header, keyword,
-                                                 str(header[v]))
+                                    _set_by_type(header, keyword, str(header[v]))
                 elif ObsBlueprint.is_function(value):
                     continue
                 elif ObsBlueprint.has_no_value(value):
@@ -1583,8 +1624,7 @@ class FitsParser(ContentParser):
         # apply overrides to the remaining extensions
         for extension in exts:
             if extension >= len(self.headers):
-                logging.error('More extensions configured {} than headers '
-                              '{}'.format(extension, len(self.headers)))
+                logging.error('More extensions configured {} than headers ' '{}'.format(extension, len(self.headers)))
                 continue
             hdr = self.headers[extension]
             for key, value in exts[extension].items():
@@ -1593,25 +1633,25 @@ class FitsParser(ContentParser):
                 keywords = wcs_std[key].split(',')
                 for keyword in keywords:
                     _set_by_type(hdr, keyword, value)
-                    logging.debug(
-                        '{}: set to {} in extension {}'.format(keyword, value,
-                                                               extension))
+                    logging.debug('{}: set to {} in extension {}'.format(keyword, value, extension))
         # apply defaults to all extensions
         for key, value in plan.items():
             if ObsBlueprint.has_default_value(value):
                 for index, header in enumerate(self.headers):
                     for keywords in value[0]:
                         for keyword in keywords.split(','):
-                            if (not header.get(keyword.strip()) and
-                                keyword == keywords and  # checking a string
-                                    keywords == value[0][-1]):  # last item
+                            if (
+                                not header.get(keyword.strip())
+                                and keyword == keywords
+                                and keywords == value[0][-1]  # checking a string
+                            ):  # last item
                                 # apply a default if a value does not already
                                 # exist, and all possible values of
                                 # keywords have been checked
                                 _set_by_type(header, keyword.strip(), value[1])
                                 logging.debug(
-                                    '{}: set default value of {} in HDU {}.'.
-                                    format(keyword, value[1], index))
+                                    '{}: set default value of {} in HDU {}.'.format(keyword, value[1], index)
+                                )
 
         # TODO wcs in astropy ignores cdelt attributes when it finds a cd
         # attribute even if it's in a different axis
@@ -1623,10 +1663,8 @@ class FitsParser(ContentParser):
                     break
             if cd_present:
                 for i in range(1, 6):
-                    if f'CDELT{i}' in header and \
-                            'CD{0}_{0}'.format(i) not in header:
-                        header['CD{0}_{0}'.format(i)] = \
-                            header[f'CDELT{i}']
+                    if f'CDELT{i}' in header and 'CD{0}_{0}'.format(i) not in header:
+                        header['CD{0}_{0}'.format(i)] = header[f'CDELT{i}']
 
         # TODO When a projection is specified, wcslib expects corresponding
         # DP arguments with NAXES attributes. Normally, omitting the attribute
@@ -1638,16 +1676,16 @@ class FitsParser(ContentParser):
         for header in self.headers:
             sip = False
             for i in range(1, 6):
-                if ((f'CTYPE{i}' in header) and
-                        isinstance(header[f'CTYPE{i}'], str) and
-                        ('-SIP' in header[f'CTYPE{i}'])):
+                if (
+                    (f'CTYPE{i}' in header)
+                    and isinstance(header[f'CTYPE{i}'], str)
+                    and ('-SIP' in header[f'CTYPE{i}'])
+                ):
                     sip = True
                     break
             if sip:
                 for i in range(1, 6):
-                    if (f'CTYPE{i}' in header) and \
-                            ('-SIP' not in header[f'CTYPE{i}']) and \
-                            (f'DP{i}' not in header):
+                    if (f'CTYPE{i}' in header) and ('-SIP' not in header[f'CTYPE{i}']) and (f'DP{i}' not in header):
                         header[f'DP{i}'] = 'NAXES: 1'
 
         return
@@ -1657,14 +1695,10 @@ class FitsParser(ContentParser):
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        self.logger.debug(
-            'Begin artifact augmentation for {} with {} HDUs.'.format(
-                artifact.uri, len(self.headers)))
+        self.logger.debug('Begin artifact augmentation for {} with {} HDUs.'.format(artifact.uri, len(self.headers)))
 
         if self.blueprint.get_configed_axes_count() == 0:
-            raise TypeError(
-                'No WCS Data. End artifact augmentation for {}.'.format(
-                    artifact.uri))
+            raise TypeError('No WCS Data. End artifact augmentation for {}.'.format(artifact.uri))
 
         for i, header in enumerate(self.headers):
             if not self.add_parts(artifact, i):
@@ -1674,8 +1708,7 @@ class FitsParser(ContentParser):
             self._wcs_parser = FitsWcsParser(header, self.file, str(i))
             super().augment_artifact(artifact, i)
 
-        self.logger.debug(
-            f'End artifact augmentation for {artifact.uri}.')
+        self.logger.debug(f'End artifact augmentation for {artifact.uri}.')
 
     def _get_chunk_naxis(self, chunk, index=None):
         # NOTE: astropy.wcs does not distinguished between WCS axes and
@@ -1696,11 +1729,9 @@ class FitsParser(ContentParser):
             keys = self.blueprint._get(lookup)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
-            self.logger.debug(
-                f'Could not find {lookup!r} in caom2blueprint configuration.')
+            self.logger.debug(f'Could not find {lookup!r} in caom2blueprint configuration.')
             if current:
-                self.logger.debug(
-                    f'{lookup}: using current value of {current!r}.')
+                self.logger.debug(f'{lookup}: using current value of {current!r}.')
                 value = current
             return value
 
@@ -1709,9 +1740,7 @@ class FitsParser(ContentParser):
                 try:
                     value = self.headers[index].get(ii)
                     if value:
-                        self.logger.debug(
-                            f'{lookup}: assigned value {value} based on '
-                            f'keyword {ii}.')
+                        self.logger.debug(f'{lookup}: assigned value {value} based on ' f'keyword {ii}.')
                         break
                 except (KeyError, IndexError):
                     if keys[0].index(ii) == len(keys[0]) - 1:
@@ -1720,28 +1749,22 @@ class FitsParser(ContentParser):
                     if keys[1]:
                         if current is None:
                             value = keys[1]
-                            self.logger.debug(
-                                f'{lookup}: assigned default value {value}.')
+                            self.logger.debug(f'{lookup}: assigned default value {value}.')
                         else:
                             value = current
             if value is None:
                 # checking current does not work in the general case,
                 # because current might legitimately be 'None'
                 if self._blueprint.update:
-                    if (
-                        current is not None
-                        or (current is None and isinstance(value, bool))
-                    ):
+                    if current is not None or (current is None and isinstance(value, bool)):
                         value = current
-                        self.logger.debug(
-                            f'{lookup}: used current value {value}.')
+                        self.logger.debug(f'{lookup}: used current value {value}.')
                 else:
                     # assign a default value, if one exists
                     if keys[1]:
                         if current is None:
                             value = keys[1]
-                            self.logger.debug(
-                                f'{lookup}: assigned default value {value}.')
+                            self.logger.debug(f'{lookup}: assigned default value {value}.')
                         else:
                             value = current
 
@@ -1772,21 +1795,18 @@ class FitsParser(ContentParser):
             keywords = self.blueprint._get(lookup, extension)
         except KeyError as e:
             self.add_error(lookup, sys.exc_info()[1])
-            self.logger.debug(
-                'Could not find {!r} in fits2caom2 configuration.'.format(
-                    lookup))
+            self.logger.debug('Could not find {!r} in fits2caom2 configuration.'.format(lookup))
             raise e
 
         if isinstance(keywords, tuple) and keywords[0] == 'BINTABLE':
-
             # BINTABLE, so need to retrieve the data from the file
             if self.file is not None and self.file != '':
                 with fits.open(self.file) as fits_data:
                     if fits_data[extension].header['XTENSION'] != 'BINTABLE':
                         raise ValueError(
                             'Got {} when looking for a BINTABLE '
-                            'extension.'.format(
-                                fits_data[extension].header['XTENSION']))
+                            'extension.'.format(fits_data[extension].header['XTENSION'])
+                        )
                     for ii in keywords[1]:
                         for jj in fits_data[extension].data[keywords[2]][ii]:
                             value = f'{jj} {value}'
@@ -1801,8 +1821,7 @@ class FitsParser(ContentParser):
             keywords = self.blueprint._get(lookup)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
-            self.logger.debug(f'Could not find \'{lookup}\' in caom2blueprint '
-                              f'configuration.')
+            self.logger.debug(f'Could not find \'{lookup}\' in caom2blueprint ' f'configuration.')
 
         if isinstance(keywords, tuple):
             for ii in keywords[0]:
@@ -1813,9 +1832,7 @@ class FitsParser(ContentParser):
                     self.add_error(lookup, sys.exc_info()[1])
                     if keywords[1]:
                         value = keywords[1]
-                        self.logger.debug(
-                            '{}: assigned default value {}.'.format(lookup,
-                                                                    value))
+                        self.logger.debug('{}: assigned default value {}.'.format(lookup, value))
         elif keywords:
             value = keywords
             self.logger.debug(f'{lookup}: assigned value {value}.')
@@ -1887,9 +1904,7 @@ class Hdf5Parser(ContentParser):
         CAOM2 record.
     """
 
-    def __init__(
-        self, obs_blueprint, uri, h5_file, find_roots_here='sitedata'
-    ):
+    def __init__(self, obs_blueprint, uri, h5_file, find_roots_here='sitedata'):
         """
         :param obs_blueprint: Hdf5ObsBlueprint instance
         :param uri: which artifact augmentation is based on
@@ -1915,6 +1930,7 @@ class Hdf5Parser(ContentParser):
         # h5py is an extra in this package since most collections do not
         # require it
         import h5py
+
         individual, multi, attributes = self._extract_path_names_from_blueprint()
         filtered_individual = [ii for ii in individual.keys() if '(' in ii]
 
@@ -1937,21 +1953,14 @@ class Hdf5Parser(ContentParser):
             # If it's the Part/Chunk metadata, capture it to extensions.
             # Syntax of the keys described in Hdf5ObsBlueprint class.
             for part_index, part_name in enumerate(self._extension_names):
-                if (
-                    name.startswith(part_name)
-                    and isinstance(object, h5py.Dataset)
-                    and object.dtype.names is not None
-                ):
+                if name.startswith(part_name) and isinstance(object, h5py.Dataset) and object.dtype.names is not None:
                     for d_name in object.dtype.names:
                         temp_path = f'{name.replace(part_name, "")}/{d_name}'
                         for path_name in multi.keys():
                             if path_name == temp_path:
                                 for jj in multi.get(path_name):
-                                    self._blueprint.set(
-                                        jj, object[d_name], part_index
-                                    )
-                            elif (path_name.startswith(temp_path)
-                                  and '(' in path_name):
+                                    self._blueprint.set(jj, object[d_name], part_index)
+                            elif path_name.startswith(temp_path) and '(' in path_name:
                                 z = path_name.split('(')
                                 if ':' in z[1]:
                                     a = z[1].split(')')[0].split(':')
@@ -1960,8 +1969,7 @@ class Hdf5Parser(ContentParser):
                                     for jj in multi.get(path_name):
                                         self._blueprint.set(
                                             jj,
-                                            object[d_name][int(a[0])][
-                                                int(a[1])],
+                                            object[d_name][int(a[0])][int(a[1])],
                                             part_index,
                                         )
                                 else:
@@ -2047,25 +2055,20 @@ class Hdf5Parser(ContentParser):
         plan = self._blueprint._plan
 
         # apply the functions
-        if (self._blueprint._module is not None or
-                self._blueprint._module_instance is not None):
+        if self._blueprint._module is not None or self._blueprint._module_instance is not None:
             for key, value in plan.items():
                 if ObsBlueprint.is_function(value):
                     if self._blueprint._module_instance is None:
                         plan[key] = self._execute_external(value, key, 0)
                     else:
-                        plan[key] = self._execute_external_instance(
-                            value, key, 0)
+                        plan[key] = self._execute_external_instance(value, key, 0)
             for extension in exts:
                 for key, value in exts[extension].items():
                     if ObsBlueprint.is_function(value):
                         if self._blueprint._module_instance is None:
-                            exts[extension][key] = self._execute_external(
-                                value, key, extension)
+                            exts[extension][key] = self._execute_external(value, key, extension)
                         else:
-                            exts[extension][key] = \
-                                self._execute_external_instance(
-                                    value, key, extension)
+                            exts[extension][key] = self._execute_external_instance(value, key, extension)
 
         # blueprint already contains all the overrides, only need to make
         # sure the overrides get applied to all the extensions
@@ -2082,8 +2085,7 @@ class Hdf5Parser(ContentParser):
                 ):
                     continue
                 exts[extension][key] = value
-                self.logger.debug(
-                    f'{key}: set to {value} in extension {extension}')
+                self.logger.debug(f'{key}: set to {value} in extension {extension}')
 
         # if no values have been set by file lookups, function execution,
         # or applying overrides, apply defaults, including to all extensions
@@ -2095,13 +2097,11 @@ class Hdf5Parser(ContentParser):
                     if q is None:
                         exts[extension][key] = value[1]
                         self.logger.debug(
-                            f'Add {key} and assign default value of '
-                            f'{value[1]} in extension {extension}.')
+                            f'Add {key} and assign default value of ' f'{value[1]} in extension {extension}.'
+                        )
                     elif ObsBlueprint.needs_lookup(value):
                         exts[extension][key] = value[1]
-                        self.logger.debug(
-                            f'{key}: set value to default of {value[1]} in '
-                            f'extension {extension}.')
+                        self.logger.debug(f'{key}: set value to default of {value[1]} in ' f'extension {extension}.')
                 plan[key] = value[1]
                 self.logger.debug(f'{key}: set value to default of {value[1]}')
 
@@ -2141,8 +2141,7 @@ def _set_by_type(header, keyword, value):
     except ValueError:
         pass
 
-    if (float_value and not str(value).isdecimal() or
-            re.match(r'0\.0*', str(value))):
+    if float_value and not str(value).isdecimal() or re.match(r'0\.0*', str(value)):
         header.set(keyword, float_value)
     elif int_value:
         header.set(keyword, int_value)

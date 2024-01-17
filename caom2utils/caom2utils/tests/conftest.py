@@ -67,6 +67,7 @@
 #
 import os
 import glob
+
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 

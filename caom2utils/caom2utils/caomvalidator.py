@@ -127,11 +127,9 @@ def _validate_observation(caom2_entity, deep=True):
     if caom2_entity.target:
         _validate_keyword('target.keywords', caom2_entity.target.keywords)
     if caom2_entity.telescope:
-        _validate_keyword('telescope.keywords',
-                          caom2_entity.telescope.keywords)
+        _validate_keyword('telescope.keywords', caom2_entity.telescope.keywords)
     if caom2_entity.instrument:
-        _validate_keyword('telescope.instrument',
-                          caom2_entity.instrument.keywords)
+        _validate_keyword('telescope.instrument', caom2_entity.instrument.keywords)
     if deep:
         for plane in caom2_entity.planes.values():
             _validate_plane(plane)
@@ -149,8 +147,7 @@ def _validate_plane(caom2_entity, deep=True):
     """
     _check_param(caom2_entity, Plane)
     if caom2_entity.provenance:
-        _validate_keyword('provenance.keywords',
-                          caom2_entity.provenance.keywords)
+        _validate_keyword('provenance.keywords', caom2_entity.provenance.keywords)
     if caom2_entity.position:
         validate_polygon(caom2_entity.position.bounds)
 
@@ -213,11 +210,9 @@ def _validate_keyword(name, keywords):
         return
     for keyword in keywords:
         if keyword is not None and keyword.find('|') != -1:
-            raise AssertionError(
-                f'invalid {name}: may not contain pipe (|)')
+            raise AssertionError(f'invalid {name}: may not contain pipe (|)')
 
 
 def _check_param(param, param_type):
     if param is None or not isinstance(param, param_type):
-        raise ValueError(
-            f'{param} must be a valid {param_type.__name__}.')
+        raise ValueError(f'{param} must be a valid {param_type.__name__}.')

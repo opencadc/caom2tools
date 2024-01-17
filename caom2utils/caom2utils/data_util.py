@@ -135,9 +135,7 @@ class StorageClientWrapper:
         except Exception as e:
             self._add_fail_metric('get', uri)
             self._logger.debug(traceback.format_exc())
-            raise exceptions.UnexpectedException(
-                f'Did not retrieve {uri} because {e}'
-            )
+            raise exceptions.UnexpectedException(f'Did not retrieve {uri} because {e}')
         self._add_metric('get', uri, start, stat(fqn).st_size)
         self._logger.debug('End get')
 
@@ -164,9 +162,7 @@ class StorageClientWrapper:
             self._add_fail_metric('get_header', uri)
             self._logger.debug(traceback.format_exc())
             self._logger.error(e)
-            raise exceptions.UnexpectedException(
-                f'Did not retrieve {uri} header because {e}'
-            )
+            raise exceptions.UnexpectedException(f'Did not retrieve {uri} header because {e}')
 
     def info(self, uri):
         """
@@ -223,9 +219,7 @@ class StorageClientWrapper:
             self._add_fail_metric('put', uri)
             self._logger.debug(traceback.format_exc())
             self._logger.error(e)
-            raise exceptions.UnexpectedException(
-                f'Failed to store data with {e}'
-            )
+            raise exceptions.UnexpectedException(f'Failed to store data with {e}')
         finally:
             chdir(cwd)
         self._add_metric('put', uri, start, local_meta.size)
@@ -245,9 +239,7 @@ class StorageClientWrapper:
             self._add_fail_metric('remove', uri)
             self._logger.debug(traceback.format_exc())
             self._logger.error(e)
-            raise exceptions.UnexpectedException(
-                f'Did not remove {uri} because {e}'
-            )
+            raise exceptions.UnexpectedException(f'Did not remove {uri} because {e}')
         self._add_metric('remove', uri, start, value=None)
         self._logger.debug('End remove')
 
@@ -284,8 +276,7 @@ def _clean_headers(fits_header):
             new_header.append('END\n')
         elif line.strip() == 'END':
             new_header.append('END\n')
-        elif '=' not in line and not (line.startswith('COMMENT') or
-                                      line.startswith('HISTORY')):
+        elif '=' not in line and not (line.startswith('COMMENT') or line.startswith('HISTORY')):
             pass
         else:
             new_header.append(f'{line}\n')
@@ -355,7 +346,7 @@ def get_file_encoding(fqn):
 def get_file_type(fqn):
     """Basic header extension to content_type lookup."""
     lower_fqn = fqn.lower()
-    if (lower_fqn.endswith('.fits') or lower_fqn.endswith('.fits.fz')):
+    if lower_fqn.endswith('.fits') or lower_fqn.endswith('.fits.fz'):
         return 'application/fits'
     elif lower_fqn.endswith('.gif'):
         return 'image/gif'
@@ -378,7 +369,6 @@ def make_headers_from_string(fits_header):
     ":param fits_header a string of keyword/value pairs"""
     fits_header = _clean_headers(fits_header)
     delim = 'END\n'
-    extensions = \
-        [e + delim for e in fits_header.split(delim) if e.strip()]
+    extensions = [e + delim for e in fits_header.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers

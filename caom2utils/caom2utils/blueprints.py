@@ -86,6 +86,7 @@ class classproperty:
     """
     Class property used for CAOM2_ELEMENTS in ObsBleprint
     """
+
     def __init__(self, f):
         self.f = f
 
@@ -129,6 +130,7 @@ class ObsBlueprint:
     print(ob)
 
     """
+
     _CAOM2_ELEMENTS = [
         'CompositeObservation.members',
         'DerivedObservation.members',
@@ -140,18 +142,14 @@ class ObsBlueprint:
         'Observation.metaReadGroups',
         'Observation.metaProducer',
         'Observation.requirements.flag',
-
         'Observation.algorithm.name',
-
         'Observation.instrument.name',
         'Observation.instrument.keywords',
-
         'Observation.proposal.id',
         'Observation.proposal.pi',
         'Observation.proposal.project',
         'Observation.proposal.title',
         'Observation.proposal.keywords',
-
         'Observation.target.name',
         'Observation.target.type',
         'Observation.target.standard',
@@ -159,18 +157,15 @@ class ObsBlueprint:
         'Observation.target.keywords',
         'Observation.target.moving',
         'Observation.target.targetID',
-
         'Observation.target_position.point.cval1',
         'Observation.target_position.point.cval2',
         'Observation.target_position.coordsys',
         'Observation.target_position.equinox',
-
         'Observation.telescope.name',
         'Observation.telescope.geoLocationX',
         'Observation.telescope.geoLocationY',
         'Observation.telescope.geoLocationZ',
         'Observation.telescope.keywords',
-
         'Observation.environment.seeing',
         'Observation.environment.humidity',
         'Observation.environment.elevation',
@@ -178,7 +173,6 @@ class ObsBlueprint:
         'Observation.environment.wavelengthTau',
         'Observation.environment.ambientTemp',
         'Observation.environment.photometric',
-
         'Plane.productID',
         'Plane.metaRelease',
         'Plane.dataRelease',
@@ -188,7 +182,6 @@ class ObsBlueprint:
         'Plane.metaReadGroups',
         'Plane.dataReadGroups',
         'Plane.metaProducer',
-
         'Plane.provenance.name',
         'Plane.provenance.version',
         'Plane.provenance.project',
@@ -198,16 +191,13 @@ class ObsBlueprint:
         'Plane.provenance.lastExecuted',
         'Plane.provenance.keywords',
         'Plane.provenance.inputs',
-
         'Plane.metrics.sourceNumberDensity',
         'Plane.metrics.background',
         'Plane.metrics.backgroundStddev',
         'Plane.metrics.fluxDensityLimit',
         'Plane.metrics.magLimit',
         'Plane.metrics.sampleSNR',
-
         'Plane.observable.ucd',
-
         'Artifact.productType',
         'Artifact.releaseType',
         'Artifact.contentChecksum',
@@ -217,11 +207,9 @@ class ObsBlueprint:
         'Artifact.contentReadGroups',
         'Artifact.uri',
         'Artifact.metaProducer',
-
         'Part.name',
         'Part.productType',
         'Part.metaProducer',
-
         'Chunk',
         'Chunk.naxis',
         'Chunk.observableAxis',
@@ -231,14 +219,12 @@ class ObsBlueprint:
         'Chunk.timeAxis',
         'Chunk.polarizationAxis',
         'Chunk.metaProducer',
-
         'Chunk.observable.dependent.bin',
         'Chunk.observable.dependent.axis.ctype',
         'Chunk.observable.dependent.axis.cunit',
         'Chunk.observable.independent.bin',
         'Chunk.observable.independent.axis.ctype',
         'Chunk.observable.independent.axis.cunit',
-
         'Chunk.position.coordsys',
         'Chunk.position.equinox',
         'Chunk.position.resolution',
@@ -268,7 +254,6 @@ class ObsBlueprint:
         'Chunk.position.axis.range.end.coord1.val',
         'Chunk.position.axis.range.end.coord2.pix',
         'Chunk.position.axis.range.end.coord2.val',
-
         'Chunk.energy.specsys',
         'Chunk.energy.ssysobs',
         'Chunk.energy.restfrq',
@@ -295,7 +280,6 @@ class ObsBlueprint:
         'Chunk.energy.axis.range.start.val',
         'Chunk.energy.axis.range.end.pix',
         'Chunk.energy.axis.range.end.val',
-
         'Chunk.polarization.axis.axis.ctype',
         'Chunk.polarization.axis.axis.cunit',
         'Chunk.polarization.axis.bounds.samples',
@@ -309,7 +293,6 @@ class ObsBlueprint:
         'Chunk.polarization.axis.range.start.val',
         'Chunk.polarization.axis.range.end.pix',
         'Chunk.polarization.axis.range.end.val',
-
         'Chunk.time.exposure',
         'Chunk.time.resolution',
         'Chunk.time.timesys',
@@ -328,11 +311,9 @@ class ObsBlueprint:
         'Chunk.time.axis.range.start.val',
         'Chunk.time.axis.range.end.pix',
         'Chunk.time.axis.range.end.val',
-
         'Chunk.observable.axis.axis.ctype',
         'Chunk.observable.axis.axis.cunit',
         'Chunk.observable.axis.function.refCoord.pix',
-
         'Chunk.custom.axis.axis.ctype',
         'Chunk.custom.axis.axis.cunit',
         'Chunk.custom.axis.bounds.samples',
@@ -345,17 +326,24 @@ class ObsBlueprint:
         'Chunk.custom.axis.range.start.pix',
         'Chunk.custom.axis.range.start.val',
         'Chunk.custom.axis.range.end.pix',
-        'Chunk.custom.axis.range.end.val'
-        ]
+        'Chunk.custom.axis.range.end.val',
+    ]
 
     # replace _CAOM2_ELEMENTS in __doc__ with the real elements
-    __doc__ = __doc__.replace('_CAOM2_ELEMENTS', '\n'.join(['\t\t{}'.format(
-        elem) for elem in _CAOM2_ELEMENTS]))
+    __doc__ = __doc__.replace('_CAOM2_ELEMENTS', '\n'.join(['\t\t{}'.format(elem) for elem in _CAOM2_ELEMENTS]))
 
-    def __init__(self, position_axes=None, energy_axis=None,
-                 polarization_axis=None, time_axis=None,
-                 obs_axis=None, custom_axis=None, module=None,
-                 update=True, instantiated_class=None):
+    def __init__(
+        self,
+        position_axes=None,
+        energy_axis=None,
+        polarization_axis=None,
+        time_axis=None,
+        obs_axis=None,
+        custom_axis=None,
+        module=None,
+        update=True,
+        instantiated_class=None,
+    ):
         """
         Ctor
         :param position_axes: tuple of form (int, int) indicating the indexes
@@ -369,49 +357,44 @@ class ObsBlueprint:
             importlib.import_module if a value is provided.
         """
 
-        if position_axes and isinstance(position_axes, tuple) and\
-                (len(position_axes) != 2):
-            raise ValueError(
-                'Invalid position axis: {}. Must be tuple with 2 elements'.
-                format(str(position_axes)))
+        if position_axes and isinstance(position_axes, tuple) and (len(position_axes) != 2):
+            raise ValueError('Invalid position axis: {}. Must be tuple with 2 elements'.format(str(position_axes)))
 
         self.logger = logging.getLogger(__name__)
 
         # this is the default blueprint
         self._plan = {}
-        tmp = {'Observation.metaRelease':
-               (['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE',
-                 'UTC-DATE', 'MJDOBS', 'MJD_OBS'], None),
-               'Observation.instrument.name': (['INSTRUME'], None),
-               'Observation.type': (['OBSTYPE'], None),
-               'Observation.environment.ambientTemp': (['TEMPERAT'],
-                                                       None),
-               # set the default for SimpleObservation construction
-               'Observation.algorithm.name': (['PROCNAME'], 'exposure'),
-               'Observation.instrument.keywords': (['INSTMODE'], None),
-               'Observation.proposal.id': (['RUNID'], None),
-               'Observation.target.name': (['OBJECT'], None),
-               'Observation.telescope.name': (['TELESCOP'], None),
-               'Observation.telescope.geoLocationX': (['OBSGEO-X'],
-                                                      None),
-               'Observation.telescope.geoLocationY': (['OBSGEO-Y'],
-                                                      None),
-               'Observation.telescope.geoLocationZ': (['OBSGEO-Z'],
-                                                      None),
-               'Observation.observationID': (['OBSID'], None),
-               'Plane.calibrationLevel': ([], CalibrationLevel.RAW_STANDARD),
-               'Plane.dataProductType': ([], DataProductType.IMAGE),
-               'Plane.metaRelease': (['RELEASE', 'REL_DATE'], None),
-               'Plane.dataRelease': (['RELEASE', 'REL_DATE'], None),
-               'Plane.productID': (['RUNID'], None),
-               'Plane.provenance.name': (['XPRVNAME'], None),
-               'Plane.provenance.project': (['ADC_ARCH'], None),
-               'Plane.provenance.producer': (['ORIGIN'], None),
-               'Plane.provenance.reference': (['XREFER'], None),
-               'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
-               'Artifact.releaseType': ([], ReleaseType.DATA),
-               'Chunk': 'include'
-               }
+        tmp = {
+            'Observation.metaRelease': (
+                ['DATE', 'DATE-OBS', 'UTCOBS', 'UTCDATE', 'UTC-DATE', 'MJDOBS', 'MJD_OBS'],
+                None,
+            ),
+            'Observation.instrument.name': (['INSTRUME'], None),
+            'Observation.type': (['OBSTYPE'], None),
+            'Observation.environment.ambientTemp': (['TEMPERAT'], None),
+            # set the default for SimpleObservation construction
+            'Observation.algorithm.name': (['PROCNAME'], 'exposure'),
+            'Observation.instrument.keywords': (['INSTMODE'], None),
+            'Observation.proposal.id': (['RUNID'], None),
+            'Observation.target.name': (['OBJECT'], None),
+            'Observation.telescope.name': (['TELESCOP'], None),
+            'Observation.telescope.geoLocationX': (['OBSGEO-X'], None),
+            'Observation.telescope.geoLocationY': (['OBSGEO-Y'], None),
+            'Observation.telescope.geoLocationZ': (['OBSGEO-Z'], None),
+            'Observation.observationID': (['OBSID'], None),
+            'Plane.calibrationLevel': ([], CalibrationLevel.RAW_STANDARD),
+            'Plane.dataProductType': ([], DataProductType.IMAGE),
+            'Plane.metaRelease': (['RELEASE', 'REL_DATE'], None),
+            'Plane.dataRelease': (['RELEASE', 'REL_DATE'], None),
+            'Plane.productID': (['RUNID'], None),
+            'Plane.provenance.name': (['XPRVNAME'], None),
+            'Plane.provenance.project': (['ADC_ARCH'], None),
+            'Plane.provenance.producer': (['ORIGIN'], None),
+            'Plane.provenance.reference': (['XREFER'], None),
+            'Plane.provenance.lastExecuted': (['DATE-FTS'], None),
+            'Artifact.releaseType': ([], ReleaseType.DATA),
+            'Chunk': 'include',
+        }
         # using the tmp to make sure that the keywords are valid
         for key in tmp:
             self.set(key, tmp[key])
@@ -420,9 +403,7 @@ class ObsBlueprint:
 
         # contains the standard WCS keywords in the FITS file expected by the
         # astropy.WCS package.
-        self._wcs_std = {
-            'Chunk.naxis': 'ZNAXIS,NAXIS'
-        }
+        self._wcs_std = {'Chunk.naxis': 'ZNAXIS,NAXIS'}
         self._pos_axes_configed = False
         self._energy_axis_configed = False
         self._time_axis_configed = False
@@ -465,7 +446,8 @@ class ObsBlueprint:
             'obs': (0, False),
             'polarization': (0, False),
             'ra': (0, False),
-            'time': (0, False)}
+            'time': (0, False),
+        }
 
     def configure_custom_axis(self, axis, override=True):
         """
@@ -477,32 +459,23 @@ class ObsBlueprint:
         :return:
         """
         if self._custom_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured custom axis.')
+            self.logger.debug('Attempt to configure already-configured custom axis.')
             return
 
         if override:
-            self.set('Chunk.custom.axis.axis.ctype',
-                     ([f'CTYPE{axis}'], None))
-            self.set('Chunk.custom.axis.axis.cunit',
-                     ([f'CUNIT{axis}'], None))
-            self.set('Chunk.custom.axis.function.naxis',
-                     ([f'NAXIS{axis}'], None))
-            self.set('Chunk.custom.axis.function.delta',
-                     ([f'CDELT{axis}'], None))
-            self.set('Chunk.custom.axis.function.refCoord.pix',
-                     ([f'CRPIX{axis}'], None))
-            self.set('Chunk.custom.axis.function.refCoord.val',
-                     ([f'CRVAL{axis}'], None))
+            self.set('Chunk.custom.axis.axis.ctype', ([f'CTYPE{axis}'], None))
+            self.set('Chunk.custom.axis.axis.cunit', ([f'CUNIT{axis}'], None))
+            self.set('Chunk.custom.axis.function.naxis', ([f'NAXIS{axis}'], None))
+            self.set('Chunk.custom.axis.function.delta', ([f'CDELT{axis}'], None))
+            self.set('Chunk.custom.axis.function.refCoord.pix', ([f'CRPIX{axis}'], None))
+            self.set('Chunk.custom.axis.function.refCoord.val', ([f'CRVAL{axis}'], None))
 
         self._wcs_std['Chunk.custom.axis.axis.ctype'] = f'CTYPE{axis}'
         self._wcs_std['Chunk.custom.axis.axis.cunit'] = f'CUNIT{axis}'
         self._wcs_std['Chunk.custom.axis.function.naxis'] = f'NAXIS{axis}'
         self._wcs_std['Chunk.custom.axis.function.delta'] = f'CDELT{axis}'
-        self._wcs_std['Chunk.custom.axis.function.refCoord.pix'] = \
-            f'CRPIX{axis}'
-        self._wcs_std['Chunk.custom.axis.function.refCoord.val'] = \
-            f'CRVAL{axis}'
+        self._wcs_std['Chunk.custom.axis.function.refCoord.pix'] = f'CRPIX{axis}'
+        self._wcs_std['Chunk.custom.axis.function.refCoord.val'] = f'CRVAL{axis}'
 
         self._custom_axis_configed = True
 
@@ -515,91 +488,52 @@ class ObsBlueprint:
         :return:
         """
         if self._pos_axes_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured position axes.')
+            self.logger.debug('Attempt to configure already-configured position axes.')
             return
 
         if override:
             self.set('Chunk.position.coordsys', (['RADESYS'], None))
             self.set('Chunk.position.equinox', (['EQUINOX', 'EPOCH'], None))
-            self.set('Chunk.position.axis.axis1.ctype',
-                     ([f'CTYPE{axes[0]}'], None))
-            self.set('Chunk.position.axis.axis1.cunit',
-                     ([f'CUNIT{axes[0]}'], None))
-            self.set('Chunk.position.axis.axis2.ctype',
-                     ([f'CTYPE{axes[1]}'], None))
-            self.set('Chunk.position.axis.axis2.cunit',
-                     ([f'CUNIT{axes[1]}'], None))
-            self.set('Chunk.position.axis.error1.syser',
-                     ([f'CSYER{axes[0]}'], None))
-            self.set('Chunk.position.axis.error1.rnder',
-                     ([f'CRDER{axes[0]}'], None))
-            self.set('Chunk.position.axis.error2.syser',
-                     ([f'CSYER{axes[1]}'], None))
-            self.set('Chunk.position.axis.error2.rnder',
-                     ([f'CRDER{axes[1]}'], None))
-            self.set('Chunk.position.axis.function.cd11',
-                     ([f'CD{axes[0]}_{axes[0]}'], None))
-            self.set('Chunk.position.axis.function.cd12',
-                     ([f'CD{axes[0]}_{axes[1]}'], None))
-            self.set('Chunk.position.axis.function.cd21',
-                     ([f'CD{axes[1]}_{axes[0]}'], None))
-            self.set('Chunk.position.axis.function.cd22',
-                     ([f'CD{axes[1]}_{axes[1]}'], None))
-            self.set('Chunk.position.axis.function.dimension.naxis1',
-                     ([f'ZNAXIS{axes[0]}',
-                       f'NAXIS{axes[0]}'], None))
-            self.set('Chunk.position.axis.function.dimension.naxis2',
-                     ([f'ZNAXIS{axes[1]}',
-                       f'NAXIS{axes[1]}'], None))
-            self.set('Chunk.position.axis.function.refCoord.coord1.pix',
-                     ([f'CRPIX{axes[0]}'], None))
-            self.set('Chunk.position.axis.function.refCoord.coord1.val',
-                     ([f'CRVAL{axes[0]}'], None))
-            self.set('Chunk.position.axis.function.refCoord.coord2.pix',
-                     ([f'CRPIX{axes[1]}'], None))
-            self.set('Chunk.position.axis.function.refCoord.coord2.val',
-                     ([f'CRVAL{axes[1]}'], None))
+            self.set('Chunk.position.axis.axis1.ctype', ([f'CTYPE{axes[0]}'], None))
+            self.set('Chunk.position.axis.axis1.cunit', ([f'CUNIT{axes[0]}'], None))
+            self.set('Chunk.position.axis.axis2.ctype', ([f'CTYPE{axes[1]}'], None))
+            self.set('Chunk.position.axis.axis2.cunit', ([f'CUNIT{axes[1]}'], None))
+            self.set('Chunk.position.axis.error1.syser', ([f'CSYER{axes[0]}'], None))
+            self.set('Chunk.position.axis.error1.rnder', ([f'CRDER{axes[0]}'], None))
+            self.set('Chunk.position.axis.error2.syser', ([f'CSYER{axes[1]}'], None))
+            self.set('Chunk.position.axis.error2.rnder', ([f'CRDER{axes[1]}'], None))
+            self.set('Chunk.position.axis.function.cd11', ([f'CD{axes[0]}_{axes[0]}'], None))
+            self.set('Chunk.position.axis.function.cd12', ([f'CD{axes[0]}_{axes[1]}'], None))
+            self.set('Chunk.position.axis.function.cd21', ([f'CD{axes[1]}_{axes[0]}'], None))
+            self.set('Chunk.position.axis.function.cd22', ([f'CD{axes[1]}_{axes[1]}'], None))
+            self.set('Chunk.position.axis.function.dimension.naxis1', ([f'ZNAXIS{axes[0]}', f'NAXIS{axes[0]}'], None))
+            self.set('Chunk.position.axis.function.dimension.naxis2', ([f'ZNAXIS{axes[1]}', f'NAXIS{axes[1]}'], None))
+            self.set('Chunk.position.axis.function.refCoord.coord1.pix', ([f'CRPIX{axes[0]}'], None))
+            self.set('Chunk.position.axis.function.refCoord.coord1.val', ([f'CRVAL{axes[0]}'], None))
+            self.set('Chunk.position.axis.function.refCoord.coord2.pix', ([f'CRPIX{axes[1]}'], None))
+            self.set('Chunk.position.axis.function.refCoord.coord2.val', ([f'CRVAL{axes[1]}'], None))
 
         self._wcs_std['Chunk.position.coordsys'] = 'RADESYS'
         self._wcs_std['Chunk.position.equinox'] = 'EQUINOX'
 
-        self._wcs_std['Chunk.position.axis.axis1.ctype'] = \
-            f'CTYPE{axes[0]}'
-        self._wcs_std['Chunk.position.axis.axis1.cunit'] = \
-            f'CUNIT{axes[0]}'
-        self._wcs_std['Chunk.position.axis.axis2.ctype'] = \
-            f'CTYPE{axes[1]}'
-        self._wcs_std['Chunk.position.axis.axis2.cunit'] = \
-            f'CUNIT{axes[1]}'
-        self._wcs_std['Chunk.position.axis.error1.syser'] = \
-            f'CSYER{axes[0]}'
-        self._wcs_std['Chunk.position.axis.error1.rnder'] = \
-            f'CRDER{axes[0]}'
-        self._wcs_std['Chunk.position.axis.error2.syser'] = \
-            f'CSYER{axes[1]}'
-        self._wcs_std['Chunk.position.axis.error2.rnder'] = \
-            f'CRDER{axes[1]}'
-        self._wcs_std['Chunk.position.axis.function.cd11'] = \
-            f'CD{axes[0]}_{axes[0]}'
-        self._wcs_std['Chunk.position.axis.function.cd12'] = \
-            f'CD{axes[0]}_{axes[1]}'
-        self._wcs_std['Chunk.position.axis.function.cd21'] = \
-            f'CD{axes[1]}_{axes[0]}'
-        self._wcs_std['Chunk.position.axis.function.cd22'] = \
-            f'CD{axes[1]}_{axes[1]}'
-        self._wcs_std['Chunk.position.axis.function.dimension.naxis1'] = \
-            f'NAXIS{axes[0]}'
-        self._wcs_std['Chunk.position.axis.function.dimension.naxis2'] = \
-            f'NAXIS{axes[1]}'
-        self._wcs_std['Chunk.position.axis.function.refCoord.coord1.pix'] \
-            = f'CRPIX{axes[0]}'
-        self._wcs_std['Chunk.position.axis.function.refCoord.coord1.val'] \
-            = f'CRVAL{axes[0]}'
-        self._wcs_std['Chunk.position.axis.function.refCoord.coord2.pix'] \
-            = f'CRPIX{axes[1]}'
-        self._wcs_std['Chunk.position.axis.function.refCoord.coord2.val'] \
-            = f'CRVAL{axes[1]}'
+        self._wcs_std['Chunk.position.axis.axis1.ctype'] = f'CTYPE{axes[0]}'
+        self._wcs_std['Chunk.position.axis.axis1.cunit'] = f'CUNIT{axes[0]}'
+        self._wcs_std['Chunk.position.axis.axis2.ctype'] = f'CTYPE{axes[1]}'
+        self._wcs_std['Chunk.position.axis.axis2.cunit'] = f'CUNIT{axes[1]}'
+        self._wcs_std['Chunk.position.axis.error1.syser'] = f'CSYER{axes[0]}'
+        self._wcs_std['Chunk.position.axis.error1.rnder'] = f'CRDER{axes[0]}'
+        self._wcs_std['Chunk.position.axis.error2.syser'] = f'CSYER{axes[1]}'
+        self._wcs_std['Chunk.position.axis.error2.rnder'] = f'CRDER{axes[1]}'
+        self._wcs_std['Chunk.position.axis.function.cd11'] = f'CD{axes[0]}_{axes[0]}'
+        self._wcs_std['Chunk.position.axis.function.cd12'] = f'CD{axes[0]}_{axes[1]}'
+        self._wcs_std['Chunk.position.axis.function.cd21'] = f'CD{axes[1]}_{axes[0]}'
+        self._wcs_std['Chunk.position.axis.function.cd22'] = f'CD{axes[1]}_{axes[1]}'
+        self._wcs_std['Chunk.position.axis.function.dimension.naxis1'] = f'NAXIS{axes[0]}'
+        self._wcs_std['Chunk.position.axis.function.dimension.naxis2'] = f'NAXIS{axes[1]}'
+        self._wcs_std['Chunk.position.axis.function.refCoord.coord1.pix'] = f'CRPIX{axes[0]}'
+        self._wcs_std['Chunk.position.axis.function.refCoord.coord1.val'] = f'CRVAL{axes[0]}'
+        self._wcs_std['Chunk.position.axis.function.refCoord.coord2.pix'] = f'CRPIX{axes[1]}'
+        self._wcs_std['Chunk.position.axis.function.refCoord.coord2.val'] = f'CRVAL{axes[1]}'
 
         self._pos_axes_configed = True
 
@@ -613,8 +547,7 @@ class ObsBlueprint:
         :return:
         """
         if self._energy_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured energy axis.')
+            self.logger.debug('Attempt to configure already-configured energy axis.')
             return
 
         if override:
@@ -630,22 +563,14 @@ class ObsBlueprint:
             self.set('Chunk.energy.bandpassName', ([], None))
             self.set('Chunk.energy.resolvingPower', ([], None))
 
-            self.set('Chunk.energy.axis.axis.ctype',
-                     ([f'CTYPE{axis}'], None))
-            self.set('Chunk.energy.axis.axis.cunit',
-                     ([f'CUNIT{axis}'], None))
-            self.set('Chunk.energy.axis.error.syser',
-                     ([f'CSYER{axis}'], None))
-            self.set('Chunk.energy.axis.error.rnder',
-                     ([f'CRDER{axis}'], None))
-            self.set('Chunk.energy.axis.function.naxis',
-                     ([f'NAXIS{axis}'], None))
-            self.set('Chunk.energy.axis.function.delta',
-                     ([f'CDELT{axis}'], None))
-            self.set('Chunk.energy.axis.function.refCoord.pix',
-                     ([f'CRPIX{axis}'], None))
-            self.set('Chunk.energy.axis.function.refCoord.val',
-                     ([f'CRVAL{axis}'], None))
+            self.set('Chunk.energy.axis.axis.ctype', ([f'CTYPE{axis}'], None))
+            self.set('Chunk.energy.axis.axis.cunit', ([f'CUNIT{axis}'], None))
+            self.set('Chunk.energy.axis.error.syser', ([f'CSYER{axis}'], None))
+            self.set('Chunk.energy.axis.error.rnder', ([f'CRDER{axis}'], None))
+            self.set('Chunk.energy.axis.function.naxis', ([f'NAXIS{axis}'], None))
+            self.set('Chunk.energy.axis.function.delta', ([f'CDELT{axis}'], None))
+            self.set('Chunk.energy.axis.function.refCoord.pix', ([f'CRPIX{axis}'], None))
+            self.set('Chunk.energy.axis.function.refCoord.val', ([f'CRVAL{axis}'], None))
 
         self._wcs_std['Chunk.energy.specsys'] = 'SPECSYS'
         self._wcs_std['Chunk.energy.ssysobs'] = 'SSYSOBS'
@@ -656,22 +581,14 @@ class ObsBlueprint:
         self._wcs_std['Chunk.energy.ssyssrc'] = 'SSYSSRC'
         self._wcs_std['Chunk.energy.velang'] = 'VELANG'
 
-        self._wcs_std['Chunk.energy.axis.axis.ctype'] = \
-            f'CTYPE{axis}'
-        self._wcs_std['Chunk.energy.axis.axis.cunit'] = \
-            f'CUNIT{axis}'
-        self._wcs_std['Chunk.energy.axis.error.syser'] = \
-            f'CSYER{axis}'
-        self._wcs_std['Chunk.energy.axis.error.rnder'] = \
-            f'CRDER{axis}'
-        self._wcs_std['Chunk.energy.axis.function.naxis'] = \
-            f'NAXIS{axis}'
-        self._wcs_std['Chunk.energy.axis.function.delta'] = \
-            f'CDELT{axis}'
-        self._wcs_std['Chunk.energy.axis.function.refCoord.pix'] = \
-            f'CRPIX{axis}'
-        self._wcs_std['Chunk.energy.axis.function.refCoord.val'] = \
-            f'CRVAL{axis}'
+        self._wcs_std['Chunk.energy.axis.axis.ctype'] = f'CTYPE{axis}'
+        self._wcs_std['Chunk.energy.axis.axis.cunit'] = f'CUNIT{axis}'
+        self._wcs_std['Chunk.energy.axis.error.syser'] = f'CSYER{axis}'
+        self._wcs_std['Chunk.energy.axis.error.rnder'] = f'CRDER{axis}'
+        self._wcs_std['Chunk.energy.axis.function.naxis'] = f'NAXIS{axis}'
+        self._wcs_std['Chunk.energy.axis.function.delta'] = f'CDELT{axis}'
+        self._wcs_std['Chunk.energy.axis.function.refCoord.pix'] = f'CRPIX{axis}'
+        self._wcs_std['Chunk.energy.axis.function.refCoord.val'] = f'CRVAL{axis}'
 
         self._energy_axis_configed = True
 
@@ -685,36 +602,23 @@ class ObsBlueprint:
         :return:
         """
         if self._polarization_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured polarization axis.')
+            self.logger.debug('Attempt to configure already-configured polarization axis.')
             return
 
         if override:
-            self.set('Chunk.polarization.axis.axis.ctype',
-                     ([f'CTYPE{axis}'], None))
-            self.set('Chunk.polarization.axis.axis.cunit',
-                     ([f'CUNIT{axis}'], None))
-            self.set('Chunk.polarization.axis.function.naxis',
-                     ([f'NAXIS{axis}'], None))
-            self.set('Chunk.polarization.axis.function.delta',
-                     ([f'CDELT{axis}'], None))
-            self.set('Chunk.polarization.axis.function.refCoord.pix',
-                     ([f'CRPIX{axis}'], None))
-            self.set('Chunk.polarization.axis.function.refCoord.val',
-                     ([f'CRVAL{axis}'], None))
+            self.set('Chunk.polarization.axis.axis.ctype', ([f'CTYPE{axis}'], None))
+            self.set('Chunk.polarization.axis.axis.cunit', ([f'CUNIT{axis}'], None))
+            self.set('Chunk.polarization.axis.function.naxis', ([f'NAXIS{axis}'], None))
+            self.set('Chunk.polarization.axis.function.delta', ([f'CDELT{axis}'], None))
+            self.set('Chunk.polarization.axis.function.refCoord.pix', ([f'CRPIX{axis}'], None))
+            self.set('Chunk.polarization.axis.function.refCoord.val', ([f'CRVAL{axis}'], None))
 
-        self._wcs_std['Chunk.polarization.axis.axis.ctype'] = \
-            f'CTYPE{axis}'
-        self._wcs_std['Chunk.polarization.axis.axis.cunit'] = \
-            f'CUNIT{axis}'
-        self._wcs_std['Chunk.polarization.axis.function.naxis'] = \
-            f'NAXIS{axis}'
-        self._wcs_std['Chunk.polarization.axis.function.delta'] = \
-            f'CDELT{axis}'
-        self._wcs_std['Chunk.polarization.axis.function.refCoord.pix'] = \
-            f'CRPIX{axis}'
-        self._wcs_std['Chunk.polarization.axis.function.refCoord.val'] = \
-            f'CRVAL{axis}'
+        self._wcs_std['Chunk.polarization.axis.axis.ctype'] = f'CTYPE{axis}'
+        self._wcs_std['Chunk.polarization.axis.axis.cunit'] = f'CUNIT{axis}'
+        self._wcs_std['Chunk.polarization.axis.function.naxis'] = f'NAXIS{axis}'
+        self._wcs_std['Chunk.polarization.axis.function.delta'] = f'CDELT{axis}'
+        self._wcs_std['Chunk.polarization.axis.function.refCoord.pix'] = f'CRPIX{axis}'
+        self._wcs_std['Chunk.polarization.axis.function.refCoord.val'] = f'CRVAL{axis}'
 
         self._polarization_axis_configed = True
 
@@ -730,24 +634,17 @@ class ObsBlueprint:
         :return:
         """
         if self._obs_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured observable axis.')
+            self.logger.debug('Attempt to configure already-configured observable axis.')
             return
 
         if override:
-            self.set('Chunk.observable.axis.axis.ctype',
-                     ([f'CTYPE{axis}'], None))
-            self.set('Chunk.observable.axis.axis.cunit',
-                     ([f'CUNIT{axis}'], None))
-            self.set('Chunk.observable.axis.function.refCoord.pix',
-                     ([f'CRPIX{axis}'], None))
+            self.set('Chunk.observable.axis.axis.ctype', ([f'CTYPE{axis}'], None))
+            self.set('Chunk.observable.axis.axis.cunit', ([f'CUNIT{axis}'], None))
+            self.set('Chunk.observable.axis.function.refCoord.pix', ([f'CRPIX{axis}'], None))
 
-        self._wcs_std['Chunk.observable.axis.axis.ctype'] = \
-            f'CTYPE{axis}'
-        self._wcs_std['Chunk.observable.axis.axis.cunit'] = \
-            f'CUNIT{axis}'
-        self._wcs_std['Chunk.observable.axis.function.refCoord.pix'] = \
-            f'CRPIX{axis}'
+        self._wcs_std['Chunk.observable.axis.axis.ctype'] = f'CTYPE{axis}'
+        self._wcs_std['Chunk.observable.axis.axis.cunit'] = f'CUNIT{axis}'
+        self._wcs_std['Chunk.observable.axis.function.refCoord.pix'] = f'CRPIX{axis}'
 
         self._obs_axis_configed = True
 
@@ -761,8 +658,7 @@ class ObsBlueprint:
         :return:
         """
         if self._time_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured time axis.')
+            self.logger.debug('Attempt to configure already-configured time axis.')
             return
 
         if override:
@@ -771,22 +667,14 @@ class ObsBlueprint:
             self.set('Chunk.time.trefpos', (['TREFPOS'], None))
             self.set('Chunk.time.mjdref', (['MJDREF'], None))
             self.set('Chunk.time.resolution', (['TIMEDEL'], None))
-            self.set('Chunk.time.axis.axis.ctype',
-                     ([f'CTYPE{axis}'], None))
-            self.set('Chunk.time.axis.axis.cunit',
-                     ([f'CUNIT{axis}'], None))
-            self.set('Chunk.time.axis.error.syser',
-                     ([f'CSYER{axis}'], None))
-            self.set('Chunk.time.axis.error.rnder',
-                     ([f'CRDER{axis}'], None))
-            self.set('Chunk.time.axis.function.naxis',
-                     ([f'NAXIS{axis}'], None))
-            self.set('Chunk.time.axis.function.delta',
-                     ([f'CDELT{axis}'], None))
-            self.set('Chunk.time.axis.function.refCoord.pix',
-                     ([f'CRPIX{axis}'], None))
-            self.set('Chunk.time.axis.function.refCoord.val',
-                     ([f'CRVAL{axis}'], None))
+            self.set('Chunk.time.axis.axis.ctype', ([f'CTYPE{axis}'], None))
+            self.set('Chunk.time.axis.axis.cunit', ([f'CUNIT{axis}'], None))
+            self.set('Chunk.time.axis.error.syser', ([f'CSYER{axis}'], None))
+            self.set('Chunk.time.axis.error.rnder', ([f'CRDER{axis}'], None))
+            self.set('Chunk.time.axis.function.naxis', ([f'NAXIS{axis}'], None))
+            self.set('Chunk.time.axis.function.delta', ([f'CDELT{axis}'], None))
+            self.set('Chunk.time.axis.function.refCoord.pix', ([f'CRPIX{axis}'], None))
+            self.set('Chunk.time.axis.function.refCoord.val', ([f'CRVAL{axis}'], None))
 
         self._wcs_std['Chunk.time.exposure'] = 'EXPTIME'
         self._wcs_std['Chunk.time.resolution'] = 'TIMEDEL'
@@ -794,22 +682,14 @@ class ObsBlueprint:
         self._wcs_std['Chunk.time.trefpos'] = 'TREFPOS'
         self._wcs_std['Chunk.time.mjdref'] = 'MJDREF'
 
-        self._wcs_std['Chunk.time.axis.axis.ctype'] = \
-            f'CTYPE{axis}'
-        self._wcs_std['Chunk.time.axis.axis.cunit'] = \
-            f'CUNIT{axis}'
-        self._wcs_std['Chunk.time.axis.error.syser'] = \
-            f'CSYER{axis}'
-        self._wcs_std['Chunk.time.axis.error.rnder'] = \
-            f'CRDER{axis}'
-        self._wcs_std['Chunk.time.axis.function.naxis'] = \
-            f'NAXIS{axis}'
-        self._wcs_std['Chunk.time.axis.function.delta'] = \
-            f'CDELT{axis}'
-        self._wcs_std['Chunk.time.axis.function.refCoord.pix'] = \
-            f'CRPIX{axis}'
-        self._wcs_std['Chunk.time.axis.function.refCoord.val'] = \
-            f'CRVAL{axis}'
+        self._wcs_std['Chunk.time.axis.axis.ctype'] = f'CTYPE{axis}'
+        self._wcs_std['Chunk.time.axis.axis.cunit'] = f'CUNIT{axis}'
+        self._wcs_std['Chunk.time.axis.error.syser'] = f'CSYER{axis}'
+        self._wcs_std['Chunk.time.axis.error.rnder'] = f'CRDER{axis}'
+        self._wcs_std['Chunk.time.axis.function.naxis'] = f'NAXIS{axis}'
+        self._wcs_std['Chunk.time.axis.function.delta'] = f'CDELT{axis}'
+        self._wcs_std['Chunk.time.axis.function.refCoord.pix'] = f'CRPIX{axis}'
+        self._wcs_std['Chunk.time.axis.function.refCoord.val'] = f'CRVAL{axis}'
 
         self._time_axis_configed = True
 
@@ -835,58 +715,44 @@ class ObsBlueprint:
 
     def _guess_axis_info_from_plan(self):
         for ii in self._plan:
-            if ii.startswith('Chunk.position') and ii.endswith('axis1.ctype') \
-                    and not self._axis_info['ra'][1]:
-                configured_index = self._get_configured_index(
-                    self._axis_info, 'ra')
+            if ii.startswith('Chunk.position') and ii.endswith('axis1.ctype') and not self._axis_info['ra'][1]:
+                configured_index = self._get_configured_index(self._axis_info, 'ra')
                 self._axis_info['ra'] = (configured_index, True)
-            elif ii.startswith('Chunk.position') and \
-                    ii.endswith('axis2.ctype') and not \
-                    self._axis_info['dec'][1]:
-                configured_index = self._get_configured_index(self._axis_info,
-                                                              'dec')
+            elif ii.startswith('Chunk.position') and ii.endswith('axis2.ctype') and not self._axis_info['dec'][1]:
+                configured_index = self._get_configured_index(self._axis_info, 'dec')
                 self._axis_info['dec'] = (configured_index, True)
-            elif ii.startswith('Chunk.energy') and not \
-                    self._axis_info['energy'][1]:
-                configured_index = self._get_configured_index(self._axis_info,
-                                                              'energy')
+            elif ii.startswith('Chunk.energy') and not self._axis_info['energy'][1]:
+                configured_index = self._get_configured_index(self._axis_info, 'energy')
                 self._axis_info['energy'] = (configured_index, True)
-            elif ii.startswith('Chunk.time') and not \
-                    self._axis_info['time'][1]:
-                configured_index = self._get_configured_index(self._axis_info,
-                                                              'time')
+            elif ii.startswith('Chunk.time') and not self._axis_info['time'][1]:
+                configured_index = self._get_configured_index(self._axis_info, 'time')
                 self._axis_info['time'] = (configured_index, True)
-            elif ii.startswith('Chunk.polarization') \
-                    and not self._axis_info['polarization'][1]:
-                configured_index = self._get_configured_index(self._axis_info,
-                                                              'polarization')
+            elif ii.startswith('Chunk.polarization') and not self._axis_info['polarization'][1]:
+                configured_index = self._get_configured_index(self._axis_info, 'polarization')
                 self._axis_info['polarization'] = (configured_index, True)
-            elif ii.startswith('Chunk.observable') and not \
-                    self._axis_info['obs'][1]:
-                configured_index = self._get_configured_index(self._axis_info,
-                                                              'obs')
+            elif ii.startswith('Chunk.observable') and not self._axis_info['obs'][1]:
+                configured_index = self._get_configured_index(self._axis_info, 'obs')
                 self._axis_info['obs'] = (configured_index, True)
-            elif ii.startswith('Chunk.custom') and not \
-                    self._axis_info['custom'][1]:
-                configured_index = self._get_configured_index(self._axis_info,
-                                                              'custom')
+            elif ii.startswith('Chunk.custom') and not self._axis_info['custom'][1]:
+                configured_index = self._get_configured_index(self._axis_info, 'custom')
                 self._axis_info['custom'] = (configured_index, True)
 
         if self._axis_info['ra'][1] and self._axis_info['dec'][1]:
-            self.configure_position_axes(
-                (self._axis_info['ra'][0], self._axis_info['dec'][0]), False)
+            self.configure_position_axes((self._axis_info['ra'][0], self._axis_info['dec'][0]), False)
         elif self._axis_info['ra'][1] or self._axis_info['dec'][1]:
-            raise ValueError('Only one positional axis found '
-                             '(ra/dec): {}/{}'.
-                             format(self._axis_info['ra'][0],
-                                    self._axis_info['dec'][0]))
+            raise ValueError(
+                'Only one positional axis found '
+                '(ra/dec): {}/{}'.format(self._axis_info['ra'][0], self._axis_info['dec'][0])
+            )
         else:
             # assume that positional axis are 1 and 2 by default
-            if (self._axis_info['time'][0] in [1, 2] or
-                self._axis_info['energy'][0] in [1, 2] or
-                self._axis_info['polarization'][0] in [1, 2] or
-                self._axis_info['obs'][0] in [1, 2] or
-                    self._axis_info['custom'][0] in [1, 2]):
+            if (
+                self._axis_info['time'][0] in [1, 2]
+                or self._axis_info['energy'][0] in [1, 2]
+                or self._axis_info['polarization'][0] in [1, 2]
+                or self._axis_info['obs'][0] in [1, 2]
+                or self._axis_info['custom'][0] in [1, 2]
+            ):
                 raise ValueError('Cannot determine the positional axis')
             else:
                 self.configure_position_axes((1, 2), False)
@@ -896,8 +762,7 @@ class ObsBlueprint:
         if self._axis_info['energy'][1]:
             self.configure_energy_axis(self._axis_info['energy'][0], False)
         if self._axis_info['polarization'][1]:
-            self.configure_polarization_axis(
-                self._axis_info['polarization'][0], False)
+            self.configure_polarization_axis(self._axis_info['polarization'][0], False)
         if self._axis_info['obs'][1]:
             self.configure_observable_axis(self._axis_info['obs'][0], False)
         if self._axis_info['custom'][1]:
@@ -919,32 +784,23 @@ class ObsBlueprint:
             self._axis_info['polarization'] = (counter, True)
         elif lookup.startswith('Chunk.time'):
             self._axis_info['time'] = (counter, True)
-        elif lookup.startswith('Chunk.position') and lookup.endswith(
-                'axis1.ctype'):
+        elif lookup.startswith('Chunk.position') and lookup.endswith('axis1.ctype'):
             self._axis_info['ra'] = (counter, True)
-        elif lookup.startswith('Chunk.position') and lookup.endswith(
-                'axis2.ctype'):
+        elif lookup.startswith('Chunk.position') and lookup.endswith('axis2.ctype'):
             self._axis_info['dec'] = (counter, True)
         elif lookup.startswith('Chunk.observable'):
             self._axis_info['obs'] = (counter, True)
         elif lookup.startswith('Chunk.custom'):
             self._axis_info['custom'] = (counter, True)
         else:
-            raise ValueError(
-                f'Unrecognized axis type: {lookup}')
+            raise ValueError(f'Unrecognized axis type: {lookup}')
 
     def _get_configured_index(self, axis_info, lookup):
         """Find the next available index value among those that are not set.
 
         :param axis_info: local data structure to pass around what is
             configured, and what is it's value."""
-        DEFAULT_INDICES = {'ra': 1,
-                           'dec': 2,
-                           'energy': 3,
-                           'time': 4,
-                           'polarization': 5,
-                           'obs': 6,
-                           'custom': 7}
+        DEFAULT_INDICES = {'ra': 1, 'dec': 2, 'energy': 3, 'time': 4, 'polarization': 5, 'obs': 6, 'custom': 7}
 
         # the logic - if the default index is already used, assign the lowest
         # index that is unused, otherwise use the default index
@@ -995,11 +851,9 @@ class ObsBlueprint:
                         line = line.split('#')[0]
                     key, value = line.split('=', 1)
                     if 'default' in value:
-                        temp = value.replace('default', ''). \
-                            replace('=', '').strip('\n').strip()
+                        temp = value.replace('default', '').replace('=', '').strip('\n').strip()
                         default = temp.rsplit(',')[1]
-                        temp_list = temp.rsplit(',')[0].replace('[', ''). \
-                            replace(']', '').replace('\'', '').split(',')
+                        temp_list = temp.rsplit(',')[0].replace('[', '').replace(']', '').replace('\'', '').split(',')
                         if 'None' in default:
                             default = None
                         else:
@@ -1007,8 +861,7 @@ class ObsBlueprint:
                         cleaned_up_value = (temp_list, default)
                     else:
                         if '[' in value:
-                            temp_list = value.replace('[', ''). \
-                                replace(']', '').replace('\'', '').split(',')
+                            temp_list = value.replace('[', '').replace(']', '').replace('\'', '').split(',')
                             temp_list_2 = []
                             for ii in temp_list:
                                 temp_list_2.append(ii.strip().strip('\n'))
@@ -1037,9 +890,7 @@ class ObsBlueprint:
         :raises KeyError
         """
         if caom2_element not in cls._CAOM2_ELEMENTS:
-            raise KeyError(
-                '{} not a valid CAOM2 element name (mispelling?).'.
-                format(caom2_element))
+            raise KeyError('{} not a valid CAOM2 element name (mispelling?).'.format(caom2_element))
 
     @staticmethod
     def check_chunk(caom2_element):
@@ -1049,14 +900,12 @@ class ObsBlueprint:
         :raises ValueError
         """
         if not caom2_element.startswith('Chunk'):
-            raise ValueError(
-                "Extension number refers to Chunk elements only")
+            raise ValueError("Extension number refers to Chunk elements only")
 
     @staticmethod
     def check_extension(extension):
         if extension is not None and extension < 0:
-            raise ValueError(
-                f'Extension count failure. {extension} should be >= 0')
+            raise ValueError(f'Extension count failure. {extension} should be >= 0')
 
     def __str__(self):
         plan = self._serialize(self._plan)
@@ -1064,18 +913,20 @@ class ObsBlueprint:
         extensions = ''
         if self._extensions:
             for key in sorted(self._extensions):
-                extensions = extensions + f'\nextension {key}:\n' +\
-                    self._serialize(self._extensions[key])
+                extensions = extensions + f'\nextension {key}:\n' + self._serialize(self._extensions[key])
         return plan + extensions
 
     def _serialize(self, src):
         return '\n'.join(
-            ['{} = {}'.format(key, '{}, default = {}'.format(src[key][0],
-                                                             src[key][1])
-             if isinstance(src[key], tuple)
-             else src[key])
-             for key in ObsBlueprint._CAOM2_ELEMENTS
-             if key in src])
+            [
+                '{} = {}'.format(
+                    key,
+                    '{}, default = {}'.format(src[key][0], src[key][1]) if isinstance(src[key], tuple) else src[key],
+                )
+                for key in ObsBlueprint._CAOM2_ELEMENTS
+                if key in src
+            ]
+        )
 
     def set(self, caom2_element, value, extension=0):
         """
@@ -1112,36 +963,29 @@ class ObsBlueprint:
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
-                raise AttributeError(
-                    f'No extension {extension} in the blueprint')
+                raise AttributeError(f'No extension {extension} in the blueprint')
             else:
                 if caom2_element in self._extensions[extension]:
-                    if (isinstance(self._extensions[extension][caom2_element],
-                                   tuple)):
-                        if (attribute not in
-                                self._extensions[extension][caom2_element][0]):
-                            self._extensions[extension][caom2_element][0].\
-                                insert(0, attribute)
+                    if isinstance(self._extensions[extension][caom2_element], tuple):
+                        if attribute not in self._extensions[extension][caom2_element][0]:
+                            self._extensions[extension][caom2_element][0].insert(0, attribute)
                     else:
                         raise AttributeError(
-                            (f'No attributes in extension {extension} '
-                             f'associated with keyword {caom2_element}'))
+                            (f'No attributes in extension {extension} ' f'associated with keyword {caom2_element}')
+                        )
                 else:
-                    self._extensions[extension][caom2_element] = \
-                        ([attribute], None)
+                    self._extensions[extension][caom2_element] = ([attribute], None)
         else:
             if caom2_element in self._plan:
                 if isinstance(self._plan[caom2_element], tuple):
                     if attribute not in self._plan[caom2_element][0]:
                         self._plan[caom2_element][0].insert(0, attribute)
                 else:
-                    raise AttributeError(f'No attributes associated with '
-                                         f'keyword {caom2_element}')
+                    raise AttributeError(f'No attributes associated with ' f'keyword {caom2_element}')
             else:
                 self._plan[caom2_element] = ([attribute], None)
 
-    def add_table_attribute(self, caom2_element, ttype_attribute, extension=0,
-                            index=0):
+    def add_table_attribute(self, caom2_element, ttype_attribute, extension=0, index=0):
         """
         Adds a FITS BINTABLE TTYPE* lookup, to a list of other FITS attributes
         associated with an caom2 element. This does not co-exist with
@@ -1163,36 +1007,29 @@ class ObsBlueprint:
         if extension:
             if extension in self._extensions:
                 if caom2_element in self._extensions[extension]:
-                    if (ObsBlueprint.is_table(
-                            self._extensions[extension][caom2_element])):
-                        if (ttype_attribute not in
-                                self._extensions[extension][caom2_element][1]):
-                            self._extensions[extension][caom2_element][1]. \
-                                insert(0, ttype_attribute)
+                    if ObsBlueprint.is_table(self._extensions[extension][caom2_element]):
+                        if ttype_attribute not in self._extensions[extension][caom2_element][1]:
+                            self._extensions[extension][caom2_element][1].insert(0, ttype_attribute)
                     else:
                         raise AttributeError(
-                            ('No TTYPE attributes in extension {} associated '
-                             'with keyword {}').format(extension,
-                                                       caom2_element))
+                            ('No TTYPE attributes in extension {} associated ' 'with keyword {}').format(
+                                extension, caom2_element
+                            )
+                        )
                 else:
-                    self._extensions[extension][caom2_element] = \
-                        ('BINTABLE', [ttype_attribute], index)
+                    self._extensions[extension][caom2_element] = ('BINTABLE', [ttype_attribute], index)
             else:
                 self._extensions[extension] = {}
-                self._extensions[extension][caom2_element] = \
-                    ('BINTABLE', [ttype_attribute], index)
+                self._extensions[extension][caom2_element] = ('BINTABLE', [ttype_attribute], index)
         else:
             if caom2_element in self._plan:
                 if ObsBlueprint.is_table(self._plan[caom2_element]):
                     if ttype_attribute not in self._plan[caom2_element][1]:
                         self._plan[caom2_element][1].insert(0, ttype_attribute)
                 else:
-                    raise AttributeError('No TTYPE attributes associated '
-                                         'with keyword {}'.format(
-                                            caom2_element))
+                    raise AttributeError('No TTYPE attributes associated ' 'with keyword {}'.format(caom2_element))
             else:
-                self._plan[caom2_element] = (
-                    'BINTABLE', [ttype_attribute], None)
+                self._plan[caom2_element] = ('BINTABLE', [ttype_attribute], None)
 
     def set_default(self, caom2_element, default, extension=0):
         """
@@ -1215,18 +1052,16 @@ class ObsBlueprint:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
                 self._extensions[extension] = {}
-            if caom2_element in self._extensions[extension] and \
-               isinstance(self._extensions[extension][caom2_element], tuple):
-                self._extensions[extension][caom2_element] = \
-                    (self._extensions[extension][caom2_element][0], default)
+            if caom2_element in self._extensions[extension] and isinstance(
+                self._extensions[extension][caom2_element], tuple
+            ):
+                self._extensions[extension][caom2_element] = (self._extensions[extension][caom2_element][0], default)
             else:
                 # default is the only value
                 self._extensions[extension][caom2_element] = default
         else:
-            if (caom2_element in self._plan) and \
-                    isinstance(self._plan[caom2_element], tuple):
-                self._plan[caom2_element] = (self._plan[caom2_element][0],
-                                             default)
+            if (caom2_element in self._plan) and isinstance(self._plan[caom2_element], tuple):
+                self._plan[caom2_element] = (self._plan[caom2_element][0], default)
             else:
                 # override the value
                 self._plan[caom2_element] = default
@@ -1244,8 +1079,7 @@ class ObsBlueprint:
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
-                raise ValueError('Extension {} not configured in blueprint'.
-                                 format(extension))
+                raise ValueError('Extension {} not configured in blueprint'.format(extension))
             if caom2_element in self._extensions[extension]:
                 del self._extensions[extension][caom2_element]
             if len(self._extensions[extension]) == 0:
@@ -1269,8 +1103,7 @@ class ObsBlueprint:
         if extension:
             ObsBlueprint.check_chunk(caom2_element)
             if extension not in self._extensions:
-                raise ValueError('Extension {} not configured in blueprint'.
-                                 format(extension))
+                raise ValueError('Extension {} not configured in blueprint'.format(extension))
             if caom2_element in self._extensions[extension]:
                 self._extensions[extension][caom2_element] = ([], None)
         else:
@@ -1289,8 +1122,7 @@ class ObsBlueprint:
         ObsBlueprint.check_caom2_element(caom2_element)
         ObsBlueprint.check_extension(extension)
         if extension:
-            if (extension in self._extensions) and \
-                    (caom2_element in self._extensions[extension]):
+            if (extension in self._extensions) and (caom2_element in self._extensions[extension]):
                 return self._extensions[extension][caom2_element]
 
         # look in the minimal plan
@@ -1310,8 +1142,7 @@ class ObsBlueprint:
             if 'Chunk' in self._extensions[extension]:
                 value = self._extensions[extension]['Chunk']
         elif 'Chunk' in self._plan:
-            if ((extension is not None and extension == 0) or (
-                    extension is None)):
+            if (extension is not None and extension == 0) or (extension is None):
                 value = self._plan['Chunk']
         return not value == '{ignore}'
 
@@ -1331,9 +1162,14 @@ class ObsBlueprint:
         :return: True if the value is the name of a function to be executed,
             False, otherwise
         """
-        return (not ObsBlueprint.needs_lookup(value) and isinstance(value, str)
-                and isinstance(value, str) and '(' in value and ')' in value
-                and '/' not in value)
+        return (
+            not ObsBlueprint.needs_lookup(value)
+            and isinstance(value, str)
+            and isinstance(value, str)
+            and '(' in value
+            and ')' in value
+            and '/' not in value
+        )
 
     @staticmethod
     def has_default_value(value):
@@ -1344,8 +1180,7 @@ class ObsBlueprint:
     def has_no_value(value):
         """If functions return None, try not to update the WCS with this
         value."""
-        return value is None or (
-                isinstance(value, str) and 'None' in value.strip())
+        return value is None or (isinstance(value, str) and 'None' in value.strip())
 
     @staticmethod
     def needs_lookup(value):
@@ -1413,10 +1248,19 @@ class Hdf5ObsBlueprint(ObsBlueprint):
     print(ob)
 
     """
-    def __init__(self, position_axes=None, energy_axis=None,
-                 polarization_axis=None, time_axis=None,
-                 obs_axis=None, custom_axis=None, module=None,
-                 update=True, instantiated_class=None):
+
+    def __init__(
+        self,
+        position_axes=None,
+        energy_axis=None,
+        polarization_axis=None,
+        time_axis=None,
+        obs_axis=None,
+        custom_axis=None,
+        module=None,
+        update=True,
+        instantiated_class=None,
+    ):
         """
         There are no sensible/known HDF5 defaults for WCS construction, so
         default to ensuring the blueprint executes with mostly values of None.
@@ -1436,11 +1280,11 @@ class Hdf5ObsBlueprint(ObsBlueprint):
             instantiated_class,
         )
         tmp = {
-               'Observation.algorithm.name': ([], 'exposure'),
-               'Plane.calibrationLevel': ([], CalibrationLevel.RAW_STANDARD),
-               'Plane.dataProductType': ([], DataProductType.IMAGE),
-               'Artifact.releaseType': ([], ReleaseType.DATA),
-               'Chunk': 'include'
+            'Observation.algorithm.name': ([], 'exposure'),
+            'Plane.calibrationLevel': ([], CalibrationLevel.RAW_STANDARD),
+            'Plane.dataProductType': ([], DataProductType.IMAGE),
+            'Artifact.releaseType': ([], ReleaseType.DATA),
+            'Chunk': 'include',
         }
         # using the tmp to make sure that the keywords are valid
         for key in tmp:
@@ -1455,8 +1299,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :param override: Set to False when reading from a file.
         """
         if self._custom_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured custom axis.')
+            self.logger.debug('Attempt to configure already-configured custom axis.')
             return
 
         if override:
@@ -1484,8 +1327,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :param override: Set to False when reading from a file.
         """
         if self._pos_axes_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured position axes.')
+            self.logger.debug('Attempt to configure already-configured position axes.')
             return
 
         if override:
@@ -1503,18 +1345,12 @@ class Hdf5ObsBlueprint(ObsBlueprint):
             self.set('Chunk.position.axis.function.cd12', ([], None))
             self.set('Chunk.position.axis.function.cd21', ([], None))
             self.set('Chunk.position.axis.function.cd22', ([], None))
-            self.set('Chunk.position.axis.function.dimension.naxis1',
-                     ([], 1))
-            self.set('Chunk.position.axis.function.dimension.naxis2',
-                     ([], 1))
-            self.set('Chunk.position.axis.function.refCoord.coord1.pix',
-                     ([], None))
-            self.set('Chunk.position.axis.function.refCoord.coord1.val',
-                     ([], None))
-            self.set('Chunk.position.axis.function.refCoord.coord2.pix',
-                     ([], None))
-            self.set('Chunk.position.axis.function.refCoord.coord2.val',
-                     ([], None))
+            self.set('Chunk.position.axis.function.dimension.naxis1', ([], 1))
+            self.set('Chunk.position.axis.function.dimension.naxis2', ([], 1))
+            self.set('Chunk.position.axis.function.refCoord.coord1.pix', ([], None))
+            self.set('Chunk.position.axis.function.refCoord.coord1.val', ([], None))
+            self.set('Chunk.position.axis.function.refCoord.coord2.pix', ([], None))
+            self.set('Chunk.position.axis.function.refCoord.coord2.val', ([], None))
 
         self._wcs_std['Chunk.position.coordsys'] = ''
         self._wcs_std['Chunk.position.equinox'] = ''
@@ -1547,8 +1383,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :return:
         """
         if self._energy_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured energy axis.')
+            self.logger.debug('Attempt to configure already-configured energy axis.')
             return
 
         if override:
@@ -1602,8 +1437,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :return:
         """
         if self._polarization_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured polarization axis.')
+            self.logger.debug('Attempt to configure already-configured polarization axis.')
             return
 
         if override:
@@ -1612,10 +1446,8 @@ class Hdf5ObsBlueprint(ObsBlueprint):
             self.set('Chunk.polarization.axis.axis.cunit', ([], None))
             self.set('Chunk.polarization.axis.function.naxis', ([], 1))
             self.set('Chunk.polarization.axis.function.delta', ([], None))
-            self.set('Chunk.polarization.axis.function.refCoord.pix',
-                     ([], None))
-            self.set('Chunk.polarization.axis.function.refCoord.val',
-                     ([], None))
+            self.set('Chunk.polarization.axis.function.refCoord.pix', ([], None))
+            self.set('Chunk.polarization.axis.function.refCoord.val', ([], None))
 
         self._wcs_std['Chunk.polarization.axis.axis.ctype'] = ''
         self._wcs_std['Chunk.polarization.axis.axis.cunit'] = ''
@@ -1638,8 +1470,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :return:
         """
         if self._obs_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured observable axis.')
+            self.logger.debug('Attempt to configure already-configured observable axis.')
             return
 
         if override:
@@ -1663,8 +1494,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         :return:
         """
         if self._time_axis_configed:
-            self.logger.debug(
-                'Attempt to configure already-configured time axis.')
+            self.logger.debug('Attempt to configure already-configured time axis.')
             return
 
         if override:
