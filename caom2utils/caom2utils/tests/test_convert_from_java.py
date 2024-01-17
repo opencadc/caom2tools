@@ -66,7 +66,7 @@
 # ***********************************************************************
 #
 
-from caom2utils import ObsBlueprint
+from caom2utils.blueprints import ObsBlueprint
 from caom2utils.legacy import ConvertFromJava, load_config, apply_java_config
 from caom2utils.legacy import _JAVA_CAOM2_CONFIG
 

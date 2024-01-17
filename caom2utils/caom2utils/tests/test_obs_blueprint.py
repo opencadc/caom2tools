@@ -66,7 +66,7 @@
 # ***********************************************************************
 #
 
-from caom2utils import ObsBlueprint
+from caom2utils.blueprints import ObsBlueprint
 
 import pytest
 import sys

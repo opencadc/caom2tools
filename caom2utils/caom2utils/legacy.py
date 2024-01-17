@@ -69,7 +69,9 @@
 import logging
 import sys
 
+from . import blueprints
 from . import caom2blueprint
+from . import wcs_parsers
 import traceback
 
 APP_NAME = 'fits2caom2'
@@ -370,17 +372,17 @@ def _update_axis_info(parser, defaults, overrides, config):
         for key, value in i.items():
             if (key.startswith('CTYPE')) and key[-1].isdigit():
                 value = value.split('-')[0]
-                if value in caom2blueprint.ENERGY_CTYPES:
+                if value in wcs_parsers.ENERGY_CTYPES:
                     energy_axis = key[-1]
-                elif value in caom2blueprint.POLARIZATION_CTYPES:
+                elif value in wcs_parsers.POLARIZATION_CTYPES:
                     polarization_axis = key[-1]
-                elif value in caom2blueprint.TIME_KEYWORDS:
+                elif value in wcs_parsers.TIME_KEYWORDS:
                     time_axis = key[-1]
-                elif value in caom2blueprint.POSITION_CTYPES[0]:
+                elif value in wcs_parsers.POSITION_CTYPES[0]:
                     ra_axis = key[-1]
-                elif value in caom2blueprint.POSITION_CTYPES[1]:
+                elif value in wcs_parsers.POSITION_CTYPES[1]:
                     dec_axis = key[-1]
-                elif value in caom2blueprint.OBSERVABLE_CTYPES:
+                elif value in wcs_parsers.OBSERVABLE_CTYPES:
                     obs_axis = key[-1]
                 else:
                     raise ValueError(f'Unrecognized CTYPE: {value}')
@@ -546,9 +548,9 @@ def main_app():
     obs_blueprint = {}
     for i, uri in enumerate(args.fileURI):
         if '.h5' in uri:
-            obs_blueprint[uri] = caom2blueprint.Hdf5ObsBlueprint()
+            obs_blueprint[uri] = blueprints.Hdf5ObsBlueprint()
         else:
-            obs_blueprint[uri] = caom2blueprint.ObsBlueprint()
+            obs_blueprint[uri] = blueprints.ObsBlueprint()
         if config:
             result = update_blueprint(obs_blueprint[uri], uri,
                                       config, defaults, overrides)

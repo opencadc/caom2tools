@@ -70,14 +70,14 @@ from astropy.io import fits
 from astropy.wcs import WCS as awcs
 from cadcutils import net
 from cadcdata import FileInfo
-from caom2utils import FitsParser, FitsWcsParser, main_app, update_blueprint
-from caom2utils import Hdf5Parser, Hdf5WcsParser, ContentParser
-from caom2utils import Hdf5ObsBlueprint
-from caom2utils import ObsBlueprint, BlueprintParser, gen_proc
-from caom2utils import get_gen_proc_arg_parser, augment
+from caom2utils import main_app, update_blueprint
+from caom2utils.parsers import BlueprintParser, FitsParser, Hdf5Parser
+from caom2utils.blueprints import Hdf5ObsBlueprint, ObsBlueprint
+from caom2utils import augment, gen_proc, get_gen_proc_arg_parser
 from caom2utils.legacy import load_config
 from caom2utils.caom2blueprint import _visit, _load_plugin
 from caom2utils.caom2blueprint import _get_and_update_artifact_meta
+from caom2utils.wcs_parsers import FitsWcsParser, Hdf5WcsParser
 
 from caom2 import ObservationWriter, SimpleObservation, Algorithm, Artifact, ProductType, ReleaseType, DataProductType
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk, ObservationIntentType, ChecksumURI
