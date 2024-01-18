@@ -67,20 +67,20 @@
 #
 
 """
-There is a dual inheritance hierarchy in this module:
+There is a dual inheritance hierarchy in this package:
 
 
          BlueprintParser
                ^
                |
-          ContentParser <>--------------------------- WcsParser
-               ^                                         ^
-               |                                         |
-        ---------------------                 ------------------------
-        |                   |                 |                      |
-        |               Hdf5Parser <>----- Hdf5WcsParser             |
-        |                                                            |
-     FitsParser <>--------------------------------------------- FitsWcsParser
+          ContentParser <1:n>--------------------------- WcsParser
+               ^                                            ^
+               |                                            |
+        ---------------------                    ------------------------
+        |                   |                    |                      |
+        |               Hdf5Parser <1:n>----- Hdf5WcsParser             |
+        |                                                               |
+     FitsParser <1:n>--------------------------------------------- FitsWcsParser
 
 The *WcsParser hierarchy uses astropy.wcs for WCS construction and correctness when building CAOM records.
 

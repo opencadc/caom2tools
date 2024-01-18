@@ -190,9 +190,9 @@ def test_hdf5_wcs_parser_set_wcs():
         assert test_subject is not None, 'expect a result'
         test_subject.augment_artifact(test_artifact)
         if bp == test_position_bp:
-            assert test_subject._wcs_parser._wcs.naxis == 2, 'wrong pos axis'
+            assert test_subject._wcs_parsers[0]._wcs.naxis == 2, 'wrong pos axis'
         else:
-            assert test_subject._wcs_parser._wcs.naxis == 1, 'wrong axis count'
+            assert test_subject._wcs_parsers[0]._wcs.naxis == 1, 'wrong axis count'
 
 
 def test_augment_failure():
@@ -738,7 +738,7 @@ def test_augment_value_errors():
         test_parser.augment_plane(test_obs, 'cadc:TEST/abc.fits.gz')
 
     with pytest.raises(ValueError):
-        test_parser.augment_artifact(test_obs, 0)
+        test_parser.augment_artifact(test_obs)
 
 
 def test_get_from_list():

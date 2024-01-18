@@ -206,10 +206,10 @@ class BlueprintParser:
                 self._to_release_type(self._get_from_list('Artifact.releaseType', index=0)),
             )
             plane.artifacts[artifact_uri] = artifact
-        self.augment_artifact(artifact, 0)
+        self.augment_artifact(artifact)
         self.logger.debug(f'End CAOM2 plane augmentation for {artifact_uri}.')
 
-    def augment_artifact(self, artifact, index):
+    def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available information
         :param artifact: existing CAOM2 artifact to be augmented
@@ -459,65 +459,71 @@ class BlueprintParser:
 class ContentParser(BlueprintParser):
     def __init__(self, obs_blueprint=None, uri=None):
         super().__init__(obs_blueprint, uri)
-        self._wcs_parser = WcsParser(obs_blueprint, extension=0)
+        self._wcs_parsers = {}
+        self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=0)
 
     def _get_chunk_naxis(self, chunk, index):
         chunk.naxis = self._get_from_list('Chunk.naxis', index, self.blueprint.get_configed_axes_count())
 
-    def augment_artifact(self, artifact, index):
+    def _get_num_parts(self):
+        """return the number of Parts to create for a CAOM record
+        """
+        return len(self._blueprint._extensions) + 1
+
+    def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available content information
         :param artifact: existing CAOM2 artifact to be augmented
         :param index: int Part name
         """
-        super().augment_artifact(artifact, index)
+        super().augment_artifact(artifact)
 
-        self.logger.debug(f'Begin content artifact augmentation for {artifact.uri}')
+        self.logger.error(f'Begin content artifact augmentation for {artifact.uri}')
 
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError(f'No WCS Data. End content artifact augmentation for ' f'{artifact.uri}.')
 
-        if self.add_parts(artifact, index):
-            part = artifact.parts[str(index)]
-            part.product_type = self._get_from_list('Part.productType', index)
-            part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
+        for index in range(0, self._get_num_parts()):
+            if self.add_parts(artifact, index):
+                part = artifact.parts[str(index)]
+                part.product_type = self._get_from_list('Part.productType', index)
+                part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
 
-            # each Part has one Chunk, if it's not an empty part as determined
-            # just previously
-            if not part.chunks:
-                part.chunks.append(caom2.Chunk())
-            chunk = part.chunks[0]
-            chunk.meta_producer = self._get_from_list('Chunk.metaProducer', index=0, current=chunk.meta_producer)
+                # each Part has one Chunk, if it's not an empty part as determined just previously
+                if not part.chunks:
+                    part.chunks.append(caom2.Chunk())
+                chunk = part.chunks[0]
+                chunk.meta_producer = self._get_from_list('Chunk.metaProducer', index=0, current=chunk.meta_producer)
 
-            self._get_chunk_naxis(chunk, index)
+                self._get_chunk_naxis(chunk, index)
 
-            # order by which the blueprint is used to set WCS information:
-            # 1 - try to construct the information for an axis from WCS information
-            # 2 - if the WCS information is insufficient, try to construct the information from the blueprint
-            # 3 - Always try to fill the range metadata from the blueprint.
-            if self.blueprint._pos_axes_configed:
-                self._wcs_parser.augment_position(chunk)
-                self._try_position_with_blueprint(chunk, index)
+                # order by which the blueprint is used to set WCS information:
+                # 1 - try to construct the information for an axis from WCS information
+                # 2 - if the WCS information is insufficient, try to construct the information from the blueprint
+                # 3 - Always try to fill the range metadata from the blueprint.
+                if self.blueprint._pos_axes_configed:
+                    self._wcs_parsers[index].augment_position(chunk)
+                    self._try_position_with_blueprint(chunk, index)
 
-            if self.blueprint._energy_axis_configed:
-                self._wcs_parser.augment_energy(chunk)
-                self._try_energy_with_blueprint(chunk, index)
+                if self.blueprint._energy_axis_configed:
+                    self._wcs_parsers[index].augment_energy(chunk)
+                    self._try_energy_with_blueprint(chunk, index)
 
-            if self.blueprint._time_axis_configed:
-                self._wcs_parser.augment_temporal(chunk)
-                self._try_time_with_blueprint(chunk, index)
+                if self.blueprint._time_axis_configed:
+                    self._wcs_parsers[index].augment_temporal(chunk)
+                    self._try_time_with_blueprint(chunk, index)
 
-            if self.blueprint._polarization_axis_configed:
-                self._wcs_parser.augment_polarization(chunk)
-                self._try_polarization_with_blueprint(chunk, index)
+                if self.blueprint._polarization_axis_configed:
+                    self._wcs_parsers[index].augment_polarization(chunk)
+                    self._try_polarization_with_blueprint(chunk, index)
 
-            if self.blueprint._obs_axis_configed:
-                self._wcs_parser.augment_observable(chunk)
-                self._try_observable_with_blueprint(chunk, index)
+                if self.blueprint._obs_axis_configed:
+                    self._wcs_parsers[index].augment_observable(chunk)
+                    self._try_observable_with_blueprint(chunk, index)
 
-            if self.blueprint._custom_axis_configed:
-                self._wcs_parser.augment_custom(chunk)
-                self._try_custom_with_blueprint(chunk, index)
+                if self.blueprint._custom_axis_configed:
+                    self._wcs_parsers[index].augment_custom(chunk)
+                    self._try_custom_with_blueprint(chunk, index)
 
         self.logger.debug(f'End content artifact augmentation for {artifact.uri}.')
 
@@ -1530,6 +1536,7 @@ class FitsParser(ContentParser):
         :param uri: which artifact augmentation is based on
         """
         self.logger = logging.getLogger(__name__)
+        self._wcs_parsers = {}
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -1549,6 +1556,11 @@ class FitsParser(ContentParser):
         self.uri = uri
         self.apply_blueprint()
 
+    def _get_num_parts(self):
+        """return the number of Parts to create for a CAOM record
+        """
+        return len(self._headers)
+
     @property
     def headers(self):
         """
@@ -1560,6 +1572,7 @@ class FitsParser(ContentParser):
 
     def add_parts(self, artifact, index):
         # there is one Part per extension, the name is the extension number
+        # logging.error(f'index {index} has data aray {FitsParser._has_data_array(self._headers[index])} has chunk {self.blueprint.has_chunk(index)}')
         if FitsParser._has_data_array(self._headers[index]) and self.blueprint.has_chunk(index):
             if str(index) not in artifact.parts.keys():
                 # TODO use extension name?
@@ -1690,12 +1703,12 @@ class FitsParser(ContentParser):
 
         return
 
-    def augment_artifact(self, artifact, index=0):
+    def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        self.logger.debug('Begin artifact augmentation for {} with {} HDUs.'.format(artifact.uri, len(self.headers)))
+        self.logger.error(f'Begin artifact augmentation for {artifact.uri} with {len(self.headers)} HDUs.')
 
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError('No WCS Data. End artifact augmentation for {}.'.format(artifact.uri))
@@ -1703,10 +1716,10 @@ class FitsParser(ContentParser):
         for i, header in enumerate(self.headers):
             if not self.add_parts(artifact, i):
                 # artifact-level attributes still require updating
-                BlueprintParser.augment_artifact(self, artifact, 0)
+                BlueprintParser.augment_artifact(self, artifact)
                 continue
-            self._wcs_parser = FitsWcsParser(header, self.file, str(i))
-            super().augment_artifact(artifact, i)
+            self._wcs_parsers[i] = FitsWcsParser(header, self.file, str(i))
+        super().augment_artifact(artifact)
 
         self.logger.debug(f'End artifact augmentation for {artifact.uri}.')
 
@@ -1920,7 +1933,16 @@ class Hdf5Parser(ContentParser):
         super().__init__(obs_blueprint, uri)
         # used to set the astropy wcs info, resulting in a validated wcs
         # that can be used to construct a valid CAOM2 record
-        self._wcs_parser = None
+        self._wcs_parsers = {}
+
+    def _get_num_parts(self):
+        """return the number of Parts to create for a CAOM record
+        """
+        result = len(self._blueprint._extensions)
+        if result == 0:
+            # for HDF5 files, cutouts should be supported in the future, so the minimum is one Part/Chunk construction
+            result = 1
+        return result
 
     def apply_blueprint_from_file(self):
         """
@@ -2108,12 +2130,11 @@ class Hdf5Parser(ContentParser):
         self.logger.debug('Done apply_blueprint')
         return
 
-    def augment_artifact(self, artifact, index=0):
-        self._wcs_parser = Hdf5WcsParser(self._blueprint, 0)
-        super().augment_artifact(artifact, 0)
-        for ii in range(1, len(self._blueprint._extensions)):
-            self._wcs_parser = Hdf5WcsParser(self._blueprint, ii)
-            super().augment_artifact(artifact, ii)
+    def augment_artifact(self, artifact):
+        for ii in range(0, self._get_num_parts()):
+            # one WCS parser per Part/Chunk
+            self._wcs_parsers[ii] = Hdf5WcsParser(self._blueprint, ii)
+        super().augment_artifact(artifact)
 
     def _get_chunk_naxis(self, chunk, index):
         chunk.naxis = self._get_from_list('Chunk.naxis', index, chunk.naxis)
