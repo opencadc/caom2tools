@@ -248,7 +248,10 @@ def _get_cardinality(directory):
     elif 'brite' in directory:
         return '--lineage HD36486_65-Ori-VIII-2021_BAb_1_5_A/cadc:BRITE-Constellation/HD36486.orig'
     elif 'gemini' in directory:
-        return '--lineage GN-2003A-Q-51-2-004/cadc:GEMINI/N20030325S0098.fits'
+        if 'S20230518S0121' in directory:
+            return '--lineage GS-2023A-SV-101-13-009/cadc:GEMINI/S20230518S0121.fits'
+        else:
+            return '--lineage GN-2003A-Q-51-2-004/cadc:GEMINI/N20030325S0098.fits'
     elif 'lotss' in directory:
         return '--lineage P124+62_mosaic/astron:LOTSS/P124+62/mosaic.fits'
     else:

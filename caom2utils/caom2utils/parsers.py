@@ -244,7 +244,7 @@ class BlueprintParser:
     def _get_from_list(self, lookup, index, current=None):
         value = None
         try:
-            keywords = self.blueprint._get(lookup)
+            keywords = self.blueprint._get(lookup, index)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(f'Could not find {lookup} in configuration.')
@@ -354,17 +354,18 @@ class BlueprintParser:
             tb = traceback.format_exc()
             self.logger.debug(tb)
             self.logger.error(e)
-        try:
-            result = execute(parameter)
-            self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
-        except Exception as e:
-            msg = 'Failed to execute {} for {} in {}'.format(execute.__name__, key, self.uri)
-            self.logger.error(msg)
-            self.logger.debug('Input parameter was {}, value was {}'.format(parameter, value))
-            self._errors.append(msg)
-            tb = traceback.format_exc()
-            self.logger.debug(tb)
-            self.logger.error(e)
+        if execute:
+            try:
+                result = execute(parameter)
+                self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
+            except Exception as e:
+                msg = f'Failed to execute {execute.__name__} for {key} in {self.uri}'
+                self.logger.error(msg)
+                self.logger.debug(f'Input parameter was {parameter}, value was {value}')
+                self._errors.append(msg)
+                tb = traceback.format_exc()
+                self.logger.debug(tb)
+                self.logger.error(e)
         return result
 
     def _execute_external_instance(self, value, key, extension):
@@ -835,6 +836,7 @@ class ContentParser(BlueprintParser):
         aug_naxis_index = None
         if aug_axis is not None:
             if aug_range is None:
+                self.logger.debug(f'Try Function construction since Range construction failed for {label}.')
                 if wcs is None or wcs.axis is None or wcs.axis.function is None:
                     aug_ref_coord = self._two_param_constructor(
                         f'Chunk.{label}.axis.function.refCoord.pix',
@@ -1586,6 +1588,7 @@ class FitsParser(ContentParser):
         return result
 
     def apply_blueprint(self):
+        self.logger.debug(f'Begin apply_blueprint {self.uri}')
         # pointers that are short to type
         exts = self.blueprint._extensions
         wcs_std = self.blueprint._wcs_std
@@ -1641,12 +1644,25 @@ class FitsParser(ContentParser):
                 continue
             hdr = self.headers[extension]
             for key, value in exts[extension].items():
-                if ObsBlueprint.is_table(value):
+                if ObsBlueprint.needs_lookup(value):
+                    # alternative attributes provided for standard wcs attrib.
+                    for v in value[0]:
+                        if v in hdr and v not in wcs_std[key].split(','):
+                            keywords = wcs_std[key].split(',')
+                            for keyword in keywords:
+                                _set_by_type(hdr, keyword, str(hdr[v]))
+                elif ObsBlueprint.is_table(value):
                     continue
-                keywords = wcs_std[key].split(',')
-                for keyword in keywords:
-                    _set_by_type(hdr, keyword, value)
-                    logging.debug('{}: set to {} in extension {}'.format(keyword, value, extension))
+                elif ObsBlueprint.has_no_value(value):
+                    continue
+                else:
+                    if key in wcs_std.keys():
+                        keywords = wcs_std[key].split(',')
+                        for keyword in keywords:
+                            _set_by_type(hdr, keyword, value)
+                            logging.debug(f'{keyword}: set to {value} in extension {extension}')
+                    else:
+                        exts[extension][key] = value
         # apply defaults to all extensions
         for key, value in plan.items():
             if ObsBlueprint.has_default_value(value):
@@ -1739,7 +1755,7 @@ class FitsParser(ContentParser):
     def _get_from_list(self, lookup, index, current=None):
         value = None
         try:
-            keys = self.blueprint._get(lookup)
+            keys = self.blueprint._get(lookup, index)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(f'Could not find {lookup!r} in caom2blueprint configuration.')
@@ -2152,15 +2168,16 @@ def _set_by_type(header, keyword, value):
     float_value = None
     int_value = None
 
-    try:
-        float_value = float(value)
-    except ValueError:
-        pass
+    if value is not None:
+        try:
+            float_value = float(value)
+        except ValueError:
+            pass
 
-    try:
-        int_value = int(value)
-    except ValueError:
-        pass
+        try:
+            int_value = int(value)
+        except ValueError:
+            pass
 
     if float_value and not str(value).isdecimal() or re.match(r'0\.0*', str(value)):
         header.set(keyword, float_value)

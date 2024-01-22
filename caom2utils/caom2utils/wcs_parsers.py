@@ -677,10 +677,10 @@ class WcsParser:
 
         return cd11, cd12, cd21, cd22
 
-    def _get_coord_error(self, index):
+    def _get_coord_error(self, wcs_index):
         aug_coord_error = None
-        aug_csyer = self._sanitize(self.wcs.csyer[index])
-        aug_crder = self._sanitize(self.wcs.crder[index])
+        aug_csyer = self._sanitize(self.wcs.csyer[wcs_index])
+        aug_crder = self._sanitize(self.wcs.crder[wcs_index])
         if aug_csyer is not None and aug_crder is not None:
             aug_coord_error = CoordError(aug_csyer, aug_crder)
         return aug_coord_error
