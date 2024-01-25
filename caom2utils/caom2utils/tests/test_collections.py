@@ -233,11 +233,6 @@ def _get_cardinality(directory):
             'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/'
             'MegaPipe.080.156.Z.MP9801.fits.gif'
         )
-    elif '/omm/' in directory:
-        if 'SCIRED' in directory:
-            return '--lineage Cdemo_ext2_SCIRED/cadc:OMM/' 'Cdemo_ext2_SCIRED.fits.gz'
-        else:
-            return '--lineage C190531_0432_SCI/cadc:OMM/' 'C190531_0432_SCI.fits.gz'
     elif 'apass/catalog' in directory:
         return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' 'Examples/DAO/dao_c122_2016_012725.fits'
     elif 'taos_' in directory:
@@ -250,33 +245,14 @@ def _get_cardinality(directory):
     elif 'gemini' in directory:
         if 'S20230518S0121' in directory:
             return '--lineage GS-2023A-SV-101-13-009/cadc:GEMINI/S20230518S0121.fits'
-        else:
+        elif 'N20030325S0098' in directory:
             return '--lineage GN-2003A-Q-51-2-004/cadc:GEMINI/N20030325S0098.fits'
+        else:
+            return '--lineage wrgnN20140428S0085_arc/cadc:GEMINICADC/wrgnN20140428S0085_arc.fits'
     elif 'lotss' in directory:
         return '--lineage P124+62_mosaic/astron:LOTSS/P124+62/mosaic.fits'
     else:
         return ''
-
-
-def _get_common(fnames):
-    common = os.path.basename(fnames[0])
-    for jj in fnames:
-        rhs = os.path.basename(jj)
-        for kk in fnames:
-            lhs = os.path.basename(kk)
-            ii = 0
-            while ii < len(rhs):
-                if rhs[ii] == '.' or rhs[ii] != lhs[ii]:
-                    if len(rhs[0:ii]) != 0 and len(rhs[0:ii]) < len(common):
-                        common = rhs[0:ii]
-                    break
-                else:
-                    ii += 1
-    return common
-
-
-def _get_subdirs(dir_name):
-    return [name for name in os.listdir(dir_name) if os.path.isdir(os.path.join(dir_name, name))]
 
 
 def _get_parameter(extension, dir_name):

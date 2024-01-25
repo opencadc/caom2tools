@@ -354,18 +354,18 @@ class BlueprintParser:
             tb = traceback.format_exc()
             self.logger.debug(tb)
             self.logger.error(e)
-        if execute:
-            try:
-                result = execute(parameter)
-                self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
-            except Exception as e:
-                msg = f'Failed to execute {execute.__name__} for {key} in {self.uri}'
-                self.logger.error(msg)
-                self.logger.debug(f'Input parameter was {parameter}, value was {value}')
-                self._errors.append(msg)
-                tb = traceback.format_exc()
-                self.logger.debug(tb)
-                self.logger.error(e)
+            return result
+        try:
+            result = execute(parameter)
+            self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
+        except Exception as e:
+            msg = f'Failed to execute {execute.__name__} for {key} in {self.uri}'
+            self.logger.error(msg)
+            self.logger.debug(f'Input parameter was {parameter}, value was {value}')
+            self._errors.append(msg)
+            tb = traceback.format_exc()
+            self.logger.debug(tb)
+            self.logger.error(e)
         return result
 
     def _execute_external_instance(self, value, key, extension):
@@ -397,13 +397,12 @@ class BlueprintParser:
             return result
         try:
             result = execute(extension)
-            self.logger.debug('Key {} calculated value of {} using {}'.format(key, result, value))
+            self.logger.debug(f'Key {key} calculated value of {result} using {value}')
         except ValueError as e2:
             # DB 23-03-22
-            # Anything that you can do to make the CAOM2 record creation fail
-            # in this case of bad WCS metadata would be useful. Use
-            # ValueError because that happens to be what astropy is throwing
-            # for a SkyCoord construction failure.
+            # Anything that you can do to make the CAOM2 record creation fail in this case of bad WCS metadata
+            # would be useful. Use ValueError because that happens to be what astropy is throwing for a SkyCoord
+            # construction failure.
             raise Caom2Exception(e2)
         except Exception as e:
             msg = 'Failed to execute {} for {} in {}'.format(execute, key, self.uri)
@@ -568,7 +567,7 @@ class ContentParser(BlueprintParser):
         observation.target_position = self._get_target_position(observation.target_position)
         observation.telescope = self._get_telescope(observation.telescope)
         observation.environment = self._get_environment(observation.environment)
-        self.logger.debug(f'End content observation augmentation for {artifact_uri}.')
+        self.logger.debug('End content observation augmentation.')
 
     def augment_plane(self, plane, artifact_uri):
         """
@@ -722,8 +721,9 @@ class ContentParser(BlueprintParser):
             raise TypeError('Cannot apply blueprint for DerivedObservation to a ' 'simple observation')
         elif isinstance(obs, caom2.DerivedObservation):
             lookup = self.blueprint._get('DerivedObservation.members', extension=1)
-            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
-                member_list = self._get_from_table('DerivedObservation.members', 1)
+            if ObsBlueprint.is_table(lookup):
+                *_, extension = lookup
+                member_list = self._get_from_table('DerivedObservation.members', int(extension))
                 # ensure the members are good little ObservationURIs
                 if member_list.startswith('caom:'):
                     members = member_list
@@ -741,8 +741,9 @@ class ContentParser(BlueprintParser):
                     members = self._get_from_list('DerivedObservation.members', index=0, current=obs.members)
         elif isinstance(obs, caom2.CompositeObservation):
             lookup = self.blueprint._get('CompositeObservation.members', extension=1)
-            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
-                member_list = self._get_from_table('CompositeObservation.members', 1)
+            if ObsBlueprint.is_table(lookup):
+                *_, extension = lookup
+                member_list = self._get_from_table('CompositeObservation.members', int(extension))
                 # ensure the members are good little ObservationURIs
                 if member_list.startswith('caom:'):
                     members = member_list
@@ -1716,7 +1717,6 @@ class FitsParser(ContentParser):
                 for i in range(1, 6):
                     if (f'CTYPE{i}' in header) and ('-SIP' not in header[f'CTYPE{i}']) and (f'DP{i}' not in header):
                         header[f'DP{i}'] = 'NAXES: 1'
-
         return
 
     def augment_artifact(self, artifact):
@@ -1833,12 +1833,10 @@ class FitsParser(ContentParser):
                 with fits.open(self.file) as fits_data:
                     if fits_data[extension].header['XTENSION'] != 'BINTABLE':
                         raise ValueError(
-                            'Got {} when looking for a BINTABLE '
-                            'extension.'.format(fits_data[extension].header['XTENSION'])
+                            f'Got {fits_data[extension].header["XTENSION"]} when looking for a BINTABLE extension.'
                         )
-                    for ii in keywords[1]:
-                        for jj in fits_data[extension].data[keywords[2]][ii]:
-                            value = f'{jj} {value}'
+                    for ii in fits_data[extension].data[keywords[1]]:
+                        value = f'{ii} {value}'
 
         self.logger.debug(f'{lookup}: value is {value}')
         return value

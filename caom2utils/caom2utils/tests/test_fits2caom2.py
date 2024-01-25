@@ -1682,6 +1682,14 @@ def test_parser_construction(vos_mock, stdout_mock):
             os.unlink(test_out_fqn)
 
 
+def test_edge_case():
+    ob = ObsBlueprint()
+    ob.load_from_file(f'{TESTDATA_DIR}/edge_case.blueprint')
+    assert (
+      ob._plan['Plane.provenance.producer'] == (['IMAGESWV', 'ORIGIN'], 'Gemini Observatory')
+    ), f'wrong blueprint default {ob._plan["Plane.provenance.producer"]}'
+
+
 def _get_local_headers(file_name):
     return _get_headers(file_name, None)
 
