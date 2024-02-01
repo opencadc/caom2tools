@@ -146,8 +146,7 @@ GLOBAL_STORAGE_RESOURCE_ID = "ivo://cadc.nrc.ca/global/raven"
 
 
 class DispatchingFormatter:
-    """Dispatch formatter for logger and it's sub-logger, so there can
-    be multiple formatters."""
+    """Dispatch formatter for logger and it's sub-logger, so there can be multiple formatters."""
 
     def __init__(self, formatters, default_formatter):
         self._formatters = formatters
@@ -194,8 +193,8 @@ def get_vos_headers(uri, subject=None):
     Creates the FITS headers object from a vospace file.
     :param uri: vos URI
     :param subject: user credentials. Anonymous if subject is None
-    :return: List of headers corresponding to each extension. Each header is
-    of astropy.wcs.Header type - essentially a dictionary of FITS keywords.
+    :return: List of headers corresponding to each extension. Each header is of astropy.wcs.Header type - essentially
+      a dictionary of FITS keywords.
     """
     if uri.startswith('vos'):
         if subject is not None and subject.certificate is not None:
@@ -223,9 +222,8 @@ def _get_and_update_artifact_meta(uri, artifact, subject=None, connected=True, c
     logging.debug(f'Begin _get_and_update_artifact_meta for {uri}')
     file_url = urlparse(uri)
     if file_url.scheme == 'gemini' and '.jpg' not in file_url.path:
-        # will get file metadata from Gemini JSON summary for fits,
-        # because the metadata is available long before the data
-        # will be stored at CADC
+        # will get file metadata from Gemini JSON summary for fits, because the metadata is available long before
+        # the data will be stored at CADC
         return
     elif file_url.scheme == 'vos':
         metadata = _get_vos_meta(subject, uri)
@@ -298,8 +296,7 @@ def _get_vos_meta(subject, uri):
 
 def _lookup_blueprint(blueprints, uri):
     """
-    Blueprint handling may be one-per-observation, or one-per-URI. Find
-    the correct one here.
+    Blueprint handling may be one-per-observation, or one-per-URI. Find the correct one here.
     :param blueprints: The collection of blueprints provided by the user.
     :param uri: Which blueprint to look for
     :return: the blueprint to apply to Observation creation.
@@ -338,22 +335,19 @@ def _augment(
     **kwargs,
 ):
     """
-    Find or construct a plane and an artifact to go with the observation
-    under augmentation.
+    Find or construct a plane and an artifact to go with the observation under augmentation.
 
     :param obs: Observation - target of CAOM2 model augmentation
     :param product_id: Unique identifier for a plane in an Observation
     :param uri: Unique identifier for an artifact in a plane
-    :param blueprint: Which blueprint to use when mapping from a telescope
-        data model to CAOM2
+    :param blueprint: Which blueprint to use when mapping from a telescope data model to CAOM2
     :param subject: authorization for any metdata access
     :param dumpconfig: print the blueprint to stdout
-    :param validate_wcs: if true, call the validate method on the constructed
-        observation, which checks that the WCS in the CAOM model is valid,
+    :param validate_wcs: if true, call the validate method on the constructed observation, which checks that the WCS
+        in the CAOM model is valid,
     :param plugin: what code to use for modifying a CAOM instance
     :param local: the input is the name of a file on disk
-    :param external_url: if header information should be retrieved
-        externally, this is where to find it
+    :param external_url: if header information should be retrieved externally, this is where to find it
     :param client: StorageClientWrapper
     :return: an updated Observation
     """
@@ -397,8 +391,7 @@ def _augment(
                     parser = ContentParser(blueprint, uri)
             elif '.h5' in local:
                 logging.debug(f'Using an Hdf5Parser for local file {local}')
-                # h5py is an extra in this package since most collections do
-                # not require it
+                # h5py is an extra in this package since most collections do not require it
                 import h5py
 
                 temp = h5py.File(local)
@@ -456,11 +449,10 @@ def _augment(
 
 
 def _load_module(module):
-    """If a user provides code for execution during blueprint configuration,
-    add that code to the execution environment of the interpreter here.
+    """If a user provides code for execution during blueprint configuration, add that code to the execution
+    environment of the interpreter here.
 
-    :param module the fully-qualified path name to the source code from a
-        user.
+    :param module the fully-qualified path name to the source code from a user.
     """
     mname = os.path.basename(module)
     if '.' in mname:
@@ -482,12 +474,9 @@ def caom2gen():
         nargs='+',
         required=True,
         help=(
-            'list of files with blueprints for CAOM2 '
-            'construction, in serialized format. If the '
-            'list is of length 1, the same blueprint will '
-            'be applied to all lineage entries. Otherwise, '
-            'there must be a blueprint file per lineage '
-            'entry.'
+            'list of files with blueprints for CAOM2 construction, in serialized format. If the list is of length 1, '
+            'the same blueprint will be applied to all lineage entries. Otherwise, there must be a blueprint file '
+            'per lineage entry.'
         ),
     )
 
@@ -516,8 +505,7 @@ def caom2gen():
             product_id, uri = _extract_ids(cardinality)
             blueprints[uri] = blueprint
     else:
-        # there needs to be the same number of blueprints as plane/artifact
-        # identifiers
+        # there needs to be the same number of blueprints as plane/artifact identifiers
         if len(args.lineage) != len(args.blueprint):
             logging.debug(f'Lineage: {args.lineage}')
             logging.debug(f'Blueprints: {args.blueprint}')
@@ -551,16 +539,13 @@ def caom2gen():
 
 def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
     """
-    Determine whether to create a Simple or Derived Observation, or to
-    read an existing Observation from an input file.
+    Determine whether to create a Simple or Derived Observation, or to read an existing Observation from an input
+    file.
 
     :param obs_blueprints: Collection of blueprints provided to application.
-    :param in_obs_xml: Existing observation information, contains the
-        collection and obs_id values.
-    :param collection: This plus the obs_id is a unique key for an
-        observation.
-    :param obs_id: This plus the collection is a unique key for an
-        observation.
+    :param in_obs_xml: Existing observation information, contains the collection and obs_id values.
+    :param collection: This plus the obs_id is a unique key for an observation.
+    :param obs_id: This plus the collection is a unique key for an observation.
     :return: Initially constructed Observation.
     """
     obs = None
@@ -569,9 +554,8 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
         reader = ObservationReader(validate=True)
         obs = reader.read(in_obs_xml)
     else:
-        # determine the type of observation to create by looking for the
-        # the DerivedObservation.members in the blueprints. If present
-        # in any of it assume derived
+        # determine the type of observation to create by looking for the the DerivedObservation.members in the
+        # blueprints. If present in any of it assume derived
         for bp in obs_blueprints.values():
             if bp._get('DerivedObservation.members') is not None:
                 logging.debug('Build a DerivedObservation')
@@ -631,8 +615,7 @@ def _set_logging(verbose, debug, quiet):
 
 def _get_common_arg_parser():
     """
-    Returns the arg parser with common arguments between
-    fits2caom2 and caom2gen
+    Returns the arg parser with common arguments between fits2caom2 and caom2gen
     :return: args parser
     """
     parser = util.get_base_parser(
@@ -655,9 +638,8 @@ def _get_common_arg_parser():
         '--no_validate',
         action='store_true',
         help=(
-            'by default, the application will validate the '
-            'WCS information for an observation. '
-            'Specifying this flag skips that step.'
+            'by default, the application will validate the WCS information for an observation. Specifying this flag '
+            'skips that step.'
         ),
     )
 
@@ -682,8 +664,7 @@ def _get_common_arg_parser():
 
 def get_arg_parser():
     """
-    Returns the arg parser with minimum arguments required to run
-    fits2caom2
+    Returns the arg parser with minimum arguments required to run fits2caom2
     :return: args parser
     """
     parser = _get_common_arg_parser()
@@ -694,21 +675,17 @@ def get_arg_parser():
 
 def proc(args, obs_blueprints):
     """
-    Function to process an observation according to command line arguments
-    and a dictionary of blueprints.
+    Function to process an observation according to command line arguments and a dictionary of blueprints.
 
-    This implementation mirrors the Java implementation of fits2caom2, and
-    the command line arguments it handles are productID and fileURI or
-    local.
+    This implementation mirrors the Java implementation of fits2caom2, and the command line arguments it
+    handles are productID and fileURI or local.
 
-    There is no support for plugin execution to modify the blueprint with
-    this access point.
+    There is no support for plugin execution to modify the blueprint with this access point.
 
-    :param args: argparse args object containing the user supplied arguments.
-    Arguments correspond to the parser returned by the get_arg_parser function
-    :param obs_blueprints: dictionary of blueprints reguired to process the
-    observation. The fileURIs represent the keys in this dictionary. Every
-    fileURI in args.fileURI should have a corresponding blueprint.
+    :param args: argparse args object containing the user supplied arguments. Arguments correspond to the parser
+        returned by the get_arg_parser function
+    :param obs_blueprints: dictionary of blueprints reguired to process the observation. The fileURIs represent the
+        keys in this dictionary. Every fileURI in args.fileURI should have a corresponding blueprint.
     :return:
     """
 
@@ -727,10 +704,9 @@ def proc(args, obs_blueprints):
 
     if args.in_obs_xml and len(obs.planes) != 1:
         if not args.productID:
-            msg = '{}{}{}'.format(
-                'A productID parameter is required if ',
-                'there are zero or more than one planes ',
-                'in the input observation.',
+            msg = (
+                'A productID parameter is required if there are zero or more than one planes in the input '
+                'observation.',
             )
             raise RuntimeError(msg)
 
@@ -783,12 +759,10 @@ def _load_plugin(plugin_name):
 
     if not hasattr(plgin, 'update'):
         msg = (
-            'The plugin {} is not correct.  It must provide one '
-            'of:\n'
+            f'The plugin {plugin_name} is not correct.  It must provide one of:\n'
             '1 - a function named update, or\n'
-            '2 - a class ObservationUpdater with a function named '
-            'update.\n In either case, the update signature needs '
-            'to be (Observation, **kwargs).'.format(plugin_name)
+            '2 - a class ObservationUpdater with a function named update.\n '
+            'In either case, the update signature needs to be (Observation, **kwargs).'
         )
         raise ImportError(msg)
     return plgin
@@ -837,10 +811,8 @@ def _write_observation(obs, args):
 
 
 def gen_proc(args, blueprints, **kwargs):
-    """The implementation that expects a product ID to be provided as
-    part of the lineage parameter, and blueprints as input parameters,
-    and a plugin parameter, that supports external programmatic blueprint
-    modification."""
+    """The implementation that expects a product ID to be provided as part of the lineage parameter, and blueprints
+    as input parameters, and a plugin parameter, that supports external programmatic blueprint modification."""
     _set_logging(args.verbose, args.debug, args.quiet)
     result = 0
 
@@ -863,9 +835,8 @@ def gen_proc(args, blueprints, **kwargs):
             # if the resource_id is Undefined, using CadcDataClient
             client = data_util.StorageClientWrapper(subject, using_storage_inventory=False)
         else:
-            # if the resource_id is defined, assume that the caller intends to
-            # use the Storage Inventory system, as it's the CADC storage
-            # client that depends on a resource_id
+            # if the resource_id is defined, assume that the caller intends to use the Storage Inventory system, as
+            # it's the CADC storage client that depends on a resource_id
             client = data_util.StorageClientWrapper(subject, resource_id=args.resource_id)
 
     for ii, cardinality in enumerate(args.lineage):
@@ -920,8 +891,7 @@ def gen_proc(args, blueprints, **kwargs):
 
 def get_gen_proc_arg_parser():
     """
-    Returns the arg parser with minimum arguments required to run
-    caom2gen
+    Returns the arg parser with minimum arguments required to run caom2gen
     :return: args parser
     """
     parser = _get_common_arg_parser()
@@ -929,60 +899,40 @@ def get_gen_proc_arg_parser():
         '--external_url',
         nargs='+',
         help=(
-            'service endpoint(s) that '
-            'return(s) a string that can be '
-            'made into FITS headers. Cardinality should'
+            'service endpoint(s) that return(s) a string that can be made into FITS headers. Cardinality should '
             'be consistent with lineage.'
         ),
     )
     parser.add_argument(
         '--module',
         help=(
-            'if the blueprint contains function '
-            'calls, call '
-            'importlib.import_module '
-            'for the named module. Provide a '
-            'fully qualified name. Parameter '
-            'choices are the artifact URI (uri) '
-            'or a list of astropy Header '
-            'instances (header). This will '
-            'allow the update of a single '
-            'blueprint entry with a single '
-            'call.'
+            'if the blueprint contains function calls, call importlib.import_module for the named module. Provide a '
+            'fully qualified name. Parameter choices are the artifact URI (uri) or a list of astropy Header '
+            'instances (header). This will allow the update of a single blueprint entry with a single call.'
         ),
     )
     parser.add_argument(
         '--plugin',
         help=(
-            'if this parameter is specified, '
-            'call importlib.import_module '
-            'for the named module. Then '
-            'execute the method "update", '
-            'with the signature '
-            '(Observation, **kwargs). '
-            'This will allow '
-            'for the update of multiple '
-            'observation data members with one '
-            'call.'
+            'if this parameter is specified, call importlib.import_module for the named module. Then execute the '
+            'method "update", with the signature (Observation, **kwargs). This will allow for the update of '
+            'multiple observation data members with one call.'
         ),
     )
     parser.add_argument(
         '--lineage',
         nargs='+',
         help=(
-            'productID/artifactURI. List of plane/artifact '
-            'identifiers that will be'
-            'created for the identified observation.'
+            'productID/artifactURI. List of plane/artifact identifiers that will be created for the identified '
+            'observation.'
         ),
     )
     parser.add_argument(
         '--use_blueprint_parser',
         nargs='+',
         help=(
-            'productID/artifactURI. List of lineage entries '
-            'that will be processed with a BlueprintParser. '
-            'Good for files with no metadata in the '
-            'content.'
+            'productID/artifactURI. List of lineage entries that will be processed with a BlueprintParser. '
+            'Good for files with no metadata in the content.'
         ),
     )
     return parser
@@ -1009,10 +959,9 @@ def augment(
     _set_logging(verbose, debug, quiet)
     logging.debug('Begin augmentation for product_id {}, uri {}'.format(product_id, uri))
 
-    # The 'visit_args' are a dictionary within the 'params' dictionary.
-    # They are set by the collection-specific implementation, as they are
-    # dependent on that collection-specific implementation. The args to the
-    # visit function are not set in fits2caom2.
+    # The 'visit_args' are a dictionary within the 'params' dictionary. They are set by the collection-specific
+    # implementation, as they are dependent on that collection-specific implementation. The args to the visit
+    # function are not set in fits2caom2.
 
     params = kwargs.get('params')
     kwargs = {}
