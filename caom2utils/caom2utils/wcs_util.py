@@ -102,9 +102,8 @@ class TimeUtil:
         TimeUtil.validate_wcs(temporal_wcs)
 
         # TODO: (comment pulled from Java code):
-        # if mjdref has a value then the units of axis values could be any time
-        # units, like days, hours, minutes, seconds, and smaller
-        # since they are offsets from mjdref
+        # if mjdref has a value then the units of axis values could be any time units, like days, hours, minutes,
+        # seconds, and smaller since they are offsets from mjdref
         a = range_1d.start.val
         b = range_1d.end.val
         if b < a:
@@ -121,18 +120,15 @@ class TimeUtil:
         try:
             TimeUtil.validate_wcs(temporal_wcs)
             # // TODO: (comment pulled from Java code):
-            # if mjdref has a value then the units of axis values could be
-            # any time
-            # // units, like days, hours, minutes, seconds, and smaller
-            # // since they are offsets from mjdref
+            # if mjdref has a value then the units of axis values could be any time units, like days, hours, minutes,
+            # seconds, and smaller since they are offsets from mjdref
 
             # PD - 16-04-20
-            # technically there is nothing wrong with a WCS axis that
-            # decreases in coord values while increasing in pixel values
-            # (it's just a line with negative slope).
+            # technically there is nothing wrong with a WCS axis that decreases in coord values while increasing in
+            # pixel values # (it's just a line with negative slope).
             #
-            # the computation of the time bounds interval sorts out the
-            # min/max so it also doesn't care about the "direction"
+            # the computation of the time bounds interval sorts out the min/max so it also doesn't care about the
+            # "direction"
 
             p1 = float(0.5)
             p2 = float(function_1d.naxis + 0.5)
@@ -169,9 +165,8 @@ class TimeUtil:
 
 class CustomAxisUtil:
     """
-    Utility class for Custom calculations. Ported from the Java version
-    of CustomAxisUtil. Additional functions were ported from
-    caom2/compute/Util.java
+    Utility class for Custom calculations. Ported from the Java version of CustomAxisUtil. Additional functions were
+    ported from caom2/compute/Util.java
     """
 
     ctype_cunit_map = {"FARADAY": "rad/m**2", "RM": "rad/m**2"}
@@ -204,8 +199,7 @@ class CustomAxisUtil:
                     tmp.append(sample)
                     samples.pop(0)
 
-            # Merge all overlapping sub-intervals
-            # compute the outer bounds of the sub-intervals
+            # Merge all overlapping sub-intervals compute the outer bounds of the sub-intervals
             if len(tmp) > 0:
                 lb = si.lower
                 ub = si.upper
@@ -605,13 +599,10 @@ class EnergyUtil:
     def range1d_to_interval(range_1d):
         a = float(range_1d.start.val)
         b = float(range_1d.end.val)
-        #  The energy converter work done in the Java code is skipped here.
-        #  Doing it here introduced some precision errors which lead to false
-        #  invalids. Ignoring the units for validation sounds like it's ok,
-        #  as long as the same values come out of the p2s, s2p calculations
-        #  in the main validator code. It's assumed that doing the
-        #  conversions in the native units is sufficient, as long as the
-        #  values are the same after p2s -> s2p is done.
+        # The energy converter work done in the Java code is skipped here. Doing it here introduced some precision
+        # errors which lead to false invalids. Ignoring the units for validation sounds like it's ok, as long as the
+        # same values come out of the p2s, s2p calculations in the main validator code. It's assumed that doing the
+        # conversions in the native units is sufficient, as long as the values are the same after p2s -> s2p is done.
 
         return shape.SubInterval(min(a, b), max(a, b))
 
@@ -634,21 +625,18 @@ class PolarizationWcsUtil:
     @staticmethod
     def get_keys(range):
         """
-        Examines the lower bound (lb) and upper bound (ub) of
-        PolarizationWCS.axis.range and returns range(lb, ub+1) if a range is
-        defined, else returns None. Since Python range iterates over [lb,ub),
-        the returned range is ub+1 to ensure that ub is included in the
-        range iteration.
+        Examines the lower bound (lb) and upper bound (ub) of PolarizationWCS.axis.range and returns range(lb, ub+1)
+        if a range is defined, else returns None. Since Python range iterates over [lb,ub), the returned range is
+        ub+1 to ensure that ub is included in the range iteration.
         """
         return PolarizationWcsUtil()._get_range(range)
 
     @staticmethod
     def get_ranges_from_bounds(bounds):
         """
-        Examines the ranges in PolarizationWCS.axis.bounds and returns the
-        list of ranges in the bounds if the bounds is defined, else returns
-        an empty list. The upper bound of each range is incremented by 1
-        (refer to comments for get_range above)
+        Examines the ranges in PolarizationWCS.axis.bounds and returns the list of ranges in the bounds if the
+        bounds is defined, else returns an empty list. The upper bound of each range is incremented by 1 (refer to
+        comments for get_range above)
         """
         ranges = []
         if bounds is not None:
@@ -661,10 +649,9 @@ class PolarizationWcsUtil:
     @staticmethod
     def get_range_from_function(function):
         """
-        Examines the ranges in PolarizationWCS.axis.function and returns a
-        range from 1 to Naxis+1 if the function is defined, else returns
-        None. The upper bound of the range is incremented by 1 (refer to
-        comments for get_range above)
+        Examines the ranges in PolarizationWCS.axis.function and returns a range from 1 to Naxis+1 if the function
+        is defined, else returns None. The upper bound of the range is incremented by 1 (refer to comments for
+        get_range above)
         """
         if function is not None:
             if function.naxis >= 1:

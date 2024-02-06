@@ -232,9 +232,8 @@ class ValidateWCSTests(unittest.TestCase):
         with pytest.raises(InvalidWCSError):
             validate_wcs(c)
 
-        # Not probably reasonable Chunks, but should still be valid
-        # Different combinations of this will be represented in
-        # different data sets
+        # Not probably reasonable Chunks, but should still be valid. Different combinations of this will be
+        # represented in different data sets
         c.position = None
         c.position_axis_1 = None
         c.position_axis_2 = None
@@ -457,9 +456,8 @@ class SpatialTestUtil:
         # double ds = 1.0;
         return SpatialTestUtil.get_test_function(px, py, sx, sy, False)
 
-    # This is in the java code, but without the toPolygon function in python
-    # is possibly irrelevant here. With the basic validator this will produce
-    # a good WCS value.
+    # This is in the java code, but without the toPolygon function in python is possibly irrelevant here. With the
+    # basic validator this will produce a good WCS value.
     @staticmethod
     def bad_wcs():
         axis1 = wcs.Axis("RA---TAN", "deg")
@@ -514,8 +512,8 @@ class PolarizationTestUtil:
         return None
 
 
-# There's got to be a better way to do this, but of the 2 ways I tried,
-# none is really great. Leaving these here for now.
+# There's got to be a better way to do this, but of the 2 ways I tried, none is really great. Leaving these here for
+# now.
 BANDPASS_NAME = "H-Alpha-narrow"
 TRANSITION = wcs.EnergyTransition("H", "alpha")
 

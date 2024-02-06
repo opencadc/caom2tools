@@ -67,8 +67,8 @@
 #
 
 """
-validate performs a validation on a CAOM2 element. By default deep=True
-triggering a validation of all the sub-elements in the CAOM2 tree.
+validate performs a validation on a CAOM2 element. By default deep=True triggering a validation of all the
+sub-elements in the CAOM2 tree.
 """
 
 
@@ -91,8 +91,8 @@ def validate(caom2_entity, deep=True):
 
     Throws AssertionError if validation fails.
 
-    :param caom2_entity: CAOM element to perform the validation on. It
-    could be Observation, Plane, Artifact, Part or Chunk
+    :param caom2_entity: CAOM element to perform the validation on. It could be Observation, Plane, Artifact, Part
+        or Chunk
     :param deep if True, also validate the 'has-a' members of an element.
     """
     if caom2_entity is not None:
@@ -114,11 +114,10 @@ def _validate_observation(caom2_entity, deep=True):
     """
     Perform validation of the content of an Observation.
 
-    Throws AssertionError if the keywords that are members of various
-    observation and plane metadata do not meet structure criteria.
+    Throws AssertionError if the keywords that are members of various observation and plane metadata do not meet
+    structure criteria.
 
-    :param caom2_entity: The Observation (SimpleObservation or
-        CompositeObservation) to validate.
+    :param caom2_entity: The Observation (SimpleObservation or DerivedObservation) to validate.
     :param deep if True, also validate the 'has-a' members of an Observation.
     """
     _check_param(caom2_entity, Observation)
@@ -139,8 +138,7 @@ def _validate_plane(caom2_entity, deep=True):
     """
     Perform validation of the content of a Plane.
 
-    Throws AssertionError if the members of the plane metadata do not meet
-    structure criteria.
+    Throws AssertionError if the members of the plane metadata do not meet structure criteria.
 
     :param caom2_entity: The Plane to validate.
     :param deep if True, also validate the 'has-a' members of a Plane.
@@ -160,8 +158,7 @@ def _validate_artifact(caom2_entity, deep=True):
     """
     Perform validation of the content of an Artifact.
 
-    Throws AssertionError if the members of the artifact metadata do not meet
-    structure criteria.
+    Throws AssertionError if the members of the artifact metadata do not meet structure criteria.
 
     :param caom2_entity: The Artifact to validate.
     """
@@ -175,8 +172,7 @@ def _validate_part(caom2_entity, deep=True):
     """
     Perform validation of the content of a Part.
 
-    Throws AssertionError if the members of the part metadata do not meet
-    structure criteria.
+    Throws AssertionError if the members of the part metadata do not meet structure criteria.
 
     :param caom2_entity: The Part to validate.
     """
@@ -190,8 +186,7 @@ def _validate_chunk(caom2_entity):
     """
     Perform validation of the content of a Chunk.
 
-    Throws AssertionError if the members of the chunk metadata do not meet
-    structure criteria.
+    Throws AssertionError if the members of the chunk metadata do not meet structure criteria.
 
     :param caom2_entity: The Chunk to validate.
     """

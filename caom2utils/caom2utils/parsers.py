@@ -84,8 +84,7 @@ from caom2utils.wcs_parsers import FitsWcsParser, Hdf5WcsParser, WcsParser
 
 
 class Caom2Exception(Exception):
-    """Exception raised when an attempt to create or update a CAOM2 record
-    fails for some reason."""
+    """Exception raised when an attempt to create or update a CAOM2 record fails for some reason."""
 
     pass
 
@@ -259,16 +258,12 @@ class BlueprintParser:
         ):
             value = keywords
         elif self._blueprint.update:
-            # The first clause: boolean attributes are used to represent
-            # three different values: True, False, and unknown. For boolean
-            # attributes _only_ assessed that the risk of setting to None
-            # accidentally was better than being unable to set a value of
-            # 'unknown'.
+            # The first clause: boolean attributes are used to represent three different values: True, False, and
+            # unknown. For boolean attributes _only_ assessed that the risk of setting to None accidentally was
+            # better than being unable to set a value of 'unknown'.
             #
-            # The second clause: the default value for the current parameter
-            # in the method signature is 'None', so do not want to
-            # inadvertently assign the default value.
-            #
+            # The second clause: the default value for the current parameter in the method signature is 'None', so
+            # do not want to inadvertently assign the default value.
             if isinstance(value, bool) or current is not None:
                 value = current
 
@@ -284,8 +279,7 @@ class BlueprintParser:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(f'Could not find \'{lookup}\' in caom2blueprint ' f'configuration.')
 
-        # if there's something useful as a value in the keywords,
-        # extract it
+        # if there's something useful as a value in the keywords, extract it
         if keywords:
             if ObsBlueprint.needs_lookup(keywords):
                 # if there's a default value use it
@@ -321,16 +315,14 @@ class BlueprintParser:
             return to_enum_type(value)
 
     def _execute_external(self, value, key, extension):
-        """Execute a function supplied by a user, assign a value to a
-        blueprint entry. The input parameters passed to the function are the
-        headers as read in by astropy, or the artifact uri.
+        """Execute a function supplied by a user, assign a value to a blueprint entry. The input parameters passed
+        to the function are the headers as read in by astropy, or the artifact uri.
 
         :param value the name of the function to apply.
         :param key:
         :param extension: the current extension name or number.
         """
-        # determine which of the possible values for parameter the user
-        # is hoping for
+        # determine which of the possible values for parameter the user is hoping for
         if 'uri' in value:
             parameter = self.uri
         elif 'header' in value and isinstance(self, FitsParser):
@@ -368,18 +360,15 @@ class BlueprintParser:
         return result
 
     def _execute_external_instance(self, value, key, extension):
-        """Execute a function supplied by a user, assign a value to a
-        blueprint entry. The input parameters passed to the function are the
-        headers as read in by astropy, or the artifact uri.
+        """Execute a function supplied by a user, assign a value to a blueprint entry. The input parameters passed
+        to the function are the headers as read in by astropy, or the artifact uri.
 
         :param value the name of the function to apply.
         :param key:
         :param extension: the current extension name or number.
-        :raise Caom2Exception exception raised when there is a recognizable
-            error in the information being used to create a CAOM2 record. A
-            correct and consistent CAOM2 record cannot be created from the
-            input metadata. The client should treat the Observation instance
-            under construction as invalid.
+        :raise Caom2Exception exception raised when there is a recognizable error in the information being used to
+            create a CAOM2 record. A correct and consistent CAOM2 record cannot be created from the input metadata.
+            The client should treat the Observation instance under construction as invalid.
         """
         result = ''
         try:
@@ -399,10 +388,9 @@ class BlueprintParser:
             self.logger.debug('Key {} calculated value of {} using {}'.format(key, result, value))
         except ValueError as e2:
             # DB 23-03-22
-            # Anything that you can do to make the CAOM2 record creation fail
-            # in this case of bad WCS metadata would be useful. Use
-            # ValueError because that happens to be what astropy is throwing
-            # for a SkyCoord construction failure.
+            # Anything that you can do to make the CAOM2 record creation fail in this case of bad WCS metadata would
+            # be useful. Use ValueError because that happens to be what astropy is throwing for a SkyCoord
+            # construction failure.
             raise Caom2Exception(e2)
         except Exception as e:
             msg = 'Failed to execute {} for {} in {}'.format(execute, key, self.uri)
@@ -482,8 +470,7 @@ class ContentParser(BlueprintParser):
             part.product_type = self._get_from_list('Part.productType', index)
             part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
 
-            # each Part has one Chunk, if it's not an empty part as determined
-            # just previously
+            # each Part has one Chunk, if it's not an empty part as determined just previously
             if not part.chunks:
                 part.chunks.append(caom2.Chunk())
             chunk = part.chunks[0]
@@ -592,8 +579,7 @@ class ContentParser(BlueprintParser):
 
     def _get_algorithm(self, obs):
         """
-        Create an Algorithm instance populated with available content
-        information.
+        Create an Algorithm instance populated with available content information.
         :return: Algorithm
         """
         self.logger.debug('Begin Algorithm augmentation.')
@@ -611,8 +597,7 @@ class ContentParser(BlueprintParser):
 
     def _get_energy_transition(self, current):
         """
-        Create an EnergyTransition instance populated with available content
-        information.
+        Create an EnergyTransition instance populated with available content information.
         :return: EnergyTransition
         """
         self.logger.debug('Begin EnergyTransition augmentation.')
@@ -630,10 +615,8 @@ class ContentParser(BlueprintParser):
 
     def _get_environment(self, current):
         """
-        Create an Environment instance populated with available content
-        information.
-        :current Environment instance, if one already exists in the
-            Observation
+        Create an Environment instance populated with available content information.
+        :current Environment instance, if one already exists in the Observation
         :return: Environment
         """
         self.logger.debug('Begin Environment augmentation.')
@@ -685,8 +668,7 @@ class ContentParser(BlueprintParser):
 
     def _get_instrument(self, current):
         """
-        Create an Instrument instance populated with available content
-        information.
+        Create an Instrument instance populated with available content information.
         :return: Instrument
         """
         self.logger.debug('Begin Instrument augmentation.')
@@ -794,8 +776,7 @@ class ContentParser(BlueprintParser):
         return metrics
 
     def _get_axis_wcs(self, label, wcs, index):
-        """Helper function to construct a CoordAxis1D instance, with all
-        it's members, from the blueprint.
+        """Helper function to construct a CoordAxis1D instance, with all it's members, from the blueprint.
 
         :param label: axis name - must be one of 'custom', 'energy', 'time', or 'polarization', as it's used for the
             blueprint lookup.
@@ -856,8 +837,7 @@ class ContentParser(BlueprintParser):
 
     def _get_observable(self, current):
         """
-        Create a Observable instance populated with available content
-        information.
+        Create a Observable instance populated with available content information.
         :return: Observable
         """
         self.logger.debug('Begin Observable augmentation.')
@@ -868,8 +848,7 @@ class ContentParser(BlueprintParser):
 
     def _get_proposal(self, current):
         """
-        Create a Proposal instance populated with available content
-        information.
+        Create a Proposal instance populated with available content information.
         :return: Proposal
         """
         self.logger.debug('Begin Proposal augmentation.')
@@ -895,8 +874,7 @@ class ContentParser(BlueprintParser):
 
     def _get_provenance(self, current):
         """
-        Create a Provenance instance populated with available Content
-        information.
+        Create a Provenance instance populated with available Content information.
         :return: Provenance
         """
         self.logger.debug('Begin Provenance augmentation.')
@@ -966,8 +944,7 @@ class ContentParser(BlueprintParser):
 
     def _get_requirements(self, current):
         """
-        Create a Requirements instance populated with available content
-        information.
+        Create a Requirements instance populated with available content information.
         :return: Requirements
         """
         self.logger.debug('Begin Requirement augmentation.')
@@ -1018,8 +995,7 @@ class ContentParser(BlueprintParser):
 
     def _get_target_position(self, current):
         """
-        Create a Target Position instance populated with available content
-        information.
+        Create a Target Position instance populated with available content information.
         :return: Target Position
         """
         self.logger.debug('Begin CAOM2 TargetPosition augmentation.')
@@ -1049,8 +1025,7 @@ class ContentParser(BlueprintParser):
 
     def _get_telescope(self, current):
         """
-        Create a Telescope instance populated with available content
-        information.
+        Create a Telescope instance populated with available content information.
         :return: Telescope
         """
         self.logger.debug('Begin Telescope augmentation.')
@@ -1095,8 +1070,8 @@ class ContentParser(BlueprintParser):
         if isinstance(from_value, bool):
             return from_value
         result = None
-        # so far, these are the only options that are coming in from the
-        # config files - may need to add more as more types are experienced
+        # so far, these are the only options that are coming in from the config files - may need to add more as
+        # more types are experienced
         if from_value == 'false':
             result = False
         elif from_value == 'true':
@@ -1124,13 +1099,11 @@ class ContentParser(BlueprintParser):
 
     def _try_energy_with_blueprint(self, chunk, index):
         """
-        A mechanism to augment the Energy WCS completely from the blueprint.
-        Do nothing if the WCS information cannot be correctly created.
+        A mechanism to augment the Energy WCS completely from the blueprint. Do nothing if the WCS information
+        cannot be correctly created.
 
-        :param chunk: The chunk to modify with the addition of energy
-            information.
-        :param index: The index in the blueprint for looking up plan
-            information.
+        :param chunk: The chunk to modify with the addition of energy information.
+        :param index: The index in the blueprint for looking up plan information.
         """
         self.logger.debug('Begin augmentation with blueprint for energy.')
         aug_axis, aug_naxis_index = self._get_axis_wcs('energy', chunk.energy, index)
@@ -1165,14 +1138,11 @@ class ContentParser(BlueprintParser):
 
     def _try_observable_with_blueprint(self, chunk, index):
         """
-        A mechanism to augment the Observable WCS completely from the
-        blueprint. Do nothing if the WCS information cannot be correctly
-        created.
+        A mechanism to augment the Observable WCS completely from the blueprint. Do nothing if the WCS information
+        cannot be correctly created.
 
-        :param chunk: The chunk to modify with the addition of observable
-            information.
-        :param index: The index in the blueprint for looking up plan
-            information.
+        :param chunk: The chunk to modify with the addition of observable information.
+        :param index: The index in the blueprint for looking up plan information.
         """
         self.logger.debug('Begin augmentation with blueprint for ' 'observable.')
         aug_axis = self._two_param_constructor(
@@ -1190,14 +1160,11 @@ class ContentParser(BlueprintParser):
 
     def _try_polarization_with_blueprint(self, chunk, index):
         """
-        A mechanism to augment the Polarization WCS completely from the
-        blueprint. Do nothing if the WCS information cannot be correctly
-        created.
+        A mechanism to augment the Polarization WCS completely from the blueprint. Do nothing if the WCS information
+        cannot be correctly created.
 
-        :param chunk: The chunk to modify with the addition of polarization
-            information.
-        :param index: The index in the blueprint for looking up plan
-            information.
+        :param chunk: The chunk to modify with the addition of polarization information.
+        :param index: The index in the blueprint for looking up plan information.
         """
         self.logger.debug('Begin augmentation with blueprint for ' 'polarization.')
         aug_axis, aug_naxis_index = self._get_axis_wcs('polarization', chunk.polarization, index)
@@ -1252,13 +1219,11 @@ class ContentParser(BlueprintParser):
 
     def _try_position_with_blueprint(self, chunk, index):
         """
-        A mechanism to augment the Position WCS completely from the blueprint.
-        Do nothing if the WCS information cannot be correctly created.
+        A mechanism to augment the Position WCS completely from the blueprint. Do nothing if the WCS information
+        cannot be correctly created.
 
-        :param chunk: The chunk to modify with the addition of position
-            information.
-        :param index: The index in the blueprint for looking up plan
-            information.
+        :param chunk: The chunk to modify with the addition of position information.
+        :param index: The index in the blueprint for looking up plan information.
         """
         self.logger.debug('Begin augmentation with blueprint for position.')
         aug_axis = None
@@ -1394,13 +1359,11 @@ class ContentParser(BlueprintParser):
 
     def _try_time_with_blueprint(self, chunk, index):
         """
-        A mechanism to augment the Time WCS completely from the blueprint.
-        Do nothing if the WCS information cannot be correctly created.
+        A mechanism to augment the Time WCS completely from the blueprint. Do nothing if the WCS information cannot
+        be correctly created.
 
-        :param chunk: The chunk to modify with the addition of time
-            information.
-        :param index: The index in the blueprint for looking up plan
-            information.
+        :param chunk: The chunk to modify with the addition of time information.
+        :param index: The index in the blueprint for looking up plan information.
         """
         self.logger.debug('Begin augmentation with blueprint for temporal.')
 
@@ -1426,19 +1389,14 @@ class ContentParser(BlueprintParser):
 
     def _two_param_constructor(self, lookup1, lookup2, index, to_type, ctor):
         """
-        Helper function to build from the blueprint, a CAOM2 entity that
-        has two required parameters.
+        Helper function to build from the blueprint, a CAOM2 entity that has two required parameters.
 
-        :param lookup1: Blueprint lookup text for the first constructor
-            parameter.
-        :param lookup2: Blueprint lookup text for the second constructor
-            parameter.
+        :param lookup1: Blueprint lookup text for the first constructor parameter.
+        :param lookup2: Blueprint lookup text for the second constructor parameter.
         :param index:  Which index in the blueprint to do the lookup on.
-        :param to_type: Function to cast the blueprint value to a particular
-            type.
+        :param to_type: Function to cast the blueprint value to a particular type.
         :param ctor: The constructor that has two parameters to build.
-        :return: The instance returned by the constructor, or None if any of
-            the values are undefined.
+        :return: The instance returned by the constructor, or None if any of the values are undefined.
         """
         param1 = to_type(self._get_from_list(lookup1, index))
         param2 = to_type(self._get_from_list(lookup2, index))
@@ -1458,8 +1416,7 @@ class ContentParser(BlueprintParser):
     @staticmethod
     def _add_keywords(keywords, current, to_set):
         """
-        Common code for adding keywords to a CAOM2 entity, capturing all
-        the weird metadata cases that happen at CADC.
+        Common code for adding keywords to a CAOM2 entity, capturing all the weird metadata cases that happen at CADC.
 
         :param keywords: Keywords to add to a CAOM2 set.
         :param current: Existing CAOM2 entity with a keywords attribute.
@@ -1483,26 +1440,23 @@ class ContentParser(BlueprintParser):
 
 class FitsParser(ContentParser):
     """
-    Parses a FITS file and extracts the CAOM2 related information which can
-    be used to augment an existing CAOM2 observation, plane or artifact. The
-    constructor takes either a FITS file as argument or a list of dictionaries
+    Parses a FITS file and extracts the CAOM2 related information which can be used to augment an existing CAOM2
+    observation, plane or artifact. The constructor takes either a FITS file as argument or a list of dictionaries
     (FITS keyword=value) corresponding to each extension.
 
-    The WCS-related keywords of the FITS file are consumed by the astropy.wcs
-    package which might display warnings with regards to compliance.
+    The WCS-related keywords of the FITS file are consumed by the astropy.wcs package which might display warnings
+    with regards to compliance.
 
     Example 1:
     parser = FitsParser(input = '/staging/700000o.fits.gz')
     ...
     # customize parser.headers by deleting, changing or adding attributes
 
-    obs = Observation(collection='TEST', observation_id='700000',
-                      algorithm='exposure')
+    obs = Observation(collection='TEST', observation_id='700000', algorithm='exposure')
     plane = Plane(plane_id='700000-1')
     obs.plane.add(plane)
 
-    artifact = Artifact(uri='ad:CFHT/700000o.fits.gz', product_type='science',
-                        release_type='data')
+    artifact = Artifact(uri='ad:CFHT/700000o.fits.gz', product_type='science', release_type='data')
     plane.artifacts.add(artifact)
 
     parser.augment_observation(obs)
@@ -1524,8 +1478,8 @@ class FitsParser(ContentParser):
     def __init__(self, src, obs_blueprint=None, uri=None):
         """
         Ctor
-        :param src: List of headers (dictionary of FITS keywords:value) with
-        one header for each extension or a FITS input file.
+        :param src: List of headers (dictionary of FITS keywords:value) with one header for each extension or a FITS
+            input file.
         :param obs_blueprint: externally provided blueprint
         :param uri: which artifact augmentation is based on
         """
@@ -1552,8 +1506,7 @@ class FitsParser(ContentParser):
     @property
     def headers(self):
         """
-        List of headers where each header should allow dictionary like
-        access to the FITS attribute in that header
+        List of headers where each header should allow dictionary like access to the FITS attribute in that header
         :return:
         """
         return self._headers
@@ -1645,16 +1598,14 @@ class FitsParser(ContentParser):
                                 and keyword == keywords
                                 and keywords == value[0][-1]  # checking a string
                             ):  # last item
-                                # apply a default if a value does not already
-                                # exist, and all possible values of
+                                # apply a default if a value does not already exist, and all possible values of
                                 # keywords have been checked
                                 _set_by_type(header, keyword.strip(), value[1])
                                 logging.debug(
                                     '{}: set default value of {} in HDU {}.'.format(keyword, value[1], index)
                                 )
 
-        # TODO wcs in astropy ignores cdelt attributes when it finds a cd
-        # attribute even if it's in a different axis
+        # TODO wcs in astropy ignores cdelt attributes when it finds a cd attribute even if it's in a different axis
         for header in self.headers:
             cd_present = False
             for i in range(1, 6):
@@ -1666,12 +1617,9 @@ class FitsParser(ContentParser):
                     if f'CDELT{i}' in header and 'CD{0}_{0}'.format(i) not in header:
                         header['CD{0}_{0}'.format(i)] = header[f'CDELT{i}']
 
-        # TODO When a projection is specified, wcslib expects corresponding
-        # DP arguments with NAXES attributes. Normally, omitting the attribute
-        # signals no distortion which is the assumption in caom2blueprint for
-        # energy and polarization axes. Following is a workaround for
-        # SIP projections.
-        # For more details see:
+        # TODO When a projection is specified, wcslib expects corresponding DP arguments with NAXES attributes.
+        # Normally, omitting the attribute signals no distortion which is the assumption in caom2blueprint for
+        # energy and polarization axes. Following is a workaround for SIP projections. For more details see:
         # http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf
         for header in self.headers:
             sip = False
@@ -1711,11 +1659,9 @@ class FitsParser(ContentParser):
         self.logger.debug(f'End artifact augmentation for {artifact.uri}.')
 
     def _get_chunk_naxis(self, chunk, index=None):
-        # NOTE: astropy.wcs does not distinguished between WCS axes and
-        # data array axes. naxis in astropy.wcs represents in fact the
-        # number of WCS axes, whereas chunk.axis represents the naxis
-        # of the data array. Solution is to determine it directly from
-        # the header
+        # NOTE: astropy.wcs does not distinguished between WCS axes and data array axes. naxis in astropy.wcs
+        # represents in fact the number of WCS axes, whereas chunk.axis represents the naxis of the data array.
+        # Solution is to determine it directly from the header
         if 'ZNAXIS' in self._headers[index]:
             chunk.naxis = _to_int(self._headers[index]['ZNAXIS'])
         elif 'NAXIS' in self._headers[index]:
@@ -1753,8 +1699,7 @@ class FitsParser(ContentParser):
                         else:
                             value = current
             if value is None:
-                # checking current does not work in the general case,
-                # because current might legitimately be 'None'
+                # checking current does not work in the general case, because current might legitimately be 'None'
                 if self._blueprint.update:
                     if current is not None or (current is None and isinstance(value, bool)):
                         value = current
@@ -1783,8 +1728,8 @@ class FitsParser(ContentParser):
         """
         Return a space-delimited list of all the row values from a column.
 
-        This is a straight FITS BINTABLE lookup. There is no support for
-        default values. Unless someone provides a compelling use case.
+        This is a straight FITS BINTABLE lookup. There is no support for default values. Unless someone provides a
+        compelling use case.
 
         :param lookup: where to find the column name
         :param extension: which extension
@@ -1876,32 +1821,26 @@ class FitsParser(ContentParser):
 
 class Hdf5Parser(ContentParser):
     """
-    Parses an HDF5 file and extracts the CAOM2 related information which
-    can be used to augment an existing CAOM2 observation, plane, or artifact.
+    Parses an HDF5 file and extracts the CAOM2 related information which can be used to augment an existing CAOM2
+    observation, plane, or artifact.
 
-    If there is per-Chunk metadata in the file, the constructor parameter
-    'find_roots_here' is the address location in the file where the N Chunk
-    metadata starts.
+    If there is per-Chunk metadata in the file, the constructor parameter 'find_roots_here' is the address location
+    in the file where the N Chunk metadata starts.
 
-    The WCS-related keywords of the HDF5 files are used to create instances of
-    astropy.wcs.WCS so that verify might be called.
+    The WCS-related keywords of the HDF5 files are used to create instances of astropy.wcs.WCS so that verify might
+    be called.
 
-    There is no CADC support for the equivalent of the FITS --fhead parameter
-    for HDF5 files, which is why the name of the file on a local disk is
-    required.
+    There is no CADC support for the equivalent of the FITS --fhead parameter for HDF5 files, which is why the name
+    of the file on a local disk is required.
 
     How the classes work together for HDF5 files:
-    - build an HDF5ObsBlueprint, with _CAOM2_ELEMENT keys, and HDF5 metadata
-        path names as keys
-    - cache the metadata from an HDF5 file in the HDF5ObsBlueprint. This
-        caching is done in the "apply_blueprint_from_file" method in the
-        Hdf5Parser class, and replaces the path names in the blueprint with
-        the values from the HDF5 file. The caching is done so that all HDF5
-        file access is isolated to one point in time.
-    - use the cached metadata to build astropy.wcs instances for verification
-        in Hdf5WcsParser.
-    - use the astropy.wcs instance and other blueprint metadata to fill the
-        CAOM2 record.
+    - build an HDF5ObsBlueprint, with _CAOM2_ELEMENT keys, and HDF5 metadata path names as keys
+    - cache the metadata from an HDF5 file in the HDF5ObsBlueprint. This caching is done in the
+        "apply_blueprint_from_file" method in the Hdf5Parser class, and replaces the path names in the blueprint
+        with the values from the HDF5 file. The caching is done so that all HDF5 file access is isolated to one point
+        in time.
+    - use the cached metadata to build astropy.wcs instances for verification in Hdf5WcsParser.
+    - use the astropy.wcs instance and other blueprint metadata to fill the CAOM2 record.
     """
 
     def __init__(self, obs_blueprint, uri, h5_file, find_roots_here='sitedata'):
@@ -1914,12 +1853,11 @@ class Hdf5Parser(ContentParser):
         self._file = h5_file
         # where N Chunk metadata starts
         self._find_roots_here = find_roots_here
-        # the length of the array is the number of Parts in an HDF5 file,
-        # and the values are HDF5 lookup path names.
+        # the length of the array is the number of Parts in an HDF5 file, and the values are HDF5 lookup path names.
         self._extension_names = []
         super().__init__(obs_blueprint, uri)
-        # used to set the astropy wcs info, resulting in a validated wcs
-        # that can be used to construct a valid CAOM2 record
+        # used to set the astropy wcs info, resulting in a validated wcs that can be used to construct a valid CAOM2
+        # record
         self._wcs_parser = None
 
     def apply_blueprint_from_file(self):
@@ -1927,8 +1865,7 @@ class Hdf5Parser(ContentParser):
         Retrieve metadata from file, cache in the blueprint.
         """
         self.logger.debug('Begin apply_blueprint_from_file')
-        # h5py is an extra in this package since most collections do not
-        # require it
+        # h5py is an extra in this package since most collections do not require it
         import h5py
 
         individual, multi, attributes = self._extract_path_names_from_blueprint()
@@ -1936,8 +1873,8 @@ class Hdf5Parser(ContentParser):
 
         def _extract_from_item(name, object):
             """
-            Function signature dictated by h5py visititems implementation.
-            Executed for each dataset/group in an HDF5 file.
+            Function signature dictated by h5py visititems implementation. Executed for each dataset/group in an
+            HDF5 file.
 
             :param name: fully-qualified HDF5 path name
             :param object: what the HDF5 path name points to
@@ -1950,8 +1887,8 @@ class Hdf5Parser(ContentParser):
                     self._extension_names.append(temp)
                     self._blueprint._extensions[ii] = {}
 
-            # If it's the Part/Chunk metadata, capture it to extensions.
-            # Syntax of the keys described in Hdf5ObsBlueprint class.
+            # If it's the Part/Chunk metadata, capture it to extensions. Syntax of the keys described in
+            # Hdf5ObsBlueprint class.
             for part_index, part_name in enumerate(self._extension_names):
                 if name.startswith(part_name) and isinstance(object, h5py.Dataset) and object.dtype.names is not None:
                     for d_name in object.dtype.names:
@@ -1981,8 +1918,7 @@ class Hdf5Parser(ContentParser):
                                             part_index,
                                         )
 
-            # if it's Observation/Plane/Artifact metadata, capture it to
-            # the base blueprint
+            # if it's Observation/Plane/Artifact metadata, capture it to the base blueprint
             if isinstance(object, h5py.Dataset):
                 if object.dtype.names is not None:
                     for d_name in object.dtype.names:
@@ -2009,8 +1945,7 @@ class Hdf5Parser(ContentParser):
         self.logger.debug('Done apply_blueprint_from_file')
 
     def _extract_from_attrs(self, attributes):
-        # I don't currently see any way to have more than one Part, if relying on
-        # attrs for metadata
+        # I don't currently see any way to have more than one Part, if relying on attrs for metadata
         part_index = 0
         # v == list of blueprint keys
         for k, v in attributes.items():
@@ -2046,9 +1981,8 @@ class Hdf5Parser(ContentParser):
         self.logger.debug('Begin apply_blueprint')
         self.apply_blueprint_from_file()
 
-        # after the apply_blueprint_from_file call, all the metadata from the
-        # file has been applied to the blueprint, so now do the bits that
-        # require no access to file content
+        # after the apply_blueprint_from_file call, all the metadata from the file has been applied to the blueprint,
+        # so now do the bits that require no access to file content
 
         # pointers that are short to type
         exts = self._blueprint._extensions
@@ -2070,8 +2004,8 @@ class Hdf5Parser(ContentParser):
                         else:
                             exts[extension][key] = self._execute_external_instance(value, key, extension)
 
-        # blueprint already contains all the overrides, only need to make
-        # sure the overrides get applied to all the extensions
+        # blueprint already contains all the overrides, only need to make sure the overrides get applied to all the
+        # extensions
         for extension in exts:
             for key, value in exts[extension].items():
                 if (
@@ -2087,8 +2021,8 @@ class Hdf5Parser(ContentParser):
                 exts[extension][key] = value
                 self.logger.debug(f'{key}: set to {value} in extension {extension}')
 
-        # if no values have been set by file lookups, function execution,
-        # or applying overrides, apply defaults, including to all extensions
+        # if no values have been set by file lookups, function execution, or applying overrides, apply defaults,
+        # including to all extensions
         for key, value in plan.items():
             if ObsBlueprint.needs_lookup(value) and value[1]:
                 # there is a default value in the blueprint that can be used
@@ -2124,10 +2058,9 @@ class Hdf5Parser(ContentParser):
 
 
 def _set_by_type(header, keyword, value):
-    """astropy documentation says that the type of the second
-    parameter in the 'set' call is 'str', and then warns of expectations
-    for floating-point values when the code does that, so make float values
-    into floats, and int values into ints."""
+    """astropy documentation says that the type of the second parameter in the 'set' call is 'str', and then warns
+    of expectations for floating-point values when the code does that, so make float values into floats, and int
+    values into ints."""
     float_value = None
     int_value = None
 

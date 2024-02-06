@@ -122,8 +122,7 @@ def test_open_polygon():
 
 
 def test_polygon_self_intersection():
-    # should detect self segment intersection of the polygon not near a
-    # Pole
+    # should detect self segment intersection of the polygon not near a Pole
     p1 = shape.Point(-115.488281, 45.867063)
     p2 = shape.Point(-91.230469, 36.075742)
     p3 = shape.Point(-95.800781, 54.807017)
@@ -135,8 +134,7 @@ def test_polygon_self_intersection():
         validate_polygon(poly)
     assert 'self intersecting' in str(ex.value)
 
-    # should detect self segment intersection of the polygon near the
-    # South Pole, with the Pole outside the polygon
+    # should detect self segment intersection of the polygon near the South Pole, with the Pole outside the polygon
     p1 = shape.Point(0.6128286003, -89.8967940441)
     p2 = shape.Point(210.6391743183, -89.9073892376)
     p3 = shape.Point(90.6405151921, -89.8972874698)
@@ -148,8 +146,7 @@ def test_polygon_self_intersection():
         validate_polygon(poly)
     assert 'self intersecting' in str(ex.value)
 
-    # should detect self segment intersection of the polygon near the
-    # South Pole, with the Pole inside the polygon
+    # should detect self segment intersection of the polygon near the South Pole, with the Pole inside the polygon
     p1 = shape.Point(0.6128286003, -89.8967940441)
     p2 = shape.Point(130.6391743183, -89.9073892376)
     p3 = shape.Point(90.6405151921, -89.8972874698)
@@ -161,8 +158,7 @@ def test_polygon_self_intersection():
         validate_polygon(poly)
     assert 'self intersecting' in str(ex.value)
 
-    # should detect self segment intersection of the polygon which
-    # intersects with meridian = 0
+    # should detect self segment intersection of the polygon which intersects with meridian = 0
     p1 = shape.Point(-7.910156, 13.293411)
     p2 = shape.Point(4.042969, 7.068185)
     p3 = shape.Point(4.746094, 18.030975)
@@ -216,8 +212,7 @@ def test_open_multipolygon():
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(counter_clockwise_vertices))
     assert 'clockwise winding direction' in str(ex.value)
-    # should detect that there are not enough number of vertices to
-    # produce a multipolygon
+    # should detect that there are not enough number of vertices to produce a multipolygon
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(no_vertices))
     assert 'invalid polygon: 0 vertices' in str(ex.value)
@@ -293,8 +288,7 @@ def test_open_multipolygon():
 
 
 def test_multipoly_self_intersect():
-    # should detect self segment intersection of the multipolygon not
-    # near a Pole
+    # should detect self segment intersection of the multipolygon not near a Pole
     v1 = shape.Vertex(-115.488281, 45.867063, shape.SegmentType.MOVE)
     v2 = shape.Vertex(-91.230469, 36.075742, shape.SegmentType.LINE)
     v3 = shape.Vertex(-95.800781, 54.807017, shape.SegmentType.LINE)
@@ -304,8 +298,8 @@ def test_multipoly_self_intersect():
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(points_with_self_intersecting_segments))
     assert 'self intersecting' in str(ex.value)
-    # should detect self segment intersection of the multipolygon near
-    # the South Pole, with the Pole outside the multipolygon
+    # should detect self segment intersection of the multipolygon near the South Pole, with the Pole outside the
+    # multipolygon
     v1 = shape.Vertex(0.6128286003, -89.8967940441, shape.SegmentType.MOVE)
     v2 = shape.Vertex(210.6391743183, -89.9073892376, shape.SegmentType.LINE)
     v3 = shape.Vertex(90.6405151921, -89.8972874698, shape.SegmentType.LINE)
@@ -315,8 +309,8 @@ def test_multipoly_self_intersect():
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(points_with_self_intersecting_segments))
     assert 'self intersecting' in str(ex.value)
-    # should detect self segment intersection of the multipolygon near the
-    # South Pole, with the Pole inside the multipolygon
+    # should detect self segment intersection of the multipolygon near the South Pole, with the Pole inside the
+    # multipolygon
     v1 = shape.Vertex(0.6128286003, -89.8967940441, shape.SegmentType.MOVE)
     v2 = shape.Vertex(130.6391743183, -89.9073892376, shape.SegmentType.LINE)
     v3 = shape.Vertex(90.6405151921, -89.8972874698, shape.SegmentType.LINE)
@@ -326,8 +320,7 @@ def test_multipoly_self_intersect():
     with pytest.raises(AssertionError) as ex:
         validate_multipolygon(shape.MultiPolygon(points_with_self_intersecting_segments))
     assert 'self intersecting' in str(ex.value)
-    # should detect self segment intersection of the multipolygon which
-    # intersects with meridian = 0
+    # should detect self segment intersection of the multipolygon which intersects with meridian = 0
     v1 = shape.Vertex(-7.910156, 13.293411, shape.SegmentType.MOVE)
     v2 = shape.Vertex(4.042969, 7.068185, shape.SegmentType.LINE)
     v3 = shape.Vertex(4.746094, 18.030975, shape.SegmentType.LINE)

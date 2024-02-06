@@ -109,8 +109,7 @@ def test_class_apply_defaults(override_file):
 
     for key, value in test_overrides.items():
         try:
-            # artifacts is a substructure to be dealt with separately,
-            # WCSAXES should work .... ;)
+            # artifacts is a substructure to be dealt with separately, WCSAXES should work .... ;)
             if key == 'artifacts' or key == 'WCSAXES':
                 continue
 

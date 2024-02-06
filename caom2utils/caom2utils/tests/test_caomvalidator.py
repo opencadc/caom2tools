@@ -124,8 +124,7 @@ def test_validate_observation():
 
 
 def test_compatibility():
-    # tests a previously generated observation and validates the
-    # entities, and the entities with children
+    # tests a previously generated observation and validates the entities, and the entities with children
 
     source_file_path = os.path.join(THIS_DIR, TEST_DATA, 'SampleComposite-CAOM-2.3.xml')
     reader = ObservationReader(True)

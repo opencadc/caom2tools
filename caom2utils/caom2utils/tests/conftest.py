@@ -72,8 +72,7 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
 
-# This function discovers the parameters used to call the
-# test_collections.py: test_differences.
+# This function discovers the parameters used to call the test_collections.py: test_differences.
 def pytest_generate_tests(metafunc):
     dirs = glob.glob(f'{TESTDATA_DIR}/*/*/')
     if 'directory' in metafunc.fixturenames:
