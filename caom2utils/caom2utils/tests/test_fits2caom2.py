@@ -544,7 +544,7 @@ def test_help():
 
     # expected helper messages
     with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt')) as myfile:
-        bad_product_id = myfile.read()
+        bad_product_id = myfile.read().strip()
     with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt')) as myfile:
         missing_product_id = myfile.read()
     with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt')) as myfile:
