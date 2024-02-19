@@ -42,9 +42,9 @@ def get_time_delta(header):
             end.format = 'mjd'
             result = (end - start).value
         else:
-            logging.debug(f'Cannot convert {temp_start} or {temp_end} to MJD for {header.get('EXPID')}')
+            logging.debug(f'Cannot convert {temp_start} or {temp_end} to MJD for {header.get("EXPID")}')
     else:
-        logging.error(f'Missing one of DATE-OBS {date_obs}, UTSTART {ut_start}, or UTEND {ut_end} in  {header.get('EXPID')}')
+        logging.error(f'Missing one of DATE-OBS {date_obs}, UTSTART {ut_start}, or UTEND {ut_end} in  {header.get("EXPID")}')
     return result
 
 
@@ -61,5 +61,5 @@ def get_time_function_val(header):
         else:
             logging.debug(f'Cannot convert {temp_start} to MJD')
     else:
-        logging.error(f'Missing one of DATE-OBS {date_obs} or UTSTART {ut_start} in  {header.get('EXPID')}')
+        logging.error(f'Missing one of DATE-OBS {date_obs} or UTSTART {ut_start} in  {header.get("EXPID")}')
     return result
