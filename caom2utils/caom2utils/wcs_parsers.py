@@ -360,7 +360,7 @@ class WcsParser:
             if delta and ref_coord:
                 naxis.function = CoordFunction1D(energy_axis_length, delta, ref_coord)
 
-            specsys = _to_str(self.wcs.specsys)
+            specsys = _to_str(self.wcs.specsys) if self.wcs.specsys else ''
             if not chunk.energy:
                 chunk.energy = SpectralWCS(naxis, specsys)
             else:

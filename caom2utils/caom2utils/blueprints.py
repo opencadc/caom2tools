@@ -1571,4 +1571,8 @@ def _to_int_32(value):
 
 
 def _to_str(value):
-    return str(value).strip() if value is not None else None
+    if  value is None or str(value).strip() == '':
+        result = None
+    else:
+        result = str(value).strip()
+    return result
