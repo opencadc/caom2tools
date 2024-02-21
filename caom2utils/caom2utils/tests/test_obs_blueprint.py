@@ -69,7 +69,6 @@
 from caom2utils.blueprints import ObsBlueprint
 
 import pytest
-import sys
 
 
 # @pytest.mark.skip('')
