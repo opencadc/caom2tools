@@ -525,7 +525,6 @@ class BlueprintParser:
                 'Plane.provenance.version', index=0, current=None if current is None else current.version
             )
         )
-        logging.error(f' _get_from_list {self._get_from_list("Plane.provenance.version", index=0)}')
         project = _to_str(
             self._get_from_list(
                 'Plane.provenance.project', index=0, current=None if current is None else current.project
