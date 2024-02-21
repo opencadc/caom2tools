@@ -854,13 +854,17 @@ class ObsBlueprint:
                     if 'default' in value:
                         temp = value.split(', default')
                         default = temp[1].replace('=', '').strip()
-                        temp_list = [ii.replace('[', '').replace(']', '').replace('\'', '').strip() for ii in temp[0].split(',')]
+                        temp_list = [
+                            ii.replace('[', '').replace(']', '').replace('\'', '').strip() for ii in temp[0].split(',')
+                        ]
                         if 'None' in default:
                             default = None
                         cleaned_up_value = (temp_list, default)
                     else:
                         if value.strip() and value.strip()[0] == '(':
-                            cleaned_up_value = tuple(ii.strip() for ii in value.strip().replace('(', '').replace(')', '').replace('\'', '').split(','))
+                            cleaned_up_value = tuple(ii.strip() for ii in value.strip().replace(
+                                    '(', ''
+                                ).replace(')', '').replace('\'', '').split(','))
                         elif '[' in value:
                             temp_list = value.replace('[', '').replace(']', '').replace('\'', '').split(',')
                             temp_list_2 = []
@@ -1571,7 +1575,7 @@ def _to_int_32(value):
 
 
 def _to_str(value):
-    if  value is None or str(value).strip() == '':
+    if value is None or str(value).strip() == '':
         result = None
     else:
         result = str(value).strip()

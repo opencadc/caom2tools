@@ -1553,7 +1553,6 @@ class FitsParser(ContentParser):
 
     def add_parts(self, artifact, index):
         # there is one Part per extension, the name is the extension number
-        # logging.error(f'index {index} has data aray {FitsParser._has_data_array(self._headers[index])} has chunk {self.blueprint.has_chunk(index)}')
         if FitsParser._has_data_array(self._headers[index]) and self.blueprint.has_chunk(index):
             if str(index) not in artifact.parts.keys():
                 # TODO use extension name?
