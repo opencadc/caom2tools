@@ -417,8 +417,7 @@ def test_get_wcs_values():
     result = test_parser._sanitize(w.wcs.equinox)
     assert result is None
     if hasattr(w, 'pixel_shape'):
-        # Astropy #7973, deprecated '_naxis1' and '_naxis2'
-        # replaced by pixel_shape, applies to Python 3.x
+        # Astropy #7973, deprecated '_naxis1' and '_naxis2' replaced by pixel_shape, applies to Python 3.x
         result = w.pixel_shape[0]
     else:
         # '_naxis1' and '_naxis2' not deprecated for Python 2.x
@@ -579,8 +578,7 @@ def test_help():
             sys.argv = ["fits2caom2", "--in", bad_product_file, "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
             with pytest.raises(MyExitError):
                 main_app()
-            # inconsistencies between Python 3.7 and later versions.
-            # this should be on stderr_mmock only
+            # inconsistencies between Python 3.7 and later versions. this should be on stderr_mmock only
             result = stderr_mock.getvalue() + stdout_mock.getvalue()
             assert bad_product_id in result, result
 
@@ -600,8 +598,7 @@ def test_help():
             ]
             with pytest.raises(MyExitError):
                 main_app()
-            # inconsistencies between Python 3.7 and later versions.
-            # this should be on stderr_mmock only
+            # inconsistencies between Python 3.7 and later versions. this should be on stderr_mmock only
             result = stderr_mock.getvalue() + stdout_mock.getvalue()
             assert missing_product_id.strip() in result, result
 
@@ -712,8 +709,7 @@ def test_augment_observation():
     test_artifact = test_plane.artifacts[sample_file_4axes_uri]
     assert test_artifact is not None
     test_part = test_artifact.parts['0']
-    # remove the chunk bit, as it's part of other tests -
-    # results in <caom2:chunks/> xml output
+    # remove the chunk bit, as it's part of other tests - results in <caom2:chunks/> xml output
     test_part.chunks.pop()
     output = BytesIO()
     ow = ObservationWriter(False, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
@@ -1400,7 +1396,6 @@ def test_generic_parser1():
     test_value = '2013-10-10'
     test_blueprint = ObsBlueprint()
     test_blueprint.set(test_key, '2013-10-10')
-    logging.error(test_blueprint)
     test_parser = BlueprintParser()
     assert test_parser._blueprint._plan[test_key] == (['RELEASE', 'REL_DATE'], None), 'default value changed'
     test_parser.blueprint = test_blueprint
@@ -1447,10 +1442,8 @@ def test_get_external_headers_fails(get_external_mock):
 
 
 def test_apply_blueprint():
-    # test a Gemini case where there are two keywords, one each for
-    # different instruments, and the default ends up getting set when the
-    # other keyword is not found, as opposed to when both keywords are
-    # missing
+    # test a Gemini case where there are two keywords, one each for different instruments, and the default ends up
+    # getting set when the other keyword is not found, as opposed to when both keywords are missing
     #
     # default should only be set when both keywords are not found
     hdr1 = fits.Header()
@@ -1552,8 +1545,8 @@ def test_apply_blueprint_execute_external():
     test_generic_blueprint = ObsBlueprint(module=test_module)
     test_generic_blueprint.set('Observation.type', '_get_test_obs_type(parameters)')
 
-    # generic parser - function execution should have occurred, the return
-    # value is dependent on the parameters to the call
+    # generic parser - function execution should have occurred, the return value is dependent on the parameters to
+    # the call
     test_gp = BlueprintParser(test_generic_blueprint)
     assert test_gp is not None, 'expect generic construction to complete'
     assert test_gp._get_from_list('Observation.type', index=0) == 'generic_parser_value', 'wrong generic plan value'

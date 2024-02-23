@@ -103,8 +103,7 @@ def test_obs_blueprint():
     ob.configure_observable_axis(axis=6)
     ob.configure_custom_axis(axis=7)
 
-    # test that configuring something that's already configured doesn't break
-    # anything
+    # test that configuring something that's already configured doesn't break anything
     ob.configure_position_axes(axes=(1, 2))
     ob.configure_energy_axis(axis=3)
     ob.configure_polarization_axis(axis=4)

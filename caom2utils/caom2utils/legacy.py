@@ -79,13 +79,13 @@ APP_NAME = 'fits2caom2'
 
 class ConvertFromJava:
     """
-    Do the work that makes the input from a Java fits2caom2 run usable by the
-    ObsBlueprint class in this python implementation.
+    Do the work that makes the input from a Java fits2caom2 run usable by the ObsBlueprint class in this python
+    implementation.
     """
 
     def __init__(self, blueprint, user_supplied_config):
-        # invert the dict for a quick lookup of keywords referenced by the
-        # plan, because the blueprint relies on the values, not the keys
+        # invert the dict for a quick lookup of keywords referenced by the plan, because the blueprint relies on
+        # the values, not the keys
         self._inverse_plan = {}
         for key, value in blueprint._plan.items():
             if isinstance(value, tuple):
@@ -95,8 +95,8 @@ class ConvertFromJava:
                     else:
                         self._inverse_plan[ii] = [key]
 
-        # invert the dict for a quick lookup of config reference values,
-        # because the blueprint relies on the values, not the keys
+        # invert the dict for a quick lookup of config reference values, because the blueprint relies on the values,
+        # not the keys
         self._inverse_user_supplied_config = {}
         if user_supplied_config:
             for k, v in user_supplied_config.items():
@@ -116,14 +116,12 @@ class ConvertFromJava:
             raise ValueError('{} caom2 element not found in the plan (spelling?).'.format(lookup))
 
 
-# Mimic the default java fits2caom2.config file content, to support the
-# indirection from named config values to named defaults and overrides.
+# Mimic the default java fits2caom2.config file content, to support the indirection from named config values to named
+# defaults and overrides.
 #
-# Drop-in use seems to expect that the default config file exists, and
-# therefore certain indirections also exist.
+# Drop-in use seems to expect that the default config file exists, and therefore certain indirections also exist.
 #
-# This is for drop-in functionality support only, and should not be relied on
-# going forward.
+# This is for drop-in functionality support only, and should not be relied on going forward.
 _JAVA_CAOM2_CONFIG = {
     'DerivedObservation.members': 'members',
     'Observation.type': 'OBSTYPE',
@@ -267,12 +265,11 @@ def apply_java_config(file_name, use_only_defaults=False):
     """
     Override CONFIG with externally-supplied values.
 
-    The override file can contain information for more than one input file,
-    as well as providing information for different HDUs.
+    The override file can contain information for more than one input file, as well as providing information for
+    different HDUs.
 
     :param file_name Name of the configuration file to load.
-    :param use_only_defaults if True, rely on _JAVA_CAOM2_CONFIG content for
-        config information.
+    :param use_only_defaults if True, rely on _JAVA_CAOM2_CONFIG content for config information.
     :return: dict representation of file content.
     """
     if use_only_defaults:
@@ -289,8 +286,8 @@ def load_config(file_name):
     """
     Override CONFIG with externally-supplied values.
 
-    The override file can contain information for more than one input file,
-    as well as providing information for different HDUs.
+    The override file can contain information for more than one input file, as well as providing information for
+    different HDUs.
 
     :param file_name Name of the configuration file to load.
     :return: dict representation of file content.
@@ -387,17 +384,13 @@ def _update_axis_info(parser, defaults, overrides, config):
 
 def update_blueprint(obs_blueprint, artifact_uri=None, config=None, defaults=None, overrides=None):
     """
-    Update an observation blueprint according to defaults and/or overrides as
-    configured by the user.
+    Update an observation blueprint according to defaults and/or overrides as configured by the user.
     :param obs_blueprint: ObsBlueprint to update
-    :param artifact_uri: Where the overrides come from, and where
-    to apply them.
+    :param artifact_uri: Where the overrides come from, and where to apply them.
     :param config: Input configuration in a dict.
     :param defaults: FITS header and configuration default values in a dict.
-    :param overrides: FITS header keyword and configuration default overrides
-    in a dict.
-    :return: String containing error messages. Result is None if no errors
-    encountered.
+    :param overrides: FITS header keyword and configuration default overrides in a dict.
+    :return: String containing error messages. Result is None if no errors encountered.
     """
 
     _update_axis_info(obs_blueprint, defaults, overrides, config)
@@ -409,8 +402,7 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None, defaults=Non
         for key, value in config.items():
             try:
                 if value.isupper() and value.find('.') == -1:
-                    # assume FITS keywords, in the 0th extension,
-                    # and add them to the blueprint
+                    # assume FITS keywords, in the 0th extension, and add them to the blueprint
                     for caom2_key in convert.get_caom2_elements(key):
                         obs_blueprint.add_attribute(caom2_key, value)
             except ValueError:

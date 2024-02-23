@@ -67,7 +67,7 @@
 #
 
 """
-There is a dual inheritance hierarchy in this package:
+There is a dual inheritance hierarchy in this module:
 
 
          BlueprintParser
