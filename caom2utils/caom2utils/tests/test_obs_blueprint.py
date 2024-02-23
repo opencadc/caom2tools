@@ -135,19 +135,19 @@ def test_obs_blueprint():
 
     # set in extension
     ob.set('Chunk.energy.velang', 33, extension=1)
-    extension1_str = str(ob)[str(ob).index('extension 1') :]
+    extension1_str = str(ob)[str(ob).index('extension 1'):]
     assert 'Chunk.energy.velang = 33' in extension1_str
 
     # set fits attribute in extension
     ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE', extension=1)
     ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2', extension=1)
     ob.set_default('Chunk.energy.axis.axis.ctype', 'NOCTYPE', extension=1)
-    extension1_str = str(ob)[str(ob).index('extension 1') :]
+    extension1_str = str(ob)[str(ob).index('extension 1'):]
     assert ("Chunk.energy.axis.axis.ctype = ['MYCTYPE2', 'MYCTYPE'], " "default = NOCTYPE") in extension1_str
 
     # set in a different extension
     ob.set('Chunk.energy.velang', 44, extension=2)
-    extension2_str = str(ob)[str(ob).index('extension 2') :]
+    extension2_str = str(ob)[str(ob).index('extension 2'):]
     assert 'Chunk.energy.velang = 44' in extension2_str
 
     # test get
@@ -190,7 +190,7 @@ def test_obs_blueprint():
 
     # set defaults in extension
     ob.set_default('Chunk.energy.axis.axis.ctype', 'NOCTYPE', extension=3)
-    extension3_str = str(ob)[str(ob).index('extension 3') :]
+    extension3_str = str(ob)[str(ob).index('extension 3'):]
     assert "Chunk.energy.axis.axis.ctype = NOCTYPE" in extension3_str
     assert len(ob._extensions) == 1
 

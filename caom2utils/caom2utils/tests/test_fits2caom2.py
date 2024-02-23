@@ -83,7 +83,6 @@ from caom2 import ObservationWriter, SimpleObservation, Algorithm, Artifact, Pro
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk, ObservationIntentType, ChecksumURI
 from caom2 import CustomWCS, SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS, Axis, CoordAxis1D, CoordAxis2D
 from caom2 import CalibrationLevel
-import logging
 
 import caom2utils
 

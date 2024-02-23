@@ -1868,7 +1868,7 @@ class Hdf5Parser(ContentParser):
         self._extension_names = []
         super().__init__(obs_blueprint, uri)
         # used to set the astropy wcs info, resulting in a validated wcs that can be used to construct a valid CAOM2
-	# record
+        # record
         self._wcs_parsers = {}
 
     def _get_num_parts(self):
