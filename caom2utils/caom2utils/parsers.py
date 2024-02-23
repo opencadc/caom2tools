@@ -805,7 +805,7 @@ class ContentParser(BlueprintParser):
             raise TypeError('Cannot apply blueprint for DerivedObservation to a ' 'simple observation')
         elif isinstance(obs, caom2.DerivedObservation):
             lookup = self.blueprint._get('DerivedObservation.members', extension=1)
-            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
+            if ObsBlueprint.is_table(lookup):
                 *_, extension = lookup
                 member_list = self._get_from_table('DerivedObservation.members', int(extension))
                 # ensure the members are good little ObservationURIs
@@ -825,7 +825,7 @@ class ContentParser(BlueprintParser):
                     members = self._get_from_list('DerivedObservation.members', index=0, current=obs.members)
         elif isinstance(obs, caom2.CompositeObservation):
             lookup = self.blueprint._get('CompositeObservation.members', extension=1)
-            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
+            if ObsBlueprint.is_table(lookup):
                 *_, extension = lookup
                 member_list = self._get_from_table('CompositeObservation.members', int(extension))
                 # ensure the members are good little ObservationURIs
