@@ -70,8 +70,7 @@ from astropy.wcs import Wcsprm
 from caom2utils.wcs_util import TimeUtil, EnergyUtil, ORIGIN
 from . import wcs_util
 from .wcs_util import PolarizationWcsUtil, CustomAxisUtil
-from caom2 import Artifact, Chunk, Observation, Part, Plane, \
-    PolarizationState
+from caom2 import Artifact, Chunk, Observation, Part, Plane, PolarizationState
 import numpy as np
 import logging
 
@@ -158,7 +157,9 @@ def _validate_chunk(chunk):
             error_string = "CustomWCS or axis definition null."
             raise InvalidWCSError(
                 "Invalid CustomWCS: {} Axis: {}, WCS: {}".format(
-                    error_string, str(chunk.custom_axis), str(chunk.custom)))
+                    error_string, str(chunk.custom_axis), str(chunk.custom)
+                )
+            )
 
 
 def _validate_spatial_wcs(position):
@@ -169,16 +170,13 @@ def _validate_spatial_wcs(position):
             # There's not much that can be validated about range & bounds
             if position.axis.function is not None:
                 fn2D = position.axis.function
-                _check_transform(float(fn2D.dimension.naxis1 / 2),
-                                 float(fn2D.dimension.naxis2 / 2))
+                _check_transform(float(fn2D.dimension.naxis1 / 2), float(fn2D.dimension.naxis2 / 2))
                 logger.debug('position_axis.function succeeded.')
         except Exception as e:
             error_string = repr(e)
 
         if len(error_string) > 0:
-            raise InvalidWCSError(
-                "Invalid SpatialWCS: {}: {}".format(
-                    error_string, str(position)))
+            raise InvalidWCSError("Invalid SpatialWCS: {}: {}".format(error_string, str(position)))
 
 
 def _check_transform(lower, upper):
@@ -186,10 +184,9 @@ def _check_transform(lower, upper):
     coord_array = np.array([[lower, upper]])
     sky_transform = wcsprm.p2s(coord_array, ORIGIN)
     wcsprm.s2p(sky_transform['world'], ORIGIN)
-    # Per instruction from JJK/PD (standup, 19/04/18), if this transform
-    # to and from works, that is sufficient to indicate the input data is
-    # correct. There is no need to compare that the values provided as
-    # input are the same as the values that exist after the transform.
+    # Per instruction from JJK/PD (standup, 19/04/18), if this transform to and from works, that is sufficient to
+    # indicate the input data is correct. There is no need to compare that the values provided as input are the same
+    # as the values that exist after the transform.
 
 
 def _validate_spectral_wcs(energy):
@@ -222,9 +219,7 @@ def _validate_spectral_wcs(energy):
             error_msg = repr(ex)
 
         if len(error_msg) > 0:
-            raise InvalidWCSError(
-                "Invalid Spectral WCS: {}: {}".format(
-                    error_msg, str(energy)))
+            raise InvalidWCSError("Invalid Spectral WCS: {}: {}".format(error_msg, str(energy)))
 
 
 def _validate_temporal_wcs(time):
@@ -253,9 +248,7 @@ def _validate_temporal_wcs(time):
             error_msg = repr(e)
 
         if len(error_msg) > 0:
-            raise InvalidWCSError(
-                "Invalid Temporal WCS: {}: {}".format(
-                    error_msg, str(time)))
+            raise InvalidWCSError("Invalid Temporal WCS: {}: {}".format(error_msg, str(time)))
 
 
 def _validate_range(a_range):
@@ -274,12 +267,10 @@ def _validate_bounds(bounds):
 
 
 def _validate_function(a_function):
-    naxis_range = \
-        PolarizationWcsUtil.get_range_from_function(a_function)
+    naxis_range = PolarizationWcsUtil.get_range_from_function(a_function)
     if naxis_range is not None:
         for pix in naxis_range:
-            WcsPolarizationState.to_value(
-                int(round(wcs_util.pix2val(a_function, pix))))
+            WcsPolarizationState.to_value(int(round(wcs_util.pix2val(a_function, pix))))
 
 
 def _validate_polarization_wcs(polarization_wcs):
@@ -287,8 +278,7 @@ def _validate_polarization_wcs(polarization_wcs):
     Validates the PolarizationWCS.
     :param polarization_wcs: PolarizationWCS to be validated
 
-    An InvalidWCSError is thrown if the PolarizationWCS is determined
-    to be invalid.
+    An InvalidWCSError is thrown if the PolarizationWCS is determined to be invalid.
     """
     if polarization_wcs is not None:
         try:
@@ -300,8 +290,7 @@ def _validate_polarization_wcs(polarization_wcs):
             _validate_function(axis.function)
             logger.debug('polarization_axis.function succeeded.')
         except Exception as e:
-            raise InvalidWCSError(
-                f"Invalid Polarization WCS: {str(e)}")
+            raise InvalidWCSError(f"Invalid Polarization WCS: {str(e)}")
 
 
 def _validate_axes(chunk):
@@ -309,8 +298,8 @@ def _validate_axes(chunk):
     error_msg = ''
 
     if chunk.naxis is not None:
-        # Have axisList offset by 1 because the list will be counted
-        # from 1 to naxis. Nones in the list are missing axis definitions.
+        # Have axisList offset by 1 because the list will be counted from 1 to naxis. Nones in the list are missing
+        # axis definitions.
         axis_list = ["" for x in range(chunk.naxis + 1)]
         attr_dict = vars(chunk)
         for key in attr_dict.keys():
@@ -318,19 +307,15 @@ def _validate_axes(chunk):
                 value = attr_dict.get(key)
                 if value is not None and value <= chunk.naxis:
                     # Ignore axes greater than naxis: situation is allowed
-                    if axis_list[value] is not None and \
-                                    len(axis_list[value].strip()) > 0:
+                    if axis_list[value] is not None and len(axis_list[value].strip()) > 0:
                         # Flag duplicate axis definitions
-                        error_msg += "Duplicate axis number: {}: {}, {}"\
-                            .format(value, key, axis_list[value])
+                        error_msg += "Duplicate axis number: {}: {}, {}".format(value, key, axis_list[value])
                     else:
                         axis_list[value] = key
 
-        # Validate the number and quality of the axis definitions
-        # Count from 1, as 0 will never be filled
+        # Validate the number and quality of the axis definitions Count from 1, as 0 will never be filled
         if axis_list[0] != "":
-            error_msg += "\tInvalid axis definition (0): {}.".\
-                format(axis_list[0])
+            error_msg += "\tInvalid axis definition (0): {}.".format(axis_list[0])
 
         x = 0
         for i in range(1, chunk.naxis + 1):
@@ -342,8 +327,7 @@ def _validate_axes(chunk):
 
     if error_msg.strip():
         # Report all errors found during validation, throw an error and go
-        raise InvalidWCSError(
-            f"Invalid Axes: {error_msg}")
+        raise InvalidWCSError(f"Invalid Axes: {error_msg}")
 
 
 def _validate_custom_wcs(custom):
@@ -369,32 +353,41 @@ def _validate_custom_wcs(custom):
             # CoordFunction1D
             if custom_axis.function is not None:
                 logger.debug('custom_axis.function to interval validation.')
-                CustomAxisUtil.function1d_to_interval(
-                    custom, custom_axis.function)
+                CustomAxisUtil.function1d_to_interval(custom, custom_axis.function)
                 logger.debug('custom_axis.function to interval succeeded.')
 
         except Exception as e:
             error_msg = repr(e)
 
         if len(error_msg) > 0:
-            raise InvalidWCSError(
-                f"CUSTOM_WCS_VALIDATION_ERROR: {error_msg}")
+            raise InvalidWCSError(f"CUSTOM_WCS_VALIDATION_ERROR: {error_msg}")
 
 
-class WcsPolarizationState():
+class WcsPolarizationState:
     """
     A dictionary which maps an integer to a PolarizationState value.
     """
+
     MAP = {
-        1: PolarizationState.I, 2: PolarizationState.Q,
-        3: PolarizationState.U, 4: PolarizationState.V,
-        5: PolarizationState.POLI, 6: PolarizationState.FPOLI,
-        7: PolarizationState.POLA, 8: PolarizationState.EPOLI,
-        9: PolarizationState.CPOLI, 10: PolarizationState.NPOLI,
-        -1: PolarizationState.RR, -2: PolarizationState.LL,
-        -3: PolarizationState.RL, -4: PolarizationState.LR,
-        -5: PolarizationState.XX, -6: PolarizationState.YY,
-        -7: PolarizationState.XY, -8: PolarizationState.YX}
+        1: PolarizationState.I,
+        2: PolarizationState.Q,
+        3: PolarizationState.U,
+        4: PolarizationState.V,
+        5: PolarizationState.POLI,
+        6: PolarizationState.FPOLI,
+        7: PolarizationState.POLA,
+        8: PolarizationState.EPOLI,
+        9: PolarizationState.CPOLI,
+        10: PolarizationState.NPOLI,
+        -1: PolarizationState.RR,
+        -2: PolarizationState.LL,
+        -3: PolarizationState.RL,
+        -4: PolarizationState.LR,
+        -5: PolarizationState.XX,
+        -6: PolarizationState.YY,
+        -7: PolarizationState.XY,
+        -8: PolarizationState.YX,
+    }
 
     @staticmethod
     def to_value(key):

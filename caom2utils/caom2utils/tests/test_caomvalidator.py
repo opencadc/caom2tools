@@ -99,15 +99,17 @@ def test_assert_validate_keyword():
 
 
 def test_validate_observation():
-    obs = SimpleObservation('test_collection', 'test_obs_id',
-                            Algorithm('test_name'))
+    obs = SimpleObservation('test_collection', 'test_obs_id', Algorithm('test_name'))
     validate(obs)
-    obs = DerivedObservation('test_collection', 'test_obs_id',
-                             Algorithm('test_name'),
-                             proposal=Proposal('test_proposal'),
-                             telescope=Telescope('test_telescope'),
-                             instrument=Instrument('test_instrument'),
-                             target=Target('test_targets'))
+    obs = DerivedObservation(
+        'test_collection',
+        'test_obs_id',
+        Algorithm('test_name'),
+        proposal=Proposal('test_proposal'),
+        telescope=Telescope('test_telescope'),
+        instrument=Instrument('test_instrument'),
+        target=Target('test_targets'),
+    )
     obs.algorithm.keywords = 'foo'
     obs.proposal.keywords = set('foo=42')
     obs.telescope.keywords = set('foo:42')
@@ -122,11 +124,9 @@ def test_validate_observation():
 
 
 def test_compatibility():
-    # tests a previously generated observation and validates the
-    # entities, and the entities with children
+    # tests a previously generated observation and validates the entities, and the entities with children
 
-    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
-                                    'SampleComposite-CAOM-2.3.xml')
+    source_file_path = os.path.join(THIS_DIR, TEST_DATA, 'SampleComposite-CAOM-2.3.xml')
     reader = ObservationReader(True)
     with open(source_file_path):
         obs = reader.read(source_file_path)

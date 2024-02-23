@@ -9,10 +9,6 @@ from setuptools import find_packages
 
 from setuptools import setup
 
-import distutils.cmd
-import distutils.log
-import subprocess
-
 # read the README.rst file and return as string.
 def readme():
     with open('README.rst') as r_obj:
@@ -40,7 +36,7 @@ VERSION = metadata.get('version', 'none')
 
 # generate the version file
 with open(os.path.join(PACKAGENAME, 'version.py'), 'w') as f:
-    f.write('version = \'{}\'\n'.format(VERSION))	
+    f.write('version = \'{}\'\n'.format(VERSION))
 
 # Treat everything in scripts except README.rst as a script to be installed
 scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
@@ -70,7 +66,7 @@ class PyTest(TestCommand):
         import pytest
         err_no = pytest.main(self.pytest_args)
         sys.exit(err_no)
-        
+
 # Note that requires and provides should not be included in the call to
 # ``setup``, since these are now deprecated. See this link for more details:
 # https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM

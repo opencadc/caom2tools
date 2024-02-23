@@ -100,9 +100,7 @@ def test_get_file_type():
         'abc.fits': 'application/fits',
     }
     for key, value in vals.items():
-        assert (
-            data_util.get_file_type(key) == value
-        ), f'wrong type {data_util.get_file_type(key)} for {key}'
+        assert data_util.get_file_type(key) == value, f'wrong type {data_util.get_file_type(key)} for {key}'
 
 
 @patch('caom2utils.data_util.StorageInventoryClient')
@@ -115,8 +113,7 @@ def test_storage_inventory_client(cadc_client_mock):
         test_fqn.unlink()
 
     def info_si_mock(ignore):
-        return FileInfo(id=test_uri, file_type='application/fits',
-                        md5sum='abc', size=42)
+        return FileInfo(id=test_uri, file_type='application/fits', md5sum='abc', size=42)
 
     def get_si_mock(ignore2, dest, **kwargs):
         fhead = kwargs.get('fhead')
@@ -152,30 +149,18 @@ def test_storage_inventory_client(cadc_client_mock):
     # delete
     test_wrapper.remove(test_uri)
     assert cadc_client_mock.return_value.cadcremove.called, 'remove call'
-    cadc_client_mock.return_value.cadcremove.assert_called_with(
-        test_uri
-    ), 'wrong remove args'
+    cadc_client_mock.return_value.cadcremove.assert_called_with(test_uri), 'wrong remove args'
 
-    cadc_client_mock.return_value.cadcinfo.side_effect = (
-        exceptions.UnexpectedException('cadcinfo')
-    )
-    cadc_client_mock.return_value.cadcget.side_effect = (
-        exceptions.UnexpectedException('cadcget')
-    )
-    cadc_client_mock.return_value.cadcput.side_effect = (
-        exceptions.UnexpectedException('cadcput')
-    )
+    cadc_client_mock.return_value.cadcinfo.side_effect = exceptions.UnexpectedException('cadcinfo')
+    cadc_client_mock.return_value.cadcget.side_effect = exceptions.UnexpectedException('cadcget')
+    cadc_client_mock.return_value.cadcput.side_effect = exceptions.UnexpectedException('cadcput')
     _fail_mock(test_wrapper, test_uri, test_working_directory)
 
-    cadc_client_mock.return_value.cadcremove.side_effect = (
-        exceptions.UnexpectedException('cadcremove')
-    )
+    cadc_client_mock.return_value.cadcremove.side_effect = exceptions.UnexpectedException('cadcremove')
     with pytest.raises(exceptions.UnexpectedException):
         test_wrapper.remove(test_uri)
 
-    cadc_client_mock.return_value.cadcinfo.side_effect = (
-        exceptions.NotFoundException('cadcinfo')
-    )
+    cadc_client_mock.return_value.cadcinfo.side_effect = exceptions.NotFoundException('cadcinfo')
     test_result = test_wrapper.info(test_uri)
     assert test_result is None, 'expected when not found'
 
@@ -187,6 +172,7 @@ def test_si_tracking(client_mock):
 
     def _get(working_directory, uri):
         raise exceptions.UnexpectedException
+
     client_mock.return_value.cadcget.side_effect = _get
     client_mock.return_value.cadcremove.side_effect = Mock()
 
@@ -197,16 +183,12 @@ def test_si_tracking(client_mock):
     with pytest.raises(exceptions.UnexpectedException):
         test_wrapper.get('/tmp', 'cadc:TEST/abc.fits')
     assert test_metrics.observe_failure.called, 'expect observe_failure call'
-    test_metrics.observe_failure.assert_called_with(
-        'get', 'si', 'cadc:TEST/abc.fits'
-    )
+    test_metrics.observe_failure.assert_called_with('get', 'si', 'cadc:TEST/abc.fits')
 
     # test metrics success
     test_wrapper.remove('cadc:TEST/abc.fits')
     assert test_metrics.observe.called, 'expect observe call'
-    test_metrics.observe.assert_called_with(
-        ANY, ANY, None, 'remove', 'si', 'cadc:TEST/abc.fits'
-    )
+    test_metrics.observe.assert_called_with(ANY, ANY, None, 'remove', 'si', 'cadc:TEST/abc.fits')
 
 
 def test_clean_headers():
@@ -243,16 +225,10 @@ def test_unicode_decode_error():
 
 
 def test_get_file_encoding():
-    test_subjects = {
-        'abc.fits': None,
-        'abc.fits.gz': 'gzip',
-        'abc.fits.fz': 'x-fits'
-    }
+    test_subjects = {'abc.fits': None, 'abc.fits.gz': 'gzip', 'abc.fits.fz': 'x-fits'}
     for test_subject in test_subjects.keys():
         test_result = data_util.get_file_encoding(test_subject)
-        assert (
-            test_result == test_subjects.get(test_subject)
-        ), f'got wrong extension {test_result} for {test_subject}'
+        assert test_result == test_subjects.get(test_subject), f'got wrong extension {test_result} for {test_subject}'
 
 
 def _check_get_result(test_fqn):

@@ -90,8 +90,7 @@ END"""
         )
 
     def _info_mock(uri):
-        return FileInfo(
-            id=uri, size=12, file_type='application/fits', md5sum='abc')
+        return FileInfo(id=uri, size=12, file_type='application/fits', md5sum='abc')
 
     si_mock.return_value.cadcget.side_effect = _get_mock
     si_mock.return_value.cadcinfo.side_effect = _info_mock
@@ -103,11 +102,13 @@ END"""
     if os.path.exists(out_fqn):
         os.unlink(out_fqn)
 
-    sys.argv = ('caom2gen --debug -o {} --no_validate '
-                '--resource-id ivo://cadc.nrc.ca/test '
-                '--observation TEST_COLLECTION TEST_OBS_ID '
-                '--lineage test_product_id/cadc:TEST/test_file.fits '
-                '--blueprint {}'.format(out_fqn, bp_fqn)).split()
+    sys.argv = (
+        'caom2gen --debug -o {} --no_validate '
+        '--resource-id ivo://cadc.nrc.ca/test '
+        '--observation TEST_COLLECTION TEST_OBS_ID '
+        '--lineage test_product_id/cadc:TEST/test_file.fits '
+        '--blueprint {}'.format(out_fqn, bp_fqn)
+    ).split()
     caom2blueprint.caom2gen()
 
     assert os.path.exists(out_fqn), 'expect output file'

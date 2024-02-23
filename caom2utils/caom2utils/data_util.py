@@ -121,10 +121,9 @@ class StorageClientWrapper:
     def get(self, working_directory, uri):
         """
         Retrieve data.
-        :param working_directory: str where the file will be retrieved to.
-            Assumes the same machine as this function is being called from.
-        :param uri: str this is an Artifact URI, representing the file to
-            be retrieved.
+        :param working_directory: str where the file will be retrieved to. Assumes the same machine as this function
+            is being called from.
+        :param uri: str this is an Artifact URI, representing the file to be retrieved.
         """
         self._logger.debug(f'Begin get for {uri} in {working_directory}')
         start = StorageClientWrapper._current()
@@ -135,17 +134,14 @@ class StorageClientWrapper:
         except Exception as e:
             self._add_fail_metric('get', uri)
             self._logger.debug(traceback.format_exc())
-            raise exceptions.UnexpectedException(
-                f'Did not retrieve {uri} because {e}'
-            )
+            raise exceptions.UnexpectedException(f'Did not retrieve {uri} because {e}')
         self._add_metric('get', uri, start, stat(fqn).st_size)
         self._logger.debug('End get')
 
     def get_head(self, uri):
         """
         Retrieve FITS file header data.
-        :param uri: str that is an Artifact URI, representing the file for
-            which to retrieve headers
+        :param uri: str that is an Artifact URI, representing the file for which to retrieve headers
         :return: list of fits.Header instances
         """
         self._logger.debug(f'Begin get_head for {uri}')
@@ -164,22 +160,18 @@ class StorageClientWrapper:
             self._add_fail_metric('get_header', uri)
             self._logger.debug(traceback.format_exc())
             self._logger.error(e)
-            raise exceptions.UnexpectedException(
-                f'Did not retrieve {uri} header because {e}'
-            )
+            raise exceptions.UnexpectedException(f'Did not retrieve {uri} header because {e}')
 
     def info(self, uri):
         """
         Retrieve the descriptive metadata associated with a file.
-        :param uri: str that is an Artifact URI, representing the file for
-            which to retrieve metadata
+        :param uri: str that is an Artifact URI, representing the file for which to retrieve metadata
         :return: cadcdata.FileInfo instance, no scheme for md5sum
         """
         self._logger.debug(f'Begin info for {uri}')
         try:
             result = self._cadc_client.cadcinfo(uri)
-            # make the result look like the other possible ways to
-            # obtain metadata
+            # make the result look like the other possible ways to obtain metadata
             result.md5sum = result.md5sum.replace('md5:', '')
         except exceptions.NotFoundException:
             self._logger.info(f'cadcinfo:: {uri} not found')
@@ -223,9 +215,7 @@ class StorageClientWrapper:
             self._add_fail_metric('put', uri)
             self._logger.debug(traceback.format_exc())
             self._logger.error(e)
-            raise exceptions.UnexpectedException(
-                f'Failed to store data with {e}'
-            )
+            raise exceptions.UnexpectedException(f'Failed to store data with {e}')
         finally:
             chdir(cwd)
         self._add_metric('put', uri, start, local_meta.size)
@@ -234,8 +224,7 @@ class StorageClientWrapper:
     def remove(self, uri):
         """
         Delete a file from CADC storage.
-        :param uri: str that is an Artifact URI, representing the file to
-            be removed from CADC.
+        :param uri: str that is an Artifact URI, representing the file to be removed from CADC.
         """
         self._logger.debug(f'Begin remove for {uri}')
         start = StorageClientWrapper._current()
@@ -245,9 +234,7 @@ class StorageClientWrapper:
             self._add_fail_metric('remove', uri)
             self._logger.debug(traceback.format_exc())
             self._logger.error(e)
-            raise exceptions.UnexpectedException(
-                f'Did not remove {uri} because {e}'
-            )
+            raise exceptions.UnexpectedException(f'Did not remove {uri} because {e}')
         self._add_metric('remove', uri, start, value=None)
         self._logger.debug('End remove')
 
@@ -264,8 +251,7 @@ class StorageClientWrapper:
 
 def _clean_headers(fits_header):
     """
-    Hopefully not Gemini specific.
-    Remove invalid cards and add missing END cards after extensions.
+    Hopefully not Gemini specific. Remove invalid cards and add missing END cards after extensions.
     :param fits_header: fits_header a string of keyword/value pairs
     """
     new_header = []
@@ -284,8 +270,7 @@ def _clean_headers(fits_header):
             new_header.append('END\n')
         elif line.strip() == 'END':
             new_header.append('END\n')
-        elif '=' not in line and not (line.startswith('COMMENT') or
-                                      line.startswith('HISTORY')):
+        elif '=' not in line and not (line.startswith('COMMENT') or line.startswith('HISTORY')):
             pass
         else:
             new_header.append(f'{line}\n')
@@ -307,8 +292,7 @@ def get_local_headers_from_fits(fqn):
 
 def get_local_file_headers(fqn):
     """
-    Wrap two different attempts for header retrieval into a single
-    function.
+    Wrap two different attempts for header retrieval into a single function.
     :param fqn: str fully-qualified name of the FITS file on disk
     :return: list of fits.Header instances
     """
@@ -355,7 +339,7 @@ def get_file_encoding(fqn):
 def get_file_type(fqn):
     """Basic header extension to content_type lookup."""
     lower_fqn = fqn.lower()
-    if (lower_fqn.endswith('.fits') or lower_fqn.endswith('.fits.fz')):
+    if lower_fqn.endswith('.fits') or lower_fqn.endswith('.fits.fz'):
         return 'application/fits'
     elif lower_fqn.endswith('.gif'):
         return 'image/gif'
@@ -375,10 +359,9 @@ def get_file_type(fqn):
 
 def make_headers_from_string(fits_header):
     """Create a list of fits.Header instances from a string.
-    ":param fits_header a string of keyword/value pairs"""
+    :param fits_header a string of keyword/value pairs"""
     fits_header = _clean_headers(fits_header)
     delim = 'END\n'
-    extensions = \
-        [e + delim for e in fits_header.split(delim) if e.strip()]
+    extensions = [e + delim for e in fits_header.split(delim) if e.strip()]
     headers = [fits.Header.fromstring(e, sep='\n') for e in extensions]
     return headers

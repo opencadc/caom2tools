@@ -76,9 +76,8 @@ __all__ = ['validate_polygon', 'validate_multipolygon']
 
 def validate_polygon(poly):
     """
-    Performs validation on the polygon provided. The points in the polygon
-    will be validated for closure and self segment intersection. The samples
-    in the polygon will be validated using validate_multipolygon().
+    Performs validation on the polygon provided. The points in the polygon will be validated for closure and self
+    segment intersection. The samples in the polygon will be validated using validate_multipolygon().
 
     for a closed polygon, we must have:
         points[0].cval1 == points[-1].cval1
@@ -95,10 +94,8 @@ def validate_polygon(poly):
     points = poly.points
     if points:
         if len(points) < 3:
-            # points in a polygon is not required to form a closed polygon,
-            # hence min 3 points
-            raise AssertionError('invalid polygon: {} points (min 3)'.format(
-                len(points)))
+            # points in a polygon is not required to form a closed polygon, hence min 3 points
+            raise AssertionError('invalid polygon: {} points (min 3)'.format(len(points)))
 
         cval1s = []
         cval2s = []
@@ -117,52 +114,42 @@ def validate_polygon(poly):
         # validate self-segment intersection and clockwise direction
         _validate_self_intersection_and_direction(cval1s, cval2s)
 
-    # Rt 75582 currently samples are not required to
-    # conform to intersection and direction, so do not validate damples
+    # Rt 75582 currently samples are not required to conform to intersection and direction, so do not validate
+    # samples
     # if poly.samples is not None:
     #     validate_multipolygon(poly.samples)
 
 
 def _validate_is_clockwise(orig_lon, lon):
     """
-    Verifies that the polygon is contructed from points in a clockwise
-    direction.
+    Verifies that the polygon is contructed from points in a clockwise direction.
 
-    Note: The SphericalPolygon fixes a polygon with points not in a
-    clockwise direction. We only need to compare a point in our
-    polygon/multipolygon with the corresponding one in the SphericalPolygon
-    object. We cannot use an endpoint since they are the same for a closed
-    polygon.
+    Note: The SphericalPolygon fixes a polygon with points not in a clockwise direction. We only need to compare a
+    point in our polygon/multipolygon with the corresponding one in the SphericalPolygon object. We cannot use an
+    endpoint since they are the same for a closed polygon.
 
-    An AssertionError is thrown if the points are not in a clockwise
-    direction
+    An AssertionError is thrown if the points are not in a clockwise direction
     """
     if not np.isclose(lon[1], orig_lon[1]):
         if not np.isclose(lon[1] - 360, orig_lon[1]):
             rlon = lon[::-1]
-            if np.isclose(rlon[1], orig_lon[1]) or \
-                    np.isclose(rlon[1] - 360, orig_lon[1]):
-                raise AssertionError(
-                    'invalid polygon: clockwise winding direction')
+            if np.isclose(rlon[1], orig_lon[1]) or np.isclose(rlon[1] - 360, orig_lon[1]):
+                raise AssertionError('invalid polygon: clockwise winding direction')
             else:
-                raise AssertionError(
-                    'software error: compared wrong values')
+                raise AssertionError('software error: compared wrong values')
 
 
 def _validate_self_intersection_and_direction(ras, decs):
     """
-    Verifies that the polygon does not contain self-intersecting segments
-    and that the points are clockwise.
+    Verifies that the polygon does not contain self-intersecting segments and that the points are clockwise.
 
-    An AssertionError is thrown if the polygon contains self-intersecting
-    segments.
+    An AssertionError is thrown if the polygon contains self-intersecting segments.
     """
     # use SphericalPolygon from spherical-geometry to validate our polygon
     x, y, z = vector.lonlat_to_vector(ras, decs)
     points = np.dstack((x, y, z))[0]
     if polygon.SphericalPolygon.self_intersect(points):
-        raise AssertionError(
-            'Polygon contains self intersecting segments')
+        raise AssertionError('Polygon contains self intersecting segments')
 
     spolygon = polygon.SphericalPolygon.from_radec(ras, decs)
     lon, lat = next(spolygon.to_lonlat())
@@ -173,15 +160,13 @@ def validate_multipolygon(mp):
     """
     Performs a basic validation of a multipolygon.
 
-    An AssertionError is thrown if the multipolygon is invalid ie (invalid
-    indexes, invalid polygons etc.)
+    An AssertionError is thrown if the multipolygon is invalid ie (invalid indexes, invalid polygons etc.)
     """
 
     if not mp:
         return
     if not isinstance(mp, MultiPolygon):
-        raise ValueError(
-            f'MultiPoligon expected in validation received {type(mp)}')
+        raise ValueError(f'MultiPoligon expected in validation received {type(mp)}')
 
     _validate_size_and_end_vertices(mp)
 
@@ -194,22 +179,18 @@ def validate_multipolygon(mp):
 def _validate_size_and_end_vertices(mp):
     if len(mp.vertices) < 4:
         # triangle
-        raise AssertionError('invalid polygon: {} vertices (min 4)'.format(
-            len(mp.vertices)))
+        raise AssertionError('invalid polygon: {} vertices (min 4)'.format(len(mp.vertices)))
 
     if mp.vertices[0].type != SegmentType.MOVE:
-        raise AssertionError(
-            'invalid polygon: first vertex is not a MOVE vertex')
+        raise AssertionError('invalid polygon: first vertex is not a MOVE vertex')
 
     if mp.vertices[-1].type != SegmentType.CLOSE:
-        raise AssertionError(
-            'invalid polygon: last vertex is not a CLOSE vertex')
+        raise AssertionError('invalid polygon: last vertex is not a CLOSE vertex')
 
 
-class MultiPolygonValidator():
+class MultiPolygonValidator:
     """
-    A class to validate the sequencing of vertices in a polygon,
-    as well as constructing and validating the polygon.
+    A class to validate the sequencing of vertices in a polygon, as well as constructing and validating the polygon.
 
     An AssertionError is thrown if an incorrect polygon is detected.
     """
@@ -229,8 +210,7 @@ class MultiPolygonValidator():
 
     def _validate_move(self, vertex):
         if self._open_loop:
-            raise AssertionError(
-                'invalid polygon: MOVE vertex when loop open')
+            raise AssertionError('invalid polygon: MOVE vertex when loop open')
         self._lines = 0
         self._open_loop = True
         self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
@@ -238,11 +218,9 @@ class MultiPolygonValidator():
     def _validate_close(self, vertex):
         # close the polygon
         if not self._open_loop:
-            raise AssertionError(
-                'invalid polygon: CLOSE vertex when loop close')
+            raise AssertionError('invalid polygon: CLOSE vertex when loop close')
         if self._lines < 2:
-            raise AssertionError(
-                'invalid polygon: minimum 2 lines required')
+            raise AssertionError('invalid polygon: minimum 2 lines required')
         self._open_loop = False
         # SphericalPolygon requires point[0] == point[-1]
         point = self._polygon.points[0]
@@ -254,7 +232,6 @@ class MultiPolygonValidator():
 
     def _validate_line(self, vertex):
         if not self._open_loop:
-            raise AssertionError(
-                'invalid polygon: LINE vertex when loop close')
+            raise AssertionError('invalid polygon: LINE vertex when loop close')
         self._lines += 1
         self._polygon.points.append(Point(vertex.cval1, vertex.cval2))

@@ -19,7 +19,7 @@ resolvingPower =      5.64
 Chunk = {ignore}
 
 
-?ad:CFHT/1709071o.fits.fz
+?cadc:CFHT/1709071o.fits.fz
 artifact.productType = science
 artifact.contentChecksum = md5:88bfd03471053a916067a4e6f80d332d
 CRPIX3 =       0.500000000000
@@ -30,7 +30,7 @@ time.exposure=      15.000000000000
 NAXIS3 =         3
 
 
-?ad:CFHT/1709071g.fits.gz
+?cadc:CFHT/1709071g.fits.gz
 artifact.productType = auxiliary
 artifact.contentChecksum = md5:47cdd15371f82893ed384dec96240ae2
 CD1_1 =      -0.000083333333
@@ -43,36 +43,36 @@ CDELT3 =       0.000000231481
 time.resolution=       0.020000000000
 time.exposure=       0.020000000000
 NAXIS3 =      1964
-?ad:CFHT/1709071g.fits.gz#[0]
+?cadc:CFHT/1709071g.fits.gz#[0]
 CRPIX1 =  7.00000000
 CRPIX2 =  7.00000000
 CRVAL1 =   210.551666667
 CRVAL2 =    54.526222222
-?ad:CFHT/1709071g.fits.gz#[1]
+?cadc:CFHT/1709071g.fits.gz#[1]
 CRPIX1 =  7.00000000
 CRPIX2 =  7.00000000
 CRVAL1 =   210.551666667
 CRVAL2 =    54.526222222
-?ad:CFHT/1709071g.fits.gz#[2]
+?cadc:CFHT/1709071g.fits.gz#[2]
 CRPIX1 =  7.00000000
 CRPIX2 =  7.00000000
 CRVAL1 =   210.508333333
 CRVAL2 =    54.345555556
-?ad:CFHT/1709071g.fits.gz#[3]
+?cadc:CFHT/1709071g.fits.gz#[3]
 CRPIX1 =  7.00000000
 CRPIX2 =  7.00000000
 CRVAL1 =   210.898333333
 CRVAL2 =    54.341916667
-?ad:CFHT/1709071g.fits.gz#[4]
+?cadc:CFHT/1709071g.fits.gz#[4]
 CRPIX1 =  7.00000000
 CRPIX2 =  7.00000000
 CRVAL1 =   210.942083333
 CRVAL2 =    54.446805556
-?ad:CFHT/1709071g.fits.gz#[5]
+?cadc:CFHT/1709071g.fits.gz#[5]
 CRPIX1 =  7.00000000
 CRPIX2 =  7.00000000
 CRVAL1 =     0.000000000
 CRVAL2 =     0.000000000
-?ad:CFHT/1709071g.fits.gz#[6]
+?cadc:CFHT/1709071g.fits.gz#[6]
 BITPIX = 0
 
