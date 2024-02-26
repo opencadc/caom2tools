@@ -825,10 +825,6 @@ class ObsBlueprint:
         ext = 0
         with open(file_name) as file:
             for line in file:
-                if '#' in line:
-                    if line.find('#') == 0:
-                        # ignore lines starting with a comment
-                        continue
                 line = line.split('#')[0]
                 if '=' in line:
                     key, value = line.split('=', 1)

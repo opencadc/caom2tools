@@ -847,8 +847,7 @@ class ContentParser(BlueprintParser):
         return members
 
     def _get_axis_wcs(self, label, wcs, index):
-        """Helper function to construct a CoordAxis1D instance, with all
-        it's members, from the blueprint.
+        """Helper function to construct a CoordAxis1D instance, with all its members, from the blueprint.
 
         :param label: axis name - must be one of 'custom', 'energy', 'time', or 'polarization', as it's used for the
             blueprint lookup.
