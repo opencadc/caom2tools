@@ -1,0 +1,43 @@
+from caom2utils.blueprints import _to_float
+
+
+def get_exposure(uri):
+    return 1200.0
+
+
+# def _get_energy_chunk_resolving_power(header):
+#     start = 76000.0
+#     resolut = self._headers[0].get('RESOLUT')
+#     if resolut == 'Standard':
+#         start = 56000.0
+
+#     red_ccds = self._headers[0].get('REDCCDS')
+#     blue_ccds = self._headers[0].get('BLUCCDS')
+
+#     factor_1 = _to_float(red_ccds.split('x')[0])
+#     factor_2 = _to_float(blue_ccds.split('x')[0])
+#     if factor_1 == factor_2:
+#         factor = factor_1
+#     else:
+#         raise Exception(f'Factors do not match. Blue {factor_2}, Red {factor_1}')
+#     return start / factor
+
+
+def _get_energy_chunk_range_end_val(header):
+    result = None
+    camera = header.get('CAMERA')
+    if camera == 'RED':
+        result = 1060.0  # nm
+    elif camera == 'BLUE':
+        result = 530.0  # nm
+    return result
+
+
+def _get_energy_chunk_range_start_val(header):
+    result = None
+    camera = header.get('CAMERA')
+    if camera == 'RED':
+        result = 520.0  # nm
+    elif camera == 'BLUE':
+        result = 347.0  # nm
+    return result

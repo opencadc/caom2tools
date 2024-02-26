@@ -328,7 +328,7 @@ def get_local_file_info(fqn):
 
 def get_file_encoding(fqn):
     """Basic header extension to content_encoding lookup."""
-    if fqn.endswith('.fits.fz'):
+    if fqn.endswith('.fits.fz') or fqn.endswith('.fits.bz2'):
         return 'x-fits'
     elif fqn.endswith('.fits.gz'):
         return 'gzip'
@@ -339,7 +339,7 @@ def get_file_encoding(fqn):
 def get_file_type(fqn):
     """Basic header extension to content_type lookup."""
     lower_fqn = fqn.lower()
-    if lower_fqn.endswith('.fits') or lower_fqn.endswith('.fits.fz'):
+    if lower_fqn.endswith('.fits') or lower_fqn.endswith('.fits.fz') or lower_fqn.endswith('.fits.bz2'):
         return 'application/fits'
     elif lower_fqn.endswith('.gif'):
         return 'image/gif'

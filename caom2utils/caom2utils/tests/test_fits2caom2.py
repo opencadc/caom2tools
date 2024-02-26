@@ -83,7 +83,6 @@ from caom2 import ObservationWriter, SimpleObservation, Algorithm, Artifact, Pro
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk, ObservationIntentType, ChecksumURI
 from caom2 import CustomWCS, SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS, Axis, CoordAxis1D, CoordAxis2D
 from caom2 import CalibrationLevel
-import logging
 
 import caom2utils
 
@@ -190,9 +189,9 @@ def test_hdf5_wcs_parser_set_wcs():
         assert test_subject is not None, 'expect a result'
         test_subject.augment_artifact(test_artifact)
         if bp == test_position_bp:
-            assert test_subject._wcs_parser._wcs.naxis == 2, 'wrong pos axis'
+            assert test_subject._wcs_parsers[0]._wcs.naxis == 2, 'wrong pos axis'
         else:
-            assert test_subject._wcs_parser._wcs.naxis == 1, 'wrong axis count'
+            assert test_subject._wcs_parsers[0]._wcs.naxis == 1, 'wrong axis count'
 
 
 def test_augment_failure():
@@ -734,7 +733,7 @@ def test_augment_value_errors():
         test_parser.augment_plane(test_obs, 'cadc:TEST/abc.fits.gz')
 
     with pytest.raises(ValueError):
-        test_parser.augment_artifact(test_obs, 0)
+        test_parser.augment_artifact(test_obs)
 
 
 def test_get_from_list():
@@ -1673,6 +1672,14 @@ def test_parser_construction(vos_mock, stdout_mock):
     finally:
         if os.path.exists(test_out_fqn):
             os.unlink(test_out_fqn)
+
+
+def test_edge_case():
+    ob = ObsBlueprint()
+    ob.load_from_file(f'{TESTDATA_DIR}/edge_case.blueprint')
+    assert (
+      ob._plan['Plane.provenance.producer'] == (['IMAGESWV', 'ORIGIN'], 'Gemini Observatory')
+    ), f'wrong blueprint default {ob._plan["Plane.provenance.producer"]}'
 
 
 def _get_local_headers(file_name):

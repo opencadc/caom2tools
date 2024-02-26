@@ -192,6 +192,10 @@ class BlueprintParser:
             _to_int_32(self._get_from_list('Plane.calibrationLevel', index=0, current=plane.calibration_level))
         )
         plane.meta_producer = self._get_from_list('Plane.metaProducer', index=0, current=plane.meta_producer)
+        plane.observable = self._get_observable(current=plane.observable)
+        plane.provenance = self._get_provenance(plane.provenance)
+        plane.metrics = self._get_metrics(current=plane.metrics)
+        plane.quality = self._get_quality(current=plane.quality)
 
         artifact = None
         for ii in plane.artifacts:
@@ -205,10 +209,10 @@ class BlueprintParser:
                 self._to_release_type(self._get_from_list('Artifact.releaseType', index=0)),
             )
             plane.artifacts[artifact_uri] = artifact
-        self.augment_artifact(artifact, 0)
+        self.augment_artifact(artifact)
         self.logger.debug(f'End CAOM2 plane augmentation for {artifact_uri}.')
 
-    def augment_artifact(self, artifact, index):
+    def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available information
         :param artifact: existing CAOM2 artifact to be augmented
@@ -243,7 +247,7 @@ class BlueprintParser:
     def _get_from_list(self, lookup, index, current=None):
         value = None
         try:
-            keywords = self.blueprint._get(lookup)
+            keywords = self.blueprint._get(lookup, index)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(f'Could not find {lookup} in configuration.')
@@ -346,13 +350,14 @@ class BlueprintParser:
             tb = traceback.format_exc()
             self.logger.debug(tb)
             self.logger.error(e)
+            return result
         try:
             result = execute(parameter)
             self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
         except Exception as e:
-            msg = 'Failed to execute {} for {} in {}'.format(execute.__name__, key, self.uri)
+            msg = f'Failed to execute {execute.__name__} for {key} in {self.uri}'
             self.logger.error(msg)
-            self.logger.debug('Input parameter was {}, value was {}'.format(parameter, value))
+            self.logger.debug(f'Input parameter was {parameter}, value was {value}')
             self._errors.append(msg)
             tb = traceback.format_exc()
             self.logger.debug(tb)
@@ -385,11 +390,11 @@ class BlueprintParser:
             return result
         try:
             result = execute(extension)
-            self.logger.debug('Key {} calculated value of {} using {}'.format(key, result, value))
+            self.logger.debug(f'Key {key} calculated value of {result} using {value}')
         except ValueError as e2:
             # DB 23-03-22
-            # Anything that you can do to make the CAOM2 record creation fail in this case of bad WCS metadata would
-            # be useful. Use ValueError because that happens to be what astropy is throwing for a SkyCoord
+            # Anything that you can do to make the CAOM2 record creation fail in this case of bad WCS metadata
+            # would be useful. Use ValueError because that happens to be what astropy is throwing for a SkyCoord
             # construction failure.
             raise Caom2Exception(e2)
         except Exception as e:
@@ -443,68 +448,197 @@ class BlueprintParser:
         else:
             return None
 
+    def _get_metrics(self, current):
+        """
+        Create a Metrics instance populated with available content information.
+        :return: Metrics
+        """
+        self.logger.debug('Begin Metrics augmentation.')
+        source_number_density = self._get_from_list(
+            'Plane.metrics.sourceNumberDensity',
+            index=0,
+            current=None if current is None else current.source_number_density,
+        )
+        background = self._get_from_list(
+            'Plane.metrics.background', index=0, current=None if current is None else current.background
+        )
+        background_stddev = self._get_from_list(
+            'Plane.metrics.backgroundStddev', index=0, current=None if current is None else current.background_std_dev
+        )
+        flux_density_limit = self._get_from_list(
+            'Plane.metrics.fluxDensityLimit', index=0, current=None if current is None else current.flux_density_limit
+        )
+        mag_limit = self._get_from_list(
+            'Plane.metrics.magLimit', index=0, current=None if current is None else current.mag_limit
+        )
+        sample_snr = self._get_from_list(
+            'Plane.metrics.sampleSNR', index=0, current=None if current is None else current.sample_snr
+        )
+
+        metrics = None
+        if source_number_density or background or background_stddev or flux_density_limit or mag_limit or sample_snr:
+            metrics = caom2.Metrics()
+            metrics.source_number_density = source_number_density
+            metrics.background = background
+            metrics.background_std_dev = background_stddev
+            metrics.flux_density_limit = flux_density_limit
+            metrics.mag_limit = mag_limit
+            metrics.sample_snr = sample_snr
+        self.logger.debug('End Metrics augmentation.')
+        return metrics
+
+    def _get_observable(self, current):
+        """
+        Create a Observable instance populated with available content
+        information.
+        :return: Observable
+        """
+        self.logger.debug('Begin Observable augmentation.')
+        ucd = self._get_from_list('Plane.observable.ucd', index=0, current=None if current is None else current.ucd)
+        observable = caom2.Observable(ucd) if ucd else None
+        self.logger.debug('End Observable augmentation.')
+        return observable
+
+    def _get_provenance(self, current):
+        """
+        Create a Provenance instance populated with available Content
+        information.
+        :return: Provenance
+        """
+        self.logger.debug('Begin Provenance augmentation.')
+        name = _to_str(
+            self._get_from_list('Plane.provenance.name', index=0, current=None if current is None else current.name)
+        )
+        p_version = _to_str(
+            self._get_from_list(
+                'Plane.provenance.version', index=0, current=None if current is None else current.version
+            )
+        )
+        project = _to_str(
+            self._get_from_list(
+                'Plane.provenance.project', index=0, current=None if current is None else current.project
+            )
+        )
+        producer = _to_str(
+            self._get_from_list(
+                'Plane.provenance.producer', index=0, current=None if current is None else current.producer
+            )
+        )
+        run_id = _to_str(
+            self._get_from_list(
+                'Plane.provenance.runID', index=0, current=None if current is None else current.run_id
+            )
+        )
+        reference = _to_str(
+            self._get_from_list(
+                'Plane.provenance.reference', index=0, current=None if current is None else current.reference
+            )
+        )
+        last_executed = self._get_datetime(
+            self._get_from_list(
+                'Plane.provenance.lastExecuted', index=0, current=None if current is None else current.last_executed
+            )
+        )
+        keywords = self._get_set_from_list('Plane.provenance.keywords', index=0)
+        inputs = self._get_set_from_list('Plane.provenance.inputs', index=0)
+        prov = None
+        if name:
+            prov = caom2.Provenance(name, p_version, project, producer, run_id, reference, last_executed)
+            ContentParser._add_keywords(keywords, current, prov)
+            if inputs:
+                if isinstance(inputs, caom2.TypedSet):
+                    for i in inputs:
+                        prov.inputs.add(i)
+                else:
+                    for i in inputs.split():
+                        prov.inputs.add(caom2.PlaneURI(str(i)))
+            else:
+                if current is not None and len(current.inputs) > 0:
+                    # preserve the original value
+                    prov.inputs.update(current.inputs)
+        self.logger.debug('End Provenance augmentation.')
+        return prov
+
+    def _get_quality(self, current):
+        """
+        Create a Quality instance populated with available content information.
+        :return: Quality
+        """
+        self.logger.debug('Begin Quality augmentation.')
+        flag = self._get_from_list('Plane.dataQuality', index=0, current=None if current is None else current.flag)
+        quality = caom2.DataQuality(flag) if flag else None
+        self.logger.debug('End Quality augmentation.')
+        return quality
+
 
 class ContentParser(BlueprintParser):
     def __init__(self, obs_blueprint=None, uri=None):
         super().__init__(obs_blueprint, uri)
-        self._wcs_parser = WcsParser(obs_blueprint, extension=0)
+        self._wcs_parsers = {}
+        self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=0)
 
     def _get_chunk_naxis(self, chunk, index):
         chunk.naxis = self._get_from_list('Chunk.naxis', index, self.blueprint.get_configed_axes_count())
 
-    def augment_artifact(self, artifact, index):
+    def _get_num_parts(self):
+        """return the number of Parts to create for a CAOM record
+        """
+        return len(self._blueprint._extensions) + 1
+
+    def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available content information
         :param artifact: existing CAOM2 artifact to be augmented
         :param index: int Part name
         """
-        super().augment_artifact(artifact, index)
+        super().augment_artifact(artifact)
 
         self.logger.debug(f'Begin content artifact augmentation for {artifact.uri}')
 
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError(f'No WCS Data. End content artifact augmentation for ' f'{artifact.uri}.')
 
-        if self.add_parts(artifact, index):
-            part = artifact.parts[str(index)]
-            part.product_type = self._get_from_list('Part.productType', index)
-            part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
+        for index in range(0, self._get_num_parts()):
+            if self.add_parts(artifact, index):
+                part = artifact.parts[str(index)]
+                part.product_type = self._get_from_list('Part.productType', index)
+                part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
 
-            # each Part has one Chunk, if it's not an empty part as determined just previously
-            if not part.chunks:
-                part.chunks.append(caom2.Chunk())
-            chunk = part.chunks[0]
-            chunk.meta_producer = self._get_from_list('Chunk.metaProducer', index=0, current=chunk.meta_producer)
+                # each Part has one Chunk, if it's not an empty part as determined just previously
+                if not part.chunks:
+                    part.chunks.append(caom2.Chunk())
+                chunk = part.chunks[0]
+                chunk.meta_producer = self._get_from_list('Chunk.metaProducer', index=0, current=chunk.meta_producer)
 
-            self._get_chunk_naxis(chunk, index)
+                self._get_chunk_naxis(chunk, index)
 
-            # order by which the blueprint is used to set WCS information:
-            # 1 - try to construct the information for an axis from WCS information
-            # 2 - if the WCS information is insufficient, try to construct the information from the blueprint
-            # 3 - Always try to fill the range metadata from the blueprint.
-            if self.blueprint._pos_axes_configed:
-                self._wcs_parser.augment_position(chunk)
-                self._try_position_with_blueprint(chunk, index)
+                # order by which the blueprint is used to set WCS information:
+                # 1 - try to construct the information for an axis from WCS information
+                # 2 - if the WCS information is insufficient, try to construct the information from the blueprint
+                # 3 - Always try to fill the range metadata from the blueprint.
+                if self.blueprint._pos_axes_configed:
+                    self._wcs_parsers[index].augment_position(chunk)
+                    self._try_position_with_blueprint(chunk, index)
 
-            if self.blueprint._energy_axis_configed:
-                self._wcs_parser.augment_energy(chunk)
-                self._try_energy_with_blueprint(chunk, index)
+                if self.blueprint._energy_axis_configed:
+                    self._wcs_parsers[index].augment_energy(chunk)
+                    self._try_energy_with_blueprint(chunk, index)
 
-            if self.blueprint._time_axis_configed:
-                self._wcs_parser.augment_temporal(chunk)
-                self._try_time_with_blueprint(chunk, index)
+                if self.blueprint._time_axis_configed:
+                    self._wcs_parsers[index].augment_temporal(chunk)
+                    self._try_time_with_blueprint(chunk, index)
 
-            if self.blueprint._polarization_axis_configed:
-                self._wcs_parser.augment_polarization(chunk)
-                self._try_polarization_with_blueprint(chunk, index)
+                if self.blueprint._polarization_axis_configed:
+                    self._wcs_parsers[index].augment_polarization(chunk)
+                    self._try_polarization_with_blueprint(chunk, index)
 
-            if self.blueprint._obs_axis_configed:
-                self._wcs_parser.augment_observable(chunk)
-                self._try_observable_with_blueprint(chunk, index)
+                if self.blueprint._obs_axis_configed:
+                    self._wcs_parsers[index].augment_observable(chunk)
+                    self._try_observable_with_blueprint(chunk, index)
 
-            if self.blueprint._custom_axis_configed:
-                self._wcs_parser.augment_custom(chunk)
-                self._try_custom_with_blueprint(chunk, index)
+                if self.blueprint._custom_axis_configed:
+                    self._wcs_parsers[index].augment_custom(chunk)
+                    self._try_custom_with_blueprint(chunk, index)
 
         self.logger.debug(f'End content artifact augmentation for {artifact.uri}.')
 
@@ -548,38 +682,12 @@ class ContentParser(BlueprintParser):
         observation.target_position = self._get_target_position(observation.target_position)
         observation.telescope = self._get_telescope(observation.telescope)
         observation.environment = self._get_environment(observation.environment)
-        self.logger.debug(f'End content observation augmentation for {artifact_uri}.')
-
-    def augment_plane(self, plane, artifact_uri):
-        """
-        Augments a given plane with available content information.
-        :param plane: existing CAOM2 plane to be augmented.
-        :param artifact_uri:
-        """
-        super().augment_plane(plane, artifact_uri)
-        self.logger.debug(f'Begin content plane augmentation for {artifact_uri}.')
-
-        plane.meta_release = self._get_datetime(
-            self._get_from_list('Plane.metaRelease', index=0, current=plane.meta_release)
-        )
-        plane.data_release = self._get_datetime(self._get_from_list('Plane.dataRelease', index=0))
-        plane.data_product_type = self._to_data_product_type(
-            self._get_from_list('Plane.dataProductType', index=0, current=plane.data_product_type)
-        )
-        plane.calibration_level = self._to_calibration_level(
-            _to_int_32(self._get_from_list('Plane.calibrationLevel', index=0, current=plane.calibration_level))
-        )
-        plane.meta_producer = self._get_from_list('Plane.metaProducer', index=0, current=plane.meta_producer)
-        plane.observable = self._get_observable(current=plane.observable)
-        plane.provenance = self._get_provenance(plane.provenance)
-        plane.metrics = self._get_metrics(current=plane.metrics)
-        plane.quality = self._get_quality(current=plane.quality)
-
-        self.logger.debug(f'End content plane augmentation for {artifact_uri}.')
+        self.logger.debug('End content observation augmentation.')
 
     def _get_algorithm(self, obs):
         """
-        Create an Algorithm instance populated with available content information.
+        Create an Algorithm instance populated with available content
+        information.
         :return: Algorithm
         """
         self.logger.debug('Begin Algorithm augmentation.')
@@ -697,8 +805,9 @@ class ContentParser(BlueprintParser):
             raise TypeError('Cannot apply blueprint for DerivedObservation to a ' 'simple observation')
         elif isinstance(obs, caom2.DerivedObservation):
             lookup = self.blueprint._get('DerivedObservation.members', extension=1)
-            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
-                member_list = self._get_from_table('DerivedObservation.members', 1)
+            if ObsBlueprint.is_table(lookup):
+                *_, extension = lookup
+                member_list = self._get_from_table('DerivedObservation.members', int(extension))
                 # ensure the members are good little ObservationURIs
                 if member_list.startswith('caom:'):
                     members = member_list
@@ -716,8 +825,9 @@ class ContentParser(BlueprintParser):
                     members = self._get_from_list('DerivedObservation.members', index=0, current=obs.members)
         elif isinstance(obs, caom2.CompositeObservation):
             lookup = self.blueprint._get('CompositeObservation.members', extension=1)
-            if ObsBlueprint.is_table(lookup) and len(self.headers) > 1:
-                member_list = self._get_from_table('CompositeObservation.members', 1)
+            if ObsBlueprint.is_table(lookup):
+                *_, extension = lookup
+                member_list = self._get_from_table('CompositeObservation.members', int(extension))
                 # ensure the members are good little ObservationURIs
                 if member_list.startswith('caom:'):
                     members = member_list
@@ -736,47 +846,8 @@ class ContentParser(BlueprintParser):
         self.logger.debug('End Members augmentation.')
         return members
 
-    def _get_metrics(self, current):
-        """
-        Create a Metrics instance populated with available content information.
-        :return: Metrics
-        """
-        self.logger.debug('Begin Metrics augmentation.')
-        source_number_density = self._get_from_list(
-            'Plane.metrics.sourceNumberDensity',
-            index=0,
-            current=None if current is None else current.source_number_density,
-        )
-        background = self._get_from_list(
-            'Plane.metrics.background', index=0, current=None if current is None else current.background
-        )
-        background_stddev = self._get_from_list(
-            'Plane.metrics.backgroundStddev', index=0, current=None if current is None else current.background_std_dev
-        )
-        flux_density_limit = self._get_from_list(
-            'Plane.metrics.fluxDensityLimit', index=0, current=None if current is None else current.flux_density_limit
-        )
-        mag_limit = self._get_from_list(
-            'Plane.metrics.magLimit', index=0, current=None if current is None else current.mag_limit
-        )
-        sample_snr = self._get_from_list(
-            'Plane.metrics.sampleSNR', index=0, current=None if current is None else current.sample_snr
-        )
-
-        metrics = None
-        if source_number_density or background or background_stddev or flux_density_limit or mag_limit or sample_snr:
-            metrics = caom2.Metrics()
-            metrics.source_number_density = source_number_density
-            metrics.background = background
-            metrics.background_std_dev = background_stddev
-            metrics.flux_density_limit = flux_density_limit
-            metrics.mag_limit = mag_limit
-            metrics.sample_snr = sample_snr
-        self.logger.debug('End Metrics augmentation.')
-        return metrics
-
     def _get_axis_wcs(self, label, wcs, index):
-        """Helper function to construct a CoordAxis1D instance, with all it's members, from the blueprint.
+        """Helper function to construct a CoordAxis1D instance, with all its members, from the blueprint.
 
         :param label: axis name - must be one of 'custom', 'energy', 'time', or 'polarization', as it's used for the
             blueprint lookup.
@@ -810,6 +881,7 @@ class ContentParser(BlueprintParser):
         aug_naxis_index = None
         if aug_axis is not None:
             if aug_range is None:
+                self.logger.debug(f'Try Function construction since Range construction failed for {label}.')
                 if wcs is None or wcs.axis is None or wcs.axis.function is None:
                     aug_ref_coord = self._two_param_constructor(
                         f'Chunk.{label}.axis.function.refCoord.pix',
@@ -835,20 +907,10 @@ class ContentParser(BlueprintParser):
         self.logger.debug(f'End {label} axis construction from blueprint.')
         return aug_naxis, aug_naxis_index
 
-    def _get_observable(self, current):
-        """
-        Create a Observable instance populated with available content information.
-        :return: Observable
-        """
-        self.logger.debug('Begin Observable augmentation.')
-        ucd = self._get_from_list('Plane.observable.ucd', index=0, current=None if current is None else current.ucd)
-        observable = caom2.Observable(ucd) if ucd else None
-        self.logger.debug('End Observable augmentation.')
-        return observable
-
     def _get_proposal(self, current):
         """
-        Create a Proposal instance populated with available content information.
+        Create a Proposal instance populated with available content
+        information.
         :return: Proposal
         """
         self.logger.debug('Begin Proposal augmentation.')
@@ -872,79 +934,10 @@ class ContentParser(BlueprintParser):
         self.logger.debug(f'End Proposal augmentation {prop_id}.')
         return proposal
 
-    def _get_provenance(self, current):
-        """
-        Create a Provenance instance populated with available Content information.
-        :return: Provenance
-        """
-        self.logger.debug('Begin Provenance augmentation.')
-        name = _to_str(
-            self._get_from_list('Plane.provenance.name', index=0, current=None if current is None else current.name)
-        )
-        p_version = _to_str(
-            self._get_from_list(
-                'Plane.provenance.version', index=0, current=None if current is None else current.version
-            )
-        )
-        project = _to_str(
-            self._get_from_list(
-                'Plane.provenance.project', index=0, current=None if current is None else current.project
-            )
-        )
-        producer = _to_str(
-            self._get_from_list(
-                'Plane.provenance.producer', index=0, current=None if current is None else current.producer
-            )
-        )
-        run_id = _to_str(
-            self._get_from_list(
-                'Plane.provenance.runID', index=0, current=None if current is None else current.run_id
-            )
-        )
-        reference = _to_str(
-            self._get_from_list(
-                'Plane.provenance.reference', index=0, current=None if current is None else current.reference
-            )
-        )
-        last_executed = self._get_datetime(
-            self._get_from_list(
-                'Plane.provenance.lastExecuted', index=0, current=None if current is None else current.last_executed
-            )
-        )
-        keywords = self._get_set_from_list('Plane.provenance.keywords', index=0)
-        inputs = self._get_set_from_list('Plane.provenance.inputs', index=0)
-        prov = None
-        if name:
-            prov = caom2.Provenance(name, p_version, project, producer, run_id, reference, last_executed)
-            ContentParser._add_keywords(keywords, current, prov)
-            if inputs:
-                if isinstance(inputs, caom2.TypedSet):
-                    for i in inputs:
-                        prov.inputs.add(i)
-                else:
-                    for i in inputs.split():
-                        prov.inputs.add(caom2.PlaneURI(str(i)))
-            else:
-                if current is not None and len(current.inputs) > 0:
-                    # preserve the original value
-                    prov.inputs.update(current.inputs)
-        self.logger.debug('End Provenance augmentation.')
-        return prov
-
-    def _get_quality(self, current):
-        """
-        Create a Quality instance populated with available content information.
-        :return: Quality
-        """
-        self.logger.debug('Begin Quality augmentation.')
-        flag = self._get_from_list('Plane.dataQuality', index=0, current=None if current is None else current.flag)
-        quality = caom2.DataQuality(flag) if flag else None
-        self.logger.debug('End Quality augmentation.')
-        return quality
-
     def _get_requirements(self, current):
         """
-        Create a Requirements instance populated with available content information.
+        Create a Requirements instance populated with available content
+        information.
         :return: Requirements
         """
         self.logger.debug('Begin Requirement augmentation.')
@@ -1484,6 +1477,7 @@ class FitsParser(ContentParser):
         :param uri: which artifact augmentation is based on
         """
         self.logger = logging.getLogger(__name__)
+        self._wcs_parsers = {}
         self._headers = []
         self.parts = 0
         self.file = ''
@@ -1502,6 +1496,11 @@ class FitsParser(ContentParser):
         # for command-line parameter to module execution
         self.uri = uri
         self.apply_blueprint()
+
+    def _get_num_parts(self):
+        """return the number of Parts to create for a CAOM record
+        """
+        return len(self._headers)
 
     @property
     def headers(self):
@@ -1526,6 +1525,7 @@ class FitsParser(ContentParser):
         return result
 
     def apply_blueprint(self):
+        self.logger.debug(f'Begin apply_blueprint {self.uri}')
         # pointers that are short to type
         exts = self.blueprint._extensions
         wcs_std = self.blueprint._wcs_std
@@ -1581,12 +1581,25 @@ class FitsParser(ContentParser):
                 continue
             hdr = self.headers[extension]
             for key, value in exts[extension].items():
-                if ObsBlueprint.is_table(value):
+                if ObsBlueprint.needs_lookup(value):
+                    # alternative attributes provided for standard wcs attrib.
+                    for v in value[0]:
+                        if v in hdr and v not in wcs_std[key].split(','):
+                            keywords = wcs_std[key].split(',')
+                            for keyword in keywords:
+                                _set_by_type(hdr, keyword, str(hdr[v]))
+                elif ObsBlueprint.is_table(value):
                     continue
-                keywords = wcs_std[key].split(',')
-                for keyword in keywords:
-                    _set_by_type(hdr, keyword, value)
-                    logging.debug('{}: set to {} in extension {}'.format(keyword, value, extension))
+                elif ObsBlueprint.has_no_value(value):
+                    continue
+                else:
+                    if key in wcs_std.keys():
+                        keywords = wcs_std[key].split(',')
+                        for keyword in keywords:
+                            _set_by_type(hdr, keyword, value)
+                            logging.debug(f'{keyword}: set to {value} in extension {extension}')
+                    else:
+                        exts[extension][key] = value
         # apply defaults to all extensions
         for key, value in plan.items():
             if ObsBlueprint.has_default_value(value):
@@ -1635,15 +1648,14 @@ class FitsParser(ContentParser):
                 for i in range(1, 6):
                     if (f'CTYPE{i}' in header) and ('-SIP' not in header[f'CTYPE{i}']) and (f'DP{i}' not in header):
                         header[f'DP{i}'] = 'NAXES: 1'
-
         return
 
-    def augment_artifact(self, artifact, index=0):
+    def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available FITS information
         :param artifact: existing CAOM2 artifact to be augmented
         """
-        self.logger.debug('Begin artifact augmentation for {} with {} HDUs.'.format(artifact.uri, len(self.headers)))
+        self.logger.debug(f'Begin artifact augmentation for {artifact.uri} with {len(self.headers)} HDUs.')
 
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError('No WCS Data. End artifact augmentation for {}.'.format(artifact.uri))
@@ -1651,10 +1663,10 @@ class FitsParser(ContentParser):
         for i, header in enumerate(self.headers):
             if not self.add_parts(artifact, i):
                 # artifact-level attributes still require updating
-                BlueprintParser.augment_artifact(self, artifact, 0)
+                BlueprintParser.augment_artifact(self, artifact)
                 continue
-            self._wcs_parser = FitsWcsParser(header, self.file, str(i))
-            super().augment_artifact(artifact, i)
+            self._wcs_parsers[i] = FitsWcsParser(header, self.file, str(i))
+        super().augment_artifact(artifact)
 
         self.logger.debug(f'End artifact augmentation for {artifact.uri}.')
 
@@ -1672,7 +1684,7 @@ class FitsParser(ContentParser):
     def _get_from_list(self, lookup, index, current=None):
         value = None
         try:
-            keys = self.blueprint._get(lookup)
+            keys = self.blueprint._get(lookup, index)
         except KeyError:
             self.add_error(lookup, sys.exc_info()[1])
             self.logger.debug(f'Could not find {lookup!r} in caom2blueprint configuration.')
@@ -1749,12 +1761,10 @@ class FitsParser(ContentParser):
                 with fits.open(self.file) as fits_data:
                     if fits_data[extension].header['XTENSION'] != 'BINTABLE':
                         raise ValueError(
-                            'Got {} when looking for a BINTABLE '
-                            'extension.'.format(fits_data[extension].header['XTENSION'])
+                            f'Got {fits_data[extension].header["XTENSION"]} when looking for a BINTABLE extension.'
                         )
-                    for ii in keywords[1]:
-                        for jj in fits_data[extension].data[keywords[2]][ii]:
-                            value = f'{jj} {value}'
+                    for ii in fits_data[extension].data[keywords[1]]:
+                        value = f'{ii} {value}'
 
         self.logger.debug(f'{lookup}: value is {value}')
         return value
@@ -1858,7 +1868,16 @@ class Hdf5Parser(ContentParser):
         super().__init__(obs_blueprint, uri)
         # used to set the astropy wcs info, resulting in a validated wcs that can be used to construct a valid CAOM2
         # record
-        self._wcs_parser = None
+        self._wcs_parsers = {}
+
+    def _get_num_parts(self):
+        """return the number of Parts to create for a CAOM record
+        """
+        result = len(self._blueprint._extensions)
+        if result == 0:
+            # for HDF5 files, cutouts should be supported in the future, so the minimum is one Part/Chunk construction
+            result = 1
+        return result
 
     def apply_blueprint_from_file(self):
         """
@@ -2042,12 +2061,11 @@ class Hdf5Parser(ContentParser):
         self.logger.debug('Done apply_blueprint')
         return
 
-    def augment_artifact(self, artifact, index=0):
-        self._wcs_parser = Hdf5WcsParser(self._blueprint, 0)
-        super().augment_artifact(artifact, 0)
-        for ii in range(1, len(self._blueprint._extensions)):
-            self._wcs_parser = Hdf5WcsParser(self._blueprint, ii)
-            super().augment_artifact(artifact, ii)
+    def augment_artifact(self, artifact):
+        for ii in range(0, self._get_num_parts()):
+            # one WCS parser per Part/Chunk
+            self._wcs_parsers[ii] = Hdf5WcsParser(self._blueprint, ii)
+        super().augment_artifact(artifact)
 
     def _get_chunk_naxis(self, chunk, index):
         chunk.naxis = self._get_from_list('Chunk.naxis', index, chunk.naxis)
@@ -2063,17 +2081,16 @@ def _set_by_type(header, keyword, value):
     values into ints."""
     float_value = None
     int_value = None
+    if value is not None:
+        try:
+            float_value = float(value)
+        except ValueError:
+            pass
 
-    try:
-        float_value = float(value)
-    except ValueError:
-        pass
-
-    try:
-        int_value = int(value)
-    except ValueError:
-        pass
-
+        try:
+            int_value = int(value)
+        except ValueError:
+            pass
     if float_value and not str(value).isdecimal() or re.match(r'0\.0*', str(value)):
         header.set(keyword, float_value)
     elif int_value:

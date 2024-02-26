@@ -822,26 +822,27 @@ class ObsBlueprint:
 
         :param file_name: The fully-qualified pathname for the blueprint file on disk.
         """
+        ext = 0
         with open(file_name) as file:
             for line in file:
+                line = line.split('#')[0]
                 if '=' in line:
-                    if '#' in line:
-                        if line.find('#') == 0:
-                            # ignore lines starting with a comment
-                            continue
-                        line = line.split('#')[0]
                     key, value = line.split('=', 1)
                     if 'default' in value:
-                        temp = value.replace('default', '').replace('=', '').strip('\n').strip()
-                        default = temp.rsplit(',')[1]
-                        temp_list = temp.rsplit(',')[0].replace('[', '').replace(']', '').replace('\'', '').split(',')
+                        temp = value.split(', default')
+                        default = temp[1].replace('=', '').strip()
+                        temp_list = [
+                            ii.replace('[', '').replace(']', '').replace('\'', '').strip() for ii in temp[0].split(',')
+                        ]
                         if 'None' in default:
                             default = None
-                        else:
-                            default = default.strip()
                         cleaned_up_value = (temp_list, default)
                     else:
-                        if '[' in value:
+                        if value.strip() and value.strip()[0] == '(':
+                            cleaned_up_value = tuple(ii.strip() for ii in value.strip().replace(
+                                    '(', ''
+                                ).replace(')', '').replace('\'', '').split(','))
+                        elif '[' in value:
                             temp_list = value.replace('[', '').replace(']', '').replace('\'', '').split(',')
                             temp_list_2 = []
                             for ii in temp_list:
@@ -851,7 +852,13 @@ class ObsBlueprint:
                             cleaned_up_value = value.strip('\n').strip()
                             if cleaned_up_value == 'None':
                                 cleaned_up_value = None
-                    self.set(key.strip(), cleaned_up_value)
+                    self.set(key.strip(), cleaned_up_value, ext)
+                elif 'extension' in line:
+                    # pattern is 'extension #:'
+                    new_ext = _to_int(line.strip('extension').strip('\n').strip(':'))
+                    if isinstance(new_ext, int):
+                        self.logger.info(f'Add extension {new_ext} to blueprint.')
+                        ext = new_ext
         self._guess_axis_info()
 
     @classproperty
@@ -1509,4 +1516,8 @@ def _to_int_32(value):
 
 
 def _to_str(value):
-    return str(value).strip() if value is not None else None
+    if value is None or str(value).strip() == '':
+        result = None
+    else:
+        result = str(value).strip()
+    return result
