@@ -1863,7 +1863,7 @@ class Hdf5Parser(ContentParser):
     - use the astropy.wcs instance and other blueprint metadata to fill the CAOM2 record.
     """
 
-    def __init__(self, obs_blueprint, uri, h5_file, extension_names):
+    def __init__(self, obs_blueprint, uri, h5_file, extension_names=None):
         """
         :param obs_blueprint: Hdf5ObsBlueprint instance
         :param uri: which artifact augmentation is based on
@@ -1900,10 +1900,13 @@ class Hdf5Parser(ContentParser):
         # require it
         import h5py
 
-        individual, multi, attributes = self._extract_path_names_from_blueprint()
-        # self.logger.error(individual)
-        # self.logger.error(multi)
-        # self.logger.error(attributes)
+        individual, multi, attributes, candidate_extensions = self._extract_path_names_from_blueprint()
+        if self._extension_names is None and len(candidate_extensions) > 0:
+            self._find_extension_names(candidate_extensions)
+            for index, _ in enumerate(self._extension_names):
+                self._blueprint._extensions[index] = {}
+        else:
+            self._blueprint._extensions[0] = {}
         filtered_individual = [ii for ii in individual.keys() if '(' in ii]
 
         def _extract_from_item(name, object):
@@ -1996,31 +1999,64 @@ class Hdf5Parser(ContentParser):
             are _CAOM2_ELEMENT strings.
             attributes - a dictionary of lists, keys reference expected content from the h5py.File().attrs data
             structure and its keys.
+            extensions - a list of prefixes for identifying extensions
         """
         individual = defaultdict(list)
         multi = defaultdict(list)
         attributes = defaultdict(list)
+        extensions = []
         for key, value in self._blueprint._plan.items():
             if ObsBlueprint.needs_lookup(value):
                 for ii in value[0]:
                     if ii.startswith('//'):
                         individual[ii].append(key)
                     elif ii.startswith('/'):
-                        multi[ii].append(key)
+                        if '{}' in ii:
+                            bits = ii.split('{}')
+                            extensions.append(bits[0])
+                            multi[bits[1]].append(key)
+                        else:
+                            multi[ii].append(key)
                     else:
                         attributes[ii].append(key)
-        return individual, multi, attributes
+
+        temp = list(set(extensions))
+        extensions = temp
+        return individual, multi, attributes, extensions
+
+    def _find_extension_names(self, candidates):
+        """ if the HDF5 file has a structure where-by more than one Chunk (the equivalent of a FITS HDU extension)
+        is defined, try to guess that structure
+        """
+        candidate_extension_names = []
+
+        def _extract_extension_prefixes(name, object):
+            """
+            Function signature dictated by h5py visititems implementation. Executed for each dataset/group in an
+            HDF5 file.
+
+            :param name: fully-qualified HDF5 path name
+            :param object: what the HDF5 path name points to
+            """
+            import h5py
+            for part_name in candidates:
+                y = part_name.replace('/', '', 1)
+                if name.startswith(y):
+                    x = name.split(y)[1].split('/')
+                    temp = f'{y}{x[0]}'
+                    candidate_extension_names.append(temp)
+            self._extension_names = list(sorted(set(candidate_extension_names)))
+
+        self._file.visititems(_extract_extension_prefixes)
+        msg = '\n'.join(ii for ii in self._extension_names)
+        self.logger.info(f'Found extension_names:\n{msg}')
 
     def apply_blueprint(self):
         self.logger.debug('Begin apply_blueprint')
-        for index, _ in enumerate(self._extension_names):
-            self._blueprint._extensions[index] = {}
-
         self.apply_blueprint_from_file()
 
-        # after the apply_blueprint_from_file call, all the metadata from the
-        # file has been applied to the blueprint, so now do the bits that
-        # require no access to file content
+        # after the apply_blueprint_from_file call, all the metadata from the file has been applied to the blueprint,
+        # so now do the bits that require no access to file content
 
         # pointers that are short to type
         exts = self._blueprint._extensions
