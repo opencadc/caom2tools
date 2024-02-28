@@ -184,10 +184,9 @@ def _check_transform(lower, upper):
     coord_array = np.array([[lower, upper]])
     sky_transform = wcsprm.p2s(coord_array, ORIGIN)
     wcsprm.s2p(sky_transform['world'], ORIGIN)
-    # Per instruction from JJK/PD (standup, 19/04/18), if this transform
-    # to and from works, that is sufficient to indicate the input data is
-    # correct. There is no need to compare that the values provided as
-    # input are the same as the values that exist after the transform.
+    # Per instruction from JJK/PD (standup, 19/04/18), if this transform to and from works, that is sufficient to
+    # indicate the input data is correct. There is no need to compare that the values provided as input are the same
+    # as the values that exist after the transform.
 
 
 def _validate_spectral_wcs(energy):
@@ -279,8 +278,7 @@ def _validate_polarization_wcs(polarization_wcs):
     Validates the PolarizationWCS.
     :param polarization_wcs: PolarizationWCS to be validated
 
-    An InvalidWCSError is thrown if the PolarizationWCS is determined
-    to be invalid.
+    An InvalidWCSError is thrown if the PolarizationWCS is determined to be invalid.
     """
     if polarization_wcs is not None:
         try:
@@ -300,8 +298,8 @@ def _validate_axes(chunk):
     error_msg = ''
 
     if chunk.naxis is not None:
-        # Have axisList offset by 1 because the list will be counted
-        # from 1 to naxis. Nones in the list are missing axis definitions.
+        # Have axisList offset by 1 because the list will be counted from 1 to naxis. Nones in the list are missing
+        # axis definitions.
         axis_list = ["" for x in range(chunk.naxis + 1)]
         attr_dict = vars(chunk)
         for key in attr_dict.keys():
@@ -315,8 +313,7 @@ def _validate_axes(chunk):
                     else:
                         axis_list[value] = key
 
-        # Validate the number and quality of the axis definitions
-        # Count from 1, as 0 will never be filled
+        # Validate the number and quality of the axis definitions Count from 1, as 0 will never be filled
         if axis_list[0] != "":
             error_msg += "\tInvalid axis definition (0): {}.".format(axis_list[0])
 

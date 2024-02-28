@@ -159,17 +159,14 @@ class WcsParser:
 
     def assign_sanitize(self, assignee, index, key, sanitize=True):
         """
-        Do not want to blindly assign None to astropy.wcs attributes, so
-        use this method for conditional assignment.
+        Do not want to blindly assign None to astropy.wcs attributes, so use this method for conditional assignment.
 
-        The current implementation is that if there is a legitimate need to
-        assign None to a value, either use 'set' in the Hdf5ObsBlueprint, and
-        specifically assign None, or execute a function to set it to None
-        conditionally. There will be no support for a Default value of None
-        with HDF5 files.
+        The current implementation is that if there is a legitimate need to assign None to a value, either use 'set'
+        in the Hdf5ObsBlueprint, and specifically assign None, or execute a function to set it to None conditionally.
+        There will be no support for a Default value of None with HDF5 files.
 
-        By the time this method is called, if the value still passes the "ObsBlueprint.needs_lookup"
-        check, the value should be ignored for fulfilling the WCS needs of the record under construction.
+        By the time this method is called, if the value still passes the "ObsBlueprint.needs_lookup" check, the
+        value should be ignored for fulfilling the WCS needs of the record under construction.
         """
         x = self._blueprint._get(key, self._extension)
         if sanitize:
@@ -360,7 +357,7 @@ class WcsParser:
             if delta and ref_coord:
                 naxis.function = CoordFunction1D(energy_axis_length, delta, ref_coord)
 
-            specsys = _to_str(self.wcs.specsys)
+            specsys = _to_str(self.wcs.specsys) if self.wcs.specsys else ''
             if not chunk.energy:
                 chunk.energy = SpectralWCS(naxis, specsys)
             else:
@@ -703,8 +700,7 @@ class WcsParser:
         return aug_dimension
 
     def _get_position_axis(self):
-        # there are two celestial axes, get the applicable indices from
-        # the axis_types
+        # there are two celestial axes, get the applicable indices from the axis_types
         xindex = self._get_axis_index(POSITION_CTYPES[0])
         yindex = self._get_axis_index(POSITION_CTYPES[1])
 
@@ -724,8 +720,7 @@ class WcsParser:
         return aug_ref_coord
 
     def _get_spatial_axis(self, xindex, yindex):
-        """Assemble the bits to make the axis parameter needed for
-        SpatialWCS construction."""
+        """Assemble the bits to make the axis parameter needed for SpatialWCS construction."""
         aug_dimension = self._get_dimension(xindex, yindex)
         if aug_dimension is None:
             return None
@@ -781,21 +776,18 @@ class WcsParser:
 
 class FitsWcsParser(WcsParser):
     """
-    Parser to augment chunks with positional, temporal, energy and polarization
-    information based on the WCS keywords in an extension of a FITS header.
+    Parser to augment chunks with positional, temporal, energy and polarization information based on the WCS keywords
+    in an extension of a FITS header.
 
-    Note: Under the hood, this class uses the astropy.wcs package to parse the
-    header and any inconsistencies or missing keywords are reported back as
-    warnings.
+    Note: Under the hood, this class uses the astropy.wcs package to parse the header and any inconsistencies or
+    missing keywords are reported back as warnings.
     """
 
     def __init__(self, header, file, extension):
         """
-
         :param header: FITS extension header
         :param file: name of FITS file
         :param extension: which HDU
-        WCS axes methods of this class.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.log_filter = HDULoggingFilter()
@@ -843,8 +835,7 @@ class FitsWcsParser(WcsParser):
         self.logger.debug('End _finish_chunk_time')
 
     def _get_axis_length(self, for_axis):
-        # try ZNAXIS first in order to get the size of the original
-        # image in case it was FITS compressed
+        # try ZNAXIS first in order to get the size of the original image in case it was FITS compressed
         result = _to_int(self._sanitize(self.header.get(f'ZNAXIS{for_axis}')))
         if result is None:
             result = _to_int(self._sanitize(self.header.get(f'NAXIS{for_axis}')))
@@ -856,8 +847,8 @@ class FitsWcsParser(WcsParser):
 
 class Hdf5WcsParser(WcsParser):
     """
-    This class initializes an astropy.wcs instance with metadata from an
-    Hdf5ObsBlueprint populated using an Hdf5Parser.
+    This class initializes an astropy.wcs instance with metadata from an Hdf5ObsBlueprint populated using an
+    Hdf5Parser.
     """
 
     def __init__(self, blueprint, extension):

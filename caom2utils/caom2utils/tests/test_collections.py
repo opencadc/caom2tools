@@ -92,11 +92,9 @@ def raise_exit_error():
 @patch('sys.exit', Mock(side_effect=ImportError))
 def test_differences(directory):
     """
-    Note: This tests is parametrized from conftest.py file. Directories
-    of the form TESTDATA_DIR/*/* become parameters to this test.
-    This test assumes a directory contains the config, default,
-    override, input FITS files (*.header) and expected observation (*.xml)
-    files
+    Note: This tests is parametrized from conftest.py file. Directories of the form TESTDATA_DIR/*/* become
+    parameters to this test. This test assumes a directory contains the config, default, override, input FITS files
+    (*.header) and expected observation (*.xml) files
     """
     expected_fname = _get_file('xml', directory)
     assert expected_fname
@@ -172,9 +170,8 @@ def test_differences(directory):
 
         def _header(fqn):
             if '.fits' in fqn:
-                # during operation, want to use astropy on FITS files
-                # but during testing want to use headers and built-in Python file
-                # operations
+                # during operation, want to use astropy on FITS files but during testing want to use headers and
+                # built-in Python file operations
                 file_uri = urlparse(fqn)
                 try:
                     fits_header = open(file_uri.path).read()
@@ -221,8 +218,7 @@ def test_differences(directory):
 
 def _get_cardinality(directory):
     # TODO - read this from an aptly named file in the directory
-    # The blueprints are named to reverse sort so that this
-    # alignment of product id / artifact URI works
+    # The blueprints are named to reverse sort so that this alignment of product id / artifact URI works
     if '/cfhtsg/' in directory:
         return (
             '--lineage '
@@ -286,9 +282,8 @@ def _get_data_files_parameter(fnames):
 
 
 def _get_uris(collection, fnames, obs):
-    # NOTE: this function makes the assumption that the collection is
-    # the same with the AD archive, which in many cases is not true (CFHT
-    # for example has multiple collections)
+    # NOTE: this function makes the assumption that the collection is the same with the AD archive, which in many
+    # cases is not true (CFHT for example has multiple collections)
     uris = []
     file_meta = {}
     if fnames:

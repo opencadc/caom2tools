@@ -361,8 +361,8 @@ class CustomAxisUtilTests(unittest.TestCase):
         with pytest.raises(ValueError) as ex:
             wcs_util.CustomAxisUtil.compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype)
         assert 'CTYPE must be the same across all Artifacts' in str(ex.value)
-        # bounds is not None, user_chunk = True, current_type is not None and
-        # current_type == expected_ctype, ss >= scale, num = 1
+        # bounds is not None, user_chunk = True, current_type is not None and current_type == expected_ctype,
+        # ss >= scale, num = 1
         bounds = Interval(1.1, 11.1)
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
@@ -405,8 +405,8 @@ class CustomAxisUtilTests(unittest.TestCase):
         )
         expected_dimension = None
         self.assertEqual(expected_dimension, actual_dimension)
-        # bounds is not None, user_chunk = True, current_type is not None and
-        # current_type == expected_ctype, ss >= scale, num = 2
+        # bounds is not None, user_chunk = True, current_type is not None and current_type == expected_ctype,
+        # ss >= scale, num = 2
         bounds = Interval(1.1, 11.1)
         test_chunk1 = Chunk()
         test_chunk1.product_type = chunk.ProductType.CALIBRATION
@@ -491,8 +491,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         expected_interval = Interval(1.1, 11.1)
         self.assertEqual(expected_interval.lower, actual_interval.lower)
         self.assertEqual(expected_interval.upper, actual_interval.upper)
-        # user_chunk = True, get_num_pixels: bounds with 3 samples that
-        # traverses _merge_into_list completely
+        # user_chunk = True, get_num_pixels: bounds with 3 samples that traverses _merge_into_list completely
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_bounds_3_samples()
@@ -534,8 +533,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_interval.upper, actual_interval.upper)
 
     def test_compute(self):
-        # _choose_product returns Artifact.product (SCIENCE),
-        # user_chunk = False
+        # _choose_product returns Artifact.product (SCIENCE), user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -552,8 +550,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Artifact.product (CALIBRATION),
-        # user_chunk = False
+        # _choose_product returns Artifact.product (CALIBRATION), user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -570,8 +567,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Part.product (SCIENCE),
-        # user_chunk = False
+        # _choose_product returns Part.product (SCIENCE), user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -588,8 +584,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Part.product (CALIBRATION),
-        # user_chunk = False
+        # _choose_product returns Part.product (CALIBRATION), user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -623,8 +618,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Chunk.product (CALIBRATION),
-        # user_chunk = False
+        # _choose_product returns Chunk.product (CALIBRATION), user_chunk = False
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
@@ -658,8 +652,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         expected_axis = None
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Artifact.product (SCIENCE),
-        # user_chunk = True, Chunk.custom is None
+        # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is None
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
         test_chunk.custom = None
@@ -676,8 +669,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         expected_axis = None
         actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         self.assertEqual(expected_axis, actual_axis)
-        # _choose_product returns Artifact.product (SCIENCE),
-        # user_chunk = True, Chunk.custom is not None
+        # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
         # bad Chunk.custom.axis.axis.ctype
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
@@ -695,8 +687,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         with pytest.raises(ValueError) as ex:
             actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         assert 'Unsupported CTYPE:' in str(ex.value)
-        # _choose_product returns Artifact.product (SCIENCE),
-        # user_chunk = True, Chunk.custom is not None
+        # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
         # first_ctype == Chunk.custom.axis.axis.ctype
         test_chunk = Chunk()
         test_chunk.product_type = chunk.ProductType.SCIENCE
@@ -724,8 +715,7 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_axis.bounds.samples[0].lower, actual_axis.bounds.samples[0].lower)
         self.assertEqual(expected_axis.bounds.samples[0].upper, actual_axis.bounds.samples[0].upper)
         self.assertEqual(expected_axis.dimension, actual_axis.dimension)
-        # _choose_product returns Artifact.product (SCIENCE),
-        # user_chunk = True, Chunk.custom is not None
+        # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
         # first_ctype == Chunk.custom.axis.axis.ctype
         test_chunk_1 = Chunk()
         test_chunk_1.product_type = chunk.ProductType.SCIENCE

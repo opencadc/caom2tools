@@ -69,7 +69,6 @@
 from caom2utils.blueprints import ObsBlueprint
 
 import pytest
-import sys
 
 
 # @pytest.mark.skip('')
@@ -104,8 +103,7 @@ def test_obs_blueprint():
     ob.configure_observable_axis(axis=6)
     ob.configure_custom_axis(axis=7)
 
-    # test that configuring something that's already configured doesn't break
-    # anything
+    # test that configuring something that's already configured doesn't break anything
     ob.configure_position_axes(axes=(1, 2))
     ob.configure_energy_axis(axis=3)
     ob.configure_polarization_axis(axis=4)
@@ -144,7 +142,7 @@ def test_obs_blueprint():
     ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE', extension=1)
     ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2', extension=1)
     ob.set_default('Chunk.energy.axis.axis.ctype', 'NOCTYPE', extension=1)
-    extension1_str = str(ob)[str(ob).index('extension 1') :]
+    extension1_str = str(ob)[str(ob).index('extension 1'):]
     assert ("Chunk.energy.axis.axis.ctype = ['MYCTYPE2', 'MYCTYPE'], " "default = NOCTYPE") in extension1_str
 
     # set in a different extension

@@ -76,9 +76,8 @@ __all__ = ['validate_polygon', 'validate_multipolygon']
 
 def validate_polygon(poly):
     """
-    Performs validation on the polygon provided. The points in the polygon
-    will be validated for closure and self segment intersection. The samples
-    in the polygon will be validated using validate_multipolygon().
+    Performs validation on the polygon provided. The points in the polygon will be validated for closure and self
+    segment intersection. The samples in the polygon will be validated using validate_multipolygon().
 
     for a closed polygon, we must have:
         points[0].cval1 == points[-1].cval1
@@ -95,8 +94,7 @@ def validate_polygon(poly):
     points = poly.points
     if points:
         if len(points) < 3:
-            # points in a polygon is not required to form a closed polygon,
-            # hence min 3 points
+            # points in a polygon is not required to form a closed polygon, hence min 3 points
             raise AssertionError('invalid polygon: {} points (min 3)'.format(len(points)))
 
         cval1s = []
@@ -116,25 +114,21 @@ def validate_polygon(poly):
         # validate self-segment intersection and clockwise direction
         _validate_self_intersection_and_direction(cval1s, cval2s)
 
-    # Rt 75582 currently samples are not required to
-    # conform to intersection and direction, so do not validate damples
+    # Rt 75582 currently samples are not required to conform to intersection and direction, so do not validate
+    # samples
     # if poly.samples is not None:
     #     validate_multipolygon(poly.samples)
 
 
 def _validate_is_clockwise(orig_lon, lon):
     """
-    Verifies that the polygon is contructed from points in a clockwise
-    direction.
+    Verifies that the polygon is contructed from points in a clockwise direction.
 
-    Note: The SphericalPolygon fixes a polygon with points not in a
-    clockwise direction. We only need to compare a point in our
-    polygon/multipolygon with the corresponding one in the SphericalPolygon
-    object. We cannot use an endpoint since they are the same for a closed
-    polygon.
+    Note: The SphericalPolygon fixes a polygon with points not in a clockwise direction. We only need to compare a
+    point in our polygon/multipolygon with the corresponding one in the SphericalPolygon object. We cannot use an
+    endpoint since they are the same for a closed polygon.
 
-    An AssertionError is thrown if the points are not in a clockwise
-    direction
+    An AssertionError is thrown if the points are not in a clockwise direction
     """
     if not np.isclose(lon[1], orig_lon[1]):
         if not np.isclose(lon[1] - 360, orig_lon[1]):
@@ -147,11 +141,9 @@ def _validate_is_clockwise(orig_lon, lon):
 
 def _validate_self_intersection_and_direction(ras, decs):
     """
-    Verifies that the polygon does not contain self-intersecting segments
-    and that the points are clockwise.
+    Verifies that the polygon does not contain self-intersecting segments and that the points are clockwise.
 
-    An AssertionError is thrown if the polygon contains self-intersecting
-    segments.
+    An AssertionError is thrown if the polygon contains self-intersecting segments.
     """
     # use SphericalPolygon from spherical-geometry to validate our polygon
     x, y, z = vector.lonlat_to_vector(ras, decs)
@@ -168,8 +160,7 @@ def validate_multipolygon(mp):
     """
     Performs a basic validation of a multipolygon.
 
-    An AssertionError is thrown if the multipolygon is invalid ie (invalid
-    indexes, invalid polygons etc.)
+    An AssertionError is thrown if the multipolygon is invalid ie (invalid indexes, invalid polygons etc.)
     """
 
     if not mp:
@@ -199,8 +190,7 @@ def _validate_size_and_end_vertices(mp):
 
 class MultiPolygonValidator:
     """
-    A class to validate the sequencing of vertices in a polygon,
-    as well as constructing and validating the polygon.
+    A class to validate the sequencing of vertices in a polygon, as well as constructing and validating the polygon.
 
     An AssertionError is thrown if an incorrect polygon is detected.
     """

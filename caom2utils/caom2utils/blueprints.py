@@ -96,15 +96,13 @@ class classproperty:
 
 class ObsBlueprint:
     """
-    Class that represents the blueprint of a CAOM2 Observation that can be
-    used to build an observation.
+    Class that represents the blueprint of a CAOM2 Observation that can be used to build an observation.
 
     The following CAOM2 elements can be specified in the blueprint:
     _CAOM2_ELEMENTS
 
-    The blueprint designates the source of each of these attributes as either
-    FITS keywords with possible default values or sets the actual values.
-    The blueprint can be checked by simply displaying it.
+    The blueprint designates the source of each of these attributes as either FITS keywords with possible default
+    values or sets the actual values. The blueprint can be checked by simply displaying it.
 
     For example:
 
@@ -112,17 +110,13 @@ class ObsBlueprint:
     print(ObsBlueprint())
 
     # display the default blueprint when WCS axes are specified
-    print(ObsBlueprint(position_axis=(1, 2), energy_axis=3,
-                       polarization_axis=4, time_axis=5))
+    print(ObsBlueprint(position_axis=(1, 2), energy_axis=3, polarization_axis=4, time_axis=5))
 
     # create a blueprint and customize it
-    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3,
-                      polarization_axis=4, time_axis=5))
+    ob = ObsBlueprint(position_axis=(1, 2), energy_axis=3, polarization_axis=4, time_axis=5))
     ob.set('Observation.algorithm.name', 'exposure')
-    ob.add_attribute('Chunk.energy.axis.axis.ctype', ['MYCTYPE'],
-                      extension=1)
-    ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2',
-                          extension=1)
+    ob.add_attribute('Chunk.energy.axis.axis.ctype', ['MYCTYPE'], extension=1)
+    ob.add_attribute('Chunk.energy.axis.axis.ctype', 'MYCTYPE2', extension=1)
     ob.set('Chunk.energy.velang', 33, extension=1)
     ob.set_default('Chunk.position.coordsys', 'RA-DEC', extension=1)
 
@@ -346,15 +340,13 @@ class ObsBlueprint:
     ):
         """
         Ctor
-        :param position_axes: tuple of form (int, int) indicating the indexes
-        of position axis
+        :param position_axes: tuple of form (int, int) indicating the indexes of position axis
         :param energy_axis: index of energy axis (int)
         :param polarization_axis: index of polarization axis (int)
         :param time_axis: index of time axis (int)
         :param obs_axis: index of observable axis (int)
         :param custom_axis: index of custom axis (int)
-        :param module: user-provided code, will be loaded with
-            importlib.import_module if a value is provided.
+        :param module: user-provided code, will be loaded with importlib.import_module if a value is provided.
         """
 
         if position_axes and isinstance(position_axes, tuple) and (len(position_axes) != 2):
@@ -401,8 +393,7 @@ class ObsBlueprint:
 
         self._extensions = {}
 
-        # contains the standard WCS keywords in the FITS file expected by the
-        # astropy.WCS package.
+        # contains the standard WCS keywords in the FITS file expected by the astropy.WCS package.
         self._wcs_std = {'Chunk.naxis': 'ZNAXIS,NAXIS'}
         self._pos_axes_configed = False
         self._energy_axis_configed = False
@@ -436,9 +427,8 @@ class ObsBlueprint:
         # if True, existing values are used instead of defaults
         self._update = update
         # a data structure to carry around twelve bits of data at a time:
-        # the first item in the set is the ctype index, and the second is
-        # whether or not the index means anything, resulting in a
-        # call to the blueprint configure_* methods if it's True.
+        # the first item in the set is the ctype index, and the second is whether or not the index means anything,
+        # resulting in a call to the blueprint configure_* methods if it's True.
         self._axis_info = {
             'custom': (0, False),
             'dec': (0, False),
@@ -451,8 +441,7 @@ class ObsBlueprint:
 
     def configure_custom_axis(self, axis, override=True):
         """
-        Set the expected FITS custom keywords by index in the blueprint
-        and the wcs_std lookup.
+        Set the expected FITS custom keywords by index in the blueprint and the wcs_std lookup.
 
         :param axis: The index expected for the custom axis.
         :param override: Set to False when reading from a file.
@@ -481,8 +470,7 @@ class ObsBlueprint:
 
     def configure_position_axes(self, axes, override=True):
         """
-        Set the expected FITS spatial keywords by indices in the blueprint and
-        the wcs_std lookup.
+        Set the expected FITS spatial keywords by indices in the blueprint and the wcs_std lookup.
 
         :param axes: The index expected for the position axes.
         :return:
@@ -539,8 +527,7 @@ class ObsBlueprint:
 
     def configure_energy_axis(self, axis, override=True):
         """
-        Set the expected FITS energy keywords by index in the blueprint and
-        the wcs_std lookup.
+        Set the expected FITS energy keywords by index in the blueprint and the wcs_std lookup.
 
         :param axis: The index expected for the energy axis.
         :param override: Set to False when reading from a file.
@@ -594,8 +581,7 @@ class ObsBlueprint:
 
     def configure_polarization_axis(self, axis, override=True):
         """
-        Set the expected FITS polarization keywords by index in the blueprint
-        and the wcs_std lookup.
+        Set the expected FITS polarization keywords by index in the blueprint and the wcs_std lookup.
 
         :param axis: The index expected for the polarization axis.
         :param override: Set to False when reading from a file.
@@ -624,11 +610,9 @@ class ObsBlueprint:
 
     def configure_observable_axis(self, axis, override=True):
         """
-        Set the expected FITS observable keywords by index in the blueprint
-        and the wcs_std lookup.
-        Note: observable axis is not a standard WCS and it's not used by
-        astropy.wcs so, arguably, it can be removed. It is here for now for
-        consistency purposes.
+        Set the expected FITS observable keywords by index in the blueprint and the wcs_std lookup.
+        Note: observable axis is not a standard WCS and it's not used by astropy.wcs so, arguably, it can be removed.
+        It is here for now for consistency purposes.
         :param axis: The index expected for the observable axis.
         :param override: Set to False when reading from a file.
         :return:
@@ -650,8 +634,7 @@ class ObsBlueprint:
 
     def configure_time_axis(self, axis, override=True):
         """
-        Set the expected FITS time keywords by index in the blueprint and
-        the wcs_std lookup.
+        Set the expected FITS time keywords by index in the blueprint and the wcs_std lookup.
 
         :param axis: The index expected for the time axis.
         :param override: Set to False when reading from a file.
@@ -694,8 +677,8 @@ class ObsBlueprint:
         self._time_axis_configed = True
 
     def _guess_axis_info(self):
-        """Look for info regarding axis types in the blueprint wcs_std.
-        Configure the blueprint according to the guesses.
+        """Look for info regarding axis types in the blueprint wcs_std. Configure the blueprint according to the
+        guesses.
         """
         for ii in self._plan:
             if isinstance(self._plan[ii], tuple):
@@ -802,8 +785,8 @@ class ObsBlueprint:
             configured, and what is it's value."""
         DEFAULT_INDICES = {'ra': 1, 'dec': 2, 'energy': 3, 'time': 4, 'polarization': 5, 'obs': 6, 'custom': 7}
 
-        # the logic - if the default index is already used, assign the lowest
-        # index that is unused, otherwise use the default index
+        # the logic - if the default index is already used, assign the lowest index that is unused, otherwise use the
+        # default index
 
         max_index = 0
         min_index = 7
@@ -831,36 +814,34 @@ class ObsBlueprint:
 
     def load_from_file(self, file_name):
         """
-        Load a blueprint from a file. The expected input format is the same
-        as is output by _serialize. This means there's lots of stripping of
-        extra spaces, equals signs, and the word default. Also manage
-        square brackets as list construction.
+        Load a blueprint from a file. The expected input format is the same as is output by _serialize. This means
+        there's lots of stripping of extra spaces, equals signs, and the word default. Also manage square brackets
+        as list construction.
 
         Accept comments that start with '#'.
 
-        :param file_name: The fully-qualified pathname for the blueprint
-        file on disk.
+        :param file_name: The fully-qualified pathname for the blueprint file on disk.
         """
         ext = 0
         with open(file_name) as file:
             for line in file:
-                if '#' in line:
-                    if line.find('#') == 0:
-                        # ignore lines starting with a comment
-                        continue
                 line = line.split('#')[0]
                 if '=' in line:
                     key, value = line.split('=', 1)
                     if 'default' in value:
                         temp = value.split(', default')
                         default = temp[1].replace('=', '').strip()
-                        temp_list = [ii.replace('[', '').replace(']', '').replace('\'', '').strip() for ii in temp[0].split(',')]
+                        temp_list = [
+                            ii.replace('[', '').replace(']', '').replace('\'', '').strip() for ii in temp[0].split(',')
+                        ]
                         if 'None' in default:
                             default = None
                         cleaned_up_value = (temp_list, default)
                     else:
                         if value.strip() and value.strip()[0] == '(':
-                            cleaned_up_value = tuple(ii.strip() for ii in value.strip().replace('(', '').replace(')', '').replace('\'', '').split(','))
+                            cleaned_up_value = tuple(ii.strip() for ii in value.strip().replace(
+                                    '(', ''
+                                ).replace(')', '').replace('\'', '').split(','))
                         elif '[' in value:
                             temp_list = value.replace('[', '').replace(']', '').replace('\'', '').split(',')
                             temp_list_2 = []
@@ -891,8 +872,8 @@ class ObsBlueprint:
     @classmethod
     def check_caom2_element(cls, caom2_element):
         """
-        Checks that an element is a valid caom2_element in the blueprint. It
-        checks that it's part of the ObsBlueprint._CAOM2_ELEMENTS
+        Checks that an element is a valid caom2_element in the blueprint. It checks that it's part of the
+        ObsBlueprint._CAOM2_ELEMENTS
         :param caom2_element: name CAOM2 element to check
         :raises KeyError
         """
@@ -937,10 +918,8 @@ class ObsBlueprint:
 
     def set(self, caom2_element, value, extension=0):
         """
-        Sets the value associated with an element in the CAOM2 model. Value
-        cannot be a tuple.
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
+        Sets the value associated with an element in the CAOM2 model. Value cannot be a tuple.
+        :param caom2_element: name CAOM2 element (as in ObsBlueprint.CAOM2_ELEMEMTS)
         :param value: new value of the CAOM2 element
         :param extension: extension number (used only for Chunk elements)
         """
@@ -956,14 +935,12 @@ class ObsBlueprint:
 
     def add_attribute(self, caom2_element, attribute, extension=0):
         """
-        Adds an attribute in the list of other attributes associated
-        with an caom2 element.
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
+        Adds an attribute in the list of other attributes associated with an caom2 element.
+        :param caom2_element: name CAOM2 element (as in ObsBlueprint.CAOM2_ELEMEMTS)
         :param attribute: name of attribute the element is mapped to
         :param extension: extension number (used only for Chunk elements)
-        :raises AttributeError if the caom2 element has already an associated
-        value or KeyError if the caom2 element does not exists.
+        :raises AttributeError if the caom2 element has already an associated value or KeyError if the caom2 element
+        does not exists.
         """
         ObsBlueprint.check_caom2_element(caom2_element)
         ObsBlueprint.check_extension(extension)
@@ -994,20 +971,18 @@ class ObsBlueprint:
 
     def add_table_attribute(self, caom2_element, ttype_attribute, extension=0, index=0):
         """
-        Adds a FITS BINTABLE TTYPE* lookup, to a list of other FITS attributes
-        associated with an caom2 element. This does not co-exist with
-        non-table attributes.
+        Adds a FITS BINTABLE TTYPE* lookup, to a list of other FITS attributes associated with an caom2 element.
+        This does not co-exist with non-table attributes.
 
         There is no support for default values for table attributes.
 
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param caom2_element: name CAOM2 element (as in ObsBlueprint.CAOM2_ELEMEMTS)
         :param ttype_attribute: name of TTYPE attribute element is mapped to
         :param extension: extension number (used only for Chunk elements)
-        :param index: which row values to return. If index is None, all row
-            values will be returned as a comma-separated list.
-        :raises AttributeError if the caom2 element has already an associated
-        value or KeyError if the caom2 element does not exists.
+        :param index: which row values to return. If index is None, all row values will be returned as a
+            comma-separated list.
+        :raises AttributeError if the caom2 element has already an associated value or KeyError if the caom2
+            element does not exists.
         """
         ObsBlueprint.check_caom2_element(caom2_element)
         ObsBlueprint.check_extension(extension)
@@ -1040,16 +1015,12 @@ class ObsBlueprint:
 
     def set_default(self, caom2_element, default, extension=0):
         """
-        Sets the default value of a caom2 element that is associated with
-        attributes. If the element does not exist or does not have a list of
-        associated attributes, default is set as the associated value
-        of the element.
+        Sets the default value of a caom2 element that is associated with attributes. If the element does not exist
+        or does not have a list of associated attributes, default is set as the associated value of the element.
 
-        If set is called for the same caom2_element after this, the default
-        value will be reset to None.
+        If set is called for the same caom2_element after this, the default value will be reset to None.
 
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param caom2_element: name CAOM2 element (as in ObsBlueprint.CAOM2_ELEMEMTS)
         :param default: default value
         :param extension: extension number (used only for Chunk elements)
         """
@@ -1076,8 +1047,7 @@ class ObsBlueprint:
     def delete(self, caom2_element, extension=0):
         """
         Deletes an element from the blueprint
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param caom2_element: name CAOM2 element (as in ObsBlueprint.CAOM2_ELEMEMTS)
         :param extension: extension number
         :raises exceptions if the element or extension not found
         """
@@ -1097,11 +1067,9 @@ class ObsBlueprint:
 
     def clear(self, caom2_element, extension=0):
         """
-        Clears the value for an element in the blueprint by resetting it to an
-        empty list with no default.
+        Clears the value for an element in the blueprint by resetting it to an empty list with no default.
 
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param caom2_element: name CAOM2 element (as in ObsBlueprint.CAOM2_ELEMEMTS)
         :param extension: extension number
         :raises exceptions if the element or extension not found
         """
@@ -1120,11 +1088,10 @@ class ObsBlueprint:
     def _get(self, caom2_element, extension=0):
         """
         Returns the source associated with a CAOM2 element
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
+        :param caom2_element: name CAOM2 element (as in ObsBlueprint.CAOM2_ELEMEMTS)
         :param extension: extension number
-        :return: Tuple of the form (list_of_associated_attributes,
-        default_value) OR the actual value associated with the CAOM2 element
+        :return: Tuple of the form (list_of_associated_attributes, default_value) OR the actual value associated
+            with the CAOM2 element
         """
         ObsBlueprint.check_caom2_element(caom2_element)
         ObsBlueprint.check_extension(extension)
@@ -1139,8 +1106,7 @@ class ObsBlueprint:
             return self._plan[caom2_element]
 
     def has_chunk(self, extension):
-        """What does the plan say about creating chunks for an
-        extension?
+        """What does the plan say about creating chunks for an extension?
 
         :return True if there should be a chunk to go along with a part
         """
@@ -1155,19 +1121,17 @@ class ObsBlueprint:
 
     @staticmethod
     def is_table(value):
-        """Hide the blueprint structure from clients - they shouldn't need
-        to know that a value of type tuple requires special processing."""
+        """Hide the blueprint structure from clients - they shouldn't need to know that a value of type tuple
+        requires special processing."""
         return ObsBlueprint.needs_lookup(value) and value[0] == 'BINTABLE'
 
     @staticmethod
     def is_function(value):
         """
-        Check if a blueprint value has Python 'function' syntax. The
-        "'/' not in value" clause excludes strings with syntax that enables
-        addressing HDF5 arrays.
+        Check if a blueprint value has Python 'function' syntax. The "'/' not in value" clause excludes strings with
+        syntax that enables addressing HDF5 arrays.
 
-        :return: True if the value is the name of a function to be executed,
-            False, otherwise
+        :return: True if the value is the name of a function to be executed, False, otherwise
         """
         return (
             not ObsBlueprint.needs_lookup(value)
@@ -1185,14 +1149,13 @@ class ObsBlueprint:
 
     @staticmethod
     def has_no_value(value):
-        """If functions return None, try not to update the WCS with this
-        value."""
+        """If functions return None, try not to update the WCS with this value."""
         return value is None or (isinstance(value, str) and 'None' in value.strip())
 
     @staticmethod
     def needs_lookup(value):
-        """Hide the blueprint structure from clients - they shouldn't need
-        to know that a value of type tuple requires special processing."""
+        """Hide the blueprint structure from clients - they shouldn't need to know that a value of type tuple
+        requires special processing."""
         return isinstance(value, tuple)
 
     def get_configed_axes_count(self):
@@ -1223,12 +1186,10 @@ class ObsBlueprint:
 
 class Hdf5ObsBlueprint(ObsBlueprint):
     """
-    Class that specializes the CAOM2 Observation construction based on HDF5
-    file content.
+    Class that specializes the CAOM2 Observation construction based on HDF5 file content.
 
-    The blueprint designates the source of each of these attributes as either
-    HDF5 Dataset or Group values. Specific or default values may also be
-    indicated in the same fashion os for an ObsBlueprint. The blueprint can
+    The blueprint designates the source of each of these attributes as either HDF5 Dataset or Group values.
+    Specific or default values may also be indicated in the same fashion os for an ObsBlueprint. The blueprint can
     be checked by simply displaying it.
 
     HDF5-specific example:
@@ -1238,20 +1199,13 @@ class Hdf5ObsBlueprint(ObsBlueprint):
     # lookup value starting with // means rooted at base of the hdf5 file
     ob.add_attribute('Observation.target.name', '//header/object/obj_id')
 
-    # lookup value starting with / means rooted at the base of the
-    # "find_roots_here" parameter for Hdf5Parser
-    #
-    # (integer) means return only the value with the index of "integer"
-    #  from a list
-    ob.add_attribute(
-        'Chunk.position.axis.function.refCoord.coord1.pix',
-        '/header/wcs/crpix(0)')
+    # lookup value starting with / means rooted at the base of the "find_roots_here" parameter for Hdf5Parser
+    # (integer) means return only the value with the index of "integer" from a list
+    ob.add_attribute('Chunk.position.axis.function.refCoord.coord1.pix', '/header/wcs/crpix(0)')
 
-    # (integer:integer) means return only the value with the index of
-    #   "integer" from a list, followed by "integer" from the list in the
-    #   list
-    ob.add_attribute(
-        'Chunk.position.axis.function.cd11', '/header/wcs/cd(0:0)')
+    # (integer:integer) means return only the value with the index of "integer" from a list, followed by "integer"
+    # from the list in the list
+    ob.add_attribute('Chunk.position.axis.function.cd11', '/header/wcs/cd(0:0)')
     print(ob)
 
     """
@@ -1269,11 +1223,10 @@ class Hdf5ObsBlueprint(ObsBlueprint):
         instantiated_class=None,
     ):
         """
-        There are no sensible/known HDF5 defaults for WCS construction, so
-        default to ensuring the blueprint executes with mostly values of None.
+        There are no sensible/known HDF5 defaults for WCS construction, so default to ensuring the blueprint
+        executes with mostly values of None.
 
-        Use the attribute _wcs_std, so that the list of WCS keywords used
-        as input is known.
+        Use the attribute _wcs_std, so that the list of WCS keywords used as input is known.
         """
         super().__init__(
             position_axes,
@@ -1299,8 +1252,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_custom_axis(self, axis, override=True):
         """
-        Set the expected custom keywords by index in the blueprint
-        and the wcs_std lookup.
+        Set the expected custom keywords by index in the blueprint and the wcs_std lookup.
 
         :param axis: The index expected for the custom axis.
         :param override: Set to False when reading from a file.
@@ -1327,8 +1279,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_position_axes(self, axes, override=True):
         """
-        Set the expected spatial keywords by indices in the blueprint and
-        the wcs_std lookup.
+        Set the expected spatial keywords by indices in the blueprint and the wcs_std lookup.
 
         :param axes: The index expected for the position axes.
         :param override: Set to False when reading from a file.
@@ -1436,8 +1387,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_polarization_axis(self, axis, override=True):
         """
-        Set the expected polarization keywords by index in the blueprint
-        and the wcs_std lookup.
+        Set the expected polarization keywords by index in the blueprint and the wcs_std lookup.
 
         :param axis: The index expected for the polarization axis.
         :param override: Set to False when reading from a file.
@@ -1467,11 +1417,9 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_observable_axis(self, axis, override=True):
         """
-        Set the expected observable keywords by index in the blueprint
-        and the wcs_std lookup.
-        Note: observable axis is not a standard WCS and it's not used by
-        astropy.wcs so, arguably, it can be removed. It is here for now for
-        consistency purposes.
+        Set the expected observable keywords by index in the blueprint and the wcs_std lookup.
+        Note: observable axis is not a standard WCS and it's not used by astropy.wcs so, arguably, it can be
+        removed. It is here for now for consistency purposes.
         :param axis: The index expected for the observable axis.
         :param override: Set to False when reading from a file.
         :return:
@@ -1493,8 +1441,7 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def configure_time_axis(self, axis, override=True):
         """
-        Set the expected time keywords by index in the blueprint and
-        the wcs_std lookup.
+        Set the expected time keywords by index in the blueprint and the wcs_std lookup.
 
         :param axis: The index expected for the time axis.
         :param override: Set to False when reading from a file.
@@ -1538,10 +1485,8 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
     def set(self, caom2_element, value, extension=0):
         """
-        Sets the value associated with an element in the CAOM2 model. Value
-        cannot be a tuple.
-        :param caom2_element: name CAOM2 element (as in
-        ObsBlueprint.CAOM2_ELEMEMTS)
+        Sets the value associated with an element in the CAOM2 model. Value cannot be a tuple.
+        :param caom2_element: name CAOM2 element (as in ObsBlueprint.CAOM2_ELEMEMTS)
         :param value: new value of the CAOM2 element
         :param extension: extension number (used only for Chunk elements)
         """
@@ -1571,4 +1516,8 @@ def _to_int_32(value):
 
 
 def _to_str(value):
-    return str(value).strip() if value is not None else None
+    if value is None or str(value).strip() == '':
+        result = None
+    else:
+        result = str(value).strip()
+    return result
