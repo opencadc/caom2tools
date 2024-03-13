@@ -994,9 +994,7 @@ class ObsBlueprint:
                             self._extensions[extension][caom2_element][1].insert(0, ttype_attribute)
                     else:
                         raise AttributeError(
-                            ('No TTYPE attributes in extension {} associated ' 'with keyword {}').format(
-                                extension, caom2_element
-                            )
+                            f'No TTYPE attributes in extension {extension} associated with keyword {caom2_element}'
                         )
                 else:
                     self._extensions[extension][caom2_element] = ('BINTABLE', [ttype_attribute], index)
