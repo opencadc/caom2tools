@@ -91,6 +91,9 @@ jobs:
     name: Build and publish to PyPI
     needs: style_n_coverage
     runs-on: ubuntu-latest
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
     if: contains(github.ref, '=')
     steps:
     - uses: actions/checkout@v4
