@@ -1920,15 +1920,12 @@ class Hdf5Parser(ContentParser):
             # If it's the Part/Chunk metadata, capture it to extensions.
             # Syntax of the keys described in Hdf5ObsBlueprint class.
             for part_index, part_name in enumerate(self._extension_names):
-                # self.logger.error(f'part_index {part_index} part_name {part_name} name {name} names {object.dtype.names}')
-                # self.logger.error(f'part_index {part_index} part_name {part_name} name {name}')
                 if name.startswith(part_name) and isinstance(object, h5py.Dataset) and object.dtype.names is not None:
                     for d_name in object.dtype.names:
                         temp_path = f'{name.replace(part_name, "")}/{d_name}'
                         for path_name in multi.keys():
                             if path_name == temp_path:
                                 for jj in multi.get(path_name):
-                                    # self.logger.error(f'set 1 {jj}')
                                     self._blueprint.set(jj, object[d_name], part_index)
                             elif path_name.startswith(temp_path) and '(' in path_name:
                                 z = path_name.split('(')
@@ -1937,7 +1934,6 @@ class Hdf5Parser(ContentParser):
                                     if len(a) > 2:
                                         raise NotImplementedError
                                     for jj in multi.get(path_name):
-                                        # self.logger.error(f'set 2 {jj}')
                                         self._blueprint.set(
                                             jj,
                                             object[d_name][int(a[0])][int(a[1])],
@@ -1946,7 +1942,6 @@ class Hdf5Parser(ContentParser):
                                 else:
                                     index = int(z[1].split(')')[0])
                                     for jj in multi.get(path_name):
-                                        # self.logger.error(f'set 3 z {z} {jj} d_name {d_name} index {index}')
                                         self._blueprint.set(
                                             jj,
                                             object[d_name][index],
@@ -1960,7 +1955,6 @@ class Hdf5Parser(ContentParser):
                         temp = f'//{name}/{d_name}'
                         if temp in individual.keys():
                             for jj in individual.get(temp):
-                                # self.logger.error(f'set 4 {jj}')
                                 self._blueprint.set(jj, object[d_name], 0)
                         else:
                             for ind_path in filtered_individual:
@@ -1968,7 +1962,6 @@ class Hdf5Parser(ContentParser):
                                     z = ind_path.split('(')
                                     index = int(z[1].split(')')[0])
                                     for jj in individual.get(ind_path):
-                                        # self.logger.error(f'set 5 {jj}')
                                         self._blueprint.set(jj, object[d_name][index], 0)
 
         if len(individual) == 0 and len(multi) == 0:
