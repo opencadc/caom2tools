@@ -92,11 +92,9 @@ def raise_exit_error():
 @patch('sys.exit', Mock(side_effect=ImportError))
 def test_differences(directory):
     """
-    Note: This tests is parametrized from conftest.py file. Directories
-    of the form TESTDATA_DIR/*/* become parameters to this test.
-    This test assumes a directory contains the config, default,
-    override, input FITS files (*.header) and expected observation (*.xml)
-    files
+    Note: This tests is parametrized from conftest.py file. Directories of the form TESTDATA_DIR/*/* become
+    parameters to this test. This test assumes a directory contains the config, default, override, input FITS files
+    (*.header) and expected observation (*.xml) files
     """
     expected_fname = _get_file('xml', directory)
     assert expected_fname
@@ -106,8 +104,7 @@ def test_differences(directory):
     prod_id = [p.product_id for p in expected.planes.values()][0]
     product_id = f'--productID {prod_id}'
     collection_id = expected.collection
-    data_files = _get_files(
-        ['header', 'png', 'gif', 'cat', 'fits', 'h5', 'orig'], directory)
+    data_files = _get_files(['header', 'png', 'gif', 'cat', 'fits', 'h5', 'orig'], directory)
     assert data_files
 
     file_meta = _get_uris(collection_id, data_files, expected)
@@ -139,14 +136,14 @@ def test_differences(directory):
         cardinality = f'{product_id} {temp}'
         # return  # TODO shorter testing cycle
 
-    with patch('caom2utils.data_util.StorageInventoryClient') as \
-            swc_si_mock,\
-            patch('cadcutils.net.ws.WsCapabilities.get_access_url',
-                  autospec=True) as cap_mock,\
-            patch('caom2utils.caom2blueprint.get_vos_headers') as gvh_mock, \
-            patch('caom2utils.caom2blueprint._get_vos_meta') as gvm_mock, \
-            patch('caom2utils.data_util.get_local_headers_from_fits') as \
-            header_mock:
+    with patch('caom2utils.data_util.StorageInventoryClient') as swc_si_mock, patch(
+        'cadcutils.net.ws.WsCapabilities.get_access_url', autospec=True
+    ) as cap_mock, patch('caom2utils.caom2blueprint.get_vos_headers') as gvh_mock, patch(
+        'caom2utils.caom2blueprint._get_vos_meta'
+    ) as gvm_mock, patch(
+        'caom2utils.data_util.get_local_headers_from_fits'
+    ) as header_mock:
+
         def info_mock(uri):
             if uri.startswith('vos'):
                 archive = uri.split('/')[-2]
@@ -167,16 +164,14 @@ def test_differences(directory):
                 return None
 
         def _vos_client_meta(subject, uri):
-            return FileInfo(id=uri,
-                            md5sum='5b00b00d4b06aba986c3663d09aa581f',
-                            size=682560,
-                            file_type='application/fits')
+            return FileInfo(
+                id=uri, md5sum='5b00b00d4b06aba986c3663d09aa581f', size=682560, file_type='application/fits'
+            )
 
         def _header(fqn):
             if '.fits' in fqn:
-                # during operation, want to use astropy on FITS files
-                # but during testing want to use headers and built-in Python file
-                # operations
+                # during operation, want to use astropy on FITS files but during testing want to use headers and
+                # built-in Python file operations
                 file_uri = urlparse(fqn)
                 try:
                     fits_header = open(file_uri.path).read()
@@ -208,11 +203,12 @@ def test_differences(directory):
         header_mock.side_effect = _header
 
         temp = tempfile.NamedTemporaryFile()
-        sys.argv = ('{} -o {} --no_validate --observation {} {} {} {} '
-                    '--resource-id ivo://cadc.nrc.ca/test'.format(
-                        application, temp.name,
-                        expected.collection, expected.observation_id,
-                        inputs, cardinality)).split()
+        sys.argv = (
+            '{} -o {} --no_validate --observation {} {} {} {} '
+            '--resource-id ivo://cadc.nrc.ca/test'.format(
+                application, temp.name, expected.collection, expected.observation_id, inputs, cardinality
+            )
+        ).split()
         print(sys.argv)
         app_cmd()
     actual = _read_observation(temp.name)  # actual observation
@@ -222,26 +218,19 @@ def test_differences(directory):
 
 def _get_cardinality(directory):
     # TODO - read this from an aptly named file in the directory
-    # The blueprints are named to reverse sort so that this
-    # alignment of product id / artifact URI works
+    # The blueprints are named to reverse sort so that this alignment of product id / artifact URI works
     if '/cfhtsg/' in directory:
-        return '--lineage ' \
-               'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/' \
-               'MegaPipe.080.156.Z.MP9801.weight.fits ' \
-               'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/' \
-               'MegaPipe.080.156.Z.MP9801.fits ' \
-               'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/' \
-               'MegaPipe.080.156.Z.MP9801.fits.gif'
-    elif '/omm/' in directory:
-        if 'SCIRED' in directory:
-            return '--lineage Cdemo_ext2_SCIRED/cadc:OMM/' \
-                   'Cdemo_ext2_SCIRED.fits.gz'
-        else:
-            return '--lineage C190531_0432_SCI/cadc:OMM/' \
-                   'C190531_0432_SCI.fits.gz'
+        return (
+            '--lineage '
+            'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/'
+            'MegaPipe.080.156.Z.MP9801.weight.fits '
+            'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/'
+            'MegaPipe.080.156.Z.MP9801.fits '
+            'MegaPipe.080.156.Z.MP9801/cadc:CFHTSG/'
+            'MegaPipe.080.156.Z.MP9801.fits.gif'
+        )
     elif 'apass/catalog' in directory:
-        return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' \
-               'Examples/DAO/dao_c122_2016_012725.fits'
+        return '--lineage catalog/vos://cadc.nrc.ca!vospace/CAOMworkshop/' 'Examples/DAO/dao_c122_2016_012725.fits'
     elif 'taos_' in directory:
         if 'def' in directory:
             return '--lineage def/cadc:def/def.h5'
@@ -250,33 +239,16 @@ def _get_cardinality(directory):
     elif 'brite' in directory:
         return '--lineage HD36486_65-Ori-VIII-2021_BAb_1_5_A/cadc:BRITE-Constellation/HD36486.orig'
     elif 'gemini' in directory:
-        return '--lineage GN-2003A-Q-51-2-004/cadc:GEMINI/N20030325S0098.fits'
+        if 'S20230518S0121' in directory:
+            return '--lineage GS-2023A-SV-101-13-009/cadc:GEMINI/S20230518S0121.fits'
+        elif 'N20030325S0098' in directory:
+            return '--lineage GN-2003A-Q-51-2-004/cadc:GEMINI/N20030325S0098.fits'
+        else:
+            return '--lineage wrgnN20140428S0085_arc/cadc:GEMINICADC/wrgnN20140428S0085_arc.fits'
     elif 'lotss' in directory:
         return '--lineage P124+62_mosaic/astron:LOTSS/P124+62/mosaic.fits'
     else:
         return ''
-
-
-def _get_common(fnames):
-    common = os.path.basename(fnames[0])
-    for jj in fnames:
-        rhs = os.path.basename(jj)
-        for kk in fnames:
-            lhs = os.path.basename(kk)
-            ii = 0
-            while ii < len(rhs):
-                if rhs[ii] == '.' or rhs[ii] != lhs[ii]:
-                    if len(rhs[0:ii]) != 0 and len(rhs[0:ii]) < len(common):
-                        common = rhs[0:ii]
-                    break
-                else:
-                    ii += 1
-    return common
-
-
-def _get_subdirs(dir_name):
-    return [name for name in os.listdir(dir_name) if
-            os.path.isdir(os.path.join(dir_name, name))]
 
 
 def _get_parameter(extension, dir_name):
@@ -310,9 +282,8 @@ def _get_data_files_parameter(fnames):
 
 
 def _get_uris(collection, fnames, obs):
-    # NOTE: this function makes the assumption that the collection is
-    # the same with the AD archive, which in many cases is not true (CFHT
-    # for example has multiple collections)
+    # NOTE: this function makes the assumption that the collection is the same with the AD archive, which in many
+    # cases is not true (CFHT for example has multiple collections)
     uris = []
     file_meta = {}
     if fnames:
@@ -320,14 +291,18 @@ def _get_uris(collection, fnames, obs):
             f = os.path.basename(fname).replace('.header', '')
             for p in obs.planes.values():
                 for a in p.artifacts.values():
-                    if (f'cadc:{collection}/{f}' in a.uri or
-                            (a.uri.startswith('vos') and f in a.uri) or
-                            (a.uri == 'astron:LOTSS/P124+62/mosaic.fits')):
+                    if (
+                        f'cadc:{collection}/{f}' in a.uri
+                        or (a.uri.startswith('vos') and f in a.uri)
+                        or (a.uri == 'astron:LOTSS/P124+62/mosaic.fits')
+                    ):
                         uris.append(a.uri)
-                        meta = FileInfo(id=a.uri,
-                                        file_type=a.content_type,
-                                        size=a.content_length,
-                                        md5sum=a.content_checksum.checksum)
+                        meta = FileInfo(
+                            id=a.uri,
+                            file_type=a.content_type,
+                            size=a.content_length,
+                            md5sum=a.content_checksum.checksum,
+                        )
                         file_url = urlparse(a.uri)
                         file_id = file_url.path.split('/')[-1]
                         archive = file_url.path.split('/')[0]
@@ -356,17 +331,14 @@ def _get_files(patterns, dir_name):
 
 
 def _compare_observations(expected, actual, output_dir):
-
     result = get_differences(expected, actual, 'Observation')
     if result:
         tmp = '\n'.join([r for r in result])
-        msg = f'Differences found observation {expected.observation_id} in ' \
-              f'{output_dir}\n{tmp}'
+        msg = f'Differences found observation {expected.observation_id} in ' f'{output_dir}\n{tmp}'
         _write_observation(actual)
         raise AssertionError(msg)
     else:
-        logging.info('Observation {} in {} match'.format(
-            expected.observation_id, output_dir))
+        logging.info('Observation {} in {} match'.format(expected.observation_id, output_dir))
 
 
 def _read_observation(fname):
@@ -376,6 +348,5 @@ def _read_observation(fname):
 
 
 def _write_observation(obs):
-    writer = ObservationWriter(True, False, 'caom2',
-                               'http://www.opencadc.org/caom2/xml/v2.4')
+    writer = ObservationWriter(True, False, 'caom2', 'http://www.opencadc.org/caom2/xml/v2.4')
     writer.write(obs, './x.xml')

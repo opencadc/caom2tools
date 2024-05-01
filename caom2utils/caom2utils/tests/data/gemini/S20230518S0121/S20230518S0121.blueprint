@@ -1,0 +1,124 @@
+Observation.observationID = ['OBSID'], default = None
+Observation.type = OBJECT
+Observation.intent = science
+Observation.metaRelease = 2023-05-18 09:12:54
+Observation.metaProducer = GEMINI2caom2/0.0.0
+Observation.algorithm.name = exposure
+Observation.instrument.name = GHOST
+Observation.telescope.geoLocationX = 1820184.055747326
+Observation.telescope.geoLocationY = -5208320.066618682
+Observation.telescope.geoLocationZ = -3194829.197152751
+Observation.environment.ambientTemp = ['TEMPERAT'], default = None
+Plane.productID = S20230518S0121
+Plane.metaRelease = 2023-05-18 09:12:54
+Plane.dataRelease = 2023-05-18 09:12:54
+Plane.dataProductType = image
+Plane.calibrationLevel = 1
+Plane.metaProducer = GEMINI2caom2/0.0.0
+Plane.provenance.name = Gemini Observatory Data
+Plane.provenance.project = Gemini Archive
+Plane.provenance.producer = ['IMAGESWV', 'ORIGIN'], default = Gemini Observatory
+Plane.provenance.reference = http://archive.gemini.edu/searchform/GS-2023A-SV-101-13-009
+Plane.provenance.lastExecuted = ['DATE-FTS'], default = None
+Artifact.productType = science
+Artifact.releaseType = data
+Artifact.uri = gemini:GEMINI/S20230518S0121.fits
+Artifact.metaProducer = GEMINI2caom2/0.0.0
+Chunk = include
+Chunk.metaProducer = GEMINI2caom2/0.0.0
+Chunk.energy.specsys = TOPOCENT
+Chunk.time.exposure = get_exposure(uri)
+extension 1:
+Chunk.time.exposure = get_exposure(uri)
+Chunk.time.resolution = get_exposure(uri)
+Chunk.time.axis.axis.ctype = TIME
+Chunk.time.axis.axis.cunit = d
+Chunk.time.axis.error.syser = 1e-07
+Chunk.time.axis.error.rnder = 1e-07
+Chunk.time.axis.function.naxis = 1
+Chunk.time.axis.function.delta = get_time_delta(header)
+Chunk.time.axis.function.refCoord.pix = 0.5
+Chunk.time.axis.function.refCoord.val = get_time_function_val(header)
+# extension 2:
+# Chunk.energy.specsys = TOPOCENT
+# Chunk.energy.axis.axis.ctype = WAVE
+# Chunk.energy.axis.axis.cunit = nm
+# Chunk.energy.axis.range.start.pix = 0.5
+# Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+# Chunk.energy.axis.range.end.pix = 1.5
+# Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 3:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 4:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 5:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 6:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 8:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 9:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 10:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 11:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = _get_energy_chunk_range_start_val(header)
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = _get_energy_chunk_range_start_val(header)
+extension 12:
+Chunk.time.exposure = get_exposure(uri)
+Chunk.time.resolution = get_exposure(uri)
+Chunk.time.axis.axis.ctype = TIME
+Chunk.time.axis.axis.cunit = d
+Chunk.time.axis.error.syser = 1e-07
+Chunk.time.axis.error.rnder = 1e-07
+Chunk.time.axis.function.naxis = 1
+Chunk.time.axis.function.delta = get_time_delta(header)
+Chunk.time.axis.function.refCoord.pix = 0.5
+Chunk.time.axis.function.refCoord.val = get_time_function_val(header)

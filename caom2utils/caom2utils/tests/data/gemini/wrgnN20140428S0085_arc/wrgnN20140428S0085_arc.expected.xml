@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:DerivedObservation" caom2:id="00000000-0000-0000-80a9-e59f7bb85513">
+  <caom2:collection>GEMINI</caom2:collection>
+  <caom2:observationID>wrgnN20140428S0085_arc</caom2:observationID>
+  <caom2:algorithm>
+    <caom2:name>composite</caom2:name>
+  </caom2:algorithm>
+  <caom2:type>OBJECT</caom2:type>
+  <caom2:intent>science</caom2:intent>
+  <caom2:planes>
+    <caom2:plane caom2:id="a8772402-824e-491f-8ccd-5ddb5a11b9b2">
+      <caom2:productID>wrgnN20140428S0085_arc</caom2:productID>
+      <caom2:dataProductType>image</caom2:dataProductType>
+      <caom2:calibrationLevel>2</caom2:calibrationLevel>
+      <caom2:artifacts>
+        <caom2:artifact caom2:id="1c95fabd-c78b-425e-8617-e16a56c65908">
+          <caom2:uri>cadc:GEMINICADC/wrgnN20140428S0085_arc.fits</caom2:uri>
+          <caom2:productType>science</caom2:productType>
+          <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentType>application/fits</caom2:contentType>
+          <caom2:contentLength>23040</caom2:contentLength>
+          <caom2:contentChecksum>md5:7bd0b06e8c7686099d013f055b979587</caom2:contentChecksum>
+          <caom2:parts>
+            <caom2:part caom2:id="e657a3ac-f6cb-460f-a9ff-1cc5db9051dd">
+              <caom2:name>0</caom2:name>
+              <caom2:chunks/>
+            </caom2:part>
+          </caom2:parts>
+        </caom2:artifact>
+      </caom2:artifacts>
+    </caom2:plane>
+  </caom2:planes>
+  <caom2:members>
+    <caom2:observationURI>caom:GEMINI/N20140428S0085.fits</caom2:observationURI>
+    <caom2:observationURI>caom:GEMINI/N20140428S0179.fits</caom2:observationURI>
+    <caom2:observationURI>caom:GEMINI/N20140428S0180.fits</caom2:observationURI>
+    <caom2:observationURI>caom:GEMINI/rgnN20140428S0169_flat.fits</caom2:observationURI>
+    <caom2:observationURI>caom:GEMINI/N20140503S0161.fits</caom2:observationURI>
+  </caom2:members>
+</caom2:Observation>

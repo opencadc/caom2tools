@@ -67,8 +67,8 @@
 #
 
 """
-validate performs a validation on a CAOM2 element. By default deep=True
-triggering a validation of all the sub-elements in the CAOM2 tree.
+validate performs a validation on a CAOM2 element. By default deep=True triggering a validation of all the
+sub-elements in the CAOM2 tree.
 """
 
 
@@ -91,8 +91,8 @@ def validate(caom2_entity, deep=True):
 
     Throws AssertionError if validation fails.
 
-    :param caom2_entity: CAOM element to perform the validation on. It
-    could be Observation, Plane, Artifact, Part or Chunk
+    :param caom2_entity: CAOM element to perform the validation on. It could be Observation, Plane, Artifact, Part
+        or Chunk
     :param deep if True, also validate the 'has-a' members of an element.
     """
     if caom2_entity is not None:
@@ -114,11 +114,10 @@ def _validate_observation(caom2_entity, deep=True):
     """
     Perform validation of the content of an Observation.
 
-    Throws AssertionError if the keywords that are members of various
-    observation and plane metadata do not meet structure criteria.
+    Throws AssertionError if the keywords that are members of various observation and plane metadata do not meet
+    structure criteria.
 
-    :param caom2_entity: The Observation (SimpleObservation or
-        CompositeObservation) to validate.
+    :param caom2_entity: The Observation (SimpleObservation or DerivedObservation) to validate.
     :param deep if True, also validate the 'has-a' members of an Observation.
     """
     _check_param(caom2_entity, Observation)
@@ -127,11 +126,9 @@ def _validate_observation(caom2_entity, deep=True):
     if caom2_entity.target:
         _validate_keyword('target.keywords', caom2_entity.target.keywords)
     if caom2_entity.telescope:
-        _validate_keyword('telescope.keywords',
-                          caom2_entity.telescope.keywords)
+        _validate_keyword('telescope.keywords', caom2_entity.telescope.keywords)
     if caom2_entity.instrument:
-        _validate_keyword('telescope.instrument',
-                          caom2_entity.instrument.keywords)
+        _validate_keyword('telescope.instrument', caom2_entity.instrument.keywords)
     if deep:
         for plane in caom2_entity.planes.values():
             _validate_plane(plane)
@@ -141,16 +138,14 @@ def _validate_plane(caom2_entity, deep=True):
     """
     Perform validation of the content of a Plane.
 
-    Throws AssertionError if the members of the plane metadata do not meet
-    structure criteria.
+    Throws AssertionError if the members of the plane metadata do not meet structure criteria.
 
     :param caom2_entity: The Plane to validate.
     :param deep if True, also validate the 'has-a' members of a Plane.
     """
     _check_param(caom2_entity, Plane)
     if caom2_entity.provenance:
-        _validate_keyword('provenance.keywords',
-                          caom2_entity.provenance.keywords)
+        _validate_keyword('provenance.keywords', caom2_entity.provenance.keywords)
     if caom2_entity.position:
         validate_polygon(caom2_entity.position.bounds)
 
@@ -163,8 +158,7 @@ def _validate_artifact(caom2_entity, deep=True):
     """
     Perform validation of the content of an Artifact.
 
-    Throws AssertionError if the members of the artifact metadata do not meet
-    structure criteria.
+    Throws AssertionError if the members of the artifact metadata do not meet structure criteria.
 
     :param caom2_entity: The Artifact to validate.
     """
@@ -178,8 +172,7 @@ def _validate_part(caom2_entity, deep=True):
     """
     Perform validation of the content of a Part.
 
-    Throws AssertionError if the members of the part metadata do not meet
-    structure criteria.
+    Throws AssertionError if the members of the part metadata do not meet structure criteria.
 
     :param caom2_entity: The Part to validate.
     """
@@ -193,8 +186,7 @@ def _validate_chunk(caom2_entity):
     """
     Perform validation of the content of a Chunk.
 
-    Throws AssertionError if the members of the chunk metadata do not meet
-    structure criteria.
+    Throws AssertionError if the members of the chunk metadata do not meet structure criteria.
 
     :param caom2_entity: The Chunk to validate.
     """
@@ -213,11 +205,9 @@ def _validate_keyword(name, keywords):
         return
     for keyword in keywords:
         if keyword is not None and keyword.find('|') != -1:
-            raise AssertionError(
-                f'invalid {name}: may not contain pipe (|)')
+            raise AssertionError(f'invalid {name}: may not contain pipe (|)')
 
 
 def _check_param(param, param_type):
     if param is None or not isinstance(param, param_type):
-        raise ValueError(
-            f'{param} must be a valid {param_type.__name__}.')
+        raise ValueError(f'{param} must be a valid {param_type.__name__}.')
