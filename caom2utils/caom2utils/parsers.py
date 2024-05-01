@@ -1886,7 +1886,6 @@ class Hdf5Parser(ContentParser):
         return result
 
     def _set_wcs_parsers(self, obs_blueprint):
-        # self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=0)
         # used to set the astropy wcs info, resulting in a validated wcs
         # that can be used to construct a valid CAOM2 record
         self._wcs_parsers = {}
