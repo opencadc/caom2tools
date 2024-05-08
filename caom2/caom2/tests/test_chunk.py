@@ -95,7 +95,6 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(chunk.ProductType.SCIENCE.value, "science")
         self.assertEqual(chunk.ProductType.CALIBRATION.value, "calibration")
         self.assertEqual(chunk.ProductType.PREVIEW.value, "preview")
-        self.assertEqual(chunk.ProductType.INFO.value, "info")
         self.assertEqual(chunk.ProductType.NOISE.value, "noise")
         self.assertEqual(chunk.ProductType.WEIGHT.value, "weight")
         self.assertEqual(chunk.ProductType.AUXILIARY.value, "auxiliary")
