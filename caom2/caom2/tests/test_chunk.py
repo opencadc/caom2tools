@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2024.                            (c) 2024.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -103,7 +103,10 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(chunk.ProductType.BIAS.value, "bias")
         self.assertEqual(chunk.ProductType.DARK.value, "dark")
         self.assertEqual(chunk.ProductType.FLAT.value, "flat")
-        self.assertEqual(chunk.ProductType.WAVECAL.value, "wavecal")
+        self.assertEqual(chunk.ProductType.CODERIVED.value, "coderived")
+        self.assertEqual(chunk.ProductType.DOCUMENTATION.value, "documentation")
+        self.assertEqual(chunk.ProductType.PREVIEW_IMAGE.value, "preview-image")
+        self.assertEqual(chunk.ProductType.PREVIEW_PLOT.value, "preview-plot")
 
 
 class TestChunk(unittest.TestCase):
