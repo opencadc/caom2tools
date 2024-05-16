@@ -274,7 +274,8 @@ def _get_list_differences(expected, actual, parent):
                         tracking_expected = e
 
         if not match_found:
-            report.extend(tracking_report)
+            if tracking_report:
+                report.extend(tracking_report)
             if tracking_actual in actual_copy:
                 actual_index = actual_copy.index(tracking_actual)
                 actual_copy.pop(actual_index)
