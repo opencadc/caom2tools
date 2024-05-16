@@ -92,6 +92,7 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(chunk.ProductType[
                              chunk.ProductType.SCIENCE.name].value, "science")
 
+        self.assertEqual(chunk.ProductType.THIS.value, "this")
         self.assertEqual(chunk.ProductType.SCIENCE.value, "science")
         self.assertEqual(chunk.ProductType.CALIBRATION.value, "calibration")
         self.assertEqual(chunk.ProductType.PREVIEW.value, "preview")

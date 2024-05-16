@@ -82,7 +82,9 @@ from .common import CaomObject, OrderedEnum
 
 class ProductType(OrderedEnum):
     """
-    Subset of IVOA DataLink terms
+    Subset of IVOA DataLink terms at:
+        https://www.ivoa.net/rdf/datalink/core/2022-01-27/datalink.html
+
     THIS = "this"
     AUXILIARY = "auxiliary"
     BIAS = 'bias'
