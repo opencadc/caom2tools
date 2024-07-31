@@ -317,10 +317,7 @@ class WcsParser:
             ref_coord = self._get_ref_coord(custom_axis_index)
             if delta and ref_coord:
                 naxis.function = CoordFunction1D(custom_axis_length, delta, ref_coord)
-            if not chunk.custom:
-                chunk.custom = CustomWCS(naxis)
-            else:
-                chunk.custom.axis = naxis
+            chunk.custom = CustomWCS(naxis)
 
         self.logger.debug('End Custom WCS augmentation.')
 

@@ -2675,10 +2675,7 @@ class ObservationWriter(object):
         if isinstance(value, str):
             element.text = value
         else:
-            if isinstance(value, float):
-                element.text = repr(value)
-            else:
-                element.text = str(value)
+            element.text = str(value)
 
     def _add_boolean_element(self, name, value, parent):
         if value is None:
