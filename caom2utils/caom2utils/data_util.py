@@ -192,8 +192,8 @@ class StorageClientWrapper:
         fqn = path.join(working_directory, f_name)
         chdir(working_directory)
         try:
-            local_meta = get_local_file_info(fqn)
-            encoding = get_file_encoding(fqn)
+            local_meta = get_local_file_info(f_name)
+            encoding = get_file_encoding(f_name)
             replace = True
             cadc_meta = self.info(uri)
             if cadc_meta is None:
@@ -204,7 +204,7 @@ class StorageClientWrapper:
             )
             self._cadc_client.cadcput(
                 uri,
-                src=fqn,
+                src=f_name,
                 replace=replace,
                 file_type=local_meta.file_type,
                 file_encoding=encoding,

@@ -251,24 +251,15 @@ def _check_info_result(result):
 
 def _check_put_result(client_mock):
     assert client_mock.called, 'expect put mock call'
-    try:
-        client_mock.assert_called_with(
-            'TEST',
-            'test_file.fits',
-            archive_stream='default',
-            mime_type='application/fits',
-            mime_encoding=None,
-            md5_check=True,
-        ), 'wrong put args call'
-    except AssertionError:
-        client_mock.assert_called_with(
-            'cadc:TEST/test_file.fits',
-            src=f'{test_fits2caom2.TESTDATA_DIR}/test_file.fits',
-            replace=True,
-            file_type='application/fits',
-            file_encoding=None,
-            md5_checksum='3c66ee2cb6e0c2cfb5cd6824d353dc11',
-        )
+    client_mock.assert_called_with(
+        'cadc:TEST/test_file.fits',
+        # src=f'{test_fits2caom2.TESTDATA_DIR}/test_file.fits',
+        src='test_file.fits',
+        replace=True,
+        file_type='application/fits',
+        file_encoding=None,
+        md5_checksum='3c66ee2cb6e0c2cfb5cd6824d353dc11',
+    )
 
 
 def _fail_mock(test_wrapper, test_uri, test_working_directory):
