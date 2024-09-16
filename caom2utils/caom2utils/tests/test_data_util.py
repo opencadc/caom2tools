@@ -107,20 +107,21 @@ def test_get_file_type():
 def test_storage_inventory_client(cadc_client_mock):
     test_subject = Mock(autospec=True)
     test_uri = 'cadc:TEST/test_file.fits'
+
+    def info_si_mock(ignore):
+        return FileInfo(id=test_uri, file_type='application/fits', md5sum='abc', size=42)
+
+    def get_si_mock(ignore2, dest, **kwargs):
+        fhead = kwargs.get('fhead')
+        if fhead:
+            dest.write(TEST_HEADERS)
+        else:
+            test_fqn.write_text('StorageInventoryClient')
+
     for test_working_directory in [Path(test_fits2caom2.TESTDATA_DIR), Path('./')]:
         test_fqn = test_working_directory / 'test_file.fits'
         if test_fqn.exists():
             test_fqn.unlink()
-
-        def info_si_mock(ignore):
-            return FileInfo(id=test_uri, file_type='application/fits', md5sum='abc', size=42)
-
-        def get_si_mock(ignore2, dest, **kwargs):
-            fhead = kwargs.get('fhead')
-            if fhead:
-                dest.write(TEST_HEADERS)
-            else:
-                test_fqn.write_text('StorageInventoryClient')
 
         cadc_client_mock.return_value.cadcinfo.side_effect = info_si_mock
         cadc_client_mock.return_value.cadcget.side_effect = get_si_mock
