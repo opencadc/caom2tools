@@ -107,10 +107,6 @@ def test_get_file_type():
 def test_storage_inventory_client(cadc_client_mock):
     test_subject = Mock(autospec=True)
     test_uri = 'cadc:TEST/test_file.fits'
-    test_working_directory = Path(test_fits2caom2.TESTDATA_DIR)
-    test_fqn = test_working_directory / 'test_file.fits'
-    if test_fqn.exists():
-        test_fqn.unlink()
 
     def info_si_mock(ignore):
         return FileInfo(id=test_uri, file_type='application/fits', md5sum='abc', size=42)
@@ -122,47 +118,54 @@ def test_storage_inventory_client(cadc_client_mock):
         else:
             test_fqn.write_text('StorageInventoryClient')
 
-    cadc_client_mock.return_value.cadcinfo.side_effect = info_si_mock
-    cadc_client_mock.return_value.cadcget.side_effect = get_si_mock
-    cadc_client_mock.return_value.cadcput = Mock(autospec=True)
-    cadc_client_mock.return_value.cadcremove = Mock(autospec=True)
+    for test_working_directory in [Path(test_fits2caom2.TESTDATA_DIR), Path('./')]:
+        test_fqn = test_working_directory / 'test_file.fits'
+        if test_fqn.exists():
+            test_fqn.unlink()
 
-    test_wrapper = data_util.StorageClientWrapper(subject=test_subject)
-    assert test_wrapper is not None, 'ctor failure'
+        cadc_client_mock.return_value.cadcinfo.side_effect = info_si_mock
+        cadc_client_mock.return_value.cadcget.side_effect = get_si_mock
+        cadc_client_mock.return_value.cadcput = Mock(autospec=True)
+        cadc_client_mock.return_value.cadcremove = Mock(autospec=True)
 
-    # info
-    test_result = test_wrapper.info(test_uri)
-    _check_info_result(test_result)
+        test_wrapper = data_util.StorageClientWrapper(subject=test_subject)
+        assert test_wrapper is not None, 'ctor failure'
 
-    # get_head
-    test_result = test_wrapper.get_head(test_uri)
-    _check_header_result(test_result)
+        # info
+        test_result = test_wrapper.info(test_uri)
+        _check_info_result(test_result)
 
-    # get
-    test_wrapper.get(test_working_directory, test_uri)
-    _check_get_result(test_fqn)
+        # get_head
+        test_result = test_wrapper.get_head(test_uri)
+        _check_header_result(test_result)
 
-    # put
-    test_wrapper.put(test_working_directory, test_uri)
-    _check_put_result(cadc_client_mock.return_value.cadcput)
+        # get
+        test_wrapper.get(test_working_directory, test_uri)
+        _check_get_result(test_fqn)
 
-    # delete
-    test_wrapper.remove(test_uri)
-    assert cadc_client_mock.return_value.cadcremove.called, 'remove call'
-    cadc_client_mock.return_value.cadcremove.assert_called_with(test_uri), 'wrong remove args'
+        # put
+        test_wrapper.put(test_working_directory, test_uri)
+        _check_put_result(cadc_client_mock.return_value.cadcput)
 
-    cadc_client_mock.return_value.cadcinfo.side_effect = exceptions.UnexpectedException('cadcinfo')
-    cadc_client_mock.return_value.cadcget.side_effect = exceptions.UnexpectedException('cadcget')
-    cadc_client_mock.return_value.cadcput.side_effect = exceptions.UnexpectedException('cadcput')
-    _fail_mock(test_wrapper, test_uri, test_working_directory)
-
-    cadc_client_mock.return_value.cadcremove.side_effect = exceptions.UnexpectedException('cadcremove')
-    with pytest.raises(exceptions.UnexpectedException):
+        # delete
         test_wrapper.remove(test_uri)
+        assert cadc_client_mock.return_value.cadcremove.called, 'remove call'
+        cadc_client_mock.return_value.cadcremove.assert_called_with(test_uri), 'wrong remove args'
 
-    cadc_client_mock.return_value.cadcinfo.side_effect = exceptions.NotFoundException('cadcinfo')
-    test_result = test_wrapper.info(test_uri)
-    assert test_result is None, 'expected when not found'
+        cadc_client_mock.return_value.cadcinfo.side_effect = exceptions.UnexpectedException('cadcinfo')
+        cadc_client_mock.return_value.cadcget.side_effect = exceptions.UnexpectedException('cadcget')
+        cadc_client_mock.return_value.cadcput.side_effect = exceptions.UnexpectedException('cadcput')
+        _fail_mock(test_wrapper, test_uri, test_working_directory)
+
+        cadc_client_mock.return_value.cadcremove.side_effect = exceptions.UnexpectedException('cadcremove')
+        with pytest.raises(exceptions.UnexpectedException):
+            test_wrapper.remove(test_uri)
+
+        cadc_client_mock.return_value.cadcinfo.side_effect = exceptions.NotFoundException('cadcinfo')
+        test_result = test_wrapper.info(test_uri)
+        assert test_result is None, 'expected when not found'
+
+        cadc_client_mock.reset()
 
 
 @patch('caom2utils.data_util.StorageInventoryClient')
@@ -251,24 +254,14 @@ def _check_info_result(result):
 
 def _check_put_result(client_mock):
     assert client_mock.called, 'expect put mock call'
-    try:
-        client_mock.assert_called_with(
-            'TEST',
-            'test_file.fits',
-            archive_stream='default',
-            mime_type='application/fits',
-            mime_encoding=None,
-            md5_check=True,
-        ), 'wrong put args call'
-    except AssertionError:
-        client_mock.assert_called_with(
-            'cadc:TEST/test_file.fits',
-            src=f'{test_fits2caom2.TESTDATA_DIR}/test_file.fits',
-            replace=True,
-            file_type='application/fits',
-            file_encoding=None,
-            md5_checksum='3c66ee2cb6e0c2cfb5cd6824d353dc11',
-        )
+    client_mock.assert_called_with(
+        'cadc:TEST/test_file.fits',
+        src='test_file.fits',
+        replace=True,
+        file_type='application/fits',
+        file_encoding=None,
+        md5_checksum='3c66ee2cb6e0c2cfb5cd6824d353dc11',
+    )
 
 
 def _fail_mock(test_wrapper, test_uri, test_working_directory):

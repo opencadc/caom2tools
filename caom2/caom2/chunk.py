@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2024.                            (c) 2024.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -82,31 +82,59 @@ from .common import CaomObject, OrderedEnum
 
 class ProductType(OrderedEnum):
     """
-    SCIENCE: "science"
-    CALIBRATION: "calibration"
-    PREVIEW: "preview"
-    INFO: "info"
-    NOISE: "noise"
-    WEIGHT: "weight"
-    AUXILIARY: "auxiliary"
-    THUMBNAIL: "thumbnail"
-    BIAS: "bias"
-    DARK: "dark"
-    FLAT: "flat"
-    WAVECAL: "wavecal"
-    """
-    SCIENCE = "science"
-    CALIBRATION = "calibration"
-    PREVIEW = "preview"
-    INFO = "info"
-    NOISE = "noise"
-    WEIGHT = "weight"
+    Subset of IVOA DataLink terms at:
+        https://www.ivoa.net/rdf/datalink/core/2022-01-27/datalink.html
+
+    THIS = "this"
     AUXILIARY = "auxiliary"
-    THUMBNAIL = "thumbnail"
-    BIAS = "bias"
-    DARK = "dark"
-    FLAT = "flat"
-    WAVECAL = "wavecal"
+    BIAS = 'bias'
+    CALIBRATION = 'calibration'
+    CODERIVED = 'coderived'
+    DARK = 'dark'
+    DOCUMENTATION = 'documentation'
+    ERROR = 'error'
+    FLAT = 'flat'
+    NOISE = 'noise'
+    PREVIEW = 'preview'
+    PREVIEW_IMAGE = 'preview-image'
+    PREVIEW_PLOT = 'preview-plot'
+    THUMBNAIL = 'thumbnail'
+    WEIGHT = 'weight'
+
+    """
+
+    THIS = "this"
+
+    AUXILIARY = "auxiliary"
+    BIAS = 'bias'
+    CALIBRATION = 'calibration'
+    CODERIVED = 'coderived'
+    DARK = 'dark'
+    DOCUMENTATION = 'documentation'
+    ERROR = 'error'
+    FLAT = 'flat'
+    NOISE = 'noise'
+    PREVIEW = 'preview'
+    PREVIEW_IMAGE = 'preview-image'
+    PREVIEW_PLOT = 'preview-plot'
+    THUMBNAIL = 'thumbnail'
+    WEIGHT = 'weight'
+
+    # DataLink terms explicitly not included
+    # counterpart
+    # cutout
+    # derivation
+    # detached - header
+    # package
+    # proc
+    # progenitor
+
+    # CAOM specific terms public
+    SCIENCE = 'science'  # this
+
+    # deprecated
+    # INFO = 'info'
+    # CATALOG = 'catalog'
 
 
 __all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',

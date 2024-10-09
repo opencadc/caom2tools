@@ -665,7 +665,7 @@ caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
       <caom2:artifacts>
         <caom2:artifact caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
-          <caom2:productType>info</caom2:productType>
+          <caom2:productType>auxiliary</caom2:productType>
           <caom2:parts>
             <caom2:part caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
               <caom2:name>0</caom2:name>
@@ -692,7 +692,7 @@ def test_augment_observation():
     test_obs_blueprint.set('Observation.telescope.geoLocationZ', '4741018.33097')
 
     test_obs_blueprint.set('Plane.dataProductType', 'cube')
-    test_obs_blueprint.set('Artifact.productType', 'info')
+    test_obs_blueprint.set('Artifact.productType', 'auxiliary')
     test_obs_blueprint.set('Artifact.releaseType', 'data')
     test_obs_blueprint.set('Plane.calibrationLevel', '2')
     test_fitsparser = FitsParser(sample_file_4axes_obs, test_obs_blueprint)
