@@ -579,8 +579,11 @@ class BlueprintParser:
 
 
 class ContentParser(BlueprintParser):
-    def __init__(self, obs_blueprint=None, uri=None):
+    def __init__(self, obs_blueprint=None, uri=None, extension_start_index=0, extension_end_index=None):
         super().__init__(obs_blueprint, uri)
+        # for those cases where the extensions of interest are not all the extensions in the original file
+        self._extension_start_index = extension_start_index
+        self._extension_end_index = extension_end_index if extension_end_index else self._get_num_parts()
         self._wcs_parsers = {}
         self._set_wcs_parsers(obs_blueprint)
 
@@ -593,7 +596,7 @@ class ContentParser(BlueprintParser):
         return len(self._blueprint._extensions) + 1
 
     def _set_wcs_parsers(self, obs_blueprint):
-        self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=0)
+        self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=self._extension_start_index)
 
     def augment_artifact(self, artifact):
         """
@@ -607,17 +610,21 @@ class ContentParser(BlueprintParser):
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError(f'No WCS Data. End content artifact augmentation for ' f'{artifact.uri}.')
 
-        for index in range(0, self._get_num_parts()):
+        for index in range(self._extension_start_index, self._extension_end_index):
             if self.add_parts(artifact, index):
                 part = artifact.parts[str(index)]
                 part.product_type = self._get_from_list('Part.productType', index)
-                part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
+                part.meta_producer = self._get_from_list(
+                    'Part.metaProducer', index=self._extension_start_index, current=part.meta_producer
+                )
 
                 # each Part has one Chunk, if it's not an empty part as determined just previously
                 if not part.chunks:
                     part.chunks.append(caom2.Chunk())
                 chunk = part.chunks[0]
-                chunk.meta_producer = self._get_from_list('Chunk.metaProducer', index=0, current=chunk.meta_producer)
+                chunk.meta_producer = self._get_from_list(
+                    'Chunk.metaProducer', index=self._extension_start_index, current=chunk.meta_producer
+                )
 
                 self._get_chunk_naxis(chunk, index)
 
@@ -1478,7 +1485,7 @@ class FitsParser(ContentParser):
 
     """
 
-    def __init__(self, src, obs_blueprint=None, uri=None):
+    def __init__(self, src, obs_blueprint=None, uri=None, extension_start_index=0, extension_end_index=None):
         """
         Ctor
         :param src: List of headers (dictionary of FITS keywords:value) with one header for each extension or a FITS
@@ -1505,6 +1512,8 @@ class FitsParser(ContentParser):
         self._errors = []
         # for command-line parameter to module execution
         self.uri = uri
+        self._extension_start_index = extension_start_index
+        self._extension_end_index = extension_end_index if extension_end_index is not None else self._get_num_parts()
         self.apply_blueprint()
 
     def _get_num_parts(self):
@@ -1863,7 +1872,7 @@ class Hdf5Parser(ContentParser):
     - use the astropy.wcs instance and other blueprint metadata to fill the CAOM2 record.
     """
 
-    def __init__(self, obs_blueprint, uri, h5_file, extension_names=None):
+    def __init__(self, obs_blueprint, uri, h5_file, extension_names=None, extension_start_index=0, extension_end_index=None):
         """
         :param obs_blueprint: Hdf5ObsBlueprint instance
         :param uri: which artifact augmentation is based on
@@ -1874,7 +1883,7 @@ class Hdf5Parser(ContentParser):
         # the length of the array is the number of Parts in an HDF5 file,
         # and the values are HDF5 lookup path names.
         self._extension_names = extension_names
-        super().__init__(obs_blueprint, uri)
+        super().__init__(obs_blueprint, uri, extension_start_index, extension_end_index)
 
     def _get_num_parts(self):
         """return the number of Parts to create for a CAOM record
@@ -2119,7 +2128,7 @@ class Hdf5Parser(ContentParser):
         return
 
     def augment_artifact(self, artifact):
-        for ii in range(0, self._get_num_parts()):
+        for ii in range(self._extension_start_index, self._extension_end_index):
             # one WCS parser per Part/Chunk
             self._wcs_parsers[ii] = Hdf5WcsParser(self._blueprint, ii)
         super().augment_artifact(artifact)
