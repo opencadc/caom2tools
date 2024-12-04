@@ -994,9 +994,7 @@ class ObsBlueprint:
                             self._extensions[extension][caom2_element][1].insert(0, ttype_attribute)
                     else:
                         raise AttributeError(
-                            ('No TTYPE attributes in extension {} associated ' 'with keyword {}').format(
-                                extension, caom2_element
-                            )
+                            f'No TTYPE attributes in extension {extension} associated with keyword {caom2_element}'
                         )
                 else:
                     self._extensions[extension][caom2_element] = ('BINTABLE', [ttype_attribute], index)
@@ -1199,9 +1197,13 @@ class Hdf5ObsBlueprint(ObsBlueprint):
     # lookup value starting with // means rooted at base of the hdf5 file
     ob.add_attribute('Observation.target.name', '//header/object/obj_id')
 
-    # lookup value starting with / means rooted at the base of the "find_roots_here" parameter for Hdf5Parser
+    # lookup value starting with / means rooted at the base of one of the extension_names parameter for Hdf5Parser
     # (integer) means return only the value with the index of "integer" from a list
     ob.add_attribute('Chunk.position.axis.function.refCoord.coord1.pix', '/header/wcs/crpix(0)')
+
+    # lookup values starting with / and with "{}" in the path will cause the blueprint application to attempt to
+    # guess the extension names from the file content
+    ob.add_attribute('Chunk.position.axis.function.refCoord.coord1.pix', '/sitedata/site{}/header/wcs/crpix(0)')
 
     # (integer:integer) means return only the value with the index of "integer" from a list, followed by "integer"
     # from the list in the list
