@@ -1,6 +1,7 @@
 def get_proposal_id(uri):
     return 'PROPOSAL ID'
 
+
 def get_energy_chunk_range_end_val(parameters):
     header = parameters.get('header')
     if (camera_arm := header.get('ARM')) == 'RED':
@@ -8,6 +9,7 @@ def get_energy_chunk_range_end_val(parameters):
     elif camera_arm == 'BLUE':
         result = 663.0  # nm
     return result
+
 
 def get_energy_chunk_range_start_val(parameters):
     header = parameters.get('header')
@@ -18,8 +20,10 @@ def get_energy_chunk_range_start_val(parameters):
         result = 499.0  # nm
     return result
 
+
 def get_exposure(header):
     return 4.0
+
 
 def get_time_delta(parameters):
     header = parameters.get('header')
@@ -28,6 +32,7 @@ def get_time_delta(parameters):
     if exptime:
         result = 12.0
     return result
+
 
 def get_time_function_val(parameters):
     header = parameters.get('header')
