@@ -37,4 +37,3 @@ def get_time_delta(parameters):
 def get_time_function_val(parameters):
     header = parameters.get('header')
     return header.get('MJD')
-
