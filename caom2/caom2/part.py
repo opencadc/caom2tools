@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -72,8 +72,7 @@ the caom2_Observation_Plane_Artifact_Part object."""
 from builtins import str
 
 from . import caom_util
-from .chunk import Chunk
-from .chunk import ProductType
+from .chunk import Chunk, DataLinkSemantics
 from .common import AbstractCaomEntity
 
 __all__ = ['Part']
@@ -117,7 +116,7 @@ class Part(AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        caom_util.type_check(value, ProductType, "product_type")
+        caom_util.type_check(value, DataLinkSemantics, "product_type")
         self._product_type = value
 
     @property

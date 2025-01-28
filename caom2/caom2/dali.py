@@ -1,10 +1,8 @@
-#
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2010.                            (c) 2010.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,29 +66,99 @@
 # ***********************************************************************
 #
 
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
+from . import common
+from . import caom_util
 
-"""
-This library implements the Common Archive Observation Model (CAOM), a general
-purpose data model for use as the core data model of an astronomical data
-centre. The details about the model and its components can be found at:
+__all__ = ['Interval']
 
-http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2/
-"""
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
-    import aenum  # noqa
-from .artifact import *  # noqa
-from .caom_util import *  # noqa
-from .checksum import *  # noqa
-from .chunk import *  # noqa
-from .common import *  # noqa
-from .dali import *  # noqa
-from .diff import *  # noqa
-from .obs_reader_writer import *  # noqa
-from .observation import *  # noqa
-from .part import *  # noqa
-from .plane import *  # noqa
-from .shape import *  # noqa
-from .wcs import *  # noqa
+
+class Interval(common.CaomObject):
+    def __init__(self, lower, upper):
+
+        super().__init__()
+        self.lower = lower
+        self.upper = upper
+
+    def get_width(self):
+        return self._upper - self._lower
+
+    @classmethod
+    def intersection(cls, i1, i2):
+        if i1.lower > i2.upper or i1.upper < i2.lower:
+            return None
+
+        lb = max(i1.lower, i2.lower)
+        ub = min(i1.upper, i2.upper)
+        return cls(lb, ub)
+
+    # Properties
+
+    @property
+    def lower(self):
+        """
+        type: float
+        """
+        return self._lower
+
+    @lower.setter
+    def lower(self, value):
+        caom_util.type_check(value, float, 'lower', override=False)
+        has_upper = True
+        try:
+            self._upper
+        except AttributeError:
+            has_upper = False
+        if has_upper and self._upper < value:
+            raise ValueError("Interval: attempt to set upper < lower "
+                             "for {}, {}".format(self._upper, value))
+        self._lower = value
+
+    @property
+    def upper(self):
+        """
+        type: float
+        """
+        return self._upper
+
+    @upper.setter
+    def upper(self, value):
+        caom_util.type_check(value, float, 'upper', override=False)
+        has_lower = True
+        try:
+            self._lower
+        except AttributeError:
+            has_lower = False
+        if has_lower and value < self._lower:
+            raise ValueError("Interval: attempt to set upper < lower "
+                             "for {}, {}".format(value, self._lower))
+        self._upper = value
+
+    # def validate(self):
+    #     """
+    #     Performs a validation of the current object.
+    #
+    #     An AssertionError is thrown if the object does not represent an
+    #     Interval
+    #     """
+    #     if self._samples is not None:
+    #
+    #         if len(self._samples) == 0:
+    #             raise ValueError(
+    #                 'invalid interval (samples cannot be empty)')
+    #
+    #         prev = None
+    #         for sample in self._samples:
+    #             if sample.lower < self._lower:
+    #                 raise ValueError(
+    #                     'invalid interval: sample extends below lower bound: '
+    #                     '{} vs {}'.format(sample, self._lower))
+    #             if sample.upper > self._upper:
+    #                 raise ValueError(
+    #                     'invalid interval: sample extends above upper bound: '
+    #                     '{} vs {}'.format(sample, self._upper))
+    #             if prev is not None:
+    #                 if sample.lower <= prev.upper:
+    #                     raise ValueError(
+    #                         'invalid interval: sample overlaps previous '
+    #                         'sample:\n{}\nvs\n{}'.format(sample, prev))
+    #             prev = sample

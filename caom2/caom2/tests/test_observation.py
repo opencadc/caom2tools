@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -117,9 +117,9 @@ class TestEnums(unittest.TestCase):
 class TestObservation(unittest.TestCase):
     def test_all(self):
         algorithm = observation.Algorithm("myAlg")
-        obs = observation.Observation("GSA", "A12345", algorithm)
+        obs = observation.Observation("GSA", "caom:GSA/A12345", algorithm)
         self.assertEqual("GSA", obs.collection, "Collection")
-        self.assertEqual("A12345", obs.observation_id, "Observation ID")
+        self.assertEqual(observation.ObservationURI("caom:GSA/A12345"), obs.uri, "Observation URI")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
 
         new_algorithm = observation.Algorithm("myNewAlg")
@@ -183,27 +183,29 @@ class TestObservation(unittest.TestCase):
                          obs.meta_release, "Metadata release")
 
         self.assertEqual(0, len(obs.planes), "Default planes")
-        plane1 = plane.Plane("myPlaneID")
-        obs.planes["myPlaneID"] = plane1
+        puri1 = "caom:TEST/TESTOBS/myPlaneID"
+        plane1 = plane.Plane(puri1)
+        obs.planes[plane1.uri] = plane1
         self.assertEqual(1, len(obs.planes), "Planes")
-        self.assertTrue("myPlaneID" in obs.planes.keys())
+        self.assertTrue(plane1.uri in obs.planes.keys())
 
-        plane2 = plane.Plane("myPlaneID2")
-        obs.planes["myPlaneID2"] = plane2
+        puri2 = "caom:TEST/TESTOBS/myPlaneID2"
+        plane2 = plane.Plane(puri2)
+        obs.planes[plane2.uri] = plane2
         self.assertEqual(2, len(obs.planes), "Planes")
-        self.assertTrue("myPlaneID" in obs.planes)
-        self.assertTrue("myPlaneID2" in obs.planes.keys())
+        self.assertTrue(plane1.uri in obs.planes)
+        self.assertTrue(plane2.uri in obs.planes.keys())
 
         # test duplicates
-        plane3 = plane.Plane("myPlaneID2")
-        obs.planes["myPlaneID2"] = plane3
+        plane3 = plane.Plane(puri2)
+        obs.planes[plane2.uri] = plane3
         self.assertEqual(2, len(obs.planes), "Planes")
-        self.assertTrue("myPlaneID" in obs.planes)
-        self.assertTrue("myPlaneID2" in obs.planes.keys())
+        self.assertTrue(plane3.uri in obs.planes)
+        self.assertTrue(plane3.uri in obs.planes.keys())
 
         observation.Observation(
             obs.collection,
-            obs.observation_id,
+            obs.uri.uri,
             obs.algorithm,
             planes=obs.planes,
             sequence_number=obs.sequence_number,
@@ -222,9 +224,9 @@ class TestSimpleObservation(unittest.TestCase):
     def test_all(self):
         algorithm = observation.Algorithm(
             observation.SimpleObservation._DEFAULT_ALGORITHM_NAME)
-        obs = observation.SimpleObservation("GSA", "A12345")
+        obs = observation.SimpleObservation("GSA", "caom:GSA/A12345")
         self.assertEqual("GSA", obs.collection, "Collection")
-        self.assertEqual("A12345", obs.observation_id, "Observation ID")
+        self.assertEqual(observation.ObservationURI("caom:GSA/A12345"), obs.uri, "Observation URI")
 
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
         obs.algorithm = algorithm
@@ -300,7 +302,7 @@ class TestSimpleObservation(unittest.TestCase):
     # Test the complete constructor
     def test_complete_init(self):
         collection = "CFHT"
-        observation_id = "543210"
+        uri = "caom:CFHT/543210"
         algorithm = observation.Algorithm(
             observation.SimpleObservation._DEFAULT_ALGORITHM_NAME)
         sequence_number = int(3)
@@ -316,7 +318,7 @@ class TestSimpleObservation(unittest.TestCase):
 
         obs = observation.SimpleObservation(
             collection,
-            observation_id,
+            uri,
             algorithm,
             sequence_number,
             intent,
@@ -334,8 +336,8 @@ class TestSimpleObservation(unittest.TestCase):
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
 
-        self.assertIsNotNone(obs.observation_id, "Observation ID")
-        self.assertEqual(observation_id, obs.observation_id, "Observation ID")
+        self.assertIsNotNone(obs.uri, "Observation URI")
+        self.assertEqual(observation.ObservationURI(uri), obs.uri, "Observation URI")
 
         self.assertIsNotNone(obs.algorithm, "Algorithm")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
@@ -374,9 +376,9 @@ class TestSimpleObservation(unittest.TestCase):
 class TestCompositeObservation(unittest.TestCase):
     def test_all(self):
         algorithm = observation.Algorithm("mozaic")
-        obs = observation.CompositeObservation("GSA", "A12345", algorithm)
+        obs = observation.CompositeObservation("GSA", "caom:GSA/A12345", algorithm)
         self.assertEqual("GSA", obs.collection, "Collection")
-        self.assertEqual("A12345", obs.observation_id, "Observation ID")
+        self.assertEqual(observation.ObservationURI("caom:GSA/A12345"), obs.uri, "Observation URI")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
         obs.algorithm = algorithm
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
@@ -479,7 +481,7 @@ class TestCompositeObservation(unittest.TestCase):
     # Test the complete constructor
     def test_complete_init(self):
         collection = "CFHT"
-        observation_id = "543210"
+        uri = "caom:CFHT/543210"
         algorithm = observation.Algorithm("algo")
         sequence_number = int(3)
         intent = observation.ObservationIntentType.SCIENCE
@@ -496,7 +498,7 @@ class TestCompositeObservation(unittest.TestCase):
 
         obs = observation.DerivedObservation(
             collection,
-            observation_id,
+            uri,
             algorithm,
             sequence_number,
             intent,
@@ -515,8 +517,8 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertIsNotNone(obs.collection, "Collection")
         self.assertEqual(collection, obs.collection, "Collection")
 
-        self.assertIsNotNone(obs.observation_id, "Observation ID")
-        self.assertEqual(observation_id, obs.observation_id, "Observation ID")
+        self.assertIsNotNone(obs.uri, "Observation URI")
+        self.assertEqual(observation.ObservationURI(uri), obs.uri, "Observation URI")
 
         self.assertIsNotNone(obs.algorithm, "Algorithm")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")

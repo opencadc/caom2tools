@@ -1,10 +1,8 @@
-#
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2010.                            (c) 2010.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,29 +66,45 @@
 # ***********************************************************************
 #
 
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
+import math
+import pytest
+import unittest
 
-"""
-This library implements the Common Archive Observation Model (CAOM), a general
-purpose data model for use as the core data model of an astronomical data
-centre. The details about the model and its components can be found at:
+from .. import shape
+from .. import dali
 
-http://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/caom2/
-"""
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
-    import aenum  # noqa
-from .artifact import *  # noqa
-from .caom_util import *  # noqa
-from .checksum import *  # noqa
-from .chunk import *  # noqa
-from .common import *  # noqa
-from .dali import *  # noqa
-from .diff import *  # noqa
-from .obs_reader_writer import *  # noqa
-from .observation import *  # noqa
-from .part import *  # noqa
-from .plane import *  # noqa
-from .shape import *  # noqa
-from .wcs import *  # noqa
+
+class TestInterval(unittest.TestCase):
+    def test_all(self):
+
+        lower = 1.0
+        upper = 2.0
+        self.assertRaises(TypeError, dali.Interval, None, None)
+        self.assertRaises(TypeError, dali.Interval, None, 1.0)
+        self.assertRaises(TypeError, dali.Interval, 1.0, None)
+        self.assertRaises(TypeError, dali.Interval, None, "string")
+        self.assertRaises(TypeError, dali.Interval, "string", None)
+        self.assertRaises(TypeError, dali.Interval, "string1", "string2")
+        # validate errors
+        self.assertRaises(ValueError, dali.Interval, upper, lower)
+
+        # test cannot set interval with upper < lower
+        interval = dali.Interval(lower, upper)
+        with self.assertRaises(ValueError):
+            interval.upper = 0.5
+        # test instance methods
+        i1 = dali.Interval(10.0, 15.0)
+        self.assertEqual(i1.get_width(), 5)
+
+        # test class methods
+        i1 = dali.Interval(10.0, 15.0)
+        i2 = dali.Interval(5.0, 8.0)
+        intersect1 = dali.Interval.intersection(i1, i2)
+        self.assertEqual(intersect1, None)
+        intersect2 = dali.Interval.intersection(i2, i1)
+        self.assertEqual(intersect2, None)
+        i3 = dali.Interval(8.0, 12.0)
+        lb = max(i1.lower, i3.lower)
+        ub = min(i1.upper, i3.upper)
+        intersect3 = dali.Interval.intersection(i1, i3)
+        self.assertEqual(intersect3, dali.Interval(lb, ub))

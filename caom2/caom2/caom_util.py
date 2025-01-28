@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -74,7 +74,6 @@ These Typed versions were implemented so that content checking near
 the first point of use could be implemented.  This helps the data
 engineer get the correct meta data more quickly.
 """
-
 import sys
 import collections
 from datetime import datetime
@@ -82,9 +81,11 @@ from datetime import datetime
 from urllib.parse import urlsplit
 from builtins import int, str as newstr
 
+from . import dali
+
 
 __all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty',
-           'URISet']
+           'URISet', 'validate_uri']
 
 # TODO both these are very bad, implement more sensibly
 IVOA_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
@@ -235,8 +236,8 @@ class TypedList(collections.abc.MutableSequence):
 
     def check(self, v):
         if not isinstance(v, self._oktypes):
-            raise TypeError("Wrong type in list. OK Types: {0}".
-                            format(self._oktypes))
+            raise TypeError("Wrong type ({0}) in list. OK Types: {1}".
+                            format(type(v), self._oktypes))
 
     def __len__(self):
         return len(self.list)
@@ -328,6 +329,22 @@ class TypedSet(collections.abc.MutableSet):
             return False
 
 
+def validate_uri(uri, scheme=None):
+    """
+    Validates a URI. If a scheme is provided, the URI must have that scheme.
+    :param uri:
+    :param scheme:
+    :raise TypeError: when uri not valid
+    """
+    if uri:
+        tmp = urlsplit(uri)
+        if scheme and scheme != tmp.scheme:
+            raise TypeError("Invalid URI scheme: {}".format(uri))
+        if tmp.geturl() == uri:
+            return
+    raise TypeError("Invalid URI: " + uri)
+
+
 class URISet(TypedSet):
     """
     Class that customizes a TypedSet to check for URIs
@@ -350,13 +367,7 @@ class URISet(TypedSet):
         :param v: value to check
         :return:
         """
-        if v:
-            tmp = urlsplit(v)
-            if self.scheme and tmp.scheme != self.scheme:
-                raise TypeError("Invalid URI scheme: {}".format(v))
-            if tmp.geturl() == v:
-                return
-        raise TypeError("Invalid URI: " + v)
+        validate_uri(v, self.scheme)
 
 
 class TypedOrderedDict(collections.OrderedDict):

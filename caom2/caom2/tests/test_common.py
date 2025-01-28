@@ -85,7 +85,7 @@ class TestCaom2IdGenerator(unittest.TestCase):
         test_entity = common.AbstractCaomEntity()
         print(test_entity._id, test_entity._last_modified)
         test_artifact = artifact.Artifact("caom2:/blah/blah",
-                                          chunk.ProductType.SCIENCE,
+                                          chunk.DataLinkSemantics.SCIENCE,
                                           artifact.ReleaseType.DATA)
         print(test_artifact._id, test_artifact._last_modified)
 
@@ -93,13 +93,14 @@ class TestCaom2IdGenerator(unittest.TestCase):
         print(test_chunk._id, test_chunk._last_modified)
 
         algorithm = observation.Algorithm("myAlg")
-        test_observation = observation.Observation("colect", "obs", algorithm)
+        test_observation = observation.Observation("colect", "caom:COLLECTION/obs", algorithm)
         print(test_observation._id, test_observation._last_modified)
 
         test_part = part.Part("part")
         print(test_part._id, test_part._last_modified)
 
-        test_plane = plane.Plane("prodid")
+        plane_uri = '{}/{}'.format(test_observation.uri.uri, "obs")
+        test_plane = plane.Plane(plane_uri)
         print(test_plane._id, test_plane._last_modified)
 
         self.assertIsNone(test_plane.last_modified, "last_modified null")
@@ -132,7 +133,7 @@ class TestMetadataChecksum(unittest.TestCase):
         test_entity = common.AbstractCaomEntity()
         print(test_entity._id, test_entity._last_modified)
         test_artifact = artifact.Artifact("caom2:/blah/blah",
-                                          chunk.ProductType.SCIENCE,
+                                          chunk.DataLinkSemantics.SCIENCE,
                                           artifact.ReleaseType.DATA)
         with self.assertRaises(NotImplementedError):
             test_artifact.compute_meta_checksum()

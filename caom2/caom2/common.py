@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,7 +65,7 @@
 #
 # ***********************************************************************
 #
-
+import hashlib
 import inspect
 import uuid
 from datetime import datetime
@@ -82,12 +82,17 @@ with warnings.catch_warnings():
 
 
 __all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI',
-           'VocabularyTerm']
-
-_OBSCORE_VOCAB_NS = "http://www.ivoa.net/std/ObsCore"
-_CAOM_VOCAB_NS = "http://www.opencadc.org/caom2/DataProductType"
+           'VocabularyTerm', 'compute_bucket']
 
 logger = logging.getLogger('caom2')
+
+_DATA_LINK_VOCAB_NS = 'https://www.ivoa.net/rdf/datalink/core'
+# CAOM2 vocabularies
+_CAOM_DATA_PRODUCT_TYPE_NS = "http://www.opencadc.org/caom2/DataProductType"
+_CAOM_PRODUCT_TYPE_NS = "http://www.opencadc.org/caom2/ProductType"
+_CAOM_QUALITY_NS = "http://www.opencadc.org/caom2/Quality"
+_CAOM_STATUS_NS = "http://www.opencadc.org/caom2/Status"
+_CAOM_TARGET_TYPE_NS = "http://www.opencadc.org/caom2/TargetType"
 
 
 def get_current_ivoa_time():
@@ -99,6 +104,17 @@ def get_current_ivoa_time():
     now = datetime.now()
     return datetime(now.year, now.month, now.day, now.hour, now.minute,
                     now.second, int(str(now.microsecond)[:-3] + '000'))
+
+
+def compute_bucket(uri):
+    """
+    Compute a bucket name from a URI as the first 3 characters of the MD5 hash
+    :param uri: uri to compute bucket for
+    :return: bucket name
+    """
+    md5 = hashlib.sha1()
+    md5.update(uri.encode('utf-8'))
+    return md5.hexdigest()[:3]
 
 
 class OrderedEnum(Enum):

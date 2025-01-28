@@ -81,6 +81,9 @@ from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict, int_32
 from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI
 from caom2.common import ChecksumURI
 from caom2.observation import Observation
+from .obs_reader_writer import CAOM25_NAMESPACE, CAOM24_NAMESPACE, \
+    CAOM23_NAMESPACE
+
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
@@ -399,8 +402,13 @@ def checksum_diff():
         mistmatches += _print_diff(plane[0], plane[1])
     mistmatches += _print_diff(orig, actual)
 
+    ns = CAOM25_NAMESPACE
+    if reader.version == 24:
+        ns = CAOM24_NAMESPACE
+    if reader.version == 23:
+        ns = CAOM23_NAMESPACE
     if args.output:
-        writer = obs_reader_writer.ObservationWriter(validate=True)
+        writer = obs_reader_writer.ObservationWriter(validate=True, namespace=ns)
         writer.write(actual, args.output)
 
     print("Total: {} mistmatches".format(mistmatches))

@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -74,10 +74,10 @@ from builtins import str, int
 from urllib.parse import urlparse
 
 from . import caom_util
-from .chunk import ProductType
-from .common import AbstractCaomEntity
+from .common import AbstractCaomEntity, CaomObject, compute_bucket
 from .common import ChecksumURI, OrderedEnum
 from .part import Part
+from .chunk import DataLinkSemantics
 from datetime import datetime
 
 
@@ -95,8 +95,30 @@ class ReleaseType(OrderedEnum):
     META = "meta"
 
 
+class ArtifactDescription(CaomObject):
+    """ Short description with a URI reference for details"""
+
+    def __init__(self, uri, description):
+        super().__init__()
+        try:
+            urlparse(uri)
+        except ValueError:
+            raise TypeError('Expected any IVOA URI for ArtifactDescription.uri, '
+                            'received {}'.format(uri))
+        self._uri = uri
+        self._description = description
+
+    @property
+    def uri(self):
+        return self._uri
+
+    @property
+    def description(self):
+        return self._description
+
+
 class Artifact(AbstractCaomEntity):
-    """Contains the meta data assocaited with a file.
+    """Contains the metadata associated with a file.
 
     - location of the file (uri)
     - the http content-type
@@ -104,8 +126,8 @@ class Artifact(AbstractCaomEntity):
 
     As well as a pointer (parts) to content of the file.
 
-    eg:  Artifact('ad:CFHT/1234567o')
-    where 'ad:CFHT/1234567o' is a uri that refernce the file...
+    eg:  Artifact('cadc:CFHT/1234567o')
+    where 'cadc:CFHT/1234567o' is an uri that reference the file...
 
     """
 
@@ -118,17 +140,23 @@ class Artifact(AbstractCaomEntity):
                  content_checksum=None,
                  content_release=None,
                  content_read_groups=None,
-                 parts=None
+                 parts=None,
+                 description_id=None
                  ):
         """
-        Initialize a Artifact instance.
+        Initialize an Artifact instance.
 
         Arguments: uri of the artifact.  eg:
            vos://cadc.nrc.ca!vospace/APASS/apass_north/proc/100605/n100605.fz
            ad:CFHT/123456p
         """
         super(Artifact, self).__init__()
-        self.uri = uri
+        try:
+            urlparse(uri)
+        except ValueError:
+            raise TypeError('Expected URI for Artifact.uri, received {}'.format(uri))
+        self._uri = uri
+        self._uri_bucket = compute_bucket(uri)
         self.product_type = product_type
         self.release_type = release_type
         self.content_type = content_type
@@ -139,6 +167,7 @@ class Artifact(AbstractCaomEntity):
         if parts is None:
             parts = caom_util.TypedOrderedDict(Part, )
         self.parts = parts
+        self.description_id = description_id
 
     def _key(self):
         return self.uri
@@ -160,15 +189,9 @@ class Artifact(AbstractCaomEntity):
         """
         return self._uri
 
-    @uri.setter
-    def uri(self, value):
-        caom_util.type_check(value, str, 'uri')
-        uri = urlparse(value)
-        if not uri.scheme:
-            raise ValueError('URI without scheme: {}'.format(value))
-        uri_str = uri.geturl()
-        caom_util.value_check(value, None, None, 'uri', override=uri_str)
-        self._uri = uri_str
+    @property
+    def uri_bucket(self):
+        return self._uri_bucket
 
     @property
     def product_type(self):
@@ -183,7 +206,7 @@ class Artifact(AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        caom_util.type_check(value, ProductType, "product_type", False)
+        caom_util.type_check(value, DataLinkSemantics, "product_type", False)
         self._product_type = value
 
     @property
@@ -306,3 +329,13 @@ class Artifact(AbstractCaomEntity):
             caom_util.type_check(value, caom_util.TypedOrderedDict, 'parts',
                                  override=False)
             self._parts = value
+
+    @property
+    def description_id(self):
+        return self._description_id
+
+    @description_id.setter
+    def description_id(self, value):
+        if value is not None:
+            caom_util.type_check(value, str, 'description_id')
+        self._description_id = value

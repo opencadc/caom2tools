@@ -90,10 +90,10 @@ class TestArtifact(unittest.TestCase):
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
                                               artifact.ReleaseType.META,
-                                              artifact.ProductType.THUMBNAIL)
+                                              artifact.DataLinkSemantics.THUMBNAIL)
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
-                                              artifact.ProductType.THUMBNAIL,
+                                              artifact.DataLinkSemantics.THUMBNAIL,
                                               None)
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
@@ -101,15 +101,15 @@ class TestArtifact(unittest.TestCase):
                                               artifact.ReleaseType.META)
 
         test_artifact = artifact.Artifact("caom:GEMINI/12345",
-                                          artifact.ProductType.THUMBNAIL,
+                                          artifact.DataLinkSemantics.THUMBNAIL,
                                           artifact.ReleaseType.META)
         urlparse("caom:GEMINI/12345")
         self.assertEqual("caom:GEMINI/12345",
                          test_artifact.uri,
                          "Artifact URI")
-        self.assertEqual(artifact.ProductType.THUMBNAIL,
+        self.assertEqual(artifact.DataLinkSemantics.THUMBNAIL,
                          test_artifact.product_type,
-                         "Artifact ProductType")
+                         "Artifact DataLinkSemantics")
         self.assertEqual(artifact.ReleaseType.META,
                          test_artifact.release_type,
                          "Artifact ReleaseType")
@@ -122,8 +122,8 @@ class TestArtifact(unittest.TestCase):
         test_artifact.content_length = 23000000000000
         self.assertEqual(23000000000000,
                          test_artifact.content_length, "Content length")
-        test_artifact.product_type = artifact.ProductType.PREVIEW
-        self.assertEqual(artifact.ProductType.PREVIEW,
+        test_artifact.product_type = artifact.DataLinkSemantics.PREVIEW
+        self.assertEqual(artifact.DataLinkSemantics.PREVIEW,
                          test_artifact.product_type,
                          "Product type")
 
@@ -165,7 +165,7 @@ class TestArtifact(unittest.TestCase):
             test_artifact = artifact.Artifact(
                 "caom://#observation://? something#//",
                 artifact.ReleaseType('META'),
-                artifact.ProductType('THUMBNAIL'))
+                artifact.DataLinkSemantics('THUMBNAIL'))
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
@@ -175,7 +175,7 @@ class TestArtifact(unittest.TestCase):
             test_artifact = artifact.Artifact(
                 "observation/something",
                 artifact.ReleaseType('META'),
-                artifact.ProductType('THUMBNAIL'))
+                artifact.DataLinkSemantics('THUMBNAIL'))
 
         # TODO re-enable when check enforced
         # with self.assertRaises(ValueError):

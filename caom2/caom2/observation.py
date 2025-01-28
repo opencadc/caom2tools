@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -75,13 +75,14 @@ import warnings
 from deprecated import deprecated
 
 from . import caom_util
-from .caom_util import int_32
+from .caom_util import int_32, validate_uri
 from .common import AbstractCaomEntity, CaomObject, ObservationURI, \
-    VocabularyTerm, OrderedEnum
-from .common import _CAOM_VOCAB_NS
+    VocabularyTerm, OrderedEnum, compute_bucket
+from .common import _CAOM_DATA_PRODUCT_TYPE_NS
 from .plane import Plane
 from .shape import Point
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlparse
+
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
@@ -106,7 +107,7 @@ class Status(Enum):
     """
     FAIL: "fail"
     """
-    FAIL = VocabularyTerm(_CAOM_VOCAB_NS, "fail", True).get_value()
+    FAIL = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "fail", True).get_value()
 
 
 class TargetType(Enum):
@@ -114,8 +115,16 @@ class TargetType(Enum):
     FIELD: "field",
     OBJECT: "object"
     """
-    FIELD = VocabularyTerm(_CAOM_VOCAB_NS, "field", True).get_value()
-    OBJECT = VocabularyTerm(_CAOM_VOCAB_NS, "object", True).get_value()
+    FIELD = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "field", True).get_value()
+    OBJECT = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "object", True).get_value()
+
+
+class Tracking(Enum):
+    """
+    FIELD: "field",
+    OBJECT: "object"
+    """
+    FIELD = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "sidereal", True).get_value()
 
 
 class Observation(AbstractCaomEntity):
@@ -168,7 +177,7 @@ class Observation(AbstractCaomEntity):
 
     def __init__(self,
                  collection,
-                 observation_id,
+                 uri,
                  algorithm,
                  sequence_number=None,
                  intent=None,
@@ -190,8 +199,7 @@ class Observation(AbstractCaomEntity):
         Arguments: collection : where the observation is from
         (eg. 'HST')
 
-        observation_id : a unique identifier within that collection
-                         (eg. '111')
+        uri : a unique logical identifier for the observation (eg. 'caom:HST/123456abc')
 
         algorithm : the algorithm used to create the observation.  For
                     a telescope observation this is always 'exposure'
@@ -199,13 +207,12 @@ class Observation(AbstractCaomEntity):
         super(Observation, self).__init__()
 
         self.collection = collection
-        self.observation_id = observation_id
+        validate_uri(uri)
+        self._uri = ObservationURI(uri)
+        self._uri_bucket = compute_bucket(uri)
         if not algorithm:
             raise AttributeError('Algorithm required')
         self.algorithm = algorithm
-
-        self._uri = ObservationURI.get_observation_uri(collection,
-                                                       observation_id)
 
         self.sequence_number = sequence_number
         self.intent = intent
@@ -237,26 +244,16 @@ class Observation(AbstractCaomEntity):
         self._collection = value
 
     @property
-    def observation_id(self):
-        """A string that uniquely identifies this obseravtion within the given
-        collection.
+    def uri(self):
+        """A unique identifier for the observation.
 
-        type: unicode string
-        """
-        return self._observation_id
-
-    @observation_id.setter
-    def observation_id(self, value):
-        caom_util.type_check(value, str, 'observation_id', override=False)
-        self._observation_id = value
-
-    def get_uri(self):
-        """A URI for this observation referenced in the caom system.
-
-        This attribute is auto geneqrated from the other metadata.
         type: unicode string
         """
         return self._uri
+
+    @property
+    def uri_bucket(self):
+        return self._uri_bucket
 
     @property
     def planes(self):
@@ -541,7 +538,7 @@ class SimpleObservation(Observation):
 
     def __init__(self,
                  collection,
-                 observation_id,
+                 uri,
                  algorithm=_DEFAULT_ALGORITHM_NAME,
                  sequence_number=None,
                  intent=None,
@@ -560,10 +557,10 @@ class SimpleObservation(Observation):
         collection - A name that describes a collection of data,
         nominally the name of a telescope
 
-        observation_id - A UNIQUE identifier with in that collection
+        uri - A unique identifier for the observation
         """
         super(SimpleObservation, self).__init__(collection,
-                                                observation_id,
+                                                uri,
                                                 algorithm,
                                                 sequence_number,
                                                 intent,
@@ -610,7 +607,7 @@ class DerivedObservation(Observation):
 
     def __init__(self,
                  collection,
-                 observation_id,
+                 uri,
                  algorithm,
                  sequence_number=None,
                  intent=None,
@@ -626,7 +623,7 @@ class DerivedObservation(Observation):
                  target_position=None):
         super(DerivedObservation, self).__init__(
               collection=collection,
-              observation_id=observation_id,
+              uri=uri,
               algorithm=algorithm,
               sequence_number=sequence_number,
               intent=intent,
@@ -670,7 +667,7 @@ class CompositeObservation(DerivedObservation):
 
     def __init__(self,
                  collection,
-                 observation_id,
+                 uri,
                  algorithm,
                  sequence_number=None,
                  intent=None,
@@ -685,7 +682,7 @@ class CompositeObservation(DerivedObservation):
                  target_position=None):
         super(CompositeObservation, self).__init__(
             collection=collection,
-            observation_id=observation_id,
+            uri=uri,
             algorithm=algorithm,
             sequence_number=sequence_number,
             intent=intent,
@@ -884,7 +881,8 @@ class Proposal(CaomObject):
                  id,
                  pi_name=None,
                  project=None,
-                 title=None):
+                 title=None,
+                 reference=None):
         """
         Initializes a Proposal instance
 
@@ -896,8 +894,8 @@ class Proposal(CaomObject):
         self.pi_name = pi_name
         self.project = project
         self.title = title
-
         self.keywords = set()
+        self.reference = reference
 
     # Properties
 
@@ -971,6 +969,19 @@ class Proposal(CaomObject):
     def title(self, value):
         caom_util.type_check(value, str, 'title')
         self._title = value
+
+    @property
+    def reference(self):
+        return self._reference
+
+    @reference.setter
+    def reference(self, value):
+        caom_util.type_check(value, str, 'reference')
+        if value is not None:
+            tmp = urlsplit(value)
+            if tmp.geturl() != value:
+                raise ValueError("Invalid URI: " + value)
+        self._reference = value
 
 
 class Requirements(CaomObject):
@@ -1189,7 +1200,8 @@ class Telescope(CaomObject):
                  geo_location_x=None,
                  geo_location_y=None,
                  geo_location_z=None,
-                 keywords=None
+                 keywords=None,
+                 tracking_mode=None
                  ):
         """
         Initializes a Telescope instance
@@ -1207,8 +1219,26 @@ class Telescope(CaomObject):
         if keywords is None:
             keywords = set()
         self.keywords = keywords
+        self.tracking_mode = tracking_mode
 
     # Properties
+
+    @property
+    def tracking_mode(self):
+        """A keyword indicating how the telescope moves during data aquisition.
+        must be from the list
+        """ + str(list(Tracking)) + """
+        type: Tracking
+
+        """
+        return self._tracking_mode
+
+    @tracking_mode.setter
+    def tracking_mode(self, value):
+        if isinstance(value, str):
+            value = Tracking(value)
+        caom_util.type_check(value, Tracking, "tracking_mode")
+        self._tracking_mode = value
 
     @property
     def name(self):

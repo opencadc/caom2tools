@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -67,31 +67,9 @@
 #
 
 import math
-import pytest
 import unittest
 
 from .. import shape
-
-
-class TestEnums(unittest.TestCase):
-    def test_all(self):
-        # test for invalid key
-        with self.assertRaises(KeyError):
-            shape.SegmentType["foo"]
-        with self.assertRaises(Exception):
-            shape.SegmentType[None]
-        with self.assertRaises(Exception):
-            shape.SegmentType[999]
-        # test for invalid value
-        with self.assertRaises(ValueError):
-            shape.SegmentType("foo")
-        with self.assertRaises(ValueError):
-            shape.SegmentType(None)
-        with self.assertRaises(ValueError):
-            shape.SegmentType(4)
-        self.assertEqual(shape.SegmentType.CLOSE.value, 0)
-        self.assertEqual(shape.SegmentType.LINE.value, 1)
-        self.assertEqual(shape.SegmentType.MOVE.value, 2)
 
 
 class TestBox(unittest.TestCase):
@@ -138,101 +116,6 @@ class TestCircle(unittest.TestCase):
         self.assertEqual(circle.get_size(), 2.0 * radius)
 
 
-class TestInterval(unittest.TestCase):
-    def test_all(self):
-
-        lower = 1.0
-        upper = 2.0
-        lower1 = 1.1
-        upper1 = 2.1
-        lower2 = 1.2
-        upper2 = 2.2
-        samples = [shape.SubInterval(lower, lower1),
-                   shape.SubInterval(lower2, upper),
-                   shape.SubInterval(upper1, upper2)]
-        invalid_samples_lower_mismatch = [shape.SubInterval(lower, upper)]
-        invalid_samples_upper_mismatch = [shape.SubInterval(lower, upper2)]
-        invalid_samples_middle_bounds_overlap = [
-            shape.SubInterval(lower, upper), shape.SubInterval(lower1, upper1)]
-
-        self.assertRaises(TypeError, shape.Interval, None, None, None)
-        self.assertRaises(TypeError, shape.Interval, None, None, 1.0)
-        self.assertRaises(TypeError, shape.Interval, None, 1.0, None)
-        self.assertRaises(TypeError, shape.Interval, 1.0, None, None)
-        self.assertRaises(TypeError, shape.Interval, None, None, samples)
-        self.assertRaises(TypeError, shape.Interval, None, int(1), samples)
-        self.assertRaises(TypeError, shape.Interval, int(1), None, samples)
-        self.assertRaises(TypeError, shape.Interval, None, "string", samples)
-        self.assertRaises(TypeError, shape.Interval, "string", None, samples)
-        self.assertRaises(TypeError, shape.Interval, "string1", "string2",
-                          int(1))
-        self.assertRaises(ValueError, shape.Interval, 2.0, 1.0, None)
-        # validate errors
-        self.assertRaises(ValueError, shape.Interval, lower, lower, [])
-        self.assertRaises(ValueError, shape.Interval, lower1, upper,
-                          invalid_samples_lower_mismatch)
-        self.assertRaises(ValueError, shape.Interval, lower, upper,
-                          invalid_samples_upper_mismatch)
-        self.assertRaises(ValueError, shape.Interval, lower, upper2,
-                          invalid_samples_middle_bounds_overlap)
-
-        # test cannot set interval with upper < lower
-        interval = shape.Interval(lower, upper2, samples)
-        has_assertionError = False
-        try:
-            interval.upper = 0.5
-        except ValueError:
-            has_assertionError = True
-        self.assertEqual(has_assertionError, True)
-
-        # test intervals in samples
-        actual_samples = interval.samples
-
-        actual_subInterval = actual_samples[0]
-        expected_subInterval = samples[0]
-        actual_lower = actual_subInterval.lower
-        actual_upper = actual_subInterval.upper
-        expected_lower = expected_subInterval.lower
-        expected_upper = expected_subInterval.upper
-        self.assertEqual(actual_lower, expected_lower)
-        self.assertEqual(actual_upper, expected_upper)
-
-        actual_subInterval = actual_samples[1]
-        expected_subInterval = samples[1]
-        actual_lower = actual_subInterval.lower
-        actual_upper = actual_subInterval.upper
-        expected_lower = expected_subInterval.lower
-        expected_upper = expected_subInterval.upper
-        self.assertEqual(actual_lower, expected_lower)
-        self.assertEqual(actual_upper, expected_upper)
-
-        actual_subInterval = actual_samples[2]
-        expected_subInterval = samples[2]
-        actual_lower = actual_subInterval.lower
-        actual_upper = actual_subInterval.upper
-        expected_lower = expected_subInterval.lower
-        expected_upper = expected_subInterval.upper
-        self.assertEqual(actual_lower, expected_lower)
-        self.assertEqual(actual_upper, expected_upper)
-
-        # test instance methods
-        i1 = shape.Interval(10.0, 15.0)
-        self.assertEqual(i1.get_width(), 5)
-
-        # test class methods
-        i1 = shape.Interval(10.0, 15.0)
-        i2 = shape.Interval(5.0, 8.0)
-        intersec1 = shape.Interval.intersection(i1, i2)
-        self.assertEqual(intersec1, None)
-        intersec2 = shape.Interval.intersection(i2, i1)
-        self.assertEqual(intersec2, None)
-        i3 = shape.Interval(8.0, 12.0)
-        lb = max(i1.lower, i3.lower)
-        ub = min(i1.upper, i3.upper)
-        intersec3 = shape.Interval.intersection(i1, i3)
-        self.assertEqual(intersec3, shape.Interval(lb, ub))
-
-
 class TestPoint(unittest.TestCase):
     def test_all(self):
         self.assertRaises(TypeError, shape.Point, None, None)
@@ -246,49 +129,3 @@ class TestPoint(unittest.TestCase):
         self.assertEqual(point.cval2, 2.0)
 
 
-class TestSubInterval(unittest.TestCase):
-    def test_all(self):
-
-        self.assertRaises(TypeError, shape.SubInterval, None, None)
-        self.assertRaises(TypeError, shape.SubInterval, None, 1.0)
-        self.assertRaises(TypeError, shape.SubInterval, 1.0, None)
-        self.assertRaises(TypeError, shape.SubInterval, "string1", "string2")
-        self.assertRaises(ValueError, shape.SubInterval, 2.0, 1.0)
-
-        # test cannot set subInterval with upper < lower
-        subInterval = shape.SubInterval(1.0, 2.0)
-        has_assertionError = False
-        try:
-            subInterval.upper = 0.5
-        except ValueError:
-            has_assertionError = True
-        self.assertEqual(has_assertionError, True)
-
-        # test construction method
-        shape.SubInterval(10.0, 15.0)
-
-
-class TestVertex():
-    def test_all(self):
-        pytest.raises(TypeError, shape.Vertex, None, None, None)
-        pytest.raises(TypeError, shape.Vertex, 1.0, 2.0, None)
-        pytest.raises(TypeError, shape.Vertex, 1.0, 2.0, 1.0)
-        pytest.raises(TypeError, shape.Vertex, None, None,
-                      shape.SegmentType.LINE)
-        pytest.raises(TypeError, shape.Vertex, None, 2.0,
-                      shape.SegmentType.LINE)
-        pytest.raises(TypeError, shape.Vertex, 1.0, None,
-                      shape.SegmentType.LINE)
-        pytest.raises(TypeError, shape.Vertex, None, "string",
-                      shape.SegmentType.LINE)
-        pytest.raises(TypeError, shape.Vertex, "string", None,
-                      shape.SegmentType.LINE)
-        pytest.raises(TypeError, shape.Vertex, None, int(1),
-                      shape.SegmentType.LINE)
-        pytest.raises(TypeError, shape.Vertex, int(1), None,
-                      shape.SegmentType.LINE)
-
-        vertex = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
-        assert(vertex.cval1 == 1.0)
-        assert(vertex.cval2 == 2.0)
-        assert(vertex.type == shape.SegmentType.LINE)
