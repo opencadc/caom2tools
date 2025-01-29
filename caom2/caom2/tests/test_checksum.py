@@ -351,7 +351,7 @@ def atest_round_trip():
 
 def test_checksum_diff():
     for source_file_path in \
-            [os.path.join(THIS_DIR, TEST_DATA, x) for x in ['sample-derived-caom25.xml']]:
+            [os.path.join(THIS_DIR, TEST_DATA, x) for x in ['SampleDerived-CAOM-2.5.xml']]:
              #['SampleDerived-CAOM-2.4.xml', 'SampleComposite-CAOM-2.3.xml']]:
         logging.debug(source_file_path)
         output_file = tempfile.NamedTemporaryFile()

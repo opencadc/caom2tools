@@ -70,7 +70,6 @@
   <caom2:planes>
     <caom2:plane caom2:id="00000000-0000-0000-5ca9-015f07dcb326" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:b347997a10050cc7e865a45ef058ea26" caom2:accMetaChecksum="md5:dbd4a761e817d123f3da8ecd614903ba">
       <caom2:productID>productID0</caom2:productID>
-      <caom2:creatorID>ivo://example.org/foo?productID0</caom2:creatorID>
       <caom2:metaRelease>2017-10-10T19:57:03.770</caom2:metaRelease>
       <caom2:dataRelease>2017-10-10T19:57:03.770</caom2:dataRelease>
       <caom2:dataProductType>image</caom2:dataProductType>
@@ -149,7 +148,6 @@
         </caom2:dimension>
         <caom2:resolution>0.05</caom2:resolution>
         <caom2:sampleSize>0.025</caom2:sampleSize>
-        <caom2:timeDependent>false</caom2:timeDependent>
       </caom2:position>
       <caom2:energy>
         <caom2:bounds>
@@ -2478,7 +2476,6 @@
     </caom2:plane>
     <caom2:plane caom2:id="00000000-0000-0000-5ca9-015f07dcb337" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:f85d6bcd2c85d739df2582332434dece" caom2:accMetaChecksum="md5:6a7096b6eb9e446915a6004e84b707b1">
       <caom2:productID>productID1</caom2:productID>
-      <caom2:creatorID>ivo://example.org/foo?productID1</caom2:creatorID>
       <caom2:metaRelease>2017-10-10T19:57:03.770</caom2:metaRelease>
       <caom2:dataRelease>2017-10-10T19:57:03.770</caom2:dataRelease>
       <caom2:dataProductType>image</caom2:dataProductType>
@@ -2524,7 +2521,6 @@
         </caom2:dimension>
         <caom2:resolution>0.05</caom2:resolution>
         <caom2:sampleSize>0.025</caom2:sampleSize>
-        <caom2:timeDependent>false</caom2:timeDependent>
       </caom2:position>
       <caom2:energy>
         <caom2:bounds>

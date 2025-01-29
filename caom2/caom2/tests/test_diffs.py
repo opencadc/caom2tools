@@ -167,8 +167,8 @@ class TestCaomUtil(unittest.TestCase):
         poly1 = shape.Polygon(points=p1)
         poly2 = shape.Polygon(points=p2)
 
-        o1 = Position(bounds=poly1, samples=MultiShape([poly1]), time_dependent=False)
-        o2 = Position(bounds=poly2, samples=MultiShape([poly2]), time_dependent=False)
+        o1 = Position(bounds=poly1, samples=MultiShape([poly1]))
+        o2 = Position(bounds=poly2, samples=MultiShape([poly2]))
 
         report = diff.get_differences(o1, o2, 'caom test instances')
         assert report is None, 'NaN comparison failure'

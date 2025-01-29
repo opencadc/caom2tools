@@ -215,7 +215,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_complete_derived(self):
         # * formerly known as composite
-        for version in (23, 24):  # TODO 25
+        for version in (23, 24, 25):
             for i in range(1, 6):
                 if version >= 24:
                     print("Test Complete Derived {} version {}".
@@ -522,8 +522,6 @@ class TestObservationReaderWriter(unittest.TestCase):
                              "resolution")
             self.assertEqual(expected.sample_size, actual.sample_size,
                              "sample_size")
-            self.assertEqual(expected.time_dependent, actual.time_dependent,
-                             "time_dependent")
 
     def compare_energy(self, expected, actual):
         print("comparing energy")

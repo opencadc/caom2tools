@@ -63,7 +63,6 @@
   <caom2:planes>
     <caom2:plane caom2:id="00000000-0000-0000-88e3-1064dc9a2f03" caom2:lastModified="2018-01-30T23:06:49.784" caom2:maxLastModified="2018-01-30T23:06:49.784" caom2:metaChecksum="md5:69a9331341a767ee7d37483d77212c8c" caom2:accMetaChecksum="md5:28ceceee9910bde2e9fdc74398dfdb71">
       <caom2:productID>y34b0101t-RAW_STANDARD</caom2:productID>
-      <caom2:creatorID>ivo://archive.stsci.edu/HST?y34b0101t/y34b0101t-RAW_STANDARD</caom2:creatorID>
       <caom2:metaRelease>1996-02-28T17:38:41.000</caom2:metaRelease>
       <caom2:dataRelease>1997-02-28T00:54:45.000</caom2:dataRelease>
       <caom2:dataProductType>spectrum</caom2:dataProductType>
@@ -125,7 +124,6 @@
             </caom2:vertices>
           </caom2:samples>
         </caom2:bounds>
-        <caom2:timeDependent>false</caom2:timeDependent>
       </caom2:position>
       <caom2:energy>
         <caom2:bounds>

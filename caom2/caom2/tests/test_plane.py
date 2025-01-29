@@ -461,9 +461,6 @@ class TestPosition(unittest.TestCase):
         self.assertIsNone(position.sample_size, "Default sample size")
         position.sample_size = 321.123
         self.assertEqual(321.123, position.sample_size, "Sample size")
-        self.assertFalse(position.time_dependent, "Default time dependent")
-        position.time_dependent = True
-        self.assertTrue(position.time_dependent, "Time dependent")
 
 
 class TestEnergy(unittest.TestCase):

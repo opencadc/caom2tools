@@ -90,6 +90,8 @@ from . import wcs
 from . import common
 import logging
 
+from .plane import CalibrationStatus, Ucd
+
 DATA_PKG = 'data'
 
 CAOM22_SCHEMA_FILE = 'CAOM-2.2.xsd'
@@ -556,9 +558,14 @@ class ObservationReader(object):
         """
         el = self._get_child_element("members", parent, ns, False)
         if el is not None:
-            for member_element in el.iterchildren(
-                                    "{" + ns + "}observationURI"):
-                members.add(observation.ObservationURI(member_element.text))
+            if self.version < 25:
+                for member_element in el.iterchildren(
+                                        "{" + ns + "}observationURI"):
+                    members.add(observation.ObservationURI(member_element.text))
+            else:
+                for member_element in el.iterchildren(
+                                        "{" + ns + "}member"):
+                    members.add(observation.ObservationURI(member_element.text))
 
     def _add_inputs(self, inputs, parent, ns):
         """Create PlaneURI objects from an XML representation of the planeURI
@@ -650,7 +657,7 @@ class ObservationReader(object):
             return metrics
 
     def _get_quality(self, element_tag, parent, ns, required):
-        """Build an Quality object from an XML representation
+        """Build a Quality object from an XML representation
 
         Arguments:
         elTag : element tag which identifies the element
@@ -669,12 +676,32 @@ class ObservationReader(object):
             data_quality = plane.DataQuality(plane.Quality(flag))
             return data_quality
 
+    def _get_observable(self, parent, ns):
+        """Build an Observable object from an XML representation
+
+        Arguments:
+        parent : element containing the Observale element
+        ns : namespace of the document
+        return : a Observable object or None if the document does not contain one
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element("observable", parent, ns, False)
+        if el is None:
+            return None
+        else:
+            ucd = self._get_child_text("ucd", el, ns, True)
+            observable = plane.Observable(Ucd(ucd))
+            calib = self._get_child_text("calibration", el, ns, False)
+            if calib:
+                observable.calibration = CalibrationStatus(calib)
+            return observable
+
     def _get_point(self, point, ns, required):
         """Build an Point object from an XML representation
         of an Point element.
 
         Arguments:
-        point : the point element element
+        point : the point element
         ns : namespace of the document
         required : indicate whether the element is required
         return : an Point object
@@ -1170,7 +1197,7 @@ class ObservationReader(object):
 
         Arguments:
         elTag : element tag which indentifies the element
-        parent : element containing the position element
+        parent : element containing the spectral wcs element
         ns : namespace of the document
         required : boolean indicating whether the element is required
         return : a SpectralWCS object or
@@ -1211,8 +1238,8 @@ class ObservationReader(object):
         element.
 
         Arguments:
-        elTag : element tag which indentifies the element
-        parent : element containing the position element
+        elTag : element tag which identifies the element
+        parent : element containing the temporal wcs element
         ns : namespace of the document
         required : boolean indicating whether the element is required
         return : a TemporalWCS object or
@@ -1243,7 +1270,7 @@ class ObservationReader(object):
 
         Arguments:
         elTag : element tag which indentifies the element
-        parent : element containing the position element
+        parent : element containing the polarization element
         ns : namespace of the document
         required : boolean indicating whether the element is required
         return : a PolarizationWCS object or
@@ -1263,7 +1290,7 @@ class ObservationReader(object):
 
         Arguments:
         elTag : element tag which indentifies the element
-        parent : element containing the position element
+        parent : element containing the custom axis element
         ns : namespace of the document
         required : boolean indicating whether the element is required
         return : a CustomWCS object or
@@ -1295,16 +1322,20 @@ class ObservationReader(object):
             return None
         bounds, samples = self._get_shape("bounds", el, ns, False)
         pos = plane.Position(bounds=bounds, samples=samples)
+        min_bounds = self._get_shape("minBounds", el, ns, False)
+        if min_bounds:
+            # ignore samples returned by get_shape
+            pos.min_bounds = min_bounds[0]
         pos.dimension = self._get_dimension2d("dimension", el, ns, False)
+        pos.max_recoverable_scale = self._get_interval("maxRecoverableScale", el, ns, False)
         pos.resolution = self._get_child_text_as_float("resolution", el, ns,
                                                        False)
         pos.resolution_bounds = self._get_interval("resolutionBounds", el,
                                                    ns, False)
         pos.sample_size = self._get_child_text_as_float("sampleSize", el, ns,
                                                         False)
-        if self.version < 25:
-            pos.time_dependent = self._get_child_text_as_boolean("timeDependent",
-                                                                 el, ns, False)
+        # pos.time_dependent = self._get_child_text_as_boolean("timeDependent",
+        #                                                      el, ns, False)
         pos.calibration = self._get_child_text("calibration", el, ns, False)
         return pos
 
@@ -1344,8 +1375,11 @@ class ObservationReader(object):
         energy.bandpass_name = \
             self._get_child_text("bandpassName", el, ns, False)
         self._add_energy_bands(energy.energy_bands, el, ns)
-        energy.restwav = \
-            self._get_child_text_as_float("restwav", el, ns, False)
+        if self.version < 25:
+            energy.rest = self._get_child_text_as_float("restwav", el, ns, False)
+        else:
+            energy.rest = \
+                self._get_child_text_as_float("rest", el, ns, False)
         _transition_el = \
             self._get_child_element("transition", el, ns, required)
         if _transition_el is not None:
@@ -1420,6 +1454,23 @@ class ObservationReader(object):
         custom.dimension = \
             self._get_child_text_as_int("dimension", el, ns, False)
         return custom
+
+    def _get_visibility(self, parent, ns):
+        """Build a Visibility object from an XML representation
+
+        Arguments:
+        parent : element containing the position element
+        ns : namespace of the document
+        return : a Visibility object or None if the document does not contain one
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element("visibility", parent, ns, False)
+        if el is None:
+            return None
+        distance = self._get_interval("distance", el, ns, True)
+        de = self._get_child_text_as_float("distributionEccentricity", el, ns, True)
+        df = self._get_child_text_as_float("distributionFill", el, ns, True)
+        return plane.Visibility(distance, de, df)
 
     def _get_polarization(self, element_tag, parent, ns, required):
         """Build a Polarization object from an XML representation of a
@@ -1752,6 +1803,9 @@ class ObservationReader(object):
                 else:
                     _uri = plane.PlaneURI(self._get_child_text("uri", plane_element, ns, True))
                 _plane = plane.Plane(_uri.uri)
+                _plane.meta_release = caom_util.str2ivoa(
+                    self._get_child_text("metaRelease", plane_element, ns,
+                                         False))
                 _plane.data_release = caom_util.str2ivoa(
                     self._get_child_text("dataRelease", plane_element, ns,
                                          False))
@@ -1777,6 +1831,8 @@ class ObservationReader(object):
                 _plane.provenance = \
                     self._get_provenance("provenance", plane_element, ns,
                                          False)
+                _plane.observable = self._get_observable(plane_element, ns)
+
                 _plane.metrics = \
                     self._get_metrics("metrics", plane_element, ns, False)
                 _plane.quality = \
@@ -1792,6 +1848,7 @@ class ObservationReader(object):
                                                              False)
                 _plane.custom = \
                     self._get_custom("custom", plane_element, ns, False)
+                _plane.visibility = self._get_visibility(plane_element, ns)
                 self._add_artifacts(_plane.artifacts, plane_element, ns)
                 self._set_entity_attributes(plane_element, ns, _plane)
                 obs.planes[_plane.uri] = _plane
@@ -2111,7 +2168,10 @@ class ObservationWriter(object):
 
         element = self._get_caom_element("members", parent)
         for member in members:
-            member_element = self._get_caom_element("observationURI", element)
+            if self._output_version < 25:
+                member_element = self._get_caom_element("observationURI", element)
+            else:
+                member_element = self._get_caom_element("member", element)
             member_element.text = member.uri
 
     def _add_groups_element(self, name, groups, parent):
@@ -2167,6 +2227,7 @@ class ObservationWriter(object):
                                   _plane.calibration_level.value,
                                   plane_element)
             self._add_provenance_element(_plane.provenance, plane_element)
+            self._add_observable_element(_plane.observable, plane_element)
             self._add_metrics_element(_plane.metrics, plane_element)
             self._add_quality_element(_plane.quality, plane_element)
 
@@ -2182,7 +2243,23 @@ class ObservationWriter(object):
                 else:
                     self._add_custom_element(_plane.custom, plane_element)
 
+            self._add_visibility_element(_plane.visibility, plane_element)
+
             self._add_artifacts_element(_plane.artifacts, plane_element)
+
+    def _add_visibility_element(self, visibility, parent):
+        if visibility is None:
+            return
+
+        if self._output_version < 25:
+            raise AttributeError("Attempt to output CAOM2.5 attribute (Plane.visibility) as "
+                                 "{} Observation".format(self._output_version))
+
+        element = self._get_caom_element("visibility", parent)
+        self._add_interval_element("distance", visibility.distance, element)
+        self._add_element("distributionEccentricity", visibility.distribution_eccentricity,
+                          element)
+        self._add_element("distributionFill", visibility.distribution_fill, element)
 
     def _add_position_element(self, position, parent):
         if position is None:
@@ -2190,7 +2267,10 @@ class ObservationWriter(object):
 
         element = self._get_caom_element("position", parent)
         self._add_bounds_and_samples(position, element)
+        if position.min_bounds:
+            self._add_shape_element("minBounds", element, position.min_bounds)
         self._add_dimension2d_element("dimension", position.dimension, element)
+        self._add_interval_element("maxRecoverableScale", position.max_recoverable_scale, element)
         self._add_element("resolution", position.resolution, element)
         if self._output_version < 24:
             if position.resolution_bounds is not None:
@@ -2201,14 +2281,6 @@ class ObservationWriter(object):
             self._add_interval_element("resolutionBounds",
                                        position.resolution_bounds, element)
         self._add_element("sampleSize", position.sample_size, element)
-        if position.time_dependent is not None:
-            if self._output_version < 25:
-                self._add_boolean_element("timeDependent", position.time_dependent,
-                                          element)
-            else:
-                raise AttributeError(
-                    "Attempt to write CAOM2.5 element that contains "
-                    "deprecated Position.timeDependent attribute")
         if position.calibration:
             if self._output_version < 25:
                 raise AttributeError(
@@ -2237,9 +2309,9 @@ class ObservationWriter(object):
                         "Attempt to write CAOM2.4 element "
                         "(energy.resolving_power_bands) as "
                         "CAOM2.3 Observation")
-        else:
-            self._add_interval_element("resolvingPowerBounds",
-                                       energy.resolving_power_bounds, element)
+            else:
+                self._add_interval_element("resolvingPowerBounds",
+                                           energy.resolving_power_bounds, element)
         if energy.resolution is not None:
             if self._output_version < 25:
                 raise AttributeError(
@@ -2273,7 +2345,10 @@ class ObservationWriter(object):
                 eb_element = self._get_caom_element("energyBands", element)
                 for bb in energy.energy_bands:
                     self._add_element("emBand", bb.value, eb_element)
-        self._add_element("restwav", energy.restwav, element)
+        if self._output_version < 25:
+            self._add_element("restwav", energy.rest, element)
+        else:
+            self._add_element("rest", energy.rest, element)
         if energy.transition:
             transition = self._get_caom_element("transition", element)
             self._add_element("species", energy.transition.species, transition)
@@ -2315,9 +2390,8 @@ class ObservationWriter(object):
                     raise AttributeError(
                         "Attempt to write CAOM2.5 element "
                         "(time.exposure_bounds) as {} Observation".format(self._output_version))
-                else:
-                    self.add_interval_element("exposureBounds",
-                                            time.exposure_bounds, element)
+            else:
+                self._add_interval_element("exposureBounds", time.exposure_bounds, element)
         if time.calibration:
             if self._output_version < 25:
                 raise AttributeError(
@@ -2457,6 +2531,20 @@ class ObservationWriter(object):
         element = self._get_caom_element("quality", parent)
         self._add_element("flag", quality.flag.value, element)
 
+    def _add_observable_element(self, observable, parent):
+        if observable is None:
+            return
+
+        element = self._get_caom_element("observable", parent)
+        self._add_element("ucd", observable.ucd.value, element)
+        if observable.calibration:
+            if self._output_version < 25:
+                raise AttributeError(
+                    "Attempt to write CAOM2.5 element (observable.calibration) as "
+                    "{} Observation".format(self._output_version))
+            else:
+                self._add_element("calibration", observable.calibration, element)
+
     def _add_transition_element(self, transition, parent):
         if transition is None:
             return
@@ -2527,7 +2615,7 @@ class ObservationWriter(object):
             self._add_chunks_element(_part.chunks, part_element)
 
     def _add_chunks_element(self, chunks, parent):
-        if chunks is None:
+        if not chunks:
             return
 
         element = self._get_caom_element("chunks", parent)
