@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2024.                            (c) 2024.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -727,18 +727,6 @@ class ObsBlueprint:
                 'Only one positional axis found '
                 '(ra/dec): {}/{}'.format(self._axis_info['ra'][0], self._axis_info['dec'][0])
             )
-        else:
-            # assume that positional axis are 1 and 2 by default
-            if (
-                self._axis_info['time'][0] in [1, 2]
-                or self._axis_info['energy'][0] in [1, 2]
-                or self._axis_info['polarization'][0] in [1, 2]
-                or self._axis_info['obs'][0] in [1, 2]
-                or self._axis_info['custom'][0] in [1, 2]
-            ):
-                raise ValueError('Cannot determine the positional axis')
-            else:
-                self.configure_position_axes((1, 2), False)
 
         if self._axis_info['time'][1]:
             self.configure_time_axis(self._axis_info['time'][0], False)
