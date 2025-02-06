@@ -267,8 +267,8 @@ def update_checksum(checksum, value, attribute=''):
     if isinstance(value, ObservationURI) or isinstance(value, ChecksumURI):
         b = value.uri.encode('utf-8')
     elif isinstance(value, CaomObject):
-        logger.debug('Process object {}'.format(attribute))
-        update_caom_checksum(checksum, value, attribute)
+        #logger.debug('Process object {}'.format(attribute))
+        return update_caom_checksum(checksum, value, attribute)
     elif isinstance(value, bytes):
         b = value
     elif isinstance(value, bool):
@@ -284,18 +284,22 @@ def update_checksum(checksum, value, attribute=''):
         b = value.strip().encode('utf-8')
     elif isinstance(value, datetime):
         b = struct.pack('!q', int(
-            (value - datetime(1970, 1, 1)).total_seconds()))
+            (value - datetime(1970, 1, 1)).total_seconds()*1000))
     elif isinstance(value, set) or \
             (isinstance(value, TypedSet) and not
                 isinstance(value.key_type, AbstractCaomEntity)):
+        updated = False
         for i in sorted(value):
-            update_checksum(checksum, i, attribute)
+            updated |= update_checksum(checksum, i, attribute)
+        return updated
     elif isinstance(value, list) or isinstance(value, TypedList):
+        updated = False
         for i in value:
             if not isinstance(i, AbstractCaomEntity):
-                update_checksum(checksum, i, attribute)
+                updated |= update_checksum(checksum, i, attribute)
+        return updated
     elif isinstance(value, Enum):
-        update_checksum(checksum, value.value, attribute)
+        return update_checksum(checksum, value.value, attribute)
     elif isinstance(value, uuid.UUID):
         b = value.bytes
     elif isinstance(value, TypedOrderedDict):
@@ -303,11 +307,13 @@ def update_checksum(checksum, value, attribute=''):
         # alphabetical order of their ids
         # Note: ignore dictionaries of AbstractCaomEntity types
         checksums = []
+        updated = False
         for i in value:
             if not isinstance(value[i], AbstractCaomEntity):
                 checksums.append(value[i]._id)
         for i in sorted(checksums):
-            update_checksum(checksum, checksum[i], attribute)
+            updated &= update_checksum(checksum, checksum[i], attribute)
+        return updated
     else:
         raise ValueError(
             'Cannot transform in bytes: {}({})'.format(value, type(value)))
@@ -315,11 +321,22 @@ def update_checksum(checksum, value, attribute=''):
     if b is not None:
         checksum.update(b)
         if logger.isEnabledFor(logging.DEBUG):
-            md5 = hashlib.md5()
-            md5.update(b)
-            logger.debug('Encoded attribute ({}) {} = {} -- {}'.
-                         format(type(value), attribute,
-                                value, md5.hexdigest()))
+            logger.debug("Encoded attribute value - {} = {} {} bytes".format(attribute, value, len(b)))
+        return True
+    return False
+
+
+def to_model_name(attribute):
+    """
+    Converts the attribute name to the corresponding model name
+    :param attribute: name of attribute
+    :return: camel case name of the attribute in the model
+    """
+    # Replace underscores and capitalize the first letter of each word
+    components = attribute.split('_')
+    # The first component should remain lowercase
+    return components[0] + ''.join(
+        word.capitalize() for word in components[1:])
 
 
 def update_caom_checksum(checksum, entity, parent=None):
@@ -334,10 +351,16 @@ def update_caom_checksum(checksum, entity, parent=None):
     if not isinstance(entity, CaomObject):
         raise AttributeError('CaomObject expected')
     # get the id first
+    updated = False
     if isinstance(entity, AbstractCaomEntity):
-        update_checksum(checksum, entity._id)
+        update_checksum(checksum, entity._id, "Entity.id")
         if entity._meta_producer:
-            update_checksum(checksum, entity._meta_producer)
+            if update_checksum(checksum, entity._meta_producer, "Entity.metaProducer"):
+                updated = True
+                model_name = "Entity.metaProducer"
+                checksum.update(model_name.encode('utf-8'))
+                logger.debug('Encoded attribute name {} = {}'.
+                             format('_meta_producer', model_name))
 
     # determine the excluded fields if necessary
     checksum_excluded_fields = []
@@ -352,9 +375,18 @@ def update_caom_checksum(checksum, entity, parent=None):
     for i in sorted(dir(entity)):
         if not callable(getattr(entity, i)) and not i.startswith('_') and \
                         i not in checksum_excluded_fields:
-            if getattr(entity, i) is not None:
+            val = getattr(entity, i)
+            if val is not None:
                 atrib = '{}.{}'.format(parent, i) if parent is not None else i
-                update_checksum(checksum, getattr(entity, i), atrib)
+                if update_checksum(checksum, val, atrib):
+                    updated = True
+                    type_name = type(entity).__name__
+                    if type_name in ['DerivedObservation', 'SimpleObservation'] and to_model_name(i) != 'members':
+                        type_name = 'Observation'
+                    model_name = (type_name + "." + to_model_name(i)).lower()
+                    checksum.update(model_name.encode('utf-8'))
+                    logger.debug('Encoded attribute name - {} = {}'.format(atrib, model_name))
+    return updated
 
 
 def checksum_diff():
@@ -430,7 +462,7 @@ def _print_diff(orig, actual):
         mistmatches += 1
 
     if elem_type != 'chunk':
-        # do the accummulated checksums
+        # do the accumulated checksums
         if orig.acc_meta_checksum == actual.acc_meta_checksum:
             print('{}: {} {} == {}'.
                   format(elem_type, orig._id, orig.acc_meta_checksum.checksum,

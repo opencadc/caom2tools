@@ -464,9 +464,9 @@ class Caom2TestInstances(object):
         return provenance
 
     def get_inputs(self):
-        return caom_util.TypedSet(plane.PlaneURI,
-                                  plane.PlaneURI("caom:foo/bar/plane1"),
-                                  plane.PlaneURI("caom:foo/bar/plane2"))
+        return caom_util.TypedSet(str,
+                                  "caom:foo/bar/plane1",
+                                  "caom:foo/bar/plane2")
 
     def get_metrics(self):
         metrics = plane.Metrics()

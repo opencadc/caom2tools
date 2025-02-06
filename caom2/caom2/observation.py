@@ -879,7 +879,7 @@ class Proposal(CaomObject):
 
     def __init__(self,
                  id,
-                 pi_name=None,
+                 pi=None,
                  project=None,
                  title=None,
                  reference=None):
@@ -891,7 +891,7 @@ class Proposal(CaomObject):
         """
 
         self.id = id
-        self.pi_name = pi_name
+        self.pi = pi
         self.project = project
         self.title = title
         self.keywords = set()
@@ -931,18 +931,18 @@ class Proposal(CaomObject):
         self._keywords = value
 
     @property
-    def pi_name(self):
+    def pi(self):
         """The name (First Last) of the Principle Investigator of the
         Proposal.
 
         type: unicode string
         """
-        return self._pi_name
+        return self._pi
 
-    @pi_name.setter
-    def pi_name(self, value):
-        caom_util.type_check(value, str, 'pi_name')
-        self._pi_name = value
+    @pi.setter
+    def pi(self, value):
+        caom_util.type_check(value, str, 'pi')
+        self._pi = value
 
     @property
     def project(self):
@@ -1011,7 +1011,7 @@ class Target(CaomObject):
     """ Target """
 
     def __init__(self, name,
-                 target_type=None,
+                 type=None,
                  standard=None,
                  redshift=None,
                  keywords=None,
@@ -1026,7 +1026,7 @@ class Target(CaomObject):
         """
 
         self.name = name
-        self.target_type = target_type
+        self.type = type
         self.standard = standard
         self.redshift = redshift
         if keywords is None:
@@ -1053,7 +1053,7 @@ class Target(CaomObject):
         self._name = value
 
     @property
-    def target_type(self):
+    def type(self):
         """A keyword describing the type of target.
         must be from the list
         """ + str(list(TargetType)) + """
@@ -1062,11 +1062,11 @@ class Target(CaomObject):
         """
         return self._type
 
-    @target_type.setter
-    def target_type(self, value):
+    @type.setter
+    def type(self, value):
         if isinstance(value, str):
             value = TargetType(value)
-        caom_util.type_check(value, TargetType, "target_type")
+        caom_util.type_check(value, TargetType, "type")
         self._type = value
 
     @property

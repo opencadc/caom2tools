@@ -89,7 +89,7 @@ with warnings.catch_warnings():
 
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PolarizationState', 'Quality', 'Plane',
-           'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position',
+           'DataQuality', 'Metrics', 'Provenance', 'Position',
            'Energy', 'Polarization', 'Time', 'Observable']
 
 
@@ -109,7 +109,7 @@ class CalibrationLevel(Enum):
     ANALYSIS_PRODUCT = int_32(4)
 
 
-class Ucd(CaomObject):
+class Ucd:
     """ UCD - enum of UCDs"""
     UCD_VOCAB = "https://ivoa.net/documents/UCD1+/20230125/ucd-list.txt"
 
@@ -233,7 +233,7 @@ class Observable(CaomObject):
         if not ucd:
             raise ValueError("Observable.ucd cannot be None")
         caom_util.type_check(ucd, Ucd, 'ucd')
-        self._ucd = ucd
+        self._ucd = ucd.value
         self.calibration = calibration
 
     @property
@@ -312,7 +312,7 @@ class Plane(AbstractCaomEntity):
         """
         super(Plane, self).__init__()
         validate_uri(uri)
-        self._uri = PlaneURI(uri)
+        self._uri = uri
         if artifacts is None:
             artifacts = caom_util.TypedOrderedDict(Artifact, )
         self.artifacts = artifacts
@@ -644,90 +644,90 @@ class Plane(AbstractCaomEntity):
 
 
 # TODO not sure this is needed anymore
-class PlaneURI(CaomObject):
-    """ Plane URI """
-    def __init__(self, uri):
-        """
-        Initializes an Plane instance
-
-        Arguments:
-        uri : URI corresponding to the plane
-
-        Throws:
-        TypeError  : if uri is not a string
-        ValueError : if uri is invalid
-        ValueError : if the uri is valid but does not contain the expected
-        fields (collection, observation_id and product_id)
-        """
-
-        self.uri = uri
-
-    def _key(self):
-        return self.uri
-
-    def __hash__(self):
-        return hash(self._key())
-
-    def __lt__(self, other):
-        if not isinstance(other, PlaneURI):
-            raise ValueError(
-                'Cannot compare PlaneURI with {}'.format(type(other)))
-        return self.uri < other.uri
-
-    def __eq__(self, other):
-        if not isinstance(other, PlaneURI):
-            raise ValueError(
-                'Cannot compare PlaneURI with {}'.format(type(other)))
-        return self.uri == other.uri
-
-    @classmethod
-    def get_plane_uri(cls, observation_uri, product_id):
-        """
-        Initializes an Plane URI instance
-
-        Arguments:
-        observation_uri : the uri of the observation
-        product_id : ID of the product
-        """
-        caom_util.type_check(observation_uri, ObservationURI,
-                             "observation_uri",
-                             override=False)
-        caom_util.type_check(product_id, str, "product_id",
-                             override=False)
-        caom_util.validate_path_component(cls, "product_id", product_id)
-
-        path = urlsplit(observation_uri.uri).path
-        uri = SplitResult(ObservationURI._SCHEME, "", path + "/" +
-                          product_id, "", "").geturl()
-        return cls(uri)
-
-    # Properties
-    @property
-    def uri(self):
-        """A uri that locates the plane object inside caom"""
-        return self._uri
-
-    @uri.setter
-    def uri(self, value):
-
-        caom_util.type_check(value, str, "uri", override=False)
-        tmp = urlsplit(value)
-
-        if tmp.scheme != ObservationURI._SCHEME:
-            raise ValueError("{} doesn't have an allowed scheme".format(value))
-        if tmp.geturl() != value:
-            raise ValueError("Failed to parse uri correctly: {}".format(value))
-
-        (collection, observation_id, product_id) = tmp.path.split("/")
-
-        if product_id is None:
-            raise ValueError("Faield to get product ID from uri: {}"
-                             .format(value))
-
-        self._product_id = product_id
-        self._observation_uri = \
-            ObservationURI.get_observation_uri(collection, observation_id)
-        self._uri = value
+# class PlaneURI(CaomObject):
+#     """ Plane URI """
+#     def __init__(self, uri):
+#         """
+#         Initializes a Plane instance
+#
+#         Arguments:
+#         uri : URI corresponding to the plane
+#
+#         Throws:
+#         TypeError  : if uri is not a string
+#         ValueError : if uri is invalid
+#         ValueError : if the uri is valid but does not contain the expected
+#         fields (collection, observation_id and product_id)
+#         """
+#
+#         self.uri = uri
+#
+#     def _key(self):
+#         return self.uri
+#
+#     def __hash__(self):
+#         return hash(self._key())
+#
+#     def __lt__(self, other):
+#         if not isinstance(other, PlaneURI):
+#             raise ValueError(
+#                 'Cannot compare PlaneURI with {}'.format(type(other)))
+#         return self.uri < other.uri
+#
+#     def __eq__(self, other):
+#         if not isinstance(other, PlaneURI):
+#             raise ValueError(
+#                 'Cannot compare PlaneURI with {}'.format(type(other)))
+#         return self.uri == other.uri
+#
+#     @classmethod
+#     def get_plane_uri(cls, observation_uri, product_id):
+#         """
+#         Initializes an Plane URI instance
+#
+#         Arguments:
+#         observation_uri : the uri of the observation
+#         product_id : ID of the product
+#         """
+#         caom_util.type_check(observation_uri, ObservationURI,
+#                              "observation_uri",
+#                              override=False)
+#         caom_util.type_check(product_id, str, "product_id",
+#                              override=False)
+#         caom_util.validate_path_component(cls, "product_id", product_id)
+#
+#         path = urlsplit(observation_uri.uri).path
+#         uri = SplitResult(ObservationURI._SCHEME, "", path + "/" +
+#                           product_id, "", "").geturl()
+#         return cls(uri)
+#
+#     # Properties
+#     @property
+#     def uri(self):
+#         """A uri that locates the plane object inside caom"""
+#         return self._uri
+#
+#     @uri.setter
+#     def uri(self, value):
+#
+#         caom_util.type_check(value, str, "uri", override=False)
+#         tmp = urlsplit(value)
+#
+#         if tmp.scheme != ObservationURI._SCHEME:
+#             raise ValueError("{} doesn't have an allowed scheme".format(value))
+#         if tmp.geturl() != value:
+#             raise ValueError("Failed to parse uri correctly: {}".format(value))
+#
+#         (collection, observation_id, product_id) = tmp.path.split("/")
+#
+#         if product_id is None:
+#             raise ValueError("Faield to get product ID from uri: {}"
+#                              .format(value))
+#
+#         self._product_id = product_id
+#         self._observation_uri = \
+#             ObservationURI.get_observation_uri(collection, observation_id)
+#         self._uri = value
 
 
 class DataQuality(CaomObject):
@@ -895,7 +895,7 @@ class Provenance(CaomObject):
         self.last_executed = last_executed
 
         self._keywords = set()
-        self._inputs = caom_util.TypedSet(PlaneURI, )
+        self._inputs = caom_util.TypedSet(str, )
 
     # Properties
 
@@ -1319,7 +1319,7 @@ class Polarization(CaomObject):
 
     def __init__(self,
                  dimension=None,
-                 polarization_states=None):
+                 states=None):
         """
         Initialize a Polarization instance.
 
@@ -1327,7 +1327,7 @@ class Polarization(CaomObject):
         None
         """
         self.dimension = dimension
-        self.polarization_states = polarization_states
+        self.states = states
 
     # Properties
     @property
@@ -1341,23 +1341,23 @@ class Polarization(CaomObject):
 
     @dimension.setter
     def dimension(self, value):
-        caom_util.type_check(value, int, 'dimension')
+        caom_util.type_check(value, int_32, 'dimension')
         caom_util.value_check(value, 0, 1E10, 'dimension')
-        self._dimension = value
+        self._dimension = int_32(value) if value is not None else None
 
     @property
-    def polarization_states(self):
+    def states(self):
         """
         type: list
         """
-        return self._polarization_states
+        return self._states
 
-    @polarization_states.setter
-    def polarization_states(self, value):
+    @states.setter
+    def states(self, value):
         if value is not None:
-            caom_util.type_check(value, list, 'polarization_states',
+            caom_util.type_check(value, list, 'states',
                                  override=False)
-        self._polarization_states = value
+        self._states = value
 
 
 class Time(CaomObject):

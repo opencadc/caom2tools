@@ -626,9 +626,9 @@ class TestProposal(unittest.TestCase):
         proposal.keywords.add("optical")
         self.assertEqual(1, len(proposal.keywords), "Number of keywords")
         self.assertTrue("optical" in proposal.keywords, "Keyword not found")
-        self.assertIsNone(proposal.pi_name, "Default PI")
-        proposal.pi_name = "John Doe"
-        self.assertEqual("John Doe", proposal.pi_name, "PI")
+        self.assertIsNone(proposal.pi, "Default PI")
+        proposal.pi = "John Doe"
+        self.assertEqual("John Doe", proposal.pi, "PI")
         self.assertIsNone(proposal.project, "Default PI")
         proposal.project = "Project A"
         self.assertEqual("Project A", proposal.project, "Project")
@@ -650,9 +650,9 @@ class TestTarget(unittest.TestCase):
         target = observation.Target("myTarget")
         self.assertEqual("myTarget", target.name, "target name")
 
-        target.target_type = observation.TargetType.FIELD
+        target.type = observation.TargetType.FIELD
         self.assertEqual(observation.TargetType.FIELD.name,
-                         target.target_type.name, "target type")
+                         target.type.name, "target type")
 
         self.assertEqual(0, len(target.keywords), "Default number of keywords")
         target.keywords.add("optical")
@@ -679,7 +679,7 @@ class TestTarget(unittest.TestCase):
                                     observation.TargetType.OBJECT, False, 1.2,
                                     {"radio"}, False, target_id='mytargetID')
         self.assertEqual("myOtherTarget", target.name, "target name")
-        self.assertEqual(observation.TargetType.OBJECT, target.target_type,
+        self.assertEqual(observation.TargetType.OBJECT, target.type,
                          "target type")
         self.assertFalse(target.standard, "Standard")
         self.assertEqual(1.2, target.redshift, "Redshift")

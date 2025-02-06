@@ -183,7 +183,7 @@ class TestCaomUtil(unittest.TestCase):
                                             chunk.DataLinkSemantics.SCIENCE,
                                             artifact.ReleaseType.DATA)
         test_part10 = part.Part("10")
-        test_plane_uri = plane.PlaneURI('caom:CFHT/55/66')
+        test_plane_uri = 'caom:CFHT/55/66'
         my_dict_plane = caom_util.TypedOrderedDict(plane.Plane, )
         with self.assertRaises(ValueError):
             my_dict_plane['key11'] = test_plane10
@@ -193,8 +193,8 @@ class TestCaomUtil(unittest.TestCase):
         my_dict_part = caom_util.TypedOrderedDict(part.Part, )
         with self.assertRaises(ValueError):
             my_dict_part['11'] = test_part10
-        my_dict_wrong_type = caom_util.TypedOrderedDict(plane.PlaneURI, )
-        with self.assertRaises(ValueError):
+        my_dict_wrong_type = caom_util.TypedOrderedDict(plane.Plane, )
+        with self.assertRaises(TypeError):
             my_dict_wrong_type['caom:CFHT/55/67'] = test_plane_uri
         with self.assertRaises(TypeError):
             my_dict_plane['key2'] = 'value2'
@@ -257,9 +257,6 @@ class TestCaomUtil(unittest.TestCase):
 
         test_plane5 = plane.Plane('caom:TEST/obs1/key5')
         my_dict1[test_plane5.uri] = test_plane5
-
-        with self.assertRaises(TypeError):
-            my_dict1.add(test_plane_uri)
 
         # test pop function
         self.assertEqual(5, len(my_dict1),

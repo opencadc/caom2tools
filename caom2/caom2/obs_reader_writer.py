@@ -373,7 +373,7 @@ class ObservationReader(object):
         else:
             proposal = observation.Proposal(
                 self._get_child_text("id", el, ns, True))
-            proposal.pi_name = self._get_child_text("pi", el, ns, False)
+            proposal.pi = self._get_child_text("pi", el, ns, False)
             proposal.project = self._get_child_text("project", el, ns, False)
             proposal.title = self._get_child_text("title", el, ns, False)
             self._add_keywords(proposal.keywords, el, ns, False)
@@ -400,7 +400,7 @@ class ObservationReader(object):
                 self._get_child_text("name", el, ns, True))
             target_type = self._get_child_text("type", el, ns, False)
             if target_type:
-                target.target_type = observation.TargetType(target_type)
+                target.type = observation.TargetType(target_type)
             target_standard = self._get_child_text("standard", el, ns, False)
             if target_standard is not None:
                 target.standard = ("true" == target_standard)
@@ -568,12 +568,12 @@ class ObservationReader(object):
                     members.add(observation.ObservationURI(member_element.text))
 
     def _add_inputs(self, inputs, parent, ns):
-        """Create PlaneURI objects from an XML representation of the planeURI
-        elements and add them to the set of PlaneURIs.
+        """Create URI objects from an XML representation of the planeURI
+        elements and add them to the set of plane URIs.
 
         Arguments:
-        inputs : set of PlaneURI from the Provenance
-        parent : element containing the PlaneURI elements
+        inputs : set of plane URIs from the Provenance
+        parent : element containing the plane uri elements
         ns : namespace of the document
         raise : ObservationParsingException
         """
@@ -581,10 +581,10 @@ class ObservationReader(object):
         if el is not None:
             if self.version < 25:
                 for uri_element in el.iterchildren("{" + ns + "}planeURI"):
-                    inputs.add(plane.PlaneURI(str(uri_element.text)))
+                    inputs.add(str(uri_element.text))
             else:
                 for uri_element in el.iterchildren("{" + ns + "}input"):
-                    inputs.add(plane.PlaneURI(str(uri_element.text)))
+                    inputs.add(str(uri_element.text))
 
             if not inputs:
                 error = "No planeURI element found in members"
@@ -1491,12 +1491,12 @@ class ObservationReader(object):
         polarization = plane.Polarization()
         _pstates_el = self._get_child_element("states", el, ns, False)
         if _pstates_el is not None:
-            _polarization_states = list()
+            _states = list()
             for _pstate_el in _pstates_el.iterchildren("{" + ns + "}state"):
                 _pstate = _pstate_el.text
-                _polarization_state = plane.PolarizationState(_pstate)
-                _polarization_states.append(_polarization_state)
-            polarization.polarization_states = _polarization_states
+                _state = plane.PolarizationState(_pstate)
+                _states.append(_state)
+            polarization.states = _states
         polarization.dimension = self._get_child_text_as_int("dimension", el,
                                                              ns, False)
 
@@ -1796,13 +1796,14 @@ class ObservationReader(object):
         else:
             for plane_element in el.iterchildren("{" + ns + "}plane"):
                 if self.version < 25:
-                    _uri = plane.PlaneURI.get_plane_uri(
+                    # TODO
+                    _uri = "{}/{}".format(
                         obs.uri,
                         self._get_child_text("productID",
                                              plane_element, ns, True))
                 else:
-                    _uri = plane.PlaneURI(self._get_child_text("uri", plane_element, ns, True))
-                _plane = plane.Plane(_uri.uri)
+                    _uri = self._get_child_text("uri", plane_element, ns, True)
+                _plane = plane.Plane(_uri)
                 _plane.meta_release = caom_util.str2ivoa(
                     self._get_child_text("metaRelease", plane_element, ns,
                                          False))
@@ -2082,7 +2083,7 @@ class ObservationWriter(object):
 
         element = self._get_caom_element("proposal", parent)
         self._add_element("id", proposal.id, element)
-        self._add_element("pi", proposal.pi_name, element)
+        self._add_element("pi", proposal.pi, element)
         self._add_element("project", proposal.project, element)
         self._add_element("title", proposal.title, element)
         self._add_element("reference", proposal.reference, element)
@@ -2101,8 +2102,8 @@ class ObservationWriter(object):
                 raise AttributeError(
                     "Attempt to write CAOM2.4 element (target.targetID) "
                     "as CAOM2.3 Observation")
-        if target.target_type is not None:
-            self._add_element("type", target.target_type.value, element)
+        if target.type is not None:
+            self._add_element("type", target.type.value, element)
         self._add_boolean_element("standard", target.standard, element)
         self._add_element("redshift", target.redshift, element)
         self._add_boolean_element("moving", target.moving, element)
@@ -2195,13 +2196,13 @@ class ObservationWriter(object):
             plane_element = self._get_caom_element("plane", element)
             self._add_entity_attributes(_plane, plane_element)
             if self._output_version < 25:
-                _comp = _plane.uri.uri.split('/')
+                _comp = _plane.uri.split('/')
                 if len(_comp) != 3:
                     raise ValueError("Attempt to write CAOM2.4 but can't deduce "
                                      "Plane.productID in Plane.uri=" + _plane.uri)
                 self._add_element("productID", _comp[-1], plane_element)
             else:
-                self._add_element("uri", _plane.uri.uri, plane_element)
+                self._add_element("uri", _plane.uri, plane_element)
             self._add_datetime_element("metaRelease", _plane.meta_release,
                                        plane_element)
             if self._output_version < 24 and _plane.meta_read_groups:
@@ -2417,9 +2418,9 @@ class ObservationWriter(object):
         if polarization is None:
             return
         element = self._get_caom_element("polarization", parent)
-        if polarization.polarization_states:
+        if polarization.states:
             _pstates_el = self._get_caom_element("states", element)
-            for _state in polarization.polarization_states:
+            for _state in polarization.states:
                 self._add_element("state", _state.value, _pstates_el)
         self._add_element("dimension", polarization.dimension, element)
 
@@ -2536,7 +2537,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("observable", parent)
-        self._add_element("ucd", observable.ucd.value, element)
+        self._add_element("ucd", observable.ucd, element)
         if observable.calibration:
             if self._output_version < 25:
                 raise AttributeError(
@@ -2588,7 +2589,7 @@ class ObservationWriter(object):
                               artifact_element)
             if _artifact.content_checksum:
                 self._add_element("contentChecksum",
-                                  _artifact.content_checksum.uri,
+                                  _artifact.content_checksum,
                                   artifact_element)
             if _artifact.description_id is not None:
                 if self._output_version < 25:
@@ -2986,9 +2987,9 @@ class ObservationWriter(object):
         element = self._get_caom_element(name, parent)
         for plane_uri in collection:
             if self._output_version < 25:
-                self._add_element("planeURI", plane_uri.uri, element)
+                self._add_element("planeURI", plane_uri, element)
             else:
-                self._add_element("input", plane_uri.uri, element)
+                self._add_element("input", plane_uri, element)
 
     def _get_caom_element(self, tag, parent):
         return etree.SubElement(parent, self._caom2_namespace + tag)

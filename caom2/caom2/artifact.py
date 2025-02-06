@@ -269,7 +269,8 @@ class Artifact(AbstractCaomEntity):
             self._content_checksum = None
         else:
             caom_util.type_check(value, ChecksumURI, "checksum_uri", False)
-            self._content_checksum = value
+            # TODO necessary?
+            self._content_checksum = value.uri
 
     @property
     def content_release(self):

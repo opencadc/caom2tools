@@ -166,7 +166,7 @@ class TestEnums(unittest.TestCase):
 class TestPlane(unittest.TestCase):
     def test_all(self):
         test_plane = plane.Plane("caom:TEST/obs/ProdID")
-        self.assertEqual(plane.PlaneURI("caom:TEST/obs/ProdID"), test_plane.uri, "Plane URI")
+        self.assertEqual("caom:TEST/obs/ProdID", test_plane.uri, "Plane URI")
         self.assertEqual(0, len(test_plane.artifacts),
                          "Default number of artifacts")
         self.assertIsNone(test_plane.meta_release, "Default meta release date")
@@ -288,48 +288,48 @@ class TestPlane(unittest.TestCase):
         self.assertTrue(exception, "compute_polarization implemented"
                                    " - Testing needed")
 
-
-class TestPlaneURI(unittest.TestCase):
-    def test_all(self):
-        plane_uri = plane.PlaneURI("caom:GEMINI/12345/3333")
-        self.assertEqual("caom:GEMINI/12345/3333", plane_uri.uri,
-                         "Plane URI")
-
-        plane_uri = plane.PlaneURI.get_plane_uri(
-            observation.ObservationURI("caom:CFHT/654321"),
-            "555")
-        self.assertEqual("caom:CFHT/654321/555", plane_uri.uri,
-                         "Observation URI")
-
-        exception = False
-        try:
-            plane_uri = plane.PlaneURI.get_plane_uri(None, "123")
-        except TypeError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-        exception = False
-        try:
-            plane_uri = plane.PlaneURI.get_plane_uri("GEMINI", None)
-        except TypeError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-        # wrong scheme
-        exception = False
-        try:
-            plane_uri = plane.PlaneURI("somescheme:GEMINI/12345/3333")
-        except ValueError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-        exception = False
-        try:
-            plane_uri = plane.PlaneURI("caom:GEMINI/12345")
-        except ValueError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
+#
+# class TestPlaneURI(unittest.TestCase):
+#     def test_all(self):
+#         plane_uri = plane.PlaneURI("caom:GEMINI/12345/3333")
+#         self.assertEqual("caom:GEMINI/12345/3333", plane_uri.uri,
+#                          "Plane URI")
+#
+#         plane_uri = plane.PlaneURI.get_plane_uri(
+#             observation.ObservationURI("caom:CFHT/654321"),
+#             "555")
+#         self.assertEqual("caom:CFHT/654321/555", plane_uri.uri,
+#                          "Observation URI")
+#
+#         exception = False
+#         try:
+#             plane_uri = plane.PlaneURI.get_plane_uri(None, "123")
+#         except TypeError:
+#             exception = True
+#         self.assertTrue(exception, "Missing exception")
+#
+#         exception = False
+#         try:
+#             plane_uri = plane.PlaneURI.get_plane_uri("GEMINI", None)
+#         except TypeError:
+#             exception = True
+#         self.assertTrue(exception, "Missing exception")
+#
+#         # wrong scheme
+#         exception = False
+#         try:
+#             plane_uri = plane.PlaneURI("somescheme:GEMINI/12345/3333")
+#         except ValueError:
+#             exception = True
+#         self.assertTrue(exception, "Missing exception")
+#
+#         exception = False
+#         try:
+#             plane_uri = plane.PlaneURI("caom:GEMINI/12345")
+#         except ValueError:
+#             exception = True
+#         self.assertTrue(exception, "Missing exception")
+#
 
 class TestDataQuality(unittest.TestCase):
     def test_all(self):
@@ -386,19 +386,19 @@ class TestProvenance(unittest.TestCase):
         self.assertIsNone(provenance.reference, "Default reference")
 
         self.assertEqual(0, len(provenance.inputs), "Default inputs")
-        plane_uri1 = plane.PlaneURI("caom:HST/11/00")
+        plane_uri1 = "caom:HST/11/00"
         provenance.inputs.add(plane_uri1)
         self.assertEqual(1, len(provenance.inputs), "Default inputs")
         self.assertTrue(plane_uri1 in provenance.inputs)
 
-        plane_uri2 = plane.PlaneURI("caom:HST/22/00")
+        plane_uri2 = "caom:HST/22/00"
         provenance.inputs.add(plane_uri2)
         self.assertEqual(2, len(provenance.inputs), "Default inputs")
         self.assertTrue(plane_uri1 in provenance.inputs)
         self.assertTrue(plane_uri2 in provenance.inputs)
 
         # testing duplicates
-        plane_uri3 = plane.PlaneURI("caom:HST/22/00")
+        plane_uri3 = "caom:HST/22/00"
         provenance.inputs.add(plane_uri3)
         self.assertEqual(2, len(provenance.inputs), "Default inputs")
         self.assertTrue(plane_uri1 in provenance.inputs)

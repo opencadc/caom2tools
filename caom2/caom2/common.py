@@ -300,7 +300,7 @@ class AbstractCaomEntity(CaomObject):
             self._meta_producer = value
 
 
-class VocabularyTerm(object):
+class VocabularyTerm(CaomObject):
     """ VocabularyTerm """
 
     def __init__(self, namespace, term, base=False):
