@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2024.                            (c) 2024.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -875,23 +875,15 @@ class ContentParser(BlueprintParser):
 
         aug_axis = None
         aug_error = None
-        if wcs is not None and wcs.axis is not None and wcs.axis.axis is not None:
-            aug_axis = wcs.axis.axis
-            aug_error = wcs.axis.error
-        else:
-            aug_axis_ctype = self._get_from_list(f'Chunk.{label}.axis.axis.ctype', index)
-            aug_axis_cunit = self._get_from_list(f'Chunk.{label}.axis.axis.cunit', index)
-            if aug_axis_ctype is not None:
-                aug_axis = caom2.Axis(aug_axis_ctype, aug_axis_cunit)
-                self.logger.debug(f'Creating {label} Axis for {self.uri} from blueprint')
+        aug_axis_ctype = self._get_from_list(f'Chunk.{label}.axis.axis.ctype', index)
+        aug_axis_cunit = self._get_from_list(f'Chunk.{label}.axis.axis.cunit', index)
+        if aug_axis_ctype is not None:
+            aug_axis = caom2.Axis(aug_axis_ctype, aug_axis_cunit)
+            self.logger.debug(f'Creating {label} Axis for {self.uri} from blueprint')
 
-            aug_error = self._two_param_constructor(
-                f'Chunk.{label}.axis.error.syser',
-                f'Chunk.{label}.axis.error.rnder',
-                index,
-                _to_float,
-                caom2.CoordError,
-            )
+        aug_error = self._two_param_constructor(
+            f'Chunk.{label}.axis.error.syser', f'Chunk.{label}.axis.error.rnder', index, _to_float, caom2.CoordError,
+        )
 
         aug_naxis = None
         aug_range = self._try_range(index, label)
@@ -1115,7 +1107,7 @@ class ContentParser(BlueprintParser):
         :param chunk: The chunk to modify with the addition of energy information.
         :param index: The index in the blueprint for looking up plan information.
         """
-        self.logger.debug('Begin augmentation with blueprint for energy.')
+        self.logger.debug(f'Begin augmentation with blueprint for energy with index {index}.')
         aug_axis, aug_naxis_index = self._get_axis_wcs('energy', chunk.energy, index)
         specsys = _to_str(self._get_from_list('Chunk.energy.specsys', index))
         if aug_axis is None:

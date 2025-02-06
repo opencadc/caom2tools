@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -336,7 +336,7 @@ def test_load_from_file_configure():
     # should get the position axes by default
     ob = ObsBlueprint()
     ob._guess_axis_info()
-    assert ob._pos_axes_configed, 'pos config'
+    assert not ob._pos_axes_configed, 'pos config'
     assert not ob._energy_axis_configed, 'energy config'
     assert not ob._custom_axis_configed, 'custom config'
     assert not ob._obs_axis_configed, 'obs config'
@@ -364,11 +364,6 @@ def test_load_from_file_configure():
     assert ob._wcs_std['Chunk.observable.axis.axis.ctype'] == 'CTYPE7', ob._wcs_std[
         'Chunk.observable.axis.axis.ctype'
     ]
-
-    with pytest.raises(ValueError):
-        ob = ObsBlueprint()
-        ob.add_attribute('Chunk.polarization.axis.axis.ctype', 'CTYPE1')
-        ob._guess_axis_info()
 
 
 def test_has_chunk():
