@@ -127,5 +127,3 @@ class TestPoint(unittest.TestCase):
         point = shape.Point(1.0, 2.0)
         self.assertEqual(point.cval1, 1.0)
         self.assertEqual(point.cval2, 2.0)
-
-

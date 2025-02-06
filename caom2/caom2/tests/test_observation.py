@@ -119,7 +119,7 @@ class TestObservation(unittest.TestCase):
         algorithm = observation.Algorithm("myAlg")
         obs = observation.Observation("GSA", "caom:GSA/A12345", algorithm)
         self.assertEqual("GSA", obs.collection, "Collection")
-        self.assertEqual(observation.ObservationURI("caom:GSA/A12345"), obs.uri, "Observation URI")
+        self.assertEqual("caom:GSA/A12345", obs.uri, "Observation URI")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
 
         new_algorithm = observation.Algorithm("myNewAlg")
@@ -205,7 +205,7 @@ class TestObservation(unittest.TestCase):
 
         observation.Observation(
             obs.collection,
-            obs.uri.uri,
+            obs.uri,
             obs.algorithm,
             planes=obs.planes,
             sequence_number=obs.sequence_number,
@@ -226,7 +226,7 @@ class TestSimpleObservation(unittest.TestCase):
             observation.SimpleObservation._DEFAULT_ALGORITHM_NAME)
         obs = observation.SimpleObservation("GSA", "caom:GSA/A12345")
         self.assertEqual("GSA", obs.collection, "Collection")
-        self.assertEqual(observation.ObservationURI("caom:GSA/A12345"), obs.uri, "Observation URI")
+        self.assertEqual("caom:GSA/A12345", obs.uri, "Observation URI")
 
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
         obs.algorithm = algorithm
@@ -337,7 +337,7 @@ class TestSimpleObservation(unittest.TestCase):
         self.assertEqual(collection, obs.collection, "Collection")
 
         self.assertIsNotNone(obs.uri, "Observation URI")
-        self.assertEqual(observation.ObservationURI(uri), obs.uri, "Observation URI")
+        self.assertEqual(uri, obs.uri, "Observation URI")
 
         self.assertIsNotNone(obs.algorithm, "Algorithm")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
@@ -378,7 +378,7 @@ class TestCompositeObservation(unittest.TestCase):
         algorithm = observation.Algorithm("mozaic")
         obs = observation.CompositeObservation("GSA", "caom:GSA/A12345", algorithm)
         self.assertEqual("GSA", obs.collection, "Collection")
-        self.assertEqual(observation.ObservationURI("caom:GSA/A12345"), obs.uri, "Observation URI")
+        self.assertEqual("caom:GSA/A12345", obs.uri, "Observation URI")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
         obs.algorithm = algorithm
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")
@@ -401,19 +401,19 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertTrue(exception, "Missing exception")
 
         self.assertEqual(0, len(obs.members), "Members")
-        observation_uri1 = observation.ObservationURI("caom:collection/obsID")
+        observation_uri1 = "caom:collection/obsID"
         obs.members.add(observation_uri1)
         self.assertEqual(1, len(obs.members), "Members")
         self.assertTrue(observation_uri1 in obs.members)
 
-        observation_uri2 = observation.ObservationURI("caom:collection/obsID2")
+        observation_uri2 = "caom:collection/obsID2"
         obs.members.add(observation_uri2)
         self.assertEqual(2, len(obs.members), "Members")
         self.assertTrue(observation_uri1 in obs.members)
         self.assertTrue(observation_uri2 in obs.members)
 
         # duplicates
-        observation_uri3 = observation.ObservationURI("caom:collection/obsID")
+        observation_uri3 = "caom:collection/obsID"
         obs.members.add(observation_uri3)
         self.assertEqual(2, len(obs.members), "Members")
         self.assertTrue(observation_uri1 in obs.members)
@@ -518,7 +518,7 @@ class TestCompositeObservation(unittest.TestCase):
         self.assertEqual(collection, obs.collection, "Collection")
 
         self.assertIsNotNone(obs.uri, "Observation URI")
-        self.assertEqual(observation.ObservationURI(uri), obs.uri, "Observation URI")
+        self.assertEqual(uri, obs.uri, "Observation URI")
 
         self.assertIsNotNone(obs.algorithm, "Algorithm")
         self.assertEqual(algorithm, obs.algorithm, "Algorithm")

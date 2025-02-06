@@ -71,10 +71,8 @@
 import unittest
 from datetime import datetime
 
-from .. import artifact
-from .. import caom_util
+from .. import artifact, PolarizationState
 from .. import chunk
-from .. import observation
 from .. import plane
 from .. import dali
 from .. import shape
@@ -331,6 +329,7 @@ class TestPlane(unittest.TestCase):
 #         self.assertTrue(exception, "Missing exception")
 #
 
+
 class TestDataQuality(unittest.TestCase):
     def test_all(self):
         self.assertRaises(TypeError, plane.DataQuality, "string")
@@ -526,12 +525,12 @@ class TestEnergyTransition(unittest.TestCase):
 
 class TestPolarizaton(unittest.TestCase):
     def test_all(self):
-        polarization = plane.Polarization()
+        polarization = plane.Polarization(dimension=2, states=[PolarizationState.I, PolarizationState.Q])
 
-        self.assertIsNone(polarization.dimension,
-                          "Default polarization dimension")
-
-        # TODO add test for state
+        self.assertEqual(2, polarization.dimension, "Default polarization dimension")
+        self.assertEqual(2, len(polarization.states), "Polarization states")
+        self.assertTrue(PolarizationState.I in polarization.states, "I state")
+        self.assertTrue(PolarizationState.Q in polarization.states, "Q state")
 
 
 class TestTime(unittest.TestCase):

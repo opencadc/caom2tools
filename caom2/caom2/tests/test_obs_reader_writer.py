@@ -77,7 +77,6 @@ import tempfile
 
 from . import caom_test_instances
 from .xml_compare import xml_compare
-from .. import caom_util
 from .. import dali
 from .. import obs_reader_writer
 from .. import observation
@@ -170,7 +169,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             pass
 
     def test_complete_simple(self):
-        for version in (23, 24): # TODO 25
+        for version in (23, 24, 25):
             for i in range(1, 6):
                 print("Test Complete Simple {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
@@ -188,7 +187,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_minimal_derived(self):
         # * composite for the pre-2.4 versions
-        for version in (23, 24): # TODO 25
+        for version in (23, 24, 25):
             for i in range(1, 6):
                 if version >= 24:
                     print("Test Minimal Derived {} version {}".
@@ -561,16 +560,16 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNone(expected, "polarization")
         else:
             self.assertEqual(expected.dimension, actual.dimension, "dimension")
-            if expected.polarization_states is None:
-                self.assertIsNone(actual.polarization_states,
-                                  "polarization_states")
+            if expected.states is None:
+                self.assertIsNone(actual.states,
+                                  "polarization.states")
             else:
-                self.assertEqual(len(expected.polarization_states),
-                                 len(actual.polarization_states),
-                                 "different number of polarization_states")
-                for index, state in enumerate(expected.polarization_states):
-                    self.assertEqual(state, actual.polarization_states[index],
-                                     "polarization_state")
+                self.assertEqual(len(expected.states),
+                                 len(actual.states),
+                                 "different number of polarization.states")
+                for index, state in enumerate(expected.states):
+                    self.assertEqual(state, actual.states[index],
+                                     "polarization state")
 
     def compare_custom(self, expected, actual):
         if expected is None:
@@ -1073,7 +1072,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             shape.Point(-0.00518884856598203, -0.00518884856598), 'test')
 
         # create empty energy
-        plane_uri = '{}/{}'.format(expected_obs.uri.uri, 'planeID')
+        plane_uri = '{}/{}'.format(expected_obs.uri, 'planeID')
         pl = plane.Plane(plane_uri)
         pl.energy = plane.Energy(dali.Interval(1.0, 2.0), [dali.Interval(1.0, 2.0)])
         expected_obs.planes[pl.uri] = pl

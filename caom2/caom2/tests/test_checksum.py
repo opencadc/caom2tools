@@ -119,14 +119,13 @@ def test_primitive_checksum():
     update_checksum(md5, value, False)
     assert ('0fec383169e99d1a6bebd89d1cd8fad9' == md5.hexdigest())
     md5 = hashlib.md5()
-    value = str2ivoa('2012-07-11T13:26:37.123')
+    value = str2ivoa('2012-07-11T13:26:37.123200')
     update_checksum(md5, value, False)
-    assert ('aedbcf5e27a17fc2daa5a0e0d7840009' == md5.hexdigest())
-    # ensure that the milliseconds part is not part of checksum
+    assert ('9f8af3a440b6e1c8e2a7ea86d90685ac' == md5.hexdigest())
     md5 = hashlib.md5()
-    value = str2ivoa('2012-07-11T13:26:37.000')
+    value = str2ivoa('2012-07-11T13:26:37.000000')
     update_checksum(md5, value, False)
-    assert ('aedbcf5e27a17fc2daa5a0e0d7840009' == md5.hexdigest())
+    assert ('b35eea8d6e70a117ae7804f4e0f6cf58' == md5.hexdigest())
     md5 = hashlib.md5()
     value = str('ad:file')
     update_checksum(md5, value, False)
@@ -352,7 +351,7 @@ def atest_round_trip():
 def test_checksum_diff():
     for source_file_path in \
             [os.path.join(THIS_DIR, TEST_DATA, x) for x in ['SampleDerived-CAOM-2.5.xml']]:
-             #['SampleDerived-CAOM-2.4.xml', 'SampleComposite-CAOM-2.3.xml']]:
+        # TODO Maybe ['SampleDerived-CAOM-2.4.xml', 'SampleComposite-CAOM-2.3.xml']]:
         logging.debug(source_file_path)
         output_file = tempfile.NamedTemporaryFile()
         sys.argv = 'caom2_checksum -d -o {} {}'.format(
@@ -368,7 +367,7 @@ def test_checksum_diff():
         assert 'plane' in output
         assert 'observation' in output
 
-        # original observation and the one outputed should be identical
+        # original observation and the one output should be identical
         reader = obs_reader_writer.ObservationReader()
         expected = reader.read(source_file_path)
         actual = reader.read(output_file.name)

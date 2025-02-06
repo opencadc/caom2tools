@@ -66,11 +66,8 @@
 # ***********************************************************************
 #
 
-import math
-import pytest
 import unittest
 
-from .. import shape
 from .. import dali
 
 

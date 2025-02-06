@@ -76,19 +76,18 @@ from deprecated import deprecated
 
 from . import caom_util
 from .caom_util import int_32, validate_uri
-from .common import AbstractCaomEntity, CaomObject, ObservationURI, \
-    VocabularyTerm, OrderedEnum, compute_bucket
+from .common import AbstractCaomEntity, CaomObject, VocabularyTerm, OrderedEnum, compute_bucket
 from .common import _CAOM_DATA_PRODUCT_TYPE_NS
 from .plane import Plane
 from .shape import Point
-from urllib.parse import urlsplit, urlparse
+from urllib.parse import urlsplit
 
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
 
 __all__ = ['ObservationIntentType', 'Status', 'TargetType',
-           'Observation', 'ObservationURI', 'Algorithm', 'SimpleObservation',
+           'Observation', 'Algorithm', 'SimpleObservation',
            'DerivedObservation', 'Environment', 'Instrument', 'Proposal',
            'Requirements', 'Target', 'TargetPosition', 'Telescope',
            'CompositeObservation']
@@ -208,7 +207,7 @@ class Observation(AbstractCaomEntity):
 
         self.collection = collection
         validate_uri(uri)
-        self._uri = ObservationURI(uri)
+        self._uri = uri
         self._uri_bucket = compute_bucket(uri)
         if not algorithm:
             raise AttributeError('Algorithm required')
@@ -637,7 +636,7 @@ class DerivedObservation(Observation):
               planes=planes,
               environment=environment,
               target_position=target_position)
-        self._members = caom_util.TypedSet(ObservationURI, )
+        self._members = caom_util.TypedSet(str, )
 
     @property
     def algorithm(self):
@@ -1237,7 +1236,6 @@ class Telescope(CaomObject):
     def tracking_mode(self, value):
         if isinstance(value, str):
             value = Tracking(value)
-        caom_util.type_check(value, Tracking, "tracking_mode")
         self._tracking_mode = value
 
     @property

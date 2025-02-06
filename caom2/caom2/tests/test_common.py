@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,7 +68,6 @@
 
 """ Defines TestCaom2IdGenerator class """
 
-import binascii
 import unittest
 
 from .. import artifact
@@ -99,7 +98,7 @@ class TestCaom2IdGenerator(unittest.TestCase):
         test_part = part.Part("part")
         print(test_part._id, test_part._last_modified)
 
-        plane_uri = '{}/{}'.format(test_observation.uri.uri, "obs")
+        plane_uri = '{}/{}'.format(test_observation.uri, "obs")
         test_plane = plane.Plane(plane_uri)
         print(test_plane._id, test_plane._last_modified)
 
@@ -111,10 +110,8 @@ class TestCaom2IdGenerator(unittest.TestCase):
                           "acc_meta_checksum null")
         d1 = common.get_current_ivoa_time()
         d2 = common.get_current_ivoa_time()
-        cs_uri_meta = common.ChecksumURI(
-            "md5:e30580c1db513487f495fba09f64600e")
-        cs_uri_acc = common.ChecksumURI(
-            "sha1:7e2b74edf8ff7ddfda5ee3917dc65946b515b1f7")
+        cs_uri_meta = "md5:e30580c1db513487f495fba09f64600e"
+        cs_uri_acc = "sha1:7e2b74edf8ff7ddfda5ee3917dc65946b515b1f7"
         test_plane.last_modified = d1
         test_plane.max_last_modified = d2
         test_plane.meta_checksum = cs_uri_meta
@@ -138,45 +135,45 @@ class TestMetadataChecksum(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             test_artifact.compute_meta_checksum()
 
-
-class TestObservationURI(unittest.TestCase):
-    def test_all(self):
-        obs_uri = observation.ObservationURI("caom:GEMINI/12345")
-        self.assertEqual("caom:GEMINI/12345", obs_uri.uri, "Observation URI")
-        self.assertEqual("GEMINI", obs_uri.collection, "Collection")
-        self.assertEqual("12345", obs_uri.observation_id, "Observation ID")
-
-        obs_uri = observation.ObservationURI.get_observation_uri("CFHT",
-                                                                 "654321")
-        self.assertEqual("caom:CFHT/654321", obs_uri.uri, "Observation URI")
-        self.assertEqual("CFHT", obs_uri.collection, "Collection")
-        self.assertEqual("654321", obs_uri.observation_id, "Observation ID")
-
-        exception = False
-        try:
-            obs_uri = observation.ObservationURI.get_observation_uri(None,
-                                                                     "123")
-        except TypeError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-        exception = False
-        try:
-            obs_uri = observation.ObservationURI.get_observation_uri("GEMINI",
-                                                                     None)
-        except TypeError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-
-class TestChecksumURI(unittest.TestCase):
-    def test_all(self):
-        cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
-        self.assertEqual("md5:e30580c1db513487f495fba09f64600e", cs_uri.uri,
-                         "Checksum URI")
-        self.assertEqual("md5", cs_uri.algorithm, "Algorithm")
-        self.assertEqual("e30580c1db513487f495fba09f64600e", cs_uri.checksum,
-                         "Checksum")
-        self.assertEqual(binascii.hexlify(
-            bytearray.fromhex("e30580c1db513487f495fba09f64600e")),
-                         binascii.hexlify(cs_uri.get_bytes()), "Round trip")
+#
+# class TestObservationURI(unittest.TestCase):
+#     def test_all(self):
+#         obs_uri = "caom:GEMINI/12345"
+#         self.assertEqual("caom:GEMINI/12345", obs_uri, "Observation URI")
+#         self.assertEqual("GEMINI", obs_uri.collection, "Collection")
+#         self.assertEqual("12345", obs_uri.observation_id, "Observation ID")
+#
+#         obs_uri = observation.ObservationURI.get_observation_uri("CFHT",
+#                                                                  "654321")
+#         self.assertEqual("caom:CFHT/654321", obs_uri, "Observation URI")
+#         self.assertEqual("CFHT", obs_uri.collection, "Collection")
+#         self.assertEqual("654321", obs_uri.observation_id, "Observation ID")
+#
+#         exception = False
+#         try:
+#             obs_uri = observation.ObservationURI.get_observation_uri(None,
+#                                                                      "123")
+#         except TypeError:
+#             exception = True
+#         self.assertTrue(exception, "Missing exception")
+#
+#         exception = False
+#         try:
+#             obs_uri = observation.ObservationURI.get_observation_uri("GEMINI",
+#                                                                      None)
+#         except TypeError:
+#             exception = True
+#         self.assertTrue(exception, "Missing exception")
+#
+#
+# class TestChecksumURI(unittest.TestCase):
+#     def test_all(self):
+#         cs_uri = "md5:e30580c1db513487f495fba09f64600e"
+#         self.assertEqual("md5:e30580c1db513487f495fba09f64600e", cs_uri,
+#                          "Checksum URI")
+#         self.assertEqual("md5", cs_uri.algorithm, "Algorithm")
+#         self.assertEqual("e30580c1db513487f495fba09f64600e", cs_uri.checksum,
+#                          "Checksum")
+#         self.assertEqual(binascii.hexlify(
+#             bytearray.fromhex("e30580c1db513487f495fba09f64600e")),
+#                          binascii.hexlify(cs_uri.get_bytes()), "Round trip")

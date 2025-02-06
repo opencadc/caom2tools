@@ -141,7 +141,6 @@ class DataLinkSemantics(OrderedEnum):
     # CATALOG = 'catalog'
 
 
-
 class Chunk(AbstractCaomEntity):
     """A caom2.Chunk object.  A chunk is a peice of file part.
 

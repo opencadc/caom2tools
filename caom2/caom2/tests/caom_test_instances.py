@@ -73,7 +73,7 @@ from datetime import datetime
 import uuid
 from builtins import int
 
-from caom2 import artifact, MultiShape
+from caom2 import artifact, MultiShape, Polarization
 from caom2 import caom_util
 from caom2 import chunk
 from caom2 import common
@@ -169,10 +169,8 @@ class Caom2TestInstances(object):
             if self.caom_version >= 23:
                 simple_observation.max_last_modified =\
                     common.get_current_ivoa_time()
-                simple_observation.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                simple_observation.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
+                simple_observation.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                simple_observation.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
             if self.caom_version >= 24:
                 simple_observation.meta_read_groups.add(
                     "ivo://cadc.nrc.ca/groups?A")
@@ -209,10 +207,8 @@ class Caom2TestInstances(object):
             if self.caom_version >= 23:
                 composite_observation.max_last_modified = \
                     common.get_current_ivoa_time()
-                composite_observation.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                composite_observation.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
+                composite_observation.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                composite_observation.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
         if self.depth > 1:
             composite_observation.planes.update(self.get_planes())
             composite_observation.members.update(self.get_members())
@@ -242,10 +238,8 @@ class Caom2TestInstances(object):
                 common.get_current_ivoa_time()
             derived_observation.max_last_modified = \
                 common.get_current_ivoa_time()
-            derived_observation.meta_checksum = common.ChecksumURI(
-                "md5:9882dbbf9cadc221019b712fd402bcbd")
-            derived_observation.acc_meta_checksum = common.ChecksumURI(
-                "md5:844ce247db0844ad9f721430c80e7a21")
+            derived_observation.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+            derived_observation.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
             derived_observation.meta_read_groups.add(
                 "ivo://cadc.nrc.ca/groups?A")
             derived_observation.meta_read_groups.add(
@@ -310,9 +304,7 @@ class Caom2TestInstances(object):
         return env
 
     def get_members(self):
-        members = caom_util.TypedSet(
-            observation.ObservationURI,
-            observation.ObservationURI("caom:foo/bar"))
+        members = caom_util.TypedSet(str, "caom:foo/bar")
         return members
 
     def get_planes(self):
@@ -338,10 +330,8 @@ class Caom2TestInstances(object):
                 if self.caom_version >= 23:
                     _plane.creator_id = "ivo://cadc.nrc.ca?testuser"
                     _plane.max_last_modified = common.get_current_ivoa_time()
-                    _plane.meta_checksum = common.ChecksumURI(
-                        "md5:9882dbbf9cadc221019b712fd402bcbd")
-                    _plane.acc_meta_checksum = common.ChecksumURI(
-                        "md5:844ce247db0844ad9f721430c80e7a21")
+                    _plane.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                    _plane.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
                 if s == 'polygon':
                     _plane.position = self.get_poly_position()
                 if s == 'circle':
@@ -442,14 +432,8 @@ class Caom2TestInstances(object):
         custom.dimension = 1
 
     def get_polarization(self):
-        polarization = plane.Polarization()
-
         p_states = [plane.PolarizationState.LL, plane.PolarizationState.XY]
-
-        polarization.dimension = 2
-        polarization.polarization_states = p_states
-
-        return polarization
+        return Polarization(dimension=2, states=p_states)
 
     def get_provenance(self):
         provenance = plane.Provenance("name")
@@ -493,10 +477,8 @@ class Caom2TestInstances(object):
             _artifact.last_modified = common.get_current_ivoa_time()
             if self.caom_version >= 23:
                 _artifact.max_last_modified = common.get_current_ivoa_time()
-                _artifact.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                _artifact.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
+                _artifact.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                _artifact.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
         if self.depth > 3:
             for k, v in self.get_parts().items():
                 _artifact.parts[k] = v
@@ -539,10 +521,8 @@ class Caom2TestInstances(object):
             _chunk.last_modified = common.get_current_ivoa_time()
             if self.caom_version >= 23:
                 _chunk.max_last_modified = common.get_current_ivoa_time()
-                _chunk.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                _chunk.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
+                _chunk.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                _chunk.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
             if self.caom_version >= 24:
                 _chunk.custom_axis = 3
                 _chunk.custom = self.get_custom_wcs()

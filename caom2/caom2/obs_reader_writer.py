@@ -73,7 +73,7 @@
 import os
 import uuid
 from builtins import str, int
-from urllib.parse import urlparse
+from enum import Enum
 
 from lxml import etree
 
@@ -87,10 +87,9 @@ from . import part
 from . import plane
 from . import shape
 from . import wcs
-from . import common
 import logging
 
-from .plane import CalibrationStatus, Ucd
+from .plane import CalibrationStatus, Ucd, Polarization
 
 DATA_PKG = 'data'
 
@@ -135,7 +134,7 @@ def _to_samples(vertices):
             last_closed_point = shape.Point(vertex.cval1, vertex.cval2)
             points.append(last_closed_point)
             samples.append(shape.Polygon(points))
-            points = [] # continue with a new polygon
+            points = []  # continue with a new polygon
         else:
             if not points:
                 # no move so start from the last closed point
@@ -213,11 +212,9 @@ class ObservationReader(object):
             caom2_entity._max_last_modified = caom_util.str2ivoa(
                 element_max_last_modified)
         if element_meta_checksum:
-            caom2_entity._meta_checksum = common.ChecksumURI(
-                element_meta_checksum)
+            caom2_entity._meta_checksum = element_meta_checksum
         if element_acc_meta_checksum:
-            caom2_entity._acc_meta_checksum = common.ChecksumURI(
-                element_acc_meta_checksum)
+            caom2_entity._acc_meta_checksum = element_acc_meta_checksum
         if element_meta_producer:
             caom2_entity._meta_producer = element_meta_producer
 
@@ -544,9 +541,9 @@ class ObservationReader(object):
             return environment
 
     def _add_members(self, members, parent, ns):
-        """Create ObservationURI objects from an XML representation of
-        ObservationURI elements found in members element, and add them to the
-        set of ObservationURI's
+        """Create observation URI objects from an XML representation of
+        observation URI elements found in members element, and add them to the
+        set of observation URI's
 
         Arguments:
         members : Set of member's from the parent Observation object
@@ -561,11 +558,11 @@ class ObservationReader(object):
             if self.version < 25:
                 for member_element in el.iterchildren(
                                         "{" + ns + "}observationURI"):
-                    members.add(observation.ObservationURI(member_element.text))
+                    members.add(member_element.text)
             else:
                 for member_element in el.iterchildren(
                                         "{" + ns + "}member"):
-                    members.add(observation.ObservationURI(member_element.text))
+                    members.add(member_element.text)
 
     def _add_inputs(self, inputs, parent, ns):
         """Create URI objects from an XML representation of the planeURI
@@ -1488,7 +1485,6 @@ class ObservationReader(object):
         el = self._get_child_element(element_tag, parent, ns, required)
         if el is None:
             return None
-        polarization = plane.Polarization()
         _pstates_el = self._get_child_element("states", el, ns, False)
         if _pstates_el is not None:
             _states = list()
@@ -1496,11 +1492,12 @@ class ObservationReader(object):
                 _pstate = _pstate_el.text
                 _state = plane.PolarizationState(_pstate)
                 _states.append(_state)
-            polarization.states = _states
-        polarization.dimension = self._get_child_text_as_int("dimension", el,
-                                                             ns, False)
+        else:
+            return None
+        dimension = self._get_child_text_as_int("dimension", el,
+                                                ns, False)
 
-        return polarization
+        return Polarization(dimension=dimension, states=_states)
 
     def _get_shape(self, element_tag, parent, ns, required):
         shape_element = self._get_child_element(element_tag, parent, ns,
@@ -1513,7 +1510,7 @@ class ObservationReader(object):
             samples = None
             if self.version < 25:
                 samples_element = self._get_child_element("samples", shape_element,
-                                                        ns, True)
+                                                          ns, True)
                 vertices = list()
                 self._add_vertices(vertices, samples_element, ns)
                 samples = _to_samples(vertices)
@@ -1556,7 +1553,7 @@ class ObservationReader(object):
 
     def _add_energy_bands(self, energy_bands, parent, ns):
         """Create EnergyBand objects from an XML representation of
-        ObservationURI elements found in energy_band element, and add them to
+        observation URI elements found in energy_band element, and add them to
         the set of energy_bads
 
         Arguments:
@@ -1756,8 +1753,8 @@ class ObservationReader(object):
                             "Parsed artifact URI bucket {} does not match calculated artifact URI bucket {}".
                             format(sub, _artifact.uri_bucket))
                 _artifact.description_id = self._get_child_text("descriptionID",
-                                                              artifact_element,
-                                                              ns, False)
+                                                                artifact_element,
+                                                                ns, False)
                 cr = self._get_child_text("contentRelease", artifact_element,
                                           ns, False)
                 _artifact.content_release = caom_util.str2ivoa(cr)
@@ -1774,8 +1771,7 @@ class ObservationReader(object):
                                                         artifact_element, ns,
                                                         False)
                 if content_checksum:
-                    _artifact.content_checksum = common.ChecksumURI(
-                        content_checksum)
+                    _artifact.content_checksum = content_checksum
                 self._add_parts(_artifact.parts, artifact_element, ns)
                 self._set_entity_attributes(artifact_element, ns, _artifact)
                 artifacts[_artifact.uri] = _artifact
@@ -2000,10 +1996,10 @@ class ObservationWriter(object):
 
         self._add_element("collection", obs.collection, obs_element)
         if self._output_version < 25:
-            observation_id = obs.uri.uri.split('/')[-1]
+            observation_id = obs.uri.split('/')[-1]
             self._add_element("observationID", observation_id, obs_element)
         else:
-            self._add_element("uri", obs.uri.uri, obs_element)
+            self._add_element("uri", obs.uri, obs_element)
             self._add_element('uriBucket', obs.uri_bucket, obs_element)
         self._add_datetime_element("metaRelease", obs.meta_release,
                                    obs_element)
@@ -2060,10 +2056,10 @@ class ObservationWriter(object):
                 caom_util.date2ivoa(entity._max_last_modified), element)
         if entity._meta_checksum is not None:
             self._add_attribute(
-                "metaChecksum", entity._meta_checksum.uri, element)
+                "metaChecksum", entity._meta_checksum, element)
         if entity._acc_meta_checksum is not None:
             self._add_attribute(
-                "accMetaChecksum", entity._acc_meta_checksum.uri, element)
+                "accMetaChecksum", entity._acc_meta_checksum, element)
 
         if self._output_version >= 24:
             if entity._meta_producer is not None:
@@ -2173,7 +2169,7 @@ class ObservationWriter(object):
                 member_element = self._get_caom_element("observationURI", element)
             else:
                 member_element = self._get_caom_element("member", element)
-            member_element.text = member.uri
+            member_element.text = member
 
     def _add_groups_element(self, name, groups, parent):
         if self._output_version < 24:
@@ -2418,6 +2414,8 @@ class ObservationWriter(object):
         if polarization is None:
             return
         element = self._get_caom_element("polarization", parent)
+        if not polarization.states:
+            raise AttributeError("Polarization.states missing")
         if polarization.states:
             _pstates_el = self._get_caom_element("states", element)
             for _state in polarization.states:
@@ -2430,7 +2428,7 @@ class ObservationWriter(object):
 
         shape_element = self._add_shape_element("bounds", parent, position.bounds)
         if self._output_version < 25:
-            if isinstance(position.bounds,shape.Circle):
+            if isinstance(position.bounds, shape.Circle):
                 # samples not supported for circles so need to make sure that
                 # samples is the same with bounds
                 if len(position.samples.shapes) > 1 or position.samples.shapes[0] != position.bounds:
@@ -2949,6 +2947,8 @@ class ObservationWriter(object):
         element = self._get_caom_element(name, parent)
         if isinstance(value, str):
             element.text = value
+        elif isinstance(value, Enum):
+            element.text = value.value
         else:
             element.text = str(value)
 

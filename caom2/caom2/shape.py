@@ -244,7 +244,7 @@ class SubInterval(common.CaomObject):
         self._upper = value
 
 
-Interval = dali.Interval # Moved to dali
+Interval = dali.Interval  # Moved to dali
 
 
 class Point(common.CaomObject):

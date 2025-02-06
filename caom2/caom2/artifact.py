@@ -75,7 +75,7 @@ from urllib.parse import urlparse
 
 from . import caom_util
 from .common import AbstractCaomEntity, CaomObject, compute_bucket
-from .common import ChecksumURI, OrderedEnum
+from .common import OrderedEnum
 from .part import Part
 from .chunk import DataLinkSemantics
 from datetime import datetime
@@ -268,9 +268,8 @@ class Artifact(AbstractCaomEntity):
         if value is None:
             self._content_checksum = None
         else:
-            caom_util.type_check(value, ChecksumURI, "checksum_uri", False)
-            # TODO necessary?
-            self._content_checksum = value.uri
+            caom_util.type_check(value, str, "checksum_uri", False)
+            self._content_checksum = value
 
     @property
     def content_release(self):

@@ -69,7 +69,7 @@
 import os
 import unittest
 
-from caom2 import Point, shape, SegmentType, Position, MultiShape
+from caom2 import Point, shape, Position, MultiShape
 
 from .. import diff
 from .. import observation

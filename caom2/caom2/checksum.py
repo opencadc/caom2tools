@@ -78,8 +78,7 @@ import warnings
 from builtins import bytes, int, str
 
 from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict, int_32
-from caom2.common import CaomObject, AbstractCaomEntity, ObservationURI
-from caom2.common import ChecksumURI
+from caom2.common import CaomObject, AbstractCaomEntity
 from caom2.observation import Observation
 from .obs_reader_writer import CAOM25_NAMESPACE, CAOM24_NAMESPACE, \
     CAOM23_NAMESPACE
@@ -150,7 +149,7 @@ def get_meta_checksum(entity):
         raise AttributeError('AbstractCaomEntity expected')
     md5 = hashlib.md5()
     update_caom_checksum(md5, entity)
-    return ChecksumURI('md5:{}'.format(md5.hexdigest()))
+    return 'md5:{}'.format(md5.hexdigest())
 
 
 def get_acc_meta_checksum(entity, no_logging=False):
@@ -171,7 +170,7 @@ def get_acc_meta_checksum(entity, no_logging=False):
     update_acc_checksum(md5, entity)
     if no_logging:
         logger.setLevel(log_level)
-    return ChecksumURI('md5:{}'.format(md5.hexdigest()))
+    return 'md5:{}'.format(md5.hexdigest())
 
 
 def update_meta_checksum(obs):
@@ -264,10 +263,8 @@ def update_checksum(checksum, value, attribute=''):
 
     b = None
 
-    if isinstance(value, ObservationURI) or isinstance(value, ChecksumURI):
-        b = value.uri.encode('utf-8')
-    elif isinstance(value, CaomObject):
-        #logger.debug('Process object {}'.format(attribute))
+    if isinstance(value, CaomObject):
+        logger.debug('Process object {}'.format(attribute))
         return update_caom_checksum(checksum, value, attribute)
     elif isinstance(value, bytes):
         b = value
@@ -453,23 +450,23 @@ def _print_diff(orig, actual):
     mistmatches = 0
     if orig.meta_checksum == actual.meta_checksum:
         print('{}: {} {} == {}'.format(elem_type, orig._id,
-                                       orig.meta_checksum.checksum,
-                                       actual.meta_checksum.checksum))
+                                       orig.meta_checksum,
+                                       actual.meta_checksum))
     else:
         print('{}: {} {} != {} [MISMATCH]'.
-              format(elem_type, orig._id, orig.meta_checksum.checksum,
-                     actual.meta_checksum.checksum))
+              format(elem_type, orig._id, orig.meta_checksum,
+                     actual.meta_checksum))
         mistmatches += 1
 
     if elem_type != 'chunk':
         # do the accumulated checksums
         if orig.acc_meta_checksum == actual.acc_meta_checksum:
             print('{}: {} {} == {}'.
-                  format(elem_type, orig._id, orig.acc_meta_checksum.checksum,
-                         actual.acc_meta_checksum.checksum))
+                  format(elem_type, orig._id, orig.acc_meta_checksum,
+                         actual.acc_meta_checksum))
         else:
             print('{}: {} {} != {} [MISMATCH]'.
-                  format(elem_type, orig._id, orig.acc_meta_checksum.checksum,
-                         actual.acc_meta_checksum.checksum))
+                  format(elem_type, orig._id, orig.acc_meta_checksum,
+                         actual.acc_meta_checksum))
             mistmatches += 1
     return mistmatches

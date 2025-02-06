@@ -81,8 +81,6 @@ from datetime import datetime
 from urllib.parse import urlsplit
 from builtins import int, str as newstr
 
-from . import dali
-
 
 __all__ = ['TypedList', 'TypedSet', 'TypedOrderedDict', 'ClassProperty',
            'URISet', 'validate_uri']

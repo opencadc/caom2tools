@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -73,7 +73,6 @@ import unittest
 from urllib.parse import urlparse
 
 from .. import artifact
-from .. import common
 from .. import part
 
 
@@ -129,7 +128,7 @@ class TestArtifact(unittest.TestCase):
 
         self.assertIsNone(test_artifact.content_checksum,
                           "Default content checksum")
-        cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
+        cs_uri = "md5:e30580c1db513487f495fba09f64600e"
         test_artifact.content_checksum = cs_uri
         self.assertEqual(test_artifact.content_checksum, cs_uri,
                          "Content checksum")
@@ -179,5 +178,5 @@ class TestArtifact(unittest.TestCase):
 
         # TODO re-enable when check enforced
         # with self.assertRaises(ValueError):
-        test_artifact.content_checksum = common.ChecksumURI('0x1234')
-        assert test_artifact.content_checksum.uri == '0x1234'
+        test_artifact.content_checksum = '0x1234'
+        assert test_artifact.content_checksum == '0x1234'

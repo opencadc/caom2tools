@@ -71,7 +71,7 @@
 from datetime import datetime
 
 from builtins import str, int
-from urllib.parse import SplitResult, urlsplit, urlparse
+from urllib.parse import urlsplit
 from deprecated import deprecated
 
 from caom2.caom_util import int_32, validate_uri
@@ -79,8 +79,7 @@ from . import caom_util
 from . import shape
 from . import wcs
 from .artifact import Artifact
-from .common import AbstractCaomEntity, CaomObject, ObservationURI,\
-    VocabularyTerm, OrderedEnum
+from .common import AbstractCaomEntity, CaomObject, VocabularyTerm, OrderedEnum
 from .common import _CAOM_DATA_PRODUCT_TYPE_NS
 import warnings
 with warnings.catch_warnings():
@@ -258,19 +257,19 @@ class Visibility(CaomObject):
     def __init__(self, distance, distribution_eccentricity, distribution_fill):
 
         if distance is not None:
-            caom_util.type_check(distance, shape.Interval,'distance')
+            caom_util.type_check(distance, shape.Interval, 'distance')
         else:
             raise ValueError("Visibility.distance cannot be None")
         self._distance = distance
 
         if distribution_eccentricity is not None:
-            caom_util.type_check(distribution_eccentricity, float,'distribution_eccentricity')
+            caom_util.type_check(distribution_eccentricity, float, 'distribution_eccentricity')
         else:
             raise ValueError("Visibility.distribution_eccentricity cannot be None")
         self._distribution_eccentricity = distribution_eccentricity
 
         if distribution_fill is not None:
-            caom_util.type_check(distribution_fill, float,'distribution_fill')
+            caom_util.type_check(distribution_fill, float, 'distribution_fill')
         else:
             raise ValueError("Visibility.distribution_fill cannot be None")
         self._distribution_fill = distribution_fill
@@ -1167,12 +1166,11 @@ class Energy(CaomObject):
         if value is None:
             raise AttributeError('samples in Energy cannot be None')
         else:
-            caom_util.type_check(value, list,'samples')
+            caom_util.type_check(value, list, 'samples')
             if len(value) == 0:
                 raise ValueError('samples in Energy cannot be empty')
                 # TODO - could check that the intervals are within the bounds?
             self._samples = value
-
 
     @property
     def dimension(self):
@@ -1354,9 +1352,9 @@ class Polarization(CaomObject):
 
     @states.setter
     def states(self, value):
-        if value is not None:
-            caom_util.type_check(value, list, 'states',
-                                 override=False)
+        if not value:
+            raise AttributeError('Polarization.state required')
+        caom_util.type_check(value, list, 'states', override=False)
         self._states = value
 
 
@@ -1427,7 +1425,6 @@ class Time(CaomObject):
                 raise ValueError('samples in Time cannot be empty')
                 # TODO - could check that the intervals are within the bounds?
             self._samples = value
-
 
     @property
     def dimension(self):
