@@ -79,7 +79,8 @@ from caom2utils.caom2blueprint import _visit, _load_plugin
 from caom2utils.caom2blueprint import _get_and_update_artifact_meta
 from caom2utils.wcs_parsers import FitsWcsParser, Hdf5WcsParser
 
-from caom2 import ObservationWriter, SimpleObservation, Algorithm, Artifact, DataLinkSemantics, ReleaseType, DataProductType
+from caom2 import (ObservationWriter, SimpleObservation, Algorithm, Artifact,
+                   DataLinkSemantics, ReleaseType, DataProductType)
 from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk, ObservationIntentType
 from caom2 import CustomWCS, SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS, Axis, CoordAxis1D, CoordAxis2D
 from caom2 import CalibrationLevel
@@ -375,7 +376,8 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = '''<caom2:import xmlns:caom2="http://
 
 def test_augment_artifact_time():
     test_fitsparser = FitsParser(sample_file_time_axes, ObsBlueprint(time_axis=1))
-    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_time_axes), DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_time_axes),
+                        DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     assert artifact.parts is not None
     assert len(artifact.parts) == 6
@@ -1535,9 +1537,8 @@ def test_blueprint_instantiated_class():
     test_parser = FitsParser(src=[hdr1, hdr2], obs_blueprint=test_blueprint)
     test_obs = SimpleObservation('collection', 'caom:MA1_DRAO-ST', Algorithm('exposure'))
     test_parser.augment_observation(test_obs, 'cadc:TEST/test_file_name.fits')
-    #  TODO
-    #assert 'PRODUCT_ID' in test_obs.planes.keys(), 'expect plane'
     plane_uri = f'{test_obs.uri}/PRODUCT_ID'
+    assert plane_uri in test_obs.planes.keys(), 'expect plane'
     test_plane = test_obs.planes[plane_uri]
     assert 'cadc:TEST/test_file_name.fits' in test_plane.artifacts.keys(), 'expect artifact'
     test_artifact = test_plane.artifacts.pop('cadc:TEST/test_file_name.fits')

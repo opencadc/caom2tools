@@ -102,21 +102,20 @@ def test_open_polygon():
     validate_polygon(shape.Polygon(closed_points))
 
     # should detect that multipolygon is not closed
-    v0 = shape.Vertex(-126.210938, 67.991108, shape.SegmentType.MOVE)
-    v1 = shape.Vertex(-108.984375, 70.480896, shape.SegmentType.LINE)
-    v2 = shape.Vertex(-98.789063, 66.912834, shape.SegmentType.LINE)
-    v3 = shape.Vertex(-75.234375, 60.217991, shape.SegmentType.LINE)
-    v4 = shape.Vertex(-87.890625, 52.241256, shape.SegmentType.LINE)
-    v5 = shape.Vertex(-110.742188, 54.136696, shape.SegmentType.LINE)
-    v6 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-    v7 = shape.Vertex(24.609375, 62.895218, shape.SegmentType.MOVE)
-    v8 = shape.Vertex(43.593750, 67.322924, shape.SegmentType.LINE)
-    v9 = shape.Vertex(55.898438, 62.734601, shape.SegmentType.LINE)
-    v10 = shape.Vertex(46.757813, 56.145550, shape.SegmentType.LINE)
-    v11 = shape.Vertex(26.015625, 55.354135, shape.SegmentType.LINE)
-    v12 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-    closed_vertices = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
-
+    # v0 = shape.Vertex(-126.210938, 67.991108, shape.SegmentType.MOVE)
+    # v1 = shape.Vertex(-108.984375, 70.480896, shape.SegmentType.LINE)
+    # v2 = shape.Vertex(-98.789063, 66.912834, shape.SegmentType.LINE)
+    # v3 = shape.Vertex(-75.234375, 60.217991, shape.SegmentType.LINE)
+    # v4 = shape.Vertex(-87.890625, 52.241256, shape.SegmentType.LINE)
+    # v5 = shape.Vertex(-110.742188, 54.136696, shape.SegmentType.LINE)
+    # v6 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
+    # v7 = shape.Vertex(24.609375, 62.895218, shape.SegmentType.MOVE)
+    # v8 = shape.Vertex(43.593750, 67.322924, shape.SegmentType.LINE)
+    # v9 = shape.Vertex(55.898438, 62.734601, shape.SegmentType.LINE)
+    # v10 = shape.Vertex(46.757813, 56.145550, shape.SegmentType.LINE)
+    # v11 = shape.Vertex(26.015625, 55.354135, shape.SegmentType.LINE)
+    # v12 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
+    # closed_vertices = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12]
 
 
 def test_polygon_self_intersection():

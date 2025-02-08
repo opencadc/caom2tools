@@ -360,7 +360,8 @@ def _augment(
     plane = obs.planes[plane_uri]
 
     if uri not in plane.artifacts.keys():
-        plane.artifacts.add(Artifact(uri=str(uri), product_type=DataLinkSemantics.SCIENCE, release_type=ReleaseType.DATA))
+        plane.artifacts.add(Artifact(uri=str(uri), product_type=DataLinkSemantics.SCIENCE,
+                                     release_type=ReleaseType.DATA))
 
     meta_uri = uri
     visit_local = None
