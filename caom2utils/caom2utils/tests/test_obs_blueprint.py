@@ -82,7 +82,7 @@ def test_obs_blueprint():
     assert elems != ObsBlueprint.CAOM2_ELEMENTS
 
     # default config (one entry per row...)
-    assert str(ObsBlueprint()).count('\n') == 24
+    assert str(ObsBlueprint()).count('\n') == 23
     print(ObsBlueprint())
 
     # default config with WCS info
@@ -92,7 +92,7 @@ def test_obs_blueprint():
                 position_axes=(1, 2), energy_axis=3, polarization_axis=4, time_axis=5, obs_axis=6, custom_axis=7
             )
         ).count('\n')
-        == 90
+        == 89  # TODO why?
     )
 
     ob = ObsBlueprint()

@@ -343,26 +343,26 @@ class CustomAxisUtil:
     def _chose_product_type(artifacts):
         ret = None
         for a in artifacts:
-            if chunk.ProductType.SCIENCE == a.product_type:
-                return chunk.ProductType.SCIENCE
+            if chunk.DataLinkSemantics.SCIENCE == a.product_type:
+                return chunk.DataLinkSemantics.SCIENCE
 
-            if chunk.ProductType.CALIBRATION == a.product_type:
-                return chunk.ProductType.CALIBRATION
+            if chunk.DataLinkSemantics.CALIBRATION == a.product_type:
+                return chunk.DataLinkSemantics.CALIBRATION
 
             for p_key in a.parts:
                 p = a.parts[p_key]
-                if chunk.ProductType.SCIENCE == p.product_type:
-                    return chunk.ProductType.SCIENCE
+                if chunk.DataLinkSemantics.SCIENCE == p.product_type:
+                    return chunk.DataLinkSemantics.SCIENCE
 
-                if chunk.ProductType.CALIBRATION == p.product_type:
-                    return chunk.ProductType.CALIBRATION
+                if chunk.DataLinkSemantics.CALIBRATION == p.product_type:
+                    return chunk.DataLinkSemantics.CALIBRATION
 
                 for c in p.chunks:
-                    if chunk.ProductType.SCIENCE == c.product_type:
-                        return chunk.ProductType.SCIENCE
+                    if chunk.DataLinkSemantics.SCIENCE == c.product_type:
+                        return chunk.DataLinkSemantics.SCIENCE
 
-                    if chunk.ProductType.CALIBRATION == c.product_type:
-                        ret = chunk.ProductType.CALIBRATION
+                    if chunk.DataLinkSemantics.CALIBRATION == c.product_type:
+                        ret = chunk.DataLinkSemantics.CALIBRATION
 
         return ret
 
@@ -398,9 +398,9 @@ class CustomAxisUtil:
         product_type = CustomAxisUtil._chose_product_type(artifacts)
         axis_ctype = CustomAxisUtil._get_ctype(artifacts, product_type)
         if axis_ctype is not None:
-            c = plane.CustomAxis(axis_ctype)
             if product_type is not None:
-                c.bounds = CustomAxisUtil.compute_bounds(artifacts, product_type, axis_ctype)
+                bounds = CustomAxisUtil.compute_bounds(artifacts, product_type, axis_ctype)
+                c = plane.CustomAxis(axis_ctype, bounds, [bounds])
                 if c.dimension is None:
                     c.dimension = CustomAxisUtil.compute_dimension_from_wcs(
                         c.bounds, artifacts, product_type, axis_ctype
@@ -466,7 +466,7 @@ class CustomAxisUtil:
             lb = min(lb, sub.lower)
             ub = max(ub, sub.upper)
 
-        return shape.Interval(lb, ub, subs)
+        return shape.Interval(lb, ub)
 
     @staticmethod
     def compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype):

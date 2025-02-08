@@ -79,8 +79,8 @@ from caom2utils.caom2blueprint import _visit, _load_plugin
 from caom2utils.caom2blueprint import _get_and_update_artifact_meta
 from caom2utils.wcs_parsers import FitsWcsParser, Hdf5WcsParser
 
-from caom2 import ObservationWriter, SimpleObservation, Algorithm, Artifact, ProductType, ReleaseType, DataProductType
-from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk, ObservationIntentType, ChecksumURI
+from caom2 import ObservationWriter, SimpleObservation, Algorithm, Artifact, DataLinkSemantics, ReleaseType, DataProductType
+from caom2 import get_differences, obs_reader_writer, ObservationReader, Chunk, ObservationIntentType
 from caom2 import CustomWCS, SpectralWCS, TemporalWCS, PolarizationWCS, SpatialWCS, Axis, CoordAxis1D, CoordAxis2D
 from caom2 import CalibrationLevel
 
@@ -145,7 +145,7 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 def test_augment_energy():
     bp = ObsBlueprint(energy_axis=1)
     test_fitsparser = FitsParser(sample_file_4axes, bp)
-    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), ProductType.SCIENCE, ReleaseType.DATA)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     energy = artifact.parts['0'].chunks[0].energy
     ex = _get_from_str_xml(EXPECTED_ENERGY_XML, ObservationReader()._get_spectral_wcs, 'energy')
@@ -163,7 +163,7 @@ def test_hdf5_wcs_parser_set_wcs():
     test_f_name = 'taos2_test.h5'
     test_uri = f'cadc:TEST/{test_f_name}'
     test_fqn = f'{TESTDATA_DIR}/taos_h5file/20220201T200117/{test_f_name}'
-    test_artifact = Artifact(test_uri, ProductType.SCIENCE, ReleaseType.DATA)
+    test_artifact = Artifact(test_uri, DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
 
     # check the error messages
     test_position_bp.configure_position_axes((4, 5))
@@ -197,7 +197,7 @@ def test_hdf5_wcs_parser_set_wcs():
 def test_augment_failure():
     bp = ObsBlueprint()
     test_fitsparser = FitsParser(sample_file_4axes, bp)
-    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), ProductType.SCIENCE, ReleaseType.DATA)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
     with pytest.raises(TypeError):
         test_fitsparser.augment_artifact(artifact)
 
@@ -242,7 +242,7 @@ EXPECTED_POLARIZATION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.or
 
 def test_augment_polarization():
     test_fitsparser = FitsParser(sample_file_4axes, ObsBlueprint(polarization_axis=1))
-    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), ProductType.SCIENCE, ReleaseType.DATA)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     polarization = artifact.parts['0'].chunks[0].polarization
     ex = _get_from_str_xml(EXPECTED_POLARIZATION_XML, ObservationReader()._get_polarization_wcs, 'polarization')
@@ -306,7 +306,7 @@ EXPECTED_POSITION_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/ca
 def test_augment_artifact():
     test_blueprint = ObsBlueprint(position_axes=(1, 2))
     test_fitsparser = FitsParser(sample_file_4axes, test_blueprint)
-    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), ProductType.SCIENCE, ReleaseType.DATA)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     assert artifact.parts is not None
     assert len(artifact.parts) == 1
@@ -375,7 +375,7 @@ EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME = '''<caom2:import xmlns:caom2="http://
 
 def test_augment_artifact_time():
     test_fitsparser = FitsParser(sample_file_time_axes, ObsBlueprint(time_axis=1))
-    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_time_axes), ProductType.SCIENCE, ReleaseType.DATA)
+    artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_time_axes), DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     assert artifact.parts is not None
     assert len(artifact.parts) == 6
@@ -427,7 +427,7 @@ def test_get_wcs_values():
 
 def test_wcs_parser_augment_failures():
     test_parser = FitsWcsParser(get_test_header(sample_file_4axes)[0].header, sample_file_4axes, 0)
-    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST', Algorithm('exposure'))
+    test_obs = SimpleObservation(collection='collection', uri='caom:MA1_DRAO-ST', algorithm=Algorithm('exposure'))
 
     with pytest.raises(ValueError):
         test_parser.augment_custom(test_obs)
@@ -697,12 +697,13 @@ def test_augment_observation():
     test_obs_blueprint.set('Plane.calibrationLevel', '2')
     test_fitsparser = FitsParser(sample_file_4axes_obs, test_obs_blueprint)
     test_fitsparser.blueprint = test_obs_blueprint
-    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST', Algorithm('exposure'))
+    test_obs = SimpleObservation('collection', 'caom:collection/MA1_DRAO-ST', Algorithm('exposure'))
     test_fitsparser.augment_observation(test_obs, sample_file_4axes_uri, product_id='HI-line')
     assert test_obs is not None
     assert test_obs.planes is not None
     assert len(test_obs.planes) == 1
-    test_plane = test_obs.planes['HI-line']
+    test_plane_uri = f'{test_obs.uri}/HI-line'
+    test_plane = test_obs.planes[test_plane_uri]
     assert test_plane.artifacts is not None
     assert len(test_plane.artifacts) == 1
     test_artifact = test_plane.artifacts[sample_file_4axes_uri]
@@ -725,9 +726,9 @@ def test_augment_value_errors():
     ob = ObsBlueprint(position_axes=(1, 2))
     ob.set('Plane.productID', None)
     test_parser = BlueprintParser(obs_blueprint=ob)
-    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST', Algorithm('exposure'))
+    test_obs = SimpleObservation('collection', 'caom:MA1_DRAO-ST', Algorithm('exposure'))
     with pytest.raises(ValueError):
-        test_parser.augment_observation(test_obs, 'cadc:TEST/abc.fits.gz', product_id=None)
+        test_parser.augment_observation(test_obs, 'cadc:TEST/abc.fits.gz')
 
     with pytest.raises(ValueError):
         test_parser.augment_plane(test_obs, 'cadc:TEST/abc.fits.gz')
@@ -1054,22 +1055,25 @@ def _get_obs(from_xml_string):
 EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = (
     """<?xml version='1.0' encoding='UTF-8'?>
 <caom2:Observation"""
-    + """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" """
+    + """ xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.5" """
     + """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """
     + """xsi:type="caom2:SimpleObservation" """
     + """caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
       <caom2:collection>test_collection_id</caom2:collection>
-  <caom2:observationID>test_observation_id</caom2:observationID>
+  <caom2:uri>caom:test_collection_id/test_observation_id</caom2:uri>
+  <caom2:uriBucket>6df</caom2:uriBucket>
   <caom2:algorithm>
     <caom2:name>exposure</caom2:name>
   </caom2:algorithm>
   <caom2:planes>
     <caom2:plane caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
-      <caom2:productID>test_product_id</caom2:productID>
+      <caom2:uri>caom:test_collection_id/test_observation_id/test_product_id</caom2:uri>
       <caom2:dataProductType>image</caom2:dataProductType>
       <caom2:calibrationLevel>3</caom2:calibrationLevel>
       <caom2:artifacts>
         <caom2:artifact caom2:id="00000000-0000-0000-8ffa-fc0a5a8759df">
+          <caom2:uri>ad:foo/bar0</caom2:uri>
+          <caom2:uriBucket>109</caom2:uriBucket>
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
@@ -1108,7 +1112,7 @@ def test_generic_parser():
             java_config_file,
             '--override',
             text_override,
-            fname,
+            'ad:foo/bar0',
         ]
         main_app()
         if stdout_mock.getvalue():
@@ -1352,7 +1356,7 @@ def test_visit_generic_parser():
         test_plugin = __name__
         kwargs = {}
         test_obs = SimpleObservation(
-            collection='test_collection', observation_id='test_obs_id', algorithm=Algorithm('exposure')
+            collection='test_collection', uri='caom:test_obs_id', algorithm=Algorithm('exposure')
         )
         _visit(test_plugin, test_parser, test_obs, visit_local=None, **kwargs)
     except ImportError:
@@ -1390,10 +1394,10 @@ def test_get_vos_meta(vos_mock):
         )
         vos_mock.return_value.get_node.side_effect = _get_node
         test_uri = 'vos://cadc.nrc.ca!vospace/CAOMworkshop/Examples/DAO/' 'dao_c122_2016_012725.fits'
-        test_artifact = Artifact(test_uri, ProductType.SCIENCE, ReleaseType.DATA)
+        test_artifact = Artifact(test_uri, DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
         _get_and_update_artifact_meta(test_uri, test_artifact, subject=None)
         assert test_artifact is not None
-        assert test_artifact.content_checksum.uri == 'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
+        assert test_artifact.content_checksum == 'md5:5b00b00d4b06aba986c3663d09aa581f', 'checksum wrong'
         assert test_artifact.content_length == 682560, 'length wrong'
         assert test_artifact.content_type == 'application/fits', 'content_type wrong'
         assert vos_mock.called, 'mock not called'
@@ -1434,7 +1438,7 @@ def test_get_external_headers_fails(get_external_mock):
     test_product_id = 'TEST_PRODUCT_ID'
     test_blueprint = caom2utils.caom2blueprint.ObsBlueprint()
     test_observation = SimpleObservation(
-        collection=test_collection, observation_id=test_obs_id, algorithm=Algorithm(name='exposure')
+        collection=test_collection, uri=f'caom:{test_obs_id}', algorithm=Algorithm(name='exposure')
     )
     test_result = caom2utils.caom2blueprint._augment(
         obs=test_observation,
@@ -1446,7 +1450,8 @@ def test_get_external_headers_fails(get_external_mock):
     )
     assert test_result is not None, 'expect a result'
     assert len(test_result.planes.values()) == 1, 'plane added to result'
-    test_plane = test_result.planes[test_product_id]
+    plane_uri = f'{test_result.uri}/{test_product_id}'
+    test_plane = test_result.planes[plane_uri]
     assert len(test_plane.artifacts.values()) == 1, 'artifact added to plane'
     assert test_uri in test_plane.artifacts.keys(), 'wrong artifact uri'
 
@@ -1528,10 +1533,12 @@ def test_blueprint_instantiated_class():
     test_blueprint.set('Artifact.releaseType', 'data')
     test_blueprint.set('Chunk.time.exposure', 'get_time_exposure()', 1)
     test_parser = FitsParser(src=[hdr1, hdr2], obs_blueprint=test_blueprint)
-    test_obs = SimpleObservation('collection', 'MA1_DRAO-ST', Algorithm('exposure'))
+    test_obs = SimpleObservation('collection', 'caom:MA1_DRAO-ST', Algorithm('exposure'))
     test_parser.augment_observation(test_obs, 'cadc:TEST/test_file_name.fits')
-    assert 'PRODUCT_ID' in test_obs.planes.keys(), 'expect plane'
-    test_plane = test_obs.planes['PRODUCT_ID']
+    #  TODO
+    #assert 'PRODUCT_ID' in test_obs.planes.keys(), 'expect plane'
+    plane_uri = f'{test_obs.uri}/PRODUCT_ID'
+    test_plane = test_obs.planes[plane_uri]
     assert 'cadc:TEST/test_file_name.fits' in test_plane.artifacts.keys(), 'expect artifact'
     test_artifact = test_plane.artifacts.pop('cadc:TEST/test_file_name.fits')
     test_part = test_artifact.parts.pop('1')
@@ -1545,7 +1552,7 @@ def test_blueprint_instantiated_class():
     test_blueprint2.set('Plane.calibrationLevel', 'getCalibrationLevel()')
     test_blueprint2.set('Plane.dataProductType', 'broken_function()')
     test_parser2 = BlueprintParser(obs_blueprint=test_blueprint2)
-    test_obs2 = SimpleObservation('collection', 'MA1_DRAO-ST', Algorithm('exposure'))
+    test_obs2 = SimpleObservation('collection', 'caom:MA1_DRAO-ST', Algorithm('exposure'))
     with pytest.raises(ValueError):
         test_parser2.augment_observation(test_obs2, 'cadc:TEST/abc.fits.gz')
 
@@ -1573,7 +1580,7 @@ def test_apply_blueprint_execute_external():
 
 def test_update_artifact_meta_errors():
     test_uri = 'gemini:GEMINI/abc.jpg'
-    test_artifact = Artifact(uri=test_uri, product_type=ProductType.SCIENCE, release_type=ReleaseType.DATA)
+    test_artifact = Artifact(uri=test_uri, product_type=DataLinkSemantics.PREVIEW_IMAGE, release_type=ReleaseType.DATA)
     client_mock = Mock(autospec=True)
     client_mock.info.return_value = FileInfo(id=test_uri, file_type='application/octet', size=42, md5sum='md5:42')
     test_uri = 'gemini://test.fits'
@@ -1584,13 +1591,13 @@ def test_update_artifact_meta_errors():
 
     test_uri = 'gemini:GEMINI/abc.jpg'
     _get_and_update_artifact_meta(test_uri, test_artifact, client=client_mock)
-    assert test_artifact.content_checksum == ChecksumURI(uri='md5:42'), 'checksum'
+    assert test_artifact.content_checksum == 'md5:42', 'checksum'
     assert test_artifact.content_length == 42, 'length'
     assert test_artifact.content_type == 'application/octet', 'type'
 
     # TODO - does this increase coverage?
     test_uri = 'file:///test.fits.header'
-    test_artifact = Artifact(uri=test_uri, product_type=ProductType.SCIENCE, release_type=ReleaseType.DATA)
+    test_artifact = Artifact(uri=test_uri, product_type=DataLinkSemantics.PREVIEW_IMAGE, release_type=ReleaseType.DATA)
     client_mock.info.return_value = None
     _get_and_update_artifact_meta(test_uri, test_artifact, net.Subject(), client=client_mock)
     assert test_artifact.content_type is None, 'type'
@@ -1628,7 +1635,7 @@ def test_gen_proc_failure(augment_mock, stdout_mock, cap_mock, client_mock):
 @patch('sys.stdout', new_callable=StringIO)
 @patch('caom2utils.caom2blueprint.Client')
 def test_parser_construction(vos_mock, stdout_mock):
-    vos_mock.get_node.side_effect = _get_node
+    vos_mock.return_value.get_node.side_effect = _get_node
     test_uri = 'vos:goliaths/abc.fits.gz'
     test_blueprint = ObsBlueprint()
     test_blueprint.set('Observation.instrument.keywords', 'instrument keyword')

@@ -378,7 +378,6 @@ class ObsBlueprint:
             'Plane.dataProductType': ([], DataProductType.IMAGE),
             'Plane.metaRelease': (['RELEASE', 'REL_DATE'], None),
             'Plane.dataRelease': (['RELEASE', 'REL_DATE'], None),
-            'Plane.productID': (['RUNID'], None),
             'Plane.provenance.name': (['XPRVNAME'], None),
             'Plane.provenance.project': (['ADC_ARCH'], None),
             'Plane.provenance.producer': (['ORIGIN'], None),

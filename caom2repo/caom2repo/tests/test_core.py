@@ -78,7 +78,7 @@ import requests
 from cadcutils import util, exceptions
 from cadcutils.net import auth
 from caom2.obs_reader_writer import ObservationWriter
-from caom2 import obs_reader_writer, ChecksumURI
+from caom2 import obs_reader_writer
 from caom2.observation import SimpleObservation
 from unittest.mock import Mock, patch, MagicMock, ANY, call
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
@@ -577,7 +577,7 @@ class TestCAOM2Repo(unittest.TestCase):
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
         observation = SimpleObservation('cfht', 'a')
-        observation.acc_meta_checksum = ChecksumURI('md5:abc')
+        observation.acc_meta_checksum = 'md5:abc'
         visitor.get_observation = MagicMock(side_effect=[observation,
                                                          observation])
 

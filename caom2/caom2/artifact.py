@@ -258,7 +258,7 @@ class Artifact(AbstractCaomEntity):
     def content_checksum(self):
         """the checksum value for the artifact data
 
-        type: ChecksumURI
+        type: uri
 
         """
         return self._content_checksum

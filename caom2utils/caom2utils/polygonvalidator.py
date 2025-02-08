@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2018.                            (c) 2018.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,10 +68,10 @@
 
 import numpy as np
 from spherical_geometry import polygon, vector
-from caom2 import Point, Polygon, MultiPolygon, SegmentType, Circle
+from caom2 import Polygon, MultiShape, Circle
 
 
-__all__ = ['validate_polygon', 'validate_multipolygon']
+__all__ = ['validate_polygon', 'validate_multishape']
 
 
 def validate_polygon(poly):
@@ -156,82 +156,19 @@ def _validate_self_intersection_and_direction(ras, decs):
     _validate_is_clockwise(ras, lon)
 
 
-def validate_multipolygon(mp):
+def validate_multishape(mp):
     """
     Performs a basic validation of a multipolygon.
 
     An AssertionError is thrown if the multipolygon is invalid ie (invalid indexes, invalid polygons etc.)
     """
-
+    # TODO - not sure this is useful anymore
     if not mp:
         return
-    if not isinstance(mp, MultiPolygon):
-        raise ValueError(f'MultiPoligon expected in validation received {type(mp)}')
-
-    _validate_size_and_end_vertices(mp)
+    if not isinstance(mp, MultiShape):
+        raise ValueError(f'MultiShape expected in validation received {type(mp)}')
 
     # perform a more detailed validation of this multipolygon object
-    mp_validator = MultiPolygonValidator()
-    for i in range(len(mp.vertices)):
-        mp_validator.validate(mp.vertices[i])
-
-
-def _validate_size_and_end_vertices(mp):
-    if len(mp.vertices) < 4:
-        # triangle
-        raise AssertionError('invalid polygon: {} vertices (min 4)'.format(len(mp.vertices)))
-
-    if mp.vertices[0].type != SegmentType.MOVE:
-        raise AssertionError('invalid polygon: first vertex is not a MOVE vertex')
-
-    if mp.vertices[-1].type != SegmentType.CLOSE:
-        raise AssertionError('invalid polygon: last vertex is not a CLOSE vertex')
-
-
-class MultiPolygonValidator:
-    """
-    A class to validate the sequencing of vertices in a polygon, as well as constructing and validating the polygon.
-
-    An AssertionError is thrown if an incorrect polygon is detected.
-    """
-
-    def __init__(self):
-        self._lines = 0
-        self._open_loop = False
-        self._polygon = Polygon()
-
-    def validate(self, vertex):
-        if vertex.type == SegmentType.MOVE:
-            self._validate_move(vertex)
-        elif vertex.type == SegmentType.CLOSE:
-            self._validate_close(vertex)
-        else:
-            self._validate_line(vertex)
-
-    def _validate_move(self, vertex):
-        if self._open_loop:
-            raise AssertionError('invalid polygon: MOVE vertex when loop open')
-        self._lines = 0
-        self._open_loop = True
-        self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
-
-    def _validate_close(self, vertex):
-        # close the polygon
-        if not self._open_loop:
-            raise AssertionError('invalid polygon: CLOSE vertex when loop close')
-        if self._lines < 2:
-            raise AssertionError('invalid polygon: minimum 2 lines required')
-        self._open_loop = False
-        # SphericalPolygon requires point[0] == point[-1]
-        point = self._polygon.points[0]
-        self._polygon.points.append(Point(point.cval1, point.cval2))
-        # validate the polygons in the multipolygon
-        validate_polygon(self._polygon)
-        # instantiate a new Polygon for the next iteration
-        self._polygon = Polygon()
-
-    def _validate_line(self, vertex):
-        if not self._open_loop:
-            raise AssertionError('invalid polygon: LINE vertex when loop close')
-        self._lines += 1
-        self._polygon.points.append(Point(vertex.cval1, vertex.cval2))
+    for shape in mp.shapes:
+        if shape not in [Circle, Polygon]:
+            raise ValueError(f'Invalid shape in MultiShape: {shape}')

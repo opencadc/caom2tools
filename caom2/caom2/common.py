@@ -246,7 +246,7 @@ class AbstractCaomEntity(CaomObject):
     def meta_checksum(self):
         """the meta checksum value
 
-        type: ChecksumURI
+        type: URI
 
         """
         return self._meta_checksum
@@ -263,7 +263,7 @@ class AbstractCaomEntity(CaomObject):
     def acc_meta_checksum(self):
         """the accumulated meta checksum value
 
-        type: ChecksumURI
+        type: URI
 
         """
         return self._acc_meta_checksum

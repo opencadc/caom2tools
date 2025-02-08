@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2016.                            (c) 2016.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -98,13 +98,12 @@ from cadcutils import version
 from caom2 import (
     Artifact,
     Algorithm,
-    ChecksumURI,
     CompositeObservation,
     DerivedObservation,
     ObservationReader,
     ObservationWriter,
     Plane,
-    ProductType,
+    DataLinkSemantics,
     ReleaseType,
     SimpleObservation,
 )
@@ -263,9 +262,9 @@ def update_artifact_meta(artifact, file_info):
     )
     if file_info.md5sum is not None:
         if file_info.md5sum.startswith('md5:'):
-            checksum = ChecksumURI(file_info.md5sum)
+            checksum = file_info.md5sum
         else:
-            checksum = ChecksumURI(f'md5:{file_info.md5sum}')
+            checksum = f'md5:{file_info.md5sum}'
         artifact.content_checksum = checksum
     artifact.content_length = _to_int(file_info.size)
     artifact.content_type = _to_str(file_info.file_type)
@@ -354,13 +353,14 @@ def _augment(
     if dumpconfig:
         print(f'Blueprint for {uri}: {blueprint}')
 
-    if product_id not in obs.planes.keys():
-        obs.planes.add(Plane(product_id=str(product_id)))
+    plane_uri = f'{obs.uri}/{product_id}'
+    if plane_uri not in obs.planes.keys():
+        obs.planes[plane_uri] = Plane(uri=plane_uri)
 
-    plane = obs.planes[product_id]
+    plane = obs.planes[plane_uri]
 
     if uri not in plane.artifacts.keys():
-        plane.artifacts.add(Artifact(uri=str(uri), product_type=ProductType.SCIENCE, release_type=ReleaseType.DATA))
+        plane.artifacts.add(Artifact(uri=str(uri), product_type=DataLinkSemantics.SCIENCE, release_type=ReleaseType.DATA))
 
     meta_uri = uri
     visit_local = None
@@ -427,7 +427,10 @@ def _augment(
         result = None
     else:
         _get_and_update_artifact_meta(meta_uri, plane.artifacts[uri], subject, connected, client)
-        parser.augment_observation(observation=obs, artifact_uri=uri, product_id=plane.product_id)
+        product_id = None
+        if plane.uri:
+            product_id = plane.uri.split('/')[-1]
+        parser.augment_observation(observation=obs, artifact_uri=uri, product_id=product_id)
 
         result = _visit(plugin, parser, obs, visit_local, product_id, uri, subject, **kwargs)
 
@@ -556,23 +559,26 @@ def _gen_obs(obs_blueprints, in_obs_xml, collection=None, obs_id=None):
     else:
         # determine the type of observation to create by looking for the the DerivedObservation.members in the
         # blueprints. If present in any of it assume derived
+        if not collection or not obs_id:
+            raise ValueError('collection and obs_id must be provided if no input observation is provided')
+        obs_uri = f'caom:{collection}/{obs_id}'
         for bp in obs_blueprints.values():
             if bp._get('DerivedObservation.members') is not None:
                 logging.debug('Build a DerivedObservation')
                 obs = DerivedObservation(
-                    collection=collection, observation_id=obs_id, algorithm=Algorithm('composite')
+                    collection=collection, uri=obs_uri, algorithm=Algorithm('composite')
                 )
                 break
             elif bp._get('CompositeObservation.members') is not None:
                 logging.debug('Build a CompositeObservation with obs_id {}'.format(obs_id))
                 obs = CompositeObservation(
-                    collection=collection, observation_id=obs_id, algorithm=Algorithm('composite')
+                    collection=collection, uri=obs_uri, algorithm=Algorithm('composite')
                 )
                 break
     if not obs:
         # build a simple observation
-        logging.debug(f'Build a SimpleObservation with obs_id {obs_id}')
-        obs = SimpleObservation(collection=collection, observation_id=obs_id, algorithm=Algorithm('exposure'))
+        logging.debug(f'Build a SimpleObservation with uri {obs_uri}')
+        obs = SimpleObservation(collection=collection, uri=obs_uri, algorithm=Algorithm('exposure'))
     return obs
 
 
@@ -773,7 +779,7 @@ def _visit(plugin_name, parser, obs, visit_local, product_id=None, uri=None, sub
     if plugin_name is not None and len(plugin_name) > 0:
         # TODO make a check that's necessary under both calling conditions here
         logging.debug(
-            'Begin plugin execution {!r} update method on ' 'observation {!r}'.format(plugin_name, obs.observation_id)
+            'Begin plugin execution {!r} update method on ' 'observation {!r}'.format(plugin_name, obs.uri)
         )
         plgin = _load_plugin(plugin_name)
         if isinstance(parser, FitsParser):
