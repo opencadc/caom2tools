@@ -1887,9 +1887,8 @@ class Hdf5Parser(ContentParser):
         return result
 
     def _set_wcs_parsers(self, obs_blueprint):
-        # self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=0)
-        # used to set the astropy wcs info, resulting in a validated wcs
-        # that can be used to construct a valid CAOM2 record
+        # used to set the astropy wcs info, resulting in a validated wcs that can be used to construct a valid CAOM2
+        # record
         self._wcs_parsers = {}
 
     def apply_blueprint_from_file(self):
@@ -1897,8 +1896,7 @@ class Hdf5Parser(ContentParser):
         Retrieve metadata from file, cache in the blueprint.
         """
         self.logger.debug('Begin apply_blueprint_from_file')
-        # h5py is an extra in this package since most collections do not
-        # require it
+        # h5py is an extra in this package since most collections do not require it
         import h5py
 
         individual, multi, attributes, candidate_extensions = self._extract_path_names_from_blueprint()
@@ -2032,7 +2030,6 @@ class Hdf5Parser(ContentParser):
             :param name: fully-qualified HDF5 path name
             :param object: what the HDF5 path name points to
             """
-            import h5py
             for part_name in candidates:
                 y = part_name.replace('/', '', 1)
                 if name.startswith(y):
