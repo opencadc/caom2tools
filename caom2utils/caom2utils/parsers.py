@@ -2012,9 +2012,7 @@ class Hdf5Parser(ContentParser):
                     else:
                         attributes[ii].append(key)
 
-        temp = list(set(extensions))
-        extensions = temp
-        return individual, multi, attributes, extensions
+        return individual, multi, attributes, list(set(extensions))
 
     def _find_extension_names(self, candidates):
         """ if the HDF5 file has a structure where-by more than one Chunk (the equivalent of a FITS HDU extension)
