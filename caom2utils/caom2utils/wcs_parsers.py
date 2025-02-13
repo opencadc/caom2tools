@@ -644,8 +644,9 @@ class WcsParser:
             else:
                 result = self._wcs.array_shape[for_axis - 1]
             if isinstance(result, tuple):
-                # the blueprint is incompletely configured
-                raise ValueError(f'Could not find axis length for axis {for_axis}')
+                raise ValueError(
+                    f'Could not find axis length for axis {for_axis}. The blueprint is incompletely configured.'
+                )
             return _to_int(result)
 
     def _get_cd(self, x_index, y_index):
