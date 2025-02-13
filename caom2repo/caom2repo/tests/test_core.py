@@ -766,7 +766,7 @@ class TestCAOM2Repo(unittest.TestCase):
         # id of the observation: True for 'UPDATE', False for 'SKIP' and
         # raises exception for 'ERROR'
         obs_uris = [['UPDATE', 'SKIP', 'ERROR'], []]
-        get_mock.side_effects = self.mock_get_observation
+        get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.post_observation = PickableMagicMock()
