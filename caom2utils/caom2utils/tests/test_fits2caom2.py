@@ -1418,6 +1418,23 @@ def test_generic_parser1():
     assert test_parser._blueprint._plan[test_key] == test_value, 'original value over-ridden'
 
 
+def test_generic_parser_imported_module_error_handling():
+    # this test exercises the error handling code for executing functions defined by blueprints
+    test_key = 'Plane.metaRelease'
+    test_key_2 = 'Plane.dataRelease'
+    test_value = '2013-10-10'
+    test_blueprint = ObsBlueprint()
+    test_blueprint.set(test_key, '2013-10-10')
+    # pick __sizeof__ as an attribute that will fail to execute for any module
+    test_blueprint.set(test_key_2, '__sizeof__()')
+    test_parser = BlueprintParser()
+    assert test_parser._blueprint._plan[test_key] == (['RELEASE', 'REL_DATE'], None), 'default value changed'
+    test_parser.blueprint = test_blueprint
+    assert test_parser._blueprint._plan[test_key] == test_value, 'original value over-ridden'
+    test_result = test_parser._execute_external('__sizeof__(uri)', test_key_2, 0)
+    assert test_result == '', 'wrong result'
+
+
 def test_get_external_headers():
     test_uri = 'http://localhost/obs23/collection/obsid-1'
     with patch('requests.Session.get') as session_get_mock:

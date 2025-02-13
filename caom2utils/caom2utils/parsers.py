@@ -284,7 +284,7 @@ class BlueprintParser:
             self.logger.debug(f'Could not find \'{lookup}\' in caom2blueprint ' f'configuration.')
 
         # if there's something useful as a value in the keywords, extract it
-        if keywords:
+        if keywords is not None and any(keywords):
             if ObsBlueprint.needs_lookup(keywords):
                 # if there's a default value use it
                 if keywords[1]:
@@ -351,17 +351,18 @@ class BlueprintParser:
             self.logger.debug(tb)
             self.logger.error(e)
             return result
-        try:
-            result = execute(parameter)
-            self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
-        except Exception as e:
-            msg = f'Failed to execute {execute.__name__} for {key} in {self.uri}'
-            self.logger.error(msg)
-            self.logger.debug(f'Input parameter was {parameter}, value was {value}')
-            self._errors.append(msg)
-            tb = traceback.format_exc()
-            self.logger.debug(tb)
-            self.logger.error(e)
+        if execute:
+            try:
+                result = execute(parameter)
+                self.logger.debug(f'Key {key} calculated value of {result} using {value} type {type(result)}')
+            except Exception as e:
+                msg = f'Failed to execute {execute.__name__} for {key} in {self.uri}'
+                self.logger.error(msg)
+                self.logger.debug(f'Input parameter was {parameter}, value was {value}')
+                self._errors.append(msg)
+                tb = traceback.format_exc()
+                self.logger.debug(tb)
+                self.logger.error(e)
         return result
 
     def _execute_external_instance(self, value, key, extension):
@@ -423,6 +424,7 @@ class BlueprintParser:
                 # CFHT 2003/03/29,01:34:54
                 # CFHT 2003/03/29
                 # DDO 12/02/95
+                # TAOSII 2024-01-26T14:52:49Z
                 for dt_format in [
                     '%Y-%m-%dT%H:%M:%S',
                     '%Y-%m-%dT%H:%M:%S.%f',
@@ -435,6 +437,7 @@ class BlueprintParser:
                     '%d/%m/%y',
                     '%d/%m/%y %H:%M:%S',
                     '%d-%m-%Y',
+                    '%Y-%m-%dT%H:%M:%SZ',
                 ]:
                     try:
                         result = datetime.strptime(from_value, dt_format)
@@ -545,7 +548,7 @@ class BlueprintParser:
         if name:
             prov = caom2.Provenance(name, p_version, project, producer, run_id, reference, last_executed)
             ContentParser._add_keywords(keywords, current, prov)
-            if inputs:
+            if inputs is not None and any(inputs):
                 if isinstance(inputs, caom2.TypedSet):
                     for i in inputs:
                         prov.inputs.add(i)
@@ -572,10 +575,13 @@ class BlueprintParser:
 
 
 class ContentParser(BlueprintParser):
-    def __init__(self, obs_blueprint=None, uri=None):
+    def __init__(self, obs_blueprint=None, uri=None, extension_start_index=0, extension_end_index=None):
         super().__init__(obs_blueprint, uri)
+        # for those cases where the extensions of interest are not all the extensions in the original file
+        self._extension_start_index = extension_start_index
+        self._extension_end_index = extension_end_index if extension_end_index else self._get_num_parts()
         self._wcs_parsers = {}
-        self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=0)
+        self._set_wcs_parsers(obs_blueprint)
 
     def _get_chunk_naxis(self, chunk, index):
         chunk.naxis = self._get_from_list('Chunk.naxis', index, self.blueprint.get_configed_axes_count())
@@ -585,6 +591,9 @@ class ContentParser(BlueprintParser):
         """
         return len(self._blueprint._extensions) + 1
 
+    def _set_wcs_parsers(self, obs_blueprint):
+        self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=self._extension_start_index)
+
     def augment_artifact(self, artifact):
         """
         Augments a given CAOM2 artifact with available content information
@@ -592,23 +601,26 @@ class ContentParser(BlueprintParser):
         :param index: int Part name
         """
         super().augment_artifact(artifact)
-
         self.logger.debug(f'Begin content artifact augmentation for {artifact.uri}')
 
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError(f'No WCS Data. End content artifact augmentation for ' f'{artifact.uri}.')
 
-        for index in range(0, self._get_num_parts()):
+        for index in range(self._extension_start_index, self._extension_end_index):
             if self.add_parts(artifact, index):
                 part = artifact.parts[str(index)]
                 part.product_type = self._get_from_list('Part.productType', index)
-                part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
+                part.meta_producer = self._get_from_list(
+                    'Part.metaProducer', index=self._extension_start_index, current=part.meta_producer
+                )
 
                 # each Part has one Chunk, if it's not an empty part as determined just previously
                 if not part.chunks:
                     part.chunks.append(caom2.Chunk())
                 chunk = part.chunks[0]
-                chunk.meta_producer = self._get_from_list('Chunk.metaProducer', index=0, current=chunk.meta_producer)
+                chunk.meta_producer = self._get_from_list(
+                    'Chunk.metaProducer', index=self._extension_start_index, current=chunk.meta_producer
+                )
 
                 self._get_chunk_naxis(chunk, index)
 
@@ -847,7 +859,8 @@ class ContentParser(BlueprintParser):
         return members
 
     def _get_axis_wcs(self, label, wcs, index):
-        """Helper function to construct a CoordAxis1D instance, with all its members, from the blueprint.
+        """Helper function to construct a CoordAxis1D instance, with all
+        it's members, from the blueprint.
 
         :param label: axis name - must be one of 'custom', 'energy', 'time', or 'polarization', as it's used for the
             blueprint lookup.
@@ -1460,7 +1473,7 @@ class FitsParser(ContentParser):
 
     """
 
-    def __init__(self, src, obs_blueprint=None, uri=None):
+    def __init__(self, src, obs_blueprint=None, uri=None, extension_start_index=0, extension_end_index=None):
         """
         Ctor
         :param src: List of headers (dictionary of FITS keywords:value) with one header for each extension or a FITS
@@ -1487,6 +1500,8 @@ class FitsParser(ContentParser):
         self._errors = []
         # for command-line parameter to module execution
         self.uri = uri
+        self._extension_start_index = extension_start_index
+        self._extension_end_index = extension_end_index if extension_end_index is not None else self._get_num_parts()
         self.apply_blueprint()
 
     def _get_num_parts(self):
@@ -1845,22 +1860,19 @@ class Hdf5Parser(ContentParser):
     - use the astropy.wcs instance and other blueprint metadata to fill the CAOM2 record.
     """
 
-    def __init__(self, obs_blueprint, uri, h5_file, find_roots_here='sitedata'):
+    def __init__(self, obs_blueprint, uri, h5_file, extension_names=None, extension_start_index=0,
+                 extension_end_index=None):
         """
         :param obs_blueprint: Hdf5ObsBlueprint instance
         :param uri: which artifact augmentation is based on
         :param h5_file: h5py file handle
-        :param find_roots_here: str location where Chunk metadata starts
+        :param extension_names: list of str where Chunk metadata starts. There is one Part/Chunk per list entry
         """
         self._file = h5_file
-        # where N Chunk metadata starts
-        self._find_roots_here = find_roots_here
-        # the length of the array is the number of Parts in an HDF5 file, and the values are HDF5 lookup path names.
-        self._extension_names = []
-        super().__init__(obs_blueprint, uri)
-        # used to set the astropy wcs info, resulting in a validated wcs that can be used to construct a valid CAOM2
-        # record
-        self._wcs_parsers = {}
+        # the length of the array is the number of Parts in an HDF5 file,
+        # and the values are HDF5 lookup path names.
+        self._extension_names = extension_names
+        super().__init__(obs_blueprint, uri, extension_start_index, extension_end_index)
 
     def _get_num_parts(self):
         """return the number of Parts to create for a CAOM record
@@ -1871,6 +1883,13 @@ class Hdf5Parser(ContentParser):
             result = 1
         return result
 
+    def _set_wcs_parsers(self, obs_blueprint):
+        # used to set the astropy wcs info, resulting in a validated wcs that can be used to construct a valid CAOM2
+        # record
+        # This method call is over-writing the default behaviour in the ContentParser class. The default behaviour
+        # uses the obs_blueprint. This method is called in the ContentParser constructor.
+        self._wcs_parsers = {}
+
     def apply_blueprint_from_file(self):
         """
         Retrieve metadata from file, cache in the blueprint.
@@ -1879,7 +1898,13 @@ class Hdf5Parser(ContentParser):
         # h5py is an extra in this package since most collections do not require it
         import h5py
 
-        individual, multi, attributes = self._extract_path_names_from_blueprint()
+        individual, multi, attributes, candidate_extensions = self._extract_path_names_from_blueprint()
+        if self._extension_names is None and len(candidate_extensions) > 0:
+            self._find_extension_names(candidate_extensions)
+            for index, _ in enumerate(self._extension_names):
+                self._blueprint._extensions[index] = {}
+        else:
+            self._blueprint._extensions[0] = {}
         filtered_individual = [ii for ii in individual.keys() if '(' in ii]
 
         def _extract_from_item(name, object):
@@ -1890,16 +1915,8 @@ class Hdf5Parser(ContentParser):
             :param name: fully-qualified HDF5 path name
             :param object: what the HDF5 path name points to
             """
-            if name == self._find_roots_here:
-                for ii, path_name in enumerate(object.keys()):
-                    # store the names and locations of the Part/Chunk metadata
-                    temp = f'{name}/{path_name}'
-                    self.logger.debug(f'Adding extension {temp}')
-                    self._extension_names.append(temp)
-                    self._blueprint._extensions[ii] = {}
-
-            # If it's the Part/Chunk metadata, capture it to extensions. Syntax of the keys described in
-            # Hdf5ObsBlueprint class.
+            # If it's the Part/Chunk metadata, capture it to extensions.
+            # Syntax of the keys described in Hdf5ObsBlueprint class.
             for part_index, part_name in enumerate(self._extension_names):
                 if name.startswith(part_name) and isinstance(object, h5py.Dataset) and object.dtype.names is not None:
                     for d_name in object.dtype.names:
@@ -1973,20 +1990,54 @@ class Hdf5Parser(ContentParser):
             are _CAOM2_ELEMENT strings.
             attributes - a dictionary of lists, keys reference expected content from the h5py.File().attrs data
             structure and its keys.
+            extensions - a list of prefixes for identifying extensions
         """
         individual = defaultdict(list)
         multi = defaultdict(list)
         attributes = defaultdict(list)
+        extensions = []
         for key, value in self._blueprint._plan.items():
             if ObsBlueprint.needs_lookup(value):
                 for ii in value[0]:
                     if ii.startswith('//'):
                         individual[ii].append(key)
                     elif ii.startswith('/'):
-                        multi[ii].append(key)
+                        if '{}' in ii:
+                            bits = ii.split('{}')
+                            extensions.append(bits[0])
+                            multi[bits[1]].append(key)
+                        else:
+                            multi[ii].append(key)
                     else:
                         attributes[ii].append(key)
-        return individual, multi, attributes
+
+        return individual, multi, attributes, list(set(extensions))
+
+    def _find_extension_names(self, candidates):
+        """ if the HDF5 file has a structure where-by more than one Chunk (the equivalent of a FITS HDU extension)
+        is defined, try to guess that structure
+        """
+        candidate_extension_names = []
+
+        def _extract_extension_prefixes(name, object):
+            """
+            Function signature dictated by h5py visititems implementation. Executed for each dataset/group in an
+            HDF5 file.
+
+            :param name: fully-qualified HDF5 path name
+            :param object: what the HDF5 path name points to
+            """
+            for part_name in candidates:
+                y = part_name.replace('/', '', 1)
+                if name.startswith(y):
+                    x = name.split(y)[1].split('/')
+                    temp = f'{y}{x[0]}'
+                    candidate_extension_names.append(temp)
+            self._extension_names = list(sorted(set(candidate_extension_names)))
+
+        self._file.visititems(_extract_extension_prefixes)
+        msg = '\n'.join(ii for ii in self._extension_names)
+        self.logger.info(f'Found extension_names:\n{msg}')
 
     def apply_blueprint(self):
         self.logger.debug('Begin apply_blueprint')
@@ -2015,6 +2066,7 @@ class Hdf5Parser(ContentParser):
                         else:
                             exts[extension][key] = self._execute_external_instance(value, key, extension)
 
+        # apply overrides
         # blueprint already contains all the overrides, only need to make sure the overrides get applied to all the
         # extensions
         for extension in exts:
@@ -2032,6 +2084,7 @@ class Hdf5Parser(ContentParser):
                 exts[extension][key] = value
                 self.logger.debug(f'{key}: set to {value} in extension {extension}')
 
+        # apply defaults
         # if no values have been set by file lookups, function execution, or applying overrides, apply defaults,
         # including to all extensions
         for key, value in plan.items():
@@ -2054,7 +2107,7 @@ class Hdf5Parser(ContentParser):
         return
 
     def augment_artifact(self, artifact):
-        for ii in range(0, self._get_num_parts()):
+        for ii in range(self._extension_start_index, self._extension_end_index):
             # one WCS parser per Part/Chunk
             self._wcs_parsers[ii] = Hdf5WcsParser(self._blueprint, ii)
         super().augment_artifact(artifact)
