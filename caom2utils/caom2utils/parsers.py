@@ -1864,7 +1864,8 @@ class Hdf5Parser(ContentParser):
     - use the astropy.wcs instance and other blueprint metadata to fill the CAOM2 record.
     """
 
-    def __init__(self, obs_blueprint, uri, h5_file, extension_names=None, extension_start_index=0, extension_end_index=None):
+    def __init__(self, obs_blueprint, uri, h5_file, extension_names=None, extension_start_index=0,
+                 extension_end_index=None):
         """
         :param obs_blueprint: Hdf5ObsBlueprint instance
         :param uri: which artifact augmentation is based on
@@ -1889,7 +1890,7 @@ class Hdf5Parser(ContentParser):
     def _set_wcs_parsers(self, obs_blueprint):
         # used to set the astropy wcs info, resulting in a validated wcs that can be used to construct a valid CAOM2
         # record
-        # This method call is over-writing the default behaviour in the ContentParser class. The default behaviour 
+        # This method call is over-writing the default behaviour in the ContentParser class. The default behaviour
         # uses the obs_blueprint. This method is called in the ContentParser constructor.
         self._wcs_parsers = {}
 
