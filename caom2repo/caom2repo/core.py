@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -308,12 +308,12 @@ class CAOM2RepoClient(object):
                 orig_checksum = orig_checksum.uri
             if self.plugin.update(observation=observation,
                                   subject=self._subject) is False:
-                self.logger.info('SKIP {}'.format(observation.observation_id))
-                skipped = observation.observation_id
+                self.logger.info('SKIP {}'.format(observation_id))
+                skipped = observation_id
             else:
                 self.post_observation(observation, orig_checksum)
                 self.logger.debug(
-                    'UPDATED {}'.format(observation.observation_id))
+                    'UPDATED {}'.format(observation_id))
                 updated = observation_id
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
@@ -471,6 +471,7 @@ class CAOM2RepoClient(object):
         """
         assert collection is not None
         assert observation_id is not None
+        # TODO - revisit if API changes after CAOM2.5
         path = '/{}/{}'.format(collection, observation_id)
         self.logger.debug('GET {}'.format(path))
         response = self._repo_client.get((self.capability_id, path))
@@ -493,9 +494,9 @@ class CAOM2RepoClient(object):
         :return: updated observation
         """
         assert observation.collection is not None
-        assert observation.observation_id is not None
+        assert observation.uri is not None
         path = '/{}/{}'.format(observation.collection,
-                               observation.observation_id)
+                               observation.uri)
         self.logger.debug('POST {}'.format(path))
 
         ibuffer = BytesIO()
@@ -517,9 +518,9 @@ class CAOM2RepoClient(object):
         :return: Added observation
         """
         assert observation.collection is not None
-        assert observation.observation_id is not None
+        assert observation.uri is not None
         path = '/{}/{}'.format(observation.collection,
-                               observation.observation_id)
+                               observation.uri)
         self.logger.debug('PUT {}'.format(path))
 
         ibuffer = BytesIO()
@@ -539,6 +540,7 @@ class CAOM2RepoClient(object):
         :param observation_id: ID of the observation
         """
         assert observation_id is not None
+        # TODO - revisit if API changes after CAOM2.5
         path = '/{}/{}'.format(collection, observation_id)
         self.logger.debug('DELETE {}'.format(path))
         self._repo_client.delete((self.capability_id, path))

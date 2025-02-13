@@ -79,9 +79,9 @@ class ObservationUpdater(object):
         """
         assert isinstance(observation, Observation), (
             "observation {} is not an Observation".format(observation))
-        if observation.uri == 'caom:TEST/UPDATE':
+        if observation.uri == 'caom:cfht/UPDATE':
             return True
-        elif observation.uri == 'caom:TEST/SKIP':
+        elif observation.uri == 'caom:cfht/SKIP':
             return False
         else:
-            raise SystemError('Something went wrong')
+            raise SystemError('Something went wrong ' + observation.uri)

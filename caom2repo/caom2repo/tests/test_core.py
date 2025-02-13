@@ -77,7 +77,7 @@ from datetime import datetime
 import requests
 from cadcutils import util, exceptions
 from cadcutils.net import auth
-from caom2.obs_reader_writer import ObservationWriter
+from caom2.obs_reader_writer import ObservationWriter, CAOM24_NAMESPACE
 from caom2 import obs_reader_writer
 from caom2.observation import SimpleObservation
 from unittest.mock import Mock, patch, MagicMock, ANY, call
@@ -315,7 +315,8 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status = 200
         mock_conn.return_value = response
         iobuffer = BytesIO()
-        ObservationWriter().write(obs, iobuffer)
+        # TODO update to CAOM2.5
+        ObservationWriter(namespace=CAOM24_NAMESPACE).write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
 
@@ -376,7 +377,8 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status = 200
         mock_conn.return_value = response
         iobuffer = BytesIO()
-        ObservationWriter().write(obs, iobuffer)
+        # TODO update to CAOM2.5
+        ObservationWriter(namespace=CAOM24_NAMESPACE).write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
 
@@ -463,9 +465,11 @@ class TestCAOM2Repo(unittest.TestCase):
             visitor.delete_observation(collection, observation_uri)
 
     @patch('caom2repo.core.net.BaseWsClient', Mock())
-    def test_process(self):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    def test_process(self, get_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
+        get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = MagicMock(
@@ -493,11 +497,8 @@ class TestCAOM2Repo(unittest.TestCase):
         # id of the observation: True for 'UPDATE', False for 'SKIP' and
         # raises exception for 'ERROR'
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
-        obs = [SimpleObservation(collection='TEST', uri='caom:TEST/UPDATE'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/SKIP'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/ERROR')]
         visitor._get_observations = MagicMock(side_effect=obs_ids)
-        visitor.get_observation = MagicMock(side_effect=obs)
+        visitor.get_observation = MagicMock(side_effect=self.mock_get_observation)
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht')
         self.assertEqual(3, len(visited))
@@ -507,13 +508,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # repeat with other obs
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
-        obs = [SimpleObservation(collection='TEST', uri='caom:TEST/UPDATE'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/SKIP'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/ERROR'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/UPDATE'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/SKIP')]
         visitor._get_observations = MagicMock(side_effect=obs_ids)
-        visitor.get_observation = MagicMock(side_effect=obs)
+        visitor.get_observation = MagicMock(side_effect=self.mock_get_observation)
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht')
         self.assertEqual(5, len(visited))
@@ -523,13 +519,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # repeat but halt on first ERROR -> process only 3 observations
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
-        obs = [SimpleObservation(collection='TEST', uri='caom:TEST/UPDATE'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/SKIP'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/ERROR'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/UPDATE'),
-               SimpleObservation(collection='TEST', uri='caom:TEST/SKIP')]
         visitor._get_observations = MagicMock(side_effect=obs_ids)
-        visitor.get_observation = MagicMock(side_effect=obs)
+        visitor.get_observation = MagicMock(side_effect=self.mock_get_observation)
         with self.assertRaises(SystemError):
             visitor.visit(os.path.join(
                 THIS_DIR, 'errorplugin.py'), 'cfht', halt_on_error=True)
@@ -570,10 +561,12 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._repo_client.get.assert_has_calls(calls)
 
     @patch('caom2repo.core.net.BaseWsClient', Mock())
-    def test_visit_retry_on_412(self):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    def test_visit_retry_on_412(self, get_mock):
         # observation changed on server while visited
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a'], []]
+        get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
         observation = SimpleObservation('cfht', 'a')
@@ -601,7 +594,7 @@ class TestCAOM2Repo(unittest.TestCase):
             observation, observation.acc_meta_checksum.uri)
 
     def mock_get_observation(self, collection, observationID):
-        return SimpleObservation(collection, observationID)
+        return SimpleObservation(collection, f'caom:{collection}/{observationID}')
 
     def mock_get_observation_with_expected_type_error(self, collection,
                                                       observationID):
@@ -620,16 +613,16 @@ class TestCAOM2Repo(unittest.TestCase):
     def test_multiprocess_with_exception(self, get_mock, post_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
+        observations = [SimpleObservation('cfht', x) for x in ['a', 'b', 'c', 'd']]
         get_mock.side_effect = \
             self.mock_get_observation
         post_mock.side_effect = \
             self.mock_post_observation_with_exception
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
-        visitor.get_observation = PickableMagicMock(
-            return_value=PickableMagicMock(spec=SimpleObservation))
-        visitor.post_observation = PickableMagicMock()
-        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+        visitor.get_observation = Mock(side_effect=observations)
+        visitor.post_observation = Mock()
+        visitor._get_observations = Mock(side_effect=obs_ids)
 
         try:
             (visited, updated, skipped, failed) = visitor.visit(
@@ -772,14 +765,14 @@ class TestCAOM2Repo(unittest.TestCase):
         # make it return different status. errorplugin returns according to the
         # id of the observation: True for 'UPDATE', False for 'SKIP' and
         # raises exception for 'ERROR'
-        obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
-        get_mock.side_effect = self.mock_get_observation
+        obs_uris = [['UPDATE', 'SKIP', 'ERROR'], []]
+        get_mock.side_effects = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
-        visitor.get_observation = PickableMagicMock(
-            return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
-        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+        PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor._get_observations = PickableMagicMock(side_effect=obs_uris)
 
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None,
@@ -805,10 +798,8 @@ class TestCAOM2Repo(unittest.TestCase):
         get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
-        visitor.get_observation = PickableMagicMock(
-            return_value=PickableMagicMock(spec=SimpleObservation))
-        visitor.post_observation = PickableMagicMock()
-        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+        visitor.post_observation = Mock()
+        visitor._get_observations = Mock(side_effect=obs_ids)
 
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None,
@@ -892,7 +883,7 @@ class TestCAOM2Repo(unittest.TestCase):
         core.main_app()
         client_mock.return_value.delete_observation.assert_called_with(
             collection=collection,
-            uri=observation_uri)
+            observation_id=observation_uri)
 
         # test visit
         # get the absolute path to be able to run the tests with the

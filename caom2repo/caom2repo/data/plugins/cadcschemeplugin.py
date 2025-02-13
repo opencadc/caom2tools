@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -78,7 +78,7 @@ class ObservationUpdater(object):
         """
         assert isinstance(observation, Observation), (
             "observation %s is not an Observation".format(observation))
-        print("Observation: {}".format(observation.observation_id))
+        print("Observation: {}".format(observation.uri))
         for plane in observation.planes.values():
             for artifact in plane.artifacts.values():
                 if artifact.uri.startswith('ad:'):
