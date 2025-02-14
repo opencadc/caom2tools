@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -77,6 +77,7 @@ import tempfile
 
 from . import caom_test_instances
 from .xml_compare import xml_compare
+from .. import dali
 from .. import obs_reader_writer
 from .. import observation
 from .. import plane
@@ -130,9 +131,9 @@ def complete_derived(depth, bounds_is_circle, version, short_uuid=False):
 
 class TestObservationReaderWriter(unittest.TestCase):
     def test_invalid_long_id(self):
-        simple_observation = minimal_simple(1, False, 22)
+        simple_observation = minimal_simple(1, False, 23)
         writer = obs_reader_writer.ObservationWriter(
-            False, False, "caom2", obs_reader_writer.CAOM22_NAMESPACE)
+            False, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
         output = BytesIO()
         writer.write(simple_observation, output)
         xml = output.getvalue()
@@ -149,9 +150,9 @@ class TestObservationReaderWriter(unittest.TestCase):
             pass
 
     def test_invalid_uuid(self):
-        simple_observation = minimal_simple(1, False, 22)
+        simple_observation = minimal_simple(1, False, 23)
         writer = obs_reader_writer.ObservationWriter(False,
-                                                     False)  # default is 2.1
+                                                     False)
         output = BytesIO()
         writer.write(simple_observation, output)
         xml = output.getvalue()
@@ -168,7 +169,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             pass
 
     def test_complete_simple(self):
-        for version in (22, 23, 24):
+        for version in (23, 24, 25):
             for i in range(1, 6):
                 print("Test Complete Simple {} version {}".format(i, version))
                 # CoordBounds2D as CoordCircle2D
@@ -186,7 +187,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_minimal_derived(self):
         # * composite for the pre-2.4 versions
-        for version in (22, 23, 24):
+        for version in (23, 24, 25):
             for i in range(1, 6):
                 if version >= 24:
                     print("Test Minimal Derived {} version {}".
@@ -213,7 +214,7 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_complete_derived(self):
         # * formerly known as composite
-        for version in (22, 23, 24):
+        for version in (23, 24, 25):
             for i in range(1, 6):
                 if version >= 24:
                     print("Test Complete Derived {} version {}".
@@ -239,35 +240,69 @@ class TestObservationReaderWriter(unittest.TestCase):
                                       version)
 
     def test_versions(self):
-        derived_observation = complete_derived(6, True, 22)
-        complete_derived(6, True, 22, short_uuid=True)
-        print("check 2.2 schema with 2.2 doc")
-        self.observation_test(derived_observation, True, True, 22)
-        print("check 2.3 schema with 2.2 doc")
-        self.observation_test(derived_observation, True, True, 23)
-        print("check 2.4 schema with 2.2 doc")
-        self.observation_test(derived_observation, True, True, 24)
-
         derived_observation = complete_derived(6, True, 23)
-        complete_derived(6, True, 23, short_uuid=True)
-        print("check 2.2 schema with 2.3 doc")
-        with self.assertRaises(AttributeError):
-            # creator ID and shape cannot be serialized in v22.
-            self.observation_test(derived_observation, True, True, 22)
         print("check 2.3 schema with 2.3 doc")
         self.observation_test(derived_observation, True, True, 23)
         print("check 2.4 schema with 2.3 doc")
         self.observation_test(derived_observation, True, True, 24)
+        print("check 2.5 schema with 2.3 doc")
+        self.observation_test(derived_observation, True, True, 25)
 
         derived_observation = complete_derived(6, True, 24)
-        print("check 2.2 schema with 2.4 doc")
-        with self.assertRaises(AttributeError):
-            # creator ID and shape cannot be serialized in v22.
-            self.observation_test(derived_observation, True, True, 22)
         print("check 2.3 schema with 2.4 doc")
         with self.assertRaises(AttributeError):
             self.observation_test(derived_observation, True, True, 23)
         print("check 2.4 schema with 2.4 doc")
+        self.observation_test(derived_observation, True, True, 24)
+        print("check 2.5 schema with 2.4 doc")
+        self.observation_test(derived_observation, True, True, 25)
+
+        # remove 2.4 specific attributes and test with v23
+        derived_observation.target.target_id = None
+        derived_observation.meta_read_groups = None
+        for p in derived_observation.planes.values():
+            p.position.resolution_bounds = None
+            p.energy.energy_bands = None
+            p.energy.resolving_power_bounds = None
+            p.time.resolution_bounds = None
+            p.metrics.sample_snr = None
+            p.meta_read_groups = None
+            p.data_read_groups = None
+            for a in p.artifacts.values():
+                a.content_release = None
+                a.content_read_groups = None
+                for pt in a.parts.values():
+                    for c in pt.chunks:
+                        c.custom_axis = None
+                        c.custom = None
+
+        self.observation_test(derived_observation, True, True, 23)
+
+        derived_observation = complete_derived(6, True, 25)
+        print("check 2.3 schema with 2.5 doc")
+        with self.assertRaises(AttributeError):
+            self.observation_test(derived_observation, True, True, 23)
+        print("check 2.4 schema with 2.5 doc")
+        with self.assertRaises(AttributeError):
+            self.observation_test(derived_observation, True, True, 24)
+        print("check 2.5 schema with 2.5 doc")
+        self.observation_test(derived_observation, True, True, 25)
+
+        # remove 2.5 specific attributes and test with v24
+        for p in derived_observation.planes.values():
+            p.visibility = None
+            p.position.min_bounds = None
+            p.position.max_recoverable_scale = None
+            p.position.calibration = None
+            p.energy.resolution = None
+            p.energy.resolution_bounds = None
+            p.energy.calibration = None
+            p.time.exposure_bounds = None
+            p.time.calibration = None
+            p.observable = None
+            for a in p.artifacts.values():
+                a.description_id = None
+
         self.observation_test(derived_observation, True, True, 24)
 
         # remove 2.4 specific attributes and test with v23
@@ -291,25 +326,22 @@ class TestObservationReaderWriter(unittest.TestCase):
 
         self.observation_test(derived_observation, True, True, 23)
 
-        # remove shape and creator IDs ad retest with v22
-        for p in derived_observation.planes.values():
-            p.position.bounds = None
-            p.creator_id = None
-        self.observation_test(derived_observation, True, True, 22)
-
     def observation_test(self, obs, validate, write_empty_collections,
                          version):
-        if version == 22:
-            writer = obs_reader_writer.ObservationWriter(
-                validate, write_empty_collections, "caom2",
-                obs_reader_writer.CAOM22_NAMESPACE)
-        elif version == 23:
+        if version == 23:
             writer = obs_reader_writer.ObservationWriter(
                 validate, write_empty_collections, "caom2",
                 obs_reader_writer.CAOM23_NAMESPACE)
-        else:
+        elif version == 24:
             writer = obs_reader_writer.ObservationWriter(
-                validate, write_empty_collections)
+                validate, write_empty_collections, "caom2",
+                obs_reader_writer.CAOM24_NAMESPACE)
+        elif version == 25:
+            writer = obs_reader_writer.ObservationWriter(
+                validate, write_empty_collections, "caom2",
+                obs_reader_writer.CAOM25_NAMESPACE)
+        else:
+            raise ValueError("Unsupported version {}".format(version))
         xml_file = open('/tmp/test.xml', 'wb')
         writer.write(obs, xml_file)
         xml_file.close()
@@ -338,9 +370,9 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(actual.collection)
         self.assertEqual(expected.collection, actual.collection)
 
-        self.assertIsNotNone(expected.observation_id)
-        self.assertIsNotNone(actual.observation_id)
-        self.assertEqual(expected.observation_id, actual.observation_id)
+        self.assertIsNotNone(expected.uri)
+        self.assertIsNotNone(actual.uri)
+        self.assertEqual(expected.uri, actual.uri)
 
         self.assertIsNotNone(expected._id)
         self.assertIsNotNone(actual._id)
@@ -378,7 +410,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(expected)
         self.assertIsNotNone(actual)
         self.assertEqual(expected.id, actual.id)
-        self.assertEqual(expected.pi_name, actual.pi_name)
+        self.assertEqual(expected.pi, actual.pi)
         self.assertEqual(expected.project, actual.project)
         self.assertEqual(expected.title, actual.title)
         self.assertEqual(len(expected.keywords), len(actual.keywords))
@@ -391,7 +423,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(expected)
         self.assertIsNotNone(actual)
         self.assertEqual(expected.name, actual.name)
-        self.assertEqual(expected.target_type, actual.target_type)
+        self.assertEqual(expected.type, actual.type)
         self.assertEqual(expected.redshift, actual.redshift)
         self.assertEqual(expected.moving, actual.moving)
         self.assertEqual(expected.standard, actual.standard)
@@ -420,6 +452,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertEqual(expected.geo_location_z, actual.geo_location_z)
         for keyword in expected.keywords:
             self.assertTrue(keyword in actual.keywords)
+        self.assertEqual(expected.tracking_mode, actual.tracking_mode)
 
     def compare_instrument(self, expected, actual):
         if expected is None and actual is None:
@@ -459,7 +492,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         self.assertIsNotNone(actual)
         self.assertEqual(expected.uri, actual.uri)
         self.assertEqual(expected.collection, actual.collection)
-        self.assertEqual(expected.observation_id, actual.observation_id)
+        self.assertEqual(expected.uri, actual.uri)
 
     def compare_requirements(self, expected, actual):
         if expected is None and actual is None:
@@ -480,15 +513,11 @@ class TestObservationReaderWriter(unittest.TestCase):
             actual_plane = actual[key]
             self.assertIsNotNone(expected_plane)
             self.assertIsNotNone(actual_plane)
-            self.assertEqual(expected_plane.product_id,
-                             actual_plane.product_id)
+            self.assertEqual(expected_plane.uri,
+                             actual_plane.uri)
             self.assertIsNotNone(expected_plane._id)
             self.assertIsNotNone(actual_plane._id)
             self.assertEqual(expected_plane._id, actual_plane._id)
-
-            self.assertEqual(
-                expected_plane.creator_id, actual_plane.creator_id,
-                "creator_id")
 
             self.compare_entity_attributes(expected_plane, actual_plane)
 
@@ -527,13 +556,19 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNone(actual, "position")
         else:
             self.compare_shape(expected.bounds, actual.bounds)
+            self.assertTrue(isinstance(expected.samples, shape.MultiShape),
+                            "mismatched samples" +
+                            actual.__class__.__name__)
+            self.assertEqual(len(expected.samples.shapes), len(actual.samples.shapes),
+                             "mismatched number of samples")
+            for index, sample in enumerate(expected.samples.shapes):
+                # assumes that the shapes are in the same order
+                self.compare_shape(sample, actual.samples.shapes[index])
             self.compare_dimension2d(expected.dimension, actual.dimension)
             self.assertEqual(expected.resolution, actual.resolution,
                              "resolution")
             self.assertEqual(expected.sample_size, actual.sample_size,
                              "sample_size")
-            self.assertEqual(expected.time_dependent, actual.time_dependent,
-                             "time_dependent")
 
     def compare_energy(self, expected, actual):
         print("comparing energy")
@@ -541,6 +576,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNone(actual, "energy")
         else:
             self.compare_interval(expected.bounds, actual.bounds)
+            self.compare_samples(expected.samples, actual.samples)
             self.assertEqual(expected.dimension, actual.dimension, "dimension")
             self.assertEqual(expected.resolving_power, actual.resolving_power,
                              "resolving_power")
@@ -559,6 +595,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNone(actual, "time")
         else:
             self.compare_interval(expected.bounds, actual.bounds)
+            self.compare_samples(expected.samples, actual.samples)
             self.assertEqual(expected.dimension, actual.dimension, "dimension")
             self.assertEqual(expected.resolution, actual.resolution,
                              "resolution")
@@ -571,16 +608,16 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.assertIsNone(expected, "polarization")
         else:
             self.assertEqual(expected.dimension, actual.dimension, "dimension")
-            if expected.polarization_states is None:
-                self.assertIsNone(actual.polarization_states,
-                                  "polarization_states")
+            if expected.states is None:
+                self.assertIsNone(actual.states,
+                                  "polarization.states")
             else:
-                self.assertEqual(len(expected.polarization_states),
-                                 len(actual.polarization_states),
-                                 "different number of polarization_states")
-                for index, state in enumerate(expected.polarization_states):
-                    self.assertEqual(state, actual.polarization_states[index],
-                                     "polarization_state")
+                self.assertEqual(len(expected.states),
+                                 len(actual.states),
+                                 "different number of polarization.states")
+                for index, state in enumerate(expected.states):
+                    self.assertEqual(state, actual.states[index],
+                                     "polarization state")
 
     def compare_custom(self, expected, actual):
         if expected is None:
@@ -588,6 +625,7 @@ class TestObservationReaderWriter(unittest.TestCase):
         else:
             self.assertEqual(expected.ctype, actual.ctype, 'ctype')
             self.compare_interval(expected.bounds, actual.bounds)
+            self.compare_samples(expected.samples, actual.samples)
             self.assertEqual(expected.dimension, actual.dimension, "dimension")
 
     def compare_shape(self, expected, actual):
@@ -605,18 +643,6 @@ class TestObservationReaderWriter(unittest.TestCase):
                                  "different number of points")
                 for index, point in enumerate(expected_points):
                     self.compare_point(point, actual_points[index])
-                actual_samples = actual.samples
-                self.assertIsNotNone(actual_samples, "shape is None")
-                self.assertTrue(isinstance(actual_samples, shape.MultiPolygon),
-                                "mismatched shapes" +
-                                actual.__class__.__name__)
-                expected_samples = expected.samples
-                expected_vertices = expected_samples.vertices
-                actual_vertices = actual_samples.vertices
-                self.assertEqual(len(expected_vertices), len(actual_vertices),
-                                 "different number of vertices")
-                for index, vertex in enumerate(expected_vertices):
-                    self.compare_vertices(vertex, actual_vertices[index])
             elif isinstance(expected, shape.Circle):
                 self.assertIsNotNone(actual, "shape is None")
                 self.assertTrue(isinstance(actual, shape.Circle),
@@ -638,13 +664,12 @@ class TestObservationReaderWriter(unittest.TestCase):
         else:
             self.assertEqual(expected.lower, actual.lower, "lower")
             self.assertEqual(expected.upper, actual.upper, "upper")
-            if expected.samples is None:
-                self.assertIsNone(actual.samples, "samples")
-            else:
-                self.assertEqual(len(actual.samples), len(expected.samples),
-                                 "samples")
-                for index, sample in enumerate(expected.samples):
-                    self.compare_sub_interval(sample, actual.samples[index])
+
+    def compare_samples(self, expected, actual):
+        self.assertEqual(len(actual), len(expected),
+                         "samples")
+        for index, sample in enumerate(expected):
+            self.compare_sub_interval(sample, actual[index])
 
     def compare_sub_interval(self, expected, actual):
         if expected is None:
@@ -1082,11 +1107,11 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_roundtrip_floats(self):
         """
-        Tests floats precission in a round trip
+        Tests floats precision in a round trip
         """
 
         expected_obs = observation.SimpleObservation(
-            "TEST_COLLECTION", "33", "ALG")
+            "TEST_COLLECTION", "caom:TEST_COLLECTION/33", "ALG")
         writer = obs_reader_writer.ObservationWriter(
             True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
 
@@ -1095,9 +1120,10 @@ class TestObservationReaderWriter(unittest.TestCase):
             shape.Point(-0.00518884856598203, -0.00518884856598), 'test')
 
         # create empty energy
-        pl = plane.Plane('productID')
-        pl.energy = plane.Energy(sample_size=2.0)
-        expected_obs.planes['productID'] = pl
+        plane_uri = '{}/{}'.format(expected_obs.uri, 'planeID')
+        pl = plane.Plane(plane_uri)
+        pl.energy = plane.Energy(dali.Interval(1.0, 2.0), [dali.Interval(1.0, 2.0)])
+        expected_obs.planes[pl.uri] = pl
 
         tmpfile = tempfile.TemporaryFile()
         writer.write(expected_obs, tmpfile)
@@ -1147,21 +1173,22 @@ class TestRoundTrip(unittest.TestCase):
                             'No XML files in test data directory')
 
             reader = obs_reader_writer.ObservationReader(True)
-            writer22 = obs_reader_writer.ObservationWriter(
-                True, False, "caom2", obs_reader_writer.CAOM22_NAMESPACE)
             writer23 = obs_reader_writer.ObservationWriter(
                 True, False, "caom2", obs_reader_writer.CAOM23_NAMESPACE)
             writer24 = obs_reader_writer.ObservationWriter(
                 True, False, "caom2", obs_reader_writer.CAOM24_NAMESPACE)
+            writer25 = obs_reader_writer.ObservationWriter(
+                True, False, "caom2", obs_reader_writer.CAOM25_NAMESPACE)
             for filename in files:
-                if filename.endswith("CAOM-2.4.xml"):
+                if filename.endswith("CAOM-2.5.xml"):
+                    print("test: {}".format(filename))
+                    self.do_test(reader, writer25, filename)
+                elif filename.endswith("CAOM-2.4.xml"):
                     print("test: {}".format(filename))
                     self.do_test(reader, writer24, filename)
-                elif filename.endswith("CAOM-2.3.xml"):
+                else:
                     print("test: {}".format(filename))
                     self.do_test(reader, writer23, filename)
-                else:
-                    self.do_test(reader, writer22, filename)
 
         except Exception:
             raise
@@ -1172,7 +1199,7 @@ class TestSchemaValidator(unittest.TestCase):
 
     def _create_observation(self):
         obs = observation.SimpleObservation(
-            "SCHEMA_VALIDATOR_COLLECTION", "schemaValidatorObsID")
+            "SCHEMA_VALIDATOR_COLLECTION", "caom:SCHEMA_VALIDATOR_COLLECTION/schemaValidatorObsID")
         obs.intent = observation.ObservationIntentType.SCIENCE
         return obs
 

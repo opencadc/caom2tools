@@ -1,9 +1,8 @@
-# # -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2023.                            (c) 2023.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -77,8 +76,8 @@ from datetime import datetime
 import requests
 from cadcutils import util, exceptions
 from cadcutils.net import auth
-from caom2.obs_reader_writer import ObservationWriter
-from caom2 import obs_reader_writer, ChecksumURI
+from caom2.obs_reader_writer import ObservationWriter, CAOM24_NAMESPACE
+from caom2 import obs_reader_writer
 from caom2.observation import SimpleObservation
 from unittest.mock import Mock, patch, MagicMock, ANY, call
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
@@ -154,10 +153,10 @@ class TestCAOM2Repo(unittest.TestCase):
     def test_plugin_class(self):
         # plugin class does not change the observation
         collection = 'cfht'
-        observation_id = '7000000o'
+        observation_uri = 'caom:collection/7000000o'
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
-        obs = SimpleObservation(collection, observation_id)
+        obs = SimpleObservation(collection, observation_uri)
         expect_obs = copy.deepcopy(obs)
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'passplugin.py'))
         visitor.plugin.update(obs)
@@ -165,7 +164,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # plugin class adds a plane to the observation
         visitor = CAOM2RepoClient(auth.Subject(), level)
-        obs = SimpleObservation('cfht', '7000000o')
+        obs = SimpleObservation(collection, observation_uri)
         expect_obs = copy.deepcopy(obs)
         visitor._load_plugin_class(os.path.join(THIS_DIR, 'addplaneplugin.py'))
         visitor.plugin.update(obs)
@@ -196,9 +195,9 @@ class TestCAOM2Repo(unittest.TestCase):
         caps_mock.return_value.get_access_url.return_value =\
             'http://serviceurl/caom2repo/pub'
         collection = 'cfht'
-        observation_id = '7000000o'
+        observation_uri = 'caom:cfht/7000000o'
         service_url = 'www.cadc.nrc.ca/caom2repo'
-        obs = SimpleObservation(collection, observation_id)
+        obs = SimpleObservation(collection, observation_uri)
         writer = ObservationWriter()
         ibuffer = BytesIO()
         writer.write(obs, ibuffer)
@@ -210,7 +209,7 @@ class TestCAOM2Repo(unittest.TestCase):
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level, host=service_url)
         self.assertEqual(obs, visitor.get_observation(
-            collection, observation_id))
+            collection, observation_uri))
 
         # signal problems
         http_error = requests.HTTPError()
@@ -218,14 +217,14 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(exceptions.InternalServerException):
-            visitor.get_observation(collection, observation_id)
+            visitor.get_observation(collection, observation_uri)
 
         # temporary transient errors
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
         response.raise_for_status.side_effect = [http_error, None]
-        visitor.read(collection, observation_id)
+        visitor.read(collection, observation_uri)
 
         # permanent transient errors
         http_error = requests.HTTPError()
@@ -236,7 +235,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(exceptions.HttpException):
-            visitor.get_observation(collection, observation_id)
+            visitor.get_observation(collection, observation_uri)
 
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadcutils.net.ws.WsCapabilities')
@@ -303,11 +302,11 @@ class TestCAOM2Repo(unittest.TestCase):
         caps_mock.return_value.get_access_url.return_value =\
             'http://serviceurl/caom2repo/auth'
         collection = 'cfht'
-        observation_id = '7000000o'
+        observation_uri = 'caom:cfht/7000000o'
         service = 'caom2repo'
         service_url = 'www.cadc.nrc.ca'
 
-        obs = SimpleObservation(collection, observation_id)
+        obs = SimpleObservation(collection, observation_uri)
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(netrc='somenetrc'), level,
                                   host=service_url)
@@ -315,14 +314,15 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status = 200
         mock_conn.return_value = response
         iobuffer = BytesIO()
-        ObservationWriter().write(obs, iobuffer)
+        # TODO update to CAOM2.5
+        ObservationWriter(namespace=CAOM24_NAMESPACE).write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
 
         visitor.post_observation(obs)
         self.assertEqual('POST', mock_conn.call_args[0][0].method)
         self.assertEqual(
-            '/{}/auth/{}/{}'.format(service, collection, observation_id),
+            '/{}/auth/{}/{}'.format(service, collection, observation_uri),
             mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml',
                          mock_conn.call_args[0][0].headers['Content-Type'])
@@ -364,11 +364,11 @@ class TestCAOM2Repo(unittest.TestCase):
         caps_mock.return_value.get_access_url.return_value =\
             'http://serviceurl/caom2repo/pub'
         collection = 'cfht'
-        observation_id = '7000000o'
+        observation_uri = 'caom:cfht/7000000o'
         service = 'caom2repo'
         service_url = 'www.cadc.nrc.ca'
 
-        obs = SimpleObservation(collection, observation_id)
+        obs = SimpleObservation(collection, observation_uri)
         subject = auth.Subject(certificate='somefile.pem')
         level = logging.DEBUG
         visitor = CAOM2RepoClient(subject, level, host=service_url)
@@ -376,14 +376,15 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status = 200
         mock_conn.return_value = response
         iobuffer = BytesIO()
-        ObservationWriter().write(obs, iobuffer)
+        # TODO update to CAOM2.5
+        ObservationWriter(namespace=CAOM24_NAMESPACE).write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
 
         visitor.put_observation(obs)
         self.assertEqual('PUT', mock_conn.call_args[0][0].method)
         self.assertEqual(
-            '/{}/pub/{}/{}'.format(service, collection, observation_id),
+            '/{}/pub/{}/{}'.format(service, collection, observation_uri),
             mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml',
                          mock_conn.call_args[0][0].headers['Content-Type'])
@@ -424,7 +425,7 @@ class TestCAOM2Repo(unittest.TestCase):
         caps_mock.return_value.get_access_url.return_value =\
             'http://serviceurl/caom2repo/pub'
         collection = 'cfht'
-        observation_id = '7000000o'
+        observation_uri = 'caom:cfht/7000000o'
         service_url = 'www.cadc.nrc.ca'
         level = logging.DEBUG
 
@@ -433,7 +434,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status = 200
         mock_conn.return_value = response
 
-        visitor.delete_observation(collection, observation_id)
+        visitor.delete_observation(collection, observation_uri)
         self.assertEqual('DELETE', mock_conn.call_args[0][0].method)
 
         # signal problems
@@ -442,14 +443,14 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(exceptions.InternalServerException):
-            visitor.delete(collection, observation_id)
+            visitor.delete(collection, observation_uri)
 
         # temporary transient errors
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
         response.raise_for_status.side_effect = [http_error, None]
-        visitor.delete_observation(collection, observation_id)
+        visitor.delete_observation(collection, observation_uri)
 
         # permanent transient errors
         http_error = requests.HTTPError()
@@ -460,12 +461,14 @@ class TestCAOM2Repo(unittest.TestCase):
 
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(exceptions.HttpException):
-            visitor.delete_observation(collection, observation_id)
+            visitor.delete_observation(collection, observation_uri)
 
     @patch('caom2repo.core.net.BaseWsClient', Mock())
-    def test_process(self):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    def test_process(self, get_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a', 'b', 'c'], ['d'], []]
+        get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
         visitor.get_observation = MagicMock(
@@ -493,11 +496,8 @@ class TestCAOM2Repo(unittest.TestCase):
         # id of the observation: True for 'UPDATE', False for 'SKIP' and
         # raises exception for 'ERROR'
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
-        obs = [SimpleObservation(collection='TEST', observation_id='UPDATE'),
-               SimpleObservation(collection='TEST', observation_id='SKIP'),
-               SimpleObservation(collection='TEST', observation_id='ERROR')]
         visitor._get_observations = MagicMock(side_effect=obs_ids)
-        visitor.get_observation = MagicMock(side_effect=obs)
+        visitor.get_observation = MagicMock(side_effect=self.mock_get_observation)
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht')
         self.assertEqual(3, len(visited))
@@ -507,13 +507,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # repeat with other obs
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
-        obs = [SimpleObservation(collection='TEST', observation_id='UPDATE'),
-               SimpleObservation(collection='TEST', observation_id='SKIP'),
-               SimpleObservation(collection='TEST', observation_id='ERROR'),
-               SimpleObservation(collection='TEST', observation_id='UPDATE'),
-               SimpleObservation(collection='TEST', observation_id='SKIP')]
         visitor._get_observations = MagicMock(side_effect=obs_ids)
-        visitor.get_observation = MagicMock(side_effect=obs)
+        visitor.get_observation = MagicMock(side_effect=self.mock_get_observation)
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht')
         self.assertEqual(5, len(visited))
@@ -523,13 +518,8 @@ class TestCAOM2Repo(unittest.TestCase):
 
         # repeat but halt on first ERROR -> process only 3 observations
         obs_ids = [['UPDATE', 'SKIP', 'ERROR'], ['UPDATE', 'SKIP']]
-        obs = [SimpleObservation(collection='TEST', observation_id='UPDATE'),
-               SimpleObservation(collection='TEST', observation_id='SKIP'),
-               SimpleObservation(collection='TEST', observation_id='ERROR'),
-               SimpleObservation(collection='TEST', observation_id='UPDATE'),
-               SimpleObservation(collection='TEST', observation_id='SKIP')]
         visitor._get_observations = MagicMock(side_effect=obs_ids)
-        visitor.get_observation = MagicMock(side_effect=obs)
+        visitor.get_observation = MagicMock(side_effect=self.mock_get_observation)
         with self.assertRaises(SystemError):
             visitor.visit(os.path.join(
                 THIS_DIR, 'errorplugin.py'), 'cfht', halt_on_error=True)
@@ -570,14 +560,16 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._repo_client.get.assert_has_calls(calls)
 
     @patch('caom2repo.core.net.BaseWsClient', Mock())
-    def test_visit_retry_on_412(self):
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    def test_visit_retry_on_412(self, get_mock):
         # observation changed on server while visited
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs = [['a'], []]
+        get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
         observation = SimpleObservation('cfht', 'a')
-        observation.acc_meta_checksum = ChecksumURI('md5:abc')
+        observation.acc_meta_checksum = 'md5:abc'
         visitor.get_observation = MagicMock(side_effect=[observation,
                                                          observation])
 
@@ -598,10 +590,10 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(2, visitor.get_observation.call_count)
         self.assertEqual(2, visitor.post_observation.call_count)
         visitor.post_observation.assert_called_with(
-            observation, observation.acc_meta_checksum.uri)
+            observation, observation.acc_meta_checksum)
 
     def mock_get_observation(self, collection, observationID):
-        return SimpleObservation(collection, observationID)
+        return SimpleObservation(collection, f'caom:{collection}/{observationID}')
 
     def mock_get_observation_with_expected_type_error(self, collection,
                                                       observationID):
@@ -620,16 +612,16 @@ class TestCAOM2Repo(unittest.TestCase):
     def test_multiprocess_with_exception(self, get_mock, post_mock):
         core.BATCH_SIZE = 3  # size of the batch is 3
         obs_ids = [['a', 'b', 'c'], ['d'], []]
+        observations = [SimpleObservation('cfht', x) for x in ['a', 'b', 'c', 'd']]
         get_mock.side_effect = \
             self.mock_get_observation
         post_mock.side_effect = \
             self.mock_post_observation_with_exception
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
-        visitor.get_observation = PickableMagicMock(
-            return_value=PickableMagicMock(spec=SimpleObservation))
-        visitor.post_observation = PickableMagicMock()
-        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+        visitor.get_observation = Mock(side_effect=observations)
+        visitor.post_observation = Mock()
+        visitor._get_observations = Mock(side_effect=obs_ids)
 
         try:
             (visited, updated, skipped, failed) = visitor.visit(
@@ -772,14 +764,14 @@ class TestCAOM2Repo(unittest.TestCase):
         # make it return different status. errorplugin returns according to the
         # id of the observation: True for 'UPDATE', False for 'SKIP' and
         # raises exception for 'ERROR'
-        obs_ids = [['UPDATE', 'SKIP', 'ERROR'], []]
+        obs_uris = [['UPDATE', 'SKIP', 'ERROR'], []]
         get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
-        visitor.get_observation = PickableMagicMock(
-            return_value=PickableMagicMock(spec=SimpleObservation))
         visitor.post_observation = PickableMagicMock()
-        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+        PickableMagicMock(
+            return_value=PickableMagicMock(spec=SimpleObservation))
+        visitor._get_observations = PickableMagicMock(side_effect=obs_uris)
 
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None,
@@ -805,10 +797,8 @@ class TestCAOM2Repo(unittest.TestCase):
         get_mock.side_effect = self.mock_get_observation
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level)
-        visitor.get_observation = PickableMagicMock(
-            return_value=PickableMagicMock(spec=SimpleObservation))
-        visitor.post_observation = PickableMagicMock()
-        visitor._get_observations = PickableMagicMock(side_effect=obs_ids)
+        visitor.post_observation = Mock()
+        visitor._get_observations = Mock(side_effect=obs_ids)
 
         (visited, updated, skipped, failed) = visitor.visit(
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None,
@@ -847,10 +837,10 @@ class TestCAOM2Repo(unittest.TestCase):
     @patch('caom2repo.core.CAOM2RepoClient')
     def test_main_app(self, client_mock):
         collection = 'cfht'
-        observation_id = '7000000o'
+        observation_uri = 'caom:cfht/7000000o'
         ifile = '/tmp/inputobs'
 
-        obs = SimpleObservation(collection, observation_id)
+        obs = SimpleObservation(collection, observation_uri)
 
         # test create
         with open(ifile, 'wb') as infile:
@@ -869,30 +859,30 @@ class TestCAOM2Repo(unittest.TestCase):
         # test read
         sys.argv = ["caom2tools", "read", '--resource-id',
                     'ivo://ca.nrc.ca/resource',
-                    collection, observation_id]
+                    collection, observation_uri]
         client_mock.return_value.get_observation.return_value = obs
         client_mock.return_value.namespace = obs_reader_writer.CAOM24_NAMESPACE
         core.main_app()
         client_mock.return_value.get_observation.\
-            assert_called_with(collection, observation_id)
+            assert_called_with(collection, observation_uri)
         # repeat with output argument
         sys.argv = ["caom2tools", "read", '--resource-id',
                     'ivo://ca.nrc.ca/resource',
-                    "--output", ifile, collection, observation_id]
+                    "--output", ifile, collection, observation_uri]
         client_mock.return_value.get_observation.return_value = obs
         core.main_app()
         client_mock.return_value.get_observation.\
-            assert_called_with(collection, observation_id)
+            assert_called_with(collection, observation_uri)
         os.remove(ifile)
 
         # test delete
         sys.argv = ["caom2tools", "delete", '--resource-id',
                     'ivo://ca.nrc.ca/resource',
-                    collection, observation_id]
+                    collection, observation_uri]
         core.main_app()
         client_mock.return_value.delete_observation.assert_called_with(
             collection=collection,
-            observation_id=observation_id)
+            observation_id=observation_uri)
 
         # test visit
         # get the absolute path to be able to run the tests with the

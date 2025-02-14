@@ -70,13 +70,14 @@ import math
 from caom2.caom_util import int_32
 from . import caom_util
 from . import common
+from . import dali
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
 
 __all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point',
-           'Polygon', 'Vertex', 'MultiPolygon']
+           'Polygon', 'Vertex', 'MultiShape']
 
 
 class SegmentType(Enum):
@@ -84,6 +85,8 @@ class SegmentType(Enum):
     CLOSE: 0
     LINE: 1
     MOVE: 2
+
+    Deprecated: starting CAOM2.5 Vertex and SegmentType are deprecated
     """
     CLOSE = int_32(0)
     LINE = int_32(1)
@@ -241,110 +244,7 @@ class SubInterval(common.CaomObject):
         self._upper = value
 
 
-class Interval(common.CaomObject):
-    def __init__(self, lower, upper, samples=None):
-
-        self.lower = lower
-        self.upper = upper
-        self.samples = samples
-        self.validate()
-
-    def get_width(self):
-        return self._upper - self._lower
-
-    @classmethod
-    def intersection(cls, i1, i2):
-        if i1.lower > i2.upper or i1.upper < i2.lower:
-            return None
-
-        lb = max(i1.lower, i2.lower)
-        ub = min(i1.upper, i2.upper)
-        return cls(lb, ub)
-
-    # Properties
-
-    @property
-    def lower(self):
-        """
-        type: float
-        """
-        return self._lower
-
-    @lower.setter
-    def lower(self, value):
-        caom_util.type_check(value, float, 'lower', override=False)
-        has_upper = True
-        try:
-            self._upper
-        except AttributeError:
-            has_upper = False
-        if has_upper and self._upper < value:
-            raise ValueError("Interval: attempt to set upper < lower "
-                             "for {}, {}".format(self._upper, value))
-        self._lower = value
-
-    @property
-    def upper(self):
-        """
-        type: float
-        """
-        return self._upper
-
-    @upper.setter
-    def upper(self, value):
-        caom_util.type_check(value, float, 'upper', override=False)
-        has_lower = True
-        try:
-            self._lower
-        except AttributeError:
-            has_lower = False
-        if has_lower and value < self._lower:
-            raise ValueError("Interval: attempt to set upper < lower "
-                             "for {}, {}".format(value, self._lower))
-        self._upper = value
-
-    @property
-    def samples(self):
-        """
-        type: list
-        """
-        return self._samples
-
-    @samples.setter
-    def samples(self, value):
-        if value is not None:
-            caom_util.type_check(value, list, 'samples', override=False)
-        self._samples = value
-
-    def validate(self):
-        """
-        Performs a validation of the current object.
-
-        An AssertionError is thrown if the object does not represent an
-        Interval
-        """
-        if self._samples is not None:
-
-            if len(self._samples) == 0:
-                raise ValueError(
-                    'invalid interval (samples cannot be empty)')
-
-            prev = None
-            for sample in self._samples:
-                if sample.lower < self._lower:
-                    raise ValueError(
-                        'invalid interval: sample extends below lower bound: '
-                        '{} vs {}'.format(sample, self._lower))
-                if sample.upper > self._upper:
-                    raise ValueError(
-                        'invalid interval: sample extends above upper bound: '
-                        '{} vs {}'.format(sample, self._upper))
-                if prev is not None:
-                    if sample.lower <= prev.upper:
-                        raise ValueError(
-                            'invalid interval: sample overlaps previous '
-                            'sample:\n{}\nvs\n{}'.format(sample, prev))
-                prev = sample
+Interval = dali.Interval  # Moved to dali
 
 
 class Point(common.CaomObject):
@@ -404,29 +304,35 @@ class Polygon(common.CaomObject):
     @samples.setter
     def samples(self, value):
         if value is not None:
-            caom_util.type_check(value, MultiPolygon, 'multipolygon',
+            caom_util.type_check(value, MultiShape, 'multipolygon',
                                  override=False)
         self._samples = value
 
 
-class MultiPolygon(common.CaomObject):
-    def __init__(self, vertices=None):
-        if vertices is None:
-            self._vertices = []
-        else:
-            self._vertices = vertices
+class MultiShape(common.CaomObject):
+    def __init__(self, shapes):
+        """
+        :param shapes: list of shapes
+        """
+        super().__init__()
+        if not shapes:
+            raise ValueError("MultiShape: shapes must be non-empty")
+        self._shapes = shapes
 
     # Properties
 
     @property
-    def vertices(self):
+    def shapes(self):
         """
-        type: list of Vertices
+        type: list of shapes
         """
-        return self._vertices
+        return self._shapes
 
 
 class Vertex(Point):
+    """
+    Deprecated: starting CAOM2.5 Vertex and SegmentType are deprecated
+    """
     def __init__(self, cval1, cval2, type):
         super(Vertex, self).__init__(cval1, cval2)
         self.type = type

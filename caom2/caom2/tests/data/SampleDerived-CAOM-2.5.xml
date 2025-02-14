@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:CompositeObservation" caom2:id="00000000-0000-0000-5ca9-015f07dcb325" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:7d0e7b22db294a2fa7b78d6ef616885e" caom2:accMetaChecksum="md5:d18962d6eb95428bd4502258c81a4106">
-  <caom2:collection>collection</caom2:collection>
-  <caom2:observationID>observationID</caom2:observationID>
-  <caom2:metaRelease>2017-10-10T19:57:03.770</caom2:metaRelease>
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:DerivedObservation" caom2:id="8f63a058-493e-4ffa-aae6-09a08d04f416" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:8ddca5217301adc6eb0b5032e0072341" caom2:accMetaChecksum="md5:d134245176bc3e26f0228e95d798fc4f" caom2:metaProducer="test:observation/rountrip-1.0">
+  <caom2:collection>TEST</caom2:collection>
+  <caom2:uri>caom:TEST/observationID</caom2:uri>
+  <caom2:uriBucket>7c1</caom2:uriBucket>
+  <caom2:metaRelease>2025-02-05T00:12:21.039</caom2:metaRelease>
+  <caom2:metaReadGroups>
+    <caom2:groupURI>ivo://cadc.nrc.ca/gms?A</caom2:groupURI>
+    <caom2:groupURI>ivo://cadc.nrc.ca/gms?B</caom2:groupURI>
+  </caom2:metaReadGroups>
   <caom2:sequenceNumber>123</caom2:sequenceNumber>
   <caom2:algorithm>
     <caom2:name>algorithmName</caom2:name>
@@ -14,6 +19,7 @@
     <caom2:pi>proposalPi</caom2:pi>
     <caom2:project>proposalProject</caom2:project>
     <caom2:title>proposalTitle</caom2:title>
+    <caom2:reference>mast:HST:proposal/123</caom2:reference>
     <caom2:keywords>
       <caom2:keyword>keyword1</caom2:keyword>
       <caom2:keyword>keyword2</caom2:keyword>
@@ -21,6 +27,7 @@
   </caom2:proposal>
   <caom2:target>
     <caom2:name>targetName</caom2:name>
+    <caom2:targetID>naif:1701</caom2:targetID>
     <caom2:type>object</caom2:type>
     <caom2:standard>false</caom2:standard>
     <caom2:redshift>1.5</caom2:redshift>
@@ -46,6 +53,7 @@
     <caom2:geoLocationX>1.0</caom2:geoLocationX>
     <caom2:geoLocationY>2.0</caom2:geoLocationY>
     <caom2:geoLocationZ>3.0</caom2:geoLocationZ>
+    <caom2:trackingMode>sidereal</caom2:trackingMode>
     <caom2:keywords>
       <caom2:keyword>keyword1</caom2:keyword>
       <caom2:keyword>keyword2</caom2:keyword>
@@ -68,10 +76,18 @@
     <caom2:photometric>true</caom2:photometric>
   </caom2:environment>
   <caom2:planes>
-    <caom2:plane caom2:id="00000000-0000-0000-5ca9-015f07dcb326" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:b347997a10050cc7e865a45ef058ea26" caom2:accMetaChecksum="md5:dbd4a761e817d123f3da8ecd614903ba">
-      <caom2:productID>productID0</caom2:productID>
-      <caom2:metaRelease>2017-10-10T19:57:03.770</caom2:metaRelease>
-      <caom2:dataRelease>2017-10-10T19:57:03.770</caom2:dataRelease>
+    <caom2:plane caom2:id="260cd599-f96e-4955-bd75-9e9b1fb8417c" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:abee4f7aaded9591ec484c65216a6c2c" caom2:accMetaChecksum="md5:ce023b1fc6869243aaaaf6f77014e7d8" caom2:metaProducer="test:plane/rountrip-1.0">
+      <caom2:uri>caom:collection/observation/plane0</caom2:uri>
+      <caom2:metaRelease>2025-02-05T00:12:21.039</caom2:metaRelease>
+      <caom2:metaReadGroups>
+        <caom2:groupURI>ivo://cadc.nrc.ca/gms?A</caom2:groupURI>
+        <caom2:groupURI>ivo://cadc.nrc.ca/gms?B</caom2:groupURI>
+      </caom2:metaReadGroups>
+      <caom2:dataRelease>2025-02-05T00:12:21.039</caom2:dataRelease>
+      <caom2:dataReadGroups>
+        <caom2:groupURI>ivo://cadc.nrc.ca/gms?C</caom2:groupURI>
+        <caom2:groupURI>ivo://cadc.nrc.ca/gms?D</caom2:groupURI>
+      </caom2:dataReadGroups>
       <caom2:dataProductType>image</caom2:dataProductType>
       <caom2:calibrationLevel>3</caom2:calibrationLevel>
       <caom2:provenance>
@@ -81,22 +97,27 @@
         <caom2:producer>provenanceProducer</caom2:producer>
         <caom2:runID>provenanceRunID</caom2:runID>
         <caom2:reference>http://foo/bar</caom2:reference>
-        <caom2:lastExecuted>2017-10-10T19:57:03.770</caom2:lastExecuted>
+        <caom2:lastExecuted>2025-02-05T00:12:21.039</caom2:lastExecuted>
         <caom2:keywords>
           <caom2:keyword>keyword1</caom2:keyword>
           <caom2:keyword>keyword2</caom2:keyword>
         </caom2:keywords>
         <caom2:inputs>
-          <caom2:planeURI>caom:foo/bar/plane1</caom2:planeURI>
-          <caom2:planeURI>caom:foo/bar/plane2</caom2:planeURI>
+          <caom2:input>caom:foo/bar/plane1</caom2:input>
+          <caom2:input>caom:foo/bar/plane2</caom2:input>
         </caom2:inputs>
       </caom2:provenance>
+      <caom2:observable>
+        <caom2:ucd>phot.count</caom2:ucd>
+        <caom2:calibration>relative</caom2:calibration>
+      </caom2:observable>
       <caom2:metrics>
         <caom2:sourceNumberDensity>100.0</caom2:sourceNumberDensity>
         <caom2:background>33.3</caom2:background>
         <caom2:backgroundStddev>0.2</caom2:backgroundStddev>
         <caom2:fluxDensityLimit>1.0E-8</caom2:fluxDensityLimit>
         <caom2:magLimit>27.5</caom2:magLimit>
+        <caom2:sampleSNR>2.7</caom2:sampleSNR>
       </caom2:metrics>
       <caom2:quality>
         <caom2:flag>junk</caom2:flag>
@@ -117,83 +138,130 @@
               <caom2:cval2>3.0</caom2:cval2>
             </caom2:point>
           </caom2:points>
-          <caom2:samples>
-            <caom2:vertices>
-              <caom2:vertex>
+        </caom2:bounds>
+        <caom2:samples>
+          <caom2:shape xsi:type="caom2:Polygon">
+            <caom2:points>
+              <caom2:point>
                 <caom2:cval1>2.0</caom2:cval1>
                 <caom2:cval2>2.0</caom2:cval2>
-                <caom2:type>2</caom2:type>
-              </caom2:vertex>
-              <caom2:vertex>
+              </caom2:point>
+              <caom2:point>
                 <caom2:cval1>1.0</caom2:cval1>
                 <caom2:cval2>4.0</caom2:cval2>
-                <caom2:type>1</caom2:type>
-              </caom2:vertex>
-              <caom2:vertex>
+              </caom2:point>
+              <caom2:point>
                 <caom2:cval1>3.0</caom2:cval1>
                 <caom2:cval2>3.0</caom2:cval2>
-                <caom2:type>1</caom2:type>
-              </caom2:vertex>
-              <caom2:vertex>
-                <caom2:cval1>0.0</caom2:cval1>
-                <caom2:cval2>0.0</caom2:cval2>
-                <caom2:type>0</caom2:type>
-              </caom2:vertex>
-            </caom2:vertices>
-          </caom2:samples>
-        </caom2:bounds>
+              </caom2:point>
+            </caom2:points>
+          </caom2:shape>
+        </caom2:samples>
+        <caom2:minBounds xsi:type="caom2:Polygon">
+          <caom2:points>
+            <caom2:point>
+              <caom2:cval1>2.0</caom2:cval1>
+              <caom2:cval2>2.0</caom2:cval2>
+            </caom2:point>
+            <caom2:point>
+              <caom2:cval1>1.0</caom2:cval1>
+              <caom2:cval2>4.0</caom2:cval2>
+            </caom2:point>
+            <caom2:point>
+              <caom2:cval1>3.0</caom2:cval1>
+              <caom2:cval2>3.0</caom2:cval2>
+            </caom2:point>
+          </caom2:points>
+        </caom2:minBounds>
         <caom2:dimension>
           <caom2:naxis1>1024</caom2:naxis1>
           <caom2:naxis2>2048</caom2:naxis2>
         </caom2:dimension>
+        <caom2:maxRecoverableScale>
+          <caom2:lower>0.2</caom2:lower>
+          <caom2:upper>0.4</caom2:upper>
+        </caom2:maxRecoverableScale>
         <caom2:resolution>0.05</caom2:resolution>
+        <caom2:resolutionBounds>
+          <caom2:lower>0.04</caom2:lower>
+          <caom2:upper>0.06</caom2:upper>
+        </caom2:resolutionBounds>
         <caom2:sampleSize>0.025</caom2:sampleSize>
+        <caom2:calibration>absolute</caom2:calibration>
       </caom2:position>
       <caom2:energy>
         <caom2:bounds>
           <caom2:lower>4.0E-4</caom2:lower>
           <caom2:upper>9.0E-4</caom2:upper>
-          <caom2:samples>
-            <caom2:sample>
-              <caom2:lower>4.0E-4</caom2:lower>
-              <caom2:upper>5.0E-4</caom2:upper>
-            </caom2:sample>
-            <caom2:sample>
-              <caom2:lower>8.0E-4</caom2:lower>
-              <caom2:upper>9.0E-4</caom2:upper>
-            </caom2:sample>
-          </caom2:samples>
         </caom2:bounds>
+        <caom2:samples>
+          <caom2:sample>
+            <caom2:lower>4.0E-4</caom2:lower>
+            <caom2:upper>5.0E-4</caom2:upper>
+          </caom2:sample>
+          <caom2:sample>
+            <caom2:lower>8.0E-4</caom2:lower>
+            <caom2:upper>9.0E-4</caom2:upper>
+          </caom2:sample>
+        </caom2:samples>
         <caom2:dimension>2</caom2:dimension>
         <caom2:resolvingPower>2.0</caom2:resolvingPower>
+        <caom2:resolvingPowerBounds>
+          <caom2:lower>1.0</caom2:lower>
+          <caom2:upper>8.0</caom2:upper>
+        </caom2:resolvingPowerBounds>
+        <caom2:resolution>1.0E-4</caom2:resolution>
+        <caom2:resolutionBounds>
+          <caom2:lower>1.0E-4</caom2:lower>
+          <caom2:upper>1.0E-4</caom2:upper>
+        </caom2:resolutionBounds>
         <caom2:sampleSize>1.0E-4</caom2:sampleSize>
         <caom2:bandpassName>V</caom2:bandpassName>
-        <caom2:emBand>Optical</caom2:emBand>
-        <caom2:restwav>6.0E-7</caom2:restwav>
+        <caom2:energyBands>
+          <caom2:emBand>Radio</caom2:emBand>
+          <caom2:emBand>Millimeter</caom2:emBand>
+          <caom2:emBand>Infrared</caom2:emBand>
+          <caom2:emBand>Optical</caom2:emBand>
+          <caom2:emBand>UV</caom2:emBand>
+          <caom2:emBand>EUV</caom2:emBand>
+          <caom2:emBand>X-ray</caom2:emBand>
+          <caom2:emBand>Gamma-ray</caom2:emBand>
+        </caom2:energyBands>
+        <caom2:rest>6.0E-7</caom2:rest>
         <caom2:transition>
           <caom2:species>H</caom2:species>
           <caom2:transition>alpha</caom2:transition>
         </caom2:transition>
+        <caom2:calibration>normalized</caom2:calibration>
       </caom2:energy>
       <caom2:time>
         <caom2:bounds>
           <caom2:lower>50000.25</caom2:lower>
           <caom2:upper>50000.75</caom2:upper>
-          <caom2:samples>
-            <caom2:sample>
-              <caom2:lower>50000.25</caom2:lower>
-              <caom2:upper>50000.4</caom2:upper>
-            </caom2:sample>
-            <caom2:sample>
-              <caom2:lower>50000.5</caom2:lower>
-              <caom2:upper>50000.75</caom2:upper>
-            </caom2:sample>
-          </caom2:samples>
         </caom2:bounds>
+        <caom2:samples>
+          <caom2:sample>
+            <caom2:lower>50000.25</caom2:lower>
+            <caom2:upper>50000.4</caom2:upper>
+          </caom2:sample>
+          <caom2:sample>
+            <caom2:lower>50000.5</caom2:lower>
+            <caom2:upper>50000.75</caom2:upper>
+          </caom2:sample>
+        </caom2:samples>
         <caom2:dimension>2</caom2:dimension>
         <caom2:resolution>0.5</caom2:resolution>
+        <caom2:resolutionBounds>
+          <caom2:lower>0.5</caom2:lower>
+          <caom2:upper>1.1</caom2:upper>
+        </caom2:resolutionBounds>
         <caom2:sampleSize>0.15</caom2:sampleSize>
-        <caom2:exposure>666.0</caom2:exposure>
+        <caom2:exposure>600.0</caom2:exposure>
+        <caom2:exposureBounds>
+          <caom2:lower>500.0</caom2:lower>
+          <caom2:upper>700.0</caom2:upper>
+        </caom2:exposureBounds>
+        <caom2:calibration>absolute</caom2:calibration>
       </caom2:time>
       <caom2:polarization>
         <caom2:states>
@@ -203,27 +271,62 @@
         </caom2:states>
         <caom2:dimension>3</caom2:dimension>
       </caom2:polarization>
+      <caom2:custom>
+        <caom2:ctype>FARADAY</caom2:ctype>
+        <caom2:bounds>
+          <caom2:lower>10.0</caom2:lower>
+          <caom2:upper>20.0</caom2:upper>
+        </caom2:bounds>
+        <caom2:samples>
+          <caom2:sample>
+            <caom2:lower>10.0</caom2:lower>
+            <caom2:upper>13.0</caom2:upper>
+          </caom2:sample>
+          <caom2:sample>
+            <caom2:lower>17.0</caom2:lower>
+            <caom2:upper>20.0</caom2:upper>
+          </caom2:sample>
+        </caom2:samples>
+        <caom2:dimension>10</caom2:dimension>
+      </caom2:custom>
+      <caom2:visibility>
+        <caom2:distance>
+          <caom2:lower>20.0</caom2:lower>
+          <caom2:upper>120.0</caom2:upper>
+        </caom2:distance>
+        <caom2:distributionEccentricity>0.5</caom2:distributionEccentricity>
+        <caom2:distributionFill>0.85</caom2:distributionFill>
+      </caom2:visibility>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="00000000-0000-0000-5ca9-015f07dcb328" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:8ab127117fe5ed6d9a6b7463648b3432" caom2:accMetaChecksum="md5:4135e9d109c4ec01fc1fedb09397e590">
+        <caom2:artifact caom2:id="7a005821-d052-4583-bc7c-4a736e76ff6e" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:ac00978abd43b7687063cd5a3585b3c1" caom2:accMetaChecksum="md5:4ccfa9a866370f32def260875afa03c4" caom2:metaProducer="test:artifact/rountrip-1.0">
           <caom2:uri>ad:foo/bar0</caom2:uri>
-          <caom2:productType>science</caom2:productType>
+          <caom2:uriBucket>109</caom2:uriBucket>
+          <caom2:productType>this</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentRelease>2025-02-05T00:12:21.039</caom2:contentRelease>
+          <caom2:contentReadGroups>
+            <caom2:groupURI>ivo://cadc.nrc.ca/gms?C</caom2:groupURI>
+            <caom2:groupURI>ivo://cadc.nrc.ca/gms?D</caom2:groupURI>
+          </caom2:contentReadGroups>
           <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>12345</caom2:contentLength>
-          <caom2:contentChecksum>md5:1234567</caom2:contentChecksum>
+          <caom2:contentChecksum>md5:d41d8cd98f00b204e9800998ecf8427e</caom2:contentChecksum>
+          <caom2:descriptionID>desc:TEST/science-ready-data</caom2:descriptionID>
           <caom2:parts>
-            <caom2:part caom2:id="00000000-0000-0000-5ca9-015f07dcb329" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:8a8e57d76491f8f0ccaf415b6a2f9b37" caom2:accMetaChecksum="md5:0fec1265cf475fe1870abc1137916e83">
+            <caom2:part caom2:id="f5a014f7-f7a7-406f-b273-b8aa0855e1b5" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:b794394c7d612851743334b99fe81b9e" caom2:accMetaChecksum="md5:2279d873915b8ae090bdf1e8b9f205c3" caom2:metaProducer="test:part/rountrip-1.0">
               <caom2:name>x0</caom2:name>
-              <caom2:productType>science</caom2:productType>
+              <caom2:productType>this</caom2:productType>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb32a" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:008a943a088733b94d6c573919b7346d" caom2:accMetaChecksum="md5:56e0909cb3840f9729bd4ca799293a5f">
+                <caom2:chunk caom2:id="17e4342d-8723-4db8-969e-08802d1b743c" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:7989c563c4344134245f44bcda16214d" caom2:accMetaChecksum="md5:82fd1159a420cda9613c1e7d63a2d159" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -317,7 +420,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -326,50 +429,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -394,49 +487,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -493,15 +577,61 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb32b" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:3a9dae5e95f036890f601c32908c49e4" caom2:accMetaChecksum="md5:ec36489a9cbd77f012282974f2310d06">
+                <caom2:chunk caom2:id="686e26a3-f2bd-4f56-9682-0ffc3a05ea6c" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:03affd5ef0f930b43b73b6b41025d6d6" caom2:accMetaChecksum="md5:c2de6486a88515a0cbe0d242836de235" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -595,7 +725,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -604,50 +734,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -672,49 +792,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -771,21 +882,67 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
               </caom2:chunks>
             </caom2:part>
-            <caom2:part caom2:id="00000000-0000-0000-5ca9-015f07dcb32c" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:eb60da375cf3a20b6c29fa261108be3d" caom2:accMetaChecksum="md5:eb4fcc785ef23077f6deae79d096dfd7">
+            <caom2:part caom2:id="a83c9c79-cf96-4916-bd58-d2946777aba2" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:72445d8953e588f9bf5cad3344381345" caom2:accMetaChecksum="md5:0e32b9730aa217ab6a316ad18b17e519" caom2:metaProducer="test:part/rountrip-1.0">
               <caom2:name>x1</caom2:name>
-              <caom2:productType>science</caom2:productType>
+              <caom2:productType>this</caom2:productType>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb32d" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:e20dcf1d7bae8ddf634fb51ded29c626" caom2:accMetaChecksum="md5:b1fd079a559a4189d6d03a4faa1caf36">
+                <caom2:chunk caom2:id="aa08923a-9164-4dab-b716-fc5983e2177f" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:5abd5b164e28871608edd34ae44fbb44" caom2:accMetaChecksum="md5:a49240b1bac10a35959292241009bf7b" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -879,7 +1036,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -888,50 +1045,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -956,49 +1103,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -1055,15 +1193,61 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb32e" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:95f5258ef2017b719e9fe51010f6391f" caom2:accMetaChecksum="md5:26aaa6819dcac6c744c276fb297507fc">
+                <caom2:chunk caom2:id="4e74d66a-e049-4761-86a2-febd34bc8236" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:bc2cd69832df6abdcd871c1667bc1fe7" caom2:accMetaChecksum="md5:8d35d31e2deb23d7d491b0ac844bef49" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -1157,7 +1341,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -1166,50 +1350,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -1234,49 +1408,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -1333,31 +1498,84 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
               </caom2:chunks>
             </caom2:part>
           </caom2:parts>
         </caom2:artifact>
-        <caom2:artifact caom2:id="00000000-0000-0000-5ca9-015f07dcb32f" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:192cbadb1893920d9194a9c1254175a9" caom2:accMetaChecksum="md5:f60909fe3dd0eb6339bbfa95e56c683e">
+        <caom2:artifact caom2:id="10ea6e23-d9e5-4593-8c5a-421c1422a694" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:461725a95a7cd3c41526e937193b7e7b" caom2:accMetaChecksum="md5:b5a8beb7c06a963da48ff61f9861cb62" caom2:metaProducer="test:artifact/rountrip-1.0">
           <caom2:uri>ad:foo/bar1</caom2:uri>
-          <caom2:productType>science</caom2:productType>
+          <caom2:uriBucket>6de</caom2:uriBucket>
+          <caom2:productType>this</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentRelease>2025-02-05T00:12:21.039</caom2:contentRelease>
+          <caom2:contentReadGroups>
+            <caom2:groupURI>ivo://cadc.nrc.ca/gms?C</caom2:groupURI>
+            <caom2:groupURI>ivo://cadc.nrc.ca/gms?D</caom2:groupURI>
+          </caom2:contentReadGroups>
           <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>12345</caom2:contentLength>
-          <caom2:contentChecksum>md5:1234567</caom2:contentChecksum>
+          <caom2:contentChecksum>md5:d41d8cd98f00b204e9800998ecf8427e</caom2:contentChecksum>
+          <caom2:descriptionID>desc:TEST/science-ready-data</caom2:descriptionID>
           <caom2:parts>
-            <caom2:part caom2:id="00000000-0000-0000-5ca9-015f07dcb330" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:48d1fb446fe85c4ce4310c2c1789bff1" caom2:accMetaChecksum="md5:0e4c69871fd57b26413cf2651ff9c723">
+            <caom2:part caom2:id="2d80cb20-b3ea-4b11-af60-0db3132e0a9a" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:1e1cc62a09c1f41a491980ac371e68a2" caom2:accMetaChecksum="md5:9a4cca618230ae34027094c84d9fff89" caom2:metaProducer="test:part/rountrip-1.0">
               <caom2:name>x0</caom2:name>
-              <caom2:productType>science</caom2:productType>
+              <caom2:productType>this</caom2:productType>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb331" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:918a84e84dc06f3b8ab2ed0f61a0d9b9" caom2:accMetaChecksum="md5:6ff497882987e528d62194e32b5c08bd">
+                <caom2:chunk caom2:id="ad446f7a-e87e-42fa-8f39-85201e1f8db2" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:19fb66736426281b4b753bb3d7502e2e" caom2:accMetaChecksum="md5:5ddec67c038d0b6f973c05e81636799d" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -1451,7 +1669,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -1460,50 +1678,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -1528,49 +1736,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -1627,15 +1826,61 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb332" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:6fb219853c55988a7504415dcb6e2eb0" caom2:accMetaChecksum="md5:e69d24f8845f634e1414a891fbe77975">
+                <caom2:chunk caom2:id="170e55bc-4b31-4ba0-8f06-f9fd0722ffda" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:df93a1c25b53fd7e6573077a1fdbe67b" caom2:accMetaChecksum="md5:88479a5c16e4b5f0bc11708419e0d352" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -1729,7 +1974,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -1738,50 +1983,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -1806,49 +2041,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -1905,21 +2131,67 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
               </caom2:chunks>
             </caom2:part>
-            <caom2:part caom2:id="00000000-0000-0000-5ca9-015f07dcb334" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:852cc5b92cc189a6187b3754e162c223" caom2:accMetaChecksum="md5:214972db0b47f110c0eafc83a0f4e7da">
+            <caom2:part caom2:id="9a94b07e-462a-49ab-b885-630c070cff8a" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:46113dbb96f6bbc183a73ec99d0c4de3" caom2:accMetaChecksum="md5:dbbaa514ee62bf3bef9a35118c6f6655" caom2:metaProducer="test:part/rountrip-1.0">
               <caom2:name>x1</caom2:name>
-              <caom2:productType>science</caom2:productType>
+              <caom2:productType>this</caom2:productType>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb335" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:235207826dcc56a4819b85debb50f6f9" caom2:accMetaChecksum="md5:2e8999a9082a30451d78df83e381c61e">
+                <caom2:chunk caom2:id="d81597ec-d436-4f1b-84e0-8f9c61d7a292" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:30515cd994c512c2f6d4857ed44b6da0" caom2:accMetaChecksum="md5:9af77b0dbec1d3c2b647a4d970059b36" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -2013,7 +2285,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -2022,50 +2294,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -2090,49 +2352,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -2189,15 +2442,61 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb336" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:e757dbab7b41dcd7211e7c5ebae5f4a6" caom2:accMetaChecksum="md5:90ca84919ca31f45b9545feab01bd927">
+                <caom2:chunk caom2:id="47e5fb7a-aaab-45d0-ae34-7685bf11c65b" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:a4fea16c83d894d6ff0f6bd6f8d546df" caom2:accMetaChecksum="md5:831f9ecec16d6ab06c02d7571ac3f00d" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -2291,7 +2590,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -2300,50 +2599,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -2368,49 +2657,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -2467,6 +2747,50 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
               </caom2:chunks>
             </caom2:part>
@@ -2474,10 +2798,18 @@
         </caom2:artifact>
       </caom2:artifacts>
     </caom2:plane>
-    <caom2:plane caom2:id="00000000-0000-0000-5ca9-015f07dcb337" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:f85d6bcd2c85d739df2582332434dece" caom2:accMetaChecksum="md5:6a7096b6eb9e446915a6004e84b707b1">
-      <caom2:productID>productID1</caom2:productID>
-      <caom2:metaRelease>2017-10-10T19:57:03.770</caom2:metaRelease>
-      <caom2:dataRelease>2017-10-10T19:57:03.770</caom2:dataRelease>
+    <caom2:plane caom2:id="3f002e2d-4309-4aa8-962c-7a002892bf87" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:f9d586a3c5d99def1bf3591dfe8e2b9f" caom2:accMetaChecksum="md5:8fb1ba53463442d0af82dee79fcdfa4a" caom2:metaProducer="test:plane/rountrip-1.0">
+      <caom2:uri>caom:collection/observation/plane1</caom2:uri>
+      <caom2:metaRelease>2025-02-05T00:12:21.039</caom2:metaRelease>
+      <caom2:metaReadGroups>
+        <caom2:groupURI>ivo://cadc.nrc.ca/gms?A</caom2:groupURI>
+        <caom2:groupURI>ivo://cadc.nrc.ca/gms?B</caom2:groupURI>
+      </caom2:metaReadGroups>
+      <caom2:dataRelease>2025-02-05T00:12:21.039</caom2:dataRelease>
+      <caom2:dataReadGroups>
+        <caom2:groupURI>ivo://cadc.nrc.ca/gms?C</caom2:groupURI>
+        <caom2:groupURI>ivo://cadc.nrc.ca/gms?D</caom2:groupURI>
+      </caom2:dataReadGroups>
       <caom2:dataProductType>image</caom2:dataProductType>
       <caom2:calibrationLevel>3</caom2:calibrationLevel>
       <caom2:provenance>
@@ -2487,22 +2819,27 @@
         <caom2:producer>provenanceProducer</caom2:producer>
         <caom2:runID>provenanceRunID</caom2:runID>
         <caom2:reference>http://foo/bar</caom2:reference>
-        <caom2:lastExecuted>2017-10-10T19:57:03.770</caom2:lastExecuted>
+        <caom2:lastExecuted>2025-02-05T00:12:21.039</caom2:lastExecuted>
         <caom2:keywords>
           <caom2:keyword>keyword1</caom2:keyword>
           <caom2:keyword>keyword2</caom2:keyword>
         </caom2:keywords>
         <caom2:inputs>
-          <caom2:planeURI>caom:foo/bar/plane1</caom2:planeURI>
-          <caom2:planeURI>caom:foo/bar/plane2</caom2:planeURI>
+          <caom2:input>caom:foo/bar/plane1</caom2:input>
+          <caom2:input>caom:foo/bar/plane2</caom2:input>
         </caom2:inputs>
       </caom2:provenance>
+      <caom2:observable>
+        <caom2:ucd>phot.count</caom2:ucd>
+        <caom2:calibration>relative</caom2:calibration>
+      </caom2:observable>
       <caom2:metrics>
         <caom2:sourceNumberDensity>100.0</caom2:sourceNumberDensity>
         <caom2:background>33.3</caom2:background>
         <caom2:backgroundStddev>0.2</caom2:backgroundStddev>
         <caom2:fluxDensityLimit>1.0E-8</caom2:fluxDensityLimit>
         <caom2:magLimit>27.5</caom2:magLimit>
+        <caom2:sampleSNR>2.7</caom2:sampleSNR>
       </caom2:metrics>
       <caom2:quality>
         <caom2:flag>junk</caom2:flag>
@@ -2515,58 +2852,111 @@
           </caom2:center>
           <caom2:radius>1.0</caom2:radius>
         </caom2:bounds>
+        <caom2:samples>
+          <caom2:shape xsi:type="caom2:Circle">
+            <caom2:center>
+              <caom2:cval1>2.0</caom2:cval1>
+              <caom2:cval2>4.0</caom2:cval2>
+            </caom2:center>
+            <caom2:radius>1.0</caom2:radius>
+          </caom2:shape>
+        </caom2:samples>
+        <caom2:minBounds xsi:type="caom2:Circle">
+          <caom2:center>
+            <caom2:cval1>2.0</caom2:cval1>
+            <caom2:cval2>4.0</caom2:cval2>
+          </caom2:center>
+          <caom2:radius>0.6</caom2:radius>
+        </caom2:minBounds>
         <caom2:dimension>
           <caom2:naxis1>1024</caom2:naxis1>
           <caom2:naxis2>2048</caom2:naxis2>
         </caom2:dimension>
+        <caom2:maxRecoverableScale>
+          <caom2:lower>0.2</caom2:lower>
+          <caom2:upper>0.4</caom2:upper>
+        </caom2:maxRecoverableScale>
         <caom2:resolution>0.05</caom2:resolution>
+        <caom2:resolutionBounds>
+          <caom2:lower>0.04</caom2:lower>
+          <caom2:upper>0.06</caom2:upper>
+        </caom2:resolutionBounds>
         <caom2:sampleSize>0.025</caom2:sampleSize>
+        <caom2:calibration>absolute</caom2:calibration>
       </caom2:position>
       <caom2:energy>
         <caom2:bounds>
           <caom2:lower>4.0E-4</caom2:lower>
           <caom2:upper>9.0E-4</caom2:upper>
-          <caom2:samples>
-            <caom2:sample>
-              <caom2:lower>4.0E-4</caom2:lower>
-              <caom2:upper>5.0E-4</caom2:upper>
-            </caom2:sample>
-            <caom2:sample>
-              <caom2:lower>8.0E-4</caom2:lower>
-              <caom2:upper>9.0E-4</caom2:upper>
-            </caom2:sample>
-          </caom2:samples>
         </caom2:bounds>
+        <caom2:samples>
+          <caom2:sample>
+            <caom2:lower>4.0E-4</caom2:lower>
+            <caom2:upper>5.0E-4</caom2:upper>
+          </caom2:sample>
+          <caom2:sample>
+            <caom2:lower>8.0E-4</caom2:lower>
+            <caom2:upper>9.0E-4</caom2:upper>
+          </caom2:sample>
+        </caom2:samples>
         <caom2:dimension>2</caom2:dimension>
         <caom2:resolvingPower>2.0</caom2:resolvingPower>
+        <caom2:resolvingPowerBounds>
+          <caom2:lower>1.0</caom2:lower>
+          <caom2:upper>8.0</caom2:upper>
+        </caom2:resolvingPowerBounds>
+        <caom2:resolution>1.0E-4</caom2:resolution>
+        <caom2:resolutionBounds>
+          <caom2:lower>1.0E-4</caom2:lower>
+          <caom2:upper>1.0E-4</caom2:upper>
+        </caom2:resolutionBounds>
         <caom2:sampleSize>1.0E-4</caom2:sampleSize>
         <caom2:bandpassName>V</caom2:bandpassName>
-        <caom2:emBand>Optical</caom2:emBand>
-        <caom2:restwav>6.0E-7</caom2:restwav>
+        <caom2:energyBands>
+          <caom2:emBand>Radio</caom2:emBand>
+          <caom2:emBand>Millimeter</caom2:emBand>
+          <caom2:emBand>Infrared</caom2:emBand>
+          <caom2:emBand>Optical</caom2:emBand>
+          <caom2:emBand>UV</caom2:emBand>
+          <caom2:emBand>EUV</caom2:emBand>
+          <caom2:emBand>X-ray</caom2:emBand>
+          <caom2:emBand>Gamma-ray</caom2:emBand>
+        </caom2:energyBands>
+        <caom2:rest>6.0E-7</caom2:rest>
         <caom2:transition>
           <caom2:species>H</caom2:species>
           <caom2:transition>alpha</caom2:transition>
         </caom2:transition>
+        <caom2:calibration>normalized</caom2:calibration>
       </caom2:energy>
       <caom2:time>
         <caom2:bounds>
           <caom2:lower>50000.25</caom2:lower>
           <caom2:upper>50000.75</caom2:upper>
-          <caom2:samples>
-            <caom2:sample>
-              <caom2:lower>50000.25</caom2:lower>
-              <caom2:upper>50000.4</caom2:upper>
-            </caom2:sample>
-            <caom2:sample>
-              <caom2:lower>50000.5</caom2:lower>
-              <caom2:upper>50000.75</caom2:upper>
-            </caom2:sample>
-          </caom2:samples>
         </caom2:bounds>
+        <caom2:samples>
+          <caom2:sample>
+            <caom2:lower>50000.25</caom2:lower>
+            <caom2:upper>50000.4</caom2:upper>
+          </caom2:sample>
+          <caom2:sample>
+            <caom2:lower>50000.5</caom2:lower>
+            <caom2:upper>50000.75</caom2:upper>
+          </caom2:sample>
+        </caom2:samples>
         <caom2:dimension>2</caom2:dimension>
         <caom2:resolution>0.5</caom2:resolution>
+        <caom2:resolutionBounds>
+          <caom2:lower>0.5</caom2:lower>
+          <caom2:upper>1.1</caom2:upper>
+        </caom2:resolutionBounds>
         <caom2:sampleSize>0.15</caom2:sampleSize>
-        <caom2:exposure>666.0</caom2:exposure>
+        <caom2:exposure>600.0</caom2:exposure>
+        <caom2:exposureBounds>
+          <caom2:lower>500.0</caom2:lower>
+          <caom2:upper>700.0</caom2:upper>
+        </caom2:exposureBounds>
+        <caom2:calibration>absolute</caom2:calibration>
       </caom2:time>
       <caom2:polarization>
         <caom2:states>
@@ -2576,27 +2966,62 @@
         </caom2:states>
         <caom2:dimension>3</caom2:dimension>
       </caom2:polarization>
+      <caom2:custom>
+        <caom2:ctype>FARADAY</caom2:ctype>
+        <caom2:bounds>
+          <caom2:lower>10.0</caom2:lower>
+          <caom2:upper>20.0</caom2:upper>
+        </caom2:bounds>
+        <caom2:samples>
+          <caom2:sample>
+            <caom2:lower>10.0</caom2:lower>
+            <caom2:upper>13.0</caom2:upper>
+          </caom2:sample>
+          <caom2:sample>
+            <caom2:lower>17.0</caom2:lower>
+            <caom2:upper>20.0</caom2:upper>
+          </caom2:sample>
+        </caom2:samples>
+        <caom2:dimension>10</caom2:dimension>
+      </caom2:custom>
+      <caom2:visibility>
+        <caom2:distance>
+          <caom2:lower>20.0</caom2:lower>
+          <caom2:upper>120.0</caom2:upper>
+        </caom2:distance>
+        <caom2:distributionEccentricity>0.5</caom2:distributionEccentricity>
+        <caom2:distributionFill>0.85</caom2:distributionFill>
+      </caom2:visibility>
       <caom2:artifacts>
-        <caom2:artifact caom2:id="00000000-0000-0000-5ca9-015f07dcb338" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:0b9050feaa702349015a1b3e155f138a" caom2:accMetaChecksum="md5:7dce1164ee990cf6e4dae9c590277916">
+        <caom2:artifact caom2:id="ab8f079a-3b8c-4e6c-8e0d-ebd8c232090c" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:6217a91a9516a6148e47349d1a386203" caom2:accMetaChecksum="md5:2a85399411c421271a3f288defc0cbf4" caom2:metaProducer="test:artifact/rountrip-1.0">
           <caom2:uri>ad:foo/bar0</caom2:uri>
-          <caom2:productType>science</caom2:productType>
+          <caom2:uriBucket>109</caom2:uriBucket>
+          <caom2:productType>this</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentRelease>2025-02-05T00:12:21.039</caom2:contentRelease>
+          <caom2:contentReadGroups>
+            <caom2:groupURI>ivo://cadc.nrc.ca/gms?C</caom2:groupURI>
+            <caom2:groupURI>ivo://cadc.nrc.ca/gms?D</caom2:groupURI>
+          </caom2:contentReadGroups>
           <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>12345</caom2:contentLength>
-          <caom2:contentChecksum>md5:1234567</caom2:contentChecksum>
+          <caom2:contentChecksum>md5:d41d8cd98f00b204e9800998ecf8427e</caom2:contentChecksum>
+          <caom2:descriptionID>desc:TEST/science-ready-data</caom2:descriptionID>
           <caom2:parts>
-            <caom2:part caom2:id="00000000-0000-0000-5ca9-015f07dcb339" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:8bc73a2e37d961f9249c6bc994bf2b71" caom2:accMetaChecksum="md5:d6317aa8f5e270e9f5b3973aae11b5a4">
+            <caom2:part caom2:id="28e0b130-f25b-4af8-94ec-ed48582aa878" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:5c43e061d121ade9952bbda4ea52d8bb" caom2:accMetaChecksum="md5:2248b3aec0a77f231adab28b6b93b434" caom2:metaProducer="test:part/rountrip-1.0">
               <caom2:name>x0</caom2:name>
-              <caom2:productType>science</caom2:productType>
+              <caom2:productType>this</caom2:productType>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb33a" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:36727f715d0ef4ff5761a645c0f9fe72" caom2:accMetaChecksum="md5:bdd720a9dffbce3aed54d470b2e188f0">
+                <caom2:chunk caom2:id="b611b225-fef3-4fe3-8426-f97959a06ffc" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:84530789d83a933427fbf2520be8eabd" caom2:accMetaChecksum="md5:6357fcab22fbb268aba4a5000346b81c" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -2690,7 +3115,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -2699,50 +3124,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -2767,49 +3182,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -2866,15 +3272,61 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb33b" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:e87e3eecf91571c57c23a67d46c1c325" caom2:accMetaChecksum="md5:c9b3665882d568033a78bace0a951f41">
+                <caom2:chunk caom2:id="1ed1732a-e4b9-4dd9-ae53-b6b5d71e9396" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:e9024f981cfda9fc49370e19be0bb3ed" caom2:accMetaChecksum="md5:e67fa30f00fe32e2d5a8fe519cb5fc90" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -2968,7 +3420,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -2977,50 +3429,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -3045,49 +3487,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -3144,21 +3577,67 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
               </caom2:chunks>
             </caom2:part>
-            <caom2:part caom2:id="00000000-0000-0000-5ca9-015f07dcb33c" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:27504283fa9c963e21c26b3a3bed8422" caom2:accMetaChecksum="md5:86c2ba76c7a98fe85b6016d77b946a7e">
+            <caom2:part caom2:id="24f2bc19-143c-4525-b4d1-405936003348" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:74f6c9adf52f33366ed5b370882389ff" caom2:accMetaChecksum="md5:0f5bdb51c34f3502f3388418aa4b72e3" caom2:metaProducer="test:part/rountrip-1.0">
               <caom2:name>x1</caom2:name>
-              <caom2:productType>science</caom2:productType>
+              <caom2:productType>this</caom2:productType>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb33e" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:5fad9b0f5203acd1f86702593daf2a84" caom2:accMetaChecksum="md5:47cbddcc88ecb848866524e32277a826">
+                <caom2:chunk caom2:id="2c33b9d4-6f4e-4a46-a23a-0c8a191652a8" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:5535cedb9f72f0c6144e1af8011ac10f" caom2:accMetaChecksum="md5:5bc57b937d82db32564e29f429062541" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -3252,7 +3731,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -3261,50 +3740,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -3329,49 +3798,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -3428,15 +3888,61 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb33f" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:b20adc399daf02b310fbefc66da7ef55" caom2:accMetaChecksum="md5:30f219f9798c2a89a866c224718414a3">
+                <caom2:chunk caom2:id="5240d0f0-2087-4e6f-ad7e-7a9bddb10b68" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:a1ba1478bd75fc1a970cbfa754809351" caom2:accMetaChecksum="md5:03d3649781168df304d77e222e777542" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -3530,7 +4036,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -3539,50 +4045,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -3607,49 +4103,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -3706,31 +4193,84 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
               </caom2:chunks>
             </caom2:part>
           </caom2:parts>
         </caom2:artifact>
-        <caom2:artifact caom2:id="00000000-0000-0000-5ca9-015f07dcb340" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:5b7066c15332571a15b297b7b48edca1" caom2:accMetaChecksum="md5:cc3d0208be2391329e2b647492fd2c7a">
+        <caom2:artifact caom2:id="92760012-0019-43d9-8614-03676ebbe1fe" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:00468405aea9dab15dfb280d45874f96" caom2:accMetaChecksum="md5:c95343352ecf723bb1c3d49bad262883" caom2:metaProducer="test:artifact/rountrip-1.0">
           <caom2:uri>ad:foo/bar1</caom2:uri>
-          <caom2:productType>science</caom2:productType>
+          <caom2:uriBucket>6de</caom2:uriBucket>
+          <caom2:productType>this</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
+          <caom2:contentRelease>2025-02-05T00:12:21.039</caom2:contentRelease>
+          <caom2:contentReadGroups>
+            <caom2:groupURI>ivo://cadc.nrc.ca/gms?C</caom2:groupURI>
+            <caom2:groupURI>ivo://cadc.nrc.ca/gms?D</caom2:groupURI>
+          </caom2:contentReadGroups>
           <caom2:contentType>application/fits</caom2:contentType>
           <caom2:contentLength>12345</caom2:contentLength>
-          <caom2:contentChecksum>md5:1234567</caom2:contentChecksum>
+          <caom2:contentChecksum>md5:d41d8cd98f00b204e9800998ecf8427e</caom2:contentChecksum>
+          <caom2:descriptionID>desc:TEST/science-ready-data</caom2:descriptionID>
           <caom2:parts>
-            <caom2:part caom2:id="00000000-0000-0000-5ca9-015f07dcb341" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:594e87665691bb9097b2f75a87df25e1" caom2:accMetaChecksum="md5:5f42c77b061601b1fde9ae8c48a2aeb0">
+            <caom2:part caom2:id="d0f4c744-80a3-43f4-a4d7-c8a11998a50a" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:68beec1432645e964b4348b158406ec9" caom2:accMetaChecksum="md5:04485f76a51cf3a4f405b38c367fc0e0" caom2:metaProducer="test:part/rountrip-1.0">
               <caom2:name>x0</caom2:name>
-              <caom2:productType>science</caom2:productType>
+              <caom2:productType>this</caom2:productType>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb342" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:f2c107f9131b3e9e1dfc43bb5174b7b1" caom2:accMetaChecksum="md5:04cba8d3a1e2888e52aa495bc3fbbce8">
+                <caom2:chunk caom2:id="8f3f1a15-72e8-4309-b8c1-d8bd1d750545" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:1c55a0205962eb9ebf8e5ed00203fed1" caom2:accMetaChecksum="md5:d2bf64d8a18d74dc2943cfcee0669c02" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -3824,7 +4364,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -3833,50 +4373,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -3901,49 +4431,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -4000,15 +4521,61 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb343" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:6b41d978abae550b3d115b8140823c68" caom2:accMetaChecksum="md5:c3bfef28a3671c9cea759ea2e8d3dcdc">
+                <caom2:chunk caom2:id="a5ff1319-c36e-4220-a1fe-cc79ef3a5d7b" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:7517b2c929bd45b4ca2b62707c298d22" caom2:accMetaChecksum="md5:a3628deb9f06645a731d9e0f6d42066c" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -4102,7 +4669,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -4111,50 +4678,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -4179,49 +4736,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -4278,21 +4826,67 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
               </caom2:chunks>
             </caom2:part>
-            <caom2:part caom2:id="00000000-0000-0000-5ca9-015f07dcb344" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:b815b802305769570a1d317b29980757" caom2:accMetaChecksum="md5:f323ac26ebda13ca3ae9de6459eedeeb">
+            <caom2:part caom2:id="1c3e246c-ae4d-41d7-85b5-56469ee86dbb" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:de4e0c9ec9008433fcc2aa74327659ce" caom2:accMetaChecksum="md5:e92a7f2185488d930bdae6ad81450a43" caom2:metaProducer="test:part/rountrip-1.0">
               <caom2:name>x1</caom2:name>
-              <caom2:productType>science</caom2:productType>
+              <caom2:productType>this</caom2:productType>
               <caom2:chunks>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb345" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:cfbaf01666570f690152c8046844a5c1" caom2:accMetaChecksum="md5:402a7972627d78ed14e79554a1ae2f80">
+                <caom2:chunk caom2:id="9c426b0c-4889-4a0c-8acc-08599a8d9a91" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:68209ecb74701f79750ee64215ddd51a" caom2:accMetaChecksum="md5:8d046254ebe51be06eb5233d60e40ced" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -4386,7 +4980,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -4395,50 +4989,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -4463,49 +5047,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -4562,15 +5137,61 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
-                <caom2:chunk caom2:id="00000000-0000-0000-5ca9-015f07dcb346" caom2:lastModified="2017-10-10T19:57:05.222" caom2:maxLastModified="2017-10-10T19:57:07.222" caom2:metaChecksum="md5:aec2af091609ba466b490fb48f4e5be4" caom2:accMetaChecksum="md5:bc76128cae0c21087e94cda5cd154d13">
+                <caom2:chunk caom2:id="dc50647e-cce9-40f8-bcbf-31387ea06f44" caom2:lastModified="2025-02-05T00:12:21.071" caom2:maxLastModified="2025-02-05T00:12:23.071" caom2:metaChecksum="md5:59c7a1b276f44022eed4390df25eaff9" caom2:accMetaChecksum="md5:0b646ed76c3068817dbee3814f9c6404" caom2:metaProducer="test:chunk/rountrip-1.0">
+                  <caom2:productType>this</caom2:productType>
                   <caom2:naxis>5</caom2:naxis>
-                  <caom2:observableAxis>1</caom2:observableAxis>
+                  <caom2:observableAxis>6</caom2:observableAxis>
                   <caom2:positionAxis1>1</caom2:positionAxis1>
                   <caom2:positionAxis2>2</caom2:positionAxis2>
                   <caom2:energyAxis>3</caom2:energyAxis>
                   <caom2:timeAxis>4</caom2:timeAxis>
                   <caom2:polarizationAxis>5</caom2:polarizationAxis>
+                  <caom2:customAxis>7</caom2:customAxis>
                   <caom2:observable>
                     <caom2:dependent>
                       <caom2:axis>
@@ -4664,7 +5285,7 @@
                   <caom2:energy>
                     <caom2:axis>
                       <caom2:axis>
-                        <caom2:ctype>WAV</caom2:ctype>
+                        <caom2:ctype>WAVE</caom2:ctype>
                         <caom2:cunit>m</caom2:cunit>
                       </caom2:axis>
                       <caom2:error>
@@ -4673,50 +5294,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
-                    <caom2:specsys>energy specsys</caom2:specsys>
-                    <caom2:ssysobs>energy ssysobs</caom2:ssysobs>
-                    <caom2:ssyssrc>energy ssyssrc</caom2:ssyssrc>
+                    <caom2:specsys>BARCENT</caom2:specsys>
+                    <caom2:ssysobs>BARCENT</caom2:ssysobs>
+                    <caom2:ssyssrc>BARCENT</caom2:ssyssrc>
                     <caom2:restfrq>1.0</caom2:restfrq>
                     <caom2:restwav>2.0</caom2:restwav>
                     <caom2:velosys>3.0</caom2:velosys>
@@ -4741,49 +5352,40 @@
                       </caom2:error>
                       <caom2:range>
                         <caom2:start>
-                          <caom2:pix>2.0</caom2:pix>
-                          <caom2:val>2.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:start>
                         <caom2:end>
-                          <caom2:pix>3.0</caom2:pix>
-                          <caom2:val>3.5</caom2:val>
+                          <caom2:pix>4.5</caom2:pix>
+                          <caom2:val>140.0</caom2:val>
                         </caom2:end>
                       </caom2:range>
                       <caom2:bounds>
                         <caom2:samples>
                           <caom2:range>
                             <caom2:start>
-                              <caom2:pix>6.0</caom2:pix>
-                              <caom2:val>6.5</caom2:val>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>100.0</caom2:val>
                             </caom2:start>
                             <caom2:end>
-                              <caom2:pix>7.0</caom2:pix>
-                              <caom2:val>7.5</caom2:val>
-                            </caom2:end>
-                          </caom2:range>
-                          <caom2:range>
-                            <caom2:start>
-                              <caom2:pix>8.0</caom2:pix>
-                              <caom2:val>8.5</caom2:val>
-                            </caom2:start>
-                            <caom2:end>
-                              <caom2:pix>9.0</caom2:pix>
-                              <caom2:val>9.5</caom2:val>
+                              <caom2:pix>4.5</caom2:pix>
+                              <caom2:val>140.0</caom2:val>
                             </caom2:end>
                           </caom2:range>
                         </caom2:samples>
                       </caom2:bounds>
                       <caom2:function>
                         <caom2:naxis>4</caom2:naxis>
-                        <caom2:delta>4.5</caom2:delta>
+                        <caom2:delta>10.0</caom2:delta>
                         <caom2:refCoord>
-                          <caom2:pix>5.0</caom2:pix>
-                          <caom2:val>5.5</caom2:val>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>100.0</caom2:val>
                         </caom2:refCoord>
                       </caom2:function>
                     </caom2:axis>
                     <caom2:timesys>UTC</caom2:timesys>
                     <caom2:trefpos>TOPOCENTER</caom2:trefpos>
+                    <caom2:mjdref>50000.0</caom2:mjdref>
                     <caom2:exposure>1.0</caom2:exposure>
                     <caom2:resolution>2.0</caom2:resolution>
                   </caom2:time>
@@ -4840,6 +5442,50 @@
                       </caom2:function>
                     </caom2:axis>
                   </caom2:polarization>
+                  <caom2:custom>
+                    <caom2:axis>
+                      <caom2:axis>
+                        <caom2:ctype>RM</caom2:ctype>
+                        <caom2:cunit>rad/m**2</caom2:cunit>
+                      </caom2:axis>
+                      <caom2:error>
+                        <caom2:syser>1.0E-4</caom2:syser>
+                        <caom2:rnder>1.0E-6</caom2:rnder>
+                      </caom2:error>
+                      <caom2:range>
+                        <caom2:start>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:start>
+                        <caom2:end>
+                          <caom2:pix>10.5</caom2:pix>
+                          <caom2:val>4.0</caom2:val>
+                        </caom2:end>
+                      </caom2:range>
+                      <caom2:bounds>
+                        <caom2:samples>
+                          <caom2:range>
+                            <caom2:start>
+                              <caom2:pix>0.5</caom2:pix>
+                              <caom2:val>1.0</caom2:val>
+                            </caom2:start>
+                            <caom2:end>
+                              <caom2:pix>10.5</caom2:pix>
+                              <caom2:val>4.0</caom2:val>
+                            </caom2:end>
+                          </caom2:range>
+                        </caom2:samples>
+                      </caom2:bounds>
+                      <caom2:function>
+                        <caom2:naxis>10</caom2:naxis>
+                        <caom2:delta>1.0</caom2:delta>
+                        <caom2:refCoord>
+                          <caom2:pix>0.5</caom2:pix>
+                          <caom2:val>1.0</caom2:val>
+                        </caom2:refCoord>
+                      </caom2:function>
+                    </caom2:axis>
+                  </caom2:custom>
                 </caom2:chunk>
               </caom2:chunks>
             </caom2:part>
@@ -4849,6 +5495,7 @@
     </caom2:plane>
   </caom2:planes>
   <caom2:members>
-    <caom2:observationURI>caom:foo/bar</caom2:observationURI>
+    <caom2:member>caom:foo/bar</caom2:member>
+    <caom2:member>caom:foo/baz</caom2:member>
   </caom2:members>
 </caom2:Observation>

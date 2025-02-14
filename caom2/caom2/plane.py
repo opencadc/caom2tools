@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -71,26 +71,24 @@
 from datetime import datetime
 
 from builtins import str, int
-from urllib.parse import SplitResult, urlsplit
+from urllib.parse import urlsplit
 from deprecated import deprecated
 
-from caom2.caom_util import int_32
+from caom2.caom_util import int_32, validate_uri
 from . import caom_util
 from . import shape
 from . import wcs
 from .artifact import Artifact
-from .common import AbstractCaomEntity, CaomObject, ObservationURI,\
-    VocabularyTerm, OrderedEnum
-from .common import _CAOM_VOCAB_NS, _OBSCORE_VOCAB_NS
+from .common import AbstractCaomEntity, CaomObject, VocabularyTerm, OrderedEnum, _CAOM_QUALITY_NS
+from .common import _CAOM_DATA_PRODUCT_TYPE_NS
 import warnings
-from enum import Enum
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum, extend_enum
 
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PolarizationState', 'Quality', 'Plane',
-           'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position',
+           'DataQuality', 'Metrics', 'Provenance', 'Position',
            'Energy', 'Polarization', 'Time', 'Observable']
 
 
@@ -110,23 +108,42 @@ class CalibrationLevel(Enum):
     ANALYSIS_PRODUCT = int_32(4)
 
 
+class Ucd:
+    """ UCD - enum of UCDs"""
+    UCD_VOCAB = "https://ivoa.net/documents/UCD1+/20230125/ucd-list.txt"
+
+    def __init__(self, value):
+        self.value = value
+
+
+class CalibrationStatus(OrderedEnum):
+    """ CalibrationStatus - enum of calibration status"""
+    CALIB_STATUS_VOCAB = "http://www.opencadc.org/caom2/CalibrationStatus"
+
+    ABSOLUTE = VocabularyTerm(CALIB_STATUS_VOCAB, "absolute", True).get_value()
+    NORMALIZED = VocabularyTerm(CALIB_STATUS_VOCAB, "normalized", True).get_value()
+    RELATIVE = VocabularyTerm(CALIB_STATUS_VOCAB, "relative", True).get_value()
+
+
 class DataProductType(OrderedEnum):
     """ DataproductType - enum of data product types"""
+    DATA_PRODUCT_TYPE_VOCAB = "http://www.ivoa.net/rdf/product-type"
 
-    IMAGE = VocabularyTerm(_OBSCORE_VOCAB_NS, "image", True).get_value()
-    CUBE = VocabularyTerm(_OBSCORE_VOCAB_NS, "cube", True).get_value()
-    EVENTLIST = VocabularyTerm(_OBSCORE_VOCAB_NS, "eventlist",
+    IMAGE = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "image", True).get_value()
+    CUBE = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "cube", True).get_value()
+    EVENTLIST = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "eventlist",
                                True).get_value()
-    SPECTRUM = VocabularyTerm(_OBSCORE_VOCAB_NS, "spectrum", True).get_value()
-    TIMESERIES = VocabularyTerm(_OBSCORE_VOCAB_NS, "timeseries",
+    SPECTRUM = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "spectrum", True).get_value()
+    TIMESERIES = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "timeseries",
                                 True).get_value()
-    VISIBILITY = VocabularyTerm(_OBSCORE_VOCAB_NS, "visibility",
+    VISIBILITY = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "visibility",
                                 True).get_value()
-    MEASUREMENTS = VocabularyTerm(_OBSCORE_VOCAB_NS, "measurements",
+    MEASUREMENTS = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "measurements",
                                   True).get_value()
-    CATALOG = VocabularyTerm(_CAOM_VOCAB_NS, "catalog").get_value()
-    EVENT = VocabularyTerm(_CAOM_VOCAB_NS, "event", True).get_value()
-    SED = VocabularyTerm(_CAOM_VOCAB_NS, "sed", True).get_value()
+    EVENT = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "event-list", True).get_value()
+    SED = VocabularyTerm(DATA_PRODUCT_TYPE_VOCAB, "sed", True).get_value()
+
+    CATALOG = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "catalog").get_value()
 
     @staticmethod
     def extend(namespace, name):
@@ -205,30 +222,75 @@ class Quality(Enum):
     """
     JUNK: junk
     """
-    JUNK = VocabularyTerm(_CAOM_VOCAB_NS, "junk", True).get_value()
+    JUNK = VocabularyTerm(_CAOM_QUALITY_NS, "junk", True).get_value()
 
 
-class Observable():
+class Observable(CaomObject):
     """ Observable class"""
 
-    def __init__(self, ucd):
-        self.ucd = ucd
+    def __init__(self, ucd, calibration=None):
+        if not ucd:
+            raise ValueError("Observable.ucd cannot be None")
+        caom_util.type_check(ucd, Ucd, 'ucd')
+        self._ucd = ucd.value
+        self.calibration = calibration
 
     @property
     def ucd(self):
         return self._ucd
 
-    @ucd.setter
-    def ucd(self, value):
-        caom_util.type_check(value, str, 'ucd', override=False)
-        self._ucd = value
+    @property
+    def calibration(self):
+        return self._calibration
+
+    @calibration.setter
+    def calibration(self, value):
+        if value is not None:
+            caom_util.type_check(value, CalibrationStatus, 'calibration', override=False)
+            self._calibration = CalibrationStatus(value)
+        else:
+            self._calibration = None
+
+
+class Visibility(CaomObject):
+
+    def __init__(self, distance, distribution_eccentricity, distribution_fill):
+
+        if distance is not None:
+            caom_util.type_check(distance, shape.Interval, 'distance')
+        else:
+            raise ValueError("Visibility.distance cannot be None")
+        self._distance = distance
+
+        if distribution_eccentricity is not None:
+            caom_util.type_check(distribution_eccentricity, float, 'distribution_eccentricity')
+        else:
+            raise ValueError("Visibility.distribution_eccentricity cannot be None")
+        self._distribution_eccentricity = distribution_eccentricity
+
+        if distribution_fill is not None:
+            caom_util.type_check(distribution_fill, float, 'distribution_fill')
+        else:
+            raise ValueError("Visibility.distribution_fill cannot be None")
+        self._distribution_fill = distribution_fill
+
+    @property
+    def distance(self):
+        return self._distance
+
+    @property
+    def distribution_eccentricity(self):
+        return self._distribution_eccentricity
+
+    @property
+    def distribution_fill(self):
+        return self._distribution_fill
 
 
 class Plane(AbstractCaomEntity):
     """ Plane class """
 
-    def __init__(self, product_id,
-                 creator_id=None,
+    def __init__(self, uri,
                  artifacts=None,
                  meta_release=None,
                  data_release=None,
@@ -239,18 +301,19 @@ class Plane(AbstractCaomEntity):
                  provenance=None,
                  metrics=None,
                  quality=None,
-                 observable=None):
+                 observable=None,
+                 visibility=None):
         """
         Initialize a Plane instance
 
         Arguments:
-        product_id : product ID
+        uri : product URI
         """
         super(Plane, self).__init__()
-        self.product_id = product_id
+        validate_uri(uri)
+        self._uri = uri
         if artifacts is None:
             artifacts = caom_util.TypedOrderedDict(Artifact, )
-        self.creator_id = creator_id
         self.artifacts = artifacts
 
         self.meta_release = meta_release
@@ -271,46 +334,24 @@ class Plane(AbstractCaomEntity):
         self._polarization = None
         self._custom = None
         self.observable = observable
+        self.visibility = visibility
 
     def _key(self):
-        return self.product_id
+        return self.uri
 
     def __hash__(self):
         return hash(self._key())
 
     # Properties
     @property
-    def product_id(self):
-        """A string that identifies the data product, within a given
+    def uri(self):
+        """A URI that identifies the data product, within a given
         observation, that is stored in this plane.
 
         eg: '1234567p'
         type: unicode string
         """
-        return self._product_id
-
-    @product_id.setter
-    def product_id(self, value):
-        caom_util.type_check(value, str, 'product_id', override=False)
-        self._product_id = value
-
-    @property
-    def creator_id(self):
-        """A URI that identifies the creator of this plane.
-
-        eg: ivo://cadc.nrc.ca/users?tester
-        type: URI
-        """
-        return self._creator_id
-
-    @creator_id.setter
-    def creator_id(self, value):
-        caom_util.type_check(value, str, 'creator_id')
-        if value is not None:
-            tmp = urlsplit(value)
-            if tmp.geturl() != value:
-                raise ValueError("Invalid URI: " + value)
-        self._creator_id = value
+        return self._uri
 
     @property
     def artifacts(self):
@@ -487,7 +528,7 @@ class Plane(AbstractCaomEntity):
 
     @observable.setter
     def observable(self, value):
-        caom_util.type_check(value, str, 'observable')
+        caom_util.type_check(value, Observable, 'observable')
         self._observable = value
 
     @property
@@ -590,101 +631,102 @@ class Plane(AbstractCaomEntity):
             "Aggregation of polarization " +
             "has not been implemented in this module")
 
-
-class PlaneURI(CaomObject):
-    """ Plane URI """
-
-    def __init__(self, uri):
-        """
-        Initializes an Plane instance
-
-        Arguments:
-        uri : URI corresponding to the plane
-
-        Throws:
-        TypeError  : if uri is not a string
-        ValueError : if uri is invalid
-        ValueError : if the uri is valid but does not contain the expected
-        fields (collection, observation_id and product_id)
-        """
-
-        self.uri = uri
-
-    def _key(self):
-        return self.uri
-
-    def __hash__(self):
-        return hash(self._key())
-
-    def __lt__(self, other):
-        if not isinstance(other, PlaneURI):
-            raise ValueError(
-                'Cannot compare PlaneURI with {}'.format(type(other)))
-        return self.uri < other.uri
-
-    def __eq__(self, other):
-        if not isinstance(other, PlaneURI):
-            raise ValueError(
-                'Cannot compare PlaneURI with {}'.format(type(other)))
-        return self.uri == other.uri
-
-    @classmethod
-    def get_plane_uri(cls, observation_uri, product_id):
-        """
-        Initializes an Plane URI instance
-
-        Arguments:
-        observation_uri : the uri of the observation
-        product_id : ID of the product
-        """
-        caom_util.type_check(observation_uri, ObservationURI,
-                             "observation_uri",
-                             override=False)
-        caom_util.type_check(product_id, str, "observation_uri",
-                             override=False)
-        caom_util.validate_path_component(cls, "product_id", product_id)
-
-        path = urlsplit(observation_uri.uri).path
-        uri = SplitResult(ObservationURI._SCHEME, "", path + "/" +
-                          product_id, "", "").geturl()
-        return cls(uri)
-
-    # Properties
     @property
-    def uri(self):
-        """A uri that locates the plane object inside caom"""
-        return self._uri
+    def visibility(self):
+        return self._visibility
 
-    @uri.setter
-    def uri(self, value):
+    @visibility.setter
+    def visibility(self, value):
+        if value:
+            caom_util.type_check(value, Visibility, "visibility")
+        self._visibility = value
 
-        caom_util.type_check(value, str, "uri", override=False)
-        tmp = urlsplit(value)
 
-        if tmp.scheme != ObservationURI._SCHEME:
-            raise ValueError("{} doesn't have an allowed scheme".format(value))
-        if tmp.geturl() != value:
-            raise ValueError("Failed to parse uri correctly: {}".format(value))
-
-        (collection, observation_id, product_id) = tmp.path.split("/")
-
-        if product_id is None:
-            raise ValueError("Faield to get product ID from uri: {}"
-                             .format(value))
-
-        self._product_id = product_id
-        self._observation_uri = \
-            ObservationURI.get_observation_uri(collection, observation_id)
-        self._uri = value
-
-    def get_product_id(self):
-        """return the product_id associated with this plane"""
-        return self._product_id
-
-    def get_observation_uri(self):
-        """Return the uri that can be used to find the caom2 observation object that
-        this plane belongs to"""
-        return self._observation_uri
+# TODO not sure this is needed anymore
+# class PlaneURI(CaomObject):
+#     """ Plane URI """
+#     def __init__(self, uri):
+#         """
+#         Initializes a Plane instance
+#
+#         Arguments:
+#         uri : URI corresponding to the plane
+#
+#         Throws:
+#         TypeError  : if uri is not a string
+#         ValueError : if uri is invalid
+#         ValueError : if the uri is valid but does not contain the expected
+#         fields (collection, observation_id and product_id)
+#         """
+#
+#         self.uri = uri
+#
+#     def _key(self):
+#         return self.uri
+#
+#     def __hash__(self):
+#         return hash(self._key())
+#
+#     def __lt__(self, other):
+#         if not isinstance(other, PlaneURI):
+#             raise ValueError(
+#                 'Cannot compare PlaneURI with {}'.format(type(other)))
+#         return self.uri < other.uri
+#
+#     def __eq__(self, other):
+#         if not isinstance(other, PlaneURI):
+#             raise ValueError(
+#                 'Cannot compare PlaneURI with {}'.format(type(other)))
+#         return self.uri == other.uri
+#
+#     @classmethod
+#     def get_plane_uri(cls, observation_uri, product_id):
+#         """
+#         Initializes an Plane URI instance
+#
+#         Arguments:
+#         observation_uri : the uri of the observation
+#         product_id : ID of the product
+#         """
+#         caom_util.type_check(observation_uri, ObservationURI,
+#                              "observation_uri",
+#                              override=False)
+#         caom_util.type_check(product_id, str, "product_id",
+#                              override=False)
+#         caom_util.validate_path_component(cls, "product_id", product_id)
+#
+#         path = urlsplit(observation_uri.uri).path
+#         uri = SplitResult(ObservationURI._SCHEME, "", path + "/" +
+#                           product_id, "", "").geturl()
+#         return cls(uri)
+#
+#     # Properties
+#     @property
+#     def uri(self):
+#         """A uri that locates the plane object inside caom"""
+#         return self._uri
+#
+#     @uri.setter
+#     def uri(self, value):
+#
+#         caom_util.type_check(value, str, "uri", override=False)
+#         tmp = urlsplit(value)
+#
+#         if tmp.scheme != ObservationURI._SCHEME:
+#             raise ValueError("{} doesn't have an allowed scheme".format(value))
+#         if tmp.geturl() != value:
+#             raise ValueError("Failed to parse uri correctly: {}".format(value))
+#
+#         (collection, observation_id, product_id) = tmp.path.split("/")
+#
+#         if product_id is None:
+#             raise ValueError("Faield to get product ID from uri: {}"
+#                              .format(value))
+#
+#         self._product_id = product_id
+#         self._observation_uri = \
+#             ObservationURI.get_observation_uri(collection, observation_id)
+#         self._uri = value
 
 
 class DataQuality(CaomObject):
@@ -852,7 +894,7 @@ class Provenance(CaomObject):
         self.last_executed = last_executed
 
         self._keywords = set()
-        self._inputs = caom_util.TypedSet(PlaneURI, )
+        self._inputs = caom_util.TypedSet(str, )
 
     # Properties
 
@@ -939,12 +981,15 @@ class Provenance(CaomObject):
 class Position(CaomObject):
     """ Position """
 
-    def __init__(self, bounds=None,
+    def __init__(self, bounds,
+                 samples,
+                 min_bounds=None,
                  dimension=None,
+                 max_recoverable_scale=None,
                  resolution=None,
                  resolution_bounds=None,
                  sample_size=None,
-                 time_dependent=None
+                 calibration=None
                  ):
         """
         Initialize a Position instance.
@@ -952,12 +997,24 @@ class Position(CaomObject):
         Arguments:
         None
         """
-        self.bounds = bounds
+        if not bounds:
+            raise ValueError("No bounds provided")
+        caom_util.type_check(bounds,
+                             (shape.Box, shape.Circle, shape.Polygon),
+                             'bounds', override=False)
+        self._bounds = bounds
+        if not samples:
+            # TODO - not sure whether to do this or create default samples from bounds
+            raise ValueError("No samples provided")
+        caom_util.type_check(samples, shape.MultiShape, 'samples')
+        self._samples = samples
+        self.min_bounds = min_bounds
         self.dimension = dimension
+        self.max_recoverable_scale = max_recoverable_scale
         self.resolution = resolution
         self.resolution_bounds = resolution_bounds
         self.sample_size = sample_size
-        self.time_dependent = time_dependent
+        self.calibration = calibration
 
     # Properties
 
@@ -966,13 +1023,23 @@ class Position(CaomObject):
         """ Bounds """
         return self._bounds
 
-    @bounds.setter
-    def bounds(self, value):
+    @property
+    def samples(self):
+        """ Samples """
+        return self._samples
+
+    @property
+    def min_bounds(self):
+        """ Minimum bounds """
+        return self._min_bounds
+
+    @min_bounds.setter
+    def min_bounds(self, value):
         if value is not None:
             caom_util.type_check(value,
                                  (shape.Box, shape.Circle, shape.Polygon),
-                                 'bounds', override=False)
-        self._bounds = value
+                                 'min_bounds', override=False)
+        self._min_bounds = value
 
     @property
     def dimension(self):
@@ -985,6 +1052,18 @@ class Position(CaomObject):
             caom_util.type_check(value, wcs.Dimension2D,
                                  'dimension', override=False)
         self._dimension = value
+
+    @property
+    def max_recoverable_scale(self):
+        """ Maximum Recoverable Scale """
+        return self._max_recoverable_scale
+
+    @max_recoverable_scale.setter
+    def max_recoverable_scale(self, value):
+        if value is not None:
+            caom_util.type_check(value, shape.Interval, 'max_recoverable_scale',
+                                 override=False)
+        self._max_recoverable_scale = value
 
     @property
     def resolution(self):
@@ -1020,24 +1099,25 @@ class Position(CaomObject):
         self._sample_size = value
 
     @property
-    def time_dependent(self):
-        """ Time dependent """
-        return self._time_dependent
+    def calibration(self):
+        return self._calibration
 
-    @time_dependent.setter
-    def time_dependent(self, value):
+    @calibration.setter
+    def calibration(self, value):
         if value is not None:
-            caom_util.type_check(value, bool, 'time_dependent')
-        self._time_dependent = value
+            caom_util.type_check(value, str, 'calibration', override=False)
+            self._calibration = CalibrationStatus(value)
+        else:
+            self._calibration = None
 
 
 class Energy(CaomObject):
     """ Energy """
 
-    def __init__(self, bounds=None, dimension=None, resolving_power=None,
-                 resolving_power_bounds=None, energy_bands=None,
-                 sample_size=None, bandpass_name=None, em_band=None,
-                 transition=None, restwav=None):
+    def __init__(self, bounds, samples, dimension=None, resolving_power=None,
+                 resolving_power_bounds=None, resolution=None, resolution_bounds=None,
+                 energy_bands=None, sample_size=None, bandpass_name=None, em_band=None,
+                 transition=None, rest=None, calibration=None):
         """
         Initialize an Energy instance.
 
@@ -1045,9 +1125,12 @@ class Energy(CaomObject):
         None
         """
         self.bounds = bounds
+        self.samples = samples
         self.dimension = dimension
         self.resolving_power = resolving_power
         self.resolving_power_bounds = resolving_power_bounds
+        self.resolution = resolution
+        self.resolution_bounds = resolution_bounds
         self.sample_size = sample_size
         self.bandpass_name = bandpass_name
         self.energy_bands = energy_bands
@@ -1055,7 +1138,8 @@ class Energy(CaomObject):
         if em_band is not None:
             self.energy_bands.add(em_band)
         self.transition = transition
-        self.restwav = restwav
+        self.rest = rest
+        self.calibration = calibration
 
     # Properties
 
@@ -1069,6 +1153,24 @@ class Energy(CaomObject):
         if value is not None:
             caom_util.type_check(value, shape.Interval, 'bounds')
         self._bounds = value
+
+    @property
+    def samples(self):
+        return self._samples
+
+    @samples.setter
+    def samples(self, value):
+        """
+            value is a List of intervals
+        """
+        if value is None:
+            raise AttributeError('samples in Energy cannot be None')
+        else:
+            caom_util.type_check(value, list, 'samples')
+            if len(value) == 0:
+                raise ValueError('samples in Energy cannot be empty')
+                # TODO - could check that the intervals are within the bounds?
+            self._samples = value
 
     @property
     def dimension(self):
@@ -1103,6 +1205,26 @@ class Energy(CaomObject):
             caom_util.type_check(value, shape.Interval,
                                  'resolving power bounds')
         self._resolving_power_bounds = value
+
+    @property
+    def resolution(self):
+        return self._resolution
+
+    @resolution.setter
+    def resolution(self, value):
+        if value is not None:
+            caom_util.type_check(value, float, 'resolution')
+        self._resolution = value
+
+    @property
+    def resolution_bounds(self):
+        return self._resolution_bounds
+
+    @resolution_bounds.setter
+    def resolution_bounds(self, value):
+        if value is not None:
+            caom_util.type_check(value, shape.Interval, 'resolution bounds')
+        self._resolution_bounds = value
 
     @property
     def sample_size(self):
@@ -1167,15 +1289,27 @@ class Energy(CaomObject):
         self._transition = value
 
     @property
-    def restwav(self):
+    def rest(self):
         """ rest wavelength of the target energy transition """
-        return self._restwav
+        return self._rest
 
-    @restwav.setter
-    def restwav(self, value):
+    @rest.setter
+    def rest(self, value):
         if value is not None:
-            caom_util.type_check(value, float, 'restwav')
-        self._restwav = value
+            caom_util.type_check(value, float, 'rest')
+        self._rest = value
+
+    @property
+    def calibration(self):
+        return self._calibration
+
+    @calibration.setter
+    def calibration(self, value):
+        if value is not None:
+            caom_util.type_check(value, str, 'calibration', override=False)
+            self._calibration = CalibrationStatus(value)
+        else:
+            self._calibration = None
 
 
 class Polarization(CaomObject):
@@ -1183,7 +1317,7 @@ class Polarization(CaomObject):
 
     def __init__(self,
                  dimension=None,
-                 polarization_states=None):
+                 states=None):
         """
         Initialize a Polarization instance.
 
@@ -1191,7 +1325,7 @@ class Polarization(CaomObject):
         None
         """
         self.dimension = dimension
-        self.polarization_states = polarization_states
+        self.states = states
 
     # Properties
     @property
@@ -1205,35 +1339,38 @@ class Polarization(CaomObject):
 
     @dimension.setter
     def dimension(self, value):
-        caom_util.type_check(value, int, 'dimension')
+        caom_util.type_check(value, int_32, 'dimension')
         caom_util.value_check(value, 0, 1E10, 'dimension')
-        self._dimension = value
+        self._dimension = int_32(value) if value is not None else None
 
     @property
-    def polarization_states(self):
+    def states(self):
         """
         type: list
         """
-        return self._polarization_states
+        return self._states
 
-    @polarization_states.setter
-    def polarization_states(self, value):
-        if value is not None:
-            caom_util.type_check(value, list, 'polarization_states',
-                                 override=False)
-        self._polarization_states = value
+    @states.setter
+    def states(self, value):
+        if not value:
+            raise AttributeError('Polarization.state required')
+        caom_util.type_check(value, list, 'states', override=False)
+        self._states = value
 
 
 class Time(CaomObject):
     """ Time """
 
     def __init__(self,
-                 bounds=None,
+                 bounds,
+                 samples,
                  dimension=None,
                  resolution=None,
                  resolution_bounds=None,
                  sample_size=None,
-                 exposure=None):
+                 exposure=None,
+                 exposure_bounds=None,
+                 calibration=None):
         """
         Initialize a Time instance.
 
@@ -1241,11 +1378,14 @@ class Time(CaomObject):
         None
         """
         self.bounds = bounds
+        self.samples = samples
         self.dimension = dimension
         self.resolution = resolution
         self.resolution_bounds = resolution_bounds
         self.sample_size = sample_size
         self.exposure = exposure
+        self.exposure_bounds = exposure_bounds
+        self.calibration = calibration
 
     # Properties
 
@@ -1266,6 +1406,25 @@ class Time(CaomObject):
     def bounds(self, value):
         caom_util.type_check(value, shape.Interval, 'bounds')
         self._bounds = value
+
+    @property
+    def samples(self):
+        return self._samples
+
+    @samples.setter
+    def samples(self, value):
+        """
+            value is a List of intervals
+        """
+        if value is None:
+            raise AttributeError('samples in Time cannot be None')
+        else:
+            caom_util.type_check(value, list,
+                                 'samples')
+            if len(value) == 0:
+                raise ValueError('samples in Time cannot be empty')
+                # TODO - could check that the intervals are within the bounds?
+            self._samples = value
 
     @property
     def dimension(self):
@@ -1335,6 +1494,29 @@ class Time(CaomObject):
         caom_util.type_check(value, float, 'exposure')
         self._exposure = value
 
+    @property
+    def exposure_bounds(self):
+        """ Exposure bounds"""
+        return self._exposure_bounds
+
+    @exposure_bounds.setter
+    def exposure_bounds(self, value):
+        if value is not None:
+            caom_util.type_check(value, shape.Interval, 'exposure bounds')
+        self._exposure_bounds = value
+
+    @property
+    def calibration(self):
+        return self._calibration
+
+    @calibration.setter
+    def calibration(self, value):
+        if value is not None:
+            caom_util.type_check(value, str, 'calibration', override=False)
+            self._calibration = CalibrationStatus(value)
+        else:
+            self._calibration = None
+
 
 class CustomAxis(CaomObject):
     """
@@ -1344,7 +1526,8 @@ class CustomAxis(CaomObject):
 
     def __init__(self,
                  ctype,
-                 bounds=None,
+                 bounds,
+                 samples,
                  dimension=None):
         """
         Initialize a Custom Axis instance.
@@ -1352,8 +1535,11 @@ class CustomAxis(CaomObject):
         if ctype is None:
             raise AttributeError('ctype of CustomAxis cannot be None')
         self._ctype = ctype
+        if bounds is None:
+            raise AttributeError('bounds of CustomAxis cannot be None')
         self.bounds = bounds
         self.dimension = dimension
+        self.samples = samples
 
     # Properties
 
@@ -1384,3 +1570,21 @@ class CustomAxis(CaomObject):
     def dimension(self, value):
         caom_util.type_check(value, int, 'dimension')
         self._dimension = value
+
+    @property
+    def samples(self):
+        return self._samples
+
+    @samples.setter
+    def samples(self, value):
+        """
+            value is a List of intervals
+        """
+        if value is None:
+            raise AttributeError('samples in CustomAxis cannot be None')
+        else:
+            caom_util.type_check(value, list, 'samples')
+            if len(value) == 0:
+                raise ValueError('samples in CustomAxis cannot be empty')
+                # TODO - could check that the intervals are within the bounds?
+            self._samples = value

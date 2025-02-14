@@ -1,8 +1,8 @@
-from caom2 import ProductType
+from caom2 import DataLinkSemantics
 
 
 def _get_artifact_product_type(uri):
-    return ProductType.SCIENCE
+    return DataLinkSemantics.SCIENCE
 
 
 def _get_time_axis_range_end_val(uri):

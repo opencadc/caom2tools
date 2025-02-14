@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -73,7 +73,6 @@ import unittest
 from urllib.parse import urlparse
 
 from .. import artifact
-from .. import common
 from .. import part
 
 
@@ -90,10 +89,10 @@ class TestArtifact(unittest.TestCase):
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
                                               artifact.ReleaseType.META,
-                                              artifact.ProductType.THUMBNAIL)
+                                              artifact.DataLinkSemantics.THUMBNAIL)
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
-                                              artifact.ProductType.THUMBNAIL,
+                                              artifact.DataLinkSemantics.THUMBNAIL,
                                               None)
         with self.assertRaises(TypeError):
             test_artifact = artifact.Artifact("caom:GEMINI/12345",
@@ -101,15 +100,15 @@ class TestArtifact(unittest.TestCase):
                                               artifact.ReleaseType.META)
 
         test_artifact = artifact.Artifact("caom:GEMINI/12345",
-                                          artifact.ProductType.THUMBNAIL,
+                                          artifact.DataLinkSemantics.THUMBNAIL,
                                           artifact.ReleaseType.META)
         urlparse("caom:GEMINI/12345")
         self.assertEqual("caom:GEMINI/12345",
                          test_artifact.uri,
                          "Artifact URI")
-        self.assertEqual(artifact.ProductType.THUMBNAIL,
+        self.assertEqual(artifact.DataLinkSemantics.THUMBNAIL,
                          test_artifact.product_type,
-                         "Artifact ProductType")
+                         "Artifact DataLinkSemantics")
         self.assertEqual(artifact.ReleaseType.META,
                          test_artifact.release_type,
                          "Artifact ReleaseType")
@@ -122,14 +121,14 @@ class TestArtifact(unittest.TestCase):
         test_artifact.content_length = 23000000000000
         self.assertEqual(23000000000000,
                          test_artifact.content_length, "Content length")
-        test_artifact.product_type = artifact.ProductType.PREVIEW
-        self.assertEqual(artifact.ProductType.PREVIEW,
+        test_artifact.product_type = artifact.DataLinkSemantics.PREVIEW
+        self.assertEqual(artifact.DataLinkSemantics.PREVIEW,
                          test_artifact.product_type,
                          "Product type")
 
         self.assertIsNone(test_artifact.content_checksum,
                           "Default content checksum")
-        cs_uri = common.ChecksumURI("md5:e30580c1db513487f495fba09f64600e")
+        cs_uri = "md5:e30580c1db513487f495fba09f64600e"
         test_artifact.content_checksum = cs_uri
         self.assertEqual(test_artifact.content_checksum, cs_uri,
                          "Content checksum")
@@ -165,7 +164,7 @@ class TestArtifact(unittest.TestCase):
             test_artifact = artifact.Artifact(
                 "caom://#observation://? something#//",
                 artifact.ReleaseType('META'),
-                artifact.ProductType('THUMBNAIL'))
+                artifact.DataLinkSemantics('THUMBNAIL'))
         except ValueError:
             exception = True
         self.assertTrue(exception, "Missing exception")
@@ -175,9 +174,9 @@ class TestArtifact(unittest.TestCase):
             test_artifact = artifact.Artifact(
                 "observation/something",
                 artifact.ReleaseType('META'),
-                artifact.ProductType('THUMBNAIL'))
+                artifact.DataLinkSemantics('THUMBNAIL'))
 
         # TODO re-enable when check enforced
         # with self.assertRaises(ValueError):
-        test_artifact.content_checksum = common.ChecksumURI('0x1234')
-        assert test_artifact.content_checksum.uri == '0x1234'
+        test_artifact.content_checksum = '0x1234'
+        assert test_artifact.content_checksum == '0x1234'

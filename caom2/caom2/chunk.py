@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2024.                            (c) 2024.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -76,14 +76,22 @@ from builtins import str
 from caom2.caom_util import int_32
 from . import caom_util
 from . import wcs
-from .common import AbstractCaomEntity
-from .common import CaomObject, OrderedEnum
+from .common import AbstractCaomEntity, OrderedEnum, VocabularyTerm, \
+    _DATA_LINK_NS, _CAOM_PRODUCT_TYPE_NS
+from .common import CaomObject
 
 
-class ProductType(OrderedEnum):
+__all__ = ['Chunk', 'ObservableAxis', 'SpatialWCS', 'DataLinkSemantics',
+           'SpectralWCS', 'TemporalWCS', 'PolarizationWCS', 'CustomWCS']
+
+
+class DataLinkSemantics(OrderedEnum):
     """
-    Subset of IVOA DataLink terms at:
-        https://www.ivoa.net/rdf/datalink/core/2022-01-27/datalink.html
+
+    This is considered to be a more common and relatively stable subset of the IVOA DataLink
+    terms, however, new terms may need to be added in the future.  The full list can be found at:
+
+    https://www.ivoa.net/rdf/datalink/core
 
     THIS = "this"
     AUXILIARY = "auxiliary"
@@ -102,23 +110,22 @@ class ProductType(OrderedEnum):
     WEIGHT = 'weight'
 
     """
+    THIS = VocabularyTerm(_DATA_LINK_NS, "this", True).get_value()
 
-    THIS = "this"
-
-    AUXILIARY = "auxiliary"
-    BIAS = 'bias'
-    CALIBRATION = 'calibration'
-    CODERIVED = 'coderived'
-    DARK = 'dark'
-    DOCUMENTATION = 'documentation'
-    ERROR = 'error'
-    FLAT = 'flat'
-    NOISE = 'noise'
-    PREVIEW = 'preview'
-    PREVIEW_IMAGE = 'preview-image'
-    PREVIEW_PLOT = 'preview-plot'
-    THUMBNAIL = 'thumbnail'
-    WEIGHT = 'weight'
+    AUXILIARY = VocabularyTerm(_DATA_LINK_NS, 'auxiliary', True).get_value()
+    BIAS = VocabularyTerm(_DATA_LINK_NS, 'bias', True).get_value()
+    CALIBRATION = VocabularyTerm(_DATA_LINK_NS, 'calibration', True).get_value()
+    CODERIVED = VocabularyTerm(_DATA_LINK_NS, 'coderived', True).get_value()
+    DARK = VocabularyTerm(_DATA_LINK_NS, 'dark', True).get_value()
+    DOCUMENTATION = VocabularyTerm(_DATA_LINK_NS, 'documentation', True).get_value()
+    ERROR = VocabularyTerm(_DATA_LINK_NS, 'error', True).get_value()
+    FLAT = VocabularyTerm(_DATA_LINK_NS, 'flat', True).get_value()
+    NOISE = VocabularyTerm(_DATA_LINK_NS, 'noise', True).get_value()
+    PREVIEW = VocabularyTerm(_DATA_LINK_NS, 'preview', True).get_value()
+    PREVIEW_IMAGE = VocabularyTerm(_DATA_LINK_NS, 'preview-image', True).get_value()
+    PREVIEW_PLOT = VocabularyTerm(_DATA_LINK_NS, 'preview-plot', True).get_value()
+    THUMBNAIL = VocabularyTerm(_DATA_LINK_NS, 'thumbnail', True).get_value()
+    WEIGHT = VocabularyTerm(_DATA_LINK_NS, 'weight', True).get_value()
 
     # DataLink terms explicitly not included
     # counterpart
@@ -130,15 +137,11 @@ class ProductType(OrderedEnum):
     # progenitor
 
     # CAOM specific terms public
-    SCIENCE = 'science'  # this
+    SCIENCE = VocabularyTerm(_CAOM_PRODUCT_TYPE_NS, 'science', True).get_value()  # this
 
     # deprecated
     # INFO = 'info'
     # CATALOG = 'catalog'
-
-
-__all__ = ['ProductType', 'Chunk', 'ObservableAxis', 'SpatialWCS',
-           'SpectralWCS', 'TemporalWCS', 'PolarizationWCS', 'CustomWCS']
 
 
 class Chunk(AbstractCaomEntity):
@@ -199,10 +202,10 @@ class Chunk(AbstractCaomEntity):
     def product_type(self):
         """A word that describes the content of the chunk.
 
-        eg.  Chunk.product_type = ProductType.SCIENCE
+        eg.  Chunk.product_type = DataLinkSemantics.SCIENCE
 
         Allowed values:
-        """ + str(list(ProductType)) + """
+        """ + str(list(DataLinkSemantics)) + """
 
         """
 
@@ -210,10 +213,10 @@ class Chunk(AbstractCaomEntity):
 
     @product_type.setter
     def product_type(self, value):
-        if isinstance(value, str) and value in ProductType.names():
+        if isinstance(value, str) and value in DataLinkSemantics.names():
             # be helpful
-            value = ProductType('value')
-        caom_util.type_check(value, ProductType, 'product_type')
+            value = DataLinkSemantics('value')
+        caom_util.type_check(value, DataLinkSemantics, 'product_type')
         self._product_type = value
 
     @property

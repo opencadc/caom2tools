@@ -1,5 +1,3 @@
-#
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -86,6 +84,7 @@ from .caom_util import *  # noqa
 from .checksum import *  # noqa
 from .chunk import *  # noqa
 from .common import *  # noqa
+from .dali import *  # noqa
 from .diff import *  # noqa
 from .obs_reader_writer import *  # noqa
 from .observation import *  # noqa

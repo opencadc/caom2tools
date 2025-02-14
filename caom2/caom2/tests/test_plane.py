@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -71,10 +71,10 @@
 import unittest
 from datetime import datetime
 
-from .. import artifact
+from .. import artifact, PolarizationState
 from .. import chunk
-from .. import observation
 from .. import plane
+from .. import dali
 from .. import shape
 from .. import wcs
 
@@ -163,12 +163,8 @@ class TestEnums(unittest.TestCase):
 
 class TestPlane(unittest.TestCase):
     def test_all(self):
-        test_plane = plane.Plane("ProdID")
-        self.assertEqual("ProdID", test_plane.product_id, "Product ID")
-        self.assertEqual(None, test_plane.creator_id, "Creator ID")
-        test_plane.creator_id = "ivo://cadc.nrc.ca/users?tester"
-        self.assertEqual("ivo://cadc.nrc.ca/users?tester",
-                         test_plane.creator_id, "Creator ID")
+        test_plane = plane.Plane("caom:TEST/obs/ProdID")
+        self.assertEqual("caom:TEST/obs/ProdID", test_plane.uri, "Plane URI")
         self.assertEqual(0, len(test_plane.artifacts),
                          "Default number of artifacts")
         self.assertIsNone(test_plane.meta_release, "Default meta release date")
@@ -220,14 +216,14 @@ class TestPlane(unittest.TestCase):
         self.assertIsNone(test_plane.polarization, "Default polarization")
 
         test_artifact1 = artifact.Artifact("caom:GEMINI/222/333",
-                                           chunk.ProductType.SCIENCE,
+                                           chunk.DataLinkSemantics.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:GEMINI/222/333"] = test_artifact1
         self.assertEqual(1, len(test_plane.artifacts), "Artifacts")
         self.assertTrue("caom:GEMINI/222/333" in test_plane.artifacts.keys())
 
         test_artifact2 = artifact.Artifact("caom:CFHT/55/66",
-                                           chunk.ProductType.SCIENCE,
+                                           chunk.DataLinkSemantics.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:CFHT/55/66"] = test_artifact2
         self.assertEqual(2, len(test_plane.artifacts), "Artifacts")
@@ -236,7 +232,7 @@ class TestPlane(unittest.TestCase):
 
         # try to append a duplicate artifact
         test_artifact3 = artifact.Artifact("caom:GEMINI/222/333",
-                                           chunk.ProductType.SCIENCE,
+                                           chunk.DataLinkSemantics.SCIENCE,
                                            artifact.ReleaseType.DATA)
         test_plane.artifacts["caom:GEMINI/222/333"] = test_artifact3
         self.assertEqual(2, len(test_plane.artifacts), "Artifacts")
@@ -289,60 +285,6 @@ class TestPlane(unittest.TestCase):
             exception = True
         self.assertTrue(exception, "compute_polarization implemented"
                                    " - Testing needed")
-
-
-class TestPlaneURI(unittest.TestCase):
-    def test_all(self):
-        plane_uri = plane.PlaneURI("caom:GEMINI/12345/3333")
-        self.assertEqual("caom:GEMINI/12345/3333", plane_uri.uri,
-                         "Plane URI")
-        self.assertEqual("GEMINI", plane_uri.get_observation_uri().collection,
-                         "Collection")
-        self.assertEqual("12345",
-                         plane_uri.get_observation_uri().observation_id,
-                         "Observation ID")
-        self.assertEqual("3333", plane_uri.get_product_id(), "Product ID")
-
-        plane_uri = plane.PlaneURI.get_plane_uri(
-            observation.ObservationURI("caom:CFHT/654321"),
-            "555")
-        self.assertEqual("caom:CFHT/654321/555", plane_uri.uri,
-                         "Observation URI")
-        self.assertEqual("CFHT", plane_uri.get_observation_uri().collection,
-                         "Collection")
-        self.assertEqual("654321",
-                         plane_uri.get_observation_uri().observation_id,
-                         "Observation ID")
-        self.assertEqual("555", plane_uri.get_product_id(), "Product ID")
-
-        exception = False
-        try:
-            plane_uri = plane.PlaneURI.get_plane_uri(None, "123")
-        except TypeError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-        exception = False
-        try:
-            plane_uri = plane.PlaneURI.get_plane_uri("GEMINI", None)
-        except TypeError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-        # wrong scheme
-        exception = False
-        try:
-            plane_uri = plane.PlaneURI("somescheme:GEMINI/12345/3333")
-        except ValueError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
-
-        exception = False
-        try:
-            plane_uri = plane.PlaneURI("caom:GEMINI/12345")
-        except ValueError:
-            exception = True
-        self.assertTrue(exception, "Missing exception")
 
 
 class TestDataQuality(unittest.TestCase):
@@ -400,19 +342,19 @@ class TestProvenance(unittest.TestCase):
         self.assertIsNone(provenance.reference, "Default reference")
 
         self.assertEqual(0, len(provenance.inputs), "Default inputs")
-        plane_uri1 = plane.PlaneURI("caom:HST/11/00")
+        plane_uri1 = "caom:HST/11/00"
         provenance.inputs.add(plane_uri1)
         self.assertEqual(1, len(provenance.inputs), "Default inputs")
         self.assertTrue(plane_uri1 in provenance.inputs)
 
-        plane_uri2 = plane.PlaneURI("caom:HST/22/00")
+        plane_uri2 = "caom:HST/22/00"
         provenance.inputs.add(plane_uri2)
         self.assertEqual(2, len(provenance.inputs), "Default inputs")
         self.assertTrue(plane_uri1 in provenance.inputs)
         self.assertTrue(plane_uri2 in provenance.inputs)
 
         # testing duplicates
-        plane_uri3 = plane.PlaneURI("caom:HST/22/00")
+        plane_uri3 = "caom:HST/22/00"
         provenance.inputs.add(plane_uri3)
         self.assertEqual(2, len(provenance.inputs), "Default inputs")
         self.assertTrue(plane_uri1 in provenance.inputs)
@@ -460,9 +402,10 @@ class TestProvenance(unittest.TestCase):
 
 class TestPosition(unittest.TestCase):
     def test_all(self):
-        position = plane.Position()
+        circle = shape.Circle(center=shape.Point(1.0, 2.0), radius=3.0)
+        position = plane.Position(bounds=circle, samples=shape.MultiShape([circle]))
 
-        self.assertIsNone(position.bounds, "Default bounds")
+        self.assertEqual(circle, position.bounds, "Default bounds")
         # position.bounds = 123
         # self.assertEqual(123, position.bounds, "Bounds")
         self.assertIsNone(position.dimension, "Default dimension")
@@ -474,18 +417,16 @@ class TestPosition(unittest.TestCase):
         self.assertIsNone(position.sample_size, "Default sample size")
         position.sample_size = 321.123
         self.assertEqual(321.123, position.sample_size, "Sample size")
-        self.assertFalse(position.time_dependent, "Default time dependent")
-        position.time_dependent = True
-        self.assertTrue(position.time_dependent, "Time dependent")
 
 
 class TestEnergy(unittest.TestCase):
     def test_all(self):
-        energy = plane.Energy()
-        self.assertIsNone(energy.bounds, "Default energy bounds")
-        energy.bounds = shape.Interval(1.0, 2.0)
+        bounds = dali.Interval(1.0, 2.0)
+        samples = [dali.Interval(1.1, 1.2), dali.Interval(1.9, 2.0)]
+        energy = plane.Energy(bounds, samples)
         self.assertEqual(1.0, energy.bounds.lower, "Energy lower bounds")
         self.assertEqual(2.0, energy.bounds.upper, "Energy upper bounds")
+        self.assertEqual(2, len(energy.samples))
         self.assertIsNone(energy.dimension, "Default energy dimension")
         energy.dimension = 1000
         self.assertEqual(1000, energy.dimension, "Energy dimension")
@@ -541,23 +482,22 @@ class TestEnergyTransition(unittest.TestCase):
 
 class TestPolarizaton(unittest.TestCase):
     def test_all(self):
-        polarization = plane.Polarization()
+        polarization = plane.Polarization(dimension=2, states=[PolarizationState.I, PolarizationState.Q])
 
-        self.assertIsNone(polarization.dimension,
-                          "Default polarization dimension")
-
-        # TODO add test for state
+        self.assertEqual(2, polarization.dimension, "Default polarization dimension")
+        self.assertEqual(2, len(polarization.states), "Polarization states")
+        self.assertTrue(PolarizationState.I in polarization.states, "I state")
+        self.assertTrue(PolarizationState.Q in polarization.states, "Q state")
 
 
 class TestTime(unittest.TestCase):
     def test_all(self):
-        time = plane.Time()
-        self.assertIsNone(time.bounds, "Default bounds")
-        self.assertIsNone(time.dimension, "Default dimension")
-        self.assertIsNone(time.resolution, "Default resolution")
-        self.assertIsNone(time.sample_size, "Default sample size")
-        self.assertIsNone(time.exposure, "Default exposure")
-
+        bounds = dali.Interval(1.0, 2.0)
+        samples = [dali.Interval(1.1, 1.2)]
+        time = plane.Time(bounds, samples)
+        self.assertEqual(1.0, time.bounds.lower, "Time lower bounds")
+        self.assertEqual(2.0, time.bounds.upper, "Time upper bounds")
+        self.assertEqual(1, len(time.samples))
         time.dimension = 777
         self.assertEqual(777, time.dimension, "Dimension")
         time.resolution = 77.777
@@ -571,21 +511,23 @@ class TestTime(unittest.TestCase):
 class TestCustomAxis(unittest.TestCase):
     def test_all(self):
         with self.assertRaises(AttributeError):
-            plane.CustomAxis(None)
-        my_axis = plane.CustomAxis('Foo')
+            plane.CustomAxis(None, None, None)
+        my_axis = plane.CustomAxis('Foo', dali.Interval(1.0, 2.0),
+                                   samples=[dali.Interval(1.0, 2.0)])
         self.assertEqual('Foo', my_axis.ctype, 'CTYPE missmatch')
-        self.assertIsNone(my_axis.bounds, "Default bounds")
+        self.assertEqual(dali.Interval(1.0, 2.0), my_axis.bounds, "Bounds mismatch")
         self.assertIsNone(my_axis.dimension, "Default dimension")
 
         my_axis.dimension = 777
-        my_axis.bounds = shape.Interval(1.0, 2.0)
         self.assertEqual(777, my_axis.dimension, "Dimension")
-        self.assertEqual(1.0, my_axis.bounds.lower, "Bounds mismatch")
+        self.assertEqual(1.0, len(my_axis.samples), "Samples mismatch")
         self.assertEqual(2.0, my_axis.bounds.upper, "Bounad mismatch")
 
-        my_axis = plane.CustomAxis('Blah', bounds=shape.Interval(3.0, 4.0),
-                                   dimension=33)
+        bounds = dali.Interval(1.0, 2.0)
+        my_axis = plane.CustomAxis('Blah', bounds=dali.Interval(3.0, 4.0),
+                                   dimension=33, samples=[bounds])
         self.assertEqual('Blah', my_axis.ctype, 'CTYPE missmatch')
         self.assertEqual(33, my_axis.dimension, 'Dimension missmatch')
-        self.assertEqual(3.0, my_axis.bounds.lower, "Bounds mismatch")
-        self.assertEqual(4.0, my_axis.bounds.upper, "Bounad mismatch")
+        self.assertEqual(3.0, my_axis.bounds.lower, "Bounds lower mismatch")
+        self.assertEqual(4.0, my_axis.bounds.upper, "Bounds upper mismatch")
+        self.assertEqual(1.0, len(my_axis.samples), "Samples mismatch")
