@@ -284,7 +284,7 @@ class TestObservationReaderWriter(unittest.TestCase):
             self.observation_test(derived_observation, True, True, 23)
         print("check 2.4 schema with 2.5 doc")
         with self.assertRaises(AttributeError):
-            self.observation_test(derived_observation, True, True, 23)
+            self.observation_test(derived_observation, True, True, 24)
         print("check 2.5 schema with 2.5 doc")
         self.observation_test(derived_observation, True, True, 25)
 

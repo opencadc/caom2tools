@@ -92,7 +92,7 @@ def test_obs_blueprint():
                 position_axes=(1, 2), energy_axis=3, polarization_axis=4, time_axis=5, obs_axis=6, custom_axis=7
             )
         ).count('\n')
-        == 89  # TODO why?
+        == 89
     )
 
     ob = ObsBlueprint()

@@ -303,8 +303,6 @@ class CAOM2RepoClient(object):
         try:
             observation = self.get_observation(collection, observation_id)
             orig_checksum = observation.acc_meta_checksum
-            if orig_checksum:
-                orig_checksum = orig_checksum
             if self.plugin.update(observation=observation,
                                   subject=self._subject) is False:
                 self.logger.info('SKIP {}'.format(observation_id))
