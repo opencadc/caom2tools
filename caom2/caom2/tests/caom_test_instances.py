@@ -73,7 +73,7 @@ from datetime import datetime
 import uuid
 from builtins import int
 
-from caom2 import artifact, MultiShape, Polarization
+from caom2 import artifact, MultiShape, Polarization, Interval
 from caom2 import caom_util
 from caom2 import chunk
 from caom2 import common
@@ -83,6 +83,7 @@ from caom2 import part
 from caom2 import plane
 from caom2 import shape
 from caom2 import wcs
+from caom2.plane import CalibrationStatus, Observable, Ucd
 
 
 def fix_ids(observation):
@@ -345,6 +346,10 @@ class Caom2TestInstances(object):
                     _plane.meta_read_groups.add('ivo://cadc.nrc.ca/groups?D')
                     _plane.data_read_groups.add('ivo://cadc.nrc.ca/groups?B')
                     _plane.data_read_groups.add('ivo://cadc.nrc.ca/groups?C')
+                if self.caom_version >= 25:
+                    _plane.visibility = plane.Visibility(distance=Interval(20.0, 120.0),
+                                                         distribution_eccentricity=0.5, distribution_fill=0.85)
+                    _plane.observable = Observable(ucd=Ucd('phot.count'), calibration=CalibrationStatus.RELATIVE)
 
             if self.depth > 2:
                 for k, v in self.get_artifacts().items():
@@ -379,6 +384,10 @@ class Caom2TestInstances(object):
         position.time_dependent = False
         if self.caom_version >= 24:
             position.resolution_bounds = dali.Interval(1.0, 2.0)
+        if self.caom_version >= 25:
+            position.calibration = CalibrationStatus.ABSOLUTE.value
+            position.min_bounds = circle
+            position.max_recoverable_scale = Interval(1.0, 2.0)
         return position
 
     def get_energy(self):
@@ -401,6 +410,10 @@ class Caom2TestInstances(object):
             energy.energy_bands.add(plane.EnergyBand.GAMMARAY)
             energy.energy_bands.add(plane.EnergyBand.OPTICAL)
         energy.transition = wcs.EnergyTransition("species", "transition")
+        if self.caom_version >= 25:
+            energy.resolution = 2.2
+            energy.resolution_bounds = dali.Interval(22.2, 33.3)
+            energy.calibration = CalibrationStatus.ABSOLUTE.value
 
         return energy
 
@@ -422,6 +435,9 @@ class Caom2TestInstances(object):
         time.resolution = 2.1
         time.sample_size = 3.0
         time.exposure = 10.3
+        if self.caom_version >= 25:
+            time.calibration = CalibrationStatus.ABSOLUTE.value
+            time.exposure_bounds_bounds = dali.Interval(22.2, 33.3)
 
         return time
 
@@ -479,6 +495,8 @@ class Caom2TestInstances(object):
                 _artifact.max_last_modified = common.get_current_ivoa_time()
                 _artifact.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
                 _artifact.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
+            if self.caom_version >= 25:
+                _artifact.description_id = 'desc:TEST/science-ready-data'
         if self.depth > 3:
             for k, v in self.get_parts().items():
                 _artifact.parts[k] = v

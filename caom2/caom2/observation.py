@@ -76,7 +76,8 @@ from deprecated import deprecated
 
 from . import caom_util
 from .caom_util import int_32, validate_uri
-from .common import AbstractCaomEntity, CaomObject, VocabularyTerm, OrderedEnum, compute_bucket
+from .common import AbstractCaomEntity, CaomObject, VocabularyTerm, OrderedEnum, compute_bucket, _CAOM_STATUS_NS, \
+    _CAOM_TARGET_TYPE_NS
 from .common import _CAOM_DATA_PRODUCT_TYPE_NS
 from .plane import Plane
 from .shape import Point
@@ -106,7 +107,7 @@ class Status(Enum):
     """
     FAIL: "fail"
     """
-    FAIL = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "fail", True).get_value()
+    FAIL = VocabularyTerm(_CAOM_STATUS_NS, "fail", True).get_value()
 
 
 class TargetType(Enum):
@@ -114,8 +115,8 @@ class TargetType(Enum):
     FIELD: "field",
     OBJECT: "object"
     """
-    FIELD = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "field", True).get_value()
-    OBJECT = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "object", True).get_value()
+    FIELD = VocabularyTerm(_CAOM_TARGET_TYPE_NS, "field", True).get_value()
+    OBJECT = VocabularyTerm(_CAOM_TARGET_TYPE_NS, "object", True).get_value()
 
 
 class Tracking(Enum):

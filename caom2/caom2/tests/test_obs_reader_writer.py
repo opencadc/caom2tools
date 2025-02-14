@@ -241,20 +241,68 @@ class TestObservationReaderWriter(unittest.TestCase):
 
     def test_versions(self):
         derived_observation = complete_derived(6, True, 23)
-        complete_derived(6, True, 23, short_uuid=True)
-
-        derived_observation = complete_derived(6, True, 23)
-        complete_derived(6, True, 23, short_uuid=True)
         print("check 2.3 schema with 2.3 doc")
         self.observation_test(derived_observation, True, True, 23)
         print("check 2.4 schema with 2.3 doc")
         self.observation_test(derived_observation, True, True, 24)
+        print("check 2.5 schema with 2.3 doc")
+        self.observation_test(derived_observation, True, True, 25)
 
         derived_observation = complete_derived(6, True, 24)
         print("check 2.3 schema with 2.4 doc")
         with self.assertRaises(AttributeError):
             self.observation_test(derived_observation, True, True, 23)
         print("check 2.4 schema with 2.4 doc")
+        self.observation_test(derived_observation, True, True, 24)
+        print("check 2.5 schema with 2.4 doc")
+        self.observation_test(derived_observation, True, True, 25)
+
+        # remove 2.4 specific attributes and test with v23
+        derived_observation.target.target_id = None
+        derived_observation.meta_read_groups = None
+        for p in derived_observation.planes.values():
+            p.position.resolution_bounds = None
+            p.energy.energy_bands = None
+            p.energy.resolving_power_bounds = None
+            p.time.resolution_bounds = None
+            p.metrics.sample_snr = None
+            p.meta_read_groups = None
+            p.data_read_groups = None
+            for a in p.artifacts.values():
+                a.content_release = None
+                a.content_read_groups = None
+                for pt in a.parts.values():
+                    for c in pt.chunks:
+                        c.custom_axis = None
+                        c.custom = None
+
+        self.observation_test(derived_observation, True, True, 23)
+
+        derived_observation = complete_derived(6, True, 25)
+        print("check 2.3 schema with 2.5 doc")
+        with self.assertRaises(AttributeError):
+            self.observation_test(derived_observation, True, True, 23)
+        print("check 2.4 schema with 2.5 doc")
+        with self.assertRaises(AttributeError):
+            self.observation_test(derived_observation, True, True, 23)
+        print("check 2.5 schema with 2.5 doc")
+        self.observation_test(derived_observation, True, True, 25)
+
+        # remove 2.5 specific attributes and test with v24
+        for p in derived_observation.planes.values():
+            p.visibility = None
+            p.position.min_bounds = None
+            p.position.max_recoverable_scale = None
+            p.position.calibration = None
+            p.energy.resolution = None
+            p.energy.resolution_bounds = None
+            p.energy.calibration = None
+            p.time.exposure_bounds = None
+            p.time.calibration = None
+            p.observable = None
+            for a in p.artifacts.values():
+                a.description_id = None
+
         self.observation_test(derived_observation, True, True, 24)
 
         # remove 2.4 specific attributes and test with v23

@@ -286,49 +286,6 @@ class TestPlane(unittest.TestCase):
         self.assertTrue(exception, "compute_polarization implemented"
                                    " - Testing needed")
 
-#
-# class TestPlaneURI(unittest.TestCase):
-#     def test_all(self):
-#         plane_uri = plane.PlaneURI("caom:GEMINI/12345/3333")
-#         self.assertEqual("caom:GEMINI/12345/3333", plane_uri.uri,
-#                          "Plane URI")
-#
-#         plane_uri = plane.PlaneURI.get_plane_uri(
-#             observation.ObservationURI("caom:CFHT/654321"),
-#             "555")
-#         self.assertEqual("caom:CFHT/654321/555", plane_uri.uri,
-#                          "Observation URI")
-#
-#         exception = False
-#         try:
-#             plane_uri = plane.PlaneURI.get_plane_uri(None, "123")
-#         except TypeError:
-#             exception = True
-#         self.assertTrue(exception, "Missing exception")
-#
-#         exception = False
-#         try:
-#             plane_uri = plane.PlaneURI.get_plane_uri("GEMINI", None)
-#         except TypeError:
-#             exception = True
-#         self.assertTrue(exception, "Missing exception")
-#
-#         # wrong scheme
-#         exception = False
-#         try:
-#             plane_uri = plane.PlaneURI("somescheme:GEMINI/12345/3333")
-#         except ValueError:
-#             exception = True
-#         self.assertTrue(exception, "Missing exception")
-#
-#         exception = False
-#         try:
-#             plane_uri = plane.PlaneURI("caom:GEMINI/12345")
-#         except ValueError:
-#             exception = True
-#         self.assertTrue(exception, "Missing exception")
-#
-
 
 class TestDataQuality(unittest.TestCase):
     def test_all(self):

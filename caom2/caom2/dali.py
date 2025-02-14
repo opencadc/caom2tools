@@ -132,33 +132,3 @@ class Interval(common.CaomObject):
             raise ValueError("Interval: attempt to set upper < lower "
                              "for {}, {}".format(value, self._lower))
         self._upper = value
-
-    # def validate(self):
-    #     """
-    #     Performs a validation of the current object.
-    #
-    #     An AssertionError is thrown if the object does not represent an
-    #     Interval
-    #     """
-    #     if self._samples is not None:
-    #
-    #         if len(self._samples) == 0:
-    #             raise ValueError(
-    #                 'invalid interval (samples cannot be empty)')
-    #
-    #         prev = None
-    #         for sample in self._samples:
-    #             if sample.lower < self._lower:
-    #                 raise ValueError(
-    #                     'invalid interval: sample extends below lower bound: '
-    #                     '{} vs {}'.format(sample, self._lower))
-    #             if sample.upper > self._upper:
-    #                 raise ValueError(
-    #                     'invalid interval: sample extends above upper bound: '
-    #                     '{} vs {}'.format(sample, self._upper))
-    #             if prev is not None:
-    #                 if sample.lower <= prev.upper:
-    #                     raise ValueError(
-    #                         'invalid interval: sample overlaps previous '
-    #                         'sample:\n{}\nvs\n{}'.format(sample, prev))
-    #             prev = sample

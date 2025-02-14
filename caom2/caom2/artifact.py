@@ -127,7 +127,7 @@ class Artifact(AbstractCaomEntity):
     As well as a pointer (parts) to content of the file.
 
     eg:  Artifact('cadc:CFHT/1234567o')
-    where 'cadc:CFHT/1234567o' is an uri that reference the file...
+    where 'cadc:CFHT/1234567o' is an uri that references the file...
 
     """
 
@@ -151,10 +151,7 @@ class Artifact(AbstractCaomEntity):
            ad:CFHT/123456p
         """
         super(Artifact, self).__init__()
-        try:
-            urlparse(uri)
-        except ValueError:
-            raise TypeError('Expected URI for Artifact.uri, received {}'.format(uri))
+        caom_util.validate_uri(uri)
         self._uri = uri
         self._uri_bucket = compute_bucket(uri)
         self.product_type = product_type

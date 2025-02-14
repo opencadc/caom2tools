@@ -93,7 +93,6 @@ from .plane import CalibrationStatus, Ucd, Polarization
 
 DATA_PKG = 'data'
 
-CAOM22_SCHEMA_FILE = 'CAOM-2.2.xsd'
 CAOM23_SCHEMA_FILE = 'CAOM-2.3.xsd'
 CAOM24_SCHEMA_FILE = 'CAOM-2.4.xsd'
 CAOM25_SCHEMA_FILE = 'CAOM-2.5.xsd'
@@ -565,7 +564,7 @@ class ObservationReader(object):
                     members.add(member_element.text)
 
     def _add_inputs(self, inputs, parent, ns):
-        """Create URI objects from an XML representation of the planeURI
+        """Create URI objects from an XML representation of the plane
         elements and add them to the set of plane URIs.
 
         Arguments:
@@ -677,7 +676,7 @@ class ObservationReader(object):
         """Build an Observable object from an XML representation
 
         Arguments:
-        parent : element containing the Observale element
+        parent : element containing the Observable element
         ns : namespace of the document
         return : a Observable object or None if the document does not contain one
         raise : ObservationParsingException
@@ -1331,8 +1330,6 @@ class ObservationReader(object):
                                                    ns, False)
         pos.sample_size = self._get_child_text_as_float("sampleSize", el, ns,
                                                         False)
-        # pos.time_dependent = self._get_child_text_as_boolean("timeDependent",
-        #                                                      el, ns, False)
         pos.calibration = self._get_child_text("calibration", el, ns, False)
         return pos
 
@@ -2265,9 +2262,20 @@ class ObservationWriter(object):
         element = self._get_caom_element("position", parent)
         self._add_bounds_and_samples(position, element)
         if position.min_bounds:
-            self._add_shape_element("minBounds", element, position.min_bounds)
+            if self._output_version < 25:
+                raise AttributeError(
+                    "Attempt to write CAOM2.5 element (position.min_bounds) as "
+                    "{} Observation".format(self._output_version))
+            else:
+                self._add_shape_element("minBounds", element, position.min_bounds)
         self._add_dimension2d_element("dimension", position.dimension, element)
-        self._add_interval_element("maxRecoverableScale", position.max_recoverable_scale, element)
+        if position.max_recoverable_scale:
+            if self._output_version < 25:
+                raise AttributeError(
+                    "Attempt to write CAOM2.5 element (position.max_recoverable_scale) as "
+                    "{} Observation".format(self._output_version))
+            else:
+                self._add_interval_element("maxRecoverableScale", position.max_recoverable_scale, element)
         self._add_element("resolution", position.resolution, element)
         if self._output_version < 24:
             if position.resolution_bounds is not None:

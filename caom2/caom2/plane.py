@@ -79,7 +79,7 @@ from . import caom_util
 from . import shape
 from . import wcs
 from .artifact import Artifact
-from .common import AbstractCaomEntity, CaomObject, VocabularyTerm, OrderedEnum
+from .common import AbstractCaomEntity, CaomObject, VocabularyTerm, OrderedEnum, _CAOM_QUALITY_NS
 from .common import _CAOM_DATA_PRODUCT_TYPE_NS
 import warnings
 with warnings.catch_warnings():
@@ -222,7 +222,7 @@ class Quality(Enum):
     """
     JUNK: junk
     """
-    JUNK = VocabularyTerm(_CAOM_DATA_PRODUCT_TYPE_NS, "junk", True).get_value()
+    JUNK = VocabularyTerm(_CAOM_QUALITY_NS, "junk", True).get_value()
 
 
 class Observable(CaomObject):

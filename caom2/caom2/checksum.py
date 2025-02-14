@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -309,7 +309,7 @@ def update_checksum(checksum, value, attribute=''):
             if not isinstance(value[i], AbstractCaomEntity):
                 checksums.append(value[i]._id)
         for i in sorted(checksums):
-            updated &= update_checksum(checksum, checksum[i], attribute)
+            updated |= update_checksum(checksum, checksum[i], attribute)
         return updated
     else:
         raise ValueError(
@@ -317,23 +317,22 @@ def update_checksum(checksum, value, attribute=''):
 
     if b is not None:
         checksum.update(b)
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Encoded attribute value - {} = {} {} bytes".format(attribute, value, len(b)))
+        logger.debug("Encoded attribute value - {} = {} {} bytes".format(attribute, value, len(b)))
         return True
     return False
 
 
-def to_model_name(attribute):
+def to_checksum_name(attribute):
     """
-    Converts the attribute name to the corresponding model name
+    Converts the attribute name to the corresponding model name in lower case
     :param attribute: name of attribute
     :return: camel case name of the attribute in the model
     """
     # Replace underscores and capitalize the first letter of each word
     components = attribute.split('_')
     # The first component should remain lowercase
-    return components[0] + ''.join(
-        word.capitalize() for word in components[1:])
+    return (components[0] + ''.join(
+        word for word in components[1:])).lower()
 
 
 def update_caom_checksum(checksum, entity, parent=None):
@@ -352,12 +351,12 @@ def update_caom_checksum(checksum, entity, parent=None):
     if isinstance(entity, AbstractCaomEntity):
         update_checksum(checksum, entity._id, "Entity.id")
         if entity._meta_producer:
-            if update_checksum(checksum, entity._meta_producer, "Entity.metaProducer"):
+            meta_prod_model_name = "Entity.metaProducer"
+            if update_checksum(checksum, entity._meta_producer, meta_prod_model_name):
                 updated = True
-                model_name = "Entity.metaProducer"
-                checksum.update(model_name.encode('utf-8'))
+                checksum.update(meta_prod_model_name.encode('utf-8'))
                 logger.debug('Encoded attribute name {} = {}'.
-                             format('_meta_producer', model_name))
+                             format('_meta_producer', meta_prod_model_name))
 
     # determine the excluded fields if necessary
     checksum_excluded_fields = []
@@ -378,9 +377,9 @@ def update_caom_checksum(checksum, entity, parent=None):
                 if update_checksum(checksum, val, atrib):
                     updated = True
                     type_name = type(entity).__name__
-                    if type_name in ['DerivedObservation', 'SimpleObservation'] and to_model_name(i) != 'members':
+                    if type_name in ['DerivedObservation', 'SimpleObservation'] and to_checksum_name(i) != 'members':
                         type_name = 'Observation'
-                    model_name = (type_name + "." + to_model_name(i)).lower()
+                    model_name = type_name.lower() + "." + to_checksum_name(i)
                     checksum.update(model_name.encode('utf-8'))
                     logger.debug('Encoded attribute name - {} = {}'.format(atrib, model_name))
     return updated

@@ -77,7 +77,7 @@ from caom2.caom_util import int_32
 from . import caom_util
 from . import wcs
 from .common import AbstractCaomEntity, OrderedEnum, VocabularyTerm, \
-    _DATA_LINK_VOCAB_NS, _CAOM_PRODUCT_TYPE_NS
+    _DATA_LINK_NS, _CAOM_PRODUCT_TYPE_NS
 from .common import CaomObject
 
 
@@ -87,8 +87,11 @@ __all__ = ['Chunk', 'ObservableAxis', 'SpatialWCS', 'DataLinkSemantics',
 
 class DataLinkSemantics(OrderedEnum):
     """
-    Subset of IVOA DataLink terms at:
-        https://www.ivoa.net/rdf/datalink/core/
+
+    This is considered to be a more common and relatively stable subset of the IVOA DataLink
+    terms, however, new terms may need to be added in the future.  The full list can be found at:
+
+    https://www.ivoa.net/rdf/datalink/core
 
     THIS = "this"
     AUXILIARY = "auxiliary"
@@ -107,22 +110,22 @@ class DataLinkSemantics(OrderedEnum):
     WEIGHT = 'weight'
 
     """
-    THIS = VocabularyTerm(_DATA_LINK_VOCAB_NS, "this", True).get_value()
+    THIS = VocabularyTerm(_DATA_LINK_NS, "this", True).get_value()
 
-    AUXILIARY = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'auxiliary', True).get_value()
-    BIAS = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'bias', True).get_value()
-    CALIBRATION = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'calibration', True).get_value()
-    CODERIVED = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'coderived', True).get_value()
-    DARK = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'dark', True).get_value()
-    DOCUMENTATION = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'documentation', True).get_value()
-    ERROR = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'error', True).get_value()
-    FLAT = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'flat', True).get_value()
-    NOISE = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'noise', True).get_value()
-    PREVIEW = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'preview', True).get_value()
-    PREVIEW_IMAGE = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'preview-image', True).get_value()
-    PREVIEW_PLOT = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'preview-plot', True).get_value()
-    THUMBNAIL = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'thumbnail', True).get_value()
-    WEIGHT = VocabularyTerm(_DATA_LINK_VOCAB_NS, 'weight', True).get_value()
+    AUXILIARY = VocabularyTerm(_DATA_LINK_NS, 'auxiliary', True).get_value()
+    BIAS = VocabularyTerm(_DATA_LINK_NS, 'bias', True).get_value()
+    CALIBRATION = VocabularyTerm(_DATA_LINK_NS, 'calibration', True).get_value()
+    CODERIVED = VocabularyTerm(_DATA_LINK_NS, 'coderived', True).get_value()
+    DARK = VocabularyTerm(_DATA_LINK_NS, 'dark', True).get_value()
+    DOCUMENTATION = VocabularyTerm(_DATA_LINK_NS, 'documentation', True).get_value()
+    ERROR = VocabularyTerm(_DATA_LINK_NS, 'error', True).get_value()
+    FLAT = VocabularyTerm(_DATA_LINK_NS, 'flat', True).get_value()
+    NOISE = VocabularyTerm(_DATA_LINK_NS, 'noise', True).get_value()
+    PREVIEW = VocabularyTerm(_DATA_LINK_NS, 'preview', True).get_value()
+    PREVIEW_IMAGE = VocabularyTerm(_DATA_LINK_NS, 'preview-image', True).get_value()
+    PREVIEW_PLOT = VocabularyTerm(_DATA_LINK_NS, 'preview-plot', True).get_value()
+    THUMBNAIL = VocabularyTerm(_DATA_LINK_NS, 'thumbnail', True).get_value()
+    WEIGHT = VocabularyTerm(_DATA_LINK_NS, 'weight', True).get_value()
 
     # DataLink terms explicitly not included
     # counterpart
