@@ -76,7 +76,7 @@ from datetime import datetime
 import requests
 from cadcutils import util, exceptions
 from cadcutils.net import auth
-from caom2.obs_reader_writer import ObservationWriter, CAOM24_NAMESPACE
+from caom2.obs_reader_writer import ObservationWriter, CAOM24_NAMESPACE, CAOM25_NAMESPACE
 from caom2 import obs_reader_writer
 from caom2.observation import SimpleObservation
 from unittest.mock import Mock, patch, MagicMock, ANY, call
@@ -196,6 +196,7 @@ class TestCAOM2Repo(unittest.TestCase):
             'http://serviceurl/caom2repo/pub'
         collection = 'cfht'
         observation_uri = 'caom:cfht/7000000o'
+        observation_id = observation_uri.split('/')[-1]
         service_url = 'www.cadc.nrc.ca/caom2repo'
         obs = SimpleObservation(collection, observation_uri)
         writer = ObservationWriter()
@@ -209,7 +210,7 @@ class TestCAOM2Repo(unittest.TestCase):
         level = logging.DEBUG
         visitor = CAOM2RepoClient(auth.Subject(), level, host=service_url)
         self.assertEqual(obs, visitor.get_observation(
-            collection, observation_uri))
+            collection, observation_id))
 
         # signal problems
         http_error = requests.HTTPError()
@@ -217,14 +218,14 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(exceptions.InternalServerException):
-            visitor.get_observation(collection, observation_uri)
+            visitor.get_observation(collection, observation_id)
 
         # temporary transient errors
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
         response.raise_for_status.side_effect = [http_error, None]
-        visitor.read(collection, observation_uri)
+        visitor.read(collection, observation_id)
 
         # permanent transient errors
         http_error = requests.HTTPError()
@@ -235,7 +236,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(exceptions.HttpException):
-            visitor.get_observation(collection, observation_uri)
+            visitor.get_observation(collection, observation_id)
 
     # patch sleep to stop the test from sleeping and slowing down execution
     @patch('cadcutils.net.ws.WsCapabilities')
@@ -314,15 +315,14 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status = 200
         mock_conn.return_value = response
         iobuffer = BytesIO()
-        # TODO update to CAOM2.5
-        ObservationWriter(namespace=CAOM24_NAMESPACE).write(obs, iobuffer)
+        ObservationWriter(namespace=CAOM25_NAMESPACE).write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
 
         visitor.post_observation(obs)
         self.assertEqual('POST', mock_conn.call_args[0][0].method)
         self.assertEqual(
-            '/{}/auth/{}/{}'.format(service, collection, observation_uri),
+            '/{}/auth/{}/{}'.format(service, collection, observation_uri.split('/')[-1]),
             mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml',
                          mock_conn.call_args[0][0].headers['Content-Type'])
@@ -376,15 +376,14 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status = 200
         mock_conn.return_value = response
         iobuffer = BytesIO()
-        # TODO update to CAOM2.5
-        ObservationWriter(namespace=CAOM24_NAMESPACE).write(obs, iobuffer)
+        ObservationWriter(namespace=CAOM25_NAMESPACE).write(obs, iobuffer)
         obsxml = iobuffer.getvalue()
         response.content = obsxml
 
         visitor.put_observation(obs)
         self.assertEqual('PUT', mock_conn.call_args[0][0].method)
         self.assertEqual(
-            '/{}/pub/{}/{}'.format(service, collection, observation_uri),
+            '/{}/pub/{}/{}'.format(service, collection, observation_uri.split('/')[-1]),
             mock_conn.call_args[0][0].path_url)
         self.assertEqual('application/xml',
                          mock_conn.call_args[0][0].headers['Content-Type'])
@@ -425,7 +424,7 @@ class TestCAOM2Repo(unittest.TestCase):
         caps_mock.return_value.get_access_url.return_value =\
             'http://serviceurl/caom2repo/pub'
         collection = 'cfht'
-        observation_uri = 'caom:cfht/7000000o'
+        observation_id = '7000000o'
         service_url = 'www.cadc.nrc.ca'
         level = logging.DEBUG
 
@@ -434,7 +433,7 @@ class TestCAOM2Repo(unittest.TestCase):
         response.status = 200
         mock_conn.return_value = response
 
-        visitor.delete_observation(collection, observation_uri)
+        visitor.delete_observation(collection, observation_id)
         self.assertEqual('DELETE', mock_conn.call_args[0][0].method)
 
         # signal problems
@@ -443,14 +442,14 @@ class TestCAOM2Repo(unittest.TestCase):
         http_error.response = response
         response.raise_for_status.side_effect = [http_error]
         with self.assertRaises(exceptions.InternalServerException):
-            visitor.delete(collection, observation_uri)
+            visitor.delete(collection, observation_id)
 
         # temporary transient errors
         http_error = requests.HTTPError()
         response.status_code = 503
         http_error.response = response
         response.raise_for_status.side_effect = [http_error, None]
-        visitor.delete_observation(collection, observation_uri)
+        visitor.delete_observation(collection, observation_id)
 
         # permanent transient errors
         http_error = requests.HTTPError()
@@ -461,7 +460,7 @@ class TestCAOM2Repo(unittest.TestCase):
 
         response.raise_for_status.side_effect = raise_error
         with self.assertRaises(exceptions.HttpException):
-            visitor.delete_observation(collection, observation_uri)
+            visitor.delete_observation(collection, observation_id)
 
     @patch('caom2repo.core.net.BaseWsClient', Mock())
     @patch('caom2repo.core.CAOM2RepoClient.get_observation')
@@ -857,32 +856,33 @@ class TestCAOM2Repo(unittest.TestCase):
         client_mock.return_value.post_observation.assert_called_with(obs)
 
         # test read
+        observation_id = observation_uri.split('/')[-1]
         sys.argv = ["caom2tools", "read", '--resource-id',
                     'ivo://ca.nrc.ca/resource',
-                    collection, observation_uri]
+                    collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
         client_mock.return_value.namespace = obs_reader_writer.CAOM24_NAMESPACE
         core.main_app()
         client_mock.return_value.get_observation.\
-            assert_called_with(collection, observation_uri)
+            assert_called_with(collection, observation_id)
         # repeat with output argument
         sys.argv = ["caom2tools", "read", '--resource-id',
                     'ivo://ca.nrc.ca/resource',
-                    "--output", ifile, collection, observation_uri]
+                    "--output", ifile, collection, observation_id]
         client_mock.return_value.get_observation.return_value = obs
         core.main_app()
         client_mock.return_value.get_observation.\
-            assert_called_with(collection, observation_uri)
+            assert_called_with(collection, observation_id)
         os.remove(ifile)
 
         # test delete
         sys.argv = ["caom2tools", "delete", '--resource-id',
                     'ivo://ca.nrc.ca/resource',
-                    collection, observation_uri]
+                    collection, observation_id]
         core.main_app()
         client_mock.return_value.delete_observation.assert_called_with(
             collection=collection,
-            observation_id=observation_uri)
+            observation_id=observation_id)
 
         # test visit
         # get the absolute path to be able to run the tests with the
