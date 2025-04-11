@@ -91,10 +91,10 @@ __all__ = ['CAOM2RepoClient']
 
 BATCH_SIZE = int(10000)
 
-CURRENT_CAOM2REPO_OBS_CAPABILITY_ID = \
+PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID = \
     'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2'
-PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID =\
-    'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.1'
+CURRENT_CAOM2REPO_OBS_CAPABILITY_ID = \
+    'https://www.opencadc.org/caom2/repo/v2#observation-2.5'
 
 # resource ID for info
 DEFAULT_RESOURCE_ID = 'ivo://cadc.nrc.ca/ams'
@@ -143,7 +143,7 @@ class CAOM2RepoClient(object):
             self._repo_client.caps.get_access_url(
                 PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID)
             self.capability_id = PREVIOUS_CAOM2REPO_OBS_CAPABILITY_ID
-            self.namespace = obs_reader_writer.CAOM23_NAMESPACE
+            self.namespace = obs_reader_writer.CAOM24_NAMESPACE
 
     # shortcuts for the CRUD operations
     def create(self, observation):
