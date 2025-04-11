@@ -268,7 +268,7 @@ class TestCAOM2Repo(unittest.TestCase):
                          visitor._get_observations('cfht'))
         self.assertEqual(end_date, visitor._start)
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
+            core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID,
             'cfht'),
             params={'MAXREC': core.BATCH_SIZE})
 
@@ -276,7 +276,7 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11',
                                                                 '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
+            core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID,
             'cfht'),
             params={'END': '2000-11-11T00:00:00.000',
                     'MAXREC': core.BATCH_SIZE})
@@ -288,7 +288,7 @@ class TestCAOM2Repo(unittest.TestCase):
                                   end=datetime.strptime('2000-11-12',
                                                         '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
+            core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID,
             'cfht'), params={'START': '2000-11-11T00:00:00.000',
                              'END': '2000-11-12T00:00:00.000',
                              'MAXREC': core.BATCH_SIZE})
