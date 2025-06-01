@@ -1491,8 +1491,10 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 
 
 def _to_float(value):
-    return float(value) if value is not None else None
-
+    try:
+        return float(value)
+    except (ValueError, TypeError) as _:
+        return None
 
 def _to_int(value):
     return int(value) if value is not None else None
