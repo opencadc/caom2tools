@@ -1493,13 +1493,14 @@ class Hdf5ObsBlueprint(ObsBlueprint):
 def _to_float(value):
     try:
         return float(value)
-    except (ValueError, TypeError) as _:
+    except (ValueError, TypeError):
         return None
+
 
 def _to_int(value):
     try:
         return int(value)
-    except (ValueError, TypeError) as _:
+    except (ValueError, TypeError):
         return None
 
 
