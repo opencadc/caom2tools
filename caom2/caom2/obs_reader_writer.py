@@ -69,7 +69,7 @@
 
 
 """ Defines ObservationReader class """
-
+import json
 import os
 import uuid
 from builtins import str, int
@@ -122,7 +122,7 @@ logger = logging.getLogger(__name__)
 class ObservationReader(object):
     """ObservationReader """
 
-    def __init__(self, validate=False):
+    def __init__(self, validate=False, input_format='xml'):
         """Constructor. XML Schema validation may be disabled, in which case
         the client is likely to fail in horrible ways if it received invalid
         documents. However, performance may be improved.
@@ -130,11 +130,14 @@ class ObservationReader(object):
         Arguments:
         validate : If True enable schema validation, False otherwise
         """
+        if input_format not in ['xml', 'json']:
+            raise ValueError("Unsupported format: " + input_format)
+        self._input_format = input_format
         self._validate = validate
 
         if self._validate:
-            # caom20_schema_path = pkg_resources.resource_filename(
-            #     DATA_PKG, CAOM20_SCHEMA_FILE)
+            if input_format == 'json':
+                raise ValueError("Schema validation not supported for JSON")
             caom22_schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
                                               CAOM22_SCHEMA_FILE)
 
@@ -182,15 +185,18 @@ class ObservationReader(object):
             caom2_entity._meta_producer = element_meta_producer
 
     def _get_child_element(self, element_tag, parent, ns, required):
-        for element in list(parent):
-            if element.tag == "{" + ns + "}" + element_tag:
-                if list(element) == 0 and not element.keys() and\
-                   (not element.text or not element.text.strip()):
-                    # element is empty, return None
-                    return None
-                else:
-                    # element has content, return it
-                    return element
+        if self._input_format == 'xml':
+            for element in list(parent):
+                if element.tag == "{" + ns + "}" + element_tag:
+                    if list(element) == 0 and not element.keys() and\
+                       (not element.text or not element.text.strip()):
+                        # element is empty, return None
+                        return None
+                    else:
+                        # element has content, return it
+                        return element
+        elif element_tag in parent:
+            return parent[element_tag]
 
         if required:
             error = element_tag + " element not found in " + parent.tag
@@ -203,40 +209,44 @@ class ObservationReader(object):
                                                 required)
         if child_element is None:
             return None
-        else:
+        if self._input_format == 'xml':
             return str(child_element.text)
+        else:
+            return child_element
 
     def _get_child_text_as_int(self, element_tag, parent, ns, required):
         child_element = self._get_child_element(element_tag, parent, ns,
                                                 required)
         if child_element is None:
             return None
-        else:
+
+        if self._input_format == 'xml':
             return int(child_element.text)
+        else:
+            return int(child_element)
 
     def _get_child_text_as_long(self, element_tag, parent, ns, required):
-        child_element = self._get_child_element(element_tag, parent, ns,
-                                                required)
-        if child_element is None:
-            return None
-        else:
-            return int(child_element.text)
+        return self._get_child_text_as_int(element_tag, parent, ns, required)
 
     def _get_child_text_as_float(self, element_tag, parent, ns, required):
         child_element = self._get_child_element(element_tag, parent, ns,
                                                 required)
         if child_element is None:
             return None
-        else:
+        if self._input_format == 'xml':
             return float(child_element.text)
+        else:
+            return float(child_element)
 
     def _get_child_text_as_boolean(self, element_tag, parent, ns, required):
         child_element = self._get_child_element(element_tag, parent, ns,
                                                 required)
         if child_element is None:
             return None
-        else:
+        if self._input_format == 'xml':
             return child_element.text.lower() == "true"
+        else:
+            return child_element.lower() == "true"
 
     def _add_keywords(self, keywords_list, element, ns, required):
         """
@@ -255,10 +265,13 @@ class ObservationReader(object):
         else:
             keywords_element = self._get_child_element("keywords", element, ns,
                                                        required)
-            if keywords_element is not None:
-                for keyword in keywords_element.iterchildren(
-                        tag=("{" + ns + "}keyword")):
-                    keywords_list.add(keyword.text)
+            if self._input_format == 'xml':
+                if keywords_element is not None:
+                    for keyword in keywords_element.iterchildren(
+                            tag=("{" + ns + "}keyword")):
+                        keywords_list.add(keyword.text)
+            else:
+                keywords_list = keywords_element
 
     def _get_algorithm(self, element_tag, parent, ns, required):
         """Build an Algorithm object from an XML representation
@@ -297,7 +310,11 @@ class ObservationReader(object):
         else:
             # TODO: need to catch exceptions,
             # what kind of exceptions are thrown?
-            return caom_util.str2ivoa(el.text)
+
+            if self._input_format == 'xml':
+                return caom_util.str2ivoa(el.text)
+            else:
+                return caom_util.str2ivoa(el)
 
     def _get_groups(self, element_tag, parent, ns, required):
         """Build set of groups from an XML representation
@@ -316,9 +333,13 @@ class ObservationReader(object):
             return None
         else:
             result = caom_util.URISet()
-            for member_element in el.iterchildren(
-                                    "{" + ns + "}groupURI"):
-                result.add(member_element.text)
+            if self._input_format == 'xml':
+                for member_element in el.iterchildren(
+                                        "{" + ns + "}groupURI"):
+                    result.add(member_element.text)
+            else:
+                for member in el:
+                    result.add(member)
             return result
 
     def _get_proposal(self, element_tag, parent, ns, required):
@@ -538,8 +559,12 @@ class ObservationReader(object):
         """
         el = self._get_child_element("inputs", parent, ns, False)
         if el is not None:
-            for uri_element in el.iterchildren("{" + ns + "}planeURI"):
-                inputs.add(plane.PlaneURI(str(uri_element.text)))
+            for uri_element in self._get_children(el, ns, "planeURI"):
+                if self._input_format == 'xml':
+                    val = str(uri_element.text)
+                else:
+                    val = str(uri_element)
+                inputs.add(plane.PlaneURI(val))
 
             if not inputs:
                 error = "No planeURI element found in members"
@@ -1398,7 +1423,10 @@ class ObservationReader(object):
                                                 required)
         if shape_element is None:
             return None
-        shape_type = shape_element.get(XSI + "type")
+        if self._input_format == 'xml':
+            shape_type = shape_element.get(XSI + "type")
+        else:
+            shape_type = shape_element.get("@type")
         if "caom2:Polygon" == shape_type:
             if self.version < 23:
                 raise TypeError(
@@ -1407,8 +1435,7 @@ class ObservationReader(object):
             points_element = self._get_child_element("points", shape_element,
                                                      ns, True)
             points = list()
-            for point in points_element.iterchildren(
-                    tag=("{" + ns + "}point")):
+            for point in self._get_children(points_element, ns, "point"):
                 points.append(self._get_point(point, ns, True))
             samples_element = self._get_child_element("samples", shape_element,
                                                       ns, True)
@@ -1641,6 +1668,15 @@ class ObservationReader(object):
                 self._set_entity_attributes(artifact_element, ns, _artifact)
                 artifacts[_artifact.uri] = _artifact
 
+    def _get_children(self, parent, ns, child_tag):
+        """Get a list of child elements. For XML input, children have a tag.
+        For JSON input, children are in a list in the parent."""
+        if self._input_format == 'xml':
+            plane_list = parent.iterchildren('{' + ns + '}' + child_tag)
+        else:
+            plane_list = parent
+        return plane_list
+
     def _add_planes(self, planes, parent, ns):
         """Create Planes object from XML representation of Plane elements
         and add them to the set of Planes.
@@ -1655,7 +1691,7 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            for plane_element in el.iterchildren("{" + ns + "}plane"):
+            for plane_element in self._get_children(el, ns, 'plane'):
                 _plane = plane.Plane(
                     self._get_child_text("productID", plane_element, ns, True))
                 _plane.meta_release = caom_util.str2ivoa(
@@ -1726,16 +1762,21 @@ class ObservationReader(object):
         raise : ObservationParsingException
         """
 
-        doc = etree.parse(source)
-        if self._validate and self._xmlschema:
-            self._xmlschema.assertValid(doc)
-        root = doc.getroot()
-        ns = root.nsmap["caom2"]
-        self.version = CAOM_VERSION[ns]
+        if self._input_format == 'xml':
+            doc = etree.parse(source)
+            if self._validate and self._xmlschema:
+                self._xmlschema.assertValid(doc)
+            root = doc.getroot()
+            ns = root.nsmap["caom2"]
+            self.version = CAOM_VERSION[ns]
+        else:  # json
+            self.version = 24  # TODO get from document
+            root = json.loads(source)
+            ns = None
         collection = str(
-            self._get_child_element("collection", root, ns, True).text)
+            self._get_child_text("collection", root, ns, True))
         observation_id = \
-            str(self._get_child_element("observationID", root, ns, True).text)
+            str(self._get_child_text("observationID", root, ns, True))
         # Instantiate Algorithm
         algorithm = self._get_algorithm("algorithm", root, ns, True)
         # Instantiate Observation
@@ -1785,7 +1826,7 @@ class ObservationWriter(object):
     """ ObservationWriter """
 
     def __init__(self, validate=False, write_empty_collections=False,
-                 namespace_prefix="caom2", namespace=None):
+                 namespace_prefix="caom2", namespace=None, output_format='xml'):
         """
         Arguments:
         validate : If True enable schema validation, False otherwise
@@ -1793,10 +1834,15 @@ class ObservationWriter(object):
         collections namespace_prefix : a CAOM-2.x namespace prefix
         namespace : a valid CAOM-2.x target namespace
         """
+        if output_format not in ['xml', 'json']:
+            raise RuntimeError('invalid output format {}'.format(output_format))
+        self._output_format = output_format
+
         self._validate = validate
         self._write_empty_collections = write_empty_collections
 
-        if namespace_prefix is None or not namespace_prefix:
+        if (namespace_prefix is None or not namespace_prefix) \
+                and output_format == 'xml':
             raise RuntimeError('null or empty namespace_prefix not allowed')
 
         if namespace is None or namespace == CAOM24_NAMESPACE:
@@ -1815,6 +1861,8 @@ class ObservationWriter(object):
             raise RuntimeError('invalid namespace {}'.format(namespace))
 
         if self._validate:
+            if self._output_format != 'xml':
+                raise AttributeError("Validation works with xml output only")
             if self._output_version == 24:
                 schema_file = CAOM24_SCHEMA_FILE
             elif self._output_version == 23:
@@ -1830,6 +1878,49 @@ class ObservationWriter(object):
 
         self._nsmap = {namespace_prefix: self._namespace, "xsi": XSI_NAMESPACE}
 
+    def _to_json(tree):
+        def xml_to_dict(element):
+            node = {}
+
+            # Add attributes if any
+            for attrib in element.attrib:
+                localname = etree.QName(attrib).localname
+                node['@' + localname] = element.attrib[attrib]
+
+            # Add children
+            children = list(element)
+            if children:
+                child_dict = {}
+                for child in children:
+                    child_tag = etree.QName(child).localname
+                    child_data = xml_to_dict(child)
+                    if child_tag in child_dict:
+                        # Convert to list if multiple children with same tag
+                        if not isinstance(child_dict[child_tag], list):
+                            child_dict[child_tag] = [child_dict[child_tag]]
+                        child_dict[child_tag].append(child_data)
+                    else:
+                        child_dict[child_tag] = child_data
+                keys = list(child_dict.keys())
+                if len(keys) == 1 and isinstance(child_dict[keys[0]], list):
+                    node = child_dict[keys[0]]
+                else:
+                    node.update(child_dict)
+            else:
+                # No children — use text
+                text = element.text.strip() if element.text else ''
+                node = text if not element.attrib else {**node, '#text': text}
+
+            return node
+
+        import json
+        #root = tree.getroot()
+        # Convert to dict
+        data_dict = xml_to_dict(tree)
+
+        # Convert dict to JSON
+        return json.dumps(data_dict, indent=2)
+
     def write(self, obs, out):
         """
         Writes an observation to an output stream
@@ -1838,15 +1929,20 @@ class ObservationWriter(object):
         :return:
         """
         caom_util.type_check(obs, observation.Observation, "observation")
-        obs_element = etree.Element(self._caom2_namespace + "Observation",
-                                    nsmap=self._nsmap)
+
         if isinstance(obs, observation.SimpleObservation):
-            obs_element.set(XSI + "type", "caom2:SimpleObservation")
+            obs_type = "caom2:SimpleObservation"
         else:
             if self._output_version < 24:
-                obs_element.set(XSI + "type", "caom2:CompositeObservation")
+                obs_type = "caom2:CompositeObservation"
             else:
-                obs_element.set(XSI + "type", "caom2:DerivedObservation")
+                obs_type = "caom2:DerivedObservation"
+        if self._output_format == 'xml':
+            obs_element = etree.Element(self._caom2_namespace + "Observation",
+                                        nsmap=self._nsmap)
+            obs_element.set(XSI + "type", obs_type)
+        else:
+            obs_element = {'@type': obs_type}
 
         self._add_entity_attributes(obs, obs_element)
 
@@ -1882,16 +1978,20 @@ class ObservationWriter(object):
         if self._validate and self._xmlschema:
             self._xmlschema.assertValid(obs_element)
 
-        tree = etree.ElementTree(obs_element)
-        try:
-            # try to write as text first
-            out.write(etree.tostring(tree, encoding='unicode',
-                                     pretty_print=True))
-            return
-        except Exception:
-            pass  # didn't work. Try to write as binary
-        tree.write(out, encoding='utf-8',
-                   xml_declaration=True, pretty_print=True)
+        if self._output_format == 'xml':
+            tree = etree.ElementTree(obs_element)
+            try:
+                # try to write as text first
+                out.write(etree.tostring(tree, encoding='unicode',
+                                         pretty_print=True))
+                return
+            except Exception:
+                pass  # didn't work. Try to write as binary
+            tree.write(out, encoding='utf-8',
+                       xml_declaration=True, pretty_print=True)
+        else:
+            import json
+            out.write(json.dumps(obs_element, indent=2))
 
     def _add_entity_attributes(self, entity, element):
         self._add_attribute("id", str(entity._id), element)
@@ -2014,29 +2114,40 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("members", parent)
-        for member in members:
-            member_element = self._get_caom_element("observationURI", element)
-            member_element.text = member.uri
+        if self._output_format == 'xml':
+            for member in members:
+                member_element = self._get_caom_element("observationURI", element)
+                member_element.text = member.uri
+        else:
+            element = [m.uri for m in members] if members else []
 
     def _add_groups_element(self, name, groups, parent):
         if self._output_version < 24:
             return
         if not groups and not self._write_empty_collections:
             return
-
         element = self._get_caom_element(name, parent)
-        for gr in groups:
-            gr_elem = self._get_caom_element("groupURI", element)
-            gr_elem.text = gr
+        if self._output_format == 'xml':
+            for gr in groups:
+                gr_elem = self._get_caom_element("groupURI", element)
+                gr_elem.text = gr
+        else:
+            element = list(groups) if groups else []
 
     def _add_planes_element(self, planes, parent):
         if planes is None or \
                 (len(planes) == 0 and not self._write_empty_collections):
             return
-
-        element = self._get_caom_element("planes", parent)
+        if self._output_format == 'xml':
+            element = self._get_caom_element("planes", parent)
+        else:
+            element = parent["planes"] = []
         for _plane in planes.values():
-            plane_element = self._get_caom_element("plane", element)
+            if self._output_format == 'xml':
+                plane_element = self._get_caom_element("plane", element)
+            else:
+                plane_element = {}
+                element.append(plane_element)
             self._add_entity_attributes(_plane, plane_element)
             self._add_element("productID", _plane.product_id, plane_element)
             if _plane.creator_id is not None:
@@ -2203,7 +2314,10 @@ class ObservationWriter(object):
 
         if isinstance(the_shape, shape.Polygon):
             shape_element = self._get_caom_element(name, parent)
-            shape_element.set(XSI + "type", "caom2:Polygon")
+            if self._output_format == 'xml':
+                shape_element.set(XSI + "type", "caom2:Polygon")
+            else:
+                shape_element["@type"] = "caom2:Polygon"
             points_element = self._get_caom_element("points", shape_element)
             for point in the_shape.points:
                 self._add_point_element("point", point, points_element)
@@ -2218,7 +2332,10 @@ class ObservationWriter(object):
                 self._add_element("type", vertex.type.value, vertex_element)
         elif isinstance(the_shape, shape.Circle):
             shape_element = self._get_caom_element(name, parent)
-            shape_element.set(XSI + "type", "caom2:Circle")
+            if self._output_format == 'xml':
+                shape_element.set(XSI + "type", "caom2:Circle")
+            else:
+                shape_element["@type"] = "caom2:Circle"
             self._add_point_element("center", the_shape.center, shape_element)
             self._add_element("radius", the_shape.radius, shape_element)
         else:
@@ -2234,6 +2351,10 @@ class ObservationWriter(object):
             self._add_element("upper", interval.upper, _interval_element)
             if interval.samples:
                 _samples_element = self._get_caom_element("samples",
+
+
+
+
                                                           _interval_element)
                 for _sample in interval.samples:
                     _sample_element = self._get_caom_element("sample",
@@ -2464,7 +2585,14 @@ class ObservationWriter(object):
         if point is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        if self._output_format == 'xml':
+            element = self._get_caom_element(name, parent)
+        else:
+            element = {}
+            if name not in parent:
+                parent[name] = list()
+            parent[name].append(element)
+
         self._add_element("cval1", point.cval1, element)
         self._add_element("cval2", point.cval2, element)
 
@@ -2620,10 +2748,10 @@ class ObservationWriter(object):
             parent element. """
         if _range is None:
             return
-
         element = self._get_caom_element(name, parent)
         self._add_ref_coord_element("start", _range.start, element)
         self._add_ref_coord_element("end", _range.end, element)
+
 
     def _add_coord_range2d_element(self, name, _range, parent):
         """ Builds a representation of a CoordRange2D and adds it to the
@@ -2666,59 +2794,83 @@ class ObservationWriter(object):
         self._add_element("bin", _slice.bin, element)
 
     def _add_attribute(self, name, value, element):
-        element.set(self._caom2_namespace + name, value)
+        if self._output_format == 'xml':
+            element.set(self._caom2_namespace + name, value)
+        else:
+            element['@' + name] = value
 
     def _add_element(self, name, value, parent):
         if value is None:
             return
-        element = self._get_caom_element(name, parent)
-        if isinstance(value, str):
-            element.text = value
+        if self._output_format == 'xml':
+            element = self._get_caom_element(name, parent)
+            if isinstance(value, str):
+                element.text = value
+            else:
+                element.text = str(value)
         else:
-            element.text = str(value)
+            parent[name] = value
 
     def _add_boolean_element(self, name, value, parent):
         if value is None:
             return
-
-        element = self._get_caom_element(name, parent)
-        element.text = str(value).lower()
+        if self._output_format == 'xml':
+            element = self._get_caom_element(name, parent)
+            element.text = str(value).lower()
+        else:
+            parent[name] = bool(value)
 
     def _add_datetime_element(self, name, value, parent):
         if value is None:
             return
-        element = self._get_caom_element(name, parent)
-        element.text = caom_util.date2ivoa(value)
+        if self._output_format == 'xml':
+            element = self._get_caom_element(name, parent)
+            element.text = caom_util.date2ivoa(value)
+        else:
+            parent[name] = caom_util.date2ivoa(value)
 
     def _add_keywords_element(self, collection, parent):
         if collection is None or \
                 (len(collection) == 0 and not self._write_empty_collections):
             return
-        element = self._get_caom_element("keywords", parent)
-        if self._output_version < 23:
-            element.text = ' '.join(collection)
+        if self._output_format == 'xml':
+            element = self._get_caom_element("keywords", parent)
+            if self._output_version < 23:
+                element.text = ' '.join(collection)
+            else:
+                for keyword in collection:
+                    self._get_caom_element("keyword", element).text = keyword
         else:
-            for keyword in collection:
-                self._get_caom_element("keyword", element).text = keyword
+            parent['keywords'] = list(collection)
 
     def _add_coord_range_1d_list_element(self, name, values, parent):
         if values is None:
             return
-        element = self._get_caom_element(name, parent)
-        for v in values:
-            self._add_coord_range1d_element("range", v, element)
+        if self._output_format == 'xml':
+            element = self._get_caom_element(name, parent)
+            for v in values:
+                self._add_coord_range1d_element("range", v, element)
+        else:
+            raise NotImplementedError(
+                "CAOM JSON output not implemented")
 
     def _add_inputs_element(self, name, collection, parent):
         if collection is None or \
                 (len(collection) == 0 and not self._write_empty_collections):
             return
         element = self._get_caom_element(name, parent)
-        for plane_uri in collection:
-            self._add_element("planeURI", plane_uri.uri, element)
+        if self._output_format == 'xml':
+            for plane_uri in collection:
+                self._add_element("planeURI", plane_uri.uri, element)
+        else:
+            parent[name] = [inp.uri for inp in collection]
 
     def _get_caom_element(self, tag, parent):
-        return etree.SubElement(parent, self._caom2_namespace + tag)
-
+        if self._output_format == 'xml':
+            return etree.SubElement(parent, self._caom2_namespace + tag)
+        else:
+            parent[tag] = {}
+            return parent[tag]
 
 class ObservationParsingException(Exception):
     pass
