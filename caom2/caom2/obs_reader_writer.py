@@ -159,13 +159,19 @@ class ObservationReader(object):
             self._xmlschema = etree.XMLSchema(xsd)
             self.version = None
 
+    def _get_attribute(self, name, ns, element):
+        if self._input_format == 'xml':
+            return element.get("{" + ns + "}" + name)
+        else:
+            return element['@' + name]
+
     def _set_entity_attributes(self, element, ns, caom2_entity):
-        element_id = element.get("{" + ns + "}id")
-        element_last_modified = element.get("{" + ns + "}lastModified")
-        element_max_last_modified = element.get("{" + ns + "}maxLastModified")
-        element_meta_checksum = element.get("{" + ns + "}metaChecksum")
-        element_acc_meta_checksum = element.get("{" + ns + "}accMetaChecksum")
-        element_meta_producer = element.get("{" + ns + "}metaProducer")
+        element_id = self._get_attribute("id", ns, element)
+        element_last_modified = self._get_attribute("lastModified", ns, element)
+        element_max_last_modified = self._get_attribute("maxLastModified", ns, element)
+        element_meta_checksum = self._get_attribute("metaChecksum", ns, element)
+        element_acc_meta_checksum = self._get_attribute("accMetaChecksum", ns, element)
+        element_meta_producer = self._get_attribute("metaProducer", ns, element)
 
         caom2_entity._id = uuid.UUID(element_id)
 
@@ -246,7 +252,7 @@ class ObservationReader(object):
         if self._input_format == 'xml':
             return child_element.text.lower() == "true"
         else:
-            return child_element.lower() == "true"
+            return child_element
 
     def _add_keywords(self, keywords_list, element, ns, required):
         """
@@ -267,8 +273,7 @@ class ObservationReader(object):
                                                        required)
             if self._input_format == 'xml':
                 if keywords_element is not None:
-                    for keyword in keywords_element.iterchildren(
-                            tag=("{" + ns + "}keyword")):
+                    for keyword in self._get_children(keywords_element, ns, "keyword"):
                         keywords_list.add(keyword.text)
             else:
                 keywords_list = keywords_element
@@ -334,8 +339,7 @@ class ObservationReader(object):
         else:
             result = caom_util.URISet()
             if self._input_format == 'xml':
-                for member_element in el.iterchildren(
-                                        "{" + ns + "}groupURI"):
+                for member_element in self._get_children(el, ns, "groupURI"):
                     result.add(member_element.text)
             else:
                 for member in el:
@@ -543,8 +547,7 @@ class ObservationReader(object):
         """
         el = self._get_child_element("members", parent, ns, False)
         if el is not None:
-            for member_element in el.iterchildren(
-                                    "{" + ns + "}observationURI"):
+            for member_element in self._get_children(el, ns, "observationURI"):
                 members.add(observation.ObservationURI(member_element.text))
 
     def _add_inputs(self, inputs, parent, ns):
@@ -877,7 +880,7 @@ class ObservationReader(object):
         else:
             vertice_element = self._get_child_element("vertices", el, ns, True)
             children_vertices = list(
-                vertice_element.iterchildren(tag=("{" + ns + "}vertex")))
+                self._get_children(vertice_element, ns, "vertex"))
             if len(children_vertices) < 3:
                 error = ("CoordPolygon2D must have a minimum of 3 vertices, "
                          "found " + len(children_vertices))
@@ -1032,7 +1035,7 @@ class ObservationReader(object):
         ns : namespace of the document
         required : boolean indicating whether the element is required
         """
-        for range_element in parent.iterchildren("{" + ns + "}" + element_tag):
+        for range_element in self._get_children(parent, ns, element_tag):
             ranges.append(wcs.CoordRange1D(
                 self._get_ref_coord("start", range_element, ns, True),
                 self._get_ref_coord("end", range_element, ns, True)))
@@ -1408,8 +1411,11 @@ class ObservationReader(object):
         _pstates_el = self._get_child_element("states", el, ns, False)
         if _pstates_el is not None:
             _polarization_states = list()
-            for _pstate_el in _pstates_el.iterchildren("{" + ns + "}state"):
-                _pstate = _pstate_el.text
+            for _pstate_el in self._get_children(_pstates_el, ns, "state"):
+                if not isinstance(_pstate_el, str):
+                    _pstate = _pstate_el.text
+                else:
+                    _pstate = _pstate_el
                 _polarization_state = plane.PolarizationState(_pstate)
                 _polarization_states.append(_polarization_state)
             polarization.polarization_states = _polarization_states
@@ -1470,27 +1476,29 @@ class ObservationReader(object):
 
         el = self._get_child_element("energyBands", parent, ns, False)
         if el is not None:
-            for eb in el.iterchildren("{" + ns + "}emBand"):
-                energy_bands.add(plane.EnergyBand(eb.text))
+            for eb in self._get_children(el, ns, "emBand"):
+                if not isinstance(eb, str):
+                    eb = eb.text
+                energy_bands.add(plane.EnergyBand(eb))
 
     def _add_vertices(self, vertices, parent, ns):
         _vertices_element = self._get_child_element("vertices", parent, ns,
                                                     False)
-        if _vertices_element is None:
-            return None
-        else:
-            for _vertex_element in _vertices_element.iterchildren(
-                                    "{" + ns + "}vertex"):
-                cval1 = self._get_child_text_as_float("cval1", _vertex_element,
-                                                      ns, False)
-                cval2 = self._get_child_text_as_float("cval2", _vertex_element,
-                                                      ns, False)
-                seg_type_value = self._get_child_text_as_int("type",
-                                                             _vertex_element,
-                                                             ns, False)
-                seg_type = shape.SegmentType(seg_type_value)
-                _vertex = shape.Vertex(cval1, cval2, seg_type)
-                vertices.append(_vertex)
+        if self._input_format == 'xml':
+            if _vertices_element is None:
+                return None
+            else:
+                for _vertex_element in self._get_children(_vertices_element, ns, "vertex"):
+                    cval1 = self._get_child_text_as_float("cval1", _vertex_element,
+                                                          ns, False)
+                    cval2 = self._get_child_text_as_float("cval2", _vertex_element,
+                                                          ns, False)
+                    seg_type_value = self._get_child_text_as_int("type",
+                                                                 _vertex_element,
+                                                                 ns, False)
+                    seg_type = shape.SegmentType(seg_type_value)
+                    _vertex = shape.Vertex(cval1, cval2, seg_type)
+                    vertices.append(_vertex)
 
     def _get_interval(self, element_tag, parent, ns, required):
         _interval_el = self._get_child_element(element_tag, parent, ns,
@@ -1504,7 +1512,7 @@ class ObservationReader(object):
         _interval = shape.Interval(_lower, _upper)
         if _samples_el is not None:
             _samples = list()
-            for _sample_el in _samples_el.iterchildren("{" + ns + "}sample"):
+            for _sample_el in self._get_children(_samples_el, ns, "sample"):
                 _si_lower = self._get_child_text_as_float("lower", _sample_el,
                                                           ns, required)
                 _si_upper = self._get_child_text_as_float("upper", _sample_el,
@@ -1528,7 +1536,7 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            for chunk_element in el.iterchildren("{" + ns + "}chunk"):
+            for chunk_element in self._get_children(el, ns, "chunk"):
                 _chunk = chunk.Chunk()
                 product_type = \
                     self._get_child_text("productType", chunk_element, ns,
@@ -1592,7 +1600,7 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            for part_element in el.iterchildren("{" + ns + "}part"):
+            for part_element in self._get_children(el, ns, "part"):
                 _part = \
                     part.Part(
                         self._get_child_text("name", part_element, ns, True))
@@ -1620,7 +1628,7 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            for artifact_element in el.iterchildren("{" + ns + "}artifact"):
+            for artifact_element in self._get_children(el, ns, "artifact"):
                 uri = self._get_child_text("uri", artifact_element, ns, True)
 
                 product_type = self._get_child_text("productType",
@@ -2259,7 +2267,10 @@ class ObservationWriter(object):
                                       element)
             else:
                 self._add_element("energyBands", None, element)
-                eb_element = self._get_caom_element("energyBands", element)
+                if self._output_format == 'xml':
+                    eb_element = self._get_caom_element("energyBands", element)
+                else:
+                    eb_element = element["energyBands"] = []
                 for bb in energy.energy_bands:
                     self._add_element("emBand", bb.value, eb_element)
         self._add_element("restwav", energy.restwav, element)
@@ -2300,7 +2311,10 @@ class ObservationWriter(object):
             return
         element = self._get_caom_element("polarization", parent)
         if polarization.polarization_states:
-            _pstates_el = self._get_caom_element("states", element)
+            if self._output_format == 'xml':
+                _pstates_el = self._get_caom_element("states", element)
+            else:
+                _pstates_el = element["states"] = []
             for _state in polarization.polarization_states:
                 self._add_element("state", _state.value, _pstates_el)
         self._add_element("dimension", polarization.dimension, element)
@@ -2318,7 +2332,10 @@ class ObservationWriter(object):
                 shape_element.set(XSI + "type", "caom2:Polygon")
             else:
                 shape_element["@type"] = "caom2:Polygon"
-            points_element = self._get_caom_element("points", shape_element)
+            if self._output_format == 'xml':
+                points_element = self._get_caom_element("points", shape_element)
+            else:
+                points_element = shape_element["points"] = []
             for point in the_shape.points:
                 self._add_point_element("point", point, points_element)
             samples_element = self._get_caom_element("samples", shape_element)
@@ -2350,15 +2367,19 @@ class ObservationWriter(object):
             self._add_element("lower", interval.lower, _interval_element)
             self._add_element("upper", interval.upper, _interval_element)
             if interval.samples:
-                _samples_element = self._get_caom_element("samples",
-
-
-
-
-                                                          _interval_element)
+                if self._output_format == 'xml':
+                    _samples_element = self._get_caom_element("samples",
+                                                             _interval_element)
+                else:
+                    _samples_element = _interval_element["samples"] = []
                 for _sample in interval.samples:
-                    _sample_element = self._get_caom_element("sample",
-                                                             _samples_element)
+                    if self._output_format == 'xml':
+                        _sample_element = self._get_caom_element("sample",
+                                                                  _samples_element)
+                    else:
+                        _sample_element = {}
+                        _samples_element.append(_sample_element)
+
                     self._add_element("lower", _sample.lower, _sample_element)
                     self._add_element("upper", _sample.upper, _sample_element)
 
@@ -2589,9 +2610,10 @@ class ObservationWriter(object):
             element = self._get_caom_element(name, parent)
         else:
             element = {}
-            if name not in parent:
-                parent[name] = list()
-            parent[name].append(element)
+            if isinstance(parent, list):
+                parent.append(element)
+            else:
+                parent[name] = element
 
         self._add_element("cval1", point.cval1, element)
         self._add_element("cval2", point.cval2, element)
@@ -2809,7 +2831,10 @@ class ObservationWriter(object):
             else:
                 element.text = str(value)
         else:
-            parent[name] = value
+            if isinstance(parent, list):
+                parent.append(value)
+            else:
+                parent[name] = value
 
     def _add_boolean_element(self, name, value, parent):
         if value is None:
