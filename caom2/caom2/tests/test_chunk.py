@@ -78,35 +78,35 @@ class TestEnums(unittest.TestCase):
     def test_all(self):
         # test for invalid value
         with self.assertRaises(ValueError):
-            chunk.ProductType("no_such_string")
+            chunk.DataLinkSemantics("no_such_string")
         with self.assertRaises(ValueError):
-            chunk.ProductType(None)
+            chunk.DataLinkSemantics(None)
         with self.assertRaises(ValueError):
-            chunk.ProductType(1)
+            chunk.DataLinkSemantics(1)
 
         # test that we can get the object for each enum by name
-        self.assertEqual(chunk.ProductType.SCIENCE.name, "SCIENCE")
-        self.assertEqual(chunk.ProductType[
-                             chunk.ProductType.SCIENCE.name].name, "SCIENCE")
-        self.assertEqual(chunk.ProductType['SCIENCE'].value, "science")
-        self.assertEqual(chunk.ProductType[
-                             chunk.ProductType.SCIENCE.name].value, "science")
+        self.assertEqual(chunk.DataLinkSemantics.SCIENCE.name, "SCIENCE")
+        self.assertEqual(chunk.DataLinkSemantics[
+                             chunk.DataLinkSemantics.SCIENCE.name].name, "SCIENCE")
+        self.assertEqual(chunk.DataLinkSemantics['SCIENCE'].value, "science")
+        self.assertEqual(chunk.DataLinkSemantics[
+                             chunk.DataLinkSemantics.SCIENCE.name].value, "science")
 
-        self.assertEqual(chunk.ProductType.THIS.value, "this")
-        self.assertEqual(chunk.ProductType.SCIENCE.value, "science")
-        self.assertEqual(chunk.ProductType.CALIBRATION.value, "calibration")
-        self.assertEqual(chunk.ProductType.PREVIEW.value, "preview")
-        self.assertEqual(chunk.ProductType.NOISE.value, "noise")
-        self.assertEqual(chunk.ProductType.WEIGHT.value, "weight")
-        self.assertEqual(chunk.ProductType.AUXILIARY.value, "auxiliary")
-        self.assertEqual(chunk.ProductType.THUMBNAIL.value, "thumbnail")
-        self.assertEqual(chunk.ProductType.BIAS.value, "bias")
-        self.assertEqual(chunk.ProductType.DARK.value, "dark")
-        self.assertEqual(chunk.ProductType.FLAT.value, "flat")
-        self.assertEqual(chunk.ProductType.CODERIVED.value, "coderived")
-        self.assertEqual(chunk.ProductType.DOCUMENTATION.value, "documentation")
-        self.assertEqual(chunk.ProductType.PREVIEW_IMAGE.value, "preview-image")
-        self.assertEqual(chunk.ProductType.PREVIEW_PLOT.value, "preview-plot")
+        self.assertEqual(chunk.DataLinkSemantics.THIS.value, "this")
+        self.assertEqual(chunk.DataLinkSemantics.SCIENCE.value, "science")
+        self.assertEqual(chunk.DataLinkSemantics.CALIBRATION.value, "calibration")
+        self.assertEqual(chunk.DataLinkSemantics.PREVIEW.value, "preview")
+        self.assertEqual(chunk.DataLinkSemantics.NOISE.value, "noise")
+        self.assertEqual(chunk.DataLinkSemantics.WEIGHT.value, "weight")
+        self.assertEqual(chunk.DataLinkSemantics.AUXILIARY.value, "auxiliary")
+        self.assertEqual(chunk.DataLinkSemantics.THUMBNAIL.value, "thumbnail")
+        self.assertEqual(chunk.DataLinkSemantics.BIAS.value, "bias")
+        self.assertEqual(chunk.DataLinkSemantics.DARK.value, "dark")
+        self.assertEqual(chunk.DataLinkSemantics.FLAT.value, "flat")
+        self.assertEqual(chunk.DataLinkSemantics.CODERIVED.value, "coderived")
+        self.assertEqual(chunk.DataLinkSemantics.DOCUMENTATION.value, "documentation")
+        self.assertEqual(chunk.DataLinkSemantics.PREVIEW_IMAGE.value, "preview-image")
+        self.assertEqual(chunk.DataLinkSemantics.PREVIEW_PLOT.value, "preview-plot")
 
 
 class TestChunk(unittest.TestCase):
@@ -145,8 +145,8 @@ class TestChunk(unittest.TestCase):
             test_chunk.polarization = float(1.0)
             test_chunk.custom = float(1.0)
 
-        test_chunk.product_type = chunk.ProductType.SCIENCE
-        self.assertEqual(chunk.ProductType.SCIENCE.name,
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
+        self.assertEqual(chunk.DataLinkSemantics.SCIENCE.name,
                          test_chunk.product_type.name)
 
         test_chunk.naxis = int(5)

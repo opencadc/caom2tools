@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -73,15 +73,17 @@ from datetime import datetime
 import uuid
 from builtins import int
 
-from caom2 import artifact
+from caom2 import artifact, MultiShape, Polarization, Interval
 from caom2 import caom_util
 from caom2 import chunk
 from caom2 import common
+from caom2 import dali
 from caom2 import observation
 from caom2 import part
 from caom2 import plane
 from caom2 import shape
 from caom2 import wcs
+from caom2.plane import CalibrationStatus, Observable, Ucd
 
 
 def fix_ids(observation):
@@ -105,7 +107,7 @@ def fix_ids(observation):
 
 class Caom2TestInstances(object):
     _collection = "collection"
-    _observation_id = "observationID"
+    _uri = "caom:collection/observationID"
     _product_id = "productId"
     _keywords = {"keyword1", "keyword2"}
     _ivoa_date = datetime(2012, 7, 11, 13, 26, 37, 0)
@@ -151,7 +153,7 @@ class Caom2TestInstances(object):
     def get_simple_observation(self, short_uuid=False):
         simple_observation = \
             observation.SimpleObservation(Caom2TestInstances._collection,
-                                          Caom2TestInstances._observation_id)
+                                          Caom2TestInstances._uri)
         if self.complete:
             simple_observation.sequence_number = int(5)
             simple_observation.obs_type = "flat"
@@ -168,10 +170,8 @@ class Caom2TestInstances(object):
             if self.caom_version >= 23:
                 simple_observation.max_last_modified =\
                     common.get_current_ivoa_time()
-                simple_observation.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                simple_observation.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
+                simple_observation.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                simple_observation.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
             if self.caom_version >= 24:
                 simple_observation.meta_read_groups.add(
                     "ivo://cadc.nrc.ca/groups?A")
@@ -187,7 +187,7 @@ class Caom2TestInstances(object):
         composite_observation = \
             observation.CompositeObservation(
                 Caom2TestInstances._collection,
-                Caom2TestInstances._observation_id,
+                Caom2TestInstances._uri,
                 self.get_algorithm())
         print("Creating test composite observation of version " + str(
             self.caom_version))
@@ -208,10 +208,8 @@ class Caom2TestInstances(object):
             if self.caom_version >= 23:
                 composite_observation.max_last_modified = \
                     common.get_current_ivoa_time()
-                composite_observation.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                composite_observation.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
+                composite_observation.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                composite_observation.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
         if self.depth > 1:
             composite_observation.planes.update(self.get_planes())
             composite_observation.members.update(self.get_members())
@@ -221,7 +219,7 @@ class Caom2TestInstances(object):
         derived_observation = \
             observation.DerivedObservation(
                 Caom2TestInstances._collection,
-                Caom2TestInstances._observation_id,
+                Caom2TestInstances._uri,
                 self.get_algorithm())
         print("Creating test composite observation of version " + str(
             self.caom_version))
@@ -241,10 +239,8 @@ class Caom2TestInstances(object):
                 common.get_current_ivoa_time()
             derived_observation.max_last_modified = \
                 common.get_current_ivoa_time()
-            derived_observation.meta_checksum = common.ChecksumURI(
-                "md5:9882dbbf9cadc221019b712fd402bcbd")
-            derived_observation.acc_meta_checksum = common.ChecksumURI(
-                "md5:844ce247db0844ad9f721430c80e7a21")
+            derived_observation.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+            derived_observation.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
             derived_observation.meta_read_groups.add(
                 "ivo://cadc.nrc.ca/groups?A")
             derived_observation.meta_read_groups.add(
@@ -309,9 +305,7 @@ class Caom2TestInstances(object):
         return env
 
     def get_members(self):
-        members = caom_util.TypedSet(
-            observation.ObservationURI,
-            observation.ObservationURI("caom:foo/bar"))
+        members = caom_util.TypedSet(str, "caom:foo/bar")
         return members
 
     def get_planes(self):
@@ -324,8 +318,8 @@ class Caom2TestInstances(object):
             shapes = ['polygon']
 
         for s in shapes:
-            prod_id = "productID{}".format(s)
-            _plane = plane.Plane(prod_id)
+            plane_uri = "{}/{}".format(self._uri, s)
+            _plane = plane.Plane(plane_uri)
             if self.complete:
                 _plane.meta_release = Caom2TestInstances._ivoa_date
                 _plane.data_release = Caom2TestInstances._ivoa_date
@@ -337,10 +331,8 @@ class Caom2TestInstances(object):
                 if self.caom_version >= 23:
                     _plane.creator_id = "ivo://cadc.nrc.ca?testuser"
                     _plane.max_last_modified = common.get_current_ivoa_time()
-                    _plane.meta_checksum = common.ChecksumURI(
-                        "md5:9882dbbf9cadc221019b712fd402bcbd")
-                    _plane.acc_meta_checksum = common.ChecksumURI(
-                        "md5:844ce247db0844ad9f721430c80e7a21")
+                    _plane.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                    _plane.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
                 if s == 'polygon':
                     _plane.position = self.get_poly_position()
                 if s == 'circle':
@@ -354,71 +346,62 @@ class Caom2TestInstances(object):
                     _plane.meta_read_groups.add('ivo://cadc.nrc.ca/groups?D')
                     _plane.data_read_groups.add('ivo://cadc.nrc.ca/groups?B')
                     _plane.data_read_groups.add('ivo://cadc.nrc.ca/groups?C')
+                if self.caom_version >= 25:
+                    _plane.visibility = plane.Visibility(distance=Interval(20.0, 120.0),
+                                                         distribution_eccentricity=0.5, distribution_fill=0.85)
+                    _plane.observable = Observable(ucd=Ucd('phot.count'), calibration=CalibrationStatus.RELATIVE)
 
             if self.depth > 2:
                 for k, v in self.get_artifacts().items():
                     _plane.artifacts[k] = v
-            planes[prod_id] = _plane
+            planes[_plane.uri] = _plane
         return planes
 
     def get_poly_position(self):
-        position = plane.Position()
-
-        if self.caom_version >= 23:
-            v0 = shape.Vertex(0.0, 0.0, shape.SegmentType.MOVE)
-            v1 = shape.Vertex(3.0, 4.0, shape.SegmentType.LINE)
-            v2 = shape.Vertex(2.0, 3.0, shape.SegmentType.LINE)
-            v3 = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
-            v4 = shape.Vertex(0.0, 0.0, shape.SegmentType.CLOSE)
-            vl = [v0, v1, v2, v3, v4]
-
-            samples = shape.MultiPolygon(vertices=vl)
-
-            p1 = shape.Point(0.0, 0.0)
-            p2 = shape.Point(3.0, 4.0)
-            p3 = shape.Point(2.0, 3.0)
-            p4 = shape.Point(1.0, 2.0)
-            p = [p1, p2, p3, p4]
-            polygon = shape.Polygon(points=p, samples=samples)
-
-            position.bounds = polygon
+        p1 = shape.Point(0.0, 0.0)
+        p2 = shape.Point(3.0, 4.0)
+        p3 = shape.Point(2.0, 3.0)
+        p4 = shape.Point(1.0, 2.0)
+        p = [p1, p2, p3, p4]
+        polygon = shape.Polygon(points=p)
+        position = plane.Position(polygon, MultiShape([polygon]))
 
         position.dimension = wcs.Dimension2D(10, 20)
         position.resolution = 0.5
         position.sample_size = 1.1
         position.time_dependent = False
         if self.caom_version >= 24:
-            position.resolution_bounds = shape.Interval(1.0, 2.0)
+            position.resolution_bounds = dali.Interval(1.0, 2.0)
 
         return position
 
     def get_circle_position(self):
-        position = plane.Position()
-        position.bounds = shape.Circle(shape.Point(1.1, 2.2), 3.0)
+        circle = shape.Circle(shape.Point(1.1, 2.2), 3.0)
+        position = plane.Position(circle, MultiShape([circle]))
         position.dimension = wcs.Dimension2D(10, 20)
         position.resolution = 0.5
         position.sample_size = 1.1
         position.time_dependent = False
         if self.caom_version >= 24:
-            position.resolution_bounds = shape.Interval(1.0, 2.0)
+            position.resolution_bounds = dali.Interval(1.0, 2.0)
+        if self.caom_version >= 25:
+            position.calibration = CalibrationStatus.ABSOLUTE.value
+            position.min_bounds = circle
+            position.max_recoverable_scale = Interval(1.0, 2.0)
         return position
 
     def get_energy(self):
-        energy = plane.Energy()
-
         lower = 1.0
         upper = 2.0
         lower1 = 1.1
         upper1 = 2.1
         lower2 = 1.2
         upper2 = 2.2
-        samples = [shape.SubInterval(lower, lower1),
-                   shape.SubInterval(lower2, upper),
-                   shape.SubInterval(upper1, upper2)]
+        samples = [dali.Interval(lower, lower1),
+                   dali.Interval(lower2, upper),
+                   dali.Interval(upper1, upper2)]
+        energy = plane.Energy(dali.Interval(lower, upper2), samples)
 
-        interval = shape.Interval(lower, upper2, samples)
-
-        energy.bounds = interval
         energy.dimension = 100
         energy.resolving_power = 2.0
         energy.sample_size = 1.1
@@ -427,48 +410,46 @@ class Caom2TestInstances(object):
             energy.energy_bands.add(plane.EnergyBand.GAMMARAY)
             energy.energy_bands.add(plane.EnergyBand.OPTICAL)
         energy.transition = wcs.EnergyTransition("species", "transition")
+        if self.caom_version >= 25:
+            energy.resolution = 2.2
+            energy.resolution_bounds = dali.Interval(22.2, 33.3)
+            energy.calibration = CalibrationStatus.ABSOLUTE.value
 
         return energy
 
     def get_time(self):
-        time = plane.Time()
-
         lower = 1.0
         upper = 2.0
         lower1 = 1.1
         upper1 = 2.1
         lower2 = 1.2
         upper2 = 2.2
-        samples = [shape.SubInterval(lower, lower1),
-                   shape.SubInterval(lower2, upper),
-                   shape.SubInterval(upper1, upper2)]
+        samples = [dali.Interval(lower, lower1),
+                   dali.Interval(lower2, upper),
+                   dali.Interval(upper1, upper2)]
+        time = plane.Time(dali.Interval(lower, upper2), samples)
 
-        interval = shape.Interval(lower, upper2, samples)
-
-        time.bounds = interval
         if self.caom_version >= 24:
-            time.resolution_bounds = shape.Interval(22.2, 33.3)
+            time.resolution_bounds = dali.Interval(22.2, 33.3)
         time.dimension = 1
         time.resolution = 2.1
         time.sample_size = 3.0
         time.exposure = 10.3
+        if self.caom_version >= 25:
+            time.calibration = CalibrationStatus.ABSOLUTE.value
+            time.exposure_bounds_bounds = dali.Interval(22.2, 33.3)
 
         return time
 
     def get_custom(self):
-        custom = plane.CustomAxis('MyAxis')
-        custom.bounds = shape.Interval(2.2, 3.3)
+        bounds = dali.Interval(2.2, 3.3)
+        samples = [bounds]
+        custom = plane.CustomAxis('MyAxis', bounds=bounds, samples=samples)
         custom.dimension = 1
 
     def get_polarization(self):
-        polarization = plane.Polarization()
-
         p_states = [plane.PolarizationState.LL, plane.PolarizationState.XY]
-
-        polarization.dimension = 2
-        polarization.polarization_states = p_states
-
-        return polarization
+        return Polarization(dimension=2, states=p_states)
 
     def get_provenance(self):
         provenance = plane.Provenance("name")
@@ -483,9 +464,9 @@ class Caom2TestInstances(object):
         return provenance
 
     def get_inputs(self):
-        return caom_util.TypedSet(plane.PlaneURI,
-                                  plane.PlaneURI("caom:foo/bar/plane1"),
-                                  plane.PlaneURI("caom:foo/bar/plane2"))
+        return caom_util.TypedSet(str,
+                                  "caom:foo/bar/plane1",
+                                  "caom:foo/bar/plane2")
 
     def get_metrics(self):
         metrics = plane.Metrics()
@@ -504,7 +485,7 @@ class Caom2TestInstances(object):
     def get_artifacts(self):
         artifacts = collections.OrderedDict()
         _artifact = artifact.Artifact("ad:foo/bar1",
-                                      chunk.ProductType.SCIENCE,
+                                      chunk.DataLinkSemantics.SCIENCE,
                                       artifact.ReleaseType.META)
         if self.complete:
             _artifact.content_type = "application/fits"
@@ -512,10 +493,10 @@ class Caom2TestInstances(object):
             _artifact.last_modified = common.get_current_ivoa_time()
             if self.caom_version >= 23:
                 _artifact.max_last_modified = common.get_current_ivoa_time()
-                _artifact.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                _artifact.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
+                _artifact.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                _artifact.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
+            if self.caom_version >= 25:
+                _artifact.description_id = 'desc:TEST/science-ready-data'
         if self.depth > 3:
             for k, v in self.get_parts().items():
                 _artifact.parts[k] = v
@@ -531,7 +512,7 @@ class Caom2TestInstances(object):
         parts = collections.OrderedDict()
         _part = part.Part("x")
         if self.complete:
-            _part.product_type = chunk.ProductType.SCIENCE
+            _part.product_type = chunk.DataLinkSemantics.SCIENCE
         if self.depth > 4:
             for _chunk in self.get_chunks():
                 _part.chunks.append(_chunk)
@@ -542,7 +523,7 @@ class Caom2TestInstances(object):
         chunks = caom_util.TypedList(chunk.Chunk, )
         _chunk = chunk.Chunk()
         if self.complete:
-            _chunk.product_type = chunk.ProductType.SCIENCE
+            _chunk.product_type = chunk.DataLinkSemantics.SCIENCE
             _chunk.naxis = 5
             _chunk.observable_axis = 1
             _chunk.position_axis_1 = 1
@@ -558,10 +539,8 @@ class Caom2TestInstances(object):
             _chunk.last_modified = common.get_current_ivoa_time()
             if self.caom_version >= 23:
                 _chunk.max_last_modified = common.get_current_ivoa_time()
-                _chunk.meta_checksum = common.ChecksumURI(
-                    "md5:9882dbbf9cadc221019b712fd402bcbd")
-                _chunk.acc_meta_checksum = common.ChecksumURI(
-                    "md5:844ce247db0844ad9f721430c80e7a21")
+                _chunk.meta_checksum = "md5:9882dbbf9cadc221019b712fd402bcbd"
+                _chunk.acc_meta_checksum = "md5:844ce247db0844ad9f721430c80e7a21"
             if self.caom_version >= 24:
                 _chunk.custom_axis = 3
                 _chunk.custom = self.get_custom_wcs()

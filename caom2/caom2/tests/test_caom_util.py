@@ -71,7 +71,7 @@ import pytest
 
 from builtins import str, int
 
-from .. import artifact
+from .. import artifact, dali
 from .. import caom_util
 from .. import chunk
 from .. import part
@@ -130,7 +130,8 @@ class TestCaomUtil(unittest.TestCase):
         self.assertEqual(0, len(my_list2), "list2 length")
 
     def test_validate_path_component(self):
-        energy = plane.Energy()
+        bounds = dali.Interval(1.0, 2.0)
+        energy = plane.Energy(bounds, [bounds])
         caom_util.validate_path_component(energy, "something",
                                           "some:test\\path")
 
@@ -177,12 +178,12 @@ class TestCaomUtil(unittest.TestCase):
     def test_typed_ordered_dict(self):
 
         # test validation and constructor with an empty dictionary
-        test_plane10 = plane.Plane('key10')
+        test_plane10 = plane.Plane('caom:CFHT/anobs/key10')
         test_artifact66 = artifact.Artifact("caom:CFHT/55/66",
-                                            chunk.ProductType.SCIENCE,
+                                            chunk.DataLinkSemantics.SCIENCE,
                                             artifact.ReleaseType.DATA)
         test_part10 = part.Part("10")
-        test_plane_uri = plane.PlaneURI('caom:CFHT/55/66')
+        test_plane_uri = 'caom:CFHT/55/66'
         my_dict_plane = caom_util.TypedOrderedDict(plane.Plane, )
         with self.assertRaises(ValueError):
             my_dict_plane['key11'] = test_plane10
@@ -192,8 +193,8 @@ class TestCaomUtil(unittest.TestCase):
         my_dict_part = caom_util.TypedOrderedDict(part.Part, )
         with self.assertRaises(ValueError):
             my_dict_part['11'] = test_part10
-        my_dict_wrong_type = caom_util.TypedOrderedDict(plane.PlaneURI, )
-        with self.assertRaises(ValueError):
+        my_dict_wrong_type = caom_util.TypedOrderedDict(plane.Plane, )
+        with self.assertRaises(TypeError):
             my_dict_wrong_type['caom:CFHT/55/67'] = test_plane_uri
         with self.assertRaises(TypeError):
             my_dict_plane['key2'] = 'value2'
@@ -201,87 +202,85 @@ class TestCaomUtil(unittest.TestCase):
             my_dict_plane['key1'] = float(2.0)
         # test assignment
         my_dict = caom_util.TypedOrderedDict(plane.Plane, )
-        test_plane2 = plane.Plane('key2')
-        test_plane1 = plane.Plane('key1')
-        my_dict['key2'] = test_plane2
-        my_dict['key1'] = test_plane1
+        obs_uri = 'caom:TEST/obs1'
+        test_plane2 = plane.Plane(obs_uri + '/key2')
+        test_plane1 = plane.Plane(obs_uri + '/key1')
+        my_dict[test_plane2.uri] = test_plane2
+        my_dict[test_plane1.uri] = test_plane1
         # need to cast to list in order to make it work with both python
         # 2 and 3
         self.assertEqual(2, len(my_dict),
                          'mismatch in the number of entries in dictionary.')
-        self.assertEqual('key2', list(my_dict.keys())[0],
+        self.assertEqual(test_plane2.uri, list(my_dict.keys())[0],
                          'key mismatch for 1st key')
-        self.assertEqual('key1', list(my_dict.keys())[1],
+        self.assertEqual(test_plane1.uri, list(my_dict.keys())[1],
                          'key mismatch for 2nd key')
         self.assertEqual(test_plane2, list(my_dict.values())[0],
                          'value mismatch for 1st value')
         self.assertEqual(test_plane1, list(my_dict.values())[1],
                          'value mismatch for 2nd value')
         # test constructor with non-empty dictionary
-        test_plane1 = plane.Plane('key1')
-        test_plane2 = plane.Plane('key2')
         my_dict1 = caom_util.TypedOrderedDict(plane.Plane,
-                                              ('key1', test_plane1),
-                                              ('key2', test_plane2))
+                                              (test_plane1.uri, test_plane1),
+                                              (test_plane2.uri, test_plane2))
         self.assertEqual(2, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
         # test assignment via setdefault
         self.assertRaises(TypeError, my_dict1.setdefault,
                           'key3', 'wrong value')
-        my_dict1.setdefault('key3', plane.Plane('key3'))
+        test_plane3 = plane.Plane('caom:TEST/obs1/key3')
+        my_dict1.setdefault(test_plane3.uri, test_plane3)
         self.assertEqual(3, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
         # test assignment via update
         my_dict1.update(my_dict)
         self.assertEqual(3, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        self.assertEqual('key2', list(my_dict.keys())[0],
+        self.assertEqual(test_plane2.uri, list(my_dict.keys())[0],
                          'key mismatch for 1st key')
-        self.assertEqual('key1', list(my_dict.keys())[1],
+        self.assertEqual(test_plane1.uri, list(my_dict.keys())[1],
                          'key mismatch for 2nd key')
 
         # test add function
-        my_dict1.add(plane.Plane('key4'))
+        test_plane4 = plane.Plane('caom:TEST/obs1/key4')
+        my_dict1.add(test_plane4)
         self.assertEqual(4, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        self.assertEqual('key1', list(my_dict1.keys())[0],
+        self.assertEqual(test_plane1.uri, list(my_dict1.keys())[0],
                          'key mismatch for 1st key')
-        self.assertEqual('key2', list(my_dict1.keys())[1],
+        self.assertEqual(test_plane2.uri, list(my_dict1.keys())[1],
                          'key mismatch for 2nd key')
-        self.assertEqual('key3', list(my_dict1.keys())[2],
+        self.assertEqual(test_plane3.uri, list(my_dict1.keys())[2],
                          'key mismatch for 3rd key')
-        self.assertEqual('key4', list(my_dict1.keys())[3],
+        self.assertEqual(test_plane4.uri, list(my_dict1.keys())[3],
                          'key mismatch for 4th key')
 
-        plane5 = plane.Plane("key5")
-        my_dict1[plane5._key()] = plane5
-
-        with self.assertRaises(TypeError):
-            my_dict1.add(test_plane_uri)
+        test_plane5 = plane.Plane('caom:TEST/obs1/key5')
+        my_dict1[test_plane5.uri] = test_plane5
 
         # test pop function
         self.assertEqual(5, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        my_value = my_dict1.pop('key4')
-        self.assertEqual('key4', my_value._key(),
+        my_value = my_dict1.pop(test_plane4.uri)
+        self.assertEqual(test_plane4.uri, my_value._key(),
                          'popped the wrong entry from dictionary.')
         self.assertEqual(4, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        my_value = my_dict1.pop('key5')
-        self.assertEqual('key5', my_value._key(),
+        my_value = my_dict1.pop(test_plane5.uri)
+        self.assertEqual(test_plane5.uri, my_value._key(),
                          'popped the wrong entry from dictionary.')
         self.assertEqual(3, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        my_value = my_dict1.pop('key3')
-        self.assertEqual('key3', my_value._key(),
+        my_value = my_dict1.pop(test_plane3.uri)
+        self.assertEqual(test_plane3.uri, my_value._key(),
                          'popped the wrong entry from dictionary.')
         self.assertEqual(2, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        my_value = my_dict1.pop('key2')
-        self.assertEqual('key2', my_value._key(),
+        my_value = my_dict1.pop(test_plane2.uri)
+        self.assertEqual(test_plane2.uri, my_value._key(),
                          'popped the wrong entry from dictionary.')
         self.assertEqual(1, len(my_dict1),
                          'mismatch in the number of entries in dictionary.')
-        my_value = my_dict1.pop('key1')
-        self.assertEqual('key1', my_value._key(),
+        my_value = my_dict1.pop(test_plane1.uri)
+        self.assertEqual(test_plane1.uri, my_value._key(),
                          'popped the wrong entry from dictionary.')

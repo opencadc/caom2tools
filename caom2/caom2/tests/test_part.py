@@ -81,8 +81,8 @@ class TestPart(unittest.TestCase):
         self.assertIsNone(test_part.product_type)
         self.assertTrue(len(test_part.chunks) == 0)
 
-        test_part.product_type = chunk.ProductType.SCIENCE
-        self.assertEqual(chunk.ProductType.SCIENCE, test_part.product_type)
+        test_part.product_type = chunk.DataLinkSemantics.SCIENCE
+        self.assertEqual(chunk.DataLinkSemantics.SCIENCE, test_part.product_type)
 
         test_chunk = chunk.Chunk()
         test_chunk.naxis = 5

@@ -131,7 +131,6 @@ class CustomAxisUtilTests(unittest.TestCase):
         expected_interval = Interval(-502.5, -2.5)
         self.assertEqual(expected_interval.lower, actual_interval.lower)
         self.assertEqual(expected_interval.upper, actual_interval.upper)
-        self.assertEqual(None, actual_interval.samples)
         # function_1d.delta == 0.0 && function_1d.naxis > 1
         naxis = int(100)
         delta = 0.0
@@ -151,7 +150,6 @@ class CustomAxisUtilTests(unittest.TestCase):
         expected_interval = Interval(1.1, 11.1)
         self.assertEqual(expected_interval.lower, actual_interval.lower)
         self.assertEqual(expected_interval.upper, actual_interval.upper)
-        self.assertEqual(None, actual_interval.samples)
         # function_1d.delta == 0.0 && function_1d.naxis > 1
         start = RefCoord(float(0.9), float(1.1))
         end = RefCoord(float(10.9), float(1.1))
@@ -163,14 +161,14 @@ class CustomAxisUtilTests(unittest.TestCase):
     def test_compute_dimension_from_range_bounds(self):
         # user_chunk = False, matches is None
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -184,19 +182,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = False, ctype not match
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_num_pixels = wcs_util.CustomAxisUtil.compute_dimension_from_range_bounds(
             artifacts, product_type, expected_ctype
@@ -205,19 +203,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = False, ptype not match
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_num_pixels = wcs_util.CustomAxisUtil.compute_dimension_from_range_bounds(
             artifacts, product_type, expected_ctype
@@ -226,19 +224,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = False, atype not match
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_num_pixels = wcs_util.CustomAxisUtil.compute_dimension_from_range_bounds(
             artifacts, product_type, expected_ctype
@@ -247,38 +245,38 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_num_pixels, actual_num_pixels)
         # user_chunk = True, current_type != expected_ctype
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_function()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "FARADAY"
         with pytest.raises(ValueError) as ex:
             wcs_util.CustomAxisUtil.compute_dimension_from_range_bounds(artifacts, product_type, expected_ctype)
         assert 'CTYPE must be the same across all Artifacts' in str(ex.value)
         # user_chunk = True, get_num_pixels: range is not None
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_range()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_num_pixels = wcs_util.CustomAxisUtil.compute_dimension_from_range_bounds(
             artifacts, product_type, expected_ctype
@@ -288,19 +286,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         # user_chunk = True, get_num_pixels: bounds with 3 samples that
         # traverses _merge_into_list completely
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_bounds_3_samples()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_num_pixels = wcs_util.CustomAxisUtil.compute_dimension_from_range_bounds(
             artifacts, product_type, expected_ctype
@@ -310,19 +308,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         # user_chunk = True, range = None, bounds = None, use_func and
         # function = None
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_num_pixels = wcs_util.CustomAxisUtil.compute_dimension_from_range_bounds(
             artifacts, product_type, expected_ctype
@@ -344,19 +342,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         # bounds is not None, user_chunk = True, current_type != expected_ctype
         bounds = Interval(1.1, 11.1)
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_function()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "FARADAY"
         with pytest.raises(ValueError) as ex:
             wcs_util.CustomAxisUtil.compute_dimension_from_wcs(bounds, artifacts, product_type, expected_ctype)
@@ -365,19 +363,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         # ss >= scale, num = 1
         bounds = Interval(1.1, 11.1)
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_negative_delta()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_dimension = wcs_util.CustomAxisUtil.compute_dimension_from_wcs(
             bounds, artifacts, product_type, expected_ctype
@@ -386,14 +384,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_dimension, actual_dimension)
         # bounds is not None, user_chunk = False, sw = None
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -409,22 +407,22 @@ class CustomAxisUtilTests(unittest.TestCase):
         # ss >= scale, num = 2
         bounds = Interval(1.1, 11.1)
         test_chunk1 = Chunk()
-        test_chunk1.product_type = chunk.ProductType.CALIBRATION
+        test_chunk1.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk1.custom = CustomTestUtil.good_wcs_with_negative_delta()
         test_chunk2 = Chunk()
-        test_chunk2.product_type = chunk.ProductType.CALIBRATION
+        test_chunk2.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk2.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk1, test_chunk2)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_dimension = wcs_util.CustomAxisUtil.compute_dimension_from_wcs(
             bounds, artifacts, product_type, expected_ctype
@@ -435,14 +433,14 @@ class CustomAxisUtilTests(unittest.TestCase):
     def test_compute_bounds(self):
         # user_chunk = False
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -454,38 +452,38 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_bounds, actual_bounds)
         # user_chunk = True, current_type != expected_ctype
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_function()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "FARADAY"
         with pytest.raises(ValueError) as ex:
             wcs_util.CustomAxisUtil.compute_bounds(artifacts, product_type, expected_ctype)
         assert 'CTYPE must be the same across all Artifacts' in str(ex.value)
         # user_chunk = True, range is not None
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_range()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_interval = wcs_util.CustomAxisUtil.compute_bounds(artifacts, product_type, expected_ctype)
         expected_interval = Interval(1.1, 11.1)
@@ -493,19 +491,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_interval.upper, actual_interval.upper)
         # user_chunk = True, get_num_pixels: bounds with 3 samples that traverses _merge_into_list completely
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_bounds_3_samples()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_interval = wcs_util.CustomAxisUtil.compute_bounds(artifacts, product_type, expected_ctype)
         expected_interval = Interval(-1.2, 11.2)
@@ -513,19 +511,19 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_interval.upper, actual_interval.upper)
         # user_chunk = True, function is not None
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs_with_function()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
         artifacts = TypedList(Artifact, artifact)
-        product_type = chunk.ProductType.CALIBRATION
+        product_type = chunk.DataLinkSemantics.CALIBRATION
         expected_ctype = "RM"
         actual_interval = wcs_util.CustomAxisUtil.compute_bounds(artifacts, product_type, expected_ctype)
         expected_interval = Interval(-49.5, 19950.5)
@@ -535,14 +533,14 @@ class CustomAxisUtilTests(unittest.TestCase):
     def test_compute(self):
         # _choose_product returns Artifact.product (SCIENCE), user_chunk = False
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -552,14 +550,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_axis, actual_axis)
         # _choose_product returns Artifact.product (CALIBRATION), user_chunk = False
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.CALIBRATION
+        artifact_product_type = chunk.DataLinkSemantics.CALIBRATION
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -569,14 +567,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_axis, actual_axis)
         # _choose_product returns Part.product (SCIENCE), user_chunk = False
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.PREVIEW
+        artifact_product_type = chunk.DataLinkSemantics.PREVIEW
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -586,14 +584,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_axis, actual_axis)
         # _choose_product returns Part.product (CALIBRATION), user_chunk = False
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.CALIBRATION
+        part_product_type = chunk.DataLinkSemantics.CALIBRATION
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.PREVIEW
+        artifact_product_type = chunk.DataLinkSemantics.PREVIEW
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -603,14 +601,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_axis, actual_axis)
         # _choose_product returns Chunk.product (SCIENCE), user_chunk = False
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.PREVIEW
+        part_product_type = chunk.DataLinkSemantics.PREVIEW
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.PREVIEW
+        artifact_product_type = chunk.DataLinkSemantics.PREVIEW
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -620,14 +618,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_axis, actual_axis)
         # _choose_product returns Chunk.product (CALIBRATION), user_chunk = False
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.CALIBRATION
+        test_chunk.product_type = chunk.DataLinkSemantics.CALIBRATION
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.PREVIEW
+        part_product_type = chunk.DataLinkSemantics.PREVIEW
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.PREVIEW
+        artifact_product_type = chunk.DataLinkSemantics.PREVIEW
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -637,14 +635,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_axis, actual_axis)
         # _choose_product returns None, user_chunk = False
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.PREVIEW
+        test_chunk.product_type = chunk.DataLinkSemantics.PREVIEW
         test_chunk.custom = CustomTestUtil.good_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.PREVIEW
+        part_product_type = chunk.DataLinkSemantics.PREVIEW
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.PREVIEW
+        artifact_product_type = chunk.DataLinkSemantics.PREVIEW
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -654,14 +652,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         self.assertEqual(expected_axis, actual_axis)
         # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is None
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = None
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -672,14 +670,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
         # bad Chunk.custom.axis.axis.ctype
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.bad_ctype_wcs()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -690,14 +688,14 @@ class CustomAxisUtilTests(unittest.TestCase):
         # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
         # first_ctype == Chunk.custom.axis.axis.ctype
         test_chunk = Chunk()
-        test_chunk.product_type = chunk.ProductType.SCIENCE
+        test_chunk.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk.custom = CustomTestUtil.good_wcs_with_function()
         test_chunks = TypedList(Chunk, test_chunk)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -705,31 +703,29 @@ class CustomAxisUtilTests(unittest.TestCase):
         expected_ctype = "RM"
         expected_sample = Interval(-49.5, 19950.5)
         expected_samples = [expected_sample]
-        expected_bounds = Interval(-49.5, 19950.5, expected_samples)
+        expected_bounds = Interval(-49.5, 19950.5)
         expected_dimension = 200
-        expected_axis = plane.CustomAxis(expected_ctype, expected_bounds, expected_dimension)
+        expected_axis = plane.CustomAxis(expected_ctype, expected_bounds, expected_samples, expected_dimension)
         actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         self.assertEqual(expected_axis.ctype, actual_axis.ctype)
         self.assertEqual(expected_axis.bounds.lower, actual_axis.bounds.lower)
         self.assertEqual(expected_axis.bounds.upper, actual_axis.bounds.upper)
-        self.assertEqual(expected_axis.bounds.samples[0].lower, actual_axis.bounds.samples[0].lower)
-        self.assertEqual(expected_axis.bounds.samples[0].upper, actual_axis.bounds.samples[0].upper)
         self.assertEqual(expected_axis.dimension, actual_axis.dimension)
         # _choose_product returns Artifact.product (SCIENCE), user_chunk = True, Chunk.custom is not None
         # first_ctype == Chunk.custom.axis.axis.ctype
         test_chunk_1 = Chunk()
-        test_chunk_1.product_type = chunk.ProductType.SCIENCE
+        test_chunk_1.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk_1.custom = CustomTestUtil.good_wcs_with_function()
         test_chunk_2 = Chunk()
-        test_chunk_2.product_type = chunk.ProductType.SCIENCE
+        test_chunk_2.product_type = chunk.DataLinkSemantics.SCIENCE
         test_chunk_2.custom = CustomTestUtil.good_wcs_with_function()
         test_chunk_2.custom.axis.axis.ctype = "FARADAY"
         test_chunks = TypedList(Chunk, test_chunk_1, test_chunk_2)
         part_name = "test_part"
-        part_product_type = chunk.ProductType.SCIENCE
+        part_product_type = chunk.DataLinkSemantics.SCIENCE
         part = Part(part_name, part_product_type, test_chunks)
         uri = 'mast:HST/product/test_file.jpg'
-        artifact_product_type = chunk.ProductType.SCIENCE
+        artifact_product_type = chunk.DataLinkSemantics.SCIENCE
         release_type = ReleaseType.DATA
         artifact = Artifact(uri, artifact_product_type, release_type)
         artifact.parts = TypedOrderedDict((Part), (part_name, part))
@@ -737,9 +733,9 @@ class CustomAxisUtilTests(unittest.TestCase):
         expected_ctype = "RM"
         expected_sample = Interval(-49.5, 19950.5)
         expected_samples = [expected_sample]
-        expected_bounds = Interval(-49.5, 19950.5, expected_samples)
+        expected_bounds = Interval(-49.5, 19950.5)
         expected_dimension = 200
-        expected_axis = plane.CustomAxis(expected_ctype, expected_bounds, expected_dimension)
+        expected_axis = plane.CustomAxis(expected_ctype, expected_bounds, expected_samples, expected_dimension)
         with pytest.raises(ValueError) as ex:
             actual_axis = wcs_util.CustomAxisUtil.compute(artifacts)
         assert 'CTYPE must be the same across all Artifacts' in str(ex.value)

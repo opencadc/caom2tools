@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,23 +66,69 @@
 # ***********************************************************************
 #
 
-from caom2.observation import Observation
+from . import common
+from . import caom_util
+
+__all__ = ['Interval']
 
 
-class ObservationUpdater(object):
-    """ObservationUpdater that adds a plane to the observation."""
+class Interval(common.CaomObject):
+    def __init__(self, lower, upper):
 
-    def update(self, observation, **kwargs):
+        super().__init__()
+        self.lower = lower
+        self.upper = upper
+
+    def get_width(self):
+        return self._upper - self._lower
+
+    @classmethod
+    def intersection(cls, i1, i2):
+        if i1.lower > i2.upper or i1.upper < i2.lower:
+            return None
+
+        lb = max(i1.lower, i2.lower)
+        ub = min(i1.upper, i2.upper)
+        return cls(lb, ub)
+
+    # Properties
+
+    @property
+    def lower(self):
         """
-        Processes an observation and updates it
+        type: float
         """
-        assert isinstance(observation, Observation), (
-            "observation {} is not an Observation".format(observation))
+        return self._lower
 
-        for plane in observation.planes.values():
-            for artifact in plane.artifacts.values():
-                if '.png' in artifact.uri:
-                    print('{}: {} -> image/png'.format(artifact.uri,
-                                                       artifact.content_type))
-                    artifact.content_type = 'image/png'
-        return True
+    @lower.setter
+    def lower(self, value):
+        caom_util.type_check(value, float, 'lower', override=False)
+        has_upper = True
+        try:
+            self._upper
+        except AttributeError:
+            has_upper = False
+        if has_upper and self._upper < value:
+            raise ValueError("Interval: attempt to set upper < lower "
+                             "for {}, {}".format(self._upper, value))
+        self._lower = value
+
+    @property
+    def upper(self):
+        """
+        type: float
+        """
+        return self._upper
+
+    @upper.setter
+    def upper(self, value):
+        caom_util.type_check(value, float, 'upper', override=False)
+        has_lower = True
+        try:
+            self._lower
+        except AttributeError:
+            has_lower = False
+        if has_lower and value < self._lower:
+            raise ValueError("Interval: attempt to set upper < lower "
+                             "for {}, {}".format(value, self._lower))
+        self._upper = value

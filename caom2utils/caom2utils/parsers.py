@@ -159,13 +159,13 @@ class BlueprintParser:
         if product_id is None:
             raise ValueError('product ID required')
 
-        for ii in observation.planes:
-            if observation.planes[ii].product_id == product_id:
-                plane = observation.planes[product_id]
-                break
-        if plane is None:
-            plane = caom2.Plane(product_id=product_id)
-            observation.planes[product_id] = plane
+        plane_uri = f'{observation.uri}/{product_id}'
+
+        if plane_uri in observation.planes:
+            plane = observation.planes[plane_uri]
+        else:
+            plane = caom2.Plane(uri=plane_uri)
+            observation.planes[plane_uri] = plane
         self.augment_plane(plane, artifact_uri)
         self.logger.debug(f'End CAOM2 observation augmentation for {artifact_uri}.')
 
@@ -305,7 +305,7 @@ class BlueprintParser:
         return self._to_enum_type(value, caom2.CalibrationLevel)
 
     def _to_product_type(self, value):
-        return self._to_enum_type(value, caom2.ProductType)
+        return self._to_enum_type(value, caom2.DataLinkSemantics)
 
     def _to_release_type(self, value):
         return self._to_enum_type(value, caom2.ReleaseType)
@@ -553,12 +553,8 @@ class BlueprintParser:
                     for i in inputs:
                         prov.inputs.add(i)
                 else:
-                    if isinstance(inputs, str):
-                        for i in inputs.split():
-                            prov.inputs.add(caom2.PlaneURI(str(i)))
-                    else:
-                        for i in inputs:
-                            prov.inputs.add(caom2.PlaneURI(str(i)))
+                    for i in inputs.split():
+                        prov.inputs.add(str(i))
             else:
                 if current is not None and len(current.inputs) > 0:
                     # preserve the original value
@@ -674,7 +670,7 @@ class ContentParser(BlueprintParser):
                     observation.members.add(m)
             else:
                 for m in members.split():
-                    observation.members.add(caom2.ObservationURI(m))
+                    observation.members.add(m)
         observation.algorithm = self._get_algorithm(observation)
 
         observation.sequence_number = _to_int(self._get_from_list('Observation.sequenceNumber', index=0))
@@ -927,7 +923,7 @@ class ContentParser(BlueprintParser):
             'Observation.proposal.id', index=0, current=None if current is None else current.id
         )
         pi = self._get_from_list(
-            'Observation.proposal.pi', index=0, current=None if current is None else current.pi_name
+            'Observation.proposal.pi', index=0, current=None if current is None else current.pi
         )
         project = self._get_from_list(
             'Observation.proposal.project', index=0, current=None if current is None else current.project
@@ -967,7 +963,7 @@ class ContentParser(BlueprintParser):
             'Observation.target.name', index=0, current=None if current is None else current.name
         )
         target_type = self._get_from_list(
-            'Observation.target.type', index=0, current=None if current is None else current.target_type
+            'Observation.target.type', index=0, current=None if current is None else current.type
         )
         standard = self._cast_as_bool(
             self._get_from_list(
@@ -2151,7 +2147,7 @@ def _set_by_type(header, keyword, value):
 def _to_checksum_uri(value):
     if value is None:
         return None
-    elif isinstance(value, caom2.ChecksumURI):
+    elif isinstance(value, str):
         return value
     else:
-        return caom2.ChecksumURI(value)
+        raise TypeError(f'Expected a string, got {type(value)}')

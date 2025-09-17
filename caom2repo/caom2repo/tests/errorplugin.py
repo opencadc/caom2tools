@@ -1,4 +1,3 @@
-# # -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -79,9 +78,9 @@ class ObservationUpdater(object):
         """
         assert isinstance(observation, Observation), (
             "observation {} is not an Observation".format(observation))
-        if observation.observation_id == 'UPDATE':
+        if observation.uri == 'caom:cfht/UPDATE':
             return True
-        elif observation.observation_id == 'SKIP':
+        elif observation.uri == 'caom:cfht/SKIP':
             return False
         else:
-            raise SystemError('Something went wrong')
+            raise SystemError('Something went wrong ' + observation.uri)

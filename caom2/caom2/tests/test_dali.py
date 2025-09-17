@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -66,23 +66,42 @@
 # ***********************************************************************
 #
 
-from caom2.observation import Observation
+import unittest
+
+from .. import dali
 
 
-class ObservationUpdater(object):
-    """ObservationUpdater that adds a plane to the observation."""
+class TestInterval(unittest.TestCase):
+    def test_all(self):
 
-    def update(self, observation, **kwargs):
-        """
-        Processes an observation and updates it
-        """
-        assert isinstance(observation, Observation), (
-            "observation {} is not an Observation".format(observation))
+        lower = 1.0
+        upper = 2.0
+        self.assertRaises(TypeError, dali.Interval, None, None)
+        self.assertRaises(TypeError, dali.Interval, None, 1.0)
+        self.assertRaises(TypeError, dali.Interval, 1.0, None)
+        self.assertRaises(TypeError, dali.Interval, None, "string")
+        self.assertRaises(TypeError, dali.Interval, "string", None)
+        self.assertRaises(TypeError, dali.Interval, "string1", "string2")
+        # validate errors
+        self.assertRaises(ValueError, dali.Interval, upper, lower)
 
-        for plane in observation.planes.values():
-            for artifact in plane.artifacts.values():
-                if '.png' in artifact.uri:
-                    print('{}: {} -> image/png'.format(artifact.uri,
-                                                       artifact.content_type))
-                    artifact.content_type = 'image/png'
-        return True
+        # test cannot set interval with upper < lower
+        interval = dali.Interval(lower, upper)
+        with self.assertRaises(ValueError):
+            interval.upper = 0.5
+        # test instance methods
+        i1 = dali.Interval(10.0, 15.0)
+        self.assertEqual(i1.get_width(), 5)
+
+        # test class methods
+        i1 = dali.Interval(10.0, 15.0)
+        i2 = dali.Interval(5.0, 8.0)
+        intersect1 = dali.Interval.intersection(i1, i2)
+        self.assertEqual(intersect1, None)
+        intersect2 = dali.Interval.intersection(i2, i1)
+        self.assertEqual(intersect2, None)
+        i3 = dali.Interval(8.0, 12.0)
+        lb = max(i1.lower, i3.lower)
+        ub = min(i1.upper, i3.upper)
+        intersect3 = dali.Interval.intersection(i1, i3)
+        self.assertEqual(intersect3, dali.Interval(lb, ub))

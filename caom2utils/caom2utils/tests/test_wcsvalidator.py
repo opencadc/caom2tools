@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2019.                            (c) 2019.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -203,14 +203,14 @@ class ValidateWCSTests(unittest.TestCase):
     def test_part(self):
         # CAOM2 entity is a Part
         pname = "part1"
-        product_type = chunk.ProductType.SCIENCE
+        product_type = chunk.DataLinkSemantics.SCIENCE
         part = PartTestUtil.get_test_part(pname, product_type)
         validate_wcs(part)
 
     def test_artifact(self):
         # CAOM2 entity is an Artifact
         auri = "uri:foo/bar"
-        product_type = chunk.ProductType.SCIENCE
+        product_type = chunk.DataLinkSemantics.SCIENCE
         # with valid wcs
         artifact = ArtifactTestUtil.get_test_artifact(auri, product_type)
         validate_wcs(artifact)
@@ -218,7 +218,7 @@ class ValidateWCSTests(unittest.TestCase):
     def test_artifact_with_null_wcs(self):
         # with null wcs
         auri = "uri:foo/bar"
-        product_type = chunk.ProductType.SCIENCE
+        product_type = chunk.DataLinkSemantics.SCIENCE
         artifact = ArtifactTestUtil.get_test_artifact(auri, product_type)
         validate_wcs(artifact)
         c = artifact.parts['test_part'].chunks[0]
@@ -604,7 +604,7 @@ class PlaneTestUtil:
         uri1 = 'uri:foo/bar1'
         uri2 = 'uri:foo/bar2'
         uri3 = 'uri:foo/bar3'
-        product_type = chunk.ProductType.SCIENCE
+        product_type = chunk.DataLinkSemantics.SCIENCE
         a1 = ArtifactTestUtil.get_test_artifact(uri1, product_type)
         a2 = ArtifactTestUtil.get_test_artifact(uri2, product_type)
         a3 = ArtifactTestUtil.get_test_artifact(uri3, product_type)
@@ -632,9 +632,9 @@ class ArtifactTestUtil:
 
     @staticmethod
     def get_test_artifact(uri, ptype):
-        # chunk.ProductType.SCIENCE is a common type
+        # chunk.DataLinkSemantics.SCIENCE is a common type
         if ptype is None:
-            ptype = chunk.ProductType.SCIENCE
+            ptype = chunk.DataLinkSemantics.SCIENCE
         test_artifact = artifact.Artifact(uri, ptype, artifact.ReleaseType.DATA)
         chunks = TypedList(chunk.Chunk)
         chunks.append(ArtifactTestUtil.get_good_test_chunk(ptype))
@@ -652,7 +652,7 @@ class PartTestUtil:
 
     @staticmethod
     def get_test_part(pname, ptype):
-        # chunk.ProductType.SCIENCE is a common type
+        # chunk.DataLinkSemantics.SCIENCE is a common type
         chunks = TypedList(chunk.Chunk)
         chunks.append(ArtifactTestUtil.get_good_test_chunk(ptype))
 

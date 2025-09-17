@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -65,13 +65,13 @@
 #
 # ***********************************************************************
 #
-
+import hashlib
 import inspect
 import uuid
 from datetime import datetime
 
 from builtins import int, str
-from urllib.parse import SplitResult, urlparse, urlsplit
+from urllib.parse import urlparse, urlsplit
 import logging
 
 from . import caom_util
@@ -81,13 +81,19 @@ with warnings.catch_warnings():
     from aenum import Enum
 
 
-__all__ = ['CaomObject', 'AbstractCaomEntity', 'ObservationURI', 'ChecksumURI',
-           'VocabularyTerm']
-
-_OBSCORE_VOCAB_NS = "http://www.ivoa.net/std/ObsCore"
-_CAOM_VOCAB_NS = "http://www.opencadc.org/caom2/DataProductType"
+__all__ = ['CaomObject', 'AbstractCaomEntity', 'VocabularyTerm', 'compute_bucket']
 
 logger = logging.getLogger('caom2')
+
+# IVOA vocabularies
+_DATA_LINK_NS = 'https://www.ivoa.net/rdf/datalink/core'
+_TRACKING_NS = 'https://ivoa.net/rdf/Tracking'
+# CAOM2 vocabularies
+_CAOM_DATA_PRODUCT_TYPE_NS = "http://www.opencadc.org/caom2/DataProductType"
+_CAOM_PRODUCT_TYPE_NS = "http://www.opencadc.org/caom2/ProductType"
+_CAOM_QUALITY_NS = "http://www.opencadc.org/caom2/Quality"
+_CAOM_STATUS_NS = "http://www.opencadc.org/caom2/Status"
+_CAOM_TARGET_TYPE_NS = "http://www.opencadc.org/caom2/TargetType"
 
 
 def get_current_ivoa_time():
@@ -99,6 +105,17 @@ def get_current_ivoa_time():
     now = datetime.now()
     return datetime(now.year, now.month, now.day, now.hour, now.minute,
                     now.second, int(str(now.microsecond)[:-3] + '000'))
+
+
+def compute_bucket(uri):
+    """
+    Compute a bucket name from a URI as the first 3 characters of the MD5 hash
+    :param uri: uri to compute bucket for
+    :return: bucket name
+    """
+    md5 = hashlib.sha1()
+    md5.update(uri.encode('utf-8'))
+    return md5.hexdigest()[:3]
 
 
 class OrderedEnum(Enum):
@@ -150,7 +167,7 @@ class CaomObject(object):
                           for arg in args])
 
     def __eq__(self, other):
-        if type(other) == type(self):
+        if type(other) is type(self):
             return self.__dict__ == other.__dict__
         else:
             return False
@@ -231,7 +248,7 @@ class AbstractCaomEntity(CaomObject):
     def meta_checksum(self):
         """the meta checksum value
 
-        type: ChecksumURI
+        type: URI
 
         """
         return self._meta_checksum
@@ -241,14 +258,14 @@ class AbstractCaomEntity(CaomObject):
         if value is None:
             self._meta_checksum = None
         else:
-            caom_util.type_check(value, ChecksumURI, "meta_checksum", False)
+            caom_util.type_check(value, str, "meta_checksum", False)
             self._meta_checksum = value
 
     @property
     def acc_meta_checksum(self):
         """the accumulated meta checksum value
 
-        type: ChecksumURI
+        type: URI
 
         """
         return self._acc_meta_checksum
@@ -258,7 +275,7 @@ class AbstractCaomEntity(CaomObject):
         if value is None:
             self._acc_meta_checksum = None
         else:
-            caom_util.type_check(value, ChecksumURI, "acc_meta_checksum",
+            caom_util.type_check(value, str, "acc_meta_checksum",
                                  False)
             self._acc_meta_checksum = value
 
@@ -284,7 +301,7 @@ class AbstractCaomEntity(CaomObject):
             self._meta_producer = value
 
 
-class VocabularyTerm(object):
+class VocabularyTerm(CaomObject):
     """ VocabularyTerm """
 
     def __init__(self, namespace, term, base=False):
@@ -350,174 +367,3 @@ class VocabularyTerm(object):
     def base(self, value):
         caom_util.type_check(value, bool, "base")
         self._base = value
-
-
-class ObservationURI(CaomObject):
-    """ Observation URI """
-
-    _SCHEME = str("caom")
-
-    def __init__(self, uri):
-        """
-        Initializes an Observation instance
-
-        Arguments:
-        uri : URI corresponding to observation
-        """
-        super(CaomObject, self).__init__()
-        tmp = urlparse(uri)
-
-        if tmp.scheme != ObservationURI._SCHEME:
-            raise ValueError(
-                "uri must be have scheme of {}. received: {}"
-                .format(ObservationURI._SCHEME, uri))
-        if tmp.geturl() != uri:
-            raise ValueError(
-                "uri parsing failure.  received: {}".format(uri))
-
-        self._uri = tmp.geturl()
-        (collection, observation_id) = tmp.path.split("/")
-        if collection is None:
-            raise ValueError(
-                "uri did not contain a collection part. received: {}"
-                .format(uri))
-        caom_util.validate_path_component(self, "collection", collection)
-        if observation_id is None:
-            raise ValueError(
-                "uri did not contain an observation_id part. received: {}"
-                .format(uri))
-        caom_util.validate_path_component(self, "observation_id",
-                                          observation_id)
-        (self._collection, self._observation_id) = (collection, observation_id)
-        self._print_attributes = ['uri', 'collection', 'observation_id']
-
-    def _key(self):
-        return self.uri
-
-    def __hash__(self):
-        return hash(self._key())
-
-    def __lt__(self, other):
-        if not isinstance(other, ObservationURI):
-            raise ValueError(
-                'Cannot compare ObservationURI with {}'.format(type(other)))
-        return self.uri < other.uri
-
-    def __eq__(self, other):
-        if not isinstance(other, ObservationURI):
-            raise ValueError(
-                'Cannot compare ObservationURI with {}'.format(type(other)))
-        return self.uri == other.uri
-
-    @classmethod
-    def get_observation_uri(cls, collection, observation_id):
-        """
-        Initializes an Observation URI instance
-
-        Arguments:
-        collection : collection
-        observation_id : ID of the observation
-        """
-
-        caom_util.type_check(collection, str, "collection", override=False)
-        caom_util.type_check(observation_id, str, "observation_id",
-                             override=False)
-
-        caom_util.validate_path_component(cls, "collection", collection)
-        caom_util.validate_path_component(cls, "observation_id",
-                                          observation_id)
-
-        uri = SplitResult(ObservationURI._SCHEME, "",
-                          collection + "/" + observation_id,
-                          "", "").geturl()
-        return cls(uri)
-
-    # Properties
-
-    @property
-    @classmethod
-    def scheme(cls):
-        """The scheme defines where this Observation can be looked up.
-
-        Only 'caom' is currently supported."""
-        return cls._SCHEME
-
-    @property
-    def uri(self):
-        """The uri that the caom service can use to find the observation"""
-        return self._uri
-
-    @property
-    def collection(self):
-        """The collection part of this Observations uri"""
-        return self._collection
-
-    @property
-    def observation_id(self):
-        """The observation_id of this Observations uri"""
-        return self._observation_id
-
-
-class ChecksumURI(CaomObject):
-    """ Checksum URI """
-
-    def __init__(self, uri):
-        """
-        Initializes an Checksum URI instance
-
-        Arguments:
-        uri : Checksum URI in the format Algorithm:ChecksumValue
-        """
-        super(CaomObject, self).__init__()
-        # note: urlparse does not recognize scheme in uri of form scheme:val
-        tmp = uri.split(':', 1)
-
-        # TODO change this raise a ValueError when the rule is being enforced
-        if len(tmp) < 2:
-            logger.warning(("A checksum scheme noting the algorithm is "
-                            "required.. received: {}").format(uri))
-            algorithm = None
-            checksum = tmp[0]
-        else:
-            algorithm = tmp[0]
-            checksum = tmp[1]
-
-        if checksum is None:
-            raise ValueError(
-                "checksum uri did not contain an checksum part. received: {}"
-                .format(uri))
-        caom_util.validate_path_component(self, "checksum", checksum)
-
-        (self._uri, self._algorithm, self._checksum) = (
-            uri, algorithm, checksum)
-        self._print_attributes = ['uri', 'algorithm', 'checksum']
-
-    def _key(self):
-        return self.uri
-
-    def __eq__(self, y):
-        if isinstance(y, ChecksumURI):
-            return self._key() == y._key()
-        return False
-
-    def __hash__(self):
-        return hash(self._key())
-
-    def get_bytes(self):
-        return bytearray.fromhex(self._checksum)
-
-    # Properties
-    @property
-    def uri(self):
-        """The uri that the caom service can use to find the observation"""
-        return self._uri
-
-    @property
-    def algorithm(self):
-        """The checksum algorithm"""
-        return self._algorithm
-
-    @property
-    def checksum(self):
-        """The checksum value"""
-        return self._checksum

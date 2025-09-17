@@ -101,7 +101,8 @@ def test_differences(directory):
     assert len(expected_fname) == 1
     expected = _read_observation(expected_fname[0])  # expected observation
     assert len(expected.planes) == 1
-    prod_id = [p.product_id for p in expected.planes.values()][0]
+    plane_uri = [p.uri for p in expected.planes.values()][0]
+    prod_id = plane_uri.split('/')[-1]
     product_id = f'--productID {prod_id}'
     collection_id = expected.collection
     data_files = _get_files(['header', 'png', 'gif', 'cat', 'fits', 'h5', 'orig'], directory)
@@ -203,10 +204,11 @@ def test_differences(directory):
         header_mock.side_effect = _header
 
         temp = tempfile.NamedTemporaryFile()
+        observation_id = expected.uri.split('/')[-1]
         sys.argv = (
             '{} -o {} --no_validate --observation {} {} {} {} '
             '--resource-id ivo://cadc.nrc.ca/test'.format(
-                application, temp.name, expected.collection, expected.observation_id, inputs, cardinality
+                application, temp.name, expected.collection, observation_id, inputs, cardinality
             )
         ).split()
         print(sys.argv)
@@ -303,7 +305,7 @@ def _get_uris(collection, fnames, obs):
                             id=a.uri,
                             file_type=a.content_type,
                             size=a.content_length,
-                            md5sum=a.content_checksum.checksum,
+                            md5sum=a.content_checksum,
                         )
                         file_url = urlparse(a.uri)
                         file_id = file_url.path.split('/')[-1]
@@ -336,11 +338,11 @@ def _compare_observations(expected, actual, output_dir):
     result = get_differences(expected, actual, 'Observation')
     if result:
         tmp = '\n'.join([r for r in result])
-        msg = f'Differences found observation {expected.observation_id} in ' f'{output_dir}\n{tmp}'
+        msg = f'Differences found observation {expected.uri} in ' f'{output_dir}\n{tmp}'
         _write_observation(actual)
         raise AssertionError(msg)
     else:
-        logging.info('Observation {} in {} match'.format(expected.observation_id, output_dir))
+        logging.info('Observation {} in {} match'.format(expected.uri, output_dir))
 
 
 def _read_observation(fname):
