@@ -598,7 +598,7 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(2, visitor.get_observation.call_count)
         self.assertEqual(2, visitor.post_observation.call_count)
         visitor.post_observation.assert_called_with(
-            observation, observation.acc_meta_checksum.uri)
+            observation, observation.acc_meta_checksum)
 
     def mock_get_observation(self, collection, observationID):
         return SimpleObservation(collection, observationID)
