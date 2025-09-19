@@ -1076,7 +1076,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = (
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2486</caom2:contentLength>
+          <caom2:contentLength>2573</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://"""
     + text_file
