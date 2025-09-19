@@ -1,9 +1,8 @@
-# # -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -106,7 +105,7 @@ class CAOM2RepoClient(object):
     """Class to do CRUD + visitor actions on a CAOM2 collection repo."""
 
     def __init__(self, subject, logLevel=logging.INFO,
-                 resource_id=DEFAULT_RESOURCE_ID, host=None, agent=None):
+                 resource_id=DEFAULT_RESOURCE_ID, host=None, agent=None, insecure=False):
         """
         Instance of a CAOM2RepoClient
         :param subject: the subject performing the action
@@ -114,6 +113,7 @@ class CAOM2RepoClient(object):
         :param resource_id: the resource ID of the service
         :param host: Host for the caom2repo service
         :param agent: The name of the agent (to be used in server logging)
+        :param insecure: Allow insecure server connections over SSL
         """
         self.level = logLevel
         logging.basicConfig(
@@ -123,6 +123,7 @@ class CAOM2RepoClient(object):
         self.logger = logging.getLogger('CAOM2RepoClient')
         self.resource_id = resource_id
         self.host = host
+        self.insecure = insecure
         self._subject = subject
         if agent is None:
             agent = "caom2-repo-client/{} caom2/{}".format(version.version,
@@ -132,7 +133,7 @@ class CAOM2RepoClient(object):
 
         self._repo_client = net.BaseWsClient(resource_id, subject,
                                              agent, retry=True, host=self.host,
-                                             idempotent_posts=True)
+                                             idempotent_posts=True, insecure=insecure)
         try:
             self._repo_client.caps.get_access_url(
                 CURRENT_CAOM2REPO_OBS_CAPABILITY_ID)
@@ -254,7 +255,7 @@ class CAOM2RepoClient(object):
                         multiprocess_observation_id,
                         [collection, observationID, self.plugin, self._subject,
                          self.level,
-                         self.resource_id, self.host, self.agent,
+                         self.resource_id, self.host, self.agent, self.insecure,
                          halt_on_error])
                         for observationID in observations]
                     for r in results:
@@ -304,16 +305,14 @@ class CAOM2RepoClient(object):
         try:
             observation = self.get_observation(collection, observation_id)
             orig_checksum = observation.acc_meta_checksum
-            if orig_checksum:
-                orig_checksum = orig_checksum.uri
             if self.plugin.update(observation=observation,
                                   subject=self._subject) is False:
-                self.logger.info('SKIP {}'.format(observation.observation_id))
-                skipped = observation.observation_id
+                self.logger.info('SKIP {}'.format(observation_id))
+                skipped = observation_id
             else:
                 self.post_observation(observation, orig_checksum)
                 self.logger.debug(
-                    'UPDATED {}'.format(observation.observation_id))
+                    'UPDATED {}'.format(observation_id))
                 updated = observation_id
         except TypeError as e:
             if "unexpected keyword argument" in str(e):
@@ -495,7 +494,7 @@ class CAOM2RepoClient(object):
         assert observation.collection is not None
         assert observation.observation_id is not None
         path = '/{}/{}'.format(observation.collection,
-                               observation.observation_id)
+                               observation_id)
         self.logger.debug('POST {}'.format(path))
 
         ibuffer = BytesIO()
@@ -519,7 +518,7 @@ class CAOM2RepoClient(object):
         assert observation.collection is not None
         assert observation.observation_id is not None
         path = '/{}/{}'.format(observation.collection,
-                               observation.observation_id)
+                               observation_id)
         self.logger.debug('PUT {}'.format(path))
 
         ibuffer = BytesIO()
@@ -568,7 +567,7 @@ def str2date(s):
 
 
 def multiprocess_observation_id(collection, observationID, plugin, subject,
-                                log_level, resource_id, host, agent,
+                                log_level, resource_id, host, agent, insecure,
                                 halt_on_error):
     """
     Multi-process version of CAOM2RepoClient.process_observation_id().
@@ -584,6 +583,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     :param host: Host server for the caom2repo service
     :param agent: Name of the application that accesses the service and its
         version
+    :param insecure Allow insecure server connections over SSL
     :return: Tuple of observationID representing visited, updated, skipped
         and failed
     """
@@ -594,7 +594,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
     rootLogger = logging.getLogger(
         'multiprocess_observation_id(): {}'.format(observationID))
 
-    client = CAOM2RepoClient(subject, log_level, resource_id, host, agent)
+    client = CAOM2RepoClient(subject, log_level, resource_id, host, agent, insecure=insecure)
     client.plugin = plugin
     client.logger = rootLogger
     return \
@@ -714,7 +714,7 @@ def main_app():
     logger = logging.getLogger('main_app')
     errors = False
     try:
-        client = CAOM2RepoClient(subject, level, args.resource_id, host=host)
+        client = CAOM2RepoClient(subject, level, args.resource_id, host=host, insecure=args.insecure)
         if args.cmd == 'visit':
             print("Visit")
             logger.debug(
