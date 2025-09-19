@@ -494,7 +494,7 @@ class CAOM2RepoClient(object):
         assert observation.collection is not None
         assert observation.observation_id is not None
         path = '/{}/{}'.format(observation.collection,
-                               observation_id)
+                               observation.observation_id)
         self.logger.debug('POST {}'.format(path))
 
         ibuffer = BytesIO()
@@ -518,7 +518,7 @@ class CAOM2RepoClient(object):
         assert observation.collection is not None
         assert observation.observation_id is not None
         path = '/{}/{}'.format(observation.collection,
-                               observation_id)
+                               observation.observation_id)
         self.logger.debug('PUT {}'.format(path))
 
         ibuffer = BytesIO()
