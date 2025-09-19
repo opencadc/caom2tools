@@ -90,6 +90,7 @@ import vos
 from lxml import etree
 
 from unittest.mock import Mock, patch
+from unittest import skipIf
 from io import StringIO, BytesIO
 
 import importlib
@@ -537,6 +538,8 @@ def _get_from_str_xml(string_xml, get_func, element_tag):
 
 
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError, MyExitError, MyExitError, MyExitError]))
+@skipIf(sys.version_info > (3, 12),
+            reason="Python 3.13 help format is different")
 def test_help():
     """Tests the helper displays for commands in main"""
 
