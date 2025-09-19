@@ -73,6 +73,7 @@ import os
 import uuid
 from builtins import str, int
 from enum import Enum
+from io import IOBase
 
 from lxml import etree
 
@@ -229,6 +230,11 @@ class ObservationReader(object):
             caom2_entity._meta_producer = element_meta_producer
 
     def _get_child_element(self, element_tag, parent, ns, required):
+        if not parent:
+            if required:
+                error = "Parent element is None, cannot find " + element_tag
+                raise ObservationParsingException(error)
+            return None
         if self._input_format == 'xml':
             for element in list(parent):
                 if element.tag == "{" + ns + "}" + element_tag:
@@ -239,13 +245,16 @@ class ObservationReader(object):
                     else:
                         # element has content, return it
                         return element
+            if required:
+                error = element_tag + " element not found in " + parent.tag
+                raise ObservationParsingException(error)
         elif element_tag in parent:
-            return parent[element_tag]
+            if element_tag in parent:
+                return parent[element_tag]
+            if required:
+                error = element_tag + " element not found in " + parent.uri
+                raise ObservationParsingException(error)
 
-        if required:
-            error = element_tag + " element not found in " + parent.tag
-            raise ObservationParsingException(error)
-        else:
             return None
 
     def _get_child_text(self, element_tag, parent, ns, required):
@@ -256,7 +265,7 @@ class ObservationReader(object):
         if self._input_format == 'xml':
             return str(child_element.text)
         else:
-            return child_element
+            return str(child_element)
 
     def _get_child_text_as_int(self, element_tag, parent, ns, required):
         child_element = self._get_child_element(element_tag, parent, ns,
@@ -308,7 +317,8 @@ class ObservationReader(object):
                 for keyword in self._get_children(keywords_element, ns, "keyword"):
                     keywords_list.add(keyword.text)
         else:
-            keywords_list = keywords_element
+            for keyword in keywords_element:
+                keywords_list.add(keyword)
 
     def _get_algorithm(self, element_tag, parent, ns, required):
         """Build an Algorithm object from an XML representation
@@ -563,7 +573,7 @@ class ObservationReader(object):
                 self._get_child_text_as_float("ambientTemp", el, ns, False))
             photometric = self._get_child_text("photometric", el, ns, False)
             if photometric is not None:
-                environment.photometric = ("true" == photometric)
+                environment.photometric = ("true" == photometric.lower())
             return environment
 
     def _add_members(self, members, parent, ns):
@@ -586,7 +596,7 @@ class ObservationReader(object):
             else:
                 obs_tag = "member"
             for member_element in self._get_children(el, ns, obs_tag):
-                members.add(member_element.text)
+                members.add(member_element)
 
     def _add_inputs(self, inputs, parent, ns):
         """Create URI objects from an XML representation of the plane
@@ -1514,7 +1524,6 @@ class ObservationReader(object):
             return None
         _pstates_el = self._get_child_element("states", el, ns, False)
         if _pstates_el is not None:
-            polarization = Polarization()
             _polarization_states = list()
             for _pstate_el in self._get_children(_pstates_el, ns, "state"):
                 if not isinstance(_pstate_el, str):
@@ -1523,9 +1532,10 @@ class ObservationReader(object):
                     _pstate = _pstate_el
                 _polarization_state = plane.PolarizationState(_pstate)
                 _polarization_states.append(_polarization_state)
-            polarization.polarization_states = _polarization_states
-            polarization.dimension = self._get_child_text_as_int("dimension", el,
+
+            _dimension = self._get_child_text_as_int("dimension", el,
                                                                  ns, False)
+            return Polarization(dimension=_dimension, states=_polarization_states)
         else:
             return None
 
@@ -1552,7 +1562,10 @@ class ObservationReader(object):
                                                   ns, True)
                 sample_list = []
                 for _shape in self._get_children(samples, ns, "shape"):
-                    sample_type = _shape.get(XSI + "type")
+                    if self._input_format == 'xml':
+                        sample_type = _shape.get(XSI + "type")
+                    else:
+                        sample_type = _shape.get("@type")
                     if "caom2:Polygon" == sample_type:
                         sample_list.append(self._get_polygon(ns, _shape))
                     elif "caom2:Circle" == sample_type:
@@ -1579,8 +1592,7 @@ class ObservationReader(object):
         points_element = self._get_child_element("points", shape_element,
                                                  ns, True)
         points = list()
-        for point in points_element.iterchildren(
-                tag=("{" + ns + "}point")):
+        for point in self._get_children(points_element, ns, "point"):
             points.append(self._get_point(point, ns, True))
         return shape.Polygon(points)
 
@@ -1636,15 +1648,6 @@ class ObservationReader(object):
         _samples_el = self._get_child_element("samples", _interval_el, ns,
                                               required)
         _interval = shape.Interval(_lower, _upper)
-        if _samples_el is not None:
-            _samples = list()
-            for _sample_el in self._get_children(_samples_el, ns, "sample"):
-                _si_lower = self._get_child_text_as_float("lower", _sample_el,
-                                                          ns, required)
-                _si_upper = self._get_child_text_as_float("upper", _sample_el,
-                                                          ns, required)
-                _sub_interval = shape.SubInterval(_si_lower, _si_upper)
-                _samples.append(_sub_interval)
         return _interval
 
     def _get_samples(self, parent, ns, required):
@@ -1652,7 +1655,7 @@ class ObservationReader(object):
         if _samples_el is None:
             return None
         _samples = []
-        for _sample_el in self._get_samples(_samples_el, ns, "sample"):
+        for _sample_el in self._get_children(_samples_el, ns, "sample"):
             _si_lower = self._get_child_text_as_float("lower", _sample_el,
                                                       ns, required)
             _si_upper = self._get_child_text_as_float("upper", _sample_el,
@@ -1925,16 +1928,33 @@ class ObservationReader(object):
             ns = root.nsmap["caom2"]
             self.version = CAOM_VERSION[ns]
         else:  # json
-            self.version = 24  # TODO get from document
-            root = json.loads(source)
+            src = source
+            if isinstance(source, IOBase):
+                source.seek(0)  # Ensure we're reading from the start
+                src = source.read()
+
+            # Case 2: source is a path to an existing file
+            elif isinstance(source, str) and os.path.isfile(source):
+                with open(source, 'r', encoding='utf-8') as f:
+                    src = f.read()
+
+            if not isinstance(src, str):
+                raise TypeError(
+                    "Unsupported source type. Must be string, stream, or file path.")
+            root = json.loads(src)
+            if "http://www.opencadc.org/caom2/xml/v2.5" == root.get("@caom2", None):
+                self.version = 25
+            else:
+                self.version = 24
             ns = None
         collection = self._get_child_text("collection", root, ns, True)
-        if self.version < 25:
+        if self._input_format == 'xml' and self.version < 25:
             observation_id = \
                 str(self._get_child_text("observationID", root, ns, True))
             uri = "caom:" + collection + "/" + observation_id
         else:
             uri = self._get_child_text("uri", root, ns, True)
+
         # Instantiate Algorithm
         algorithm = self._get_algorithm("algorithm", root, ns, True)
         # Instantiate Observation
@@ -2105,7 +2125,12 @@ class ObservationWriter(object):
                                         nsmap=self._nsmap)
             obs_element.set(XSI + "type", obs_type)
         else:
-            obs_element = {'@type': obs_type}
+            if self._output_version == 25:
+                caom2_v = 'v2.5'
+            else:
+                caom2_v = 'v2.4'
+            obs_element = {'@caom2': "http://www.opencadc.org/caom2/xml/" + caom2_v,
+                           '@type': obs_type}
 
         self._add_entity_attributes(obs, obs_element)
 
@@ -2158,8 +2183,7 @@ class ObservationWriter(object):
             tree.write(out, encoding='utf-8',
                        xml_declaration=True, pretty_print=True)
         else:
-            import json
-            out.write(json.dumps(obs_element, indent=2))
+            out.write(json.dumps(obs_element, indent=2, separators=(',', ' : ')))
 
     def _add_entity_attributes(self, entity, element):
         self._add_attribute("id", str(entity._id), element)
@@ -2252,7 +2276,7 @@ class ObservationWriter(object):
         self._add_element("geoLocationX", telescope.geo_location_x, element)
         self._add_element("geoLocationY", telescope.geo_location_y, element)
         self._add_element("geoLocationZ", telescope.geo_location_z, element)
-        self._add_element("trackingMode", telescope.tracking_mode, element)
+        self._add_element("trackingMode", telescope.tracking_mode.value, element)
         self._add_keywords_element(telescope.keywords, element)
 
     def _add_instrument_element(self, instrument, parent):
@@ -2290,9 +2314,9 @@ class ObservationWriter(object):
                 member_tag = "member"
             for member in members:
                 member_element = self._get_caom_element(member_tag, element)
-                member_element.text = member.uri
+                member_element.text = member
         else:
-            element = [m.uri for m in members] if members else []
+            parent["members"] = list(members) if members else []
 
     def _add_groups_element(self, name, groups, parent):
         if self._output_version < 24:
@@ -2305,7 +2329,7 @@ class ObservationWriter(object):
                 gr_elem = self._get_caom_element("groupURI", element)
                 gr_elem.text = gr
         else:
-            element = list(groups) if groups else []
+            parent[name] = list(groups) if groups else []
 
     def _add_planes_element(self, planes, parent):
         if planes is None or \
@@ -2426,7 +2450,7 @@ class ObservationWriter(object):
                     "Attempt to write CAOM2.5 element (position.calibration) as "
                     "{} Observation".format(self._output_version))
             else:
-                self._add_element("calibration", position.calibration, element)
+                self._add_element("calibration", position.calibration.value, element)
 
     def _add_energy_element(self, energy, parent):
         if energy is None:
@@ -2502,7 +2526,7 @@ class ObservationWriter(object):
                     "Attempt to write CAOM2.5 element (energy.calibration) as "
                     "{} Observation".format(self._output_version))
             else:
-                self._add_element("calibration", energy.calibration, element)
+                self._add_element("calibration", energy.calibration.value, element)
 
     def _add_time_element(self, time, parent):
         if time is None:
@@ -2540,7 +2564,7 @@ class ObservationWriter(object):
                     "Attempt to write CAOM2.5 element (time.calibration) as {} "
                     "Observation".format(self._output_version))
             else:
-                self._add_element("calibration", time.calibration, element)
+                self._add_element("calibration", time.calibration.value, element)
 
     def _add_custom_element(self, custom, parent):
         if custom is None:
@@ -2597,18 +2621,26 @@ class ObservationWriter(object):
                     self._add_element("cval2", vertex.cval2, vertex_element)
                     self._add_element("type", vertex.type.value, vertex_element)
         else:
-            samples_element = self._get_caom_element("samples", parent=parent)
+            if self._output_format == 'xml':
+                samples_element = self._get_caom_element("samples", parent=parent)
+            else:
+                samples_element = parent["samples"] = []
             for samples_shape in position.samples.shapes:
                 self._add_shape_element("shape", samples_element, samples_shape)
 
     def _add_shape_element(self, name, parent, elem_shape):
         if isinstance(elem_shape, shape.Polygon):
-            shape_element = self._get_caom_element(name, parent)
             if self._output_format == 'xml':
+                shape_element = self._get_caom_element(name, parent)
                 shape_element.set(XSI + "type", "caom2:Polygon")
                 points_element = self._get_caom_element("points",
                                                         shape_element)
             else:
+                shape_element = {}
+                if isinstance(parent, list):
+                    parent.append(shape_element)
+                else:
+                    parent[name] = shape_element
                 shape_element["@type"] = "caom2:Polygon"
                 points_element = shape_element["points"] = []
             for point in elem_shape.points:
@@ -2633,13 +2665,15 @@ class ObservationWriter(object):
         _interval_element = self._get_caom_element(name, parent)
         self._add_element("lower", interval.lower, _interval_element)
         self._add_element("upper", interval.upper, _interval_element)
-        self._add_samples_element(interval.samples, _interval_element)
 
     def _add_samples_element(self, samples, parent):
         if not samples:
             raise AttributeError("non empty samples attribute is required")
 
-        _samples_element = self._get_caom_element("samples", parent)
+        if self._output_format == 'xml':
+            _samples_element = self._get_caom_element("samples", parent)
+        else:
+            _samples_element = parent["samples"] = []
         for _sample in samples:
             if self._output_format == 'xml':
                 _sample_element = self._get_caom_element("sample",
@@ -2701,7 +2735,7 @@ class ObservationWriter(object):
                     "Attempt to write CAOM2.5 element (observable.calibration) as "
                     "{} Observation".format(self._output_version))
             else:
-                self._add_element("calibration", observable.calibration, element)
+                self._add_element("calibration", observable.calibration.value, element)
 
     def _add_transition_element(self, transition, parent):
         if transition is None:
@@ -2715,9 +2749,16 @@ class ObservationWriter(object):
         if artifacts is None:
             return
 
-        element = self._get_caom_element("artifacts", parent)
+        if self._output_format == 'xml':
+            element = self._get_caom_element("artifacts", parent)
+        else:
+            element = parent["artifacts"] = []
         for _artifact in artifacts.values():
-            artifact_element = self._get_caom_element("artifact", element)
+            if self._output_format == 'xml':
+                artifact_element = self._get_caom_element("artifact", element)
+            else:
+                artifact_element = {}
+                element.append(artifact_element)
             self._add_entity_attributes(_artifact, artifact_element)
             self._add_element("uri", _artifact.uri, artifact_element)
             if self._output_version >= 25:
@@ -2759,7 +2800,7 @@ class ObservationWriter(object):
             self._add_parts_element(_artifact.parts, artifact_element)
 
     def _add_parts_element(self, parts, parent):
-        if parts is None:
+        if not parts:
             return
 
         element = self._get_caom_element("parts", parent)
@@ -3123,6 +3164,9 @@ class ObservationWriter(object):
             else:
                 element.text = str(value)
         else:
+            if not isinstance(value, (str, int, float, bool)):
+                raise TypeError("CAOM JSON value must be str, int, float or bool not "
+                                + value.__class__.__name__)
             if isinstance(parent, list):
                 parent.append(value)
             else:
@@ -3179,9 +3223,9 @@ class ObservationWriter(object):
             input_tag = "input"
         if self._output_format == 'xml':
             for plane_uri in collection:
-                self._add_element(input_tag, plane_uri.uri, element)
+                self._add_element(input_tag, plane_uri, element)
         else:
-            parent[name] = [inp.uri for inp in collection]
+            parent[name] = [inp for inp in collection]  #TODO list()
 
     def _get_caom_element(self, tag, parent):
         if self._output_format == 'xml':
