@@ -81,6 +81,7 @@ from caom2.obs_reader_writer import ObservationWriter
 from caom2 import obs_reader_writer, ChecksumURI
 from caom2.observation import SimpleObservation
 from unittest.mock import Mock, patch, MagicMock, ANY, call
+from unittest import skipIf
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
 from io import BytesIO, StringIO
 
@@ -598,7 +599,7 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(2, visitor.get_observation.call_count)
         self.assertEqual(2, visitor.post_observation.call_count)
         visitor.post_observation.assert_called_with(
-            observation, observation.acc_meta_checksum.uri)
+            observation, observation.acc_meta_checksum)
 
     def mock_get_observation(self, collection, observationID):
         return SimpleObservation(collection, observationID)
@@ -929,6 +930,8 @@ class TestCAOM2Repo(unittest.TestCase):
     @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                          MyExitError, MyExitError, MyExitError,
                                          MyExitError, MyExitError]))
+    @skipIf(sys.version_info > (3, 12),
+            reason="Python 3.13 help format is different")
     def test_help(self):
         """ Tests the helper displays for commands and subcommands in main"""
 
