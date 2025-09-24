@@ -641,7 +641,7 @@ def main_app():
         'update', description='Update an existing observation',
         help='Update an existing observation')
     update_parser.add_argument('observation',
-                               help='XML of JSON file containing the observation',
+                               help='XML or JSON file containing the observation',
                                type=argparse.FileType('r'))
 
     delete_parser = subparsers.add_parser(
