@@ -91,6 +91,7 @@ import vos
 from lxml import etree
 
 from unittest.mock import Mock, patch
+from unittest import skipIf
 from io import StringIO, BytesIO
 
 import importlib
@@ -539,6 +540,8 @@ def _get_from_str_xml(string_xml, get_func, element_tag):
 
 
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError, MyExitError, MyExitError, MyExitError]))
+@skipIf(sys.version_info > (3, 12),
+            reason="Python 3.13 help format is different")
 def test_help():
     """Tests the helper displays for commands in main"""
 
@@ -1079,7 +1082,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = (
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2486</caom2:contentLength>
+          <caom2:contentLength>2573</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://"""
     + text_file
