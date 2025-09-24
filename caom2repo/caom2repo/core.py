@@ -505,7 +505,7 @@ class CAOM2RepoClient(object):
         ObservationWriter(False, False, 'caom2', self.namespace).write(
             observation, ibuffer)
         obs_xml = ibuffer.getvalue()
-        headers = {'Content-Type': 'application/xml'}
+        headers = {'Content-Type': 'text/xml'}
         if orig_checksum:
             headers['If-Match'] = orig_checksum
         self._repo_client.post(

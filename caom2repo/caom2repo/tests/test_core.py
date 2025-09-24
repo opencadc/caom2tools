@@ -325,7 +325,7 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(
             '/{}/auth/{}/{}'.format(service, collection, observation_uri.split('/')[-1]),
             mock_conn.call_args[0][0].path_url)
-        self.assertEqual('application/xml',
+        self.assertEqual('text/xml',
                          mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
 
@@ -386,7 +386,7 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(
             '/{}/pub/{}/{}'.format(service, collection, observation_uri.split('/')[-1]),
             mock_conn.call_args[0][0].path_url)
-        self.assertEqual('application/xml',
+        self.assertEqual('text/xml',
                          mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
 
@@ -838,7 +838,7 @@ class TestCAOM2Repo(unittest.TestCase):
     def test_main_app(self, client_mock):
         collection = 'cfht'
         observation_uri = 'caom:cfht/7000000o'
-        ifile = '/tmp/inputobs'
+        ifile = '/tmp/inputobs.xml'
 
         obs = SimpleObservation(collection, observation_uri)
 
