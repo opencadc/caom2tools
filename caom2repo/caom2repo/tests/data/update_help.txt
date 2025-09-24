@@ -6,7 +6,7 @@ usage: caom2-repo update [-h]
 Update an existing observation
 
 positional arguments:
-  observation           XML file containing the observation
+  observation           XML or JSON file containing the observation
 
 optional arguments:
   --cert CERT           location of your X509 certificate to use for

@@ -3200,7 +3200,7 @@ class ObservationWriter(object):
             for keyword in collection:
                 self._get_caom_element("keyword", element).text = keyword
         else:
-            parent['keywords'] = list(collection)
+            parent['keywords'] = sorted(list(collection))
 
     def _add_coord_range_1d_list_element(self, name, values, parent):
         if values is None:

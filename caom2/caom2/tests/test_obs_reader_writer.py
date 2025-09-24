@@ -1172,8 +1172,6 @@ class TestRoundTrip(unittest.TestCase):
             self.assertEqual(obs_json.acc_meta_checksum, get_acc_meta_checksum(obs_json),
                              "CAOM-2.5 acc_meta_checksum incorrect (JSON)")
             json_source_fp.close()
-            with open('/tmp/test.json', 'w') as tmp_json_file:
-                json_writer.write(obs_json, tmp_json_file)
             output = StringIO()
             json_writer.write(obs_json, output)
             obs_json2 = json_reader.read(output.getvalue())

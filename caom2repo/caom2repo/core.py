@@ -532,7 +532,7 @@ class CAOM2RepoClient(object):
         ObservationWriter(False, False, 'caom2', self.namespace).write(
             observation, ibuffer)
         obs_xml = ibuffer.getvalue()
-        headers = {'Content-Type': 'application/xml'}
+        headers = {'Content-Type': 'text/xml'}
         self._repo_client.put(
             (self.capability_id, path), headers=headers, data=obs_xml)
 
@@ -625,7 +625,7 @@ def main_app():
         'create', description='Create a new observation',
         help='Create a new observation')
     create_parser.add_argument('observation',
-                               help='XML file containing the observation',
+                               help='XML or JSON file containing the observation',
                                type=argparse.FileType('r'))
 
     read_parser = subparsers.add_parser(
@@ -641,7 +641,7 @@ def main_app():
         'update', description='Update an existing observation',
         help='Update an existing observation')
     update_parser.add_argument('observation',
-                               help='XML file containing the observation',
+                               help='XML of JSON file containing the observation',
                                type=argparse.FileType('r'))
 
     delete_parser = subparsers.add_parser(
@@ -747,7 +747,7 @@ def main_app():
 
         elif args.cmd == 'create':
             logger.info("Create")
-            obs_reader = ObservationReader()
+            obs_reader = ObservationReader(input_format=_get_filetype(args.observation))
             client.put_observation(obs_reader.read(args.observation))
         elif args.cmd == 'read':
             logger.info("Read")
@@ -761,7 +761,7 @@ def main_app():
                 observation_writer.write(observation, sys.stdout)
         elif args.cmd == 'update':
             logger.info("Update")
-            obs_reader = ObservationReader()
+            obs_reader = ObservationReader(input_format=_get_filetype(args.observation))
             # TODO not sure if need to read in string first
             client.post_observation(obs_reader.read(args.observation))
         else:
@@ -780,6 +780,18 @@ def main_app():
     else:
         print("Errors encountered")
         sys.exit(-1)
+
+
+def _get_filetype(file_name):
+    # determine if input file is XML or JSON based on file extension
+    if file_name.name.lower().endswith('.json'):
+        filetype = 'json'
+    elif file_name.name.lower().endswith('.xml'):
+        filetype = 'xml'
+    else:
+        raise Exception('Cannot determine input file type from file name: ' +
+                        file_name.name + ', expecting .xml or .json suffix')
+    return filetype
 
 
 def handle_error(exception, logging_level, exit_after=True):
