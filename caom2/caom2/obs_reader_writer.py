@@ -135,7 +135,7 @@ def _to_samples(vertices):
             samples.append(shape.Polygon(points))
             points = []  # continue with a new polygon
         else:
-            if not points:
+            if len(points) == 0:
                 # no move so start from the last closed point
                 points.append(last_closed_point)
             points.append(shape.Point(vertex.cval1, vertex.cval2))
@@ -230,7 +230,7 @@ class ObservationReader(object):
             caom2_entity._meta_producer = element_meta_producer
 
     def _get_child_element(self, element_tag, parent, ns, required):
-        if not parent:
+        if parent is None or len(parent) == 0:
             if required:
                 error = "Parent element is None, cannot find " + element_tag
                 raise ObservationParsingException(error)
@@ -625,7 +625,7 @@ class ObservationReader(object):
                     val = str(uri_element)
                 inputs.add(val)
 
-            if not inputs:
+            if len(inputs) == 0:
                 error = "No planeURI element found in members"
                 raise ObservationParsingException(error)
 
@@ -2318,7 +2318,7 @@ class ObservationWriter(object):
     def _add_groups_element(self, name, groups, parent):
         if self._output_version < 24:
             return
-        if not groups and not self._write_empty_collections:
+        if (groups is None or len(groups) == 0) and not self._write_empty_collections:
             return
         element = self._get_caom_element(name, parent)
         if self._output_format == 'xml':
@@ -2580,7 +2580,7 @@ class ObservationWriter(object):
         if polarization is None:
             return
         element = self._get_caom_element("polarization", parent)
-        if not polarization.states:
+        if polarization.states is None or len(polarization.states) == 0:
             raise AttributeError("Polarization.states missing")
         if polarization.states:
             if self._output_format == 'xml':
@@ -2669,7 +2669,7 @@ class ObservationWriter(object):
         return _interval_element
 
     def _add_samples_element(self, samples, parent):
-        if not samples:
+        if samples is None or len(samples) == 0:
             raise AttributeError("non empty samples attribute is required")
 
         if self._output_format == 'xml':
@@ -2802,7 +2802,7 @@ class ObservationWriter(object):
             self._add_parts_element(_artifact.parts, artifact_element)
 
     def _add_parts_element(self, parts, parent):
-        if not parts:
+        if parts is None or len(parts) == 0:
             return
 
         element = self._get_caom_element("parts", parent)
@@ -2816,7 +2816,7 @@ class ObservationWriter(object):
             self._add_chunks_element(_part.chunks, part_element)
 
     def _add_chunks_element(self, chunks, parent):
-        if not chunks:
+        if chunks is None or len(chunks) == 0:
             return
 
         element = self._get_caom_element("chunks", parent)
