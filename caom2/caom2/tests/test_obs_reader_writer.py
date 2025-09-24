@@ -72,12 +72,12 @@ import os
 import unittest
 
 from lxml import etree
-from io import BytesIO
+from io import BytesIO, StringIO
 import tempfile
 
 from . import caom_test_instances
 from .xml_compare import xml_compare
-from .. import dali
+from .. import dali, get_acc_meta_checksum
 from .. import obs_reader_writer
 from .. import observation
 from .. import plane
@@ -1144,18 +1144,46 @@ class TestRoundTrip(unittest.TestCase):
         return [f for f in os.listdir(THIS_DIR + "/" + TestRoundTrip.TEST_DATA)
                 if f.endswith('.xml')]
 
-    def do_test(self, reader, writer, filename):
+    def do_test(self, reader, writer, filename, json_reader=None, json_writer=None):
         source_file_path = os.path.join(
             THIS_DIR + "/" + TestRoundTrip.TEST_DATA + "/" + filename)
         source_xml_fp = open(source_file_path, 'r')
-        obs = reader.read(source_file_path)
+        obs_xml = reader.read(source_file_path)
         source_xml_fp.close()
         dest_file = BytesIO()
-        writer.write(obs, dest_file)
+        writer.write(obs_xml, dest_file)
         source_dom = etree.parse(source_file_path).getroot()
         dest_dom = etree.fromstring(dest_file.getvalue())
         self.assertTrue(xml_compare(source_dom, dest_dom, reporter=print),
-                        'files are different')
+                        "files are different")
+        dest_file.seek(0)
+        obs_xml2 = reader.read(dest_file)
+        if json_reader and json_writer:
+
+            json_filename = filename.replace(".xml", ".json")
+            json_source_file_path = os.path.join(
+                THIS_DIR + "/" + TestRoundTrip.TEST_DATA + "/" + json_filename)
+            json_source_fp = open(json_source_file_path, 'r')
+            obs_json = json_reader.read(json_source_file_path)
+            # Assume CAOM-2.5 if json reader/writer provided, hence the md5 checksums
+            # must match
+            self.assertEqual(obs_xml.acc_meta_checksum, get_acc_meta_checksum(obs_xml),
+                             "CAOM-2.5 acc_meta_checksum incorrect (XML)")
+            self.assertEqual(obs_json.acc_meta_checksum, get_acc_meta_checksum(obs_json),
+                             "CAOM-2.5 acc_meta_checksum incorrect (JSON)")
+            json_source_fp.close()
+            with open('/tmp/test.json', 'w') as tmp_json_file:
+                json_writer.write(obs_json, tmp_json_file)
+            output = StringIO()
+            json_writer.write(obs_json, output)
+            obs_json2 = json_reader.read(output.getvalue())
+            output.close()
+            self.assertEqual(get_acc_meta_checksum(obs_json), get_acc_meta_checksum(obs_json2),
+                             'JSON read does not match JSON write')
+            self.assertEqual(get_acc_meta_checksum(obs_xml), get_acc_meta_checksum(obs_xml2),
+                             'XML read does not match XML write')
+            # Note: samples were generated differently in XML and JSON, so the checksums are
+            # not expected to match between formats.
 
     # This test reads each file in XML_FILE_SOURCE_DIR, creates the CAOM2
     # objects and writes a file in XML_FILE_DEST_DIR based on the CAOM2
@@ -1179,10 +1207,12 @@ class TestRoundTrip(unittest.TestCase):
                 True, False, "caom2", obs_reader_writer.CAOM24_NAMESPACE)
             writer25 = obs_reader_writer.ObservationWriter(
                 True, False, "caom2", obs_reader_writer.CAOM25_NAMESPACE)
+            json_reader25 = obs_reader_writer.ObservationReader(input_format='json')
+            json_writer25 = obs_reader_writer.ObservationWriter(output_format='json')
             for filename in files:
                 if filename.endswith("CAOM-2.5.xml"):
                     print("test: {}".format(filename))
-                    self.do_test(reader, writer25, filename)
+                    self.do_test(reader, writer25, filename, json_reader25, json_writer25)
                 elif filename.endswith("CAOM-2.4.xml"):
                     print("test: {}".format(filename))
                     self.do_test(reader, writer24, filename)

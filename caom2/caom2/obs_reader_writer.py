@@ -596,7 +596,10 @@ class ObservationReader(object):
             else:
                 obs_tag = "member"
             for member_element in self._get_children(el, ns, obs_tag):
-                members.add(member_element)
+                if self._input_format == 'xml':
+                    members.add(member_element.text)
+                else:
+                    members.add(member_element)
 
     def _add_inputs(self, inputs, parent, ns):
         """Create URI objects from an XML representation of the plane
@@ -1534,7 +1537,7 @@ class ObservationReader(object):
                 _polarization_states.append(_polarization_state)
 
             _dimension = self._get_child_text_as_int("dimension", el,
-                                                                 ns, False)
+                                                     ns, False)
             return Polarization(dimension=_dimension, states=_polarization_states)
         else:
             return None
@@ -1622,21 +1625,20 @@ class ObservationReader(object):
     def _add_vertices(self, vertices, parent, ns):
         _vertices_element = self._get_child_element("vertices", parent, ns,
                                                     False)
-        if self._input_format == 'xml':
-            if _vertices_element is None:
-                return None
-            else:
-                for _vertex_element in self._get_children(_vertices_element, ns, "vertex"):
-                    cval1 = self._get_child_text_as_float("cval1", _vertex_element,
-                                                          ns, False)
-                    cval2 = self._get_child_text_as_float("cval2", _vertex_element,
-                                                          ns, False)
-                    seg_type_value = self._get_child_text_as_int("type",
-                                                                 _vertex_element,
-                                                                 ns, False)
-                    seg_type = shape.SegmentType(seg_type_value)
-                    _vertex = shape.Vertex(cval1, cval2, seg_type)
-                    vertices.append(_vertex)
+        if _vertices_element is None:
+            return None
+        else:
+            for _vertex_element in self._get_children(_vertices_element, ns, "vertex"):
+                cval1 = self._get_child_text_as_float("cval1", _vertex_element,
+                                                      ns, False)
+                cval2 = self._get_child_text_as_float("cval2", _vertex_element,
+                                                      ns, False)
+                seg_type_value = self._get_child_text_as_int("type",
+                                                             _vertex_element,
+                                                             ns, False)
+                seg_type = shape.SegmentType(seg_type_value)
+                _vertex = shape.Vertex(cval1, cval2, seg_type)
+                vertices.append(_vertex)
 
     def _get_interval(self, element_tag, parent, ns, required):
         _interval_el = self._get_child_element(element_tag, parent, ns,
@@ -1645,8 +1647,6 @@ class ObservationReader(object):
             return None
         _lower = self._get_child_text_as_float("lower", _interval_el, ns, True)
         _upper = self._get_child_text_as_float("upper", _interval_el, ns, True)
-        _samples_el = self._get_child_element("samples", _interval_el, ns,
-                                              required)
         _interval = shape.Interval(_lower, _upper)
         return _interval
 
@@ -1876,8 +1876,6 @@ class ObservationReader(object):
                                          False)
                 if data_product_type:
                     _plane.data_product_type = plane.DataProductType(data_product_type)
-                _plane.creator_id = \
-                    self._get_child_text("creatorID", plane_element, ns, False)
                 calibration_level = \
                     self._get_child_text("calibrationLevel", plane_element, ns,
                                          False)
@@ -2096,8 +2094,6 @@ class ObservationWriter(object):
 
             return node
 
-        import json
-        #root = tree.getroot()
         # Convert to dict
         data_dict = xml_to_dict(tree)
 
@@ -2276,7 +2272,8 @@ class ObservationWriter(object):
         self._add_element("geoLocationX", telescope.geo_location_x, element)
         self._add_element("geoLocationY", telescope.geo_location_y, element)
         self._add_element("geoLocationZ", telescope.geo_location_z, element)
-        self._add_element("trackingMode", telescope.tracking_mode.value, element)
+        if telescope.tracking_mode:
+            self._add_element("trackingMode", telescope.tracking_mode.value, element)
         self._add_keywords_element(telescope.keywords, element)
 
     def _add_instrument_element(self, instrument, parent):
@@ -2329,7 +2326,7 @@ class ObservationWriter(object):
                 gr_elem = self._get_caom_element("groupURI", element)
                 gr_elem.text = gr
         else:
-            parent[name] = list(groups) if groups else []
+            parent[name] = sorted(list(groups)) if groups else []
 
     def _add_planes_element(self, planes, parent):
         if planes is None or \
@@ -2509,7 +2506,7 @@ class ObservationWriter(object):
                     eb_element = self._get_caom_element("energyBands", element)
                 else:
                     eb_element = element["energyBands"] = []
-                for bb in energy.energy_bands:
+                for bb in sorted(energy.energy_bands):
                     self._add_element("emBand", bb.value, eb_element)
         if self._output_version < 25:
             self._add_element("restwav", energy.rest, element)
@@ -2598,7 +2595,7 @@ class ObservationWriter(object):
         if position is None:
             return
 
-        shape_element = self._add_shape_element("bounds", parent, position.bounds)
+        bounds_element = self._add_shape_element("bounds", parent, position.bounds)
         if self._output_version < 25:
             if isinstance(position.bounds, shape.Circle):
                 # samples not supported for circles so need to make sure that
@@ -2608,9 +2605,9 @@ class ObservationWriter(object):
                         "Cannot write a CAOM25 circle bounds position as CAOM{} "
                         "Observation".format(self._output_version))
                 else:
-                    pass  # samples is not defined with circles
+                    pass
             else:
-                samples_element = self._get_caom_element("samples", shape_element)
+                samples_element = self._get_caom_element("samples", bounds_element)
                 vertices_element = self._get_caom_element("vertices",
                                                           samples_element)
                 vertices = _to_vertices(position.samples)
@@ -2646,11 +2643,15 @@ class ObservationWriter(object):
             for point in elem_shape.points:
                 self._add_point_element("point", point, points_element)
         elif isinstance(elem_shape, shape.Circle):
-
-            shape_element = self._get_caom_element(name, parent)
             if self._output_format == 'xml':
+                shape_element = self._get_caom_element(name, parent)
                 shape_element.set(XSI + "type", "caom2:Circle")
             else:
+                shape_element = {}
+                if isinstance(parent, list):
+                    parent.append(shape_element)
+                else:
+                    parent[name] = shape_element
                 shape_element["@type"] = "caom2:Circle"
             self._add_point_element("center", elem_shape.center,
                                     shape_element)
@@ -2665,6 +2666,7 @@ class ObservationWriter(object):
         _interval_element = self._get_caom_element(name, parent)
         self._add_element("lower", interval.lower, _interval_element)
         self._add_element("upper", interval.upper, _interval_element)
+        return _interval_element
 
     def _add_samples_element(self, samples, parent):
         if not samples:
@@ -3105,7 +3107,6 @@ class ObservationWriter(object):
         self._add_ref_coord_element("start", _range.start, element)
         self._add_ref_coord_element("end", _range.end, element)
 
-
     def _add_coord_range2d_element(self, name, _range, parent):
         """ Builds a representation of a CoordRange2D and adds it to the
             parent element. """
@@ -3225,7 +3226,7 @@ class ObservationWriter(object):
             for plane_uri in collection:
                 self._add_element(input_tag, plane_uri, element)
         else:
-            parent[name] = [inp for inp in collection]  #TODO list()
+            parent[name] = [inp for inp in collection]
 
     def _get_caom_element(self, tag, parent):
         if self._output_format == 'xml':
@@ -3233,6 +3234,7 @@ class ObservationWriter(object):
         else:
             parent[tag] = {}
             return parent[tag]
+
 
 class ObservationParsingException(Exception):
     pass
