@@ -2059,47 +2059,6 @@ class ObservationWriter(object):
 
         self._nsmap = {namespace_prefix: self._namespace, "xsi": XSI_NAMESPACE}
 
-    def _to_json(tree):
-        def xml_to_dict(element):
-            node = {}
-
-            # Add attributes if any
-            for attrib in element.attrib:
-                localname = etree.QName(attrib).localname
-                node['@' + localname] = element.attrib[attrib]
-
-            # Add children
-            children = list(element)
-            if children:
-                child_dict = {}
-                for child in children:
-                    child_tag = etree.QName(child).localname
-                    child_data = xml_to_dict(child)
-                    if child_tag in child_dict:
-                        # Convert to list if multiple children with same tag
-                        if not isinstance(child_dict[child_tag], list):
-                            child_dict[child_tag] = [child_dict[child_tag]]
-                        child_dict[child_tag].append(child_data)
-                    else:
-                        child_dict[child_tag] = child_data
-                keys = list(child_dict.keys())
-                if len(keys) == 1 and isinstance(child_dict[keys[0]], list):
-                    node = child_dict[keys[0]]
-                else:
-                    node.update(child_dict)
-            else:
-                # No children — use text
-                text = element.text.strip() if element.text else ''
-                node = text if not element.attrib else {**node, '#text': text}
-
-            return node
-
-        # Convert to dict
-        data_dict = xml_to_dict(tree)
-
-        # Convert dict to JSON
-        return json.dumps(data_dict, indent=2)
-
     def write(self, obs, out):
         """
         Writes an observation to an output stream
