@@ -2041,6 +2041,9 @@ class ObservationWriter(object):
         else:
             raise RuntimeError('invalid namespace {}'.format(namespace))
 
+        if self._output_format == 'json' and self._output_version < 25:
+            raise RuntimeError('json output format supported in CAOM-2.5 only')
+
         if self._validate:
             if self._output_format != 'xml':
                 raise AttributeError("Validation works with xml output only")
@@ -2050,6 +2053,9 @@ class ObservationWriter(object):
                 schema_file = CAOM24_SCHEMA_FILE
             elif self._output_version == 23:
                 schema_file = CAOM23_SCHEMA_FILE
+            else:
+                raise RuntimeError(
+                    'invalid output version {}'.format(self._output_version))
             schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
                                        schema_file)
             # schema_path = pkg_resources.resource_filename(
