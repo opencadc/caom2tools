@@ -202,9 +202,9 @@ class ObservationReader(object):
 
     def _get_attribute(self, name, ns, element):
         if self._input_format == 'xml':
-            return element.get("{" + ns + "}" + name)
+            return element.get("{" + ns + "}" + name, None)
         else:
-            return element['@' + name]
+            return element.get('@' + name, None)
 
     def _set_entity_attributes(self, element, ns, caom2_entity):
         element_id = self._get_attribute("id", ns, element)
@@ -312,13 +312,14 @@ class ObservationReader(object):
         """
         keywords_element = self._get_child_element("keywords", element, ns,
                                                    required)
-        if self._input_format == 'xml':
-            if keywords_element is not None:
+
+        if keywords_element is not None:
+            if self._input_format == 'xml':
                 for keyword in self._get_children(keywords_element, ns, "keyword"):
                     keywords_list.add(keyword.text)
-        else:
-            for keyword in keywords_element:
-                keywords_list.add(keyword)
+            else:
+                for keyword in keywords_element:
+                    keywords_list.add(keyword)
 
     def _get_algorithm(self, element_tag, parent, ns, required):
         """Build an Algorithm object from an XML representation
@@ -1936,14 +1937,13 @@ class ObservationReader(object):
                 with open(source, 'r', encoding='utf-8') as f:
                     src = f.read()
 
-            if not isinstance(src, str):
-                raise TypeError(
-                    "Unsupported source type. Must be string, stream, or file path.")
             root = json.loads(src)
             if "http://www.opencadc.org/caom2/xml/v2.5" == root.get("@caom2", None):
                 self.version = 25
             else:
-                self.version = 24
+                raise ObservationParsingException(
+                    "Only http://www.opencadc.org/caom2/xml/v2.5 is supported for JSON input. "
+                    "Received {}".format(root.get("@caom2", None)))
             ns = None
         collection = self._get_child_text("collection", root, ns, True)
         if self._input_format == 'xml' and self.version < 25:
