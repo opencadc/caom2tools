@@ -171,6 +171,9 @@ class ObservationReader(object):
 
         Arguments:
         validate : If True enable schema validation, False otherwise
+
+        Raises:
+        ValueError: Unsupported input_format or Validating JSON Schemas
         """
         if input_format not in ['xml', 'json']:
             raise ValueError("Unsupported format: " + input_format)
