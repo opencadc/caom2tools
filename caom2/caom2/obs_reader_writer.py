@@ -163,12 +163,12 @@ def _to_vertices(samples):
 
 
 class ObservationParser(object):
-    """ Base class for parsing observation elements in different formats"""
+    """ Base class for parsing observation fields and elements in different formats"""
 
     @abstractmethod
     def get_attribute(self, name, element):
         """
-        Abstract method to get an attribute from an element
+        Abstract method to get an attribute of an element
         :param name: name of attribute
         :param element: element to extract it from
         :return: value of the attribute
@@ -188,21 +188,25 @@ class ObservationParser(object):
 
     @abstractmethod
     def get_child_element(self, element_tag, parent, required):
+        """ Get a child element of a parent element"""
         pass
 
     @abstractmethod
     def get_child_text(self, element_tag, parent, required):
+        """ Get the text value of a child element of a parent element"""
         pass
 
     def get_child_text_as_int(self, element_tag, parent, required):
+        """ Get the value of a child element of a parent element as an int"""
         val = self.get_child_text(element_tag, parent, required)
         if val is None:
             return None
         return int(val)
 
-    get_child_text_as_long = get_child_text_as_int
+    get_child_text_as_long = get_child_text_as_int  # Python 3 int is long
 
     def get_child_text_as_float(self, element_tag, parent, required):
+        """"""
         val = self.get_child_text(element_tag, parent, required)
         if val is None:
             return None
@@ -210,6 +214,7 @@ class ObservationParser(object):
 
     @abstractmethod
     def get_child_text_as_boolean(self, element_tag, parent, required):
+        """"""
         pass
 
     def get_datetime(self, element_tag, parent, required):
@@ -242,6 +247,8 @@ class ObservationParser(object):
 
 
 class XmlParser(ObservationParser):
+    """The XmlParser class implements methods to parse XML elements. Note
+    that the namespace field must be set before use."""
 
     def __init__(self):
         self._namespace = None
@@ -249,7 +256,7 @@ class XmlParser(ObservationParser):
     @property
     def namespace(self):
         if self._namespace is None:
-            raise ValueError("Namespace not set")
+            raise ValueError("Default namespace must be set")
         return self._namespace
 
     @namespace.setter
@@ -364,7 +371,7 @@ class ObservationReader(object):
         """
         if input_format == 'xml':
             self._parser = XmlParser()
-        elif input_format ==  'json':
+        elif input_format == 'json':
             self._parser = JsonParser()
         else:
             raise ValueError("Unsupported format: " + input_format)
@@ -442,7 +449,7 @@ class ObservationReader(object):
         parent : element containing the MetaRelease element
         required : indicates whether the element is required
         return : a URISet of group URIs or None
-                None if the document does not contain meta groups element
+                if the document does not contain meta groups element
         raise : ObservationParsingException
         """
         el = self._parser.get_child_element(element_tag, parent, required)
@@ -531,10 +538,9 @@ class ObservationReader(object):
         if el is None:
             return None
         else:
-            coords_element = self._parser.get_child_element("coordinates", el,
-                                                     required)
+            coords_element = self._parser.get_child_element("coordinates", el, required)
             target_position = observation.TargetPosition(
-                self._get_point(coords_element, True),
+                self._get_point(coords_element),
                 self._parser.get_child_text("coordsys", el, True))
             target_position.equinox = (
                 self._parser.get_child_text_as_float("equinox", el, False))
@@ -613,7 +619,7 @@ class ObservationReader(object):
         element_tag : element tag which identifies the element
         parent : element containing the Environment element
         required : indicates whether the element is required
-        return : a Environment object or
+        return : an Environment object or
                  None if the document does not contain an Environment element
         raise : ObservationParsingException
         """
@@ -673,18 +679,16 @@ class ObservationReader(object):
         raise : ObservationParsingException
         """
         el = self._parser.get_child_element("inputs", parent, False)
-        if el is not None:
-            if self.version < 25:
-                plane_tag = "planeURI"
-            else:
-                plane_tag = "input"
+        if el is None:
+            return
 
-            for elem in self._parser.get_children(el, plane_tag):
-                inputs.add(self._parser.get_string_value(elem))
+        if self.version < 25:
+            plane_tag = "planeURI"
+        else:
+            plane_tag = "input"
 
-            if len(inputs) == 0:
-                error = "No planeURI element found in members"
-                raise ObservationParsingException(error)
+        for elem in self._parser.get_children(el, plane_tag):
+            inputs.add(self._parser.get_string_value(elem))
 
     def _get_provenance(self, element_tag, parent, required):
         """Build a Provenance object from an XML representation of a
@@ -734,16 +738,13 @@ class ObservationReader(object):
         else:
             metrics = plane.Metrics()
             metrics.source_number_density = \
-                self._parser.get_child_text_as_float("sourceNumberDensity", el,
-                                              False)
+                self._parser.get_child_text_as_float("sourceNumberDensity", el, False)
             metrics.background = \
                 self._parser.get_child_text_as_float("background", el, False)
             metrics.background_std_dev = \
-                self._parser.get_child_text_as_float("backgroundStddev", el,
-                                              False)
+                self._parser.get_child_text_as_float("backgroundStddev", el, False)
             metrics.flux_density_limit = \
-                self._parser.get_child_text_as_float("fluxDensityLimit", el,
-                                              False)
+                self._parser.get_child_text_as_float("fluxDensityLimit", el, False)
             metrics.mag_limit = \
                 self._parser.get_child_text_as_float("magLimit", el, False)
             metrics.sample_snr = \
@@ -758,7 +759,7 @@ class ObservationReader(object):
         parent : element containing the Quality element
         required : indicates whether the element is required
         return : a Quality object or
-                 None if the document does not contain an Quality element
+                 None if the document does not contain a Quality element
         raise : ObservationParsingException
         """
         el = self._parser.get_child_element(element_tag, parent, required)
@@ -774,7 +775,7 @@ class ObservationReader(object):
 
         Arguments:
         parent : element containing the Observable element
-        return : a Observable object or None if the document does not contain one
+        return : an Observable object or None if the document does not contain one
         raise : ObservationParsingException
         """
         el = self._parser.get_child_element("observable", parent, False)
@@ -788,14 +789,13 @@ class ObservationReader(object):
                 observable.calibration = CalibrationStatus(calib)
             return observable
 
-    def _get_point(self, point, required):
-        """Build an Point object from an XML representation
-        of an Point element.
+    def _get_point(self, point):
+        """Build a Point object from an XML representation
+        of a Point element.
 
         Arguments:
         point : the point element
-        required : indicate whether the element is required
-        return : an Point object
+        return : a Point object
         raise : ObservationParsingException
         """
         return shape.Point(
@@ -1136,7 +1136,7 @@ class ObservationReader(object):
                 self._parser.get_child_text_as_float("resolution", el, False)
             return position
 
-    def _add_children_to_coord_range1d_list(self, element_tag, ranges, parent, required):
+    def _add_children_to_coord_range1d_list(self, element_tag, ranges, parent):
         """Create CoordRange1D objects from an XML representation of the
         range elements and add them to the set of ranges.
 
@@ -1144,7 +1144,6 @@ class ObservationReader(object):
         element_tag : element tag which identifies the element
         ranges : reference to set of ranges
         parent : element containing the ranges elements
-        required : boolean indicating whether the element is required
         """
         for range_element in self._parser.get_children(parent, element_tag):
             ranges.append(wcs.CoordRange1D(
@@ -1171,8 +1170,7 @@ class ObservationReader(object):
             samples_element = self._parser.get_child_element("samples", el, False)
             if samples_element is not None:
                 self._add_children_to_coord_range1d_list(
-                    "range", coord_bounds1d.samples, samples_element,
-                    False)
+                    "range", coord_bounds1d.samples, samples_element)
             return coord_bounds1d
 
     def _get_coord_range1d(self, element_tag, parent, required):
@@ -1336,11 +1334,11 @@ class ObservationReader(object):
         polarization element.
 
         Arguments:
-        element_tag : element tag which indentifies the element
+        element_tag : element tag which identifies the element
         parent : element containing the polarization element
         required : boolean indicating whether the element is required
         return : a PolarizationWCS object or
-                 None if the document does not contain an polarization element
+                 None if the document does not contain a polarization element
         raise : ObservationParsingException
         """
         el = self._parser.get_child_element(element_tag, parent, required)
@@ -1392,11 +1390,9 @@ class ObservationReader(object):
             pos.min_bounds = min_bounds[0]
         pos.dimension = self._get_dimension2d("dimension", el, False)
         pos.max_recoverable_scale = self._get_interval("maxRecoverableScale", el, False)
-        pos.resolution = self._parser.get_child_text_as_float("resolution", el,
-                                                       False)
+        pos.resolution = self._parser.get_child_text_as_float("resolution", el, False)
         pos.resolution_bounds = self._get_interval("resolutionBounds", el, False)
-        pos.sample_size = self._parser.get_child_text_as_float("sampleSize", el,
-                                                        False)
+        pos.sample_size = self._parser.get_child_text_as_float("sampleSize", el, False)
         pos.calibration = self._parser.get_child_text("calibration", el, False)
         return pos
 
@@ -1561,7 +1557,7 @@ class ObservationReader(object):
 
     def _get_shape(self, element_tag, parent, required):
         shape_element = self._parser.get_child_element(element_tag, parent,
-                                                required)
+                                                       required)
         if shape_element is None:
             return None
         if self._input_format == 'xml':
@@ -1570,7 +1566,6 @@ class ObservationReader(object):
             shape_type = shape_element.get("@type")
         if "caom2:Polygon" == shape_type:
             polygon = self._get_polygon(shape_element)
-            samples = None
             if self.version < 25:
                 samples_element = self._parser.get_child_element("samples", shape_element, True)
                 vertices = list()
@@ -1600,7 +1595,7 @@ class ObservationReader(object):
 
     def _get_circle(self, shape_element):
         center = self._parser.get_child_element("center", shape_element, True)
-        center_point = self._get_point(center, True)
+        center_point = self._get_point(center)
         radius = self._parser.get_child_text_as_float(
             "radius", shape_element, True)
         circle = shape.Circle(center=center_point, radius=radius)
@@ -1610,7 +1605,7 @@ class ObservationReader(object):
         points_element = self._parser.get_child_element("points", shape_element, True)
         points = list()
         for point in self._parser.get_children(points_element, "point"):
-            points.append(self._get_point(point, True))
+            points.append(self._get_point(point))
         return shape.Polygon(points)
 
     def _add_energy_bands(self, energy_bands, parent):
@@ -1636,13 +1631,12 @@ class ObservationReader(object):
                 energy_bands.add(plane.EnergyBand(eb))
 
     def _add_vertices(self, vertices, parent):
-        _vertices_element = self._parser.get_child_element("vertices", parent,
-                                                    False)
+        _vertices_element = self._parser.get_child_element("vertices", parent, False)
         if _vertices_element is None:
             return None
         else:
             for _vertex_element in self._parser.get_children(_vertices_element, "vertex"):
-                cval1 = self._parser.get_child_text_as_float("cval1", _vertex_element,False)
+                cval1 = self._parser.get_child_text_as_float("cval1", _vertex_element, False)
                 cval2 = self._parser.get_child_text_as_float("cval2", _vertex_element, False)
                 seg_type_value = self._parser.get_child_text_as_int("type", _vertex_element, False)
                 seg_type = shape.SegmentType(seg_type_value)
@@ -1686,17 +1680,15 @@ class ObservationReader(object):
             for chunk_element in self._parser.get_children(el, "chunk"):
                 _chunk = chunk.Chunk()
                 product_type = \
-                    self._parser.get_child_text("productType", chunk_element,
-                                         False)
+                    self._parser.get_child_text("productType", chunk_element, False)
                 if product_type:
                     _chunk.product_type = \
                         chunk.DataLinkSemantics(product_type)
                 _chunk.naxis = \
-                    self._parser.get_child_text_as_int("naxis", chunk_element,
-                                                False)
+                    self._parser.get_child_text_as_int("naxis", chunk_element, False)
                 _chunk.observable_axis = \
                     self._parser.get_child_text_as_int("observableAxis",
-                                                chunk_element, False)
+                                                       chunk_element, False)
                 _chunk.position_axis_1 = \
                     self._parser.get_child_text_as_int("positionAxis1", chunk_element, False)
                 _chunk.position_axis_2 = \
@@ -1704,13 +1696,12 @@ class ObservationReader(object):
                 _chunk.energy_axis = \
                     self._parser.get_child_text_as_int("energyAxis", chunk_element, False)
                 _chunk.time_axis = \
-                    self._parser.get_child_text_as_int("timeAxis", chunk_element,
-                                                False)
+                    self._parser.get_child_text_as_int("timeAxis", chunk_element, False)
                 _chunk.custom_axis = \
                     self._parser.get_child_text_as_int("customAxis", chunk_element, False)
                 _chunk.polarization_axis = \
                     self._parser.get_child_text_as_int("polarizationAxis",
-                                                chunk_element, False)
+                                                       chunk_element, False)
                 _chunk.observable = \
                     self._get_observable_axis("observable", chunk_element,
                                               False)
@@ -1745,8 +1736,7 @@ class ObservationReader(object):
                     part.Part(
                         self._parser.get_child_text("name", part_element, True))
                 product_type = \
-                    self._parser.get_child_text("productType", part_element,
-                                         False)
+                    self._parser.get_child_text("productType", part_element, False)
                 if product_type:
                     _part.product_type = \
                         chunk.DataLinkSemantics(product_type)
@@ -1771,8 +1761,8 @@ class ObservationReader(object):
                 uri = self._parser.get_child_text("uri", artifact_element, True)
 
                 product_type = self._parser.get_child_text("productType",
-                                                    artifact_element,
-                                                    False)
+                                                           artifact_element,
+                                                           False)
                 if product_type is None:
                     product_type = chunk.DataLinkSemantics.SCIENCE
                     print(
@@ -1782,8 +1772,8 @@ class ObservationReader(object):
                     product_type = chunk.DataLinkSemantics(product_type)
 
                 release_type = self._parser.get_child_text("releaseType",
-                                                    artifact_element,
-                                                    False)
+                                                           artifact_element,
+                                                           False)
                 if release_type is None:
                     release_type = artifact.ReleaseType.DATA
                     print(
@@ -1800,26 +1790,23 @@ class ObservationReader(object):
                             "Parsed artifact URI bucket {} does not match calculated artifact URI bucket {}".
                             format(sub, _artifact.uri_bucket))
                 _artifact.description_id = self._parser.get_child_text("descriptionID",
-                                                                artifact_element, False)
+                                                                       artifact_element, False)
                 cr = self._parser.get_child_text("contentRelease", artifact_element, False)
                 _artifact.content_release = caom_util.str2ivoa(cr)
                 _artifact.content_read_groups = \
                     self._get_groups("contentReadGroups", artifact_element, False)
                 _artifact.content_type = self._parser.get_child_text("contentType",
-                                                              artifact_element, False)
+                                                                     artifact_element, False)
                 _artifact.content_length = (
                     self._parser.get_child_text_as_long("contentLength",
-                                                 artifact_element, False))
+                                                        artifact_element, False))
                 content_checksum = self._parser.get_child_text("contentChecksum",
-                                                        artifact_element,
-                                                        False)
+                                                               artifact_element, False)
                 if content_checksum:
                     _artifact.content_checksum = content_checksum
                 self._add_parts(_artifact.parts, artifact_element)
                 self._set_entity_attributes(artifact_element, _artifact)
                 artifacts[_artifact.uri] = _artifact
-
-
 
     def _add_planes(self, obs, parent):
         """Create Planes object from XML representation of Plane elements
@@ -1840,16 +1827,16 @@ class ObservationReader(object):
                     _uri = "{}/{}".format(
                         obs.uri,
                         self._parser.get_child_text("productID",
-                                             plane_element, True))
+                                                    plane_element, True))
                 else:
                     _uri = self._parser.get_child_text("uri", plane_element, True)
                 _plane = plane.Plane(_uri)
                 _plane.meta_release = caom_util.str2ivoa(
                     self._parser.get_child_text("metaRelease", plane_element,
-                                         False))
+                                                False))
                 _plane.data_release = caom_util.str2ivoa(
                     self._parser.get_child_text("dataRelease", plane_element,
-                                         False))
+                                                False))
                 _plane.meta_read_groups = self._get_groups("metaReadGroups",
                                                            plane_element,
                                                            False)
@@ -1858,12 +1845,12 @@ class ObservationReader(object):
                                                            False)
                 data_product_type = \
                     self._parser.get_child_text("dataProductType", plane_element,
-                                         False)
+                                                False)
                 if data_product_type:
                     _plane.data_product_type = plane.DataProductType(data_product_type)
                 calibration_level = \
                     self._parser.get_child_text("calibrationLevel", plane_element,
-                                         False)
+                                                False)
                 if calibration_level:
                     _plane.calibration_level = \
                         plane.CalibrationLevel(int(calibration_level))
@@ -1894,7 +1881,7 @@ class ObservationReader(object):
 
     def read(self, source):
         """Build an Observation object from an XML document located in source.
-        Source an be a file name/path, a file object, a file-like object or a
+        Source can be a file name/path, a file object, a file-like object or a
         URL using the HTTP or FTP protocol.
 
         Arguments:
@@ -1988,25 +1975,28 @@ class ObservationReader(object):
 
 
 class ObservationFormatter(object):
-    
-    def __init__(self, write_empty_collections=False):
-        self._write_empty_collections = write_empty_collections
+
+    def __init__(self):
         self._namespace = None
-        
-    @property
-    def write_empty_collections(self):
-        return self._write_empty_collections
-    
+
     @abstractmethod
-    def add_attribute(self, name, value, element):
+    def add_attribute(self, name, value, element, namespace=None):
         pass
 
     @abstractmethod
     def add_element(self, name, value, parent):
         pass
-    
+
     @abstractmethod
-    def get_element(self, tag, parent):
+    def create_element(self, tag, parent):
+        """ Create and return a new empty element with the given
+        tag under the given parent."""
+        pass
+
+    @abstractmethod
+    def create_list_element(self, tag, parent):
+        """ Create and return a new empty list element with the given
+        tag under the given parent."""
         pass
 
     @abstractmethod
@@ -2017,13 +2007,23 @@ class ObservationFormatter(object):
     def add_datetime_element(self, name, value, parent):
         pass
 
-    @abstractmethod
     def add_keywords_element(self, collection, parent):
+        self.add_collection_element("keywords", collection, parent, "keyword")
+
+    @abstractmethod
+    def add_collection_element(self, name, collection, parent, elem_label):
+        """ Add a collection element to the parent element.
+        Arguments:
+        name : name of the collection element
+        collection : the collection to add
+        parent : the parent element to add element to
+        elem_label : label of element in the collection (applicable to XML only)
+            """
         pass
 
 
 class XmlFormatter(ObservationFormatter):
-    
+
     @property
     def namespace(self):
         if self._namespace is None:
@@ -2033,47 +2033,50 @@ class XmlFormatter(ObservationFormatter):
     @namespace.setter
     def namespace(self, value):
         self._namespace = value
-        
-    def add_attribute(self, name, value, element):
-        element.set(self.namespace + name, value)
+
+    def add_attribute(self, name, value, element, namespace=None):
+        if namespace is None:
+            element.set(self.namespace + name, value)
+        else:
+            element.set(namespace + name, value)
 
     def add_element(self, name, value, parent):
         if value is None:
             return
-        element = self.get_element(name, parent)
+        element = self.create_element(name, parent)
         if isinstance(value, str):
             element.text = value
         elif isinstance(value, Enum):
             element.text = value.value
         else:
             element.text = str(value)
-            
-    def get_element(self, tag, parent):
+
+    def create_element(self, tag, parent):
         return etree.SubElement(parent, self.namespace + tag)
+
+    create_list_element = create_element  # no difference for XML
 
     def add_boolean_element(self, name, value, parent):
         if value is None:
             return
-        element = self.get_element(name, parent)
+        element = self.create_element(name, parent)
         element.text = str(value).lower()
 
     def add_datetime_element(self, name, value, parent):
         if value is None:
             return
-        element = self.get_element(name, parent)
+        element = self.create_element(name, parent)
         element.text = caom_util.date2ivoa(value)
 
-    def add_keywords_element(self, collection, parent):
-        if collection is None or \
-                (len(collection) == 0 and not self._write_empty_collections):
-            return
-        element = self.get_element("keywords", parent)
-        for keyword in collection:
-            self.get_element("keyword", element).text = keyword
+    def add_collection_element(self, name, collection, parent, elem_label):
+        element = self.create_element(name, parent)
+        if collection is not None:
+            for plane_uri in collection:
+                self.add_element(elem_label, plane_uri, element)
 
 
 class JsonFormatter(ObservationFormatter):
-    def add_attribute(self, name, value, element):
+    def add_attribute(self, name, value, element, namespace=None):
         element['@' + name] = value
 
     def add_element(self, name, value, parent):
@@ -2087,9 +2090,19 @@ class JsonFormatter(ObservationFormatter):
             parent.append(value)
         else:
             parent[name] = value
-            
-    def get_element(self, tag, parent):
+
+    def create_element(self, tag, parent):
+        if isinstance(parent, list):
+            new_elem = {}
+            parent.append(new_elem)
+            return new_elem
         parent[tag] = {}
+        return parent[tag]
+
+    def create_list_element(self, tag, parent):
+        if tag in parent:
+            return parent[tag]
+        parent[tag] = []
         return parent[tag]
 
     def add_boolean_element(self, name, value, parent):
@@ -2102,11 +2115,8 @@ class JsonFormatter(ObservationFormatter):
             return
         parent[name] = caom_util.date2ivoa(value)
 
-    def add_keywords_element(self, collection, parent):
-        if collection is None or \
-                (len(collection) == 0 and not self.write_empty_collections):
-            return
-        parent['keywords'] = sorted(list(collection))
+    def add_collection_element(self, name, collection, parent, elem_label):
+        parent[name] = sorted(list(collection))
 
 
 class ObservationWriter(object):
@@ -2121,21 +2131,6 @@ class ObservationWriter(object):
         collections namespace_prefix : a CAOM-2.x namespace prefix
         namespace : a valid CAOM-2.x target namespace
         """
-        if output_format == 'xml':
-            self._formatter = XmlFormatter(write_empty_collections)
-        elif output_format == 'json':
-            self._formatter = JsonFormatter(write_empty_collections)
-        else:
-            raise RuntimeError('invalid output format {}'.format(output_format))
-        self._output_format = output_format
-
-        self._validate = validate
-        self._write_empty_collections = write_empty_collections
-
-        if (namespace_prefix is None or not namespace_prefix) \
-                and output_format == 'xml':
-            raise RuntimeError('null or empty namespace_prefix not allowed')
-
         if namespace is None or namespace == CAOM25_NAMESPACE:
             self._output_version = 25
             self._caom2_namespace = CAOM25
@@ -2149,32 +2144,45 @@ class ObservationWriter(object):
             self._caom2_namespace = CAOM23
             self._namespace = CAOM23_NAMESPACE
         else:
-            raise RuntimeError('invalid namespace {}'.format(namespace))
+            raise RuntimeError(
+                'invalid namespace {}'.format(namespace))
+        self._validate = False
         if output_format == 'xml':
-            self._formatter.namespace = self._caom2_namespace
-
-        if self._output_format == 'json' and self._output_version < 25:
-            raise RuntimeError('json output format supported in CAOM-2.5 only')
-
-        if self._validate:
-            if self._output_format != 'xml':
-                raise AttributeError("Validation works with xml output only")
-            if self._output_version == 25:
-                schema_file = CAOM25_SCHEMA_FILE
-            elif self._output_version == 24:
-                schema_file = CAOM24_SCHEMA_FILE
-            elif self._output_version == 23:
-                schema_file = CAOM23_SCHEMA_FILE
-            else:
+            self._formatter = XmlFormatter()
+            if namespace_prefix is None or not namespace_prefix:
                 raise RuntimeError(
-                    'invalid output version {}'.format(self._output_version))
-            schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
-                                       schema_file)
-            # schema_path = pkg_resources.resource_filename(
-            #     DATA_PKG, schema_file)
-            xmlschema_doc = etree.parse(schema_path)
-            self._xmlschema = etree.XMLSchema(xmlschema_doc)
+                    'null or empty namespace_prefix not allowed')
+            self._validate = validate
+            self._formatter.namespace = self._caom2_namespace
+            if self._validate:
+                if self._output_version == 25:
+                    schema_file = CAOM25_SCHEMA_FILE
+                elif self._output_version == 24:
+                    schema_file = CAOM24_SCHEMA_FILE
+                elif self._output_version == 23:
+                    schema_file = CAOM23_SCHEMA_FILE
+                else:
+                    raise RuntimeError(
+                        'invalid output version {}'.format(
+                            self._output_version))
+                schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
+                                           schema_file)
+                # schema_path = pkg_resources.resource_filename(
+                #     DATA_PKG, schema_file)
+                xmlschema_doc = etree.parse(schema_path)
+                self._xmlschema = etree.XMLSchema(xmlschema_doc)
+        elif output_format == 'json':
+            self._formatter = JsonFormatter()
+            if validate:
+                raise RuntimeError("Validation not supported for JSON output")
+            if self._output_version < 25:
+                raise RuntimeError(
+                    'json output format supported in CAOM-2.5 only')
+        else:
+            raise RuntimeError('invalid output format {}'.format(output_format))
+        self._output_format = output_format
 
+        self._write_empty_collections = write_empty_collections
         self._nsmap = {namespace_prefix: self._namespace, "xsi": XSI_NAMESPACE}
 
     def write(self, obs, out):
@@ -2215,7 +2223,7 @@ class ObservationWriter(object):
             self._formatter.add_element("uri", obs.uri, obs_element)
             self._formatter.add_element('uriBucket', obs.uri_bucket, obs_element)
         self._formatter.add_datetime_element("metaRelease", obs.meta_release,
-                                   obs_element)
+                                             obs_element)
         if self._output_version < 24 and obs.meta_read_groups:
             raise AttributeError(
                 "Attempt to write CAOM2.4 element "
@@ -2242,7 +2250,14 @@ class ObservationWriter(object):
             self._add_members_element(obs.members, obs_element)
 
         if self._validate and self._xmlschema:
-            self._xmlschema.assertValid(obs_element)
+            try:
+                self._xmlschema.assertValid(obs_element)
+            except Exception as e:
+                tree = etree.ElementTree(obs_element)
+                content = etree.tostring(tree, encoding='unicode',
+                                         pretty_print=True)
+                raise RuntimeError(
+                    "Generated XML document is not valid: " + str(e) + "\nDetails:\n" + content)
 
         if self._output_format == 'xml':
             tree = etree.ElementTree(obs_element)
@@ -2286,14 +2301,14 @@ class ObservationWriter(object):
         if algorithm is None:
             return
 
-        element = self._formatter.get_element("algorithm", parent)
+        element = self._formatter.create_element("algorithm", parent)
         self._formatter.add_element("name", algorithm.name, element)
 
     def _add_proposal_element(self, proposal, parent):
         if proposal is None:
             return
 
-        element = self._formatter.get_element("proposal", parent)
+        element = self._formatter.create_element("proposal", parent)
         self._formatter.add_element("id", proposal.id, element)
         self._formatter.add_element("pi", proposal.pi, element)
         self._formatter.add_element("project", proposal.project, element)
@@ -2305,7 +2320,7 @@ class ObservationWriter(object):
         if target is None:
             return
 
-        element = self._formatter.get_element("target", parent)
+        element = self._formatter.create_element("target", parent)
         self._formatter.add_element("name", target.name, element)
         if target.target_id is not None:
             if self._output_version >= 24:
@@ -2325,7 +2340,7 @@ class ObservationWriter(object):
         if target_position is None:
             return
 
-        element = self._formatter.get_element("targetPosition", parent)
+        element = self._formatter.create_element("targetPosition", parent)
         self._formatter.add_element("coordsys", target_position.coordsys, element)
         if target_position.equinox is not None:
             self._formatter.add_element("equinox", target_position.equinox, element)
@@ -2336,7 +2351,7 @@ class ObservationWriter(object):
         if requirements is None:
             return
 
-        element = self._formatter.get_element("requirements", parent)
+        element = self._formatter.create_element("requirements", parent)
         self._formatter.add_element(
             "flag", requirements.flag.value, element)
 
@@ -2344,7 +2359,7 @@ class ObservationWriter(object):
         if telescope is None:
             return
 
-        element = self._formatter.get_element("telescope", parent)
+        element = self._formatter.create_element("telescope", parent)
         self._formatter.add_element("name", telescope.name, element)
         self._formatter.add_element("geoLocationX", telescope.geo_location_x, element)
         self._formatter.add_element("geoLocationY", telescope.geo_location_y, element)
@@ -2357,7 +2372,7 @@ class ObservationWriter(object):
         if instrument is None:
             return
 
-        element = self._formatter.get_element("instrument", parent)
+        element = self._formatter.create_element("instrument", parent)
         self._formatter.add_element("name", instrument.name, element)
         self._formatter.add_keywords_element(instrument.keywords, element)
 
@@ -2365,7 +2380,7 @@ class ObservationWriter(object):
         if environment is None:
             return
 
-        element = self._formatter.get_element("environment", parent)
+        element = self._formatter.create_element("environment", parent)
         self._formatter.add_element("seeing", environment.seeing, element)
         self._formatter.add_element("humidity", environment.humidity, element)
         self._formatter.add_element("elevation", environment.elevation, element)
@@ -2373,52 +2388,37 @@ class ObservationWriter(object):
         self._formatter.add_element("wavelengthTau", environment.wavelength_tau, element)
         self._formatter.add_element("ambientTemp", environment.ambient_temp, element)
         self._formatter.add_boolean_element("photometric", environment.photometric,
-                                  element)
+                                            element)
 
     def _add_members_element(self, members, parent):
         if members is None or \
                 (len(members) == 0 and not self._write_empty_collections):
             return
 
-        element = self._formatter.get_element("members", parent)
-        if self._output_format == 'xml':
-            if self._output_version < 25:
-                member_tag = "observationURI"
-            else:
-                member_tag = "member"
-            for member in members:
-                member_element = self._formatter.get_element(member_tag, element)
-                member_element.text = member
+        element = self._formatter.create_list_element("members", parent)
+        if self._output_version < 25:
+            member_tag = "observationURI"
         else:
-            parent["members"] = list(members) if members else []
+            member_tag = "member"
+        for member in members:
+            self._formatter.add_element(member_tag, member, element)
 
     def _add_groups_element(self, name, groups, parent):
         if self._output_version < 24:
             return
         if (groups is None or len(groups) == 0) and not self._write_empty_collections:
             return
-        element = self._formatter.get_element(name, parent)
-        if self._output_format == 'xml':
-            for gr in groups:
-                gr_elem = self._formatter.get_element("groupURI", element)
-                gr_elem.text = gr
-        else:
-            parent[name] = sorted(list(groups)) if groups else []
+        element = self._formatter.create_list_element(name, parent)
+        for gr in groups:
+            self._formatter.add_element("groupURI", gr, element)
 
     def _add_planes_element(self, planes, parent):
         if planes is None or \
                 (len(planes) == 0 and not self._write_empty_collections):
             return
-        if self._output_format == 'xml':
-            element = self._formatter.get_element("planes", parent)
-        else:
-            element = parent["planes"] = []
+        element = self._formatter.create_list_element("planes", parent)
         for _plane in planes.values():
-            if self._output_format == 'xml':
-                plane_element = self._formatter.get_element("plane", element)
-            else:
-                plane_element = {}
-                element.append(plane_element)
+            plane_element = self._formatter.create_element("plane", element)
             self._add_entity_attributes(_plane, plane_element)
             if self._output_version < 25:
                 _comp = _plane.uri.split('/')
@@ -2429,7 +2429,7 @@ class ObservationWriter(object):
             else:
                 self._formatter.add_element("uri", _plane.uri, plane_element)
             self._formatter.add_datetime_element("metaRelease", _plane.meta_release,
-                                       plane_element)
+                                                 plane_element)
             if self._output_version < 24 and _plane.meta_read_groups:
                 raise AttributeError(
                     "Attempt to write CAOM2.4 element "
@@ -2437,7 +2437,7 @@ class ObservationWriter(object):
             self._add_groups_element("metaReadGroups", _plane.meta_read_groups,
                                      plane_element)
             self._formatter.add_datetime_element("dataRelease", _plane.data_release,
-                                       plane_element)
+                                                 plane_element)
             if self._output_version < 24 and _plane.data_read_groups:
                 raise AttributeError(
                     "Attempt to write CAOM2.4 element "
@@ -2446,12 +2446,12 @@ class ObservationWriter(object):
                                      plane_element)
             if _plane.data_product_type is not None:
                 self._formatter.add_element("dataProductType",
-                                  _plane.data_product_type.value,
-                                  plane_element)
+                                            _plane.data_product_type.value,
+                                            plane_element)
             if _plane.calibration_level is not None:
                 self._formatter.add_element("calibrationLevel",
-                                  _plane.calibration_level.value,
-                                  plane_element)
+                                            _plane.calibration_level.value,
+                                            plane_element)
             self._add_provenance_element(_plane.provenance, plane_element)
             self._add_observable_element(_plane.observable, plane_element)
             self._add_metrics_element(_plane.metrics, plane_element)
@@ -2481,17 +2481,17 @@ class ObservationWriter(object):
             raise AttributeError("Attempt to output CAOM2.5 attribute (Plane.visibility) as "
                                  "{} Observation".format(self._output_version))
 
-        element = self._formatter.get_element("visibility", parent)
+        element = self._formatter.create_element("visibility", parent)
         self._add_interval_element("distance", visibility.distance, element)
         self._formatter.add_element("distributionEccentricity", visibility.distribution_eccentricity,
-                          element)
+                                    element)
         self._formatter.add_element("distributionFill", visibility.distribution_fill, element)
 
     def _add_position_element(self, position, parent):
         if position is None:
             return
 
-        element = self._formatter.get_element("position", parent)
+        element = self._formatter.create_element("position", parent)
         self._add_bounds_and_samples(position, element)
         if position.min_bounds:
             if self._output_version < 25:
@@ -2529,7 +2529,7 @@ class ObservationWriter(object):
     def _add_energy_element(self, energy, parent):
         if energy is None:
             return
-        element = self._formatter.get_element("energy", parent)
+        element = self._formatter.create_element("energy", parent)
         bounds_elem = self._add_interval_element("bounds", energy.bounds, element)
         if self._output_version < 25:
             # samples element is within bounds element
@@ -2575,14 +2575,11 @@ class ObservationWriter(object):
                         "(energy.energy_bands) as CAOM2.3 Observation")
                 else:
                     self._formatter.add_element("emBand",
-                                      next(iter(energy.energy_bands)).value,
-                                      element)
+                                                next(iter(energy.energy_bands)).value,
+                                                element)
             else:
                 self._formatter.add_element("energyBands", None, element)
-                if self._output_format == 'xml':
-                    eb_element = self._formatter.get_element("energyBands", element)
-                else:
-                    eb_element = element["energyBands"] = []
+                eb_element = self._formatter.create_list_element("energyBands", element)
                 for bb in sorted(energy.energy_bands):
                     self._formatter.add_element("emBand", bb.value, eb_element)
         if self._output_version < 25:
@@ -2590,10 +2587,10 @@ class ObservationWriter(object):
         else:
             self._formatter.add_element("rest", energy.rest, element)
         if energy.transition:
-            transition = self._formatter.get_element("transition", element)
+            transition = self._formatter.create_element("transition", element)
             self._formatter.add_element("species", energy.transition.species, transition)
             self._formatter.add_element("transition", energy.transition.transition,
-                              transition)
+                                        transition)
         if energy.calibration:
             if self._output_version < 25:
                 raise AttributeError(
@@ -2605,7 +2602,7 @@ class ObservationWriter(object):
     def _add_time_element(self, time, parent):
         if time is None:
             return
-        element = self._formatter.get_element("time", parent)
+        element = self._formatter.create_element("time", parent)
         bounds_elem = self._add_interval_element("bounds", time.bounds, element)
         if self._output_version < 25:
             # samples element is within bounds element
@@ -2643,7 +2640,7 @@ class ObservationWriter(object):
     def _add_custom_element(self, custom, parent):
         if custom is None:
             return
-        element = self._formatter.get_element("custom", parent)
+        element = self._formatter.create_element("custom", parent)
         self._formatter.add_element("ctype", custom.ctype, element)
         bounds_elem = self._add_interval_element("bounds", custom.bounds, element)
         if self._output_version < 25:
@@ -2656,14 +2653,11 @@ class ObservationWriter(object):
     def _add_polarization_element(self, polarization, parent):
         if polarization is None:
             return
-        element = self._formatter.get_element("polarization", parent)
+        element = self._formatter.create_element("polarization", parent)
         if polarization.states is None or len(polarization.states) == 0:
             raise AttributeError("Polarization.states missing")
         if polarization.states:
-            if self._output_format == 'xml':
-                _pstates_el = self._formatter.get_element("states", element)
-            else:
-                _pstates_el = element["states"] = []
+            _pstates_el = self._formatter.create_list_element("states", element)
             for _state in polarization.states:
                 self._formatter.add_element("state", _state.value, _pstates_el)
         self._formatter.add_element("dimension", polarization.dimension, element)
@@ -2684,54 +2678,32 @@ class ObservationWriter(object):
                 else:
                     pass
             else:
-                samples_element = self._formatter.get_element("samples", bounds_element)
-                vertices_element = self._formatter.get_element("vertices",
-                                                          samples_element)
+                samples_element = self._formatter.create_element("samples", bounds_element)
+                vertices_element = self._formatter.create_list_element("vertices",
+                                                                       samples_element)
                 vertices = _to_vertices(position.samples)
                 for vertex in vertices:
-                    vertex_element = self._formatter.get_element("vertex",
-                                                            vertices_element)
+                    vertex_element = self._formatter.create_element("vertex",
+                                                                    vertices_element)
                     self._formatter.add_element("cval1", vertex.cval1, vertex_element)
                     self._formatter.add_element("cval2", vertex.cval2, vertex_element)
                     self._formatter.add_element("type", vertex.type.value, vertex_element)
         else:
-            if self._output_format == 'xml':
-                samples_element = self._formatter.get_element("samples", parent=parent)
-            else:
-                samples_element = parent["samples"] = []
+            samples_element = self._formatter.create_list_element("samples", parent=parent)
             for samples_shape in position.samples.shapes:
                 self._add_shape_element("shape", samples_element, samples_shape)
 
     def _add_shape_element(self, name, parent, elem_shape):
         if isinstance(elem_shape, shape.Polygon):
-            if self._output_format == 'xml':
-                shape_element = self._formatter.get_element(name, parent)
-                shape_element.set(XSI + "type", "caom2:Polygon")
-                points_element = self._formatter.get_element("points",
-                                                        shape_element)
-            else:
-                shape_element = {}
-                if isinstance(parent, list):
-                    parent.append(shape_element)
-                else:
-                    parent[name] = shape_element
-                shape_element["@type"] = "caom2:Polygon"
-                points_element = shape_element["points"] = []
+            shape_element = self._formatter.create_element(name, parent)
+            self._formatter.add_attribute("type", "caom2:Polygon", shape_element, namespace=XSI)
+            points_element = self._formatter.create_list_element("points", shape_element)
             for point in elem_shape.points:
                 self._add_point_element("point", point, points_element)
         elif isinstance(elem_shape, shape.Circle):
-            if self._output_format == 'xml':
-                shape_element = self._formatter.get_element(name, parent)
-                shape_element.set(XSI + "type", "caom2:Circle")
-            else:
-                shape_element = {}
-                if isinstance(parent, list):
-                    parent.append(shape_element)
-                else:
-                    parent[name] = shape_element
-                shape_element["@type"] = "caom2:Circle"
-            self._add_point_element("center", elem_shape.center,
-                                    shape_element)
+            shape_element = self._formatter.create_element(name, parent)
+            self._formatter.add_attribute("type", "caom2:Circle", shape_element, namespace=XSI)
+            self._add_point_element("center", elem_shape.center, shape_element)
             self._formatter.add_element("radius", elem_shape.radius, shape_element)
         else:
             raise TypeError("Unsupported shape type " + elem_shape.__class__.__name__)
@@ -2740,7 +2712,7 @@ class ObservationWriter(object):
     def _add_interval_element(self, name, interval, parent):
         if interval is None:
             return
-        _interval_element = self._formatter.get_element(name, parent)
+        _interval_element = self._formatter.create_element(name, parent)
         self._formatter.add_element("lower", interval.lower, _interval_element)
         self._formatter.add_element("upper", interval.upper, _interval_element)
         return _interval_element
@@ -2749,17 +2721,9 @@ class ObservationWriter(object):
         if samples is None or len(samples) == 0:
             raise AttributeError("non empty samples attribute is required")
 
-        if self._output_format == 'xml':
-            _samples_element = self._formatter.get_element("samples", parent)
-        else:
-            _samples_element = parent["samples"] = []
+        _samples_element = self._formatter.create_list_element("samples", parent)
         for _sample in samples:
-            if self._output_format == 'xml':
-                _sample_element = self._formatter.get_element("sample",
-                                                         _samples_element)
-            else:
-                _sample_element = {}
-                _samples_element.append(_sample_element)
+            _sample_element = self._formatter.create_element("sample", _samples_element)
             self._formatter.add_element("lower", _sample.lower, _sample_element)
             self._formatter.add_element("upper", _sample.upper, _sample_element)
 
@@ -2767,30 +2731,33 @@ class ObservationWriter(object):
         if provenance is None:
             return
 
-        element = self._formatter.get_element("provenance", parent)
+        element = self._formatter.create_element("provenance", parent)
         self._formatter.add_element("name", provenance.name, element)
         self._formatter.add_element("version", provenance.version, element)
         self._formatter.add_element("project", provenance.project, element)
         self._formatter.add_element("producer", provenance.producer, element)
         self._formatter.add_element("runID", provenance.run_id, element)
         self._formatter.add_element("reference", provenance.reference, element)
-        self._formatter.add_datetime_element("lastExecuted", provenance.last_executed,
-                                   element)
+        self._formatter.add_datetime_element("lastExecuted", provenance.last_executed, element)
         self._formatter.add_keywords_element(provenance.keywords, element)
-        self._add_inputs_element("inputs", provenance.inputs, element)
+        if self._output_version < 25:
+            input_tag = "planeURI"
+        else:
+            input_tag = "input"
+        self._formatter.add_collection_element("inputs", provenance.inputs, element, input_tag)
 
     def _add_metrics_element(self, metrics, parent):
         if metrics is None:
             return
 
-        element = self._formatter.get_element("metrics", parent)
+        element = self._formatter.create_element("metrics", parent)
         self._formatter.add_element("sourceNumberDensity", metrics.source_number_density,
-                          element)
+                                    element)
         self._formatter.add_element("background", metrics.background, element)
         self._formatter.add_element("backgroundStddev", metrics.background_std_dev,
-                          element)
+                                    element)
         self._formatter.add_element("fluxDensityLimit", metrics.flux_density_limit,
-                          element)
+                                    element)
         self._formatter.add_element("magLimit", metrics.mag_limit, element)
         if self._output_version >= 24:
             self._formatter.add_element("sampleSNR", metrics.sample_snr, element)
@@ -2799,14 +2766,14 @@ class ObservationWriter(object):
         if quality is None:
             return
 
-        element = self._formatter.get_element("quality", parent)
+        element = self._formatter.create_element("quality", parent)
         self._formatter.add_element("flag", quality.flag.value, element)
 
     def _add_observable_element(self, observable, parent):
         if observable is None:
             return
 
-        element = self._formatter.get_element("observable", parent)
+        element = self._formatter.create_element("observable", parent)
         self._formatter.add_element("ucd", observable.ucd, element)
         if observable.calibration:
             if self._output_version < 25:
@@ -2820,7 +2787,7 @@ class ObservationWriter(object):
         if transition is None:
             return
 
-        element = self._formatter.get_element("transition", parent)
+        element = self._formatter.create_element("transition", parent)
         self._formatter.add_element("species", transition.species, element)
         self._formatter.add_element("transition", transition.transition, element)
 
@@ -2828,31 +2795,24 @@ class ObservationWriter(object):
         if artifacts is None:
             return
 
-        if self._output_format == 'xml':
-            element = self._formatter.get_element("artifacts", parent)
-        else:
-            element = parent["artifacts"] = []
+        element = self._formatter.create_list_element("artifacts", parent)
         for _artifact in artifacts.values():
-            if self._output_format == 'xml':
-                artifact_element = self._formatter.get_element("artifact", element)
-            else:
-                artifact_element = {}
-                element.append(artifact_element)
+            artifact_element = self._formatter.create_element("artifact", element)
             self._add_entity_attributes(_artifact, artifact_element)
             self._formatter.add_element("uri", _artifact.uri, artifact_element)
             if self._output_version >= 25:
                 self._formatter.add_element("uriBucket", _artifact.uri_bucket, artifact_element)
             self._formatter.add_element("productType", _artifact.product_type.value,
-                              artifact_element)
+                                        artifact_element)
             self._formatter.add_element("releaseType", _artifact.release_type.value,
-                              artifact_element)
+                                        artifact_element)
             if self._output_version < 24 and _artifact.content_release:
                 raise AttributeError(
                     "Attempt to write CAOM2.4 element "
                     "(artifact.content_realease) as CAOM2.3 Observation")
             self._formatter.add_datetime_element('contentRelease',
-                                       _artifact.content_release,
-                                       artifact_element)
+                                                 _artifact.content_release,
+                                                 artifact_element)
             if self._output_version < 24 and _artifact.content_read_groups:
                 raise AttributeError(
                     "Attempt to write CAOM2.4 element "
@@ -2861,13 +2821,13 @@ class ObservationWriter(object):
                                      _artifact.content_read_groups,
                                      artifact_element)
             self._formatter.add_element("contentType", _artifact.content_type,
-                              artifact_element)
+                                        artifact_element)
             self._formatter.add_element("contentLength", _artifact.content_length,
-                              artifact_element)
+                                        artifact_element)
             if _artifact.content_checksum:
                 self._formatter.add_element("contentChecksum",
-                                  _artifact.content_checksum,
-                                  artifact_element)
+                                            _artifact.content_checksum,
+                                            artifact_element)
             if _artifact.description_id is not None:
                 if self._output_version < 25:
                     raise AttributeError(
@@ -2875,53 +2835,53 @@ class ObservationWriter(object):
                         "(artifact.description_id) as CAOM{} Observation".format(self._output_version))
                 else:
                     self._formatter.add_element("descriptionID",
-                                      _artifact.description_id, artifact_element)
+                                                _artifact.description_id, artifact_element)
             self._add_parts_element(_artifact.parts, artifact_element)
 
     def _add_parts_element(self, parts, parent):
         if parts is None or len(parts) == 0:
             return
 
-        element = self._formatter.get_element("parts", parent)
+        element = self._formatter.create_element("parts", parent)
         for _part in parts.values():
-            part_element = self._formatter.get_element("part", element)
+            part_element = self._formatter.create_element("part", element)
             self._add_entity_attributes(_part, part_element)
             self._formatter.add_element("name", _part.name, part_element)
             if _part.product_type is not None:
                 self._formatter.add_element("productType", _part.product_type.value,
-                                  part_element)
+                                            part_element)
             self._add_chunks_element(_part.chunks, part_element)
 
     def _add_chunks_element(self, chunks, parent):
         if chunks is None or len(chunks) == 0:
             return
 
-        element = self._formatter.get_element("chunks", parent)
+        element = self._formatter.create_element("chunks", parent)
         for _chunk in chunks:
-            chunk_element = self._formatter.get_element("chunk", element)
+            chunk_element = self._formatter.create_element("chunk", element)
             self._add_entity_attributes(_chunk, chunk_element)
             if _chunk.product_type is not None:
                 self._formatter.add_element("productType",
-                                  _chunk.product_type.value,
-                                  chunk_element)
+                                            _chunk.product_type.value,
+                                            chunk_element)
             self._formatter.add_element("naxis", _chunk.naxis, chunk_element)
             self._formatter.add_element("observableAxis", _chunk.observable_axis,
-                              chunk_element)
+                                        chunk_element)
             self._formatter.add_element("positionAxis1", _chunk.position_axis_1,
-                              chunk_element)
+                                        chunk_element)
             self._formatter.add_element("positionAxis2", _chunk.position_axis_2,
-                              chunk_element)
+                                        chunk_element)
             self._formatter.add_element("energyAxis", _chunk.energy_axis, chunk_element)
             self._formatter.add_element("timeAxis", _chunk.time_axis, chunk_element)
             self._formatter.add_element("polarizationAxis", _chunk.polarization_axis,
-                              chunk_element)
+                                        chunk_element)
             if _chunk.custom_axis is not None:
                 if self._output_version < 24:
                     raise AttributeError(
                         'Chunk.custom_axis only supported in CAOM2.4')
                 else:
                     self._formatter.add_element("customAxis", _chunk.custom_axis,
-                                      chunk_element)
+                                                chunk_element)
             self._add_observable_axis_element(_chunk.observable, chunk_element)
             self._add_spatial_wcs_element(_chunk.position, chunk_element)
             self._add_spectral_wcs_element(_chunk.energy, chunk_element)
@@ -2940,7 +2900,7 @@ class ObservationWriter(object):
         if observable is None:
             return
 
-        element = self._formatter.get_element("observable", parent)
+        element = self._formatter.create_element("observable", parent)
         self._add_slice_element("dependent", observable.dependent, element)
         self._add_slice_element("independent", observable.independent, element)
 
@@ -2950,7 +2910,7 @@ class ObservationWriter(object):
         if position is None:
             return
 
-        element = self._formatter.get_element("position", parent)
+        element = self._formatter.create_element("position", parent)
         self._add_coord_axis2d_element("axis", position.axis, element)
         self._formatter.add_element("coordsys", position.coordsys, element)
         self._formatter.add_element("equinox", position.equinox, element)
@@ -2962,7 +2922,7 @@ class ObservationWriter(object):
         if energy is None:
             return
 
-        element = self._formatter.get_element("energy", parent)
+        element = self._formatter.create_element("energy", parent)
         self._add_coord_axis1d_element("axis", energy.axis, element)
         self._formatter.add_element("specsys", energy.specsys, element)
         self._formatter.add_element("ssysobs", energy.ssysobs, element)
@@ -2982,7 +2942,7 @@ class ObservationWriter(object):
         if time is None:
             return
 
-        element = self._formatter.get_element("time", parent)
+        element = self._formatter.create_element("time", parent)
         self._add_coord_axis1d_element("axis", time.axis, element)
         self._formatter.add_element("timesys", time.timesys, element)
         self._formatter.add_element("trefpos", time.trefpos, element)
@@ -2996,7 +2956,7 @@ class ObservationWriter(object):
         if polarization is None:
             return
 
-        element = self._formatter.get_element("polarization", parent)
+        element = self._formatter.create_element("polarization", parent)
         self._add_coord_axis1d_element("axis", polarization.axis, element)
 
     def _add_custom_wcs_element(self, custom, parent):
@@ -3005,7 +2965,7 @@ class ObservationWriter(object):
         if custom is None:
             return
 
-        element = self._formatter.get_element("custom", parent)
+        element = self._formatter.create_element("custom", parent)
         self._add_coord_axis1d_element("axis", custom.axis, element)
 
     # /*+ CAOM2 Types #-*/
@@ -3016,14 +2976,7 @@ class ObservationWriter(object):
         if point is None:
             return
 
-        if self._output_format == 'xml':
-            element = self._formatter.get_element(name, parent)
-        else:
-            element = {}
-            if isinstance(parent, list):
-                parent.append(element)
-            else:
-                parent[name] = element
+        element = self._formatter.create_element(name, parent)
 
         self._formatter.add_element("cval1", point.cval1, element)
         self._formatter.add_element("cval2", point.cval2, element)
@@ -3031,12 +2984,12 @@ class ObservationWriter(object):
     # /*+ WCS Types #-*/
 
     def _add_axis_element(self, name, axis, parent):
-        """ Builds a representation of a Axis and adds it to the
+        """ Builds a representation of an Axis and adds it to the
             parent element. """
         if axis is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._formatter.add_element("ctype", axis.ctype, element)
         if axis.cunit:
             self._formatter.add_element("cunit", axis.cunit, element)
@@ -3047,7 +3000,7 @@ class ObservationWriter(object):
         if coord is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_ref_coord_element("coord1", coord.coord1, element)
         self._add_ref_coord_element("coord2", coord.coord2, element)
 
@@ -3057,7 +3010,7 @@ class ObservationWriter(object):
         if coord is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._formatter.add_element("coord1", coord.coord1, element)
         self._formatter.add_element("coord2", coord.coord2, element)
 
@@ -3067,7 +3020,7 @@ class ObservationWriter(object):
         if axis is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_axis_element("axis", axis.axis, element)
         self._add_coord_error_element("error", axis.error, element)
         self._add_coord_range1d_element("range", axis.range, element)
@@ -3080,7 +3033,7 @@ class ObservationWriter(object):
         if axis is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_axis_element("axis1", axis.axis1, element)
         self._add_axis_element("axis2", axis.axis2, element)
         self._add_coord_error_element("error1", axis.error1, element)
@@ -3095,7 +3048,7 @@ class ObservationWriter(object):
         if bounds is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_coord_range_1d_list_element("samples", bounds.samples,
                                               element)
 
@@ -3105,7 +3058,7 @@ class ObservationWriter(object):
         if bounds is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         if isinstance(bounds, wcs.CoordCircle2D):
             self._add_coord_circle2d_element("circle",
                                              wcs.CoordCircle2D(bounds.center,
@@ -3123,7 +3076,7 @@ class ObservationWriter(object):
         if circle is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_value_coord2d_element("center", circle.center, element)
         self._formatter.add_element("radius", circle.radius, element)
 
@@ -3133,7 +3086,7 @@ class ObservationWriter(object):
         if error is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._formatter.add_element("syser", error.syser, element)
         self._formatter.add_element("rnder", error.rnder, element)
 
@@ -3143,7 +3096,7 @@ class ObservationWriter(object):
         if function is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._formatter.add_element("naxis", function.naxis, element)
         self._formatter.add_element("delta", function.delta, element)
         self._add_ref_coord_element("refCoord", function.ref_coord, element)
@@ -3154,7 +3107,7 @@ class ObservationWriter(object):
         if function is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_dimension2d_element("dimension", function.dimension, element)
         self._add_coord2d_element("refCoord", function.ref_coord, element)
         self._formatter.add_element("cd11", function.cd11, element)
@@ -3168,9 +3121,9 @@ class ObservationWriter(object):
         if polygon is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         if len(polygon.vertices) > 0:
-            vertices_element = self._formatter.get_element("vertices", element)
+            vertices_element = self._formatter.create_element("vertices", element)
             for vertex in polygon.vertices:
                 self._add_value_coord2d_element("vertex", vertex,
                                                 vertices_element)
@@ -3180,7 +3133,7 @@ class ObservationWriter(object):
             parent element. """
         if _range is None:
             return
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_ref_coord_element("start", _range.start, element)
         self._add_ref_coord_element("end", _range.end, element)
 
@@ -3190,7 +3143,7 @@ class ObservationWriter(object):
         if _range is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_coord2d_element("start", _range.start, element)
         self._add_coord2d_element("end", _range.end, element)
 
@@ -3200,7 +3153,7 @@ class ObservationWriter(object):
         if dimension is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._formatter.add_element("naxis1", dimension.naxis1, element)
         self._formatter.add_element("naxis2", dimension.naxis2, element)
 
@@ -3210,7 +3163,7 @@ class ObservationWriter(object):
         if ref_coord is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._formatter.add_element("pix", ref_coord.pix, element)
         self._formatter.add_element("val", ref_coord.val, element)
 
@@ -3220,37 +3173,16 @@ class ObservationWriter(object):
         if _slice is None:
             return
 
-        element = self._formatter.get_element(name, parent)
+        element = self._formatter.create_element(name, parent)
         self._add_axis_element("axis", _slice.axis, element)
         self._formatter.add_element("bin", _slice.bin, element)
-
-
 
     def _add_coord_range_1d_list_element(self, name, values, parent):
         if values is None:
             return
-        if self._output_format == 'xml':
-            element = self._formatter.get_element(name, parent)
-            for v in values:
-                self._add_coord_range1d_element("range", v, element)
-        else:
-            raise NotImplementedError(
-                "CAOM JSON output not implemented")
-
-    def _add_inputs_element(self, name, collection, parent):
-        if collection is None or \
-                (len(collection) == 0 and not self._write_empty_collections):
-            return
-        element = self._formatter.get_element(name, parent)
-        if self._output_version < 25:
-            input_tag = "planeURI"
-        else:
-            input_tag = "input"
-        if self._output_format == 'xml':
-            for plane_uri in collection:
-                self._formatter.add_element(input_tag, plane_uri, element)
-        else:
-            parent[name] = [inp for inp in collection]
+        element = self._formatter.create_list_element(name, parent)
+        for v in values:
+            self._add_coord_range1d_element("range", v, element)
 
 
 class ObservationParsingException(Exception):
