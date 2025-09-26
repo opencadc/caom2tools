@@ -166,11 +166,12 @@ class ObservationParser(object):
     """ Base class for parsing observation fields and elements in different formats"""
 
     @abstractmethod
-    def get_attribute(self, name, element):
+    def get_attribute(self, name, element, namespace=None):
         """
         Abstract method to get an attribute of an element
         :param name: name of attribute
         :param element: element to extract it from
+        :param namespace: namespace of the attribute if different from caom2 namespace
         :return: value of the attribute
         """
         pass
@@ -263,7 +264,9 @@ class XmlParser(ObservationParser):
     def namespace(self, value):
         self._namespace = value
 
-    def get_attribute(self, name, element):
+    def get_attribute(self, name, element, namespace=None):
+        if namespace is not None:
+            return element.get(namespace + name, None)
         return element.get("{" + self.namespace + "}" + name, None)
 
     def get_string_value(self, element):
@@ -312,7 +315,7 @@ class XmlParser(ObservationParser):
 
 
 class JsonParser(ObservationParser):
-    def get_attribute(self, name, element):
+    def get_attribute(self, name, element, namespace=None):
         return element.get('@' + name, None)
 
     def get_string_value(self, element):
@@ -331,7 +334,7 @@ class JsonParser(ObservationParser):
             if element_tag in parent:
                 return parent[element_tag]
             if required:
-                error = element_tag + " element not found in " + parent.uri
+                error = element_tag + " element not found in {}".format(parent)
                 raise ObservationParsingException(error)
             return None
 
@@ -369,37 +372,38 @@ class ObservationReader(object):
         Raises:
         ValueError: Unsupported input_format or Validating JSON Schemas
         """
+        self._validate = validate
         if input_format == 'xml':
             self._parser = XmlParser()
+            if self._validate:
+                caom23_schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
+                                                  CAOM23_SCHEMA_FILE)
+
+                parser = etree.XMLParser(remove_blank_text=True)
+                xsd = etree.parse(caom23_schema_path, parser)
+
+                caom24_schema = etree.Element(
+                    '{http://www.w3.org/2001/XMLSchema}import',
+                    namespace=CAOM24_NAMESPACE,
+                    schemaLocation=CAOM24_SCHEMA_FILE)
+                xsd.getroot().insert(1, caom24_schema)
+
+                caom25_schema = etree.Element(
+                    '{http://www.w3.org/2001/XMLSchema}import',
+                    namespace=CAOM25_NAMESPACE,
+                    schemaLocation=CAOM25_SCHEMA_FILE)
+                xsd.getroot().insert(2, caom25_schema)
+
+                self._xmlschema = etree.XMLSchema(xsd)
         elif input_format == 'json':
             self._parser = JsonParser()
+            if validate:
+                raise ValueError("Schema validation not supported for JSON")
         else:
             raise ValueError("Unsupported format: " + input_format)
         self._input_format = input_format
-        self._validate = validate
-        if self._validate:
-            if input_format == 'json':
-                raise ValueError("Schema validation not supported for JSON")
-            caom23_schema_path = os.path.join(THIS_DIR + '/' + DATA_PKG,
-                                              CAOM23_SCHEMA_FILE)
 
-            parser = etree.XMLParser(remove_blank_text=True)
-            xsd = etree.parse(caom23_schema_path, parser)
-
-            caom24_schema = etree.Element(
-                '{http://www.w3.org/2001/XMLSchema}import',
-                namespace=CAOM24_NAMESPACE,
-                schemaLocation=CAOM24_SCHEMA_FILE)
-            xsd.getroot().insert(1, caom24_schema)
-
-            caom25_schema = etree.Element(
-                '{http://www.w3.org/2001/XMLSchema}import',
-                namespace=CAOM25_NAMESPACE,
-                schemaLocation=CAOM25_SCHEMA_FILE)
-            xsd.getroot().insert(2, caom25_schema)
-
-            self._xmlschema = etree.XMLSchema(xsd)
-            self.version = None
+        self.version = None
 
     def _set_entity_attributes(self, element, caom2_entity):
         element_id = self._parser.get_attribute("id", element)
@@ -457,12 +461,8 @@ class ObservationReader(object):
             return None
         else:
             result = caom_util.URISet()
-            if self._input_format == 'xml':
-                for member_element in self._parser.get_children(el, "groupURI"):
-                    result.add(member_element.text)
-            else:
-                for member in el:
-                    result.add(member)
+            for member_element in self._parser.get_children(el, "groupURI"):
+                result.add(self._parser.get_string_value(member_element))
             return result
 
     def _get_proposal(self, element_tag, parent, required):
@@ -664,10 +664,7 @@ class ObservationReader(object):
             else:
                 obs_tag = "member"
             for member_element in self._parser.get_children(el, obs_tag):
-                if self._input_format == 'xml':
-                    members.add(member_element.text)
-                else:
-                    members.add(member_element)
+                members.add(self._parser.get_string_value(member_element))
 
     def _add_inputs(self, inputs, parent):
         """Create URI objects from an XML representation of the plane
@@ -1543,11 +1540,7 @@ class ObservationReader(object):
         if _pstates_el is not None:
             _polarization_states = list()
             for _pstate_el in self._parser.get_children(_pstates_el, "state"):
-                if not isinstance(_pstate_el, str):
-                    _pstate = _pstate_el.text
-                else:
-                    _pstate = _pstate_el
-                _polarization_state = plane.PolarizationState(_pstate)
+                _polarization_state = plane.PolarizationState(self._parser.get_string_value(_pstate_el))
                 _polarization_states.append(_polarization_state)
 
             _dimension = self._parser.get_child_text_as_int("dimension", el, False)
@@ -1560,10 +1553,7 @@ class ObservationReader(object):
                                                        required)
         if shape_element is None:
             return None
-        if self._input_format == 'xml':
-            shape_type = shape_element.get(XSI + "type")
-        else:
-            shape_type = shape_element.get("@type")
+        shape_type = self._parser.get_attribute("type", shape_element, namespace=XSI)
         if "caom2:Polygon" == shape_type:
             polygon = self._get_polygon(shape_element)
             if self.version < 25:
@@ -1575,10 +1565,7 @@ class ObservationReader(object):
                 samples = self._parser.get_child_element("samples", parent, True)
                 sample_list = []
                 for _shape in self._parser.get_children(samples, "shape"):
-                    if self._input_format == 'xml':
-                        sample_type = _shape.get(XSI + "type")
-                    else:
-                        sample_type = _shape.get("@type")
+                    sample_type = self._parser.get_attribute("type", _shape, namespace=XSI)
                     if "caom2:Polygon" == sample_type:
                         sample_list.append(self._get_polygon(_shape))
                     elif "caom2:Circle" == sample_type:
@@ -1917,7 +1904,7 @@ class ObservationReader(object):
                     "Only http://www.opencadc.org/caom2/xml/v2.5 is supported for JSON input. "
                     "Received {}".format(root.get("@caom2", None)))
         collection = self._parser.get_child_text("collection", root, True)
-        if self._input_format == 'xml' and self.version < 25:
+        if self.version < 25:
             observation_id = \
                 str(self._parser.get_child_text("observationID", root, True))
             uri = "caom:" + collection + "/" + observation_id
@@ -1975,16 +1962,32 @@ class ObservationReader(object):
 
 
 class ObservationFormatter(object):
+    """ Abstract base class for formatting observation elements and attributes."""
 
     def __init__(self):
         self._namespace = None
 
     @abstractmethod
     def add_attribute(self, name, value, element, namespace=None):
+        """
+        Add an attribute to the given element.
+        :param name: name of the attribute
+        :param value: value of the attribute
+        :param element: element to add the attribute to
+        :param namespace: optional namespace to override the default caom2 namespace
+        :return:
+        """
         pass
 
     @abstractmethod
     def add_element(self, name, value, parent):
+        """
+        Method to format an element and add it to the parent element.
+        :param name: name of the element
+        :param value: value of the element
+        :param parent: parent to add the element to
+        :return:
+        """
         pass
 
     @abstractmethod
@@ -2001,13 +2004,16 @@ class ObservationFormatter(object):
 
     @abstractmethod
     def add_boolean_element(self, name, value, parent):
+        """ Add a boolean element to the parent element."""
         pass
 
     @abstractmethod
     def add_datetime_element(self, name, value, parent):
+        """ Add a datetime element to the parent element."""
         pass
 
     def add_keywords_element(self, collection, parent):
+        """ Add a keywords element to the parent element."""
         self.add_collection_element("keywords", collection, parent, "keyword")
 
     @abstractmethod
