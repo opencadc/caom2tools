@@ -417,8 +417,6 @@ class ObservationReader(object):
         if element_meta_producer:
             caom2_entity._meta_producer = element_meta_producer
 
-
-
     def _get_algorithm(self, parent, required):
         """Build an Algorithm object from an XML representation
 
@@ -1989,6 +1987,128 @@ class ObservationReader(object):
         return obs
 
 
+class ObservationFormatter(object):
+    
+    def __init__(self, write_empty_collections=False):
+        self._write_empty_collections = write_empty_collections
+        self._namespace = None
+        
+    @property
+    def write_empty_collections(self):
+        return self._write_empty_collections
+    
+    @abstractmethod
+    def add_attribute(self, name, value, element):
+        pass
+
+    @abstractmethod
+    def add_element(self, name, value, parent):
+        pass
+    
+    @abstractmethod
+    def get_element(self, tag, parent):
+        pass
+
+    @abstractmethod
+    def add_boolean_element(self, name, value, parent):
+        pass
+
+    @abstractmethod
+    def add_datetime_element(self, name, value, parent):
+        pass
+
+    @abstractmethod
+    def add_keywords_element(self, collection, parent):
+        pass
+
+
+class XmlFormatter(ObservationFormatter):
+    
+    @property
+    def namespace(self):
+        if self._namespace is None:
+            raise ValueError("Namespace not set")
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, value):
+        self._namespace = value
+        
+    def add_attribute(self, name, value, element):
+        element.set(self.namespace + name, value)
+
+    def add_element(self, name, value, parent):
+        if value is None:
+            return
+        element = self.get_element(name, parent)
+        if isinstance(value, str):
+            element.text = value
+        elif isinstance(value, Enum):
+            element.text = value.value
+        else:
+            element.text = str(value)
+            
+    def get_element(self, tag, parent):
+        return etree.SubElement(parent, self.namespace + tag)
+
+    def add_boolean_element(self, name, value, parent):
+        if value is None:
+            return
+        element = self.get_element(name, parent)
+        element.text = str(value).lower()
+
+    def add_datetime_element(self, name, value, parent):
+        if value is None:
+            return
+        element = self.get_element(name, parent)
+        element.text = caom_util.date2ivoa(value)
+
+    def add_keywords_element(self, collection, parent):
+        if collection is None or \
+                (len(collection) == 0 and not self._write_empty_collections):
+            return
+        element = self.get_element("keywords", parent)
+        for keyword in collection:
+            self.get_element("keyword", element).text = keyword
+
+
+class JsonFormatter(ObservationFormatter):
+    def add_attribute(self, name, value, element):
+        element['@' + name] = value
+
+    def add_element(self, name, value, parent):
+        if value is None:
+            return
+        if not isinstance(value, (str, int, float, bool)):
+            # better to fail right away
+            raise TypeError("CAOM JSON value must be str, int, float or bool not "
+                            + value.__class__.__name__)
+        if isinstance(parent, list):
+            parent.append(value)
+        else:
+            parent[name] = value
+            
+    def get_element(self, tag, parent):
+        parent[tag] = {}
+        return parent[tag]
+
+    def add_boolean_element(self, name, value, parent):
+        if value is None:
+            return
+        parent[name] = bool(value)
+
+    def add_datetime_element(self, name, value, parent):
+        if value is None:
+            return
+        parent[name] = caom_util.date2ivoa(value)
+
+    def add_keywords_element(self, collection, parent):
+        if collection is None or \
+                (len(collection) == 0 and not self.write_empty_collections):
+            return
+        parent['keywords'] = sorted(list(collection))
+
+
 class ObservationWriter(object):
     """ ObservationWriter """
 
@@ -2001,7 +2121,11 @@ class ObservationWriter(object):
         collections namespace_prefix : a CAOM-2.x namespace prefix
         namespace : a valid CAOM-2.x target namespace
         """
-        if output_format not in ['xml', 'json']:
+        if output_format == 'xml':
+            self._formatter = XmlFormatter(write_empty_collections)
+        elif output_format == 'json':
+            self._formatter = JsonFormatter(write_empty_collections)
+        else:
             raise RuntimeError('invalid output format {}'.format(output_format))
         self._output_format = output_format
 
@@ -2026,6 +2150,8 @@ class ObservationWriter(object):
             self._namespace = CAOM23_NAMESPACE
         else:
             raise RuntimeError('invalid namespace {}'.format(namespace))
+        if output_format == 'xml':
+            self._formatter.namespace = self._caom2_namespace
 
         if self._output_format == 'json' and self._output_version < 25:
             raise RuntimeError('json output format supported in CAOM-2.5 only')
@@ -2081,14 +2207,14 @@ class ObservationWriter(object):
 
         self._add_entity_attributes(obs, obs_element)
 
-        self._add_element("collection", obs.collection, obs_element)
+        self._formatter.add_element("collection", obs.collection, obs_element)
         if self._output_version < 25:
             observation_id = obs.uri.split('/')[-1]
-            self._add_element("observationID", observation_id, obs_element)
+            self._formatter.add_element("observationID", observation_id, obs_element)
         else:
-            self._add_element("uri", obs.uri, obs_element)
-            self._add_element('uriBucket', obs.uri_bucket, obs_element)
-        self._add_datetime_element("metaRelease", obs.meta_release,
+            self._formatter.add_element("uri", obs.uri, obs_element)
+            self._formatter.add_element('uriBucket', obs.uri_bucket, obs_element)
+        self._formatter.add_datetime_element("metaRelease", obs.meta_release,
                                    obs_element)
         if self._output_version < 24 and obs.meta_read_groups:
             raise AttributeError(
@@ -2096,11 +2222,11 @@ class ObservationWriter(object):
                 "(observation.meta_read_groups) as CAOM2.3 Observation")
         self._add_groups_element("metaReadGroups", obs.meta_read_groups,
                                  obs_element)
-        self._add_element("sequenceNumber", obs.sequence_number, obs_element)
+        self._formatter.add_element("sequenceNumber", obs.sequence_number, obs_element)
         self._add_algorithm_element(obs.algorithm, obs_element)
-        self._add_element("type", obs.type, obs_element)
+        self._formatter.add_element("type", obs.type, obs_element)
         if obs.intent is not None:
-            self._add_element(
+            self._formatter.add_element(
                 "intent", obs.intent.value, obs_element)
 
         self._add_proposal_element(obs.proposal, obs_element)
@@ -2133,76 +2259,76 @@ class ObservationWriter(object):
             out.write(json.dumps(obs_element, indent=2, separators=(',', ' : ')))
 
     def _add_entity_attributes(self, entity, element):
-        self._add_attribute("id", str(entity._id), element)
+        self._formatter.add_attribute("id", str(entity._id), element)
 
         if entity._last_modified is not None:
-            self._add_attribute(
+            self._formatter.add_attribute(
                 "lastModified", caom_util.date2ivoa(entity._last_modified),
                 element)
 
         if entity._max_last_modified is not None:
-            self._add_attribute(
+            self._formatter.add_attribute(
                 "maxLastModified",
                 caom_util.date2ivoa(entity._max_last_modified), element)
         if entity._meta_checksum is not None:
-            self._add_attribute(
+            self._formatter.add_attribute(
                 "metaChecksum", entity._meta_checksum, element)
         if entity._acc_meta_checksum is not None:
-            self._add_attribute(
+            self._formatter.add_attribute(
                 "accMetaChecksum", entity._acc_meta_checksum, element)
 
         if self._output_version >= 24:
             if entity._meta_producer is not None:
-                self._add_attribute(
+                self._formatter.add_attribute(
                     "metaProducer", entity.meta_producer, element)
 
     def _add_algorithm_element(self, algorithm, parent):
         if algorithm is None:
             return
 
-        element = self._get_caom_element("algorithm", parent)
-        self._add_element("name", algorithm.name, element)
+        element = self._formatter.get_element("algorithm", parent)
+        self._formatter.add_element("name", algorithm.name, element)
 
     def _add_proposal_element(self, proposal, parent):
         if proposal is None:
             return
 
-        element = self._get_caom_element("proposal", parent)
-        self._add_element("id", proposal.id, element)
-        self._add_element("pi", proposal.pi, element)
-        self._add_element("project", proposal.project, element)
-        self._add_element("title", proposal.title, element)
-        self._add_element("reference", proposal.reference, element)
-        self._add_keywords_element(proposal.keywords, element)
+        element = self._formatter.get_element("proposal", parent)
+        self._formatter.add_element("id", proposal.id, element)
+        self._formatter.add_element("pi", proposal.pi, element)
+        self._formatter.add_element("project", proposal.project, element)
+        self._formatter.add_element("title", proposal.title, element)
+        self._formatter.add_element("reference", proposal.reference, element)
+        self._formatter.add_keywords_element(proposal.keywords, element)
 
     def _add_target_element(self, target, parent):
         if target is None:
             return
 
-        element = self._get_caom_element("target", parent)
-        self._add_element("name", target.name, element)
+        element = self._formatter.get_element("target", parent)
+        self._formatter.add_element("name", target.name, element)
         if target.target_id is not None:
             if self._output_version >= 24:
-                self._add_element("targetID", target.target_id, element)
+                self._formatter.add_element("targetID", target.target_id, element)
             else:
                 raise AttributeError(
                     "Attempt to write CAOM2.4 element (target.targetID) "
                     "as CAOM2.3 Observation")
         if target.type is not None:
-            self._add_element("type", target.type.value, element)
-        self._add_boolean_element("standard", target.standard, element)
-        self._add_element("redshift", target.redshift, element)
-        self._add_boolean_element("moving", target.moving, element)
-        self._add_keywords_element(target.keywords, element)
+            self._formatter.add_element("type", target.type.value, element)
+        self._formatter.add_boolean_element("standard", target.standard, element)
+        self._formatter.add_element("redshift", target.redshift, element)
+        self._formatter.add_boolean_element("moving", target.moving, element)
+        self._formatter.add_keywords_element(target.keywords, element)
 
     def _add_target_position_element(self, target_position, parent):
         if target_position is None:
             return
 
-        element = self._get_caom_element("targetPosition", parent)
-        self._add_element("coordsys", target_position.coordsys, element)
+        element = self._formatter.get_element("targetPosition", parent)
+        self._formatter.add_element("coordsys", target_position.coordsys, element)
         if target_position.equinox is not None:
-            self._add_element("equinox", target_position.equinox, element)
+            self._formatter.add_element("equinox", target_position.equinox, element)
         self._add_point_element("coordinates", target_position.coordinates,
                                 element)
 
@@ -2210,43 +2336,43 @@ class ObservationWriter(object):
         if requirements is None:
             return
 
-        element = self._get_caom_element("requirements", parent)
-        self._add_element(
+        element = self._formatter.get_element("requirements", parent)
+        self._formatter.add_element(
             "flag", requirements.flag.value, element)
 
     def _add_telescope_element(self, telescope, parent):
         if telescope is None:
             return
 
-        element = self._get_caom_element("telescope", parent)
-        self._add_element("name", telescope.name, element)
-        self._add_element("geoLocationX", telescope.geo_location_x, element)
-        self._add_element("geoLocationY", telescope.geo_location_y, element)
-        self._add_element("geoLocationZ", telescope.geo_location_z, element)
+        element = self._formatter.get_element("telescope", parent)
+        self._formatter.add_element("name", telescope.name, element)
+        self._formatter.add_element("geoLocationX", telescope.geo_location_x, element)
+        self._formatter.add_element("geoLocationY", telescope.geo_location_y, element)
+        self._formatter.add_element("geoLocationZ", telescope.geo_location_z, element)
         if telescope.tracking_mode:
-            self._add_element("trackingMode", telescope.tracking_mode.value, element)
-        self._add_keywords_element(telescope.keywords, element)
+            self._formatter.add_element("trackingMode", telescope.tracking_mode.value, element)
+        self._formatter.add_keywords_element(telescope.keywords, element)
 
     def _add_instrument_element(self, instrument, parent):
         if instrument is None:
             return
 
-        element = self._get_caom_element("instrument", parent)
-        self._add_element("name", instrument.name, element)
-        self._add_keywords_element(instrument.keywords, element)
+        element = self._formatter.get_element("instrument", parent)
+        self._formatter.add_element("name", instrument.name, element)
+        self._formatter.add_keywords_element(instrument.keywords, element)
 
     def _add_environment_element(self, environment, parent):
         if environment is None:
             return
 
-        element = self._get_caom_element("environment", parent)
-        self._add_element("seeing", environment.seeing, element)
-        self._add_element("humidity", environment.humidity, element)
-        self._add_element("elevation", environment.elevation, element)
-        self._add_element("tau", environment.tau, element)
-        self._add_element("wavelengthTau", environment.wavelength_tau, element)
-        self._add_element("ambientTemp", environment.ambient_temp, element)
-        self._add_boolean_element("photometric", environment.photometric,
+        element = self._formatter.get_element("environment", parent)
+        self._formatter.add_element("seeing", environment.seeing, element)
+        self._formatter.add_element("humidity", environment.humidity, element)
+        self._formatter.add_element("elevation", environment.elevation, element)
+        self._formatter.add_element("tau", environment.tau, element)
+        self._formatter.add_element("wavelengthTau", environment.wavelength_tau, element)
+        self._formatter.add_element("ambientTemp", environment.ambient_temp, element)
+        self._formatter.add_boolean_element("photometric", environment.photometric,
                                   element)
 
     def _add_members_element(self, members, parent):
@@ -2254,14 +2380,14 @@ class ObservationWriter(object):
                 (len(members) == 0 and not self._write_empty_collections):
             return
 
-        element = self._get_caom_element("members", parent)
+        element = self._formatter.get_element("members", parent)
         if self._output_format == 'xml':
             if self._output_version < 25:
                 member_tag = "observationURI"
             else:
                 member_tag = "member"
             for member in members:
-                member_element = self._get_caom_element(member_tag, element)
+                member_element = self._formatter.get_element(member_tag, element)
                 member_element.text = member
         else:
             parent["members"] = list(members) if members else []
@@ -2271,10 +2397,10 @@ class ObservationWriter(object):
             return
         if (groups is None or len(groups) == 0) and not self._write_empty_collections:
             return
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         if self._output_format == 'xml':
             for gr in groups:
-                gr_elem = self._get_caom_element("groupURI", element)
+                gr_elem = self._formatter.get_element("groupURI", element)
                 gr_elem.text = gr
         else:
             parent[name] = sorted(list(groups)) if groups else []
@@ -2284,12 +2410,12 @@ class ObservationWriter(object):
                 (len(planes) == 0 and not self._write_empty_collections):
             return
         if self._output_format == 'xml':
-            element = self._get_caom_element("planes", parent)
+            element = self._formatter.get_element("planes", parent)
         else:
             element = parent["planes"] = []
         for _plane in planes.values():
             if self._output_format == 'xml':
-                plane_element = self._get_caom_element("plane", element)
+                plane_element = self._formatter.get_element("plane", element)
             else:
                 plane_element = {}
                 element.append(plane_element)
@@ -2299,10 +2425,10 @@ class ObservationWriter(object):
                 if len(_comp) != 3:
                     raise ValueError("Attempt to write CAOM2.4 but can't deduce "
                                      "Plane.productID in Plane.uri=" + _plane.uri)
-                self._add_element("productID", _comp[-1], plane_element)
+                self._formatter.add_element("productID", _comp[-1], plane_element)
             else:
-                self._add_element("uri", _plane.uri, plane_element)
-            self._add_datetime_element("metaRelease", _plane.meta_release,
+                self._formatter.add_element("uri", _plane.uri, plane_element)
+            self._formatter.add_datetime_element("metaRelease", _plane.meta_release,
                                        plane_element)
             if self._output_version < 24 and _plane.meta_read_groups:
                 raise AttributeError(
@@ -2310,7 +2436,7 @@ class ObservationWriter(object):
                     "(plane.meta_read_groups) as CAOM2.3 Observation")
             self._add_groups_element("metaReadGroups", _plane.meta_read_groups,
                                      plane_element)
-            self._add_datetime_element("dataRelease", _plane.data_release,
+            self._formatter.add_datetime_element("dataRelease", _plane.data_release,
                                        plane_element)
             if self._output_version < 24 and _plane.data_read_groups:
                 raise AttributeError(
@@ -2319,11 +2445,11 @@ class ObservationWriter(object):
             self._add_groups_element("dataReadGroups", _plane.data_read_groups,
                                      plane_element)
             if _plane.data_product_type is not None:
-                self._add_element("dataProductType",
+                self._formatter.add_element("dataProductType",
                                   _plane.data_product_type.value,
                                   plane_element)
             if _plane.calibration_level is not None:
-                self._add_element("calibrationLevel",
+                self._formatter.add_element("calibrationLevel",
                                   _plane.calibration_level.value,
                                   plane_element)
             self._add_provenance_element(_plane.provenance, plane_element)
@@ -2355,17 +2481,17 @@ class ObservationWriter(object):
             raise AttributeError("Attempt to output CAOM2.5 attribute (Plane.visibility) as "
                                  "{} Observation".format(self._output_version))
 
-        element = self._get_caom_element("visibility", parent)
+        element = self._formatter.get_element("visibility", parent)
         self._add_interval_element("distance", visibility.distance, element)
-        self._add_element("distributionEccentricity", visibility.distribution_eccentricity,
+        self._formatter.add_element("distributionEccentricity", visibility.distribution_eccentricity,
                           element)
-        self._add_element("distributionFill", visibility.distribution_fill, element)
+        self._formatter.add_element("distributionFill", visibility.distribution_fill, element)
 
     def _add_position_element(self, position, parent):
         if position is None:
             return
 
-        element = self._get_caom_element("position", parent)
+        element = self._formatter.get_element("position", parent)
         self._add_bounds_and_samples(position, element)
         if position.min_bounds:
             if self._output_version < 25:
@@ -2382,7 +2508,7 @@ class ObservationWriter(object):
                     "{} Observation".format(self._output_version))
             else:
                 self._add_interval_element("maxRecoverableScale", position.max_recoverable_scale, element)
-        self._add_element("resolution", position.resolution, element)
+        self._formatter.add_element("resolution", position.resolution, element)
         if self._output_version < 24:
             if position.resolution_bounds is not None:
                 raise AttributeError(
@@ -2391,19 +2517,19 @@ class ObservationWriter(object):
         else:
             self._add_interval_element("resolutionBounds",
                                        position.resolution_bounds, element)
-        self._add_element("sampleSize", position.sample_size, element)
+        self._formatter.add_element("sampleSize", position.sample_size, element)
         if position.calibration:
             if self._output_version < 25:
                 raise AttributeError(
                     "Attempt to write CAOM2.5 element (position.calibration) as "
                     "{} Observation".format(self._output_version))
             else:
-                self._add_element("calibration", position.calibration.value, element)
+                self._formatter.add_element("calibration", position.calibration.value, element)
 
     def _add_energy_element(self, energy, parent):
         if energy is None:
             return
-        element = self._get_caom_element("energy", parent)
+        element = self._formatter.get_element("energy", parent)
         bounds_elem = self._add_interval_element("bounds", energy.bounds, element)
         if self._output_version < 25:
             # samples element is within bounds element
@@ -2411,8 +2537,8 @@ class ObservationWriter(object):
         else:
             self._add_samples_element(energy.samples, element)
 
-        self._add_element("dimension", energy.dimension, element)
-        self._add_element("resolvingPower", energy.resolving_power, element)
+        self._formatter.add_element("dimension", energy.dimension, element)
+        self._formatter.add_element("resolvingPower", energy.resolving_power, element)
         if energy.resolving_power_bounds is not None:
             if self._output_version < 24:
                 if len(energy.energy_bands) > 1:
@@ -2429,7 +2555,7 @@ class ObservationWriter(object):
                     "Attempt to write CAOM2.5 element (energy.resolution) as "
                     "{} Observation".format(self._output_version))
             else:
-                self._add_element("resolution", energy.resolution, element)
+                self._formatter.add_element("resolution", energy.resolution, element)
         if energy.resolution_bounds is not None:
             if self._output_version < 25:
                 raise AttributeError(
@@ -2439,8 +2565,8 @@ class ObservationWriter(object):
                 self._add_interval_element("resolutionBounds",
                                            energy.resolution_bounds, element)
 
-        self._add_element("sampleSize", energy.sample_size, element)
-        self._add_element("bandpassName", energy.bandpass_name, element)
+        self._formatter.add_element("sampleSize", energy.sample_size, element)
+        self._formatter.add_element("bandpassName", energy.bandpass_name, element)
         if energy.energy_bands:
             if self._output_version < 24:
                 if len(energy.energy_bands) > 1:
@@ -2448,25 +2574,25 @@ class ObservationWriter(object):
                         "Attempt to write CAOM2.4 element "
                         "(energy.energy_bands) as CAOM2.3 Observation")
                 else:
-                    self._add_element("emBand",
+                    self._formatter.add_element("emBand",
                                       next(iter(energy.energy_bands)).value,
                                       element)
             else:
-                self._add_element("energyBands", None, element)
+                self._formatter.add_element("energyBands", None, element)
                 if self._output_format == 'xml':
-                    eb_element = self._get_caom_element("energyBands", element)
+                    eb_element = self._formatter.get_element("energyBands", element)
                 else:
                     eb_element = element["energyBands"] = []
                 for bb in sorted(energy.energy_bands):
-                    self._add_element("emBand", bb.value, eb_element)
+                    self._formatter.add_element("emBand", bb.value, eb_element)
         if self._output_version < 25:
-            self._add_element("restwav", energy.rest, element)
+            self._formatter.add_element("restwav", energy.rest, element)
         else:
-            self._add_element("rest", energy.rest, element)
+            self._formatter.add_element("rest", energy.rest, element)
         if energy.transition:
-            transition = self._get_caom_element("transition", element)
-            self._add_element("species", energy.transition.species, transition)
-            self._add_element("transition", energy.transition.transition,
+            transition = self._formatter.get_element("transition", element)
+            self._formatter.add_element("species", energy.transition.species, transition)
+            self._formatter.add_element("transition", energy.transition.transition,
                               transition)
         if energy.calibration:
             if self._output_version < 25:
@@ -2474,20 +2600,20 @@ class ObservationWriter(object):
                     "Attempt to write CAOM2.5 element (energy.calibration) as "
                     "{} Observation".format(self._output_version))
             else:
-                self._add_element("calibration", energy.calibration.value, element)
+                self._formatter.add_element("calibration", energy.calibration.value, element)
 
     def _add_time_element(self, time, parent):
         if time is None:
             return
-        element = self._get_caom_element("time", parent)
+        element = self._formatter.get_element("time", parent)
         bounds_elem = self._add_interval_element("bounds", time.bounds, element)
         if self._output_version < 25:
             # samples element is within bounds element
             self._add_samples_element(time.samples, bounds_elem)
         else:
             self._add_samples_element(time.samples, element)
-        self._add_element("dimension", time.dimension, element)
-        self._add_element("resolution", time.resolution, element)
+        self._formatter.add_element("dimension", time.dimension, element)
+        self._formatter.add_element("resolution", time.resolution, element)
         if self._output_version < 24:
             if time.resolution_bounds is not None:
                 raise AttributeError(
@@ -2496,8 +2622,8 @@ class ObservationWriter(object):
         else:
             self._add_interval_element("resolutionBounds",
                                        time.resolution_bounds, element)
-        self._add_element("sampleSize", time.sample_size, element)
-        self._add_element("exposure", time.exposure, element)
+        self._formatter.add_element("sampleSize", time.sample_size, element)
+        self._formatter.add_element("exposure", time.exposure, element)
         if time.exposure_bounds is not None:
             if self._output_version < 25:
                 if len(time.exposure_bounds) > 1:
@@ -2512,35 +2638,35 @@ class ObservationWriter(object):
                     "Attempt to write CAOM2.5 element (time.calibration) as {} "
                     "Observation".format(self._output_version))
             else:
-                self._add_element("calibration", time.calibration.value, element)
+                self._formatter.add_element("calibration", time.calibration.value, element)
 
     def _add_custom_element(self, custom, parent):
         if custom is None:
             return
-        element = self._get_caom_element("custom", parent)
-        self._add_element("ctype", custom.ctype, element)
+        element = self._formatter.get_element("custom", parent)
+        self._formatter.add_element("ctype", custom.ctype, element)
         bounds_elem = self._add_interval_element("bounds", custom.bounds, element)
         if self._output_version < 25:
             # samples element is within bounds element
             self._add_samples_element(custom.samples, bounds_elem)
         else:
             self._add_samples_element(custom.samples, element)
-        self._add_element("dimension", custom.dimension, element)
+        self._formatter.add_element("dimension", custom.dimension, element)
 
     def _add_polarization_element(self, polarization, parent):
         if polarization is None:
             return
-        element = self._get_caom_element("polarization", parent)
+        element = self._formatter.get_element("polarization", parent)
         if polarization.states is None or len(polarization.states) == 0:
             raise AttributeError("Polarization.states missing")
         if polarization.states:
             if self._output_format == 'xml':
-                _pstates_el = self._get_caom_element("states", element)
+                _pstates_el = self._formatter.get_element("states", element)
             else:
                 _pstates_el = element["states"] = []
             for _state in polarization.states:
-                self._add_element("state", _state.value, _pstates_el)
-        self._add_element("dimension", polarization.dimension, element)
+                self._formatter.add_element("state", _state.value, _pstates_el)
+        self._formatter.add_element("dimension", polarization.dimension, element)
 
     def _add_bounds_and_samples(self, position, parent):
         if position is None:
@@ -2558,19 +2684,19 @@ class ObservationWriter(object):
                 else:
                     pass
             else:
-                samples_element = self._get_caom_element("samples", bounds_element)
-                vertices_element = self._get_caom_element("vertices",
+                samples_element = self._formatter.get_element("samples", bounds_element)
+                vertices_element = self._formatter.get_element("vertices",
                                                           samples_element)
                 vertices = _to_vertices(position.samples)
                 for vertex in vertices:
-                    vertex_element = self._get_caom_element("vertex",
+                    vertex_element = self._formatter.get_element("vertex",
                                                             vertices_element)
-                    self._add_element("cval1", vertex.cval1, vertex_element)
-                    self._add_element("cval2", vertex.cval2, vertex_element)
-                    self._add_element("type", vertex.type.value, vertex_element)
+                    self._formatter.add_element("cval1", vertex.cval1, vertex_element)
+                    self._formatter.add_element("cval2", vertex.cval2, vertex_element)
+                    self._formatter.add_element("type", vertex.type.value, vertex_element)
         else:
             if self._output_format == 'xml':
-                samples_element = self._get_caom_element("samples", parent=parent)
+                samples_element = self._formatter.get_element("samples", parent=parent)
             else:
                 samples_element = parent["samples"] = []
             for samples_shape in position.samples.shapes:
@@ -2579,9 +2705,9 @@ class ObservationWriter(object):
     def _add_shape_element(self, name, parent, elem_shape):
         if isinstance(elem_shape, shape.Polygon):
             if self._output_format == 'xml':
-                shape_element = self._get_caom_element(name, parent)
+                shape_element = self._formatter.get_element(name, parent)
                 shape_element.set(XSI + "type", "caom2:Polygon")
-                points_element = self._get_caom_element("points",
+                points_element = self._formatter.get_element("points",
                                                         shape_element)
             else:
                 shape_element = {}
@@ -2595,7 +2721,7 @@ class ObservationWriter(object):
                 self._add_point_element("point", point, points_element)
         elif isinstance(elem_shape, shape.Circle):
             if self._output_format == 'xml':
-                shape_element = self._get_caom_element(name, parent)
+                shape_element = self._formatter.get_element(name, parent)
                 shape_element.set(XSI + "type", "caom2:Circle")
             else:
                 shape_element = {}
@@ -2606,7 +2732,7 @@ class ObservationWriter(object):
                 shape_element["@type"] = "caom2:Circle"
             self._add_point_element("center", elem_shape.center,
                                     shape_element)
-            self._add_element("radius", elem_shape.radius, shape_element)
+            self._formatter.add_element("radius", elem_shape.radius, shape_element)
         else:
             raise TypeError("Unsupported shape type " + elem_shape.__class__.__name__)
         return shape_element
@@ -2614,9 +2740,9 @@ class ObservationWriter(object):
     def _add_interval_element(self, name, interval, parent):
         if interval is None:
             return
-        _interval_element = self._get_caom_element(name, parent)
-        self._add_element("lower", interval.lower, _interval_element)
-        self._add_element("upper", interval.upper, _interval_element)
+        _interval_element = self._formatter.get_element(name, parent)
+        self._formatter.add_element("lower", interval.lower, _interval_element)
+        self._formatter.add_element("upper", interval.upper, _interval_element)
         return _interval_element
 
     def _add_samples_element(self, samples, parent):
@@ -2624,107 +2750,107 @@ class ObservationWriter(object):
             raise AttributeError("non empty samples attribute is required")
 
         if self._output_format == 'xml':
-            _samples_element = self._get_caom_element("samples", parent)
+            _samples_element = self._formatter.get_element("samples", parent)
         else:
             _samples_element = parent["samples"] = []
         for _sample in samples:
             if self._output_format == 'xml':
-                _sample_element = self._get_caom_element("sample",
+                _sample_element = self._formatter.get_element("sample",
                                                          _samples_element)
             else:
                 _sample_element = {}
                 _samples_element.append(_sample_element)
-            self._add_element("lower", _sample.lower, _sample_element)
-            self._add_element("upper", _sample.upper, _sample_element)
+            self._formatter.add_element("lower", _sample.lower, _sample_element)
+            self._formatter.add_element("upper", _sample.upper, _sample_element)
 
     def _add_provenance_element(self, provenance, parent):
         if provenance is None:
             return
 
-        element = self._get_caom_element("provenance", parent)
-        self._add_element("name", provenance.name, element)
-        self._add_element("version", provenance.version, element)
-        self._add_element("project", provenance.project, element)
-        self._add_element("producer", provenance.producer, element)
-        self._add_element("runID", provenance.run_id, element)
-        self._add_element("reference", provenance.reference, element)
-        self._add_datetime_element("lastExecuted", provenance.last_executed,
+        element = self._formatter.get_element("provenance", parent)
+        self._formatter.add_element("name", provenance.name, element)
+        self._formatter.add_element("version", provenance.version, element)
+        self._formatter.add_element("project", provenance.project, element)
+        self._formatter.add_element("producer", provenance.producer, element)
+        self._formatter.add_element("runID", provenance.run_id, element)
+        self._formatter.add_element("reference", provenance.reference, element)
+        self._formatter.add_datetime_element("lastExecuted", provenance.last_executed,
                                    element)
-        self._add_keywords_element(provenance.keywords, element)
+        self._formatter.add_keywords_element(provenance.keywords, element)
         self._add_inputs_element("inputs", provenance.inputs, element)
 
     def _add_metrics_element(self, metrics, parent):
         if metrics is None:
             return
 
-        element = self._get_caom_element("metrics", parent)
-        self._add_element("sourceNumberDensity", metrics.source_number_density,
+        element = self._formatter.get_element("metrics", parent)
+        self._formatter.add_element("sourceNumberDensity", metrics.source_number_density,
                           element)
-        self._add_element("background", metrics.background, element)
-        self._add_element("backgroundStddev", metrics.background_std_dev,
+        self._formatter.add_element("background", metrics.background, element)
+        self._formatter.add_element("backgroundStddev", metrics.background_std_dev,
                           element)
-        self._add_element("fluxDensityLimit", metrics.flux_density_limit,
+        self._formatter.add_element("fluxDensityLimit", metrics.flux_density_limit,
                           element)
-        self._add_element("magLimit", metrics.mag_limit, element)
+        self._formatter.add_element("magLimit", metrics.mag_limit, element)
         if self._output_version >= 24:
-            self._add_element("sampleSNR", metrics.sample_snr, element)
+            self._formatter.add_element("sampleSNR", metrics.sample_snr, element)
 
     def _add_quality_element(self, quality, parent):
         if quality is None:
             return
 
-        element = self._get_caom_element("quality", parent)
-        self._add_element("flag", quality.flag.value, element)
+        element = self._formatter.get_element("quality", parent)
+        self._formatter.add_element("flag", quality.flag.value, element)
 
     def _add_observable_element(self, observable, parent):
         if observable is None:
             return
 
-        element = self._get_caom_element("observable", parent)
-        self._add_element("ucd", observable.ucd, element)
+        element = self._formatter.get_element("observable", parent)
+        self._formatter.add_element("ucd", observable.ucd, element)
         if observable.calibration:
             if self._output_version < 25:
                 raise AttributeError(
                     "Attempt to write CAOM2.5 element (observable.calibration) as "
                     "{} Observation".format(self._output_version))
             else:
-                self._add_element("calibration", observable.calibration.value, element)
+                self._formatter.add_element("calibration", observable.calibration.value, element)
 
     def _add_transition_element(self, transition, parent):
         if transition is None:
             return
 
-        element = self._get_caom_element("transition", parent)
-        self._add_element("species", transition.species, element)
-        self._add_element("transition", transition.transition, element)
+        element = self._formatter.get_element("transition", parent)
+        self._formatter.add_element("species", transition.species, element)
+        self._formatter.add_element("transition", transition.transition, element)
 
     def _add_artifacts_element(self, artifacts, parent):
         if artifacts is None:
             return
 
         if self._output_format == 'xml':
-            element = self._get_caom_element("artifacts", parent)
+            element = self._formatter.get_element("artifacts", parent)
         else:
             element = parent["artifacts"] = []
         for _artifact in artifacts.values():
             if self._output_format == 'xml':
-                artifact_element = self._get_caom_element("artifact", element)
+                artifact_element = self._formatter.get_element("artifact", element)
             else:
                 artifact_element = {}
                 element.append(artifact_element)
             self._add_entity_attributes(_artifact, artifact_element)
-            self._add_element("uri", _artifact.uri, artifact_element)
+            self._formatter.add_element("uri", _artifact.uri, artifact_element)
             if self._output_version >= 25:
-                self._add_element("uriBucket", _artifact.uri_bucket, artifact_element)
-            self._add_element("productType", _artifact.product_type.value,
+                self._formatter.add_element("uriBucket", _artifact.uri_bucket, artifact_element)
+            self._formatter.add_element("productType", _artifact.product_type.value,
                               artifact_element)
-            self._add_element("releaseType", _artifact.release_type.value,
+            self._formatter.add_element("releaseType", _artifact.release_type.value,
                               artifact_element)
             if self._output_version < 24 and _artifact.content_release:
                 raise AttributeError(
                     "Attempt to write CAOM2.4 element "
                     "(artifact.content_realease) as CAOM2.3 Observation")
-            self._add_datetime_element('contentRelease',
+            self._formatter.add_datetime_element('contentRelease',
                                        _artifact.content_release,
                                        artifact_element)
             if self._output_version < 24 and _artifact.content_read_groups:
@@ -2734,12 +2860,12 @@ class ObservationWriter(object):
             self._add_groups_element("contentReadGroups",
                                      _artifact.content_read_groups,
                                      artifact_element)
-            self._add_element("contentType", _artifact.content_type,
+            self._formatter.add_element("contentType", _artifact.content_type,
                               artifact_element)
-            self._add_element("contentLength", _artifact.content_length,
+            self._formatter.add_element("contentLength", _artifact.content_length,
                               artifact_element)
             if _artifact.content_checksum:
-                self._add_element("contentChecksum",
+                self._formatter.add_element("contentChecksum",
                                   _artifact.content_checksum,
                                   artifact_element)
             if _artifact.description_id is not None:
@@ -2748,7 +2874,7 @@ class ObservationWriter(object):
                         "Attempt to write CAOM2.5 element "
                         "(artifact.description_id) as CAOM{} Observation".format(self._output_version))
                 else:
-                    self._add_element("descriptionID",
+                    self._formatter.add_element("descriptionID",
                                       _artifact.description_id, artifact_element)
             self._add_parts_element(_artifact.parts, artifact_element)
 
@@ -2756,13 +2882,13 @@ class ObservationWriter(object):
         if parts is None or len(parts) == 0:
             return
 
-        element = self._get_caom_element("parts", parent)
+        element = self._formatter.get_element("parts", parent)
         for _part in parts.values():
-            part_element = self._get_caom_element("part", element)
+            part_element = self._formatter.get_element("part", element)
             self._add_entity_attributes(_part, part_element)
-            self._add_element("name", _part.name, part_element)
+            self._formatter.add_element("name", _part.name, part_element)
             if _part.product_type is not None:
-                self._add_element("productType", _part.product_type.value,
+                self._formatter.add_element("productType", _part.product_type.value,
                                   part_element)
             self._add_chunks_element(_part.chunks, part_element)
 
@@ -2770,31 +2896,31 @@ class ObservationWriter(object):
         if chunks is None or len(chunks) == 0:
             return
 
-        element = self._get_caom_element("chunks", parent)
+        element = self._formatter.get_element("chunks", parent)
         for _chunk in chunks:
-            chunk_element = self._get_caom_element("chunk", element)
+            chunk_element = self._formatter.get_element("chunk", element)
             self._add_entity_attributes(_chunk, chunk_element)
             if _chunk.product_type is not None:
-                self._add_element("productType",
+                self._formatter.add_element("productType",
                                   _chunk.product_type.value,
                                   chunk_element)
-            self._add_element("naxis", _chunk.naxis, chunk_element)
-            self._add_element("observableAxis", _chunk.observable_axis,
+            self._formatter.add_element("naxis", _chunk.naxis, chunk_element)
+            self._formatter.add_element("observableAxis", _chunk.observable_axis,
                               chunk_element)
-            self._add_element("positionAxis1", _chunk.position_axis_1,
+            self._formatter.add_element("positionAxis1", _chunk.position_axis_1,
                               chunk_element)
-            self._add_element("positionAxis2", _chunk.position_axis_2,
+            self._formatter.add_element("positionAxis2", _chunk.position_axis_2,
                               chunk_element)
-            self._add_element("energyAxis", _chunk.energy_axis, chunk_element)
-            self._add_element("timeAxis", _chunk.time_axis, chunk_element)
-            self._add_element("polarizationAxis", _chunk.polarization_axis,
+            self._formatter.add_element("energyAxis", _chunk.energy_axis, chunk_element)
+            self._formatter.add_element("timeAxis", _chunk.time_axis, chunk_element)
+            self._formatter.add_element("polarizationAxis", _chunk.polarization_axis,
                               chunk_element)
             if _chunk.custom_axis is not None:
                 if self._output_version < 24:
                     raise AttributeError(
                         'Chunk.custom_axis only supported in CAOM2.4')
                 else:
-                    self._add_element("customAxis", _chunk.custom_axis,
+                    self._formatter.add_element("customAxis", _chunk.custom_axis,
                                       chunk_element)
             self._add_observable_axis_element(_chunk.observable, chunk_element)
             self._add_spatial_wcs_element(_chunk.position, chunk_element)
@@ -2814,7 +2940,7 @@ class ObservationWriter(object):
         if observable is None:
             return
 
-        element = self._get_caom_element("observable", parent)
+        element = self._formatter.get_element("observable", parent)
         self._add_slice_element("dependent", observable.dependent, element)
         self._add_slice_element("independent", observable.independent, element)
 
@@ -2824,11 +2950,11 @@ class ObservationWriter(object):
         if position is None:
             return
 
-        element = self._get_caom_element("position", parent)
+        element = self._formatter.get_element("position", parent)
         self._add_coord_axis2d_element("axis", position.axis, element)
-        self._add_element("coordsys", position.coordsys, element)
-        self._add_element("equinox", position.equinox, element)
-        self._add_element("resolution", position.resolution, element)
+        self._formatter.add_element("coordsys", position.coordsys, element)
+        self._formatter.add_element("equinox", position.equinox, element)
+        self._formatter.add_element("resolution", position.resolution, element)
 
     def _add_spectral_wcs_element(self, energy, parent):
         """ Builds a representation of a SpectralWCS and adds it to the
@@ -2836,18 +2962,18 @@ class ObservationWriter(object):
         if energy is None:
             return
 
-        element = self._get_caom_element("energy", parent)
+        element = self._formatter.get_element("energy", parent)
         self._add_coord_axis1d_element("axis", energy.axis, element)
-        self._add_element("specsys", energy.specsys, element)
-        self._add_element("ssysobs", energy.ssysobs, element)
-        self._add_element("ssyssrc", energy.ssyssrc, element)
-        self._add_element("restfrq", energy.restfrq, element)
-        self._add_element("restwav", energy.restwav, element)
-        self._add_element("velosys", energy.velosys, element)
-        self._add_element("zsource", energy.zsource, element)
-        self._add_element("velang", energy.velang, element)
-        self._add_element("bandpassName", energy.bandpass_name, element)
-        self._add_element("resolvingPower", energy.resolving_power, element)
+        self._formatter.add_element("specsys", energy.specsys, element)
+        self._formatter.add_element("ssysobs", energy.ssysobs, element)
+        self._formatter.add_element("ssyssrc", energy.ssyssrc, element)
+        self._formatter.add_element("restfrq", energy.restfrq, element)
+        self._formatter.add_element("restwav", energy.restwav, element)
+        self._formatter.add_element("velosys", energy.velosys, element)
+        self._formatter.add_element("zsource", energy.zsource, element)
+        self._formatter.add_element("velang", energy.velang, element)
+        self._formatter.add_element("bandpassName", energy.bandpass_name, element)
+        self._formatter.add_element("resolvingPower", energy.resolving_power, element)
         self._add_transition_element(energy.transition, element)
 
     def _add_temporal_wcs_element(self, time, parent):
@@ -2856,13 +2982,13 @@ class ObservationWriter(object):
         if time is None:
             return
 
-        element = self._get_caom_element("time", parent)
+        element = self._formatter.get_element("time", parent)
         self._add_coord_axis1d_element("axis", time.axis, element)
-        self._add_element("timesys", time.timesys, element)
-        self._add_element("trefpos", time.trefpos, element)
-        self._add_element("mjdref", time.mjdref, element)
-        self._add_element("exposure", time.exposure, element)
-        self._add_element("resolution", time.resolution, element)
+        self._formatter.add_element("timesys", time.timesys, element)
+        self._formatter.add_element("trefpos", time.trefpos, element)
+        self._formatter.add_element("mjdref", time.mjdref, element)
+        self._formatter.add_element("exposure", time.exposure, element)
+        self._formatter.add_element("resolution", time.resolution, element)
 
     def _add_polarization_wcs_element(self, polarization, parent):
         """ Builds a representation of a PolarizationWCS and adds it to the
@@ -2870,7 +2996,7 @@ class ObservationWriter(object):
         if polarization is None:
             return
 
-        element = self._get_caom_element("polarization", parent)
+        element = self._formatter.get_element("polarization", parent)
         self._add_coord_axis1d_element("axis", polarization.axis, element)
 
     def _add_custom_wcs_element(self, custom, parent):
@@ -2879,7 +3005,7 @@ class ObservationWriter(object):
         if custom is None:
             return
 
-        element = self._get_caom_element("custom", parent)
+        element = self._formatter.get_element("custom", parent)
         self._add_coord_axis1d_element("axis", custom.axis, element)
 
     # /*+ CAOM2 Types #-*/
@@ -2891,7 +3017,7 @@ class ObservationWriter(object):
             return
 
         if self._output_format == 'xml':
-            element = self._get_caom_element(name, parent)
+            element = self._formatter.get_element(name, parent)
         else:
             element = {}
             if isinstance(parent, list):
@@ -2899,8 +3025,8 @@ class ObservationWriter(object):
             else:
                 parent[name] = element
 
-        self._add_element("cval1", point.cval1, element)
-        self._add_element("cval2", point.cval2, element)
+        self._formatter.add_element("cval1", point.cval1, element)
+        self._formatter.add_element("cval2", point.cval2, element)
 
     # /*+ WCS Types #-*/
 
@@ -2910,10 +3036,10 @@ class ObservationWriter(object):
         if axis is None:
             return
 
-        element = self._get_caom_element(name, parent)
-        self._add_element("ctype", axis.ctype, element)
+        element = self._formatter.get_element(name, parent)
+        self._formatter.add_element("ctype", axis.ctype, element)
         if axis.cunit:
-            self._add_element("cunit", axis.cunit, element)
+            self._formatter.add_element("cunit", axis.cunit, element)
 
     def _add_coord2d_element(self, name, coord, parent):
         """ Builds a representation of a Coord2D and adds it to the
@@ -2921,7 +3047,7 @@ class ObservationWriter(object):
         if coord is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_ref_coord_element("coord1", coord.coord1, element)
         self._add_ref_coord_element("coord2", coord.coord2, element)
 
@@ -2931,9 +3057,9 @@ class ObservationWriter(object):
         if coord is None:
             return
 
-        element = self._get_caom_element(name, parent)
-        self._add_element("coord1", coord.coord1, element)
-        self._add_element("coord2", coord.coord2, element)
+        element = self._formatter.get_element(name, parent)
+        self._formatter.add_element("coord1", coord.coord1, element)
+        self._formatter.add_element("coord2", coord.coord2, element)
 
     def _add_coord_axis1d_element(self, name, axis, parent):
         """ Builds a representation of a CoordAxis1D and adds it to the
@@ -2941,7 +3067,7 @@ class ObservationWriter(object):
         if axis is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_axis_element("axis", axis.axis, element)
         self._add_coord_error_element("error", axis.error, element)
         self._add_coord_range1d_element("range", axis.range, element)
@@ -2954,7 +3080,7 @@ class ObservationWriter(object):
         if axis is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_axis_element("axis1", axis.axis1, element)
         self._add_axis_element("axis2", axis.axis2, element)
         self._add_coord_error_element("error1", axis.error1, element)
@@ -2969,7 +3095,7 @@ class ObservationWriter(object):
         if bounds is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_coord_range_1d_list_element("samples", bounds.samples,
                                               element)
 
@@ -2979,7 +3105,7 @@ class ObservationWriter(object):
         if bounds is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         if isinstance(bounds, wcs.CoordCircle2D):
             self._add_coord_circle2d_element("circle",
                                              wcs.CoordCircle2D(bounds.center,
@@ -2997,9 +3123,9 @@ class ObservationWriter(object):
         if circle is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_value_coord2d_element("center", circle.center, element)
-        self._add_element("radius", circle.radius, element)
+        self._formatter.add_element("radius", circle.radius, element)
 
     def _add_coord_error_element(self, name, error, parent):
         """ Builds a representation of a CoordError and adds it to the
@@ -3007,9 +3133,9 @@ class ObservationWriter(object):
         if error is None:
             return
 
-        element = self._get_caom_element(name, parent)
-        self._add_element("syser", error.syser, element)
-        self._add_element("rnder", error.rnder, element)
+        element = self._formatter.get_element(name, parent)
+        self._formatter.add_element("syser", error.syser, element)
+        self._formatter.add_element("rnder", error.rnder, element)
 
     def _add_coord_function1d_element(self, name, function, parent):
         """ Builds a representation of a CoordFunction1D and adds it to the
@@ -3017,9 +3143,9 @@ class ObservationWriter(object):
         if function is None:
             return
 
-        element = self._get_caom_element(name, parent)
-        self._add_element("naxis", function.naxis, element)
-        self._add_element("delta", function.delta, element)
+        element = self._formatter.get_element(name, parent)
+        self._formatter.add_element("naxis", function.naxis, element)
+        self._formatter.add_element("delta", function.delta, element)
         self._add_ref_coord_element("refCoord", function.ref_coord, element)
 
     def _add_coord_function2d_element(self, name, function, parent):
@@ -3028,13 +3154,13 @@ class ObservationWriter(object):
         if function is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_dimension2d_element("dimension", function.dimension, element)
         self._add_coord2d_element("refCoord", function.ref_coord, element)
-        self._add_element("cd11", function.cd11, element)
-        self._add_element("cd12", function.cd12, element)
-        self._add_element("cd21", function.cd21, element)
-        self._add_element("cd22", function.cd22, element)
+        self._formatter.add_element("cd11", function.cd11, element)
+        self._formatter.add_element("cd12", function.cd12, element)
+        self._formatter.add_element("cd21", function.cd21, element)
+        self._formatter.add_element("cd22", function.cd22, element)
 
     def _add_coord_polygon2d_element(self, name, polygon, parent):
         """ Builds a representation of a CoordPolygon2D and adds it to the
@@ -3042,9 +3168,9 @@ class ObservationWriter(object):
         if polygon is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         if len(polygon.vertices) > 0:
-            vertices_element = self._get_caom_element("vertices", element)
+            vertices_element = self._formatter.get_element("vertices", element)
             for vertex in polygon.vertices:
                 self._add_value_coord2d_element("vertex", vertex,
                                                 vertices_element)
@@ -3054,7 +3180,7 @@ class ObservationWriter(object):
             parent element. """
         if _range is None:
             return
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_ref_coord_element("start", _range.start, element)
         self._add_ref_coord_element("end", _range.end, element)
 
@@ -3064,7 +3190,7 @@ class ObservationWriter(object):
         if _range is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_coord2d_element("start", _range.start, element)
         self._add_coord2d_element("end", _range.end, element)
 
@@ -3074,9 +3200,9 @@ class ObservationWriter(object):
         if dimension is None:
             return
 
-        element = self._get_caom_element(name, parent)
-        self._add_element("naxis1", dimension.naxis1, element)
-        self._add_element("naxis2", dimension.naxis2, element)
+        element = self._formatter.get_element(name, parent)
+        self._formatter.add_element("naxis1", dimension.naxis1, element)
+        self._formatter.add_element("naxis2", dimension.naxis2, element)
 
     def _add_ref_coord_element(self, name, ref_coord, parent):
         """ Builds a representation of a RefCoord and adds it to the
@@ -3084,9 +3210,9 @@ class ObservationWriter(object):
         if ref_coord is None:
             return
 
-        element = self._get_caom_element(name, parent)
-        self._add_element("pix", ref_coord.pix, element)
-        self._add_element("val", ref_coord.val, element)
+        element = self._formatter.get_element(name, parent)
+        self._formatter.add_element("pix", ref_coord.pix, element)
+        self._formatter.add_element("val", ref_coord.val, element)
 
     def _add_slice_element(self, name, _slice, parent):
         """ Builds a representation of a Slice and adds it to the
@@ -3094,70 +3220,17 @@ class ObservationWriter(object):
         if _slice is None:
             return
 
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         self._add_axis_element("axis", _slice.axis, element)
-        self._add_element("bin", _slice.bin, element)
+        self._formatter.add_element("bin", _slice.bin, element)
 
-    def _add_attribute(self, name, value, element):
-        if self._output_format == 'xml':
-            element.set(self._caom2_namespace + name, value)
-        else:
-            element['@' + name] = value
 
-    def _add_element(self, name, value, parent):
-        if value is None:
-            return
-        if self._output_format == 'xml':
-            element = self._get_caom_element(name, parent)
-            if isinstance(value, str):
-                element.text = value
-            elif isinstance(value, Enum):
-                element.text = value.value
-            else:
-                element.text = str(value)
-        else:
-            if not isinstance(value, (str, int, float, bool)):
-                raise TypeError("CAOM JSON value must be str, int, float or bool not "
-                                + value.__class__.__name__)
-            if isinstance(parent, list):
-                parent.append(value)
-            else:
-                parent[name] = value
-
-    def _add_boolean_element(self, name, value, parent):
-        if value is None:
-            return
-        if self._output_format == 'xml':
-            element = self._get_caom_element(name, parent)
-            element.text = str(value).lower()
-        else:
-            parent[name] = bool(value)
-
-    def _add_datetime_element(self, name, value, parent):
-        if value is None:
-            return
-        if self._output_format == 'xml':
-            element = self._get_caom_element(name, parent)
-            element.text = caom_util.date2ivoa(value)
-        else:
-            parent[name] = caom_util.date2ivoa(value)
-
-    def _add_keywords_element(self, collection, parent):
-        if collection is None or \
-                (len(collection) == 0 and not self._write_empty_collections):
-            return
-        if self._output_format == 'xml':
-            element = self._get_caom_element("keywords", parent)
-            for keyword in collection:
-                self._get_caom_element("keyword", element).text = keyword
-        else:
-            parent['keywords'] = sorted(list(collection))
 
     def _add_coord_range_1d_list_element(self, name, values, parent):
         if values is None:
             return
         if self._output_format == 'xml':
-            element = self._get_caom_element(name, parent)
+            element = self._formatter.get_element(name, parent)
             for v in values:
                 self._add_coord_range1d_element("range", v, element)
         else:
@@ -3168,23 +3241,16 @@ class ObservationWriter(object):
         if collection is None or \
                 (len(collection) == 0 and not self._write_empty_collections):
             return
-        element = self._get_caom_element(name, parent)
+        element = self._formatter.get_element(name, parent)
         if self._output_version < 25:
             input_tag = "planeURI"
         else:
             input_tag = "input"
         if self._output_format == 'xml':
             for plane_uri in collection:
-                self._add_element(input_tag, plane_uri, element)
+                self._formatter.add_element(input_tag, plane_uri, element)
         else:
             parent[name] = [inp for inp in collection]
-
-    def _get_caom_element(self, tag, parent):
-        if self._output_format == 'xml':
-            return etree.SubElement(parent, self._caom2_namespace + tag)
-        else:
-            parent[tag] = {}
-            return parent[tag]
 
 
 class ObservationParsingException(Exception):
