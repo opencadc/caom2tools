@@ -361,8 +361,8 @@ def test_checksum_diff():
             output = stdout_mock.getvalue()
         assert 'mismatch' not in output, '{} should have correct checksum'.\
             format(source_file_path)
-        assert 'chunk' in output
-        assert 'part' in output
+        # assert 'chunk' in output  - removed from sample file and maybe from 2.5?
+        # assert 'part' in output  - removed from sample file and maybe from 2.5?
         assert 'artifact' in output
         assert 'plane' in output
         assert 'observation' in output
