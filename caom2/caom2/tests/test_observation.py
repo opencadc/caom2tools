@@ -107,6 +107,8 @@ class TestEnums(unittest.TestCase):
                          "calibration")
         self.assertEqual(observation.ObservationIntentType.SCIENCE.value,
                          "science")
+        self.assertEqual(observation.ObservationIntentType.OUTREACH.value,
+                         "outreach")
 
         self.assertEqual(observation.Status.FAIL.value, "fail")
 
