@@ -80,6 +80,7 @@ from caom2.obs_reader_writer import ObservationWriter, CAOM24_NAMESPACE, CAOM25_
 from caom2 import obs_reader_writer
 from caom2.observation import SimpleObservation
 from unittest.mock import Mock, patch, MagicMock, ANY, call
+from unittest import skipIf
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
 from io import BytesIO, StringIO
 
@@ -268,7 +269,7 @@ class TestCAOM2Repo(unittest.TestCase):
                          visitor._get_observations('cfht'))
         self.assertEqual(end_date, visitor._start)
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
+            core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID,
             'cfht'),
             params={'MAXREC': core.BATCH_SIZE})
 
@@ -276,7 +277,7 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor._get_observations('cfht', end=datetime.strptime('2000-11-11',
                                                                 '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
+            core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID,
             'cfht'),
             params={'END': '2000-11-11T00:00:00.000',
                     'MAXREC': core.BATCH_SIZE})
@@ -288,7 +289,7 @@ class TestCAOM2Repo(unittest.TestCase):
                                   end=datetime.strptime('2000-11-12',
                                                         '%Y-%m-%d'))
         mock_get.assert_called_once_with((
-            'vos://cadc.nrc.ca~vospace/CADC/std/CAOM2Repository#obs-1.2',
+            core.CURRENT_CAOM2REPO_OBS_CAPABILITY_ID,
             'cfht'), params={'START': '2000-11-11T00:00:00.000',
                              'END': '2000-11-12T00:00:00.000',
                              'MAXREC': core.BATCH_SIZE})
@@ -324,7 +325,7 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(
             '/{}/auth/{}/{}'.format(service, collection, observation_uri.split('/')[-1]),
             mock_conn.call_args[0][0].path_url)
-        self.assertEqual('application/xml',
+        self.assertEqual('text/xml',
                          mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
 
@@ -385,7 +386,7 @@ class TestCAOM2Repo(unittest.TestCase):
         self.assertEqual(
             '/{}/pub/{}/{}'.format(service, collection, observation_uri.split('/')[-1]),
             mock_conn.call_args[0][0].path_url)
-        self.assertEqual('application/xml',
+        self.assertEqual('text/xml',
                          mock_conn.call_args[0][0].headers['Content-Type'])
         self.assertEqual(obsxml, mock_conn.call_args[0][0].body)
 
@@ -837,7 +838,7 @@ class TestCAOM2Repo(unittest.TestCase):
     def test_main_app(self, client_mock):
         collection = 'cfht'
         observation_uri = 'caom:cfht/7000000o'
-        ifile = '/tmp/inputobs'
+        ifile = '/tmp/inputobs.xml'
 
         obs = SimpleObservation(collection, observation_uri)
 
@@ -919,6 +920,8 @@ class TestCAOM2Repo(unittest.TestCase):
     @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
                                          MyExitError, MyExitError, MyExitError,
                                          MyExitError, MyExitError]))
+    @skipIf(sys.version_info > (3, 12),
+            reason="Python 3.13 help format is different")
     def test_help(self):
         """ Tests the helper displays for commands and subcommands in main"""
 

@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2021.                            (c) 2021.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -188,24 +188,19 @@ class StorageClientWrapper:
         self._logger.debug(f'Begin put for {uri} in {working_directory}')
         start = self._current()
         cwd = getcwd()
-        archive, f_name = StorageClientWrapper._decompose(uri)
+        _, f_name = StorageClientWrapper._decompose(uri)
         fqn = path.join(working_directory, f_name)
         chdir(working_directory)
         try:
             local_meta = get_local_file_info(f_name)
             encoding = get_file_encoding(f_name)
-            replace = True
-            cadc_meta = self.info(uri)
-            if cadc_meta is None:
-                replace = False
             self._logger.debug(
-                f'uri {uri} src {fqn} replace {replace} file_type {local_meta.file_type} encoding {encoding} '
+                f'uri {uri} src {fqn} file_type {local_meta.file_type} encoding {encoding} '
                 f'md5_checksum {local_meta.md5sum}'
             )
             self._cadc_client.cadcput(
                 uri,
                 src=f_name,
-                replace=replace,
                 file_type=local_meta.file_type,
                 file_encoding=encoding,
                 md5_checksum=local_meta.md5sum,

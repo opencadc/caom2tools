@@ -1,5 +1,5 @@
 usage: caom2-repo visit [-h]
-                        [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
+                        [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER | --token TOKEN]
                         [--resource-id RESOURCE_ID] [-q | -v] --plugin PLUGIN
                         [--start START] [--end END] [--obs_file OBS_FILE]
                         [--threads {2,3,4,5,6,7,8,9}] [--halt-on-error]
@@ -31,6 +31,7 @@ optional arguments:
   --threads {2,3,4,5,6,7,8,9}
                         number of working threads used by the visitor when
                         getting observations, range is 2 to 10
+  --token TOKEN         authentication token to use.
   -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages

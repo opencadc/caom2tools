@@ -257,7 +257,6 @@ def _check_put_result(client_mock):
     client_mock.assert_called_with(
         'cadc:TEST/test_file.fits',
         src='test_file.fits',
-        replace=True,
         file_type='application/fits',
         file_encoding=None,
         md5_checksum='3c66ee2cb6e0c2cfb5cd6824d353dc11',

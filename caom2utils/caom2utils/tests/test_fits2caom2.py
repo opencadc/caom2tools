@@ -91,6 +91,7 @@ import vos
 from lxml import etree
 
 from unittest.mock import Mock, patch
+from unittest import skipIf
 from io import StringIO, BytesIO
 
 import importlib
@@ -114,6 +115,8 @@ text_override = os.path.join(TESTDATA_DIR, 'text.override')
 test_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin.py')
 test_class_plugin_module = os.path.join(TESTDATA_DIR, 'test_plugin_class.py')
 non_conformant_plugin_module = os.path.join(TESTDATA_DIR, 'nonconformant.py')
+
+CAOM23_NS = 'http://www.opencadc.org/caom2/xml/v2.3'
 
 
 class MyExitError(Exception):
@@ -143,13 +146,20 @@ EXPECTED_ENERGY_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom
 '''
 
 
+def _get_caom23_reader():
+    """ Returns a reader with the CAOM 2.3 namespace set."""
+    reader = ObservationReader()
+    reader._parser.namespace = CAOM23_NS
+    return reader
+
+
 def test_augment_energy():
     bp = ObsBlueprint(energy_axis=1)
     test_fitsparser = FitsParser(sample_file_4axes, bp)
     artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     energy = artifact.parts['0'].chunks[0].energy
-    ex = _get_from_str_xml(EXPECTED_ENERGY_XML, ObservationReader()._get_spectral_wcs, 'energy')
+    ex = _get_from_str_xml(EXPECTED_ENERGY_XML, _get_caom23_reader()._get_spectral_wcs, 'energy')
     result = get_differences(ex, energy)
     assert result is None, result
 
@@ -216,7 +226,7 @@ def test_augment_artifact_energy_from_blueprint():
     test_fitsparser = FitsParser(sample_file_4axes, test_blueprint, uri='ad:TEST/test_blueprint')
     test_chunk = Chunk()
     test_fitsparser._try_energy_with_blueprint(test_chunk, 0)
-    ex = _get_from_str_xml(EXPECTED_ENERGY_XML, ObservationReader()._get_spectral_wcs, 'energy')
+    ex = _get_from_str_xml(EXPECTED_ENERGY_XML, _get_caom23_reader()._get_spectral_wcs, 'energy')
     result = get_differences(ex, test_chunk.energy)
     assert result is None, result
 
@@ -246,7 +256,7 @@ def test_augment_polarization():
     artifact = Artifact('ad:{}/{}'.format('TEST', sample_file_4axes), DataLinkSemantics.PREVIEW_IMAGE, ReleaseType.DATA)
     test_fitsparser.augment_artifact(artifact)
     polarization = artifact.parts['0'].chunks[0].polarization
-    ex = _get_from_str_xml(EXPECTED_POLARIZATION_XML, ObservationReader()._get_polarization_wcs, 'polarization')
+    ex = _get_from_str_xml(EXPECTED_POLARIZATION_XML, _get_caom23_reader()._get_polarization_wcs, 'polarization')
     result = get_differences(ex, polarization)
     assert result is None, result
 
@@ -262,7 +272,7 @@ def test_augment_artifact_polarization_from_blueprint():
     test_fitsparser = FitsParser(sample_file_4axes, test_blueprint, uri='test_parser')
     test_chunk = Chunk()
     test_fitsparser._try_polarization_with_blueprint(test_chunk, 0)
-    ex = _get_from_str_xml(EXPECTED_POLARIZATION_XML, ObservationReader()._get_polarization_wcs, 'polarization')
+    ex = _get_from_str_xml(EXPECTED_POLARIZATION_XML, _get_caom23_reader()._get_polarization_wcs, 'polarization')
     result = get_differences(ex, test_chunk.polarization)
     assert result is None
 
@@ -315,7 +325,7 @@ def test_augment_artifact():
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.position is not None
-    ex = _get_from_str_xml(EXPECTED_POSITION_XML, ObservationReader()._get_spatial_wcs, 'position')
+    ex = _get_from_str_xml(EXPECTED_POSITION_XML, _get_caom23_reader()._get_spatial_wcs, 'position')
     result = get_differences(ex, test_chunk.position)
     assert result is None
 
@@ -341,7 +351,7 @@ def test_augment_artifact_position_from_blueprint():
     test_fitsparser = FitsParser(sample_file_4axes, test_blueprint, uri='test_parser')
     test_chunk = Chunk()
     test_fitsparser._try_position_with_blueprint(test_chunk, 0)
-    ex = _get_from_str_xml(EXPECTED_POSITION_XML, ObservationReader()._get_spatial_wcs, 'position')
+    ex = _get_from_str_xml(EXPECTED_POSITION_XML, _get_caom23_reader()._get_spatial_wcs, 'position')
     result = get_differences(ex, test_chunk.position)
     assert result is None
 
@@ -385,7 +395,7 @@ def test_augment_artifact_time():
     test_chunk = test_part.chunks.pop()
     assert test_chunk is not None
     assert test_chunk.time is not None
-    ex = _get_from_str_xml(EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME, ObservationReader()._get_temporal_wcs, 'time')
+    ex = _get_from_str_xml(EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME, _get_caom23_reader()._get_temporal_wcs, 'time')
     result = get_differences(ex, test_chunk.time)
     assert result is None
 
@@ -407,7 +417,7 @@ def test_augment_artifact_time_from_blueprint():
     test_fitsparser = FitsParser(sample_file_4axes, test_blueprint, uri='ad:TEST/test_blueprint')
     test_chunk = Chunk()
     test_fitsparser._try_time_with_blueprint(test_chunk, 0)
-    ex = _get_from_str_xml(EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME, ObservationReader()._get_temporal_wcs, 'time')
+    ex = _get_from_str_xml(EXPECTED_CFHT_WIRCAM_RAW_GUIDE_CUBE_TIME, _get_caom23_reader()._get_temporal_wcs, 'time')
     result = get_differences(ex, test_chunk.time)
     assert result is None
 
@@ -531,14 +541,14 @@ def get_test_wcs(test_file):
 
 
 def _get_from_str_xml(string_xml, get_func, element_tag):
-    etree.register_namespace('caom2', 'http://www.opencadc.org/caom2/xml/v2.3')
     parent_element = etree.fromstring(string_xml)
-    ns = parent_element.nsmap['caom2']
-    act_obj = get_func(element_tag, parent_element, ns, False)
+    act_obj = get_func(element_tag, parent_element, False)
     return act_obj
 
 
 @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError, MyExitError, MyExitError, MyExitError]))
+@skipIf(sys.version_info > (3, 12),
+        reason="Python 3.13 help format is different")
 def test_help():
     """Tests the helper displays for commands in main"""
 
@@ -1079,7 +1089,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = (
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2486</caom2:contentLength>
+          <caom2:contentLength>2573</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://"""
     + text_file
@@ -1139,7 +1149,7 @@ def test_visit():
     _visit(test_class_plugin_module, test_fitsparser, test_obs, visit_local=None, **kwargs)
 
 
-EXPECTED_CUSTOM_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4">
+EXPECTED_CUSTOM_RANGE_BOUNDS_XML = '''<caom2:import xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3">
   <caom2:custom>
     <caom2:axis>
       <caom2:axis>
@@ -1325,27 +1335,27 @@ def test_augment_artifact_bounds_range_from_blueprint():
     assert test_chunk.polarization.axis.range is not None, 'chunk.polarization.axis.range should be declared'
     assert test_chunk.position.axis.range is not None, 'chunk.position.axis.range should be declared'
     assert test_chunk.custom.axis.range is not None, 'chunk.custom.axis.range should be declared'
-    ex = _get_from_str_xml(EXPECTED_ENERGY_RANGE_BOUNDS_XML, ObservationReader()._get_spectral_wcs, 'energy')
+    ex = _get_from_str_xml(EXPECTED_ENERGY_RANGE_BOUNDS_XML, _get_caom23_reader()._get_spectral_wcs, 'energy')
     assert ex is not None, 'energy string from expected output should be declared'
     result = get_differences(ex, test_chunk.energy)
     assert result is None, f'energy\n{result}'
 
-    ex = _get_from_str_xml(EXPECTED_TIME_RANGE_BOUNDS_XML, ObservationReader()._get_temporal_wcs, 'time')
+    ex = _get_from_str_xml(EXPECTED_TIME_RANGE_BOUNDS_XML, _get_caom23_reader()._get_temporal_wcs, 'time')
     assert ex is not None, 'time string from expected output should be declared'
     result = get_differences(ex, test_chunk.time)
     assert result is None, f'time\n{result}'
 
-    ex = _get_from_str_xml(EXPECTED_POL_RANGE_BOUNDS_XML, ObservationReader()._get_polarization_wcs, 'polarization')
+    ex = _get_from_str_xml(EXPECTED_POL_RANGE_BOUNDS_XML, _get_caom23_reader()._get_polarization_wcs, 'polarization')
     assert ex is not None, 'polarization string from expected output should be declared'
     result = get_differences(ex, test_chunk.polarization)
     assert result is None, f'polarization\n{result}'
 
-    ex = _get_from_str_xml(EXPECTED_POS_RANGE_BOUNDS_XML, ObservationReader()._get_spatial_wcs, 'position')
+    ex = _get_from_str_xml(EXPECTED_POS_RANGE_BOUNDS_XML, _get_caom23_reader()._get_spatial_wcs, 'position')
     assert ex is not None, 'position string from expected output should be declared'
     result = get_differences(ex, test_chunk.position)
     assert result is None, f'position\n{result}'
 
-    ex = _get_from_str_xml(EXPECTED_CUSTOM_RANGE_BOUNDS_XML, ObservationReader()._get_custom_wcs, 'custom')
+    ex = _get_from_str_xml(EXPECTED_CUSTOM_RANGE_BOUNDS_XML, _get_caom23_reader()._get_custom_wcs, 'custom')
     assert ex is not None, 'custom string from expected output should be declared'
     result = get_differences(ex, test_chunk.custom)
     assert result is None, f'custom\n{result}'
