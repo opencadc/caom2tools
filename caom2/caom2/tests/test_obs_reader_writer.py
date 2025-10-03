@@ -77,7 +77,7 @@ import tempfile
 
 from . import caom_test_instances
 from .xml_compare import xml_compare
-from .. import obs_reader_writer
+from .. import obs_reader_writer, get_acc_meta_checksum
 from .. import observation
 from .. import plane
 from .. import shape
@@ -1124,12 +1124,20 @@ class TestRoundTrip(unittest.TestCase):
         source_xml_fp = open(source_file_path, 'r')
         obs = reader.read(source_file_path)
         source_xml_fp.close()
+        with open('/tmp/dest.xml', 'wb') as f:
+            writer.write(obs, f)
         dest_file = BytesIO()
         writer.write(obs, dest_file)
         source_dom = etree.parse(source_file_path).getroot()
         dest_dom = etree.fromstring(dest_file.getvalue())
         self.assertTrue(xml_compare(source_dom, dest_dom, reporter=print),
                         'files are different')
+        obs2 = reader.read('/tmp/dest.xml')
+        if obs.acc_meta_checksum is not None:
+            self.assertEqual(obs.acc_meta_checksum, get_acc_meta_checksum(obs))
+            self.assertEqual(obs2.acc_meta_checksum, get_acc_meta_checksum(obs2))
+            self.assertEqual(obs.acc_meta_checksum, get_acc_meta_checksum(obs2))
+
 
     # This test reads each file in XML_FILE_SOURCE_DIR, creates the CAOM2
     # objects and writes a file in XML_FILE_DEST_DIR based on the CAOM2
