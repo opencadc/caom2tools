@@ -79,11 +79,9 @@ from . import caom_util
 from . import shape
 from . import wcs
 from .artifact import Artifact
-from .common import AbstractCaomEntity, CaomObject, ObservationURI,\
-    VocabularyTerm, OrderedEnum
+from .common import AbstractCaomEntity, CaomObject, ObservationURI, VocabularyTerm, OrderedEnum
 from .common import _CAOM_VOCAB_NS, _OBSCORE_VOCAB_NS
 import warnings
-from enum import Enum
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum, extend_enum

@@ -105,7 +105,7 @@ def get_differences(expected, actual, parent=None):
     """
     report = []
 
-    if type(expected) != type(actual):
+    if not isinstance(actual, expected.__class__):
         report.append(
             'Types:: expected \'{}\' actual \'{}\''.format(type(expected),
                                                            type(actual)))

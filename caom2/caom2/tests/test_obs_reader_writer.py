@@ -1138,16 +1138,13 @@ class TestRoundTrip(unittest.TestCase):
             self.assertEqual(obs2.acc_meta_checksum, get_acc_meta_checksum(obs2))
             self.assertEqual(obs.acc_meta_checksum, get_acc_meta_checksum(obs2))
 
-
     # This test reads each file in XML_FILE_SOURCE_DIR, creates the CAOM2
     # objects and writes a file in XML_FILE_DEST_DIR based on the CAOM2
     # objects. The two XML files are then compared to ensure that they
     # are the same. The test fails if the files are not the same. The
     # test/data/*.xml files can be used in this test.
-
     def test_round_trip(self):
         print("Test Round Trip")
-
         try:
             self.init()
             files = self.get_file_list()
