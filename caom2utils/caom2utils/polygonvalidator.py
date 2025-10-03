@@ -22,7 +22,7 @@
 #  consequential or incidental,         particulier ou général,
 #  arising from the use of the          accessoire ou fortuit, résultant
 #  software.  Neither the name          de l'utilisation du logiciel. Ni
-#  of the National Research              le nom du Conseil National de
+#  of the National Research             le nom du Conseil National de
 #  Council of Canada nor the            Recherches du Canada ni les noms
 #  names of its contributors may        de ses  participants ne peuvent
 #  be used to endorse or promote        être utilisés pour approuver ou
