@@ -3,7 +3,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -630,6 +630,23 @@ class ObservationReader(object):
             flag = self._get_child_text("flag", el, ns, True)
             data_quality = plane.DataQuality(plane.Quality(flag))
             return data_quality
+
+    def _get_observable(self, parent, ns):
+        """Build an Observable object from an XML representation
+
+        Arguments:
+        parent : element containing the Observable element
+        ns : namespace of the document
+        return : an Observable object or None if the document does not contain one
+        raise : ObservationParsingException
+        """
+        el = self._get_child_element("observable", parent, ns, False)
+        if el is None:
+            return None
+        else:
+            ucd = self._get_child_text("ucd", el, ns, True)
+            observable = plane.Observable(plane.Ucd(ucd))
+            return observable
 
     def _get_point(self, point, ns, required):
         """Build an Point object from an XML representation
@@ -1696,6 +1713,8 @@ class ObservationReader(object):
                 _plane.provenance = \
                     self._get_provenance("provenance", plane_element, ns,
                                          False)
+                _plane.observable = self._get_observable(plane_element, ns)
+
                 _plane.metrics = \
                     self._get_metrics("metrics", plane_element, ns, False)
                 _plane.quality = \
@@ -2080,6 +2099,7 @@ class ObservationWriter(object):
                                   _plane.calibration_level.value,
                                   plane_element)
             self._add_provenance_element(_plane.provenance, plane_element)
+            self._add_observable_element(_plane.observable, plane_element)
             self._add_metrics_element(_plane.metrics, plane_element)
             self._add_quality_element(_plane.quality, plane_element)
 
@@ -2131,9 +2151,9 @@ class ObservationWriter(object):
                         "Attempt to write CAOM2.4 element "
                         "(energy.resolving_power_bands) as "
                         "CAOM2.3 Observation")
-        else:
-            self._add_interval_element("resolvingPowerBounds",
-                                       energy.resolving_power_bounds, element)
+            else:
+                self._add_interval_element("resolvingPowerBounds",
+                                           energy.resolving_power_bounds, element)
         self._add_element("sampleSize", energy.sample_size, element)
         self._add_element("bandpassName", energy.bandpass_name, element)
         if energy.energy_bands:
@@ -2279,6 +2299,13 @@ class ObservationWriter(object):
 
         element = self._get_caom_element("quality", parent)
         self._add_element("flag", quality.flag.value, element)
+
+    def _add_observable_element(self, observable, parent):
+        if observable is None:
+            return
+
+        element = self._get_caom_element("observable", parent)
+        self._add_element("ucd", observable.ucd.value, element)
 
     def _add_transition_element(self, transition, parent):
         if transition is None:

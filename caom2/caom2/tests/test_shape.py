@@ -289,6 +289,6 @@ class TestVertex():
                       shape.SegmentType.LINE)
 
         vertex = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
-        assert(vertex.cval1 == 1.0)
-        assert(vertex.cval2 == 2.0)
-        assert(vertex.type == shape.SegmentType.LINE)
+        assert (vertex.cval1 == 1.0)
+        assert (vertex.cval2 == 2.0)
+        assert (vertex.type == shape.SegmentType.LINE)
