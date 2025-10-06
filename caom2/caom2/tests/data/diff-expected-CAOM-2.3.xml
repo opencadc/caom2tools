@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="5dac72fb-6e17-494c-aada-5692711dc742" caom2:lastModified="2020-05-10T12:08:31.924" caom2:maxLastModified="2020-05-10T12:08:31.924" caom2:metaChecksum="md5:b25f6324279e233fc1ce015be07d246c" caom2:accMetaChecksum="md5:e92bd8c45b822c2962294c5334b0b6bc">
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="5dac72fb-6e17-494c-aada-5692711dc742" caom2:lastModified="2020-05-10T12:08:31.924" caom2:maxLastModified="2020-05-10T12:08:31.924">
   <caom2:collection>DAO</caom2:collection>
   <caom2:observationID>dao_c182_2020_006313</caom2:observationID>
   <caom2:metaRelease>2020-05-10T12:02:15.000</caom2:metaRelease>

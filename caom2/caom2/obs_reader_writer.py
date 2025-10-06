@@ -90,7 +90,7 @@ from . import shape
 from . import wcs
 import logging
 
-from .plane import CalibrationStatus, Ucd, Polarization
+from .plane import CalibrationStatus, Polarization
 
 DATA_PKG = 'data'
 
@@ -772,6 +772,7 @@ class ObservationReader(object):
 
         Arguments:
         parent : element containing the Observable element
+        ns : namespace of the document
         return : an Observable object or None if the document does not contain one
         raise : ObservationParsingException
         """
@@ -780,7 +781,7 @@ class ObservationReader(object):
             return None
         else:
             ucd = self._parser.get_child_text("ucd", el, True)
-            observable = plane.Observable(Ucd(ucd))
+            observable = plane.Observable(plane.Ucd(ucd))
             calib = self._parser.get_child_text("calibration", el, False)
             if calib:
                 observable.calibration = CalibrationStatus(calib)

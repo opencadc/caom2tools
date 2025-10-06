@@ -67,6 +67,7 @@
 #
 
 import math
+import pytest
 import unittest
 
 from .. import shape
@@ -127,3 +128,51 @@ class TestPoint(unittest.TestCase):
         point = shape.Point(1.0, 2.0)
         self.assertEqual(point.cval1, 1.0)
         self.assertEqual(point.cval2, 2.0)
+
+
+class TestSubInterval(unittest.TestCase):
+    def test_all(self):
+
+        self.assertRaises(TypeError, shape.SubInterval, None, None)
+        self.assertRaises(TypeError, shape.SubInterval, None, 1.0)
+        self.assertRaises(TypeError, shape.SubInterval, 1.0, None)
+        self.assertRaises(TypeError, shape.SubInterval, "string1", "string2")
+        self.assertRaises(ValueError, shape.SubInterval, 2.0, 1.0)
+
+        # test cannot set subInterval with upper < lower
+        subInterval = shape.SubInterval(1.0, 2.0)
+        has_assertionError = False
+        try:
+            subInterval.upper = 0.5
+        except ValueError:
+            has_assertionError = True
+        self.assertEqual(has_assertionError, True)
+
+        # test construction method
+        shape.SubInterval(10.0, 15.0)
+
+
+class TestVertex():
+    def test_all(self):
+        pytest.raises(TypeError, shape.Vertex, None, None, None)
+        pytest.raises(TypeError, shape.Vertex, 1.0, 2.0, None)
+        pytest.raises(TypeError, shape.Vertex, 1.0, 2.0, 1.0)
+        pytest.raises(TypeError, shape.Vertex, None, None,
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, None, 2.0,
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, 1.0, None,
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, None, "string",
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, "string", None,
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, None, int(1),
+                      shape.SegmentType.LINE)
+        pytest.raises(TypeError, shape.Vertex, int(1), None,
+                      shape.SegmentType.LINE)
+
+        vertex = shape.Vertex(1.0, 2.0, shape.SegmentType.LINE)
+        assert (vertex.cval1 == 1.0)
+        assert (vertex.cval2 == 2.0)
+        assert (vertex.type == shape.SegmentType.LINE)
