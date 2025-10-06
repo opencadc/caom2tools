@@ -167,7 +167,7 @@ class CaomObject(object):
                           for arg in args])
 
     def __eq__(self, other):
-        if type(other) is type(self):
+        if isinstance(other, CaomObject):
             return self.__dict__ == other.__dict__
         else:
             return False
