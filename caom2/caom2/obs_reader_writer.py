@@ -645,7 +645,7 @@ class ObservationReader(object):
             return None
         else:
             ucd = self._get_child_text("ucd", el, ns, True)
-            observable = plane.Observable(plane.Ucd(ucd))
+            observable = plane.Observable(ucd)
             return observable
 
     def _get_point(self, point, ns, required):
@@ -2305,7 +2305,7 @@ class ObservationWriter(object):
             return
 
         element = self._get_caom_element("observable", parent)
-        self._add_element("ucd", observable.ucd.value, element)
+        self._add_element("ucd", observable.ucd, element)
 
     def _add_transition_element(self, transition, parent):
         if transition is None:
