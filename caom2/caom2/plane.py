@@ -89,7 +89,7 @@ with warnings.catch_warnings():
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
            'PolarizationState', 'Quality', 'Plane',
            'PlaneURI', 'DataQuality', 'Metrics', 'Provenance', 'Position',
-           'Energy', 'Polarization', 'Time', 'Observable', 'Ucd']
+           'Energy', 'Polarization', 'Time', 'Observable']
 
 
 class CalibrationLevel(Enum):
@@ -106,14 +106,6 @@ class CalibrationLevel(Enum):
     CALIBRATED = int_32(2)
     PRODUCT = int_32(3)
     ANALYSIS_PRODUCT = int_32(4)
-
-
-class Ucd(CaomObject):
-    """ UCD - enum of UCDs"""
-    _UCD_VOCAB = "https://ivoa.net/documents/UCD1+/20230125/ucd-list.txt"
-
-    def __init__(self, value):
-        self.value = value
 
 
 class DataProductType(OrderedEnum):
@@ -227,7 +219,7 @@ class Observable(CaomObject):
 
     @ucd.setter
     def ucd(self, value):
-        caom_util.type_check(value, Ucd, 'ucd', override=False)
+        caom_util.type_check(value, str, 'ucd', override=False)
         self._ucd = value
 
 
