@@ -133,7 +133,7 @@ class ProductType(OrderedEnum):
     SCIENCE = 'science'  # this
 
     # deprecated
-    # INFO = 'info'
+    INFO = 'info'
     # CATALOG = 'catalog'
 
 

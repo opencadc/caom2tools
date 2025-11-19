@@ -107,6 +107,8 @@ class TestEnums(unittest.TestCase):
         self.assertEqual(chunk.ProductType.DOCUMENTATION.value, "documentation")
         self.assertEqual(chunk.ProductType.PREVIEW_IMAGE.value, "preview-image")
         self.assertEqual(chunk.ProductType.PREVIEW_PLOT.value, "preview-plot")
+        # deprecated
+        self.assertEqual(chunk.ProductType.INFO.value, "info")
 
 
 class TestChunk(unittest.TestCase):
