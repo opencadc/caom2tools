@@ -77,8 +77,8 @@ import tempfile
 
 from . import caom_test_instances
 from .xml_compare import xml_compare
-from .. import dali, get_acc_meta_checksum
-from .. import obs_reader_writer
+from .. import dali
+from .. import obs_reader_writer, get_acc_meta_checksum
 from .. import observation
 from .. import plane
 from .. import shape
@@ -1150,6 +1150,8 @@ class TestRoundTrip(unittest.TestCase):
         source_xml_fp = open(source_file_path, 'r')
         obs_xml = reader.read(source_file_path)
         source_xml_fp.close()
+        with open('/tmp/dest.xml', 'wb') as f:
+            writer.write(obs_xml, f)
         dest_file = BytesIO()
         writer.write(obs_xml, dest_file)
         source_dom = etree.parse(source_file_path).getroot()
@@ -1188,10 +1190,8 @@ class TestRoundTrip(unittest.TestCase):
     # objects. The two XML files are then compared to ensure that they
     # are the same. The test fails if the files are not the same. The
     # test/data/*.xml files can be used in this test.
-
     def test_round_trip(self):
         print("Test Round Trip")
-
         try:
             self.init()
             files = self.get_file_list()

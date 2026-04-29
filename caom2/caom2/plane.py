@@ -87,9 +87,9 @@ with warnings.catch_warnings():
     from aenum import Enum, extend_enum
 
 __all__ = ['CalibrationLevel', 'DataProductType', 'EnergyBand',
-           'PolarizationState', 'Quality', 'Plane',
+           'PolarizationState', 'Quality', 'Plane', 'CalibrationStatus',
            'DataQuality', 'Metrics', 'Provenance', 'Position',
-           'Energy', 'Polarization', 'Time', 'Observable']
+           'Energy', 'Polarization', 'Time', 'Observable', 'Ucd']
 
 
 class CalibrationLevel(Enum):
@@ -108,9 +108,9 @@ class CalibrationLevel(Enum):
     ANALYSIS_PRODUCT = int_32(4)
 
 
-class Ucd:
+class Ucd(CaomObject):
     """ UCD - enum of UCDs"""
-    UCD_VOCAB = "https://ivoa.net/documents/UCD1+/20230125/ucd-list.txt"
+    _UCD_VOCAB = "https://ivoa.net/documents/UCD1+/20230125/ucd-list.txt"
 
     def __init__(self, value):
         self.value = value
@@ -229,6 +229,7 @@ class Observable(CaomObject):
     """ Observable class"""
 
     def __init__(self, ucd, calibration=None):
+        super(Observable, self).__init__()
         if not ucd:
             raise ValueError("Observable.ucd cannot be None")
         caom_util.type_check(ucd, Ucd, 'ucd')
@@ -238,6 +239,11 @@ class Observable(CaomObject):
     @property
     def ucd(self):
         return self._ucd
+
+    @ucd.setter
+    def ucd(self, value):
+        caom_util.type_check(value, Ucd, 'ucd', override=False)
+        self._ucd = value
 
     @property
     def calibration(self):
