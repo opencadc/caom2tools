@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2025.                            (c) 2025.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,6 +68,7 @@
 import hashlib
 import inspect
 import uuid
+from abc import ABC, abstractmethod
 from datetime import datetime
 
 from builtins import int, str
@@ -81,7 +82,8 @@ with warnings.catch_warnings():
     from aenum import Enum
 
 
-__all__ = ['CaomObject', 'AbstractCaomEntity', 'VocabularyTerm', 'compute_bucket']
+__all__ = ['PrimitiveWrapper', 'CaomObject', 'AbstractCaomEntity',
+           'VocabularyTerm', 'compute_bucket']
 
 logger = logging.getLogger('caom2')
 
@@ -116,6 +118,26 @@ def compute_bucket(uri):
     md5 = hashlib.sha1()
     md5.update(uri.encode('utf-8'))
     return md5.hexdigest()[:3]
+
+
+class PrimitiveWrapper(ABC):
+    """
+    Base class for CAOM value objects whose checksum contribution is a flat
+    sequence of IEEE 754 doubles (Java double[] style).
+    """
+
+    @abstractmethod
+    def get_unwrapped_value(self):
+        """Return an iterable of numeric values (encoded as doubles)."""
+        pass
+
+    def __eq__(self, other):
+        if isinstance(other, PrimitiveWrapper):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class OrderedEnum(Enum):
