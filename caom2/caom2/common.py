@@ -122,13 +122,21 @@ def compute_bucket(uri):
 
 class PrimitiveWrapper(ABC):
     """
-    Base class for CAOM value objects whose checksum contribution is a flat
-    sequence of IEEE 754 doubles (Java double[] style).
+    If a data model implementation uses a wrapper class around a single "more primitive"
+    value and wants just the value to contribute to the metaChecksum computation,
+    this interface will allow the Entity class to extract the "more primitive" value.
+
+    In other words, this is a way to get just the values of the primitive types (without their attribute names)
+    for checksum encoding. For example, an Interval class could implement this interface to return the interval bounds
+    irrespective of the attribute names used to store them.
     """
 
     @abstractmethod
     def get_unwrapped_value(self):
-        """Return an iterable of numeric values (encoded as doubles)."""
+        """
+        Return an iterable of primitive types (float, int_32, int, and/or nested list values)
+        for checksum encoding.
+        """
         pass
 
     def __eq__(self, other):
