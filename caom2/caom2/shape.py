@@ -76,7 +76,7 @@ with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
 
-__all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point',
+__all__ = ['SegmentType', 'Circle', 'Interval', 'Point',
            'Polygon', 'Vertex', 'MultiShape']
 
 
@@ -91,68 +91,6 @@ class SegmentType(Enum):
     CLOSE = int_32(0)
     LINE = int_32(1)
     MOVE = int_32(2)
-
-
-class Box(common.PrimitiveWrapper):
-    def __init__(self, center,
-                 width, height):
-        """
-        Initialize a Box instance
-        """
-        self.center = center
-        self.width = width
-        self.height = height
-
-    def get_unwrapped_value(self):
-        return [self.width, self.height]
-
-    def get_area(self):
-        """ TODO: this is cartesian approximation, use spherical geom? """
-        return self._width * self._height
-
-    def get_size(self):
-        return math.sqrt(self._width * self._width +
-                         self._height * self._height)
-
-    # Properties
-
-    @property
-    def center(self):
-        """
-        type: Point
-        """
-        return self._center
-
-    @center.setter
-    def center(self, value):
-        caom_util.type_check(value, Point, 'center', override=False)
-        self._center = value
-
-    @property
-    def width(self):
-        """
-        type: float
-        """
-        return self._width
-
-    @width.setter
-    def width(self, value):
-        caom_util.value_check(value, 0, 1E10, "width")
-        caom_util.type_check(value, float, 'width', override=False)
-        self._width = value
-
-    @property
-    def height(self):
-        """
-        type: float
-        """
-        return self._height
-
-    @height.setter
-    def height(self, value):
-        caom_util.value_check(value, 0, 1E10, "height")
-        caom_util.type_check(value, float, 'height', override=False)
-        self._height = value
 
 
 class Circle(common.PrimitiveWrapper):

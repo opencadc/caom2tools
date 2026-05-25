@@ -1006,7 +1006,7 @@ class Position(CaomObject):
         if not bounds:
             raise ValueError("No bounds provided")
         caom_util.type_check(bounds,
-                             (shape.Box, shape.Circle, shape.Polygon),
+                             (shape.Circle, shape.Polygon),
                              'bounds', override=False)
         self._bounds = bounds
         if not samples:
@@ -1043,7 +1043,7 @@ class Position(CaomObject):
     def min_bounds(self, value):
         if value is not None:
             caom_util.type_check(value,
-                                 (shape.Box, shape.Circle, shape.Polygon),
+                                 (shape.Circle, shape.Polygon),
                                  'min_bounds', override=False)
         self._min_bounds = value
 
