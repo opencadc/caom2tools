@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -73,7 +73,7 @@ A difference method for CAOM2 entities.
 
 import math
 
-from caom2.common import CaomObject
+from caom2.common import CaomObject, PrimitiveWrapper
 from caom2.caom_util import TypedSet, TypedOrderedDict, TypedList
 from caom2 import Chunk
 from . import caom_util
@@ -122,6 +122,9 @@ def get_differences(expected, actual, parent=None):
             isinstance(expected, set) or
             isinstance(expected, list)):
         temp_report = _get_collection_differences(expected, actual, parent)
+    elif isinstance(expected, PrimitiveWrapper):
+        caom_util.type_check(actual, PrimitiveWrapper, "PrimitiveWrapper")
+        temp_report = _get_object_differences(expected, actual, parent)
     elif isinstance(expected, CaomObject):
         caom_util.type_check(actual, CaomObject, "CaomObject")
         temp_report = _get_object_differences(expected, actual, parent)
@@ -447,6 +450,7 @@ def _is_composite_instance_type(entity):
     return (isinstance(entity, TypedOrderedDict) or
             isinstance(entity, TypedList) or
             isinstance(entity, TypedSet) or
+            isinstance(entity, PrimitiveWrapper) or
             isinstance(entity, CaomObject) or
             isinstance(entity, set) or
             isinstance(entity, list))

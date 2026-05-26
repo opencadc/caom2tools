@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2025.                            (c) 2025.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -72,12 +72,15 @@ from . import caom_util
 __all__ = ['Interval']
 
 
-class Interval(common.CaomObject):
+class Interval(common.PrimitiveWrapper):
     def __init__(self, lower, upper):
 
         super().__init__()
         self.lower = lower
         self.upper = upper
+
+    def get_unwrapped_value(self):
+        return [self.lower, self.upper]
 
     def get_width(self):
         return self._upper - self._lower

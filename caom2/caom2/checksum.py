@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2025.                            (c) 2025.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -78,7 +78,7 @@ import warnings
 from builtins import bytes, int, str
 
 from caom2.caom_util import TypedSet, TypedList, TypedOrderedDict, int_32
-from caom2.common import CaomObject, AbstractCaomEntity
+from caom2.common import CaomObject, AbstractCaomEntity, PrimitiveWrapper
 from caom2.observation import Observation
 from .obs_reader_writer import CAOM25_NAMESPACE, CAOM24_NAMESPACE, \
     CAOM23_NAMESPACE
@@ -118,10 +118,48 @@ Gotchas to look for when calculating the checksum:
 In this implementation the corresponding types are int_32 and int.
 - Sets are ordered alphabetical. Therefore their members have to implement,
 at the minimum, __eq__ and __lt__ that will result in proper sorting
+- After each element of a list or set (and TypedList/TypedSet of non-entities),
+a single 0 byte is hashed so distinct partitions of the same concatenated
+UTF-8 cannot collide.
+- PrimitiveWrapper.get_unwrapped_value() trees are hashed like Java double[]
+(contiguous big-endian doubles per float run; no 0-byte delimiters between
+those floats or between nested unwrap segments). When an unwrapped element is
+a list (e.g. MultiShape shapes), its primitives are hashed contiguously and
+a 0-byte separator is appended after each such list element.
 
 """
 logger = logging.getLogger('checksum')
 logging.basicConfig()
+
+
+def _log_collection_separator(attribute):
+    logger.debug(
+        'Encoded collection separator - {} = 0x00 1 bytes'.format(attribute))
+
+
+def _pack_primitive_item(item):
+    if isinstance(item, float):
+        return struct.pack('!d', item)
+    if isinstance(item, int_32):
+        return struct.pack('!l', item)
+    if isinstance(item, int):
+        return struct.pack('!q', item)
+    raise ValueError(
+        'Cannot transform PrimitiveWrapper in bytes: {}({})'.format(
+            item, type(item)))
+
+
+def _pack_unwrapped_values(values, attribute=''):
+    parts = []
+    for item in values:
+        if isinstance(item, list):
+            parts.append(
+                b''.join(_pack_primitive_item(i) for i in item))
+            parts.append(b'\x00')
+            _log_collection_separator(attribute)
+        else:
+            parts.append(_pack_primitive_item(item))
+    return b''.join(parts)
 
 
 def get_meta_checksum(entity):
@@ -257,13 +295,11 @@ def update_checksum(checksum, value, attribute=''):
     (used for debugging only)
     """
 
-    if type(value) is None:
-        logger.debug('Empty attribute {}'.format(attribute))
-        return
-
     b = None
 
-    if isinstance(value, CaomObject):
+    if isinstance(value, PrimitiveWrapper):
+        b = _pack_unwrapped_values(value.get_unwrapped_value(), attribute)
+    elif isinstance(value, CaomObject):
         logger.debug('Process object {}'.format(attribute))
         return update_caom_checksum(checksum, value, attribute)
     elif isinstance(value, bytes):
@@ -288,12 +324,17 @@ def update_checksum(checksum, value, attribute=''):
         updated = False
         for i in sorted(value):
             updated |= update_checksum(checksum, i, attribute)
+            checksum.update(b'\x00')
+            _log_collection_separator(attribute)
         return updated
-    elif isinstance(value, list) or isinstance(value, TypedList):
+    elif (isinstance(value, (list, tuple)) or
+          isinstance(value, TypedList)):
         updated = False
         for i in value:
             if not isinstance(i, AbstractCaomEntity):
                 updated |= update_checksum(checksum, i, attribute)
+                checksum.update(b'\x00')
+                _log_collection_separator(attribute)
         return updated
     elif isinstance(value, Enum):
         return update_checksum(checksum, value.value, attribute)
@@ -355,8 +396,8 @@ def update_caom_checksum(checksum, entity, parent=None):
             if update_checksum(checksum, entity._meta_producer, meta_prod_model_name):
                 updated = True
                 checksum.update(meta_prod_model_name.encode('utf-8'))
-                logger.debug('Encoded attribute name {} = {}'.
-                             format('_meta_producer', meta_prod_model_name))
+                logger.debug('Encoded attribute name {} = {} {} bytes'.
+                             format('_meta_producer', meta_prod_model_name, len(meta_prod_model_name.encode('utf-8'))))
 
     # determine the excluded fields if necessary
     checksum_excluded_fields = []
@@ -381,7 +422,8 @@ def update_caom_checksum(checksum, entity, parent=None):
                         type_name = 'Observation'
                     model_name = type_name.lower() + "." + to_checksum_name(i)
                     checksum.update(model_name.encode('utf-8'))
-                    logger.debug('Encoded attribute name - {} = {}'.format(atrib, model_name))
+                    logger.debug('Encoded attribute name - {} = {} {} bytes'.format(
+                        atrib, model_name, len(model_name.encode('utf-8'))))
     return updated
 
 
@@ -398,6 +440,8 @@ def checksum_diff():
                         help='Display details')
     parser.add_argument('-o', '--output', required=False,
                         help='save checked file in this file')
+    parser.add_argument('--no-validate', action='store_true',
+                        help='disable XML schema validation while reading')
 
     args = parser.parse_args()
     if len(sys.argv) < 2:
@@ -406,9 +450,16 @@ def checksum_diff():
         sys.exit(-1)
 
     if args.debug:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(levelname)s %(name)s: %(message)s',
+            stream=sys.stdout,
+            force=True,
+        )
         logger.setLevel(logging.DEBUG)
 
-    reader = obs_reader_writer.ObservationReader(True)
+    reader = obs_reader_writer.ObservationReader(
+        validate=not args.no_validate)
     orig = reader.read(args.file)
 
     # read again for the observation that would have the checksums updated

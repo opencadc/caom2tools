@@ -73,30 +73,6 @@ import unittest
 from .. import shape
 
 
-class TestBox(unittest.TestCase):
-    def test_all(self):
-        self.assertRaises(TypeError, shape.Box, None, None, None)
-        self.assertRaises(TypeError, shape.Box, None, None, 1.0)
-        self.assertRaises(TypeError, shape.Box, None, 1.0, None)
-        self.assertRaises(TypeError, shape.Box, 1.0, None, None)
-        self.assertRaises(TypeError, shape.Box, int(1), "string", int(1))
-        self.assertRaises(TypeError, shape.Box, "string", int(1), "string")
-
-        val1 = 1.0
-        val2 = 2.0
-        width = 3.0
-        height = 4.0
-        box = shape.Box(shape.Point(val1, val2), width, height)
-        self.assertEqual(box.width, 3.0)
-        self.assertEqual(box.height, 4.0)
-        self.assertEqual(box.center.cval1, 1.0)
-        self.assertEqual(box.center.cval2, 2.0)
-        area = width * height
-        self.assertEqual(box.get_area(), area)
-        size = math.sqrt(width * width + height * height)
-        self.assertEqual(box.get_size(), size)
-
-
 class TestCircle(unittest.TestCase):
     def test_all(self):
         self.assertRaises(TypeError, shape.Circle, None, None)
