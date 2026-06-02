@@ -92,7 +92,7 @@ def test_root_parser_contract(root_parser):
 
 
 @pytest.mark.parametrize('subcmd,extra_dests', [
-    ('create', ('observation',)),
+    ('create', ('observation', 'force')),
     ('read', ('output', 'collection', 'observationID')),
     ('update', ('observation',)),
     ('delete', ('collection', 'observationID')),

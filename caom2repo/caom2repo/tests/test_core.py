@@ -829,7 +829,23 @@ class TestCAOM2Repo(unittest.TestCase):
         obs = SimpleObservation('CFHT', 'abc')
 
         target.put_observation = Mock()
+        target.put_observation = Mock()
+        target.delete_observation = Mock()
         target.create(obs)
+        target.put_observation.assert_called_with(obs)
+        target.delete_observation.assert_not_called()
+
+        target.put_observation.reset_mock()
+        target.create(obs, force=True)
+        target.delete_observation.assert_called_with(
+            obs.collection, obs.observation_id)
+        target.put_observation.assert_called_with(obs)
+
+        target.delete_observation.reset_mock()
+        target.put_observation.reset_mock()
+        target.delete_observation.side_effect = exceptions.NotFoundException(
+            'not found')
+        target.create(obs, force=True)
         target.put_observation.assert_called_with(obs)
 
         target.get_observation = Mock()
@@ -858,7 +874,12 @@ class TestCAOM2Repo(unittest.TestCase):
         sys.argv = ["caom2tools", "create", '--resource-id',
                     'ivo://ca.nrc.ca/resource', ifile]
         core.main_app()
-        client_mock.return_value.put_observation.assert_called_with(obs)
+        client_mock.return_value.create.assert_called_with(obs, force=False)
+
+        sys.argv = ["caom2tools", "create", '--force', '--resource-id',
+                    'ivo://ca.nrc.ca/resource', ifile]
+        core.main_app()
+        client_mock.return_value.create.assert_called_with(obs, force=True)
 
         # test update
         sys.argv = ["caom2tools", "update", '--resource-id',

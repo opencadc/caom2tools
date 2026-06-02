@@ -146,14 +146,22 @@ class CAOM2RepoClient(object):
             self.namespace = obs_reader_writer.CAOM23_NAMESPACE
 
     # shortcuts for the CRUD operations
-    def create(self, observation):
+    def create(self, observation, force=False):
         """
         Creates an observation in the repo.
         :param observation: Observation to create
+        :param force: If True, delete an existing observation with the same
+            collection and observation_id before creating the new one.
         :return: Created observation
         :raises: cadcutils.exceptions.AlreadyExistsException and possibly other
         cadcutils.exceptions
         """
+        if force:
+            try:
+                self.delete_observation(observation.collection,
+                                        observation.observation_id)
+            except exceptions.NotFoundException:
+                pass
         self.put_observation(observation)
 
     def read(self, collection, observation_id):
@@ -624,6 +632,9 @@ def build_parser():
     create_parser.add_argument('observation',
                                help='XML file containing the observation',
                                type=argparse.FileType('r'))
+    create_parser.add_argument(
+        '--force', action='store_true',
+        help='replace an existing observation (delete it first, then create)')
 
     read_parser = subparsers.add_parser(
         'read', description='Read an existing observation',
@@ -750,7 +761,8 @@ def main_app():
         elif args.cmd == 'create':
             logger.info("Create")
             obs_reader = ObservationReader()
-            client.put_observation(obs_reader.read(args.observation))
+            observation = obs_reader.read(args.observation)
+            client.create(observation, force=args.force)
         elif args.cmd == 'read':
             logger.info("Read")
             observation = client.get_observation(args.collection,
