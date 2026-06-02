@@ -66,7 +66,6 @@
 # ***********************************************************************
 #
 
-from pathlib import Path
 
 from astropy.io import fits
 from cadcdata import FileInfo
@@ -104,7 +103,7 @@ def test_get_file_type():
 
 
 @patch('caom2utils.data_util.StorageInventoryClient')
-def test_storage_inventory_client(cadc_client_mock):
+def test_storage_inventory_client(cadc_client_mock, tmp_path):
     test_subject = Mock(autospec=True)
     test_uri = 'cadc:TEST/test_file.fits'
 
@@ -118,10 +117,11 @@ def test_storage_inventory_client(cadc_client_mock):
         else:
             test_fqn.write_text('StorageInventoryClient')
 
-    for test_working_directory in [Path(test_fits2caom2.TESTDATA_DIR), Path('./')]:
+    for subdir in (None, 'nested'):
+        test_working_directory = tmp_path / subdir if subdir else tmp_path
+        if subdir:
+            test_working_directory.mkdir()
         test_fqn = test_working_directory / 'test_file.fits'
-        if test_fqn.exists():
-            test_fqn.unlink()
 
         cadc_client_mock.return_value.cadcinfo.side_effect = info_si_mock
         cadc_client_mock.return_value.cadcget.side_effect = get_si_mock
@@ -225,6 +225,27 @@ def test_unicode_decode_error():
     test_fqn = join(test_fits2caom2.TESTDATA_DIR, 'time_axes.fits')
     result = data_util.get_local_file_headers(test_fqn)
     assert result is not None, 'expect retry using a different method'
+
+
+def test_get_local_headers_from_text_header_file():
+    """Plain-text header files should be readable (issue #135)."""
+    test_fqn = join(
+        test_fits2caom2.TESTDATA_DIR,
+        'dao/dao_c122_2016_007830/dao_c122_2016_007830.fits.header',
+    )
+    result = data_util.get_local_headers_from_fits(test_fqn)
+    assert result is not None
+    assert len(result) == 1
+    assert result[0].get('OBJECT') == 'FLAT'
+
+
+def test_get_local_headers_from_multi_extension_text_header():
+    test_fqn = join(
+        test_fits2caom2.TESTDATA_DIR,
+        'gemini/N20250101M0624/N20250101M0624.fits.header',
+    )
+    result = data_util.get_local_headers_from_fits(test_fqn)
+    assert len(result) == 3
 
 
 def test_get_file_encoding():

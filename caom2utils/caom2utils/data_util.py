@@ -278,15 +278,22 @@ def _clean_headers(fits_header):
 
 
 def get_local_headers_from_fits(fqn):
-    """Create a list of fits.Header instances from a fits file.
-    :param fqn str  fully-qualified name of the FITS file on disk
-    :return list of fits.Header instances
+    """Create a list of fits.Header instances from a FITS file or plain-text
+    header file.
+
+    When the file is not a FITS binary (e.g. a ``*.fits.header`` text file),
+    headers are parsed from text instead.
+
+    :param fqn: fully-qualified name of the file on disk
+    :return: list of fits.Header instances
     """
-    hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=True)
-    hdulist.verify('fix')
-    hdulist.close()
-    headers = [h.header for h in hdulist]
-    return headers
+    try:
+        with fits.open(fqn, memmap=True, lazy_load_hdus=True) as hdulist:
+            hdulist.verify('fix')
+            return [h.header for h in hdulist]
+    except OSError:
+        with open(fqn, encoding='utf-8', errors='replace') as f:
+            return make_headers_from_string(f.read())
 
 
 def get_local_file_headers(fqn):
