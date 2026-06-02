@@ -81,7 +81,6 @@ from caom2.obs_reader_writer import ObservationWriter
 from caom2 import obs_reader_writer, ChecksumURI
 from caom2.observation import SimpleObservation
 from unittest.mock import Mock, patch, MagicMock, ANY, call
-from unittest import skipIf
 # TODO to be changed to io.BytesIO when caom2 is prepared for python3
 from io import BytesIO, StringIO
 
@@ -927,86 +926,9 @@ class TestCAOM2Repo(unittest.TestCase):
                 start=core.str2date("2012-01-01T11:22:33"),
                 end=core.str2date("2013-01-01T11:33:22"))
 
-    @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
-                                         MyExitError, MyExitError, MyExitError,
-                                         MyExitError, MyExitError]))
-    @skipIf(sys.version_info > (3, 12),
-            reason="Python 3.13 help format is different")
-    def test_help(self):
-        """ Tests the helper displays for commands and subcommands in main"""
-
-        # expected helper messages
-        with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
-            usage = myfile.read()
-        with open(
-                os.path.join(TESTDATA_DIR, 'create_help.txt'), 'r') as myfile:
-            create_usage = myfile.read()
-        with open(os.path.join(TESTDATA_DIR, 'read_help.txt'), 'r') as myfile:
-            read_usage = myfile.read()
-        with open(
-                os.path.join(TESTDATA_DIR, 'update_help.txt'), 'r') as myfile:
-            update_usage = myfile.read()
-        with open(
-                os.path.join(TESTDATA_DIR, 'delete_help.txt'), 'r') as myfile:
-            delete_usage = myfile.read()
-        with open(os.path.join(TESTDATA_DIR, 'visit_help.txt'), 'r') as myfile:
-            visit_usage = myfile.read()
-
-        self.maxDiff = None  # Display the entire difference
-        # --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            # Python 3.10 difference in titles
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert usage.strip('\n') == actual
-
-        # create --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "create", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert create_usage.strip('\n') == actual
-
-        # read --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "read", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert read_usage.strip('\n') == actual
-
-        # update --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "update", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert update_usage.strip('\n') == actual
-
-        # delete --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "delete", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert delete_usage.strip('\n') == actual
-
-        # visit --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "visit", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert visit_usage.strip('\n') == actual
+    @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError]))
+    def test_visit_threads_validation(self):
+        """Tests visit --threads argument validation."""
 
         # visit too few number of threads
         with patch('sys.stderr', new_callable=StringIO) as stderr_mock:

@@ -95,7 +95,8 @@ class StorageClientWrapper:
     Wrap the metrics collection with StorageInventoryClient.
     """
 
-    def __init__(self, subject, resource_id='ivo://cadc.nrc.ca/uvic/minoc', metrics=None):
+    def __init__(self, subject, resource_id='ivo://cadc.nrc.ca/uvic/minoc', metrics=None,
+                 host=None, insecure=False):
         """
         :param subject: net.Subject instance for authentication and authorization
         :param resource_id: str identifies the StorageInventoryClient endpoint. Defaults to the installation closest to
@@ -103,8 +104,11 @@ class StorageClientWrapper:
         :param metrics: caom2pipe.manaage_composable.Metrics instance. If set, will track execution times, by action,
             from the beginning of the method invocation to the end of the method invocation, success or failure.
             Defaults to None, because fits2caom2 is a stand-alone application.
+        :param host: Host server for the storage inventory service
+        :param insecure: skip SSL server certificate verification (for testing only)
         """
-        self._cadc_client = StorageInventoryClient(subject=subject, resource_id=resource_id)
+        self._cadc_client = StorageInventoryClient(
+            subject=subject, resource_id=resource_id, host=host, insecure=insecure)
         self._metrics = metrics
         self._logger = logging.getLogger(self.__class__.__name__)
 

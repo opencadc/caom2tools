@@ -603,7 +603,10 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
         client.process_observation_id(collection, observationID, halt_on_error)
 
 
-def main_app():
+def build_parser():
+    """
+    Build the ArgumentParser for caom2-repo (without parsing argv).
+    """
     parser = util.get_base_parser(version=version.version,
                                   default_resource_id=DEFAULT_RESOURCE_ID)
 
@@ -691,6 +694,11 @@ def main_app():
                 #                       invoked with
         ----
         """
+    return parser
+
+
+def main_app():
+    parser = build_parser()
     args = parser.parse_args()
     if len(sys.argv) < 2:
         parser.print_usage(file=sys.stderr)
@@ -779,24 +787,15 @@ def main_app():
 def handle_error(exception, logging_level, exit_after=True):
     """
     Prints error message and exit (by default)
-    TODO - this needs to be reviewed and probably moved to cadcutils once
-    the user/password mechanism is standardized
-    :param msg: error message to print
+    :param exception: error to report
+    :param logging_level: current logging level
     :param exit_after: True if log error message and exit,
     False if log error message and return
     :return:
     """
+    from cadcutils.util.cli_errors import format_user_error
 
-    if isinstance(exception, exceptions.UnauthorizedException):
-        print('ERROR: Unauthorized (invalid user/password?)')
-    elif isinstance(exception, exceptions.NotFoundException):
-        print('ERROR: Not found: {}'.format(str(exception)))
-    elif isinstance(exception, exceptions.ForbiddenException):
-        print('ERROR: Unauthorized to perform operation')
-    elif isinstance(exception, exceptions.UnexpectedException):
-        print('ERROR: Unexpected server error: {}'.format(str(exception)))
-    else:
-        print('ERROR: {}'.format(exception))
+    print('ERROR: {}'.format(format_user_error(exception)))
 
     if logging_level <= logging.DEBUG:
         traceback.print_stack()
