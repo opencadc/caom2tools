@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
@@ -65,8 +64,6 @@
 # ***********************************************************************
 
 """Contract tests for fits2caom2 and caom2gen CLI parsers."""
-
-import pytest
 
 from caom2utils.caom2blueprint import (
     GLOBAL_STORAGE_RESOURCE_ID, build_caom2gen_parser, get_arg_parser,
