@@ -93,6 +93,7 @@ from unittest.mock import Mock, patch
 from io import StringIO, BytesIO
 
 import importlib
+import logging
 import os
 import sys
 
@@ -577,6 +578,20 @@ def test_cli_errors():
                 main_app()
             result = stderr_mock.getvalue() + stdout_mock.getvalue()
             assert missing_product_id.strip() in result, result
+
+
+@patch('caom2utils.caom2blueprint.proc', side_effect=RuntimeError('fail'))
+@patch('sys.exit', side_effect=MyExitError)
+def test_main_app_logs_debug_traceback_on_error(exit_mock, proc_mock):
+    logging.getLogger().setLevel(logging.DEBUG)
+    sys.argv = [
+        "fits2caom2", "--debug", "--observation", "cfht", "7000000o",
+        "ad:CGPS/CGPS_MA1_HI_line_image.fits",
+    ]
+    with pytest.raises(MyExitError):
+        main_app()
+    proc_mock.assert_called_once()
+    exit_mock.assert_called_once_with(-1)
 
 
 EXPECTED_OBS_XML = (

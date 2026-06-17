@@ -976,3 +976,52 @@ class TestCAOM2RepoMultiprocess(unittest.TestCase):
         self.assertEqual(2, len(updated))
         self.assertEqual(2, len(skipped))
         self.assertEqual(1, len(failed))
+
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.Pool')
+    def test_multiprocess_pool_error_terminates(self, pool_mock, get_mock,
+                                              post_mock):
+        core.BATCH_SIZE = 3
+        obs_ids = [['a'], []]
+        pool_instance = MagicMock()
+        pool_mock.return_value = pool_instance
+        async_result = MagicMock()
+        async_result.get.side_effect = RuntimeError('pool failed')
+        pool_instance.apply_async.return_value = async_result
+
+        visitor = CAOM2RepoClient(auth.Subject(), logging.DEBUG)
+        visitor._get_observations = MagicMock(side_effect=obs_ids)
+
+        with self.assertRaises(RuntimeError):
+            visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None,
+                end=None, obs_file=None, nthreads=3)
+
+        pool_instance.terminate.assert_called_once()
+        pool_instance.close.assert_called_once()
+        pool_instance.join.assert_called_once()
+
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.Pool')
+    def test_multiprocess_pool_keyboard_interrupt_terminates(self, pool_mock,
+                                                             get_mock,
+                                                             post_mock):
+        core.BATCH_SIZE = 3
+        obs_ids = [['a'], []]
+        pool_instance = MagicMock()
+        pool_mock.return_value = pool_instance
+        async_result = MagicMock()
+        async_result.get.side_effect = KeyboardInterrupt()
+        pool_instance.apply_async.return_value = async_result
+
+        visitor = CAOM2RepoClient(auth.Subject(), logging.DEBUG)
+        visitor._get_observations = MagicMock(side_effect=obs_ids)
+
+        with self.assertRaises(KeyboardInterrupt):
+            visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None,
+                end=None, obs_file=None, nthreads=3)
+
+        pool_instance.terminate.assert_called_once()

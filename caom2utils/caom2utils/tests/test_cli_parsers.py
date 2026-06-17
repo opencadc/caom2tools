@@ -65,6 +65,13 @@
 
 """Contract tests for fits2caom2 and caom2gen CLI parsers."""
 
+import os
+import sys
+from unittest.mock import patch
+
+import pytest
+
+from caom2utils import caom2blueprint
 from caom2utils.caom2blueprint import (
     GLOBAL_STORAGE_RESOURCE_ID, build_caom2gen_parser, get_arg_parser,
 )
@@ -72,6 +79,13 @@ from caom2utils.legacy import build_fits2caom2_parser
 from cadcutils.util.tests.parser_helpers import (
     assert_has_base_dests, assert_has_dests, assert_help_contains,
 )
+
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
+
+
+class MyExitError(Exception):
+    pass
 
 
 _COMMON_DESTS = (
@@ -113,3 +127,20 @@ def test_caom2gen_parser_contract():
         GLOBAL_STORAGE_RESOURCE_ID,
         'productID/artifactURI',
     )
+
+
+@patch('caom2utils.caom2blueprint.gen_proc', side_effect=RuntimeError('boom'))
+@patch('sys.exit', side_effect=MyExitError)
+def test_caom2gen_logs_debug_traceback_on_error(exit_mock, gen_mock):
+    blueprint = os.path.join(TESTDATA_DIR, 'si', 'si.blueprint')
+    sys.argv = (
+        'caom2gen --debug -o /tmp/out.xml --no_validate '
+        '--resource-id ivo://cadc.nrc.ca/test '
+        '--observation TEST_COLLECTION TEST_OBS_ID '
+        '--lineage test_product_id/cadc:TEST/test_file.fits '
+        '--blueprint {}'.format(blueprint)
+    ).split()
+    with pytest.raises(MyExitError):
+        caom2blueprint.caom2gen()
+    gen_mock.assert_called_once()
+    exit_mock.assert_called_once_with(-1)
