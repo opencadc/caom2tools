@@ -758,13 +758,13 @@ class TestCAOM2Repo(unittest.TestCase):
 class TestCAOM2RepoMultiprocess(unittest.TestCase):
     """Multiprocess visitor tests.
 
-    Uses fork on macOS so unittest.mock patches apply in worker processes.
+    Uses fork on POSIX so unittest.mock patches apply in worker processes.
     BaseWsClient is mocked to avoid registry access in workers.
     """
 
     @classmethod
     def setUpClass(cls):
-        if sys.platform == 'darwin':
+        if sys.platform != 'win32':
             try:
                 multiprocessing.set_start_method('fork', force=True)
             except RuntimeError:

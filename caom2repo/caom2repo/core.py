@@ -261,7 +261,7 @@ class CAOM2RepoClient(object):
                 try:
                     results = [p.apply_async(
                         multiprocess_observation_id,
-                        [collection, observationID, self.plugin, self._subject,
+                        [collection, observationID, plugin, self._subject,
                          self.level,
                          self.resource_id, self.host, self.agent, self.insecure,
                          halt_on_error])
@@ -278,6 +278,10 @@ class CAOM2RepoClient(object):
                             failed.append(result[3])
                 except KeyboardInterrupt:
                     p.terminate()
+                    raise
+                except Exception:
+                    p.terminate()
+                    raise
                 finally:
                     p.close()
                     p.join()
@@ -605,7 +609,7 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
         'multiprocess_observation_id(): {}'.format(observationID))
 
     client = CAOM2RepoClient(subject, log_level, resource_id, host, agent, insecure=insecure)
-    client.plugin = plugin
+    client._load_plugin_class(plugin)
     client.logger = rootLogger
     return \
         client.process_observation_id(collection, observationID, halt_on_error)
@@ -727,7 +731,6 @@ def main_app():
     if args.host:
         host = args.host
 
-    multiprocessing.Manager()
     logging.basicConfig(
         format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s ' +
                '%(funcName)s %(message)s',
