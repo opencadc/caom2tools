@@ -146,14 +146,22 @@ class CAOM2RepoClient(object):
             self.namespace = obs_reader_writer.CAOM23_NAMESPACE
 
     # shortcuts for the CRUD operations
-    def create(self, observation):
+    def create(self, observation, force=False):
         """
         Creates an observation in the repo.
         :param observation: Observation to create
+        :param force: If True, delete an existing observation with the same
+            collection and observation_id before creating the new one.
         :return: Created observation
         :raises: cadcutils.exceptions.AlreadyExistsException and possibly other
         cadcutils.exceptions
         """
+        if force:
+            try:
+                self.delete_observation(observation.collection,
+                                        observation.observation_id)
+            except exceptions.NotFoundException:
+                pass
         self.put_observation(observation)
 
     def read(self, collection, observation_id):
@@ -253,7 +261,7 @@ class CAOM2RepoClient(object):
                 try:
                     results = [p.apply_async(
                         multiprocess_observation_id,
-                        [collection, observationID, self.plugin, self._subject,
+                        [collection, observationID, plugin, self._subject,
                          self.level,
                          self.resource_id, self.host, self.agent, self.insecure,
                          halt_on_error])
@@ -270,6 +278,10 @@ class CAOM2RepoClient(object):
                             failed.append(result[3])
                 except KeyboardInterrupt:
                     p.terminate()
+                    raise
+                except Exception:
+                    p.terminate()
+                    raise
                 finally:
                     p.close()
                     p.join()
@@ -597,13 +609,16 @@ def multiprocess_observation_id(collection, observationID, plugin, subject,
         'multiprocess_observation_id(): {}'.format(observationID))
 
     client = CAOM2RepoClient(subject, log_level, resource_id, host, agent, insecure=insecure)
-    client.plugin = plugin
+    client._load_plugin_class(plugin)
     client.logger = rootLogger
     return \
         client.process_observation_id(collection, observationID, halt_on_error)
 
 
-def main_app():
+def build_parser():
+    """
+    Build the ArgumentParser for caom2-repo (without parsing argv).
+    """
     parser = util.get_base_parser(version=version.version,
                                   default_resource_id=DEFAULT_RESOURCE_ID)
 
@@ -621,6 +636,9 @@ def main_app():
     create_parser.add_argument('observation',
                                help='XML file containing the observation',
                                type=argparse.FileType('r'))
+    create_parser.add_argument(
+        '--force', action='store_true',
+        help='replace an existing observation (delete it first, then create)')
 
     read_parser = subparsers.add_parser(
         'read', description='Read an existing observation',
@@ -691,6 +709,11 @@ def main_app():
                 #                       invoked with
         ----
         """
+    return parser
+
+
+def main_app():
+    parser = build_parser()
     args = parser.parse_args()
     if len(sys.argv) < 2:
         parser.print_usage(file=sys.stderr)
@@ -708,7 +731,6 @@ def main_app():
     if args.host:
         host = args.host
 
-    multiprocessing.Manager()
     logging.basicConfig(
         format='%(asctime)s %(process)d %(levelname)-8s %(name)-12s ' +
                '%(funcName)s %(message)s',
@@ -742,7 +764,8 @@ def main_app():
         elif args.cmd == 'create':
             logger.info("Create")
             obs_reader = ObservationReader()
-            client.put_observation(obs_reader.read(args.observation))
+            observation = obs_reader.read(args.observation)
+            client.create(observation, force=args.force)
         elif args.cmd == 'read':
             logger.info("Read")
             observation = client.get_observation(args.collection,
@@ -779,24 +802,15 @@ def main_app():
 def handle_error(exception, logging_level, exit_after=True):
     """
     Prints error message and exit (by default)
-    TODO - this needs to be reviewed and probably moved to cadcutils once
-    the user/password mechanism is standardized
-    :param msg: error message to print
+    :param exception: error to report
+    :param logging_level: current logging level
     :param exit_after: True if log error message and exit,
     False if log error message and return
     :return:
     """
+    from cadcutils.util.cli_errors import format_user_error
 
-    if isinstance(exception, exceptions.UnauthorizedException):
-        print('ERROR: Unauthorized (invalid user/password?)')
-    elif isinstance(exception, exceptions.NotFoundException):
-        print('ERROR: Not found: {}'.format(str(exception)))
-    elif isinstance(exception, exceptions.ForbiddenException):
-        print('ERROR: Unauthorized to perform operation')
-    elif isinstance(exception, exceptions.UnexpectedException):
-        print('ERROR: Unexpected server error: {}'.format(str(exception)))
-    else:
-        print('ERROR: {}'.format(exception))
+    print('ERROR: {}'.format(format_user_error(exception)))
 
     if logging_level <= logging.DEBUG:
         traceback.print_stack()

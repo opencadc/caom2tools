@@ -350,5 +350,8 @@ def _read_observation(fname):
 
 
 def _write_observation(obs):
+    fd, path = tempfile.mkstemp(suffix='.xml', prefix='caom2utils_failed_obs_')
+    os.close(fd)
     writer = ObservationWriter(True, False, 'caom2', 'http://www.opencadc.org/caom2/xml/v2.4')
-    writer.write(obs, './x.xml')
+    writer.write(obs, path)
+    return path

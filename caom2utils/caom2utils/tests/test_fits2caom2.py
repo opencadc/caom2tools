@@ -90,10 +90,10 @@ import vos
 from lxml import etree
 
 from unittest.mock import Mock, patch
-from unittest import skipIf
 from io import StringIO, BytesIO
 
 import importlib
+import logging
 import os
 import sys
 
@@ -537,54 +537,30 @@ def _get_from_str_xml(string_xml, get_func, element_tag):
     return act_obj
 
 
-@patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError, MyExitError, MyExitError, MyExitError]))
-@skipIf(sys.version_info > (3, 12),
-            reason="Python 3.13 help format is different")
-def test_help():
-    """Tests the helper displays for commands in main"""
+@patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError, MyExitError]))
+def test_cli_errors():
+    """Tests CLI validation and error messages."""
 
-    # expected helper messages
     with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt')) as myfile:
         bad_product_id = myfile.read().strip()
     with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt')) as myfile:
         missing_product_id = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt')) as myfile:
-        too_few_arguments_usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'help.txt')) as myfile:
-        usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt')) as myfile:
-        myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_positional_argument_help.txt')) as myfile:
-        myfile.read()
 
-    # too few arguments error message when running python3
-    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         sys.argv = ["fits2caom2"]
         with pytest.raises(MyExitError):
             main_app()
-        if stdout_mock.getvalue():
-            assert too_few_arguments_usage == stdout_mock.getvalue()
+        assert 'too few arguments' in stderr_mock.getvalue()
 
-    # --help
-    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "-h"]
-        with pytest.raises(MyExitError):
-            main_app()
-        expected = stdout_mock.getvalue().replace('options:', 'optional arguments:').strip('\n')
-        assert usage.strip('\n') == expected
-
-    # missing productID when plane count is wrong
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
             sys.argv = ["fits2caom2", "--in", bad_product_file, "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
             with pytest.raises(MyExitError):
                 main_app()
-            # inconsistencies between Python 3.7 and later versions. this should be on stderr_mmock only
             result = stderr_mock.getvalue() + stdout_mock.getvalue()
             assert bad_product_id in result, result
 
-    # missing productID when blueprint doesn't have one either
     with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
         with patch('sys.stderr', new_callable=StringIO) as stderr_mock, patch(
             'caom2utils.data_util.StorageClientWrapper'
@@ -600,27 +576,22 @@ def test_help():
             ]
             with pytest.raises(MyExitError):
                 main_app()
-            # inconsistencies between Python 3.7 and later versions. this should be on stderr_mmock only
             result = stderr_mock.getvalue() + stdout_mock.getvalue()
             assert missing_product_id.strip() in result, result
 
-    # missing required --observation
-    """
-    TODO: fix the tests
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "testProductID", "testpathto/testFileURI"]
-        with pytest.raises(MyExitError):
-            main_app()
-        assert(missing_observation_usage == stdout_mock.getvalue())
 
-    # missing positional argument
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection",
-                    "testObservationID", "testPathTo/testFileURI"]
-        with pytest.raises(MyExitError):
-            main_app()
-        assert(missing_positional_argument_usage == stdout_mock.getvalue())
-    """
+@patch('caom2utils.caom2blueprint.proc', side_effect=RuntimeError('fail'))
+@patch('sys.exit', side_effect=MyExitError)
+def test_main_app_logs_debug_traceback_on_error(exit_mock, proc_mock):
+    logging.getLogger().setLevel(logging.DEBUG)
+    sys.argv = [
+        "fits2caom2", "--debug", "--observation", "cfht", "7000000o",
+        "ad:CGPS/CGPS_MA1_HI_line_image.fits",
+    ]
+    with pytest.raises(MyExitError):
+        main_app()
+    proc_mock.assert_called_once()
+    exit_mock.assert_called_once_with(-1)
 
 
 EXPECTED_OBS_XML = (

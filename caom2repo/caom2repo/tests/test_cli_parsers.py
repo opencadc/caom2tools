@@ -1,8 +1,9 @@
+# -*- coding: utf-8 -*-
 # ***********************************************************************
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -51,39 +52,64 @@
 #  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
 #  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
-#  General Public License for           Générale Publique GNU Affero
-#  more details.                        pour plus de détails.
+#  General Public License for           Générale Publique GNU Affero pour
+#  more details.                        plus de détails.
 #
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
-#  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
-#  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+#  with OpenCADC.  If not, see          OpenCADC ; si ce n’est pas le cas,
+#  <http://www.gnu.org/licenses/>.      consultez :
 #                                       <http://www.gnu.org/licenses/>.
 #
-#  $Revision: 4 $
-#
 # ***********************************************************************
-#
 
-from caom2.observation import Observation
+"""Contract tests for caom2-repo CLI parsers."""
+
+import pytest
+
+from caom2repo.core import DEFAULT_RESOURCE_ID, build_parser
+from cadcutils.util.tests.parser_helpers import (
+    assert_epilog_contains, assert_has_base_dests, assert_has_dests,
+    assert_help_contains, get_subparser, subparser_names,
+)
+
+_SUBCOMMANDS = ('create', 'read', 'update', 'delete', 'visit')
 
 
-class ObservationUpdater(object):
-    """ObservationUpdater that adds a plane to the observation."""
+@pytest.fixture
+def root_parser():
+    return build_parser()
 
-    def update(self, observation, **kwargs):
-        """
-        Processes an observation and updates it
-        """
-        assert isinstance(observation, Observation), (
-            "observation {} is not an Observation".format(observation))
-        print("Observation: {}".format(observation.observation_id))
-        for plane in observation.planes.values():
-            for artifact in plane.artifacts.values():
-                if artifact.uri.startswith('ad:'):
-                    olduri = artifact.uri
-                    newuri = artifact.uri.replace('ad:', 'cadc:')
-                    artifact.uri = newuri
-                    print('\t{} -> {}'.format(olduri, artifact.uri))
-        return True
+
+def test_root_parser_contract(root_parser):
+    assert set(subparser_names(root_parser)) == set(_SUBCOMMANDS)
+    assert_help_contains(
+        root_parser,
+        'Client for a CAOM2 repo',
+        'CRUD',
+    )
+
+
+@pytest.mark.parametrize('subcmd,extra_dests', [
+    ('create', ('observation', 'force')),
+    ('read', ('output', 'collection', 'observationID')),
+    ('update', ('observation',)),
+    ('delete', ('collection', 'observationID')),
+    ('visit', ('plugin', 'start', 'end', 'obs_file', 'threads',
+               'halt_on_error', 'collection')),
+])
+def test_subcommand_parser_contract(root_parser, subcmd, extra_dests):
+    parser = get_subparser(root_parser, subcmd)
+    assert_has_base_dests(parser)
+    assert_has_dests(parser, *extra_dests)
+    assert_help_contains(parser, DEFAULT_RESOURCE_ID)
+
+
+def test_visit_epilog(root_parser):
+    parser = get_subparser(root_parser, 'visit')
+    assert_epilog_contains(
+        parser,
+        'ObservationUpdater',
+        'def update(self, observation, **kwargs)',
+    )
