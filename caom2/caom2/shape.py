@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -76,7 +76,7 @@ with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum
 
-__all__ = ['SegmentType', 'Box', 'Circle', 'Interval', 'Point',
+__all__ = ['SegmentType', 'Circle', 'Interval', 'Point',
            'Polygon', 'Vertex', 'MultiShape']
 
 
@@ -93,66 +93,7 @@ class SegmentType(Enum):
     MOVE = int_32(2)
 
 
-class Box(common.CaomObject):
-    def __init__(self, center,
-                 width, height):
-        """
-        Initialize a Box instance
-        """
-        self.center = center
-        self.width = width
-        self.height = height
-
-    def get_area(self):
-        """ TODO: this is cartesian approximation, use spherical geom? """
-        return self._width * self._height
-
-    def get_size(self):
-        return math.sqrt(self._width * self._width +
-                         self._height * self._height)
-
-    # Properties
-
-    @property
-    def center(self):
-        """
-        type: Point
-        """
-        return self._center
-
-    @center.setter
-    def center(self, value):
-        caom_util.type_check(value, Point, 'center', override=False)
-        self._center = value
-
-    @property
-    def width(self):
-        """
-        type: float
-        """
-        return self._width
-
-    @width.setter
-    def width(self, value):
-        caom_util.value_check(value, 0, 1E10, "width")
-        caom_util.type_check(value, float, 'width', override=False)
-        self._width = value
-
-    @property
-    def height(self):
-        """
-        type: float
-        """
-        return self._height
-
-    @height.setter
-    def height(self, value):
-        caom_util.value_check(value, 0, 1E10, "height")
-        caom_util.type_check(value, float, 'height', override=False)
-        self._height = value
-
-
-class Circle(common.CaomObject):
+class Circle(common.PrimitiveWrapper):
     def __init__(self, center,
                  radius):
         """
@@ -160,6 +101,11 @@ class Circle(common.CaomObject):
         """
         self.center = center
         self.radius = radius
+
+    def get_unwrapped_value(self):
+        out = self.center.get_unwrapped_value()
+        out.append(self.radius)
+        return out
 
     def get_area(self):
         """ TODO: this is cartesian approximation, use spherical geom? """
@@ -196,10 +142,13 @@ class Circle(common.CaomObject):
         self._radius = value
 
 
-class SubInterval(common.CaomObject):
+class SubInterval(common.PrimitiveWrapper):
     def __init__(self, lower, upper):
         self.lower = lower
         self.upper = upper
+
+    def get_unwrapped_value(self):
+        return [self.lower, self.upper]
 
     # Properties
 
@@ -247,10 +196,13 @@ class SubInterval(common.CaomObject):
 Interval = dali.Interval  # Moved to dali
 
 
-class Point(common.CaomObject):
+class Point(common.PrimitiveWrapper):
     def __init__(self, cval1, cval2):
         self.cval1 = cval1
         self.cval2 = cval2
+
+    def get_unwrapped_value(self):
+        return [self.cval1, self.cval2]
 
     @property
     def cval1(self):
@@ -277,13 +229,18 @@ class Point(common.CaomObject):
         self._cval2 = value
 
 
-class Polygon(common.CaomObject):
-    def __init__(self, points=None, samples=None):
+class Polygon(common.PrimitiveWrapper):
+    def __init__(self, points=None):
         if points is None:
             self._points = []
         else:
             self._points = points
-        self.samples = samples
+
+    def get_unwrapped_value(self):
+        out = []
+        for p in self.points:
+            out.extend(p.get_unwrapped_value())
+        return out
 
     # Properties
 
@@ -294,22 +251,8 @@ class Polygon(common.CaomObject):
         """
         return self._points
 
-    @property
-    def samples(self):
-        """
-        return: sample multipolygon associated with this simple polygon
-        """
-        return self._samples
 
-    @samples.setter
-    def samples(self, value):
-        if value is not None:
-            caom_util.type_check(value, MultiShape, 'multipolygon',
-                                 override=False)
-        self._samples = value
-
-
-class MultiShape(common.CaomObject):
+class MultiShape(common.PrimitiveWrapper):
     def __init__(self, shapes):
         """
         :param shapes: list of shapes
@@ -318,6 +261,12 @@ class MultiShape(common.CaomObject):
         if not shapes:
             raise ValueError("MultiShape: shapes must be non-empty")
         self._shapes = shapes
+
+    def get_unwrapped_value(self):
+        out = []
+        for s in self._shapes:
+            out.append(s.get_unwrapped_value())
+        return out
 
     # Properties
 

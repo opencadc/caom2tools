@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2025.                            (c) 2025.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -68,6 +68,7 @@
 import hashlib
 import inspect
 import uuid
+from abc import ABC, abstractmethod
 from datetime import datetime
 
 from builtins import int, str
@@ -81,7 +82,8 @@ with warnings.catch_warnings():
     from aenum import Enum
 
 
-__all__ = ['CaomObject', 'AbstractCaomEntity', 'VocabularyTerm', 'compute_bucket']
+__all__ = ['PrimitiveWrapper', 'CaomObject', 'AbstractCaomEntity',
+           'VocabularyTerm', 'compute_bucket']
 
 logger = logging.getLogger('caom2')
 
@@ -116,6 +118,34 @@ def compute_bucket(uri):
     md5 = hashlib.sha1()
     md5.update(uri.encode('utf-8'))
     return md5.hexdigest()[:3]
+
+
+class PrimitiveWrapper(ABC):
+    """
+    If a data model implementation uses a wrapper class around a single "more primitive"
+    value and wants just the value to contribute to the metaChecksum computation,
+    this interface will allow the Entity class to extract the "more primitive" value.
+
+    In other words, this is a way to get just the values of the primitive types (without their attribute names)
+    for checksum encoding. For example, an Interval class could implement this interface to return the interval bounds
+    irrespective of the attribute names used to store them.
+    """
+
+    @abstractmethod
+    def get_unwrapped_value(self):
+        """
+        Return an iterable of primitive types (float, int_32, int, and/or nested list values)
+        for checksum encoding.
+        """
+        pass
+
+    def __eq__(self, other):
+        if isinstance(other, PrimitiveWrapper):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class OrderedEnum(Enum):

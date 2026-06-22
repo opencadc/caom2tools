@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2025.                            (c) 2025.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -77,8 +77,8 @@ import logging
 from builtins import int, str
 
 from caom2 import obs_reader_writer, get_meta_checksum, get_acc_meta_checksum
-from caom2 import update_meta_checksum
-from caom2.caom_util import str2ivoa
+from caom2.shape import Circle, MultiShape, Point, Polygon
+from caom2.caom_util import str2ivoa, TypedList, TypedSet
 from caom2.checksum import update_checksum, int_32, checksum_diff
 import tempfile
 from unittest.mock import patch
@@ -136,216 +136,115 @@ def test_primitive_checksum():
     assert ('5b71d023d4729575d550536dce8439e6' == md5.hexdigest())
 
 
-def atest_compatibility():
-    # tests loads a previously generated observation and checks the checksums
-    # against the previously calculated (in Java) checksums
+def _assert_stream_collision(left, right):
+    """Same UTF-8 byte sequence; only boundaries between elements differ."""
+    def stream(seq):
+        return b''.join(
+            x.encode('utf-8') if isinstance(x, str) else x for x in seq)
 
-    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
-                                    'SampleComposite-CAOM-2.3.xml')
-    reader = obs_reader_writer.ObservationReader(True)
-    with open(source_file_path, 'r'):
-        obs = reader.read(source_file_path)
-
-    writer = obs_reader_writer.ObservationWriter(
-        True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
-    writer.write(obs, '/tmp/test.xml')
-    _common_check(obs)
-
-    # check observation
-    assert obs.meta_checksum == get_meta_checksum(obs)
-    assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
-
-    # white spaces around strings should not affect the checksum
-    obs.algorithm = ' {}\t\n'.format(obs.algorithm.name)
-    assert obs.meta_checksum == get_meta_checksum(obs)
-
-    # now change some attributes and see how the checksums start to diverge
-    old_val = obs.collection
-    obs.collection = 'OTHER'
-    _common_check(obs)
-    assert obs.meta_checksum != get_meta_checksum(obs)
-    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
-    obs.collection = old_val
-
-    # now change a plane
-    aplane = list(obs.planes.values())[0]
-    old_val = aplane.product_id
-    aplane.product_id = 'TESTPRODID'
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    assert chunk.meta_checksum == get_meta_checksum(chunk)
-                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
-                        chunk)
-                assert part.meta_checksum == get_meta_checksum(part)
-                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
-            assert artifact.meta_checksum == get_meta_checksum(artifact)
-            assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                artifact)
-        if plane._id == aplane._id:
-            assert plane.meta_checksum != get_meta_checksum(plane)
-            assert plane.acc_meta_checksum != get_acc_meta_checksum(plane)
-        else:
-            assert plane.meta_checksum == get_meta_checksum(plane)
-            assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
-    assert obs.meta_checksum == get_meta_checksum(obs)
-    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
-    aplane.product_id = old_val
-
-    # change an artifact
-    anartifact = list(aplane.artifacts.values())[0]
-    old_val = anartifact.content_length
-    anartifact.content_length = 3344
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    assert chunk.meta_checksum == get_meta_checksum(chunk)
-                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
-                        chunk)
-                assert part.meta_checksum == get_meta_checksum(part)
-                assert part.acc_meta_checksum == get_acc_meta_checksum(part)
-            if artifact._id == anartifact._id:
-                assert artifact.meta_checksum != get_meta_checksum(artifact)
-                assert artifact.acc_meta_checksum != get_acc_meta_checksum(
-                    artifact)
-            else:
-                assert artifact.meta_checksum == get_meta_checksum(artifact)
-                assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                    artifact)
-        assert plane.meta_checksum == get_meta_checksum(plane)
-        if plane._id == aplane._id:
-            assert plane.acc_meta_checksum != get_acc_meta_checksum(plane)
-        else:
-            assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
-    assert obs.meta_checksum == get_meta_checksum(obs)
-    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
-    anartifact.content_length = old_val
-
-    apart = list(anartifact.parts.values())[0]
-    old_val = apart.name
-    apart.name = 'therealpart'
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    assert chunk.meta_checksum == get_meta_checksum(chunk)
-                    assert chunk.acc_meta_checksum == get_acc_meta_checksum(
-                        chunk)
-                if part._id == apart._id:
-                    assert part.meta_checksum != get_meta_checksum(part)
-                    assert part.acc_meta_checksum != get_acc_meta_checksum(
-                        part)
-                else:
-                    assert part.meta_checksum == get_meta_checksum(part)
-                    assert part.acc_meta_checksum == get_acc_meta_checksum(
-                        part)
-            assert artifact.meta_checksum == get_meta_checksum(artifact)
-            if artifact._id == anartifact._id:
-                assert artifact.acc_meta_checksum != get_acc_meta_checksum(
-                    artifact)
-            else:
-                assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                    artifact)
-        assert plane.meta_checksum == get_meta_checksum(plane)
-        if plane._id == aplane._id:
-            assert plane.acc_meta_checksum != get_acc_meta_checksum(plane)
-        else:
-            assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
-    assert obs.meta_checksum == get_meta_checksum(obs)
-    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
-    apart.name = old_val
-
-    achunk = list(apart.chunks)[0]
-    old_val = chunk.naxis
-    if old_val == 5:
-        achunk.naxis = 4
-    else:
-        achunk.naxis = old_val + 1
-    for plane in obs.planes.values():
-        for artifact in plane.artifacts.values():
-            for part in artifact.parts.values():
-                for chunk in part.chunks:
-                    if chunk._id == achunk._id:
-                        assert chunk.meta_checksum != get_meta_checksum(chunk)
-                        assert chunk.acc_meta_checksum !=\
-                            get_acc_meta_checksum(chunk)
-                    else:
-                        assert chunk.meta_checksum == get_meta_checksum(chunk)
-                        assert chunk.acc_meta_checksum ==\
-                            get_acc_meta_checksum(chunk)
-                assert part.meta_checksum == get_meta_checksum(part)
-                if part._id == apart._id:
-                    assert part.acc_meta_checksum != get_acc_meta_checksum(
-                        part)
-                else:
-                    assert part.acc_meta_checksum == get_acc_meta_checksum(
-                        part)
-            assert artifact.meta_checksum == get_meta_checksum(artifact)
-            if artifact._id == anartifact._id:
-                assert artifact.acc_meta_checksum != get_acc_meta_checksum(
-                    artifact)
-            else:
-                assert artifact.acc_meta_checksum == get_acc_meta_checksum(
-                    artifact)
-        assert plane.meta_checksum == get_meta_checksum(plane)
-        if plane._id == aplane._id:
-            assert plane.acc_meta_checksum != get_acc_meta_checksum(plane)
-        else:
-            assert plane.acc_meta_checksum == get_acc_meta_checksum(plane)
-    assert obs.meta_checksum == get_meta_checksum(obs)
-    assert obs.acc_meta_checksum != get_acc_meta_checksum(obs)
-    achunk.naxis = old_val
-
-    # update the checksums and everything should match again
-    update_meta_checksum(obs)
-    _common_check(obs)
+    assert stream(left) == stream(right), (
+        'test data must use a collision pair (same bytes, different elements)')
 
 
-def atest_compatibility_simple_obs():
-    # tests loads a previously generated observation and checks the checksums
-    # against the previously calculated (in Java) checksums
-    logger = logging.getLogger('checksum')
-    level = logger.getEffectiveLevel()
-    logger.setLevel(logging.DEBUG)
-    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
-                                    'SampleSimple-CAOM-2.3.xml')
-    reader = obs_reader_writer.ObservationReader(True)
-    with open(source_file_path, 'r'):
-        obs = reader.read(source_file_path)
+def test_list_checksum_should_differ_when_element_boundaries_differ():
+    """
+    update_checksum feeds each list item with no terminator, so the MD5
+    input is the concatenation of encodings only. Different lists whose
+    items concatenate to the same bytes must still yield different checksums.
+    """
+    left = ['abcd', 'efgh']
+    right = ['abcdef', 'gh']
+    _assert_stream_collision(left, right)
 
-    writer = obs_reader_writer.ObservationWriter(
-        True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
-    writer.write(obs, '/tmp/test.xml')
-    _common_check(obs)
-
-    # check observation
-    assert obs.meta_checksum == get_meta_checksum(obs)
-    assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
-    logger.setLevel(level)
+    md5_left = hashlib.md5()
+    update_checksum(md5_left, left, 'items')
+    md5_right = hashlib.md5()
+    update_checksum(md5_right, right, 'items')
+    assert md5_left.hexdigest() != md5_right.hexdigest(), (
+        'checksum must depend on list structure, not only on concatenated '
+        'UTF-8 of elements')
 
 
-def atest_round_trip():
-    source_file_path = os.path.join(THIS_DIR, TEST_DATA,
-                                    'SampleComposite-CAOM-2.3.xml')
-    reader = obs_reader_writer.ObservationReader(True)
-    with open(source_file_path, 'r'):
-        obs = reader.read(source_file_path)
+def test_typed_list_checksum_should_differ_when_element_boundaries_differ():
+    left = TypedList(str, 'abcd', 'efgh')
+    right = TypedList(str, 'abcdef', 'gh')
+    _assert_stream_collision(list(left), list(right))
 
-    filename = tempfile.TemporaryFile()
-    writer = obs_reader_writer.ObservationWriter(
-        True, namespace=obs_reader_writer.CAOM23_NAMESPACE)
-    writer.write(obs, filename)
+    md5_left = hashlib.md5()
+    update_checksum(md5_left, left, 'items')
+    md5_right = hashlib.md5()
+    update_checksum(md5_right, right, 'items')
+    assert md5_left.hexdigest() != md5_right.hexdigest(), (
+        'TypedList checksum must not match a different partition of the same '
+        'byte sequence')
 
-    # go back to the beginning of the file
-    filename.seek(0)
-    obs = reader.read(filename)
-    _common_check(obs)
 
-    # check observation
-    assert obs.meta_checksum == get_meta_checksum(obs)
-    assert obs.acc_meta_checksum == get_acc_meta_checksum(obs)
+def test_set_checksum_should_differ_when_element_boundaries_differ():
+    left = {'abcd', 'efgh'}
+    right = {'abcdef', 'gh'}
+    _assert_stream_collision(sorted(left), sorted(right))
+
+    md5_left = hashlib.md5()
+    update_checksum(md5_left, left, 'items')
+    md5_right = hashlib.md5()
+    update_checksum(md5_right, right, 'items')
+    assert md5_left.hexdigest() != md5_right.hexdigest(), (
+        'set checksum must not match a different partition of the same byte '
+        'sequence (after sorted iteration)')
+
+
+def test_typed_set_checksum_should_differ_when_element_boundaries_differ():
+    left = TypedSet(str, 'abcd', 'efgh')
+    right = TypedSet(str, 'abcdef', 'gh')
+    _assert_stream_collision(sorted(left), sorted(right))
+
+    md5_left = hashlib.md5()
+    update_checksum(md5_left, left, 'items')
+    md5_right = hashlib.md5()
+    update_checksum(md5_right, right, 'items')
+    assert md5_left.hexdigest() != md5_right.hexdigest(), (
+        'TypedSet checksum must not match a different partition of the same '
+        'byte sequence')
+
+
+def _flatten_multishape_primitives(multishape):
+    """Concatenate all shape primitive values, ignoring list boundaries."""
+    out = []
+    for shape_values in multishape.get_unwrapped_value():
+        out.extend(shape_values)
+    return out
+
+
+def test_multishape_checksum_should_differ_when_shape_boundaries_differ():
+    """
+    MultiShape checksum must depend on shape boundaries (0x00 delimiters),
+    not only on the contiguous primitive byte sequence.
+
+    polygon(0,10;20,30) + circle(40,50,r=60)  ->  [[0,10,20,30],[40,50,60]]
+    circle(0,10,r=20) + polygon(30,40;50,60)  ->  [[0,10,20],[30,40,50,60]]
+
+    Both flatten to [0, 10, 20, 30, 40, 50, 60] but partition it differently.
+    """
+    polygon_quad = Polygon([Point(0.0, 10.0), Point(20.0, 30.0)])
+    circle_tail = Circle(Point(40.0, 50.0), 60.0)
+    circle_head = Circle(Point(0.0, 10.0), 20.0)
+    polygon_tail = Polygon([Point(30.0, 40.0), Point(50.0, 60.0)])
+
+    left = MultiShape([polygon_quad, circle_tail])
+    right = MultiShape([circle_head, polygon_tail])
+
+    assert left.get_unwrapped_value() == [[0.0, 10.0, 20.0, 30.0], [40.0, 50.0, 60.0]]
+    assert right.get_unwrapped_value() == [[0.0, 10.0, 20.0], [30.0, 40.0, 50.0, 60.0]]
+    assert _flatten_multishape_primitives(left) == _flatten_multishape_primitives(
+        right)
+
+    md5_left = hashlib.md5()
+    update_checksum(md5_left, left, 'position.samples')
+    md5_right = hashlib.md5()
+    update_checksum(md5_right, right, 'position.samples')
+    assert md5_left.hexdigest() != md5_right.hexdigest(), (
+        'MultiShape checksum must depend on shape boundaries, not only on the '
+        'contiguous list of primitive values')
 
 
 def test_checksum_diff():
