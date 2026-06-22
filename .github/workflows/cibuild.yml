@@ -3,11 +3,10 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
   schedule:
     - cron: "0 4 * * *"
-  release:
-    types: [created]
-
+    
 jobs:
   build:
     runs-on: ubuntu-latest
