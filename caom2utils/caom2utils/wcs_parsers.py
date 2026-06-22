@@ -317,10 +317,7 @@ class WcsParser:
             ref_coord = self._get_ref_coord(custom_axis_index)
             if delta and ref_coord:
                 naxis.function = CoordFunction1D(custom_axis_length, delta, ref_coord)
-            if not chunk.custom:
-                chunk.custom = CustomWCS(naxis)
-            else:
-                chunk.custom.axis = naxis
+            chunk.custom = CustomWCS(naxis)
 
         self.logger.debug('End Custom WCS augmentation.')
 
@@ -647,8 +644,9 @@ class WcsParser:
             else:
                 result = self._wcs.array_shape[for_axis - 1]
             if isinstance(result, tuple):
-                # the blueprint is incompletely configured
-                raise ValueError(f'Could not find axis length for axis {for_axis}')
+                raise ValueError(
+                    f'Could not find axis length for axis {for_axis}. The blueprint is incompletely configured.'
+                )
             return _to_int(result)
 
     def _get_cd(self, x_index, y_index):

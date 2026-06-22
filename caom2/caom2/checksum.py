@@ -119,7 +119,6 @@ at the minimum, __eq__ and __lt__ that will result in proper sorting
 
 """
 logger = logging.getLogger('checksum')
-logging.basicConfig()
 
 
 def get_meta_checksum(entity):
@@ -375,6 +374,7 @@ def checksum_diff():
         sys.exit(-1)
 
     if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)
 
     reader = obs_reader_writer.ObservationReader(True)

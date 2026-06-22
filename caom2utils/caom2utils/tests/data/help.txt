@@ -1,4 +1,5 @@
-usage: fits2caom2 [-h] [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER]
+usage: fits2caom2 [-h]
+                  [--cert CERT | -n | --netrc-file NETRC_FILE | -u USER | --token TOKEN]
                   [--resource-id RESOURCE_ID] [-q | -v] [-V] [--dumpconfig]
                   [--not_connected] [--no_validate] [-o OUT_OBS_XML]
                   (-i IN_OBS_XML | --observation collection observationID)
@@ -41,6 +42,7 @@ optional arguments:
   --resource-id RESOURCE_ID
                         resource identifier (default
                         ivo://cadc.nrc.ca/global/raven)
+  --token TOKEN         authentication token to use.
   -u, --user USER       name of user to authenticate. Note: application
                         prompts for the corresponding password!
   -v, --verbose         verbose messages

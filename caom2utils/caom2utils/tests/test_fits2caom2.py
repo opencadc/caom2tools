@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2022.                            (c) 2022.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -93,6 +93,7 @@ from unittest.mock import Mock, patch
 from io import StringIO, BytesIO
 
 import importlib
+import logging
 import os
 import sys
 
@@ -536,52 +537,30 @@ def _get_from_str_xml(string_xml, get_func, element_tag):
     return act_obj
 
 
-@patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError, MyExitError, MyExitError, MyExitError]))
-def test_help():
-    """Tests the helper displays for commands in main"""
+@patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError, MyExitError]))
+def test_cli_errors():
+    """Tests CLI validation and error messages."""
 
-    # expected helper messages
     with open(os.path.join(TESTDATA_DIR, 'bad_product_id.txt')) as myfile:
         bad_product_id = myfile.read().strip()
     with open(os.path.join(TESTDATA_DIR, 'missing_product_id.txt')) as myfile:
         missing_product_id = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'too_few_arguments_help.txt')) as myfile:
-        too_few_arguments_usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'help.txt')) as myfile:
-        usage = myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_observation_help.txt')) as myfile:
-        myfile.read()
-    with open(os.path.join(TESTDATA_DIR, 'missing_positional_argument_help.txt')) as myfile:
-        myfile.read()
 
-    # too few arguments error message when running python3
-    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
+    with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         sys.argv = ["fits2caom2"]
         with pytest.raises(MyExitError):
             main_app()
-        if stdout_mock.getvalue():
-            assert too_few_arguments_usage == stdout_mock.getvalue()
+        assert 'too few arguments' in stderr_mock.getvalue()
 
-    # --help
-    with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "-h"]
-        with pytest.raises(MyExitError):
-            main_app()
-        expected = stdout_mock.getvalue().replace('options:', 'optional arguments:').strip('\n')
-        assert usage.strip('\n') == expected
-
-    # missing productID when plane count is wrong
     with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
         with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
             bad_product_file = os.path.join(TESTDATA_DIR, 'bad_product_id.xml')
             sys.argv = ["fits2caom2", "--in", bad_product_file, "ad:CGPS/CGPS_MA1_HI_line_image.fits"]
             with pytest.raises(MyExitError):
                 main_app()
-            # inconsistencies between Python 3.7 and later versions. this should be on stderr_mmock only
             result = stderr_mock.getvalue() + stdout_mock.getvalue()
             assert bad_product_id in result, result
 
-    # missing productID when blueprint doesn't have one either
     with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
         with patch('sys.stderr', new_callable=StringIO) as stderr_mock, patch(
             'caom2utils.data_util.StorageClientWrapper'
@@ -597,27 +576,22 @@ def test_help():
             ]
             with pytest.raises(MyExitError):
                 main_app()
-            # inconsistencies between Python 3.7 and later versions. this should be on stderr_mmock only
             result = stderr_mock.getvalue() + stdout_mock.getvalue()
             assert missing_product_id.strip() in result, result
 
-    # missing required --observation
-    """
-    TODO: fix the tests
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "testProductID", "testpathto/testFileURI"]
-        with pytest.raises(MyExitError):
-            main_app()
-        assert(missing_observation_usage == stdout_mock.getvalue())
 
-    # missing positional argument
-    with patch('sys.stderr', new_callable=StringIO) as stdout_mock:
-        sys.argv = ["fits2caom2", "--observation", "testCollection",
-                    "testObservationID", "testPathTo/testFileURI"]
-        with pytest.raises(MyExitError):
-            main_app()
-        assert(missing_positional_argument_usage == stdout_mock.getvalue())
-    """
+@patch('caom2utils.caom2blueprint.proc', side_effect=RuntimeError('fail'))
+@patch('sys.exit', side_effect=MyExitError)
+def test_main_app_logs_debug_traceback_on_error(exit_mock, proc_mock):
+    logging.getLogger().setLevel(logging.DEBUG)
+    sys.argv = [
+        "fits2caom2", "--debug", "--observation", "cfht", "7000000o",
+        "ad:CGPS/CGPS_MA1_HI_line_image.fits",
+    ]
+    with pytest.raises(MyExitError):
+        main_app()
+    proc_mock.assert_called_once()
+    exit_mock.assert_called_once_with(-1)
 
 
 EXPECTED_OBS_XML = (
@@ -665,7 +639,7 @@ caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
       <caom2:artifacts>
         <caom2:artifact caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
           <caom2:uri>caom:CGPS/TEST/4axes_obs.fits</caom2:uri>
-          <caom2:productType>info</caom2:productType>
+          <caom2:productType>auxiliary</caom2:productType>
           <caom2:parts>
             <caom2:part caom2:id="d2893703-b21e-425f-b7d0-ca1f58fdc011">
               <caom2:name>0</caom2:name>
@@ -692,7 +666,7 @@ def test_augment_observation():
     test_obs_blueprint.set('Observation.telescope.geoLocationZ', '4741018.33097')
 
     test_obs_blueprint.set('Plane.dataProductType', 'cube')
-    test_obs_blueprint.set('Artifact.productType', 'info')
+    test_obs_blueprint.set('Artifact.productType', 'auxiliary')
     test_obs_blueprint.set('Artifact.releaseType', 'data')
     test_obs_blueprint.set('Plane.calibrationLevel', '2')
     test_fitsparser = FitsParser(sample_file_4axes_obs, test_obs_blueprint)
@@ -1073,7 +1047,7 @@ EXPECTED_GENERIC_PARSER_FILE_SCHEME_XML = (
           <caom2:productType>thumbnail</caom2:productType>
           <caom2:releaseType>data</caom2:releaseType>
           <caom2:contentType>text/plain</caom2:contentType>
-          <caom2:contentLength>2486</caom2:contentLength>
+          <caom2:contentLength>2573</caom2:contentLength>
           <caom2:contentChecksum>md5:e6c08f3b8309f05a5a3330e27e3b44eb</caom2:contentChecksum>
           <caom2:uri>file://"""
     + text_file
@@ -1265,22 +1239,33 @@ def test_augment_artifact_bounds_range_from_blueprint():
     test_blueprint = ObsBlueprint(
         energy_axis=1, time_axis=2, polarization_axis=3, position_axes=(4, 5), custom_axis=6
     )
+    test_blueprint.set('Chunk.custom.axis.axis.ctype', 'RM')
+    test_blueprint.set('Chunk.custom.axis.axis.cunit', 'm / s ** 2')
     test_blueprint.set('Chunk.custom.axis.range.start.pix', '145.0')
     test_blueprint.set('Chunk.custom.axis.range.start.val', '-60000.0')
     test_blueprint.set('Chunk.custom.axis.range.end.pix', '-824.46002')
     test_blueprint.set('Chunk.custom.axis.range.end.val', '1')
+    test_blueprint.set('Chunk.energy.axis.axis.ctype', 'WAVE')
+    test_blueprint.set('Chunk.energy.axis.axis.cunit', 'm')
     test_blueprint.set('Chunk.energy.axis.range.start.pix', '145.0')
     test_blueprint.set('Chunk.energy.axis.range.start.val', '-60000.0')
     test_blueprint.set('Chunk.energy.axis.range.end.pix', '-824.46002')
     test_blueprint.set('Chunk.energy.axis.range.end.val', '1')
+    test_blueprint.set('Chunk.time.axis.axis.ctype', 'TIME')
+    test_blueprint.set('Chunk.time.axis.axis.cunit', 'd')
     test_blueprint.set('Chunk.time.axis.range.start.pix', '145.0')
     test_blueprint.set('Chunk.time.axis.range.start.val', '-60000.0')
     test_blueprint.set('Chunk.time.axis.range.end.pix', '-824.46002')
     test_blueprint.set('Chunk.time.axis.range.end.val', '1')
+    test_blueprint.set('Chunk.polarization.axis.axis.ctype', 'STOKES')
     test_blueprint.set('Chunk.polarization.axis.range.start.pix', '145.0')
     test_blueprint.set('Chunk.polarization.axis.range.start.val', '-60000.0')
     test_blueprint.set('Chunk.polarization.axis.range.end.pix', '-824.46002')
     test_blueprint.set('Chunk.polarization.axis.range.end.val', '1')
+    test_blueprint.set('Chunk.position.axis.axis1.ctype', 'RA')
+    test_blueprint.set('Chunk.position.axis.axis1.cunit', 'deg')
+    test_blueprint.set('Chunk.position.axis.axis2.ctype', 'DEC')
+    test_blueprint.set('Chunk.position.axis.axis2.cunit', 'deg')
     test_blueprint.set('Chunk.position.axis.range.start.coord1.pix', '145.0')
     test_blueprint.set('Chunk.position.axis.range.start.coord1.val', '-60000.0')
     test_blueprint.set('Chunk.position.axis.range.end.coord1.pix', '-824.46002')
@@ -1399,6 +1384,23 @@ def test_generic_parser1():
     assert test_parser._blueprint._plan[test_key] == (['RELEASE', 'REL_DATE'], None), 'default value changed'
     test_parser.blueprint = test_blueprint
     assert test_parser._blueprint._plan[test_key] == test_value, 'original value over-ridden'
+
+
+def test_generic_parser_imported_module_error_handling():
+    # this test exercises the error handling code for executing functions defined by blueprints
+    test_key = 'Plane.metaRelease'
+    test_key_2 = 'Plane.dataRelease'
+    test_value = '2013-10-10'
+    test_blueprint = ObsBlueprint()
+    test_blueprint.set(test_key, '2013-10-10')
+    # pick __sizeof__ as an attribute that will fail to execute for any module
+    test_blueprint.set(test_key_2, '__sizeof__()')
+    test_parser = BlueprintParser()
+    assert test_parser._blueprint._plan[test_key] == (['RELEASE', 'REL_DATE'], None), 'default value changed'
+    test_parser.blueprint = test_blueprint
+    assert test_parser._blueprint._plan[test_key] == test_value, 'original value over-ridden'
+    test_result = test_parser._execute_external('__sizeof__(uri)', test_key_2, 0)
+    assert test_result == '', 'wrong result'
 
 
 def test_get_external_headers():

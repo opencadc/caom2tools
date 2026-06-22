@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2018.                            (c) 2018.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -243,6 +243,8 @@ def _get_cardinality(directory):
             return '--lineage GS-2023A-SV-101-13-009/cadc:GEMINI/S20230518S0121.fits'
         elif 'N20030325S0098' in directory:
             return '--lineage GN-2003A-Q-51-2-004/cadc:GEMINI/N20030325S0098.fits'
+        elif 'N20250101M0624' in directory:
+            return '--lineage N20250101M0624/cadc:GEMINI/N20250101M0624.fits'
         else:
             return '--lineage wrgnN20140428S0085_arc/cadc:GEMINICADC/wrgnN20140428S0085_arc.fits'
     elif 'lotss' in directory:
@@ -348,5 +350,8 @@ def _read_observation(fname):
 
 
 def _write_observation(obs):
+    fd, path = tempfile.mkstemp(suffix='.xml', prefix='caom2utils_failed_obs_')
+    os.close(fd)
     writer = ObservationWriter(True, False, 'caom2', 'http://www.opencadc.org/caom2/xml/v2.4')
-    writer.write(obs, './x.xml')
+    writer.write(obs, path)
+    return path

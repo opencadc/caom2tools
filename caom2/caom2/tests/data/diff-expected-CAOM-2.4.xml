@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="ff793c6e-f462-4ac6-9338-7883dbf9022e" caom2:lastModified="2019-09-18T01:13:56.306" caom2:maxLastModified="2020-08-31T21:28:57.379" caom2:metaChecksum="md5:aad7925f0882a69b9ccdccdedd041617" caom2:accMetaChecksum="md5:c55395a717c52b7765a22aa719c49b2f">
+<caom2:Observation xmlns:caom2="http://www.opencadc.org/caom2/xml/v2.4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="caom2:SimpleObservation" caom2:id="ff793c6e-f462-4ac6-9338-7883dbf9022e" caom2:lastModified="2019-09-18T01:13:56.306" caom2:maxLastModified="2020-08-31T21:28:57.379">
   <caom2:collection>VLASS</caom2:collection>
   <caom2:observationID>VLASS1.2.T15t01.J004318+163000</caom2:observationID>
   <caom2:metaRelease>2019-05-10T14:18:23.000</caom2:metaRelease>

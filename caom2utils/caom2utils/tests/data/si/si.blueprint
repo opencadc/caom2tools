@@ -1,3 +1,6 @@
 Observation.type = OBJECT
 Plane.dataProductType = image
 Plane.calibrationLevel = 2
+Artifact.productType = science
+Chunk = include
+Chunk.time.axis.axis.ctype = ['CTYPE1'], default = None

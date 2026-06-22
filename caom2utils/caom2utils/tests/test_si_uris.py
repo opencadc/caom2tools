@@ -86,6 +86,7 @@ NAXIS   =                    2 / Number of dimensions
 NAXIS1  =                 2048 /
 NAXIS2  =                 2048 /
 DATATYPE= 'REDUC   '           /Data type, SCIENCE/CALIB/REJECT/FOCUS/TEST
+CTYPE1  = 'TIME'               /
 END"""
         )
 

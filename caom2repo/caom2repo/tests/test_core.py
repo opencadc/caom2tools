@@ -69,6 +69,7 @@
 
 import copy
 import logging
+import multiprocessing
 import os
 import sys
 import unittest
@@ -600,6 +601,175 @@ class TestCAOM2Repo(unittest.TestCase):
         visitor.post_observation.assert_called_with(
             observation, observation.acc_meta_checksum.uri)
 
+    def test_shortcuts(self):
+        level = logging.DEBUG
+        target = CAOM2RepoClient(auth.Subject(), level)
+        obs = SimpleObservation('CFHT', 'abc')
+
+        target.put_observation = Mock()
+        target.put_observation = Mock()
+        target.delete_observation = Mock()
+        target.create(obs)
+        target.put_observation.assert_called_with(obs)
+        target.delete_observation.assert_not_called()
+
+        target.put_observation.reset_mock()
+        target.create(obs, force=True)
+        target.delete_observation.assert_called_with(
+            obs.collection, obs.observation_id)
+        target.put_observation.assert_called_with(obs)
+
+        target.delete_observation.reset_mock()
+        target.put_observation.reset_mock()
+        target.delete_observation.side_effect = exceptions.NotFoundException(
+            'not found')
+        target.create(obs, force=True)
+        target.put_observation.assert_called_with(obs)
+
+        target.get_observation = Mock()
+        target.read('CFHT', 'abc')
+        target.get_observation.assert_called_with('CFHT', 'abc')
+
+        target.post_observation = Mock()
+        target.update(obs)
+        target.post_observation.assert_called_with(obs)
+
+        target.delete_observation = Mock()
+        target.delete('CFHT', 'abc')
+        target.delete_observation.assert_called_with('CFHT', 'abc')
+
+    @patch('caom2repo.core.CAOM2RepoClient')
+    def test_main_app(self, client_mock):
+        collection = 'cfht'
+        observation_id = '7000000o'
+        ifile = '/tmp/inputobs'
+
+        obs = SimpleObservation(collection, observation_id)
+
+        # test create
+        with open(ifile, 'wb') as infile:
+            ObservationWriter().write(obs, infile)
+        sys.argv = ["caom2tools", "create", '--resource-id',
+                    'ivo://ca.nrc.ca/resource', ifile]
+        core.main_app()
+        client_mock.return_value.create.assert_called_with(obs, force=False)
+
+        sys.argv = ["caom2tools", "create", '--force', '--resource-id',
+                    'ivo://ca.nrc.ca/resource', ifile]
+        core.main_app()
+        client_mock.return_value.create.assert_called_with(obs, force=True)
+
+        # test update
+        sys.argv = ["caom2tools", "update", '--resource-id',
+                    'ivo://ca.nrc.ca/resource', ifile]
+        core.main_app()
+        client_mock.return_value.post_observation.assert_called_with(obs)
+
+        # test read
+        sys.argv = ["caom2tools", "read", '--resource-id',
+                    'ivo://ca.nrc.ca/resource',
+                    collection, observation_id]
+        client_mock.return_value.get_observation.return_value = obs
+        client_mock.return_value.namespace = obs_reader_writer.CAOM24_NAMESPACE
+        core.main_app()
+        client_mock.return_value.get_observation.\
+            assert_called_with(collection, observation_id)
+        # repeat with output argument
+        sys.argv = ["caom2tools", "read", '--resource-id',
+                    'ivo://ca.nrc.ca/resource',
+                    "--output", ifile, collection, observation_id]
+        client_mock.return_value.get_observation.return_value = obs
+        core.main_app()
+        client_mock.return_value.get_observation.\
+            assert_called_with(collection, observation_id)
+        os.remove(ifile)
+
+        # test delete
+        sys.argv = ["caom2tools", "delete", '--resource-id',
+                    'ivo://ca.nrc.ca/resource',
+                    collection, observation_id]
+        core.main_app()
+        client_mock.return_value.delete_observation.assert_called_with(
+            collection=collection,
+            observation_id=observation_id)
+
+        # test visit
+        # get the absolute path to be able to run the tests with the
+        # astropy frameworks
+        plugin_file = THIS_DIR + "/passplugin.py"
+        sys.argv = ["caom2tools", "visit", '--resource-id',
+                    'ivo://ca.nrc.ca/resource',
+                    "--plugin", plugin_file, "--start", "2012-01-01T11:22:33",
+                    "--end", "2013-01-01T11:33:22", collection]
+        client_mock.return_value.visit.return_value = ['1'], ['1'], [], []
+        with open(plugin_file, 'r') as infile:
+            core.main_app()
+            client_mock.return_value.visit.assert_called_with(
+                ANY, collection, halt_on_error=False, nthreads=None,
+                obs_file=None,
+                start=core.str2date("2012-01-01T11:22:33"),
+                end=core.str2date("2013-01-01T11:33:22"))
+
+        # repeat visit test with halt-on-error
+        sys.argv = ["caom2tools", "visit", '--resource-id',
+                    'ivo://ca.nrc.ca/resource',
+                    "--plugin", plugin_file, '--halt-on-error',
+                    "--start", "2012-01-01T11:22:33",
+                    "--end", "2013-01-01T11:33:22", collection]
+        client_mock.return_value.visit.return_value = ['1'], ['1'], [], []
+        with open(plugin_file, 'r') as infile:
+            core.main_app()
+            client_mock.return_value.visit.assert_called_with(
+                ANY, collection, halt_on_error=True, nthreads=None,
+                obs_file=None,
+                start=core.str2date("2012-01-01T11:22:33"),
+                end=core.str2date("2013-01-01T11:33:22"))
+
+    @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError]))
+    def test_visit_threads_validation(self):
+        """Tests visit --threads argument validation."""
+
+        # visit too few number of threads
+        with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+            sys.argv = ["caom2-repo", "visit", "--threads", "1",
+                        "--obs_file",
+                        os.path.join(THIS_DIR, 'data/obs_id.txt'),
+                        "--plugin", os.path.join(THIS_DIR, 'passplugin.py'),
+                        "TEST"]
+            with self.assertRaises(MyExitError):
+                core.main_app()
+            self.assertTrue('error: argument --threads: invalid choice' in
+                            stderr_mock.getvalue())
+
+        # visit too many number of threads
+        with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
+            sys.argv = ["caom2-repo", "visit", "--threads", "11",
+                        "--obs_file",
+                        os.path.join(THIS_DIR, 'data/obs_id.txt'),
+                        "--plugin",
+                        os.path.join(THIS_DIR, 'passplugin.py'), "TEST"]
+            with self.assertRaises(MyExitError):
+                core.main_app()
+            self.assertTrue('error: argument --threads: invalid choice' in
+                            stderr_mock.getvalue())
+
+
+@patch('caom2repo.core.net.BaseWsClient', Mock())
+class TestCAOM2RepoMultiprocess(unittest.TestCase):
+    """Multiprocess visitor tests.
+
+    Uses fork on POSIX so unittest.mock patches apply in worker processes.
+    BaseWsClient is mocked to avoid registry access in workers.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        if sys.platform != 'win32':
+            try:
+                multiprocessing.set_start_method('fork', force=True)
+            except RuntimeError:
+                pass
+
     def mock_get_observation(self, collection, observationID):
         return SimpleObservation(collection, observationID)
 
@@ -706,24 +876,20 @@ class TestCAOM2Repo(unittest.TestCase):
             os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None,
             end=None, obs_file=None, nthreads=3)
 
-        try:
-            self.assertEqual(4, len(visited))
-            self.assertEqual(4, len(updated))
-            self.assertEqual(0, len(skipped))
-            self.assertEqual(0, len(failed))
-            self.assertTrue('a' in visited)
-            self.assertTrue('b' in visited)
-            self.assertTrue('c' in visited)
-            self.assertTrue('d' in visited)
-            self.assertFalse('e' in visited)
-            self.assertTrue('a' in updated)
-            self.assertTrue('b' in updated)
-            self.assertTrue('c' in updated)
-            self.assertTrue('d' in updated)
-            self.assertFalse('e' in updated)
-        finally:
-            # lp.join()
-            logging.info("DONE")
+        self.assertEqual(4, len(visited))
+        self.assertEqual(4, len(updated))
+        self.assertEqual(0, len(skipped))
+        self.assertEqual(0, len(failed))
+        self.assertTrue('a' in visited)
+        self.assertTrue('b' in visited)
+        self.assertTrue('c' in visited)
+        self.assertTrue('d' in visited)
+        self.assertFalse('e' in visited)
+        self.assertTrue('a' in updated)
+        self.assertTrue('b' in updated)
+        self.assertTrue('c' in updated)
+        self.assertTrue('d' in updated)
+        self.assertFalse('e' in updated)
 
     @patch('caom2repo.core.CAOM2RepoClient.get_observation')
     @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
@@ -742,28 +908,24 @@ class TestCAOM2Repo(unittest.TestCase):
             os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None,
             end=None, obs_file=None, nthreads=3)
 
-        try:
-            self.assertEqual(6, len(visited))
-            self.assertEqual(6, len(updated))
-            self.assertEqual(0, len(skipped))
-            self.assertEqual(0, len(failed))
-            self.assertTrue('a' in visited)
-            self.assertTrue('b' in visited)
-            self.assertTrue('c' in visited)
-            self.assertTrue('d' in visited)
-            self.assertTrue('e' in visited)
-            self.assertTrue('f' in visited)
-            self.assertFalse('g' in visited)
-            self.assertTrue('a' in updated)
-            self.assertTrue('b' in updated)
-            self.assertTrue('c' in updated)
-            self.assertTrue('d' in updated)
-            self.assertTrue('e' in updated)
-            self.assertTrue('f' in updated)
-            self.assertFalse('g' in updated)
-        finally:
-            # lp.join()
-            logging.info("DONE")
+        self.assertEqual(6, len(visited))
+        self.assertEqual(6, len(updated))
+        self.assertEqual(0, len(skipped))
+        self.assertEqual(0, len(failed))
+        self.assertTrue('a' in visited)
+        self.assertTrue('b' in visited)
+        self.assertTrue('c' in visited)
+        self.assertTrue('d' in visited)
+        self.assertTrue('e' in visited)
+        self.assertTrue('f' in visited)
+        self.assertFalse('g' in visited)
+        self.assertTrue('a' in updated)
+        self.assertTrue('b' in updated)
+        self.assertTrue('c' in updated)
+        self.assertTrue('d' in updated)
+        self.assertTrue('e' in updated)
+        self.assertTrue('f' in updated)
+        self.assertFalse('g' in updated)
 
     @patch('caom2repo.core.CAOM2RepoClient.get_observation')
     @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
@@ -785,14 +947,10 @@ class TestCAOM2Repo(unittest.TestCase):
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None,
             end=None, obs_file=None, nthreads=3)
 
-        try:
-            self.assertEqual(3, len(visited))
-            self.assertEqual(1, len(updated))
-            self.assertEqual(1, len(skipped))
-            self.assertEqual(1, len(failed))
-        finally:
-            # lp.join()
-            logging.info("DONE")
+        self.assertEqual(3, len(visited))
+        self.assertEqual(1, len(updated))
+        self.assertEqual(1, len(skipped))
+        self.assertEqual(1, len(failed))
 
     @patch('caom2repo.core.CAOM2RepoClient.get_observation')
     @patch('caom2repo.core.CAOM2RepoClient.post_observation', Mock())
@@ -814,217 +972,56 @@ class TestCAOM2Repo(unittest.TestCase):
             os.path.join(THIS_DIR, 'errorplugin.py'), 'cfht', start=None,
             end=None, obs_file=None, nthreads=3)
 
-        try:
-            self.assertEqual(5, len(visited))
-            self.assertEqual(2, len(updated))
-            self.assertEqual(2, len(skipped))
-            self.assertEqual(1, len(failed))
-        finally:
-            # lp.join()
-            logging.info("DONE")
+        self.assertEqual(5, len(visited))
+        self.assertEqual(2, len(updated))
+        self.assertEqual(2, len(skipped))
+        self.assertEqual(1, len(failed))
 
-    def test_shortcuts(self):
-        level = logging.DEBUG
-        target = CAOM2RepoClient(auth.Subject(), level)
-        obs = SimpleObservation('CFHT', 'abc')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.Pool')
+    def test_multiprocess_pool_error_terminates(self, pool_mock, get_mock,
+                                              post_mock):
+        core.BATCH_SIZE = 3
+        obs_ids = [['a'], []]
+        pool_instance = MagicMock()
+        pool_mock.return_value = pool_instance
+        async_result = MagicMock()
+        async_result.get.side_effect = RuntimeError('pool failed')
+        pool_instance.apply_async.return_value = async_result
 
-        target.put_observation = Mock()
-        target.create(obs)
-        target.put_observation.assert_called_with(obs)
+        visitor = CAOM2RepoClient(auth.Subject(), logging.DEBUG)
+        visitor._get_observations = MagicMock(side_effect=obs_ids)
 
-        target.get_observation = Mock()
-        target.read('CFHT', 'abc')
-        target.get_observation.assert_called_with('CFHT', 'abc')
+        with self.assertRaises(RuntimeError):
+            visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None,
+                end=None, obs_file=None, nthreads=3)
 
-        target.post_observation = Mock()
-        target.update(obs)
-        target.post_observation.assert_called_with(obs)
+        pool_instance.terminate.assert_called_once()
+        pool_instance.close.assert_called_once()
+        pool_instance.join.assert_called_once()
 
-        target.delete_observation = Mock()
-        target.delete('CFHT', 'abc')
-        target.delete_observation.assert_called_with('CFHT', 'abc')
+    @patch('caom2repo.core.CAOM2RepoClient.post_observation')
+    @patch('caom2repo.core.CAOM2RepoClient.get_observation')
+    @patch('caom2repo.core.Pool')
+    def test_multiprocess_pool_keyboard_interrupt_terminates(self, pool_mock,
+                                                             get_mock,
+                                                             post_mock):
+        core.BATCH_SIZE = 3
+        obs_ids = [['a'], []]
+        pool_instance = MagicMock()
+        pool_mock.return_value = pool_instance
+        async_result = MagicMock()
+        async_result.get.side_effect = KeyboardInterrupt()
+        pool_instance.apply_async.return_value = async_result
 
-    @patch('caom2repo.core.CAOM2RepoClient')
-    def test_main_app(self, client_mock):
-        collection = 'cfht'
-        observation_id = '7000000o'
-        ifile = '/tmp/inputobs'
+        visitor = CAOM2RepoClient(auth.Subject(), logging.DEBUG)
+        visitor._get_observations = MagicMock(side_effect=obs_ids)
 
-        obs = SimpleObservation(collection, observation_id)
+        with self.assertRaises(KeyboardInterrupt):
+            visitor.visit(
+                os.path.join(THIS_DIR, 'passplugin.py'), 'cfht', start=None,
+                end=None, obs_file=None, nthreads=3)
 
-        # test create
-        with open(ifile, 'wb') as infile:
-            ObservationWriter().write(obs, infile)
-        sys.argv = ["caom2tools", "create", '--resource-id',
-                    'ivo://ca.nrc.ca/resource', ifile]
-        core.main_app()
-        client_mock.return_value.put_observation.assert_called_with(obs)
-
-        # test update
-        sys.argv = ["caom2tools", "update", '--resource-id',
-                    'ivo://ca.nrc.ca/resource', ifile]
-        core.main_app()
-        client_mock.return_value.post_observation.assert_called_with(obs)
-
-        # test read
-        sys.argv = ["caom2tools", "read", '--resource-id',
-                    'ivo://ca.nrc.ca/resource',
-                    collection, observation_id]
-        client_mock.return_value.get_observation.return_value = obs
-        client_mock.return_value.namespace = obs_reader_writer.CAOM24_NAMESPACE
-        core.main_app()
-        client_mock.return_value.get_observation.\
-            assert_called_with(collection, observation_id)
-        # repeat with output argument
-        sys.argv = ["caom2tools", "read", '--resource-id',
-                    'ivo://ca.nrc.ca/resource',
-                    "--output", ifile, collection, observation_id]
-        client_mock.return_value.get_observation.return_value = obs
-        core.main_app()
-        client_mock.return_value.get_observation.\
-            assert_called_with(collection, observation_id)
-        os.remove(ifile)
-
-        # test delete
-        sys.argv = ["caom2tools", "delete", '--resource-id',
-                    'ivo://ca.nrc.ca/resource',
-                    collection, observation_id]
-        core.main_app()
-        client_mock.return_value.delete_observation.assert_called_with(
-            collection=collection,
-            observation_id=observation_id)
-
-        # test visit
-        # get the absolute path to be able to run the tests with the
-        # astropy frameworks
-        plugin_file = THIS_DIR + "/passplugin.py"
-        sys.argv = ["caom2tools", "visit", '--resource-id',
-                    'ivo://ca.nrc.ca/resource',
-                    "--plugin", plugin_file, "--start", "2012-01-01T11:22:33",
-                    "--end", "2013-01-01T11:33:22", collection]
-        client_mock.return_value.visit.return_value = ['1'], ['1'], [], []
-        with open(plugin_file, 'r') as infile:
-            core.main_app()
-            client_mock.return_value.visit.assert_called_with(
-                ANY, collection, halt_on_error=False, nthreads=None,
-                obs_file=None,
-                start=core.str2date("2012-01-01T11:22:33"),
-                end=core.str2date("2013-01-01T11:33:22"))
-
-        # repeat visit test with halt-on-error
-        sys.argv = ["caom2tools", "visit", '--resource-id',
-                    'ivo://ca.nrc.ca/resource',
-                    "--plugin", plugin_file, '--halt-on-error',
-                    "--start", "2012-01-01T11:22:33",
-                    "--end", "2013-01-01T11:33:22", collection]
-        client_mock.return_value.visit.return_value = ['1'], ['1'], [], []
-        with open(plugin_file, 'r') as infile:
-            core.main_app()
-            client_mock.return_value.visit.assert_called_with(
-                ANY, collection, halt_on_error=True, nthreads=None,
-                obs_file=None,
-                start=core.str2date("2012-01-01T11:22:33"),
-                end=core.str2date("2013-01-01T11:33:22"))
-
-    @patch('sys.exit', Mock(side_effect=[MyExitError, MyExitError, MyExitError,
-                                         MyExitError, MyExitError, MyExitError,
-                                         MyExitError, MyExitError]))
-    def test_help(self):
-        """ Tests the helper displays for commands and subcommands in main"""
-
-        # expected helper messages
-        with open(os.path.join(TESTDATA_DIR, 'help.txt'), 'r') as myfile:
-            usage = myfile.read()
-        with open(
-                os.path.join(TESTDATA_DIR, 'create_help.txt'), 'r') as myfile:
-            create_usage = myfile.read()
-        with open(os.path.join(TESTDATA_DIR, 'read_help.txt'), 'r') as myfile:
-            read_usage = myfile.read()
-        with open(
-                os.path.join(TESTDATA_DIR, 'update_help.txt'), 'r') as myfile:
-            update_usage = myfile.read()
-        with open(
-                os.path.join(TESTDATA_DIR, 'delete_help.txt'), 'r') as myfile:
-            delete_usage = myfile.read()
-        with open(os.path.join(TESTDATA_DIR, 'visit_help.txt'), 'r') as myfile:
-            visit_usage = myfile.read()
-
-        self.maxDiff = None  # Display the entire difference
-        # --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            # Python 3.10 difference in titles
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert usage.strip('\n') == actual
-
-        # create --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "create", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert create_usage.strip('\n') == actual
-
-        # read --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "read", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert read_usage.strip('\n') == actual
-
-        # update --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "update", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert update_usage.strip('\n') == actual
-
-        # delete --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "delete", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert delete_usage.strip('\n') == actual
-
-        # visit --help
-        with patch('sys.stdout', new_callable=StringIO) as stdout_mock:
-            sys.argv = ["caom2-repo", "visit", "--help"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            actual = stdout_mock.getvalue().replace(
-                'options:', 'optional arguments:').strip('\n')
-            assert visit_usage.strip('\n') == actual
-
-        # visit too few number of threads
-        with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
-            sys.argv = ["caom2-repo", "visit", "--threads", "1",
-                        "--obs_file",
-                        os.path.join(THIS_DIR, 'data/obs_id.txt'),
-                        "--plugin", os.path.join(THIS_DIR, 'passplugin.py'),
-                        "TEST"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            self.assertTrue('error: argument --threads: invalid choice' in
-                            stderr_mock.getvalue())
-
-        # visit too many number of threads
-        with patch('sys.stderr', new_callable=StringIO) as stderr_mock:
-            sys.argv = ["caom2-repo", "visit", "--threads", "11",
-                        "--obs_file",
-                        os.path.join(THIS_DIR, 'data/obs_id.txt'),
-                        "--plugin",
-                        os.path.join(THIS_DIR, 'passplugin.py'), "TEST"]
-            with self.assertRaises(MyExitError):
-                core.main_app()
-            self.assertTrue('error: argument --threads: invalid choice' in
-                            stderr_mock.getvalue())
+        pool_instance.terminate.assert_called_once()

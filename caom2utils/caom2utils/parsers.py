@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2024.                            (c) 2024.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -579,8 +579,11 @@ class BlueprintParser:
 
 
 class ContentParser(BlueprintParser):
-    def __init__(self, obs_blueprint=None, uri=None):
+    def __init__(self, obs_blueprint=None, uri=None, extension_start_index=0, extension_end_index=None):
         super().__init__(obs_blueprint, uri)
+        # for those cases where the extensions of interest are not all the extensions in the original file
+        self._extension_start_index = extension_start_index
+        self._extension_end_index = extension_end_index if extension_end_index else self._get_num_parts()
         self._wcs_parsers = {}
         self._set_wcs_parsers(obs_blueprint)
 
@@ -593,7 +596,7 @@ class ContentParser(BlueprintParser):
         return len(self._blueprint._extensions) + 1
 
     def _set_wcs_parsers(self, obs_blueprint):
-        self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=0)
+        self._wcs_parsers[0] = WcsParser(obs_blueprint, extension=self._extension_start_index)
 
     def augment_artifact(self, artifact):
         """
@@ -607,17 +610,21 @@ class ContentParser(BlueprintParser):
         if self.blueprint.get_configed_axes_count() == 0:
             raise TypeError(f'No WCS Data. End content artifact augmentation for ' f'{artifact.uri}.')
 
-        for index in range(0, self._get_num_parts()):
+        for index in range(self._extension_start_index, self._extension_end_index):
             if self.add_parts(artifact, index):
                 part = artifact.parts[str(index)]
                 part.product_type = self._get_from_list('Part.productType', index)
-                part.meta_producer = self._get_from_list('Part.metaProducer', index=0, current=part.meta_producer)
+                part.meta_producer = self._get_from_list(
+                    'Part.metaProducer', index=self._extension_start_index, current=part.meta_producer
+                )
 
                 # each Part has one Chunk, if it's not an empty part as determined just previously
                 if not part.chunks:
                     part.chunks.append(caom2.Chunk())
                 chunk = part.chunks[0]
-                chunk.meta_producer = self._get_from_list('Chunk.metaProducer', index=0, current=chunk.meta_producer)
+                chunk.meta_producer = self._get_from_list(
+                    'Chunk.metaProducer', index=self._extension_start_index, current=chunk.meta_producer
+                )
 
                 self._get_chunk_naxis(chunk, index)
 
@@ -868,23 +875,15 @@ class ContentParser(BlueprintParser):
 
         aug_axis = None
         aug_error = None
-        if wcs is not None and wcs.axis is not None and wcs.axis.axis is not None:
-            aug_axis = wcs.axis.axis
-            aug_error = wcs.axis.error
-        else:
-            aug_axis_ctype = self._get_from_list(f'Chunk.{label}.axis.axis.ctype', index)
-            aug_axis_cunit = self._get_from_list(f'Chunk.{label}.axis.axis.cunit', index)
-            if aug_axis_ctype is not None:
-                aug_axis = caom2.Axis(aug_axis_ctype, aug_axis_cunit)
-                self.logger.debug(f'Creating {label} Axis for {self.uri} from blueprint')
+        aug_axis_ctype = self._get_from_list(f'Chunk.{label}.axis.axis.ctype', index)
+        aug_axis_cunit = self._get_from_list(f'Chunk.{label}.axis.axis.cunit', index)
+        if aug_axis_ctype is not None:
+            aug_axis = caom2.Axis(aug_axis_ctype, aug_axis_cunit)
+            self.logger.debug(f'Creating {label} Axis for {self.uri} from blueprint')
 
-            aug_error = self._two_param_constructor(
-                f'Chunk.{label}.axis.error.syser',
-                f'Chunk.{label}.axis.error.rnder',
-                index,
-                _to_float,
-                caom2.CoordError,
-            )
+        aug_error = self._two_param_constructor(
+            f'Chunk.{label}.axis.error.syser', f'Chunk.{label}.axis.error.rnder', index, _to_float, caom2.CoordError,
+        )
 
         aug_naxis = None
         aug_range = self._try_range(index, label)
@@ -1108,7 +1107,7 @@ class ContentParser(BlueprintParser):
         :param chunk: The chunk to modify with the addition of energy information.
         :param index: The index in the blueprint for looking up plan information.
         """
-        self.logger.debug('Begin augmentation with blueprint for energy.')
+        self.logger.debug(f'Begin augmentation with blueprint for energy with index {index}.')
         aug_axis, aug_naxis_index = self._get_axis_wcs('energy', chunk.energy, index)
         specsys = _to_str(self._get_from_list('Chunk.energy.specsys', index))
         if aug_axis is None:
@@ -1478,7 +1477,7 @@ class FitsParser(ContentParser):
 
     """
 
-    def __init__(self, src, obs_blueprint=None, uri=None):
+    def __init__(self, src, obs_blueprint=None, uri=None, extension_start_index=0, extension_end_index=None):
         """
         Ctor
         :param src: List of headers (dictionary of FITS keywords:value) with one header for each extension or a FITS
@@ -1505,6 +1504,8 @@ class FitsParser(ContentParser):
         self._errors = []
         # for command-line parameter to module execution
         self.uri = uri
+        self._extension_start_index = extension_start_index
+        self._extension_end_index = extension_end_index if extension_end_index is not None else self._get_num_parts()
         self.apply_blueprint()
 
     def _get_num_parts(self):
@@ -1863,7 +1864,8 @@ class Hdf5Parser(ContentParser):
     - use the astropy.wcs instance and other blueprint metadata to fill the CAOM2 record.
     """
 
-    def __init__(self, obs_blueprint, uri, h5_file, extension_names=None):
+    def __init__(self, obs_blueprint, uri, h5_file, extension_names=None, extension_start_index=0,
+                 extension_end_index=None):
         """
         :param obs_blueprint: Hdf5ObsBlueprint instance
         :param uri: which artifact augmentation is based on
@@ -1874,7 +1876,7 @@ class Hdf5Parser(ContentParser):
         # the length of the array is the number of Parts in an HDF5 file,
         # and the values are HDF5 lookup path names.
         self._extension_names = extension_names
-        super().__init__(obs_blueprint, uri)
+        super().__init__(obs_blueprint, uri, extension_start_index, extension_end_index)
 
     def _get_num_parts(self):
         """return the number of Parts to create for a CAOM record
@@ -1886,8 +1888,10 @@ class Hdf5Parser(ContentParser):
         return result
 
     def _set_wcs_parsers(self, obs_blueprint):
-        # used to set the astropy wcs info, resulting in a validated wcs
-        # that can be used to construct a valid CAOM2 record
+        # used to set the astropy wcs info, resulting in a validated wcs that can be used to construct a valid CAOM2
+        # record
+        # This method call is over-writing the default behaviour in the ContentParser class. The default behaviour
+        # uses the obs_blueprint. This method is called in the ContentParser constructor.
         self._wcs_parsers = {}
 
     def apply_blueprint_from_file(self):
@@ -2012,9 +2016,7 @@ class Hdf5Parser(ContentParser):
                     else:
                         attributes[ii].append(key)
 
-        temp = list(set(extensions))
-        extensions = temp
-        return individual, multi, attributes, extensions
+        return individual, multi, attributes, list(set(extensions))
 
     def _find_extension_names(self, candidates):
         """ if the HDF5 file has a structure where-by more than one Chunk (the equivalent of a FITS HDU extension)
@@ -2030,7 +2032,6 @@ class Hdf5Parser(ContentParser):
             :param name: fully-qualified HDF5 path name
             :param object: what the HDF5 path name points to
             """
-            import h5py
             for part_name in candidates:
                 y = part_name.replace('/', '', 1)
                 if name.startswith(y):
@@ -2111,7 +2112,7 @@ class Hdf5Parser(ContentParser):
         return
 
     def augment_artifact(self, artifact):
-        for ii in range(0, self._get_num_parts()):
+        for ii in range(self._extension_start_index, self._extension_end_index):
             # one WCS parser per Part/Chunk
             self._wcs_parsers[ii] = Hdf5WcsParser(self._blueprint, ii)
         super().augment_artifact(artifact)

@@ -1,0 +1,80 @@
+Observation.observationID = ['OBSID'], default = None
+Observation.type = FLAT
+Observation.intent = calibration
+Observation.metaRelease = 2025-01-01T17:19:57
+Observation.metaProducer = GEMINI2caom2/0.0.0
+Observation.algorithm.name = exposure
+Observation.instrument.name = MAROON-X
+Observation.instrument.keywords = ['INSTMODE'], default = None
+Observation.proposal.id = get_proposal_id()
+Observation.target.name = ['OBJECT'], default = None
+Observation.target.type = object
+Observation.telescope.name = ['TELESCOP'], default = None
+Observation.telescope.geoLocationX = -5464284.386715498
+Observation.telescope.geoLocationY = -2493782.309107667
+Observation.telescope.geoLocationZ = 2150786.380689657
+Observation.environment.ambientTemp = ['TEMPERAT'], default = None
+Plane.productID = N20250101M0624
+Plane.metaRelease = 2025-01-01T17:19:5
+Plane.dataRelease = 2025-01-01T17:19:5
+Plane.dataProductType = spectrum
+Plane.calibrationLevel = 1
+Plane.metaProducer = GEMINI2caom2/0.0.0
+Plane.provenance.name = Gemini Observatory Data
+Plane.provenance.project = Gemini Archive
+Plane.provenance.producer = ['IMAGESWV', 'ORIGIN'], default = Gemini Observatory
+Plane.provenance.reference = http://archive.gemini.edu/searchform/GN-CAL20250101-0-0
+Plane.provenance.lastExecuted = ['DATE-FTS'], default = None
+Artifact.productType = calibration
+Artifact.releaseType = data
+Artifact.uri = gemini:GEMINI/N20250101M0624.fits
+Artifact.metaProducer = GEMINI2caom2/0.0.0
+Chunk = include
+Chunk.metaProducer = GEMINI2caom2/0.0.0
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.ssysobs = ['SSYSOBS'], default = None
+Chunk.energy.restfrq = ['RESTFRQ'], default = None
+Chunk.energy.restwav = ['RESTWAV'], default = None
+Chunk.energy.velosys = ['VELOSYS'], default = None
+Chunk.energy.zsource = ['ZSOURCE'], default = None
+Chunk.energy.ssyssrc = ['SSYSSRC'], default = None
+Chunk.energy.velang = ['VELANG'], default = None
+Chunk.energy.bandpassName = [], default = None
+Chunk.energy.resolvingPower = 85000.0
+Chunk.energy.axis.axis.ctype = ['CTYPE1'], default = None
+Chunk.energy.axis.axis.cunit = ['CUNIT1'], default = None
+Chunk.energy.axis.error.syser = ['CSYER1'], default = None
+Chunk.energy.axis.error.rnder = ['CRDER1'], default = None
+Chunk.energy.axis.function.naxis = ['NAXIS1'], default = None
+Chunk.energy.axis.function.delta = ['CDELT1'], default = None
+Chunk.energy.axis.function.refCoord.pix = ['CRPIX1'], default = None
+Chunk.energy.axis.function.refCoord.val = ['CRVAL1'], default = None
+Chunk.time.exposure = get_exposure()
+Chunk.time.resolution = get_exposure()
+Chunk.time.timesys = ['TIMESYS'], default = UTC
+Chunk.time.trefpos = ['TREFPOS'], default = None
+Chunk.time.mjdref = ['MJDREF'], default = None
+Chunk.time.axis.axis.ctype = TIME
+Chunk.time.axis.axis.cunit = d
+Chunk.time.axis.error.syser = 1e-07
+Chunk.time.axis.error.rnder = 1e-07
+Chunk.time.axis.function.naxis = 1
+Chunk.time.axis.function.delta = get_time_delta()
+Chunk.time.axis.function.refCoord.pix = 0.5
+Chunk.time.axis.function.refCoord.val = get_time_function_val()
+extension 1:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = get_energy_chunk_range_start_val()
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = get_energy_chunk_range_end_val()
+extension 2:
+Chunk.energy.specsys = TOPOCENT
+Chunk.energy.axis.axis.ctype = WAVE
+Chunk.energy.axis.axis.cunit = nm
+Chunk.energy.axis.range.start.pix = 0.5
+Chunk.energy.axis.range.start.val = get_energy_chunk_range_start_val()
+Chunk.energy.axis.range.end.pix = 1.5
+Chunk.energy.axis.range.end.val = get_energy_chunk_range_end_val()

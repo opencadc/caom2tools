@@ -79,11 +79,9 @@ from . import caom_util
 from . import shape
 from . import wcs
 from .artifact import Artifact
-from .common import AbstractCaomEntity, CaomObject, ObservationURI,\
-    VocabularyTerm, OrderedEnum
+from .common import AbstractCaomEntity, CaomObject, ObservationURI, VocabularyTerm, OrderedEnum
 from .common import _CAOM_VOCAB_NS, _OBSCORE_VOCAB_NS
 import warnings
-from enum import Enum
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     from aenum import Enum, extend_enum
@@ -208,10 +206,11 @@ class Quality(Enum):
     JUNK = VocabularyTerm(_CAOM_VOCAB_NS, "junk", True).get_value()
 
 
-class Observable():
+class Observable(CaomObject):
     """ Observable class"""
 
     def __init__(self, ucd):
+        super(Observable, self).__init__()
         self.ucd = ucd
 
     @property
@@ -487,7 +486,7 @@ class Plane(AbstractCaomEntity):
 
     @observable.setter
     def observable(self, value):
-        caom_util.type_check(value, str, 'observable')
+        caom_util.type_check(value, Observable, 'observable')
         self._observable = value
 
     @property

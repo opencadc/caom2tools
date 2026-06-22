@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2021.                            (c) 2021.
+#  (c) 2025.                            (c) 2025.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -95,7 +95,8 @@ class StorageClientWrapper:
     Wrap the metrics collection with StorageInventoryClient.
     """
 
-    def __init__(self, subject, resource_id='ivo://cadc.nrc.ca/uvic/minoc', metrics=None):
+    def __init__(self, subject, resource_id='ivo://cadc.nrc.ca/uvic/minoc', metrics=None,
+                 host=None, insecure=False):
         """
         :param subject: net.Subject instance for authentication and authorization
         :param resource_id: str identifies the StorageInventoryClient endpoint. Defaults to the installation closest to
@@ -103,8 +104,11 @@ class StorageClientWrapper:
         :param metrics: caom2pipe.manaage_composable.Metrics instance. If set, will track execution times, by action,
             from the beginning of the method invocation to the end of the method invocation, success or failure.
             Defaults to None, because fits2caom2 is a stand-alone application.
+        :param host: Host server for the storage inventory service
+        :param insecure: skip SSL server certificate verification (for testing only)
         """
-        self._cadc_client = StorageInventoryClient(subject=subject, resource_id=resource_id)
+        self._cadc_client = StorageInventoryClient(
+            subject=subject, resource_id=resource_id, host=host, insecure=insecure)
         self._metrics = metrics
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -188,24 +192,19 @@ class StorageClientWrapper:
         self._logger.debug(f'Begin put for {uri} in {working_directory}')
         start = self._current()
         cwd = getcwd()
-        archive, f_name = StorageClientWrapper._decompose(uri)
+        _, f_name = StorageClientWrapper._decompose(uri)
         fqn = path.join(working_directory, f_name)
         chdir(working_directory)
         try:
-            local_meta = get_local_file_info(fqn)
-            encoding = get_file_encoding(fqn)
-            replace = True
-            cadc_meta = self.info(uri)
-            if cadc_meta is None:
-                replace = False
+            local_meta = get_local_file_info(f_name)
+            encoding = get_file_encoding(f_name)
             self._logger.debug(
-                f'uri {uri} src {fqn} replace {replace} file_type {local_meta.file_type} encoding {encoding} '
+                f'uri {uri} src {fqn} file_type {local_meta.file_type} encoding {encoding} '
                 f'md5_checksum {local_meta.md5sum}'
             )
             self._cadc_client.cadcput(
                 uri,
-                src=fqn,
-                replace=replace,
+                src=f_name,
                 file_type=local_meta.file_type,
                 file_encoding=encoding,
                 md5_checksum=local_meta.md5sum,
@@ -279,15 +278,22 @@ def _clean_headers(fits_header):
 
 
 def get_local_headers_from_fits(fqn):
-    """Create a list of fits.Header instances from a fits file.
-    :param fqn str  fully-qualified name of the FITS file on disk
-    :return list of fits.Header instances
+    """Create a list of fits.Header instances from a FITS file or plain-text
+    header file.
+
+    When the file is not a FITS binary (e.g. a ``*.fits.header`` text file),
+    headers are parsed from text instead.
+
+    :param fqn: fully-qualified name of the file on disk
+    :return: list of fits.Header instances
     """
-    hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=True)
-    hdulist.verify('fix')
-    hdulist.close()
-    headers = [h.header for h in hdulist]
-    return headers
+    try:
+        with fits.open(fqn, memmap=True, lazy_load_hdus=True) as hdulist:
+            hdulist.verify('fix')
+            return [h.header for h in hdulist]
+    except OSError:
+        with open(fqn, encoding='utf-8', errors='replace') as f:
+            return make_headers_from_string(f.read())
 
 
 def get_local_file_headers(fqn):
