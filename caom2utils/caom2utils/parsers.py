@@ -1895,7 +1895,8 @@ class Hdf5Parser(ContentParser):
         Retrieve metadata from file, cache in the blueprint.
         """
         self.logger.debug('Begin apply_blueprint_from_file')
-        # h5py is an extra in this package since most collections do not require it
+        # h5py is an extra in this package since most collections do not
+        # require it
         import h5py
 
         individual, multi, attributes, candidate_extensions = self._extract_path_names_from_blueprint()

@@ -95,7 +95,8 @@ class StorageClientWrapper:
     Wrap the metrics collection with StorageInventoryClient.
     """
 
-    def __init__(self, subject, resource_id='ivo://cadc.nrc.ca/uvic/minoc', metrics=None):
+    def __init__(self, subject, resource_id='ivo://cadc.nrc.ca/uvic/minoc', metrics=None,
+                 host=None, insecure=False):
         """
         :param subject: net.Subject instance for authentication and authorization
         :param resource_id: str identifies the StorageInventoryClient endpoint. Defaults to the installation closest to
@@ -103,8 +104,11 @@ class StorageClientWrapper:
         :param metrics: caom2pipe.manaage_composable.Metrics instance. If set, will track execution times, by action,
             from the beginning of the method invocation to the end of the method invocation, success or failure.
             Defaults to None, because fits2caom2 is a stand-alone application.
+        :param host: Host server for the storage inventory service
+        :param insecure: skip SSL server certificate verification (for testing only)
         """
-        self._cadc_client = StorageInventoryClient(subject=subject, resource_id=resource_id)
+        self._cadc_client = StorageInventoryClient(
+            subject=subject, resource_id=resource_id, host=host, insecure=insecure)
         self._metrics = metrics
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -274,15 +278,22 @@ def _clean_headers(fits_header):
 
 
 def get_local_headers_from_fits(fqn):
-    """Create a list of fits.Header instances from a fits file.
-    :param fqn str  fully-qualified name of the FITS file on disk
-    :return list of fits.Header instances
+    """Create a list of fits.Header instances from a FITS file or plain-text
+    header file.
+
+    When the file is not a FITS binary (e.g. a ``*.fits.header`` text file),
+    headers are parsed from text instead.
+
+    :param fqn: fully-qualified name of the file on disk
+    :return: list of fits.Header instances
     """
-    hdulist = fits.open(fqn, memmap=True, lazy_load_hdus=True)
-    hdulist.verify('fix')
-    hdulist.close()
-    headers = [h.header for h in hdulist]
-    return headers
+    try:
+        with fits.open(fqn, memmap=True, lazy_load_hdus=True) as hdulist:
+            hdulist.verify('fix')
+            return [h.header for h in hdulist]
+    except OSError:
+        with open(fqn, encoding='utf-8', errors='replace') as f:
+            return make_headers_from_string(f.read())
 
 
 def get_local_file_headers(fqn):

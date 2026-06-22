@@ -283,7 +283,7 @@ class XmlParser(ObservationParser):
             return None
         for element in list(parent):
             if element.tag == "{" + self.namespace + "}" + element_tag:
-                if list(element) == 0 and not element.keys() and\
+                if len(element) == 0 and not element.keys() and\
                    (not element.text or not element.text.strip()):
                     # element is empty, return None
                     return None
@@ -772,7 +772,6 @@ class ObservationReader(object):
 
         Arguments:
         parent : element containing the Observable element
-        ns : namespace of the document
         return : an Observable object or None if the document does not contain one
         raise : ObservationParsingException
         """

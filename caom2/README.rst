@@ -99,7 +99,7 @@ To create a complete Observation
                       RefCoord, PolarizationWCS
 
     observation = SimpleObservation('collection', 'observationID')
-    observation.obs_type = 'flat'
+    observation.type = 'flat'
     observation.intent = ObservationIntentType.SCIENCE
     observation.meta_release = datetime(2016, 11, 22, 11, 53, 44, 0)
 

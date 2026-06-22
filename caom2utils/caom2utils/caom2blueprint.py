@@ -471,7 +471,10 @@ def _load_module(module):
         raise e
 
 
-def caom2gen():
+def build_caom2gen_parser():
+    """
+    Build the ArgumentParser for caom2gen (without parsing argv).
+    """
     parser = get_gen_proc_arg_parser()
     parser.add_argument(
         '--blueprint',
@@ -483,6 +486,11 @@ def caom2gen():
             'per lineage entry.'
         ),
     )
+    return parser
+
+
+def caom2gen():
+    parser = build_caom2gen_parser()
 
     if len(sys.argv) < 2:
         parser.print_usage(file=sys.stderr)
@@ -532,10 +540,11 @@ def caom2gen():
     try:
         gen_proc(args, blueprints)
     except Exception as e:
+        from cadcutils.util.cli_errors import format_user_error
         logging.error('Failed caom2gen execution.')
-        logging.error(e)
-        tb = traceback.format_exc()
-        logging.error(tb)
+        logging.error(format_user_error(e))
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            logging.debug(traceback.format_exc())
         sys.exit(-1)
 
     logging.debug(f'Done {APP_NAME} processing.')
@@ -718,7 +727,9 @@ def proc(args, obs_blueprints):
             raise RuntimeError(msg)
 
     subject = net.Subject.from_cmd_line_args(args)
-    client = data_util.StorageClientWrapper(subject, resource_id=args.resource_id)
+    client = data_util.StorageClientWrapper(
+        subject, resource_id=args.resource_id, host=args.host,
+        insecure=args.insecure)
     validate_wcs = True
     if args.no_validate:
         validate_wcs = False
@@ -838,13 +849,9 @@ def gen_proc(args, blueprints, **kwargs):
         connected = False
     else:
         subject = net.Subject.from_cmd_line_args(args)
-        if args.resource_id is None:
-            # if the resource_id is Undefined, using CadcDataClient
-            client = data_util.StorageClientWrapper(subject, using_storage_inventory=False)
-        else:
-            # if the resource_id is defined, assume that the caller intends to use the Storage Inventory system, as
-            # it's the CADC storage client that depends on a resource_id
-            client = data_util.StorageClientWrapper(subject, resource_id=args.resource_id)
+        client = data_util.StorageClientWrapper(
+            subject, resource_id=args.resource_id, host=args.host,
+            insecure=args.insecure)
 
     for ii, cardinality in enumerate(args.lineage):
         product_id, uri = _extract_ids(cardinality)

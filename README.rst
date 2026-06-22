@@ -77,8 +77,8 @@ Testing with tox
 ~~~~~~~~~~~~~~~~
 
 If tox, the generic virtual environment tool, is available it can be used to test with different versions of
-python is isolation. For example, to test on all supported versions of Python in cadcdata (assuming that
-they are available in the system):
+python in isolation. Supported Python versions are 3.10 through 3.14. For example, to test on all supported
+versions of Python (assuming that they are available in the system):
 
 ::
 
@@ -88,7 +88,7 @@ To test a specific version:
 
 ::
 
-    cd ./caom2utils && tox -e py3.9
+    cd ./caom2utils && tox -e py310
 
 
 To list all the available environments:
