@@ -140,7 +140,7 @@ class DataLinkSemantics(OrderedEnum):
     SCIENCE = VocabularyTerm(_CAOM_PRODUCT_TYPE_NS, 'science', True).get_value()  # this
 
     # deprecated
-    INFO = 'info'
+    # INFO = 'info'
     # CATALOG = 'catalog'
 
 
