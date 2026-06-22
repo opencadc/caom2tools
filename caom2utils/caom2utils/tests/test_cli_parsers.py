@@ -2,7 +2,7 @@
 # ******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
 # *************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
 #
-#  (c) 2025.                            (c) 2025.
+#  (c) 2026.                            (c) 2026.
 #  Government of Canada                 Gouvernement du Canada
 #  National Research Council            Conseil national de recherches
 #  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -51,39 +51,96 @@
 #  warranty of MERCHANTABILITY          implicite de COMMERCIALISABILITÉ
 #  or FITNESS FOR A PARTICULAR          ni d’ADÉQUATION À UN OBJECTIF
 #  PURPOSE.  See the GNU Affero         PARTICULIER. Consultez la Licence
-#  General Public License for           Générale Publique GNU Affero
-#  more details.                        pour plus de détails.
+#  General Public License for           Générale Publique GNU Affero pour
+#  more details.                        plus de détails.
 #
 #  You should have received             Vous devriez avoir reçu une
 #  a copy of the GNU Affero             copie de la Licence Générale
 #  General Public License along         Publique GNU Affero avec
-#  with OpenCADC.  If not, see          OpenCADC ; si ce n’est
-#  <http://www.gnu.org/licenses/>.      pas le cas, consultez :
+#  with OpenCADC.  If not, see          OpenCADC ; si ce n’est pas le cas,
+#  <http://www.gnu.org/licenses/>.      consultez :
 #                                       <http://www.gnu.org/licenses/>.
 #
-#  $Revision: 4 $
-#
 # ***********************************************************************
-#
 
-from caom2.observation import Observation
+"""Contract tests for fits2caom2 and caom2gen CLI parsers."""
+
+import os
+import sys
+from unittest.mock import patch
+
+import pytest
+
+from caom2utils import caom2blueprint
+from caom2utils.caom2blueprint import (
+    GLOBAL_STORAGE_RESOURCE_ID, build_caom2gen_parser, get_arg_parser,
+)
+from caom2utils.legacy import build_fits2caom2_parser
+from cadcutils.util.tests.parser_helpers import (
+    assert_has_base_dests, assert_has_dests, assert_help_contains,
+)
+
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+TESTDATA_DIR = os.path.join(THIS_DIR, 'data')
 
 
-class ObservationUpdater(object):
-    """ObservationUpdater that adds a plane to the observation."""
+class MyExitError(Exception):
+    pass
 
-    def update(self, observation, **kwargs):
-        """
-        Processes an observation and updates it
-        """
-        assert isinstance(observation, Observation), (
-            "observation {} is not an Observation".format(observation))
-        print("Observation: {}".format(observation.uri))
-        for plane in observation.planes.values():
-            for artifact in plane.artifacts.values():
-                if artifact.uri.startswith('ad:'):
-                    olduri = artifact.uri
-                    newuri = artifact.uri.replace('ad:', 'cadc:')
-                    artifact.uri = newuri
-                    print('\t{} -> {}'.format(olduri, artifact.uri))
-        return True
+
+_COMMON_DESTS = (
+    'dumpconfig', 'not_connected', 'no_validate', 'out_obs_xml',
+    'in_obs_xml', 'observation', 'local',
+)
+
+
+def test_fits2caom2_base_parser_contract():
+    parser = get_arg_parser()
+    assert_has_base_dests(parser)
+    assert_has_dests(parser, *_COMMON_DESTS, 'productID', 'fileURI')
+    assert_help_contains(
+        parser,
+        GLOBAL_STORAGE_RESOURCE_ID,
+        'Augments an observation',
+    )
+
+
+def test_fits2caom2_legacy_parser_contract():
+    parser = build_fits2caom2_parser()
+    assert_has_base_dests(parser)
+    assert_has_dests(
+        parser, *_COMMON_DESTS, 'productID', 'fileURI',
+        'config', 'default', 'override',
+    )
+    assert_help_contains(parser, 'utype to keyword config')
+
+
+def test_caom2gen_parser_contract():
+    parser = build_caom2gen_parser()
+    assert_has_base_dests(parser)
+    assert_has_dests(
+        parser, *_COMMON_DESTS, 'external_url', 'module', 'plugin',
+        'lineage', 'use_blueprint_parser', 'blueprint',
+    )
+    assert_help_contains(
+        parser,
+        GLOBAL_STORAGE_RESOURCE_ID,
+        'productID/artifactURI',
+    )
+
+
+@patch('caom2utils.caom2blueprint.gen_proc', side_effect=RuntimeError('boom'))
+@patch('sys.exit', side_effect=MyExitError)
+def test_caom2gen_logs_debug_traceback_on_error(exit_mock, gen_mock):
+    blueprint = os.path.join(TESTDATA_DIR, 'si', 'si.blueprint')
+    sys.argv = (
+        'caom2gen --debug -o /tmp/out.xml --no_validate '
+        '--resource-id ivo://cadc.nrc.ca/test '
+        '--observation TEST_COLLECTION TEST_OBS_ID '
+        '--lineage test_product_id/cadc:TEST/test_file.fits '
+        '--blueprint {}'.format(blueprint)
+    ).split()
+    with pytest.raises(MyExitError):
+        caom2blueprint.caom2gen()
+    gen_mock.assert_called_once()
+    exit_mock.assert_called_once_with(-1)
