@@ -457,10 +457,12 @@ def update_blueprint(obs_blueprint, artifact_uri=None, config=None, defaults=Non
             return None
 
 
-def main_app():
+def build_fits2caom2_parser():
+    """
+    Build the ArgumentParser for fits2caom2 (without parsing argv).
+    """
     parser = caom2blueprint.get_arg_parser()
 
-    # add legacy fits2caom2 arguments
     parser.add_argument(
         '--config',
         required=False,
@@ -469,6 +471,11 @@ def main_app():
 
     parser.add_argument('--default', help='file with default values for keywords')
     parser.add_argument('--override', help='file with override values for keywords')
+    return parser
+
+
+def main_app():
+    parser = build_fits2caom2_parser()
 
     if len(sys.argv) < 2:
         # correct error message when running python3
@@ -507,9 +514,10 @@ def main_app():
     try:
         caom2blueprint.proc(args, obs_blueprint)
     except Exception as e:
-        logging.error(e)
-        tb = traceback.format_exc()
-        logging.debug(tb)
+        from cadcutils.util.cli_errors import format_user_error
+        logging.error(format_user_error(e))
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            logging.debug(traceback.format_exc())
         sys.exit(-1)
 
     logging.info("DONE")

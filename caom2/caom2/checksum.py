@@ -129,7 +129,6 @@ a 0-byte separator is appended after each such list element.
 
 """
 logger = logging.getLogger('checksum')
-logging.basicConfig()
 
 
 def _log_collection_separator(attribute):
