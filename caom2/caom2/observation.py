@@ -98,9 +98,11 @@ class ObservationIntentType(OrderedEnum):
     """
     CALIBRATION: "calibration"
     SCIENCE: "science"
+    OUTREACH: "outreach"
     """
     SCIENCE = "science"
     CALIBRATION = "calibration"
+    OUTREACH = "outreach"
 
 
 class Status(Enum):
